@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, Iterator, Optional
 
 from google.cloud import firestore
@@ -401,8 +401,16 @@ class FirestoreStateStore:
             yield SourceRecord.from_doc(d)
 
     def mark_analysis_pending(self, dataset_id: str) -> None:
+        # `analysis_started_at` is what makes an orphaned pending recoverable:
+        # nothing clears `pending` if the container dies mid-session, and no
+        # selector track matches it, so `reap_stale_pending` needs a clock to
+        # tell a live session from one a killed run left behind.
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {"analysis_status": "pending", "last_error": None},
+            {
+                "analysis_status": "pending",
+                "last_error": None,
+                "analysis_started_at": datetime.now(timezone.utc),
+            },
             merge=True,
         )
 
@@ -596,6 +604,51 @@ class FirestoreStateStore:
             },
             merge=True,
         )
+
+    def reap_stale_pending(self, *, older_than_minutes: int = 120) -> list[str]:
+        """Recycle `pending` sources orphaned by a run that died mid-session.
+
+        `mark_analysis_pending` is written when a session starts; only
+        succeeded/failed/restricted clear it. If the container goes away first
+        — Cloud Run request timeout, OOM, a deploy mid-run — the marker
+        stays, and since the selector matches only `never`, `failed` and
+        Track-2 `changed`, a stranded `pending` is never re-picked. It leaks
+        one dataset per interrupted session, permanently.
+
+        Recycling as `failed` (rather than back to `never`) is deliberate: it
+        puts the source on Track 1b *and* bumps `failed_attempts`, so a
+        dataset that is simply too slow to ever finish parks after 3
+        interruptions instead of burning tokens every night forever.
+
+        Only called at the start of a run, before any of this run's own
+        sessions exist. The cutoff is belt-and-braces for the case where a
+        manual CLI run overlaps the scheduled one — keep it comfortably above
+        the slowest expected session.
+
+        Returns the ids reaped.
+        """
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=older_than_minutes)
+        query = self.client.collection(SOURCES_COLL).where(
+            filter=FieldFilter("analysis_status", "==", "pending")
+        )
+        reaped: list[str] = []
+        for d in query.stream():
+            started = (d.to_dict() or {}).get("analysis_started_at")
+            if isinstance(started, datetime):
+                # Firestore hands back tz-aware values; a naive one could only
+                # come from a hand-edited doc — treat it as UTC rather than
+                # letting the comparison raise and strand the whole sweep.
+                if started.tzinfo is None:
+                    started = started.replace(tzinfo=timezone.utc)
+                if started > cutoff:
+                    continue
+            # No timestamp at all → written before this field existed, so it
+            # predates the current run by definition.
+            self.mark_analysis_failed(
+                d.id, "interrupted — run ended mid-session (no page written)"
+            )
+            reaped.append(d.id)
+        return reaped
 
     # ---- Ops helpers -----------------------------------------------------
 

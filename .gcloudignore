@@ -1,0 +1,48 @@
+# Build context uploaded by `gcloud run deploy/jobs deploy --source=.`
+# (infra/builder.deploy.sh, infra/builder-job.deploy.sh).
+#
+# Without this file gcloud uploads the entire working tree — 1.8GB here, which
+# stalls the deploy long before Cloud Build ever starts. Note that
+# .dockerignore does NOT help: it is applied by the builder, after the upload.
+#
+# Keep in mind these are different filters with different jobs:
+#   .gcloudignore  — what gets UPLOADED to Cloud Build
+#   .dockerignore  — what gets into the IMAGE from what was uploaded
+# Anything the Dockerfile COPYs must survive both. Today that is services/,
+# agent/system-prompt.md and agent/skills/check.py.
+
+.git/
+.github/
+.claude/
+
+# Local Python env + caches — never a build input.
+.venv/
+venv/
+ENV/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+
+# Local scanner artifacts (data/downloads, scanner.db) and scratch space.
+data/
+tmp/
+
+# Model-eval snapshots: local-only and gitignored because agent output embeds
+# raw dataset content including personal contact details. The builder
+# Dockerfile COPYs services/page_builder wholesale, so without this line
+# (and the matching one in .dockerignore) every --source deploy would bake
+# that PII into the image.
+services/page_builder/harness-comparison/
+
+# Node/Nuxt build products. frontend/ SOURCE is kept: the legacy
+# cloudbuild-publish.yaml path builds the publisher image from it.
+frontend/node_modules/
+frontend/.output/
+frontend/.nuxt/
+node_modules/
+
+.env
+.env.local
+.env.*.local
+.DS_Store
+*.db

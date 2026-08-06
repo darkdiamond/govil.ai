@@ -15,6 +15,11 @@ node_modules/
 .github/
 .claude/
 data/
+# Model-eval snapshots — local-only + gitignored (agent output embeds raw
+# dataset content incl. personal contact details). The builder image COPYs
+# services/page_builder wholesale, so this dir has to be excluded explicitly
+# or it ships inside the container.
+services/page_builder/harness-comparison/
 *.db
 **/__pycache__/
 **/*.pyc

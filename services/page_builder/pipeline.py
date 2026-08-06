@@ -301,6 +301,28 @@ async def run_pipeline(
         scanner = Scanner(config=config, db=db)
         scan_summary = await scanner.scan(limit=scan_limit, mode=mode)
 
+    # [1.5] reap orphaned `pending` markers from a previous run that died
+    # mid-session. No selector track matches `pending`, so without this every
+    # interrupted session leaks one dataset permanently (7 had accumulated by
+    # 2026-08-05, when the run started hitting the Cloud Run request timeout
+    # daily). Recycled as `failed`, so Track 1b retries them and
+    # `failed_attempts` parks the hopeless ones after 3 tries.
+    reaped: list[str] = []
+    if not override_id and not dry_run:
+        reap_after = int(os.environ.get("PENDING_REAP_MINUTES", "120"))
+        try:
+            reaped = await asyncio.to_thread(
+                store.reap_stale_pending, older_than_minutes=reap_after
+            )
+            if reaped:
+                log.info(
+                    "reaped %d orphaned pending source(s): %s",
+                    len(reaped),
+                    ", ".join(i[:8] for i in reaped),
+                )
+        except Exception:
+            log.exception("pending reap failed — continuing with select")
+
     # [2] select
     if override_id:
         src = await asyncio.to_thread(store.get_source, override_id)
@@ -318,6 +340,7 @@ async def run_pipeline(
         "selected": [s.id for s in to_process],
         "scan": _scan_summary_dict(scan_summary) if scan_summary else None,
         "reconcile": reconcile_summary,
+        "reaped_pending": reaped,
     }
 
     if dry_run or not to_process:
@@ -379,11 +402,17 @@ def _cli() -> None:
     p.add_argument("--n", type=int, default=None, help="Override DAILY_CAP")
     p.add_argument("--no-trigger-publish", action="store_true",
                    help="Skip Cloud Build trigger after successful builds")
+    # `--mode scheduled` is what the Cloud Run *job* passes: a job execution is
+    # the production daily batch, so its scan_runs bookkeeping must match what
+    # the HTTP service recorded, not read as a local debug run. Default stays
+    # `manual` so nothing changes for hand-run CLI invocations.
+    p.add_argument("--mode", default="manual", choices=("manual", "scheduled"),
+                   help="Run mode recorded on the scan_runs doc")
     args = p.parse_args()
 
     summary = asyncio.run(
         run_pipeline(
-            mode="manual",
+            mode=args.mode,
             override_id=args.source,
             dry_run=args.dry_run,
             n_per_run=args.n,

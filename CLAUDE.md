@@ -10,17 +10,34 @@ landing pages. Four layers:
 1. **Scanner** — `services/scanner/`. Polls CKAN, upserts per-source
    state into **Firestore** (`sources/*`). Runs inside the builder
    container; also usable as a local CLI for debugging.
-2. **Builder** — `services/page_builder/`. **Cloud Run service**
-   (`govdata-builder`), invoked by Cloud Scheduler **daily at 07:00
-   Asia/Jerusalem**:
-   - `pipeline.run_pipeline` drives scan → select every never-analyzed
-     (or retryable-failed) source up to `DAILY_CAP` → concurrent agent
-     sessions (`asyncio.gather` + `Semaphore(MAX_CONCURRENT)`) → mark
-     Firestore → trigger the publisher. **No new datasets → no build**
-     (`status: idle`, publish trigger skipped).
-   - Pinned to **one container** (`--max-instances=1 --concurrency=1`).
-     Per-source parallelism lives inside that container, never Cloud
-     Run autoscaling.
+2. **Builder** — `services/page_builder/`. **Cloud Run job**
+   (`govdata-builder-job`), executed by Cloud Scheduler **daily at 07:00
+   Asia/Jerusalem** via the Admin API's `:run` method:
+   - `pipeline.run_pipeline` drives scan → reap orphaned `pending` →
+     select every never-analyzed (or retryable-failed) source up to
+     `DAILY_CAP` → concurrent agent sessions (`asyncio.gather` +
+     `Semaphore(MAX_CONCURRENT)`) → mark Firestore → trigger the
+     publisher. **No new datasets → no build** (`status: idle`, publish
+     trigger skipped).
+   - **A job, not a service, because the batch outgrew the 3600s request
+     timeout.** From 2026-08-01 every scheduler tick 504'd at exactly
+     3600.000s. Since the publish dispatch is the last step of
+     `run_pipeline` (after `gather` over all sources), whether the site
+     updated became a race between the batch finishing and Cloud Run
+     reaping the container — lost 5 days straight, so 11 pages sat built,
+     staged and marked `succeeded` while the site stayed frozen. A job
+     execution has no request semantics: `--task-timeout` (6h) is the
+     only bound. `infra/builder-job.deploy.sh`.
+   - The `govdata-builder` **service still exists** for manual
+     single-dataset invokes (`{"dataset_id": "..."}`) and as instant
+     rollback: `TARGET=service ./infra/scheduler.setup.sh`. Its env must
+     be kept in lockstep with the job's — both scripts use
+     `--set-env-vars`, which replaces the whole set.
+   - One container, one task (`--tasks=1 --parallelism=1
+     --max-retries=0`). Per-source parallelism lives inside that
+     container, never Cloud Run autoscaling. `--max-retries=0` is
+     deliberate: a retried batch would re-bill sessions that already
+     succeeded.
 3. **Agent runtime** — PydanticAI agent loop
    (`services/page_builder/model_harness.py::run_agent_session`)
    calling **OpenRouter** (`OPENROUTER_MODEL`, default
@@ -197,10 +214,20 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
 
 - **Don't restore SQLite or add a fallback store.** Firestore is the
   only state store. `FIRESTORE_EMULATOR_HOST` for local/test is fine.
-- **Don't autoscale the builder.** `--max-instances=1 --concurrency=1`
+- **Don't autoscale the builder.** `--tasks=1 --parallelism=1` on the job
   is deliberate. Parallelism across sources lives in `asyncio.gather`
   inside the single container. If N_PER_RUN grows past ~20, bump
-  `--memory` on that one container, not instance count.
+  `--memory` on that one container, not task count.
+- **Don't move the daily batch back onto the HTTP service.** A Cloud Run
+  service caps request timeout at 3600s and the batch outgrew it (see
+  layer 2 above). The service is for single-dataset invokes and rollback.
+- **Don't `--source=.` deploy without checking `.gcloudignore`.** It is
+  what keeps the upload at ~18MB instead of 1.8GB, and it is the only
+  thing (alongside `.dockerignore`) keeping
+  `services/page_builder/harness-comparison/` — gitignored, PII-bearing
+  model-eval output — out of the builder image. The two filters do
+  different jobs: `.gcloudignore` gates the UPLOAD, `.dockerignore` gates
+  the IMAGE. Anything the Dockerfile COPYs must survive both.
 - **Don't add mock analyzers or silent model fallbacks.** Production
   uses one model (`OPENROUTER_MODEL`); every page is produced by a real
   agent session that passed self-validation. (OpenRouter-level provider
