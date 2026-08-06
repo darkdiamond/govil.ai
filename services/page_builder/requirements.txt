@@ -16,6 +16,11 @@ opentelemetry-instrumentation==0.60b1
 opentelemetry-instrumentation-httpx==0.60b1
 duckduckgo-search>=8
 httpx>=0.27.0
+# Pure-Python ES parser (no Node in this image) behind the JS-SYNTAX
+# catch-all in agent/skills/check.py — every agent <script> block must
+# actually parse before the body persists. Validated against the 587
+# published script blocks with zero false positives.
+esprima>=4.0.1,<5
 pydantic>=2.0
 pydantic-settings>=2.0
 functions-framework>=3.5
