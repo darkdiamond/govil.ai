@@ -46,7 +46,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any, NoReturn, Optional, Sequence
 
 import httpx
 from pydantic_ai import Agent, ModelRetry, RunContext
@@ -132,8 +132,98 @@ class Deps:
     code_calls: int = 0
     fetch_calls: int = 0
     search_calls: int = 0
+    # Consecutive tool calls that arrived with no payload. Reset by any
+    # successful call — see `_note_empty_tool_call`.
+    empty_calls: int = 0
     # Used only for verbose log labelling; harmless if left default.
     dataset_id: str = ""
+
+
+class EmptyToolCallLoop(RuntimeError):
+    """The model is wedged emitting tool calls with no payload.
+
+    Deliberately NOT a ModelRetry: it has to escape the agent loop rather
+    than buy the model another round trip. `agent_runner` catches it and
+    restarts the session on a fresh workdir, which is the only thing
+    observed to clear this state.
+    """
+
+
+def _empty_call_limit() -> int:
+    """Consecutive empty calls tolerated before the attempt is abandoned.
+
+    Floor of 1 so the model always gets told what was wrong at least once
+    before the attempt dies.
+    """
+    try:
+        return max(1, int(os.environ.get("MAX_EMPTY_TOOL_CALLS", "2")))
+    except ValueError:
+        return 2
+
+
+def _note_empty_tool_call(deps: Any, tool: str, dataset_id: str) -> NoReturn:
+    """Handle a tool call that arrived with no payload. Always raises.
+
+    One empty call is worth a nudge — models occasionally emit one and
+    recover on the next turn. A *run* of them is a wedge: in prod each extra
+    round trip replays the whole transcript at reasoning effort max (~2 min
+    apiece), and with the agent's retries=5 that burnt ~14 minutes per
+    occurrence before discarding the attempt's work anyway. Fail fast
+    instead; the fresh-workdir restart is what actually recovers.
+    """
+    deps.empty_calls += 1
+    limit = _empty_call_limit()
+    if deps.empty_calls >= limit:
+        log.warning(
+            "test[%s]: %s — %d consecutive empty calls (limit %d), abandoning "
+            "attempt instead of burning more round trips",
+            dataset_id[:8], tool, deps.empty_calls, limit,
+        )
+        raise EmptyToolCallLoop(
+            f"{tool} received {deps.empty_calls} consecutive calls with an "
+            f"empty payload — the model is not making progress; restarting "
+            f"the session on a fresh workdir"
+        )
+    raise ModelRetry(
+        f"{tool} requires a non-empty payload. The sandbox is persistent — "
+        "there is nothing to restart. If you have completed all "
+        "investigation and written content.html and agent_data.json to the "
+        "outputs directory, end the run by returning a final assistant "
+        "message instead of calling a tool."
+    )
+
+
+def _log_stall_diagnostics(messages: Any, dataset_id: str, *, last: int = 5) -> None:
+    """Log finish_reason + output-token counts for the final few responses.
+
+    The two stall modes look identical from outside: a tool call whose
+    arguments arrive empty, and a final turn carrying only a ThinkingPart.
+    They separate on `finish_reason` — a `length` stop means the completion
+    budget (shared with reasoning tokens at effort=max) ran out mid-call,
+    which is a max_tokens problem rather than a prompt problem. Without this
+    the distinction is unrecoverable from logs after the fact.
+    """
+    try:
+        responses = [
+            m for m in messages if getattr(m, "kind", None) == "response"
+        ][-last:]
+        for i, m in enumerate(responses, 1):
+            details = getattr(m, "provider_details", None)
+            details = details if isinstance(details, dict) else {}
+            usage = getattr(m, "usage", None)
+            parts = [type(p).__name__ for p in getattr(m, "parts", [])]
+            log.warning(
+                "session[%s]: response[-%d] finish_reason=%s native=%s "
+                "output_tokens=%s parts=%s",
+                dataset_id[:8],
+                len(responses) - i + 1,
+                getattr(m, "finish_reason", None),
+                details.get("native_finish_reason"),
+                getattr(usage, "output_tokens", None),
+                ",".join(parts) or "(none)",
+            )
+    except Exception:  # diagnostics must never mask the real failure
+        log.warning("session[%s]: stall diagnostics unavailable", dataset_id[:8])
 
 
 def _summarize_arg(s: str, cap: int = 80) -> str:
@@ -342,9 +432,23 @@ def _build_pydantic_model(
         # heredoc response can push past 16384 and get its tool call dropped
         # mid-stream (same pydantic-ai truncation class as the 4096→16384
         # bump; two observed 2026-07-10 sessions died exactly at that step).
-        # M3 allows 131072 completion tokens; 32768 costs nothing unless
-        # actually generated.
-        base_settings["max_tokens"] = 32768
+        # Raised 32768 → 128000 on 2026-08-06. At
+        # OPENROUTER_REASONING_EFFORT=max the reasoning trace draws on this
+        # same completion budget, so a turn can spend the whole allowance
+        # thinking and then emit a truncated tool call (empty `command`) or
+        # nothing but a ThinkingPart — the two stall modes that cost ~47% of
+        # session time that day.
+        #
+        # 128000 is hy3's advertised max_completion_tokens (context is
+        # 262144, so a full-size completion still leaves ~134k for the
+        # prompt). Do NOT set this to the 131072 that the older comment
+        # here implied: that exceeds the completion ceiling. Check
+        # `top_provider.max_completion_tokens` from
+        # https://openrouter.ai/api/v1/models before changing models.
+        # Costs nothing unless actually generated. Env-overridable to bisect.
+        base_settings["max_tokens"] = int(
+            os.environ.get("OPENROUTER_MAX_TOKENS", "128000")
+        )
         # `usage.include` asks OpenRouter for usage accounting: the final
         # response carries billed cost + cached-token counts, which the
         # OpenRouterModel maps into provider_details / RequestUsage.
@@ -384,11 +488,18 @@ def _build_agent(
     # empty bash calls. Sonnet's bash heredocs (multi-KB python scripts in
     # `cat <<PY ... PY`) routinely push past 4096 — the previous default.
     # See pydantic-ai #3118 + PR #3137.
+    # retries=2 (was 5) is the backstop for wedge loops the `bash` guard
+    # can't see. `code_execution` takes a required `code: str`, so a call
+    # with empty arguments is rejected by PydanticAI's own validation and
+    # retried internally without ever reaching the tool body — that path
+    # burnt all five retries in prod on 2026-08-06. ModelRetry is raised in
+    # exactly one place in this module (empty `bash`), so lowering the
+    # budget costs no legitimate recovery.
     agent = Agent(
         model=model,
         deps_type=Deps,
         system_prompt=system_prompt,
-        retries=5,
+        retries=2,
         model_settings=model_settings,
     )
 
@@ -411,17 +522,10 @@ def _build_agent(
         ds = ctx.deps.dataset_id[:8]
         if not command:
             log.info(
-                "test[%s]: bash#%d empty call (restart=%s) — raising ModelRetry",
-                ds, n, restart,
+                "test[%s]: bash#%d empty call (restart=%s)", ds, n, restart,
             )
-            raise ModelRetry(
-                "bash requires a non-empty `command` parameter. The sandbox "
-                "is persistent — there is nothing to restart. If you have "
-                "completed all investigation and written "
-                "/tmp/session/outputs/content.html and agent_data.json, end "
-                "the run by returning a final assistant message instead of "
-                "calling a tool."
-            )
+            _note_empty_tool_call(ctx.deps, "bash", ds)  # always raises
+        ctx.deps.empty_calls = 0
         log.info("test[%s]: bash#%d $ %s", ds, n, _summarize_arg(command))
         t0 = time.monotonic()
         out = _exec_to_dict(ctx.deps.sandbox.run_code(command, language="bash", timeout=120))
@@ -834,6 +938,7 @@ def run_agent_session(
                 )
             except Exception:
                 pass
+            _log_stall_diagnostics(result.all_messages(), dataset_id)
             raise RuntimeError(
                 f"agent did not produce both output files: {e}"
             ) from e
