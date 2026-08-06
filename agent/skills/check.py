@@ -27,6 +27,17 @@ import json
 import re
 import sys
 
+# Pure-Python ES parser backing the JS-SYNTAX catch-all below (there is
+# no Node in the builder image). Optional import so this script still
+# runs standalone elsewhere; without it the parse gate no-ops, which is
+# why services/page_builder/requirements.txt pins it and
+# services/page_builder/tests/test_check_js_parse.py asserts it is
+# importable — the gate must not silently vanish from prod.
+try:
+    import esprima as _esprima
+except ImportError:  # pragma: no cover - exercised via monkeypatch
+    _esprima = None
+
 VALID_DATASET_KINDS = {"map", "timeseries", "registry", "rankings", "misc"}
 
 # HTML hygiene — combined regex for forbidden tags / attrs / classes /
@@ -66,6 +77,15 @@ SCRIPT_BLOCK_RE = re.compile(
     r"<script\b[^>]*>(.*?)</script\s*>", re.DOTALL | re.IGNORECASE
 )
 
+# Same blocks, but keeping the attributes so the parse gate can tell a
+# JS block from a <script type="application/json"> data island (valid
+# JSON is not a valid JS *statement* — parsing one as script would
+# reject a body that is perfectly fine).
+SCRIPT_TAG_RE = re.compile(
+    r"<script\b([^>]*)>(.*?)</script\s*>", re.DOTALL | re.IGNORECASE
+)
+SCRIPT_TYPE_RE = re.compile(r"""type\s*=\s*["']?([^"'\s>]+)""", re.IGNORECASE)
+
 TOP_CARD_BARE_H2_RE = re.compile(
     r'<section\s+class="[^"]*\bcard\b[^"]*\bmb-6\b[^"]*"[^>]*>\s*<h2',
     re.IGNORECASE | re.DOTALL,
@@ -74,8 +94,6 @@ TOP_CARD_BARE_H2_RE = re.compile(
 INSIGHT_HEADING_RE = re.compile(r"<h2[^>]*>\s*(?:תובנות|ממצאים)[^<]*</h2>")
 LI_RE = re.compile(r"<li\b[^>]*>(.*?)</li>", re.DOTALL | re.IGNORECASE)
 UL_OPEN_RE = re.compile(r"<ul\b([^>]*)>")
-
-LINE_TERM = "\n\r  "
 
 
 def fail(msg: str, code: int = 1) -> "None":
@@ -143,73 +161,6 @@ def check_no_spline(blocks: list[str]) -> None:
                 "option entirely).",
                 code=1,
             )
-
-
-def check_js_string_hygiene(blocks: list[str]) -> None:
-    # Walks each script block tracking comment / string state, mirroring
-    # the publisher's sanitizer. Catches:
-    #   (a) bare geresh after a Hebrew letter inside a single-quoted
-    #       string — closes the literal early, kills the IIFE.
-    #   (b) raw line terminator (LF/CR/U+2028/U+2029) inside a "…"/'…'
-    #       string — V8 syntax error, blanks every chart.
-    for n, src in enumerate(blocks, 1):
-        i, L = 0, len(src)
-        while i < L:
-            c = src[i]
-            if c == "/" and i + 1 < L and src[i + 1] == "/":
-                j = src.find("\n", i)
-                i = L if j < 0 else j
-                continue
-            if c == "/" and i + 1 < L and src[i + 1] == "*":
-                j = src.find("*/", i + 2)
-                i = L if j < 0 else j + 2
-                continue
-            if c == "`":
-                i += 1
-                while i < L:
-                    if src[i] == "\\" and i + 1 < L:
-                        i += 2
-                        continue
-                    if src[i] == "`":
-                        i += 1
-                        break
-                    i += 1
-                continue
-            if c == '"' or c == "'":
-                q = c
-                start = i
-                i += 1
-                while i < L:
-                    ch = src[i]
-                    if ch == "\\" and i + 1 < L:
-                        i += 2
-                        continue
-                    if ch == q:
-                        i += 1
-                        break
-                    if ch in LINE_TERM:
-                        fail(
-                            f"CTRL-CHAR-IN-JS-STR (script #{n}): "
-                            f"{src[start:i][:80]!r} contains raw line terminator. "
-                            "JSON.stringify the value or move it out of the string.",
-                            code=3,
-                        )
-                    if (
-                        q == "'"
-                        and re.match(r"[א-ת]", ch)
-                        and i + 1 < L
-                        and src[i + 1] == "'"
-                    ):
-                        fail(
-                            f"GERESH-IN-SQ-STR (script #{n}): single-quoted JS "
-                            f"string contains Hebrew+geresh near "
-                            f"{src[max(0,i-10):i+5]!r}. Use a double-quoted "
-                            "string or escape with \\\\'.",
-                            code=4,
-                        )
-                    i += 1
-                continue
-            i += 1
 
 
 _CATEGORY_YAXIS_RE = re.compile(r"yAxis\s*:\s*\{[^}]*['\"]category['\"]")
@@ -338,101 +289,73 @@ def check_unrendered_template(blocks: list[str]) -> None:
             )
 
 
-_OPENERS = {"(": ")", "[": "]", "{": "}"}
-_CLOSERS = {")": "(", "]": "[", "}": "{"}
-# A `/` whose last significant code char is one of these starts a regex
-# literal, not division. Heuristic, but reliable for chart-config code.
-_REGEX_PRECEDERS = set("=([{,;:!&|?+-*/%<>~^")
+# Cause classifiers for the JS-SYNTAX diagnostic. Hebrew letter butted
+# against a quote is the ג"לג"וליה / מ' shape; the control-char class
+# is a raw line terminator (LF/CR/U+2028/U+2029) inside a literal.
+_HEB_ADJACENT_QUOTE_RE = re.compile("[\u05d0-\u05ea][\"']")
+_RAW_CTRL_IN_JS_RE = re.compile("[\"'][^\"'\\n\\r]*[\\n\\r\u2028\u2029]")
 
 
-def check_js_delimiter_balance(blocks: list[str]) -> None:
-    # One extra or missing bracket/brace/paren anywhere in a script block
-    # is a page-killing V8 SyntaxError that no other rule catches (e.g. a
-    # stray `}` inside a setOption argument). Walk code outside strings /
-    # comments / regex literals and require the three delimiter kinds to
-    # nest correctly.
-    for n, src in enumerate(blocks, 1):
-        stack: list = []
-        prev = ""  # last significant code char seen
-        i, L = 0, len(src)
-        while i < L:
-            c = src[i]
-            if c == "/" and i + 1 < L and src[i + 1] == "/":
-                j = src.find("\n", i)
-                i = L if j < 0 else j
-                continue
-            if c == "/" and i + 1 < L and src[i + 1] == "*":
-                j = src.find("*/", i + 2)
-                i = L if j < 0 else j + 2
-                continue
-            if c == "/" and (not prev or prev in _REGEX_PRECEDERS):
-                # Regex literal: skip to the unescaped closing `/`; inside
-                # a [...] character class `/` doesn't close. A newline
-                # before the close means it wasn't a regex — stop skipping.
-                i += 1
-                in_class = False
-                while i < L:
-                    ch = src[i]
-                    if ch == "\\" and i + 1 < L:
-                        i += 2
-                        continue
-                    if ch == "[":
-                        in_class = True
-                    elif ch == "]":
-                        in_class = False
-                    elif ch == "/" and not in_class:
-                        i += 1
-                        break
-                    elif ch == "\n":
-                        break
-                    i += 1
-                prev = "/"
-                continue
-            if c == "`":
-                i += 1
-                while i < L:
-                    if src[i] == "\\" and i + 1 < L:
-                        i += 2
-                        continue
-                    if src[i] == "`":
-                        i += 1
-                        break
-                    i += 1
-                prev = "`"
-                continue
-            if c == '"' or c == "'":
-                q = c
-                i += 1
-                while i < L:
-                    if src[i] == "\\" and i + 1 < L:
-                        i += 2
-                        continue
-                    if src[i] == q:
-                        i += 1
-                        break
-                    i += 1
-                prev = q
-                continue
-            if c in _OPENERS:
-                stack.append((c, i))
-            elif c in _CLOSERS:
-                if not stack or stack[-1][0] != _CLOSERS[c]:
-                    fail(
-                        f"JS-BALANCE (script #{n}): unexpected {c!r} near "
-                        f"{src[max(0, i - 60):i + 20]!r} — an extra or "
-                        "misplaced bracket breaks the whole script.",
-                        code=5,
-                    )
-                stack.pop()
-            if not c.isspace():
-                prev = c
-            i += 1
-        if stack:
-            ch, pos = stack[-1]
+def _js_syntax_hint(src: str, idx: "int | None") -> str:
+    # Name the likely cause so RETRY_FEEDBACK gives the next attempt
+    # something to act on, not just a parser position. Replaces the
+    # per-shape rules this gate absorbed (JS-BALANCE, GERESH-IN-SQ-STR,
+    # CTRL-CHAR-IN-JS-STR), which each existed mainly for their message.
+    window = src if idx is None else src[max(0, idx - 80):idx + 20]
+    if _RAW_CTRL_IN_JS_RE.search(window):
+        return (
+            " Likely a raw line terminator or control char inside a string "
+            "literal — CKAN name/address fields routinely carry them. "
+            "JSON.stringify the value instead of hand-quoting it."
+        )
+    if _HEB_ADJACENT_QUOTE_RE.search(window):
+        return (
+            " Likely a Hebrew value carrying a quote inside a string closed "
+            'by that same quote (e.g. ג"לג"וליה in a "…" literal, or מ\' in '
+            "a '…' literal) — it ends the literal early. Emit data values "
+            "with JSON.stringify, or switch that literal to the other quote."
+        )
+    return (
+        " If a delimiter is unbalanced, count the brackets in the enclosing "
+        "setOption call; if a data value is interpolated, JSON.stringify it."
+    )
+
+
+def check_js_parses(body: str) -> None:
+    # Catch-all: every JS <script> block must actually parse, checked with
+    # a real ES parser rather than per-shape lexical rules. It subsumes the
+    # three hand-rolled walkers this replaced — measured over 2,146 seeded
+    # mutants of the published corpus with V8 as oracle: 0 cases they
+    # caught that this misses, 61 they missed that this catches, and 4
+    # valid-JS false positives of theirs (2 on real published pages, where
+    # a single-quoted Hebrew string simply ended in a Hebrew letter) that
+    # this does not reproduce.
+    #
+    # The case that motivated it (live page, 2026-08-06): the place name
+    # ג'לג'וליה emitted as ג"לג"וליה inside a double-quoted string. Quote
+    # parity stays even and delimiters stay balanced, so every lexical
+    # rule passed — but it parses as `"ג"` `לג` `"וליה"`, three adjacent
+    # primaries. One <script> held all 7 chart inits, so the page went
+    # live chartless with check.py reporting OK.
+    if _esprima is None:
+        return
+    for n, (attrs, src) in enumerate(SCRIPT_TAG_RE.findall(body), 1):
+        if not src.strip():
+            continue
+        m = SCRIPT_TYPE_RE.search(attrs)
+        if m and "json" in m.group(1).lower():
+            continue
+        try:
+            _esprima.parseScript(src)
+        except Exception as exc:  # esprima.Error, plus tokenizer surprises
+            idx = getattr(exc, "index", None)
+            idx = idx if isinstance(idx, int) else None
+            where = "" if idx is None else f" near {src[max(0, idx - 60):idx + 20]!r}"
             fail(
-                f"JS-BALANCE (script #{n}): {ch!r} opened near "
-                f"{src[max(0, pos - 40):pos + 40]!r} is never closed.",
-                code=5,
+                f"JS-SYNTAX (script #{n}): {getattr(exc, 'message', None) or exc}"
+                f"{where}. The block does not parse, so nothing in it runs — "
+                f"every chart it initialises stays blank.{_js_syntax_hint(src, idx)}",
+                code=9,
             )
 
 
@@ -547,9 +470,12 @@ def main(argv: list[str]) -> int:
     blocks = SCRIPT_BLOCK_RE.findall(body)
     check_inline_data_cap(blocks)
     check_no_spline(blocks)
-    check_js_string_hygiene(blocks)
+    # Template leaks first: a leaked placeholder is sometimes valid JS (a
+    # bare identifier reference) and sometimes a parse error, and
+    # TEMPLATE-LEAK names the fix better than a parser position would.
     check_unrendered_template(blocks)
-    check_js_delimiter_balance(blocks)
+    # Then the catch-all, which absorbed the per-shape lexical walkers.
+    check_js_parses(body)
     check_hbar_label_position(blocks)
     check_label_formatter_params(blocks)
 
