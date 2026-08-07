@@ -256,6 +256,7 @@ class TestSessionResult:
     cost_usd: dict[str, float]
     sandbox_files: list[str] = field(default_factory=list)
     host_check: str = "passed"
+    providers: list[str] = field(default_factory=list)
 
 
 # Base64 chunk size per bash command when provisioning files into the
@@ -398,8 +399,68 @@ def _load_system_prompt() -> str:
     return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 
 
+# Per-model routing floors, keyed by OpenRouter model family (prefix match,
+# so dated revisions inherit). ONLY models that actually need a floor belong
+# here — a blanket policy would be wrong.
+#
+# deepseek-v4-flash is the only model in our pool whose provider set contains
+# **fp4** endpoints (DeepInfra, Io Net). OpenRouter load-balances across top
+# providers, and DeepInfra was `top_provider` during the 2026-08-07 eval, so
+# those sessions may have run on 4-bit weights — and we couldn't tell, because
+# nothing recorded the serving provider (fixed by `_collect_providers` below).
+# Contrast: tencent/hy3 has NO fp4 endpoint (4× fp8, 1× bf16, 1× unknown) and
+# minimax-m3 has none either, so filtering them on fp8 would buy nothing and
+# would exclude hy3's bf16 endpoint — higher precision than fp8. Check a
+# candidate's `/api/v1/models/<author>/<slug>/endpoints` before adding a row.
+#
+# `quantizations` goes to OpenRouter's provider-routing object;
+# `reasoning_effort` is a default, overridden by an explicit CLI flag or
+# OPENROUTER_REASONING_EFFORT. `allow_fallbacks` is left at its default (true)
+# so one provider outage can't kill the daily batch — fallbacks still have to
+# satisfy the quantization filter.
+#
+# Do NOT add `require_parameters: True` here. It reads as harmless ("only use
+# providers that support all my parameters") but OpenRouter answers our
+# request with a hard 404 — "No endpoints found that can handle the requested
+# parameters" — with or without the quantization filter, even though every
+# fp8 endpoint advertises reasoning + tools + max_tokens. Bisected
+# 2026-08-07: `quantizations` alone routes fine (→ Cloudflare),
+# `require_parameters` alone 404s.
+MODEL_ROUTING: dict[str, dict[str, Any]] = {
+    "deepseek/deepseek-v4-flash": {
+        "quantizations": ["fp8"],
+        "reasoning_effort": "max",
+    },
+}
+
+
+def _routing_for(model_id: str) -> dict[str, Any]:
+    """Longest-prefix match of `model_id` against MODEL_ROUTING."""
+    matches = [k for k in MODEL_ROUTING if model_id.startswith(k)]
+    if not matches:
+        return {}
+    return MODEL_ROUTING[max(matches, key=len)]
+
+
+def resolve_reasoning_effort(
+    model_id: str, explicit: Optional[str] = None
+) -> Optional[str]:
+    """Effort precedence: explicit arg → env → per-model default → model's own.
+
+    Exposed for the test CLI so a run's effort is resolved the same way
+    production resolves it.
+    """
+    return (
+        explicit
+        or os.environ.get("OPENROUTER_REASONING_EFFORT")
+        or _routing_for(model_id).get("reasoning_effort")
+    )
+
+
 def _build_pydantic_model(
-    model_id: str, reasoning_effort: Optional[str] = None
+    model_id: str,
+    reasoning_effort: Optional[str] = None,
+    quantizations: Optional[list[str]] = None,
 ) -> tuple[Any, dict[str, Any]]:
     """Resolve a model id to (PydanticAI model handle, model_settings).
 
@@ -455,6 +516,25 @@ def _build_pydantic_model(
         base_settings["openrouter_usage"] = {"include": True}
         if reasoning_effort:
             base_settings["openrouter_reasoning"] = {"effort": reasoning_effort}
+
+        # Provider routing. Precedence: explicit arg → OPENROUTER_QUANTIZATIONS
+        # (experiment override, e.g. to reproduce fp4 for an A/B) → the
+        # per-model floor. Models with no floor and no override get NO
+        # provider block at all, so their routing is untouched.
+        routing = _routing_for(model_id)
+        env_quants = os.environ.get("OPENROUTER_QUANTIZATIONS")
+        quants = (
+            quantizations
+            or ([q.strip() for q in env_quants.split(",") if q.strip()]
+                if env_quants else None)
+            or routing.get("quantizations")
+        )
+        if quants:
+            provider: dict[str, Any] = {"quantizations": list(quants)}
+            base_settings["openrouter_provider"] = provider
+            log.info(
+                "model=%s: provider routing %s", model_id, provider
+            )
         return (
             OpenRouterModel(model_id, provider=OpenRouterProvider(api_key=api_key)),
             base_settings,
@@ -735,6 +815,29 @@ def _estimate_response_cost(
     ) / 1_000_000
 
 
+def _collect_providers(messages: list) -> list[str]:
+    """Distinct downstream providers that served this session, in first-seen
+    order.
+
+    OpenRouter load-balances across providers, and they differ in quantization
+    (for deepseek-v4-flash: fp4 through fp16). Without this, a run's output
+    can't be attributed to a precision level — the gap that made the
+    2026-08-07 eval ambiguous. PydanticAI surfaces it as
+    `provider_details['downstream_provider']`.
+    """
+    seen: list[str] = []
+    for m in messages:
+        if getattr(m, "kind", None) != "response":
+            continue
+        details = getattr(m, "provider_details", None)
+        if not isinstance(details, dict):
+            continue
+        name = details.get("downstream_provider")
+        if name and name not in seen:
+            seen.append(str(name))
+    return seen
+
+
 def _compute_cost(*, model: str, usage: dict[str, int], messages: list) -> dict[str, Any]:
     """Assemble the run's billed USD per response, most-accurate source
     first: inline OpenRouter usage accounting (`provider_details['cost']`,
@@ -839,6 +942,7 @@ class AgentSessionOutput:
     tool_calls: dict[str, int]
     messages: list
     elapsed_seconds: float
+    providers: list[str] = field(default_factory=list)
 
 
 def run_agent_session(
@@ -858,6 +962,7 @@ def run_agent_session(
     previous_failure: Optional[str] = None,
     related_candidates: Sequence[dict] = (),
     reasoning_effort: Optional[str] = None,
+    quantizations: Optional[list[str]] = None,
 ) -> AgentSessionOutput:
     """Drive one agent session on an already-created sandbox.
 
@@ -898,7 +1003,11 @@ def run_agent_session(
                 "session[%s]: provisioned %s (%s, %d rows) at %s",
                 dataset_id[:8], p.sandbox_filename, p.mode, p.rows, target,
             )
-        py_model, model_settings = _build_pydantic_model(model, reasoning_effort)
+        # Single choke point for both prod (agent_runner) and the test CLI:
+        # an explicit effort wins, else env, else the model's own floor.
+        py_model, model_settings = _build_pydantic_model(
+            model, resolve_reasoning_effort(model, reasoning_effort), quantizations
+        )
         agent = _build_agent(
             model=py_model, system_prompt=system_prompt, model_settings=model_settings
         )
@@ -978,6 +1087,7 @@ def run_agent_session(
         },
         messages=messages,
         elapsed_seconds=round(elapsed, 2),
+        providers=_collect_providers(messages),
     )
 
 
@@ -994,6 +1104,7 @@ def run_test_session(
     related_candidates: Sequence[dict] = (),
     max_iters: int = 30,  # noqa: ARG001 - PydanticAI controls retries; kept for caller parity
     reasoning_effort: Optional[str] = None,
+    quantizations: Optional[list[str]] = None,
 ) -> TestSessionResult:
     """Local test run: Podman sandbox, artifacts written to `out_dir`.
 
@@ -1001,6 +1112,9 @@ def run_test_session(
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Resolve up front so the log line and cost.json record what was actually
+    # requested, not the caller's (possibly empty) argument.
+    reasoning_effort = resolve_reasoning_effort(model, reasoning_effort)
 
     from .podman_sandbox import PodmanSandbox
 
@@ -1043,6 +1157,7 @@ def run_test_session(
             data_dir=DATA_DIR_IN_SANDBOX,
             related_candidates=related_candidates,
             reasoning_effort=reasoning_effort,
+            quantizations=quantizations,
         )
         sandbox_files: list[str] = []
         try:
@@ -1089,6 +1204,7 @@ def run_test_session(
             {
                 "model": model,
                 "reasoning_effort": reasoning_effort,
+                "providers": out.providers,
                 "elapsed_seconds": out.elapsed_seconds,
                 "usage": out.usage,
                 "cost_usd": out.cost,
@@ -1116,4 +1232,5 @@ def run_test_session(
         cost_usd=out.cost,
         sandbox_files=sandbox_files,
         host_check=host_check,
+        providers=out.providers,
     )

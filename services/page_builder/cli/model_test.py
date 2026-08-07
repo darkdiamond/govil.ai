@@ -104,6 +104,10 @@ def _print_summary(res) -> None:
         cost_line = f"  $: {cost['total_usd']:.4f} ({tag})"
     else:
         cost_line = f"  $: unknown ({cost.get('note', '')})"
+    providers = getattr(res, "providers", None) or []
+    provider_line = (
+        f"  provider: {', '.join(providers)}\n" if providers else ""
+    )
     check = res.host_check
     check_line = (
         "  host check: passed"
@@ -116,6 +120,7 @@ def _print_summary(res) -> None:
         f"  iterations: {res.iterations}, elapsed: {res.elapsed_seconds:.1f}s\n"
         f"  tokens: in={usage['input_tokens']:,} out={usage['output_tokens']:,} "
         f"cached={usage['cache_read_tokens']:,} total={usage['total_tokens']:,}\n"
+        f"{provider_line}"
         f"{cost_line}\n"
         f"{check_line}\n"
         f"  files: {res.content_html_path.name}, {res.agent_data_path.name}, "
@@ -160,6 +165,10 @@ def _run_one(*, dataset_id: str, args, store: FirestoreStateStore):
             model=args.model,
             max_iters=args.max_iters,
             reasoning_effort=args.reasoning_effort,
+            quantizations=(
+                [q.strip() for q in args.quantizations.split(",") if q.strip()]
+                if args.quantizations else None
+            ),
         )
     except Exception as e:
         log.exception("test[%s]: run_test_session failed: %s", dataset_id[:8], e)
@@ -190,6 +199,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                    help="OpenRouter reasoning.effort override (OpenRouter "
                         "models only); omit for the model default, which is "
                         "what production uses")
+    p.add_argument("--quantizations",
+                   help="comma-separated OpenRouter quantization filter "
+                        "(e.g. 'fp8'), overriding the model's own floor in "
+                        "model_harness.MODEL_ROUTING. Use to A/B precision — "
+                        "deepseek-v4-flash already defaults to fp8 because its "
+                        "provider pool contains fp4 endpoints")
     p.add_argument("--max-iters", type=int, default=30)
     p.add_argument("--project", default=os.environ.get("FIREBASE_PROJECT") or "govdata-il")
     p.add_argument("-v", "--verbose", action="store_true")

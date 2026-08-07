@@ -98,6 +98,18 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   backoff and `MAX_CONCURRENT=2` (not 8) — both may be revisited now that
   prod is on the paid tier. Do not change the production model without
   asking.
+  **Provider precision is per-model config, not policy.** OpenRouter
+  load-balances across providers that serve the same model at different
+  quantizations, so a model whose pool includes low-precision endpoints
+  needs a floor — declared in `model_harness.MODEL_ROUTING`, keyed by
+  model family. Today only `deepseek/deepseek-v4-flash` has one (fp8;
+  its pool includes fp4 endpoints at DeepInfra and Io Net). Do NOT apply
+  a blanket filter: `tencent/hy3` has no fp4 endpoint and does have a
+  **bf16** one, which an fp8 filter would exclude. Check
+  `/api/v1/models/<author>/<slug>/endpoints` — NOT the `top_provider`
+  field, which reports only the currently top-routed provider — before
+  adding a row or reading a model's real completion ceiling. Each run's
+  serving provider is recorded in `cost.json.providers`.
   Candidate models are evaluated first through the local harness
   (`cli/model_test.py`) per `docs/MODEL_EVAL.md` — comparison snapshots
   live in `services/page_builder/harness-comparison/`, which is
