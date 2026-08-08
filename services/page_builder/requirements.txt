@@ -5,35 +5,35 @@
 # reasoning_details round-trip). duckduckgo-search backs the agent's
 # web_search tool. The Podman sandbox used by the local test harness is
 # NOT here — see requirements-test.txt.
-pydantic-ai>=1.107,<2
+pydantic-ai>=2.23.0,<3
 # logfire comes in via pydantic-ai's extras; a fresh pip resolve (container
 # build 2026-07-10) hit ResolutionImpossible: newest logfire floats while
 # opentelemetry-instrumentation-httpx exact-pins its matching
 # opentelemetry-instrumentation, and pip can't align the pair. Pin the
 # venv-proven set; drop once pydantic-ai/logfire advance past the conflict.
-logfire[httpx]==4.36.0
-opentelemetry-instrumentation==0.60b1
-opentelemetry-instrumentation-httpx==0.60b1
-duckduckgo-search>=8
-httpx>=0.27.0
+logfire[httpx]==4.39.0
+opentelemetry-instrumentation==0.65b0
+opentelemetry-instrumentation-httpx==0.65b0
+duckduckgo-search>=8.1.1
+httpx>=0.28.1
 # Pure-Python ES parser (no Node in this image) behind the JS-SYNTAX
 # catch-all in agent/skills/check.py — every agent <script> block must
 # actually parse before the body persists. Validated against the 587
 # published script blocks with zero false positives.
 esprima>=4.0.1,<5
-pydantic>=2.0
-pydantic-settings>=2.0
-functions-framework>=3.5
-jinja2>=3.1
-tenacity>=8.0
+pydantic>=2.13.4
+pydantic-settings>=2.14.2
+functions-framework>=3.10.2
+jinja2>=3.1.6
+tenacity>=9.1.4
 # Agent-runtime dependency, not builder code: LocalSandbox tool
 # subprocesses share this container's Python, and with the data-prefetch
 # CSV in the workdir agents reach for pandas — preinstall it so sessions
 # don't burn time/network on `pip install pandas` (the Podman test image
 # gets it via sandbox.Containerfile).
-pandas>=2,<3
+pandas>=3.0.5,<4
 
 # Google Cloud
-google-cloud-firestore>=2.16
-google-cloud-storage>=2.14
-google-cloud-build>=3.25
+google-cloud-firestore>=2.28.0
+google-cloud-storage>=3.13.0
+google-cloud-build>=3.38.0
