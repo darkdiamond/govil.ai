@@ -55,7 +55,7 @@ jobs:
       # Delta fetch: the cache carries the previous run's pages, so rsync
       # only moves new/changed objects. Cache key always misses (run id) —
       # restore-keys pulls the most recent snapshot, then we save ours.
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: frontend/public/datasets
           key: datasets-${{ github.run_id }}
@@ -69,7 +69,7 @@ jobs:
             -x '.*/(data|agent_data)\.json$|.*/index\.html$' \
             "gs://${STAGING_BUCKET}/datasets/" frontend/public/datasets/
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: pip
@@ -85,7 +85,7 @@ jobs:
           FIRESTORE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT }}
           GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_PROJECT }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           # Pin exact patch: Node 22.23.0 shipped a keep-alive socket-reuse
           # regression (nodejs/node#63989) that breaks WIF/ADC token exchange,
