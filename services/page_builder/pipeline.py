@@ -29,9 +29,14 @@ from services.shared.firestore import FirestoreStateStore, SourceRecord
 
 from . import selector
 from .agent_contract import ResourceRestrictedError
-from .agent_runner import run_production_session
+from .agent_runner import AccountLimitError, run_production_session
 
 log = logging.getLogger("page_builder.pipeline")
+
+# Run outcomes that must surface as a failed job execution rather than a
+# green one. `idle` is deliberately absent — a day with nothing new to build
+# is a normal, healthy outcome.
+FAILED_RUN_STATUSES = ("all_failed", "aborted")
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
@@ -45,9 +50,25 @@ async def _build_one(
     staging_bucket: str,
     store: FirestoreStateStore,
     sem: asyncio.Semaphore,
+    abort: asyncio.Event,
 ) -> dict:
-    """Run one self-validating agent session. Updates Firestore either way."""
+    """Run one self-validating agent session. Updates Firestore either way.
+
+    `abort` is shared across the batch: the first source to hit an
+    account-level provider rejection sets it, and everyone still queued on
+    the semaphore bails instead of making the same doomed call.
+    """
     async with sem:
+        # Checked after acquiring the semaphore, not before — that is where a
+        # queued source waits, and where the news that the account is down
+        # will have arrived by.
+        if abort.is_set():
+            log.warning("skipping %s — batch aborted upstream", src.id[:8])
+            return {
+                "id": src.id,
+                "status": "skipped",
+                "error": "batch aborted: provider account-level rejection",
+            }
         log.info("building %s — %s", src.id[:8], (src.title or "")[:60])
         # Capture the source's metadata_modified *before* the agent runs — this
         # is the data vintage the agent's content will be based on. Persisted on
@@ -79,6 +100,20 @@ async def _build_one(
             log.warning("build skipped for %s — data restricted: %s", src.id, e)
             await asyncio.to_thread(store.mark_analysis_restricted, src.id, str(e))
             return {"id": src.id, "status": "restricted", "error": str(e)}
+        except AccountLimitError as e:
+            # The provider rejected the ACCOUNT, not this dataset: a dead
+            # key, exhausted credits, a spend cap. Every other source in the
+            # batch would get the same answer, so stop the batch and — the
+            # part that actually matters — do NOT record a failure. Marking
+            # it failed here is what parked 29 healthy sources at
+            # `failed_attempts >= 3` during the 2026-08-11 outage, so that
+            # even restoring the key would not have brought them back.
+            log.error("build aborted for %s — account-level rejection: %s", src.id, e)
+            abort.set()
+            await asyncio.to_thread(
+                store.revert_analysis_pending, src.id, src.analysis_status
+            )
+            return {"id": src.id, "status": "aborted", "error": str(e)}
         except Exception as e:
             log.exception("build failed for %s", src.id)
             await asyncio.to_thread(store.mark_analysis_failed, src.id, str(e))
@@ -361,8 +396,9 @@ async def run_pipeline(
         ThreadPoolExecutor(max_workers=max(max_concurrent * 2, 16))
     )
     sem = asyncio.Semaphore(max_concurrent)
+    abort = asyncio.Event()
     results = await asyncio.gather(
-        *[_build_one(src, staging_bucket, store, sem) for src in to_process]
+        *[_build_one(src, staging_bucket, store, sem, abort) for src in to_process]
     )
     summary["processed"] = results
     succeeded_ids = [r["id"] for r in results if r.get("status") == "succeeded"]
@@ -381,7 +417,14 @@ async def run_pipeline(
         elif publish_via:
             log.error("unknown PUBLISH_VIA=%r — publish skipped", publish_via)
     summary["build_id"] = build_id
-    summary["status"] = "ok" if succeeded_ids else "all_failed"
+    # `aborted` outranks `ok`: a batch that lost the provider mid-run is a
+    # broken batch even if a few pages landed first, and it must not read as
+    # a normal day. `_cli` turns both it and `all_failed` into a non-zero
+    # exit so the job execution shows up FAILED instead of green.
+    if any(r.get("status") == "aborted" for r in results):
+        summary["status"] = "aborted"
+    else:
+        summary["status"] = "ok" if succeeded_ids else "all_failed"
     return summary
 
 
@@ -421,6 +464,20 @@ def _cli() -> None:
     )
     import json
     print(json.dumps(summary, indent=2, default=str))
+
+    # Exit non-zero when the run produced nothing, so a dead batch is
+    # VISIBLE. Until now `all_failed` still called exit(0): from 2026-08-11
+    # the OpenRouter key was capped and every run failed completely for 18
+    # days while the job execution stayed green and nobody was paged. An
+    # `idle` day (nothing new to build) is a legitimate success and stays 0;
+    # `--max-retries=0` on the job means a red execution won't re-bill.
+    if summary.get("status") in FAILED_RUN_STATUSES:
+        log.error(
+            "pipeline finished with status=%s — exiting non-zero so the job "
+            "execution is reported as FAILED",
+            summary["status"],
+        )
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":
