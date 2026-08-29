@@ -592,6 +592,35 @@ class FirestoreStateStore:
         for d in query.stream():
             yield SourceRecord.from_doc(d)
 
+    def revert_analysis_pending(
+        self, dataset_id: str, previous_status: str = "never"
+    ) -> None:
+        """Undo `mark_analysis_pending` without recording a failure.
+
+        For aborts that have nothing to do with the source — today that
+        means a provider account-level rejection (dead key, spend cap), the
+        condition that froze the site from 2026-08-11. The source never got
+        a real attempt, so:
+
+          - `failed_attempts` is untouched: an outage must not park sources
+            that did nothing wrong.
+          - `analysis_started_at` is cleared, so `reap_stale_pending` can't
+            later convert the orphan into a failure and re-introduce the
+            same penalty through the back door.
+          - the PREVIOUS status is restored verbatim rather than reset to
+            `never`. A Track-2 re-analysis picks up sources that are already
+            `succeeded`; downgrading one to `never` would drop its live page
+            from the next publish, turning a provider outage into missing
+            pages on the site.
+        """
+        self.client.collection(SOURCES_COLL).document(dataset_id).set(
+            {
+                "analysis_status": previous_status or "never",
+                "analysis_started_at": None,
+            },
+            merge=True,
+        )
+
     def mark_analysis_failed(self, dataset_id: str, error: str) -> None:
         # `failed_attempts` counts whole pipeline-run failures (each one
         # already burned SESSION_ATTEMPTS in-run retries). The selector

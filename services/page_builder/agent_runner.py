@@ -74,6 +74,69 @@ class ProdSessionResult:
         return 0
 
 
+class AccountLimitError(RuntimeError):
+    """The account/key — not this dataset — is what the provider rejected.
+
+    Raised instead of the generic all-attempts-failed RuntimeError when
+    OpenRouter refuses the request for a reason no dataset can influence:
+    a dead key, exhausted credits, or a key spend cap. Retrying is not just
+    futile, it is destructive — the source did nothing wrong, so it must
+    not spend `failed_attempts` on a condition it cannot outlive.
+
+    2026-08-11 is why this type exists: the key hit its $10 total cap, and
+    for 18 days the batch treated the resulting 403 as an ordinary flake —
+    3 instant attempts x 10 sources every morning, `failed_attempts`
+    incremented each pass, until 29 sources sat parked at >=3 and the site
+    had not published a page since.
+    """
+
+
+# Account-level rejections on the completions endpoint. 401 (bad or
+# disabled key) and 402 (out of credits) are unambiguous. 403 is NOT — it
+# is also what a moderation block returns — so it only counts when the body
+# names a limit/credit problem. Keeping that distinction is the difference
+# between "the account is down, stop the batch" and "one unlucky dataset
+# tripped moderation", which must stay an ordinary retryable failure.
+_ACCOUNT_STATUS_CODES = (401, 402)
+_ACCOUNT_LIMIT_MARKERS = (
+    "key limit exceeded",
+    "insufficient credits",
+    "more credits are required",
+    "negative credit balance",
+    "quota exceeded",
+)
+
+
+def _names_account_limit(text: str) -> bool:
+    low = text.lower()
+    return any(m in low for m in _ACCOUNT_LIMIT_MARKERS)
+
+
+def _is_fatal_account_error(err: BaseException) -> bool:
+    """True when the provider rejected us for an account-level reason.
+
+    Walks __cause__/__context__ like `_is_rate_limited` — by the time the
+    pipeline sees it the provider error is wrapped in a RuntimeError.
+
+    429 is excluded up front: "Rate limit exceeded" would otherwise trip the
+    marker sniff, and a rate limit is transient congestion with its own
+    backoff path, not a dead account.
+    """
+    if _is_rate_limited(err):
+        return False
+    seen: set[int] = set()
+    e: Optional[BaseException] = err
+    while e is not None and id(e) not in seen:
+        seen.add(id(e))
+        code = getattr(e, "status_code", None)
+        if code in _ACCOUNT_STATUS_CODES:
+            return True
+        if code == 403 and _names_account_limit(str(e)):
+            return True
+        e = e.__cause__ or e.__context__
+    return _names_account_limit(str(err))
+
+
 def _is_rate_limited(err: BaseException) -> bool:
     """True when the failure is an HTTP 429 anywhere in the exception chain.
 
@@ -268,6 +331,22 @@ def run_production_session(
                 break
             except Exception as e:
                 last_err = e
+                # An account-level rejection is not a flake and cannot be
+                # retried out of: every remaining attempt (and every other
+                # source in the batch) would get the same 403. Bail on the
+                # first one so a dead key costs 1 call, not SESSION_ATTEMPTS
+                # x DAILY_CAP, and so the caller can tell "the account is
+                # down" apart from "this dataset failed".
+                if _is_fatal_account_error(e):
+                    log.error(
+                        "session[%s]: account-level provider rejection on "
+                        "attempt %d — aborting without retry: %s",
+                        dataset_id[:8], attempt, str(e)[:300],
+                    )
+                    raise AccountLimitError(
+                        f"provider rejected the account while building "
+                        f"{dataset_id}: {e}"
+                    ) from e
                 # RETRY_FEEDBACK: hand the next (fresh-context) attempt the
                 # validation diagnostic so it doesn't re-trip the same rule.
                 # API flakes keep passing None — fresh is how they're absorbed.

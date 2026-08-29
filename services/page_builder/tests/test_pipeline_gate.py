@@ -24,7 +24,13 @@ def _run_build_one(monkeypatch, *, raises):
 
     monkeypatch.setattr(pipeline, "run_production_session", _session)
     sem = asyncio.Semaphore(1)
-    return asyncio.run(pipeline._build_one(src, "staging-bucket", store, sem)), store
+    # A fresh, unset abort event: these cases are per-source outcomes, not
+    # the batch-wide account abort (see test_account_limit_pipeline.py).
+    abort = asyncio.Event()
+    return (
+        asyncio.run(pipeline._build_one(src, "staging-bucket", store, sem, abort)),
+        store,
+    )
 
 
 def test_restricted_error_parks_source_not_failed(monkeypatch):
