@@ -1,0 +1,16 @@
+# Normalize all text files to LF in the repository.
+# This repo lives on /mnt/d (WSL DrvFs); a Windows-side edit or npm run
+# would otherwise rewrite every file with CRLF, which silently breaks the
+# infra/*.sh scripts (`bash -n` fails on `$'do\r'`).
+* text=auto eol=lf
+
+# Explicitly binary — never touch these.
+*.png binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
