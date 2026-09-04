@@ -28,7 +28,7 @@
     "leaflet": "1.9.4",
     "leaflet.markercluster": "1.5.3",
     "lucide-vue-next": "^1.0.0",
-    "nuxt": "^3.21.7",
+    "nuxt": "^3.21.10",
     "nuxt-gtag": "^4.1.0",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
