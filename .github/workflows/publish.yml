@@ -22,6 +22,7 @@ on:
       - 'services/page_builder/publish.py'
       - 'services/page_builder/related.py'
       - 'services/page_builder/schema.py'
+      - 'services/page_builder/requirements-publish.txt'
       - 'services/shared/**'
       - 'firebase.json'
       - '.github/workflows/publish.yml'
@@ -51,6 +52,8 @@ jobs:
           service_account: ${{ vars.GCP_CI_SA }}
 
       - uses: google-github-actions/setup-gcloud@v3
+        with:
+          skip_install: true
 
       # Delta fetch: the cache carries the previous run's pages, so rsync
       # only moves new/changed objects. Cache key always misses (run id) —
@@ -65,19 +68,19 @@ jobs:
       - name: Fetch agent pages from staging
         run: |
           mkdir -p frontend/public/datasets
-          gsutil -m rsync -r -d \
-            -x '.*/(data|agent_data)\.json$|.*/index\.html$' \
-            "gs://${STAGING_BUCKET}/datasets/" frontend/public/datasets/
+          gcloud storage rsync "gs://${STAGING_BUCKET}/datasets/" frontend/public/datasets/ \
+            --recursive --delete-unmatched-destination-objects \
+            --exclude='.*/(data|agent_data)\.json$|.*/index\.html$'
 
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: services/page_builder/requirements.txt
+          cache-dependency-path: services/page_builder/requirements-publish.txt
 
       - name: Publish artifacts from Firestore
         run: |
-          pip install -q -r services/page_builder/requirements.txt
+          pip install -q -r services/page_builder/requirements-publish.txt
           python -m services.page_builder.publish --from-firestore \
             --out frontend/public/
         env:
@@ -116,7 +119,7 @@ jobs:
 
       - name: Deploy to Firebase Hosting
         run: |
-          npx --yes firebase-tools@latest deploy --only hosting \
+          ./frontend/node_modules/.bin/firebase deploy --only hosting \
             --project "${PROJECT}" --non-interactive
 
       # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).

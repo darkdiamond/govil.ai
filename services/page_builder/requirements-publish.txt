@@ -1,0 +1,6 @@
+# Minimal dependencies for services.page_builder.publish.
+# Used by .github/workflows/publish.yml to avoid installing the entire
+# AI builder runtime (pydantic-ai, pandas, logfire, opentelemetry, etc.).
+google-cloud-firestore>=2.16
+pydantic>=2.0
+httpx>=0.27.0

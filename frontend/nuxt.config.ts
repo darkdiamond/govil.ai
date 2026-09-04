@@ -91,6 +91,7 @@ function ensureSearchIndex(): void {
       readFileSync(resolve(__dirname, 'public/data/manifest.json'), 'utf-8'),
     ) as Manifest & { version?: number; generated_at?: string }
     const datasets = (m.datasets ?? []).map((d) => {
+      // SAFETY: manifest dataset entries are parsed JSON objects keyed by field name
       const rec = d as unknown as Record<string, unknown>
       const slim: Record<string, unknown> = {}
       for (const k of SLIM_FIELDS) {
@@ -224,11 +225,11 @@ export default defineNuxtConfig({
     },
     prerender: {
       crawlLinks: false,
-      // Routes render serially by default; 4-way concurrency roughly
+      // Routes render serially by default; 8-way concurrency roughly
       // halves `nuxt generate` wall time on 2-4 vCPU CI runners. Safe
       // with payloadExtraction:false (the Hebrew-tag-URL constraint —
       // see the comment above experimental.payloadExtraction).
-      concurrency: 4,
+      concurrency: 8,
       routes: [
         '/',
         '/404/',
@@ -299,7 +300,7 @@ export default defineNuxtConfig({
         ) return
         _warn(msg, opts)
       }
-      viteConfig.customLogger = logger
+      Object.assign(viteConfig, { customLogger: logger })
     },
   },
 })
