@@ -418,6 +418,10 @@ onMounted(async () => {
           הנתונים המוצגים הם תמונת מצב מהסריקה האחרונה שלנו<template v-if="unavailableSinceHe">, שנערכה עד {{ unavailableSinceHe }}</template>.
         </div>
         <article ref="bodyEl" class="dataset-body" v-html="body" />
+        <!-- AdSense responsive slot between the agent's analysis and the
+             data explorer — see components/AdSlot.vue (no-op unless
+             NUXT_PUBLIC_ADSENSE_ID is set). -->
+        <AdSlot />
         <DatasetExplorer
           :resources="entry.resources ?? []"
           :primary-resource-id="entry.primary_resource_id"
