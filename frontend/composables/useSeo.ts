@@ -58,7 +58,25 @@ export function useSeo(input: SeoInput) {
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
   }
 
-  const ldBlocks: object[] = [websiteLd]
+  const organizationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/web-app-manifest-512x512.png`,
+    description: 'מיזם אזרחי עצמאי למחקר והנגשת מאגרי המידע הממשלתיים הפתוחים של ישראל',
+    email: 'contact@govil.ai',
+    contactPoint: [
+      {
+        '@type': 'ContactPoint',
+        email: 'contact@govil.ai',
+        contactType: 'customer support',
+        availableLanguage: ['Hebrew', 'English'],
+      },
+    ],
+  }
+
+  const ldBlocks: object[] = [websiteLd, organizationLd]
 
   if (input.breadcrumbs && input.breadcrumbs.length > 0) {
     ldBlocks.push({

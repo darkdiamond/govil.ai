@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const lastUpdated = '2026-05-02'
+const lastUpdated = '3 בספטמבר 2026'
 
 // Deployment-specific analytics IDs (empty in forks/local builds — the
 // services aren't loaded then either; see plugins/*.client.ts).
@@ -47,7 +47,7 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         בנוסף אנו משתמשים בשני שירותי צד שלישי של Google שמציבים cookies בדפדפן:
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
           <strong>Google Analytics 4</strong><template v-if="gtagId"> (מזהה <code>{{ gtagId }}</code>)</template> — לצורך
           הבנת דפוסי שימוש מצרפיים: כמה מבקרים, אילו עמודים נצפים, ממה הם הגיעו
@@ -74,7 +74,7 @@ useSeo({
         כתוצאה משירותי הצד השלישי שלעיל מוצבות בדפדפן שלכם cookies מהמשפחות
         הבאות:
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li><code>_ga</code>, <code>_ga_*</code> — Google Analytics, מזהה ביקורים מצרפי.</li>
         <li><code>__gads</code>, <code>__gpi</code>, <code>IDE</code>, <code>NID</code> — Google AdSense / DoubleClick, התאמת פרסומות ומדידת ביצועים.</li>
       </ul>
@@ -91,7 +91,7 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         השימוש בשירותי צד שלישי כפוף למדיניות הפרטיות שלהם:
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
           <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" class="text-brand-700 underline">Google</a>
           — חל על Firebase Hosting, Google Analytics ו-Google AdSense.
@@ -114,7 +114,7 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         עומדות לכם הזכויות הבאות בנוגע למידע שייתכן שעבר עיבוד מהביקור באתר:
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>זכות עיון במידע שנשמר.</li>
         <li>זכות לתיקון מידע שגוי.</li>
         <li>זכות למחיקת מידע ולביטול הסכמה לעיבוד עתידי.</li>

@@ -32,7 +32,7 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
   // manifest, which this page loads anyway for related/tag data below. An
   // unknown slug (or a checkout with no manifest) falls through to 404.
   const manifest = await loadFullManifestServer()
-  const me = manifest.datasets.find((d) => d.page_slug === slug)
+  const me = manifest.datasets.find((d) => (d.page_slug || d.id) === slug)
   if (!me) return null
   const id = me.id
   const dir = path.resolve(process.cwd(), 'public/datasets', id)

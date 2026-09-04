@@ -90,6 +90,7 @@ const year = new Date().getFullYear()
             <li><NuxtLink to="/how-it-works/" class="text-white/85 hover:text-white no-underline hover:no-underline">איך זה עובד</NuxtLink></li>
             <li><NuxtLink to="/about/" class="text-white/85 hover:text-white no-underline hover:no-underline">אודות</NuxtLink></li>
             <li><NuxtLink to="/faq/" class="text-white/85 hover:text-white no-underline hover:no-underline">שאלות נפוצות</NuxtLink></li>
+            <li><NuxtLink to="/disclaimer/" class="text-white/85 hover:text-white no-underline hover:no-underline">הבהרה משפטית</NuxtLink></li>
             <li><NuxtLink to="/contact/" class="text-white/85 hover:text-white no-underline hover:no-underline">צרו קשר</NuxtLink></li>
           </ul>
         </div>
@@ -113,9 +114,11 @@ const year = new Date().getFullYear()
       </div>
       <div class="border-t border-white/10">
         <div class="max-w-gov mx-auto px-4 py-4 text-xs text-white/70 flex flex-col sm:flex-row sm:justify-between gap-2">
-          <div>האתר אינו אתר ממשלתי רשמי אלא פרויקט פרטי להנגשת המידע הממשלתי. התוכן נוצר אוטומטית על ידי AI ממאגרי data.gov.il.</div>
-          <div class="flex items-center gap-3">
+          <div>האתר אינו אתר ממשלתי רשמי אלא מיזם אזרחי עצמאי למחקר והנגשת מאגרי המידע הממשלתיים הפתוחים של ישראל. התוכן מבוסס על נתוני data.gov.il ומונגש באמצעות ניתוח נתונים וויזואליזציות.</div>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
             <NuxtLink to="/accessibility/" class="text-white/85 hover:text-white no-underline hover:no-underline">הצהרת נגישות</NuxtLink>
+            <span aria-hidden="true" class="text-white/40">·</span>
+            <NuxtLink to="/disclaimer/" class="text-white/85 hover:text-white no-underline hover:no-underline">הבהרה משפטית</NuxtLink>
             <span aria-hidden="true" class="text-white/40">·</span>
             <NuxtLink to="/privacy/" class="text-white/85 hover:text-white no-underline hover:no-underline">מדיניות פרטיות</NuxtLink>
             <span aria-hidden="true" class="text-white/40">·</span>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const lastUpdated = '2026-05-02'
+const lastUpdated = '3 בספטמבר 2026'
 
 useSeo({
   title: 'תנאי שימוש באתר govil.ai',
@@ -79,7 +79,7 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         אתם מוזמנים לקרוא, לשתף ולקשר לעמודים באתר ללא הגבלה. בעת השימוש אסור:
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>לבצע גריפה (scraping) אוטומטית בקצב גבוה או באופן שמעמיס על השרתים.</li>
         <li>להעתיק את תוכן האתר ולפרסמו תחת מותג אחר ללא ייחוס.</li>
         <li>להציג את האתר או חלקים ממנו בצורה שמטעה את הציבור לחשוב שמדובר באתר ממשלתי רשמי.</li>
