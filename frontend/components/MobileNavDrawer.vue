@@ -12,6 +12,7 @@ const links = [
   { to: '/how-it-works/', label: 'איך זה עובד' },
   { to: '/about/', label: 'אודות' },
   { to: '/faq/', label: 'שאלות נפוצות' },
+  { to: '/disclaimer/', label: 'הבהרה משפטית' },
   { to: '/contact/', label: 'צרו קשר' },
 ]
 
@@ -129,7 +130,7 @@ onBeforeUnmount(() => {
           </nav>
 
           <div class="border-t border-rule p-4 text-xs text-subtle leading-relaxed">
-            האתר אינו אתר ממשלתי רשמי אלא פרויקט פרטי להנגשת המידע הממשלתי. התוכן נוצר אוטומטית על ידי AI ממאגרי data.gov.il.
+            האתר אינו אתר ממשלתי רשמי אלא מיזם אזרחי עצמאי למחקר והנגשת מאגרי המידע הממשלתיים הפתוחים של ישראל. התוכן מבוסס על נתוני data.gov.il ומונגש באמצעות ניתוח נתונים וויזואליזציות.
           </div>
         </aside>
       </Transition>

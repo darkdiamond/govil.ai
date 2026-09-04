@@ -83,6 +83,14 @@
   .card-hover {
     @apply hover:shadow-card-hover transition-shadow;
   }
+  .prose-gov ul:not([class*="list-none"]) {
+    padding-inline-start: 1.5rem;
+    list-style-type: disc;
+  }
+  .prose-gov ol:not([class*="list-none"]) {
+    padding-inline-start: 1.5rem;
+    list-style-type: decimal;
+  }
   .tag-chip {
     /* min-h keeps chip links at a ≥24px touch target (WCAG 2.5.8) without
        changing the visual rhythm much. */

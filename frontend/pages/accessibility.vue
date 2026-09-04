@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const lastUpdated = '13 במאי 2026'
+const lastUpdated = '3 בספטמבר 2026'
 
 useSeo({
   title: 'הצהרת נגישות — govil.ai',
@@ -49,7 +49,7 @@ useSeo({
       </p>
 
       <h2 class="font-display mt-8">3. מה הונגש באתר</h2>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
           <strong>ניווט מקלדת מלא</strong> — ניתן לתפעל את כל הקישורים, הכפתורים,
           הטפסים והתפריטים באמצעות מקשי Tab / Shift+Tab / Enter / Esc / חיצים, ללא צורך
@@ -114,7 +114,7 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         על אף המאמצים, ישנם כמה תחומים שטרם הונגשו במלואם:
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
           <strong>מפות אינטראקטיביות (Leaflet)</strong> — לחיצה על סמני מפה זמינה
           באמצעות עכבר ובקוראי מסך, אך הניווט בין סמני המפה במקלדת מוגבל בשל מגבלות
@@ -137,9 +137,9 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         אם נתקלתם בקושי נגישות כלשהו באתר, או שיש לכם הצעה לשיפור, נשמח לשמוע.
       </p>
-      <ul class="text-ink/85 leading-relaxed list-disc pe-6">
+      <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li><strong>אחראי הנגישות:</strong> צוות govil.ai</li>
-        <li><strong>דוא"ל:</strong> <a href="mailto:admin@govil.ai" class="text-brand-700 underline">admin@govil.ai</a></li>
+        <li><strong>דוא"ל:</strong> <a href="mailto:accessibility@govil.ai" class="text-brand-700 underline">accessibility@govil.ai</a></li>
         <li>
           <strong>ערוץ פנייה ראשי:</strong>
           <NuxtLink to="/contact/?topic=נגישות" class="text-brand-700 underline">טופס יצירת קשר — נושא "נגישות"</NuxtLink>

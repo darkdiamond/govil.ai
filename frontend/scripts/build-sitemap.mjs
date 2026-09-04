@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// Generates .output/public/sitemap.xml from public/data/manifest.json after
-// `nuxt generate` completes. Listed URLs: the static routes, every
-// /ministries/<slug>/, /tags/<encoded-tag>/, /kinds/<kind>/, and every
-// agent-authored /datasets/<page_slug>/. Each URL gets <priority>, <changefreq>,
-// and (where known) <lastmod>.
+// Generates sitemap.xml from public/data/manifest.json after `nuxt generate`
+// completes. Always writes public/sitemap.xml (gitignored; keeps the dev
+// server serving a current sitemap) and, when the build output exists,
+// .output/public/sitemap.xml — the copy that actually ships. Listed URLs: the
+// static routes, every /ministries/<slug>/, /tags/<encoded-tag>/,
+// /kinds/<kind>/, and every agent-authored /datasets/<page_slug>/. Each URL
+// gets <priority>, <changefreq>, and (where known) <lastmod>.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -14,6 +16,7 @@ const ROOT = resolve(__dirname, '..')
 const SITE = 'https://govil.ai'
 
 const manifestPath = resolve(ROOT, 'public/data/manifest.json')
+const publicSitemapPath = resolve(ROOT, 'public/sitemap.xml')
 const outPath = resolve(ROOT, '.output/public/sitemap.xml')
 
 let manifest = { datasets: [], generated_at: undefined }
@@ -41,6 +44,9 @@ add('/tags/', '0.7', 'weekly', manifestLastmod)
 add('/about/', '0.5', 'monthly')
 add('/how-it-works/', '0.5', 'monthly')
 add('/faq/', '0.5', 'monthly')
+add('/contact/', '0.5', 'monthly')
+add('/disclaimer/', '0.4', 'monthly')
+add('/accessibility/', '0.3', 'monthly')
 add('/privacy/', '0.3', 'monthly')
 add('/terms/', '0.3', 'monthly')
 
@@ -82,11 +88,10 @@ ${body}
 </urlset>
 `
 
-mkdirSync(dirname(outPath), { recursive: true })
-if (!existsSync(dirname(outPath))) {
-  console.warn(`[build-sitemap] ${dirname(outPath)} missing — run nuxt generate first`)
-  process.exit(0)
-}
+writeFileSync(publicSitemapPath, xml, 'utf-8')
+console.log(`[build-sitemap] wrote ${urls.size} URLs to ${publicSitemapPath}`)
 
-writeFileSync(outPath, xml, 'utf-8')
-console.log(`[build-sitemap] wrote ${urls.size} URLs to ${outPath}`)
+if (existsSync(dirname(outPath))) {
+  writeFileSync(outPath, xml, 'utf-8')
+  console.log(`[build-sitemap] wrote ${urls.size} URLs to ${outPath}`)
+}

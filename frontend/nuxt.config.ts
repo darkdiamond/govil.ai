@@ -239,6 +239,7 @@ export default defineNuxtConfig({
         '/contact/',
         '/privacy/',
         '/terms/',
+        '/disclaimer/',
         '/accessibility/',
         ...categoryRoutes(),
         ...datasetRoutes(),
