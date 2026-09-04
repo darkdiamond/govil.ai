@@ -8,4 +8,4 @@
 #   pip install -r services/page_builder/requirements.txt \
 #               -r services/page_builder/requirements-test.txt
 
-llm-sandbox[podman]>=0.3     # rootless Podman sandbox; needs `apt install podman`
+llm-sandbox[podman]>=0.3.44     # rootless Podman sandbox; needs `apt install podman`
