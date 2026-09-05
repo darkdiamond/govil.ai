@@ -278,6 +278,28 @@ const bodyEl = ref<HTMLElement | null>(null)
 const nuxtApp = useNuxtApp()
 
 async function executeBodyScripts(container: HTMLElement): Promise<void> {
+  // If any previous ECharts or Leaflet instances exist on elements in this
+  // container, clean them up so re-executing scripts doesn't collide or throw.
+  const w = window as unknown as {
+    echarts?: { getInstanceByDom: (el: Element) => { dispose: () => void } | undefined }
+  }
+  if (w.echarts?.getInstanceByDom) {
+    for (const el of container.querySelectorAll('[id^=chart]')) {
+      try {
+        w.echarts.getInstanceByDom(el)?.dispose()
+      } catch {
+        // Ignore dispose errors
+      }
+    }
+  }
+  for (const el of container.querySelectorAll<HTMLElement>('[id^=map], #map, .leaflet-container')) {
+    const raw = el as unknown as { _leaflet_id?: number | null }
+    if (raw._leaflet_id) {
+      raw._leaflet_id = null
+      el.innerHTML = ''
+    }
+  }
+
   const scripts = Array.from(container.querySelectorAll('script'))
   // content.html often gates init on DOMContentLoaded / window load, but those
   // events fired once on the original page load and never fire again. Intercept
@@ -342,11 +364,9 @@ async function executeBodyScripts(container: HTMLElement): Promise<void> {
   }
 }
 
-// On SPA nav, useHead inserts the lib <script> tags into <head> at mount —
-// they load asynchronously, so the body's inline init must wait for the
-// globals before executeBodyScripts runs. On SSR/refresh the libs are
-// parsed synchronously in <head>, so they're already on window by the
-// time the (hydrating) page mounts and we skip this path entirely.
+// Wait for conditional head libs before running body scripts. On SSR/SSG
+// load they are synchronous in <head> and resolve immediately; on SPA nav
+// useHead appends them dynamically, so we poll until window.* globals are set.
 async function awaitDatasetLibs(needs: DatasetLibNeeds, timeoutMs = 5000): Promise<void> {
   if (!needs.charts && !needs.map && !needs.explorer) return
   const start = Date.now()
@@ -375,7 +395,6 @@ async function awaitDatasetLibs(needs: DatasetLibNeeds, timeoutMs = 5000): Promi
 }
 
 onMounted(async () => {
-  if (nuxtApp.isHydrating) return
   await awaitDatasetLibs(data.value!.libs)
   if (!bodyEl.value) return
   void executeBodyScripts(bodyEl.value)

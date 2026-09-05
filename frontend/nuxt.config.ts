@@ -67,7 +67,10 @@ function datasetRoutes(): string[] {
     // Nitro's prerender expects decoded routes and writes Unicode-named
     // directories from them (same as the Hebrew tag routes above). Legacy
     // entries without a page_slug fall back to the id.
-    return (data.datasets ?? []).map((d) => `/datasets/${d.page_slug || d.id}/`)
+    const only = process.env.PRERENDER_ONLY
+    return (data.datasets ?? [])
+      .map((d) => `/datasets/${d.page_slug || d.id}/`)
+      .filter((r) => !only || r.includes(only))
   } catch {
     return []
   }
@@ -283,6 +286,13 @@ export default defineNuxtConfig({
   },
 
   hooks: {
+    // Disable prefetching on all chunks so browsers don't issue speculative
+    // requests that Cloudflare Speed Brain / proxy rejects with 503 (cf-speculation-refused).
+    'build:manifest' (manifest) {
+      for (const chunk of Object.values(manifest)) {
+        chunk.prefetch = false
+      }
+    },
     // Suppress two cosmetic Vite warnings about node:fs/promises and node:path
     // being externalized for the browser. They come from pages/datasets/[id].vue's
     // useAsyncData fetcher, which is guarded by `if (!import.meta.server)` and

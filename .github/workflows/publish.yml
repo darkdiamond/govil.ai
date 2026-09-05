@@ -15,115 +15,115 @@
 name: publish
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'frontend/**'
-      - 'services/page_builder/publish.py'
-      - 'services/page_builder/related.py'
-      - 'services/page_builder/schema.py'
-      - 'services/page_builder/requirements-publish.txt'
-      - 'services/shared/**'
-      - 'firebase.json'
-      - '.github/workflows/publish.yml'
-  workflow_dispatch: {}
+    push:
+        branches: [main]
+        paths:
+            - "frontend/**"
+            - "services/page_builder/publish.py"
+            - "services/page_builder/related.py"
+            - "services/page_builder/schema.py"
+            - "services/page_builder/requirements-publish.txt"
+            - "services/shared/**"
+            - "firebase.json"
+            - ".github/workflows/publish.yml"
+    workflow_dispatch: {}
 
 concurrency:
-  group: publish
-  cancel-in-progress: true
+    group: publish
+    cancel-in-progress: true
 
 permissions:
-  contents: read
-  id-token: write   # WIF OIDC
+    contents: read
+    id-token: write # WIF OIDC
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      PROJECT: ${{ vars.FIREBASE_PROJECT }}
-      STAGING_BUCKET: ${{ vars.GCS_STAGING_BUCKET }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: google-github-actions/auth@v3
-        with:
-          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_CI_SA }}
-
-      - uses: google-github-actions/setup-gcloud@v3
-        with:
-          skip_install: true
-
-      # Delta fetch: the cache carries the previous run's pages, so rsync
-      # only moves new/changed objects. Cache key always misses (run id) —
-      # restore-keys pulls the most recent snapshot, then we save ours.
-      - uses: actions/cache@v6
-        with:
-          path: frontend/public/datasets
-          key: datasets-${{ github.run_id }}
-          restore-keys: |
-            datasets-
-
-      - name: Fetch agent pages from staging
-        run: |
-          mkdir -p frontend/public/datasets
-          gcloud storage rsync "gs://${STAGING_BUCKET}/datasets/" frontend/public/datasets/ \
-            --recursive --delete-unmatched-destination-objects \
-            --exclude='.*/(data|agent_data)\.json$|.*/index\.html$'
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-          cache: pip
-          cache-dependency-path: services/page_builder/requirements-publish.txt
-
-      - name: Publish artifacts from Firestore
-        run: |
-          pip install -q -r services/page_builder/requirements-publish.txt
-          python -m services.page_builder.publish --from-firestore \
-            --out frontend/public/
+    publish:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
         env:
-          PYTHONPATH: ${{ github.workspace }}
-          FIRESTORE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT }}
-          GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_PROJECT }}
+            PROJECT: ${{ vars.FIREBASE_PROJECT }}
+            STAGING_BUCKET: ${{ vars.GCS_STAGING_BUCKET }}
+        steps:
+            - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          # Pin exact patch: Node 22.23.0 shipped a keep-alive socket-reuse
-          # regression (nodejs/node#63989) that breaks WIF/ADC token exchange,
-          # surfacing as "Failed to authenticate" on firebase deploy. 22.22.3
-          # is the last good release. Revisit when a 22.x patch fixes it.
-          node-version: '22.22.3'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+            - uses: google-github-actions/auth@v3
+              with:
+                  workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+                  service_account: ${{ vars.GCP_CI_SA }}
 
-      - name: Generate site
-        working-directory: frontend
-        run: |
-          npm ci --prefer-offline --no-audit --no-fund
-          npm run generate
-        env:
-          # Optional analytics/ads — repo variables, unset in forks (the
-          # generated site then contains no GA/AdSense/Clarity at all).
-          NUXT_PUBLIC_GTAG_ID: ${{ vars.NUXT_PUBLIC_GTAG_ID }}
-          NUXT_PUBLIC_ADSENSE_ID: ${{ vars.NUXT_PUBLIC_ADSENSE_ID }}
-          NUXT_PUBLIC_CLARITY_ID: ${{ vars.NUXT_PUBLIC_CLARITY_ID }}
+            - uses: google-github-actions/setup-gcloud@v3
+              with:
+                  skip_install: true
 
-      # Rebuild hosting.redirects from the fresh manifest so old dataset-uuid
-      # and old tag URLs keep 301-ing to their current slug instead of 404-ing.
-      # Runs after publish (manifest written) + generate, before deploy reads
-      # firebase.json.
-      - name: Regenerate redirects from manifest
-        run: node frontend/scripts/gen-redirects.mjs
+            # Delta fetch: the cache carries the previous run's pages, so rsync
+            # only moves new/changed objects. Cache key always misses (run id) —
+            # restore-keys pulls the most recent snapshot, then we save ours.
+            - uses: actions/cache@v6
+              with:
+                  path: frontend/public/datasets
+                  key: datasets-${{ github.run_id }}
+                  restore-keys: |
+                      datasets-
 
-      - name: Deploy to Firebase Hosting
-        run: |
-          ./frontend/node_modules/.bin/firebase deploy --only hosting \
-            --project "${PROJECT}" --non-interactive
+            - name: Fetch agent pages from staging
+              run: |
+                  mkdir -p frontend/public/datasets
+                  gcloud storage rsync "gs://${STAGING_BUCKET}/datasets/" frontend/public/datasets/ \
+                    --recursive --delete-unmatched-destination-objects \
+                    --exclude='.*/(data|agent_data)\.json$|.*/index\.html$'
 
-      # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
-      # Key file ships in frontend/public/; failures never block the deploy.
-      - name: Ping IndexNow
-        continue-on-error: true
-        run: node frontend/scripts/indexnow-ping.mjs
+            - uses: actions/setup-python@v7
+              with:
+                  python-version: "3.12"
+                  cache: pip
+                  cache-dependency-path: services/page_builder/requirements-publish.txt
+
+            - name: Publish artifacts from Firestore
+              run: |
+                  pip install -q -r services/page_builder/requirements-publish.txt
+                  python -m services.page_builder.publish --from-firestore \
+                    --out frontend/public/
+              env:
+                  PYTHONPATH: ${{ github.workspace }}
+                  FIRESTORE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT }}
+                  GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_PROJECT }}
+
+            - uses: actions/setup-node@v7
+              with:
+                  # Pin exact patch: Node 22.23.0 shipped a keep-alive socket-reuse
+                  # regression (nodejs/node#63989) that breaks WIF/ADC token exchange,
+                  # surfacing as "Failed to authenticate" on firebase deploy. 22.22.3
+                  # is the last good release. Revisit when a 22.x patch fixes it.
+                  node-version: "22.22.3"
+                  cache: npm
+                  cache-dependency-path: frontend/package-lock.json
+
+            - name: Generate site
+              working-directory: frontend
+              run: |
+                  npm ci --prefer-offline --no-audit --no-fund
+                  npm run generate
+              env:
+                  # Optional analytics/ads — repo variables, unset in forks (the
+                  # generated site then contains no GA/AdSense/Clarity at all).
+                  NUXT_PUBLIC_GTAG_ID: ${{ vars.NUXT_PUBLIC_GTAG_ID }}
+                  NUXT_PUBLIC_ADSENSE_ID: ${{ vars.NUXT_PUBLIC_ADSENSE_ID }}
+                  NUXT_PUBLIC_CLARITY_ID: ${{ vars.NUXT_PUBLIC_CLARITY_ID }}
+
+            # Rebuild hosting.redirects from the fresh manifest so old dataset-uuid
+            # and old tag URLs keep 301-ing to their current slug instead of 404-ing.
+            # Runs after publish (manifest written) + generate, before deploy reads
+            # firebase.json.
+            - name: Regenerate redirects from manifest
+              run: node frontend/scripts/gen-redirects.mjs
+
+            - name: Deploy to Firebase Hosting
+              run: |
+                  ./frontend/node_modules/.bin/firebase deploy --only hosting \
+                    --project "${PROJECT}" --non-interactive
+
+            # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
+            # Key file ships in frontend/public/; failures never block the deploy.
+            - name: Ping IndexNow
+              continue-on-error: true
+              run: node frontend/scripts/indexnow-ping.mjs
