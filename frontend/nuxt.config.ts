@@ -67,6 +67,8 @@ function datasetRoutes(): string[] {
     // Nitro's prerender expects decoded routes and writes Unicode-named
     // directories from them (same as the Hebrew tag routes above). Legacy
     // entries without a page_slug fall back to the id.
+    // Optional filter for local debugging: PRERENDER_ONLY=<substr> npm run generate
+    // restricts dataset prerender to matching routes, cutting build time from ~35s to ~2s.
     const only = process.env.PRERENDER_ONLY
     return (data.datasets ?? [])
       .map((d) => `/datasets/${d.page_slug || d.id}/`)

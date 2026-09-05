@@ -131,7 +131,7 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   to `frontend/public/icons/`.
 - **Pre-loaded dataset-page globals** (head scripts; see
   `frontend/utils/dataset-libs.ts` and `awaitDatasetLibs()` in
-  `frontend/pages/datasets/[id].vue`): `echarts`, `L`,
+  `frontend/pages/datasets/[slug].vue`): `echarts`, `L`,
   `L.markerClusterGroup`, and `GovExplorer` (in-house;
   `frontend/public/lib/gov-explorer.js`). Agent bodies use them as
   globals and must NOT include `<script src=>` for any of them.
@@ -215,7 +215,7 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
 | Publisher | `services/page_builder/publish.py` | Reads each succeeded `sources/<id>` and writes data.json, agent_data.json, manifest.json (single source of truth) |
 | Agent behavior | `agent/system-prompt.md` | Canonical system prompt — design tokens, output contract, chart palette, data-fetching rules (incl. CHART-DATA PROVENANCE, no-spline, distinct-cap traps), RTL snippets, mobile rules. Hand-edit directly; ships in the builder image; byte-identical across sessions so providers serve it from prefix cache. |
 | Self-check | `agent/skills/check.py` | Enforces prompt rules statically; runs in-session (agent) AND host-side (agent_runner) on the sanitized body |
-| Dataset page shell | `frontend/pages/datasets/[id].vue` | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout |
+| Dataset page shell | `frontend/pages/datasets/[slug].vue` | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout |
 | Page chrome | `frontend/layouts/default.vue` | Header/footer — sole source of truth, inherited by every page including datasets |
 | Schema | `services/page_builder/schema.py` | `DatasetMeta` (scanner) + `AgentData` (agent) + merged `ManifestEntry` — split contract |
 | Slug helper | `services/shared/slug.py` | Deterministic Hebrew→Latin slug used by the scanner |
@@ -252,13 +252,14 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   rsynced into `frontend/public/datasets/<id>/`; `agent_data.json` is
   not — its content goes through Firestore (`sources/<id>.agent_data`)
   and the publisher writes the per-dataset `agent_data.json` from there.
-  `frontend/pages/datasets/[id].vue` reads all three artifacts at
+  `frontend/pages/datasets/[slug].vue` reads all three artifacts at
   `nuxt generate` time and wraps them in the default layout via
   `v-html`. In SSG the `<script>` tags inside the body land in the
-  static HTML and execute on browser load before Vue hydrates, so
-  ECharts/Leaflet still work. **Don't restore a Jinja wrapper** or
-  hand-roll chrome in agent output — `layouts/default.vue` is the
-  single source of truth.
+  static HTML; on mount `executeBodyScripts` re-executes them
+  (on both initial hydration and SPA navigation) so ECharts/Leaflet
+  render reliably even when Vue hydration resets the container DOM.
+  **Don't restore a Jinja wrapper** or hand-roll chrome in agent output —
+  `layouts/default.vue` is the single source of truth.
 - **Don't reintroduce GCS-as-data.json.** Per-dataset `data.json` and
   `agent_data.json` are *only* written by `services.page_builder.publish`
   from Firestore. If they show up in `gs://<staging>/datasets/<id>/`,

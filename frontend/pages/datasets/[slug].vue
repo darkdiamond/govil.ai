@@ -275,7 +275,6 @@ useSeo({
 // bind into the page's shared script-level scope, which persists across
 // SPA navs and would SyntaxError on re-entry to a previously-visited page.
 const bodyEl = ref<HTMLElement | null>(null)
-const nuxtApp = useNuxtApp()
 
 async function executeBodyScripts(container: HTMLElement): Promise<void> {
   // If any previous ECharts or Leaflet instances exist on elements in this
