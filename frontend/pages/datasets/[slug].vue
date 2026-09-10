@@ -470,14 +470,19 @@ onMounted(async () => {
               <dt class="text-subtle">המידע נכון ל-</dt>
               <dd class="m-0">
                 {{ formatDateHe(dataVintage) }}
-                <img
+                <a
                   v-if="sourceUpdatedSinceAnalysis"
-                  src="/icons/info.svg"
-                  alt=""
-                  class="inline w-3.5 h-3.5 ms-1 align-middle opacity-70 cursor-help"
-                  title="פורסמה גרסה מעודכנת של המאגר"
-                  aria-label="פורסמה גרסה מעודכנת של המאגר"
-                />
+                  href="#data-explorer"
+                  class="inline-flex items-center gap-1 ms-1 align-middle text-subtle hover:text-brand transition-colors"
+                  title="פורסמה גרסה מעודכנת של המאגר. הניתוח בעמוד מבוסס על גרסה קודמת, אך העיון בנתונים למטה מציג נתונים עדכניים בזמן אמת."
+                  aria-label="פורסמה גרסה מעודכנת של המאגר. מעבר לעיון בנתונים העדכניים בזמן אמת."
+                >
+                  <img
+                    src="/icons/info.svg"
+                    alt=""
+                    class="w-3.5 h-3.5 opacity-70"
+                  />
+                </a>
               </dd>
             </template>
             <template v-if="entry.last_analyzed_at">

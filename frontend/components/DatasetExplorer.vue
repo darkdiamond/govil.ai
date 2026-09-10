@@ -477,13 +477,29 @@ onBeforeUnmount(() => {
 <template>
   <section
     v-if="visibleCandidates.length && !collapsed"
-    class="card p-5 mt-8"
+    id="data-explorer"
+    class="card p-5 mt-8 scroll-mt-6"
     dir="rtl"
     aria-label="עיון בנתונים"
   >
-    <div class="flex items-center gap-2 mb-3">
-      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
-      <h2 class="m-0 text-lg font-semibold text-ink-deep">עיון בנתונים</h2>
+    <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+      <div class="flex items-center gap-2">
+        <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+        <h2 class="m-0 text-lg font-semibold text-ink-deep">עיון בנתונים</h2>
+      </div>
+
+      <div
+        v-if="!sourceGone"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-gov-pill bg-white border border-rule text-ink shadow-sm"
+        title="שאילתות החיפוש והטבלה נשלפות בזמן אמת ישירות מ-data.gov.il"
+      >
+        <span class="relative flex h-2 w-2" aria-hidden="true">
+          <span class="absolute inline-flex h-full w-full rounded-full bg-ok opacity-60 motion-safe:animate-ping" />
+          <span class="relative inline-flex h-2 w-2 rounded-full bg-ok" />
+        </span>
+        <span class="text-ok font-semibold text-[11px] tracking-wider uppercase">LIVE</span>
+        <span class="text-subtle text-[11px]">בזמן אמת מ-data.gov.il</span>
+      </div>
     </div>
 
     <div v-if="sourceGone" class="explorer-state explorer-state--error">
@@ -517,7 +533,7 @@ onBeforeUnmount(() => {
           @input="onSearchInput"
         />
         <p id="explorer-search-hint" class="m-0 mt-1.5 mb-3 text-xs text-subtle">
-          החיפוש מתבצע בכל הרשומות במאגר, גם לפי תחילת מילה
+          החיפוש מתבצע ישירות מול data.gov.il בכל רשומות המאגר, גם לפי תחילת מילה
         </p>
       </template>
 
