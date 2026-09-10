@@ -258,6 +258,10 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   static HTML; on mount `executeBodyScripts` re-executes them
   (on both initial hydration and SPA navigation) so ECharts/Leaflet
   render reliably even when Vue hydration resets the container DOM.
+  **Don't gate that on `nuxtApp.isHydrating`.** It used to skip
+  re-execution on first load, on the assumption that hydration leaves a
+  `v-html` container alone. Vue 3.5.42 broke that assumption (see
+  Gotchas) and every chart on the site went blank.
   **Don't restore a Jinja wrapper** or hand-roll chrome in agent output —
   `layouts/default.vue` is the single source of truth.
 - **Don't reintroduce GCS-as-data.json.** Per-dataset `data.json` and
@@ -300,6 +304,30 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
 
 ## Gotchas + open issues
 
+- **Vue hydration force-patches `v-html`, so body scripts must re-run.**
+  Since **vue 3.5.42**, `hydrateElement` patches any prop named in the
+  vnode's `dynamicProps`, and `v-html` compiles `innerHTML` into that
+  list. On first load Vue therefore re-sets `article.innerHTML` *after*
+  the browser already parsed and ran the agent's inline `<script>`s —
+  discarding the ECharts canvases, and re-inserting those scripts via
+  `innerHTML`, where they are inert and throw nothing. Symptom: every
+  chart/map container empty, console clean, DOM otherwise correct. The
+  accompanying `isUnchangedResourceProp` guard covers only
+  `src`/`srcset`/`href`/`poster` — not `innerHTML`. It arrived through a
+  `nuxt 3.21.7 → 3.21.10` dependabot bump (vue 3.5.38 → 3.5.42) and
+  blanked every dataset page from the 2026-09-04 19:52 deploy until
+  2026-09-05 05:38. The fix is that `executeBodyScripts` runs
+  unconditionally on mount, which depends on no Vue hydration internals.
+  After any Vue/Nuxt bump, re-check a dataset page: charts must render
+  on a normal load, not just with `/_nuxt/**` blocked.
+- **Chunk prefetching is disabled on purpose.** The `build:manifest`
+  hook in `frontend/nuxt.config.ts` sets `chunk.prefetch = false`.
+  Cloudflare Speed Brain speculatively fetches `<link rel="prefetch">`
+  targets and the zone answers them `503 cf-speculation-refused`, which
+  shows up as `net::ERR_ABORTED 503` on `/_nuxt/*.js` in the console of
+  every dataset page. It is harmless to rendering — and it misdirected
+  the chart-outage triage above — but don't re-enable prefetch without
+  checking the edge first.
 - **Hebrew tag URLs need `experimental.payloadExtraction: false`**.
   Tag URLs are Hebrew (`/tags/אבטחה/`, `/tags/אגף-תכנון/` for multi-word
   tags); the publisher's `tag_slugs` map normalizes whitespace +
