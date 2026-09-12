@@ -4,6 +4,14 @@
 #
 #   gcloud scheduler jobs resume govdata-pipeline-daily --location=me-west1
 #
+# SCHEDULE defaults to 23:00 UTC (01:00–02:00 Israel time depending on DST).
+# That is deliberate: OpenRouter's Tencent endpoint (hy3's cheapest provider,
+# and first in the MODEL_ROUTING order pin) gives ~37% off input+completion
+# rates during its 16:00–24:00 UTC off-peak window. Expressing the cron in
+# UTC keeps the batch inside that window year-round regardless of Israeli
+# DST. Data freshness is equivalent to the previous 07:00 IST slot — CKAN
+# metadata is ingested at scan time, not by wall clock.
+#
 # TARGET picks what the daily tick invokes:
 #   job     (default) — the govdata-builder-job Cloud Run JOB. Use this. A
 #                       job execution has no request timeout, so the batch
@@ -26,8 +34,8 @@ REGION=${REGION:-me-west1}
 SERVICE=${CLOUD_RUN_SERVICE:-govdata-builder}
 RUN_JOB=${CLOUD_RUN_JOB:-govdata-builder-job}
 JOB_NAME=${SCHEDULER_JOB:-govdata-pipeline-daily}
-SCHEDULE=${SCHEDULE:-"0 7 * * *"}
-TIMEZONE=${SCHEDULE_TZ:-"Asia/Jerusalem"}
+SCHEDULE=${SCHEDULE:-"0 23 * * *"}
+TIMEZONE=${SCHEDULE_TZ:-"UTC"}
 TARGET=${TARGET:-job}
 
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"

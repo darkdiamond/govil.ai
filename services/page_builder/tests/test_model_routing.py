@@ -5,8 +5,10 @@ Two things are under test:
 1. The quantization floor is **per model**, not global. deepseek-v4-flash is
    the only model whose OpenRouter pool contains fp4 endpoints (DeepInfra,
    Io Net), so it gets an fp8 floor; hy3 (4x fp8, 1x bf16) and minimax-m3 must
-   keep an untouched provider set — a blanket filter would exclude hy3's bf16
-   endpoint, which is *higher* precision than fp8.
+   keep an untouched quantization set — a blanket filter would exclude hy3's
+   bf16 endpoint, which is *higher* precision than fp8. hy3 DOES get a
+   provider-order pin (Tencent → Novita), but that is a cost/cache pin that
+   excludes no precision level.
 2. The serving provider is recorded, so a run's output can be attributed to a
    precision level. Its absence is what made the 2026-08-07 eval ambiguous.
 
@@ -67,11 +69,22 @@ def test_routing_matches_by_family_prefix():
 
 
 @pytest.mark.parametrize(
-    "model", ["tencent/hy3", "minimax/minimax-m3", "openai/gpt-5.6-luna"]
+    "model", ["minimax/minimax-m3", "openai/gpt-5.6-luna"]
 )
 def test_other_models_get_no_provider_block(model):
-    """Prod routing must be untouched: hy3's bf16 endpoint stays eligible."""
+    """Models with no routing row keep an untouched provider set."""
     assert "openrouter_provider" not in _settings(model)
+
+
+def test_hy3_gets_cost_cache_pin_not_precision_floor():
+    """hy3's pin is provider ORDER (Tencent → Novita) for cache locality
+    + off-peak pricing — no quantization filter, so the bf16 GMICloud
+    endpoint stays eligible as a fallback."""
+    s = _settings("tencent/hy3")
+    assert s["openrouter_provider"] == {
+        "order": ["Tencent", "Novita"],
+        "allow_fallbacks": True,
+    }
 
 
 def test_explicit_quantizations_override_the_floor():
@@ -80,10 +93,14 @@ def test_explicit_quantizations_override_the_floor():
     assert s["openrouter_provider"]["quantizations"] == ["fp4"]
 
 
-def test_env_override_applies_to_a_model_without_a_floor(monkeypatch):
+def test_env_quant_override_merges_with_hy3_pin(monkeypatch):
     monkeypatch.setenv("OPENROUTER_QUANTIZATIONS", "fp8, bf16")
     s = _settings("tencent/hy3")
-    assert s["openrouter_provider"] == {"quantizations": ["fp8", "bf16"]}
+    assert s["openrouter_provider"] == {
+        "order": ["Tencent", "Novita"],
+        "allow_fallbacks": True,
+        "quantizations": ["fp8", "bf16"],
+    }
 
 
 # ------------------------------------------------------ effort precedence

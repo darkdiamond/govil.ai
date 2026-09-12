@@ -11,8 +11,9 @@ landing pages. Four layers:
    state into **Firestore** (`sources/*`). Runs inside the builder
    container; also usable as a local CLI for debugging.
 2. **Builder** — `services/page_builder/`. **Cloud Run job**
-   (`govdata-builder-job`), executed by Cloud Scheduler **daily at 07:00
-   Asia/Jerusalem** via the Admin API's `:run` method:
+   (`govdata-builder-job`), executed by Cloud Scheduler **daily at 23:00
+   UTC (01:00–02:00 Asia/Jerusalem, DST-dependent)** via the Admin API's
+   `:run` method:
    - `pipeline.run_pipeline` drives scan → reap orphaned `pending` →
      select every never-analyzed (or retryable-failed) source up to
      `DAILY_CAP` → concurrent agent sessions (`asyncio.gather` +
@@ -110,6 +111,13 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   field, which reports only the currently top-routed provider — before
   adding a row or reading a model's real completion ceiling. Each run's
   serving provider is recorded in `cost.json.providers`.
+  **hy3 also carries a provider-order pin** (`MODEL_ROUTING`, since
+  2026-09-05): `order: ["Tencent", "Novita"]` — a cost+cache pin, not a
+  precision one. Prompt cache is per-provider, and unpinned routing
+  bounced across 6 endpoints (observed ~44% cache hits). Tencent is also
+  the cheapest endpoint and runs a ~37% off-peak discount 16:00–24:00
+  UTC, which the 23:00 UTC scheduler slot exploits. No quantization
+  filter — the bf16 endpoint stays eligible.
   Candidate models are evaluated first through the local harness
   (`cli/model_test.py`) per `docs/MODEL_EVAL.md` — comparison snapshots
   live in `services/page_builder/harness-comparison/`, which is

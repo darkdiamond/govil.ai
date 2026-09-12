@@ -415,9 +415,11 @@ def _load_system_prompt() -> str:
 #
 # `quantizations` goes to OpenRouter's provider-routing object;
 # `reasoning_effort` is a default, overridden by an explicit CLI flag or
-# OPENROUTER_REASONING_EFFORT. `allow_fallbacks` is left at its default (true)
-# so one provider outage can't kill the daily batch — fallbacks still have to
-# satisfy the quantization filter.
+# OPENROUTER_REASONING_EFFORT. `provider` (order/allow_fallbacks) pins
+# endpoint preference — used for cost + cache, NOT precision (see the hy3
+# row). `allow_fallbacks` stays true everywhere so one provider outage
+# can't kill the daily batch — fallbacks still have to satisfy the
+# quantization filter.
 #
 # Do NOT add `require_parameters: True` here. It reads as harmless ("only use
 # providers that support all my parameters") but OpenRouter answers our
@@ -427,6 +429,20 @@ def _load_system_prompt() -> str:
 # 2026-08-07: `quantizations` alone routes fine (→ Cloudflare),
 # `require_parameters` alone 404s.
 MODEL_ROUTING: dict[str, dict[str, Any]] = {
+    "tencent/hy3": {
+        # Cost + cache pin, not precision: OpenRouter load-balances hy3
+        # across 6 endpoints ($0.0825–$0.20/M input) and prompt cache is
+        # PER PROVIDER — bouncing between endpoints replays history
+        # uncached (observed ~44% cache hits on unpinned routing).
+        # Order: Tencent first — cheapest rates AND a 16:00–24:00 UTC
+        # off-peak discount (~37% off input+completion) that the daily
+        # batch now lands inside (scheduler runs 23:00 UTC; see
+        # infra/scheduler.setup.sh); Novita second on uptime. No
+        # quantization floor: the pool is 4×fp8 + 1×bf16 + 1×unknown and
+        # bf16 (GMICloud) is HIGHER precision than fp8 — a filter would
+        # only exclude it (see the deepseek row for the inverse case).
+        "provider": {"order": ["Tencent", "Novita"], "allow_fallbacks": True},
+    },
     "deepseek/deepseek-v4-flash": {
         "quantizations": ["fp8"],
         "reasoning_effort": "max",
@@ -529,11 +545,16 @@ def _build_pydantic_model(
                 if env_quants else None)
             or routing.get("quantizations")
         )
+        # One openrouter_provider object composed from two sources: the
+        # routing row's `provider` block (order/allow_fallbacks pins) and
+        # the quantization floor (explicit arg → env → row).
+        provider_cfg: dict[str, Any] = dict(routing.get("provider") or {})
         if quants:
-            provider: dict[str, Any] = {"quantizations": list(quants)}
-            base_settings["openrouter_provider"] = provider
+            provider_cfg["quantizations"] = list(quants)
+        if provider_cfg:
+            base_settings["openrouter_provider"] = provider_cfg
             log.info(
-                "model=%s: provider routing %s", model_id, provider
+                "model=%s: provider routing %s", model_id, provider_cfg
             )
         return (
             OpenRouterModel(model_id, provider=OpenRouterProvider(api_key=api_key)),

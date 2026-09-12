@@ -1,7 +1,8 @@
 # Deployment
 
 Three one-time setups, then the runtime flow is: Cloud Scheduler (daily
-07:00 Asia/Jerusalem) → Cloud Run builder (scan CKAN → concurrent
+23:00 UTC — inside OpenRouter's off-peak discount window for hy3's
+Tencent endpoint) → Cloud Run builder (scan CKAN → concurrent
 self-validating agent sessions via OpenRouter → stage to GCS +
 Firestore) → Cloud Build publisher (generate Nuxt site → deploy to
 Firebase Hosting), which fires only when ≥1 new page succeeded.
