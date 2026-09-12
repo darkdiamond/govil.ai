@@ -77,11 +77,61 @@
     return o;
   }
 
+  // Belt #3 for agent-emitted value axes pinned to a zero baseline:
+  // ECharts' default for a `type: 'value'` axis forces 0 into the axis
+  // extent, so series living far from zero (water levels at −210 m,
+  // rates near 2.4, counters around 80 000) get ~95%+ dead space and
+  // the actual variation is unreadable. When a value axis has no
+  // explicit `scale`/`min`/`max` and zero sits ≥4 data-spans away from
+  // the series extent, inject `scale: true` so the axis fits the data.
+  // Charts whose data brackets zero (or nearly) keep the zero baseline.
+  // Already-published pages are corrected here at render time; new
+  // pages are steered at generation time by the VAXIS-BASELINE rule in
+  // agent/system-prompt.md.
+  function fixValueAxisScale(o) {
+    try {
+      var axes = Array.isArray(o.yAxis) ? o.yAxis : o.yAxis ? [o.yAxis] : [];
+      if (!axes.length || !o.series) return o;
+      var ss = Array.isArray(o.series) ? o.series : [o.series];
+      axes.forEach(function (ax, i) {
+        if (!ax || ax.type !== 'value') return;
+        if (ax.scale === true || ax.min != null || ax.max != null) return;
+        var vals = [];
+        ss.forEach(function (s) {
+          if (!s) return;
+          var idx = s.yAxisIndex || 0;
+          if (idx !== i) return;
+          if (Array.isArray(s.data)) {
+            s.data.forEach(function (v) {
+              var n = typeof v === 'number' ? v : (v && typeof v === 'object' ? Number(v.value) : NaN);
+              if (isFinite(n)) vals.push(n);
+            });
+          }
+          // markLine thresholds also constrain the axis extent
+          if (s.markLine && Array.isArray(s.markLine.data)) {
+            s.markLine.data.forEach(function (ml) {
+              var n = ml && typeof ml === 'object' ? Number(ml.yAxis) : NaN;
+              if (isFinite(n)) vals.push(n);
+            });
+          }
+        });
+        if (vals.length < 2) return;
+        var dmin = Math.min.apply(null, vals);
+        var dmax = Math.max.apply(null, vals);
+        var span = dmax - dmin;
+        if (!(span > 0)) return;
+        var dist = dmin > 0 ? dmin : (dmax < 0 ? -dmax : 0);
+        if (dist >= 4 * span) ax.scale = true;
+      });
+    } catch (e) { /* never break a page over an axis extent */ }
+    return o;
+  }
+
   // Shallow-merge helper for the common pattern. Equivalent to
   // `Object.assign({}, base, override)` but reads better at the call
   // site: `chart.setOption(GovEcharts.option({xAxis, yAxis, series}))`.
   function option(override) {
-    return Object.assign({}, base, fixLabelFormatters(fixHbarLabels(override || {})));
+    return Object.assign({}, base, fixValueAxisScale(fixLabelFormatters(fixHbarLabels(override || {}))));
   }
 
   window.GOVIL_PALETTE = GOVIL_PALETTE;

@@ -193,6 +193,19 @@ points and rounds off real peaks — government data gets straight
 segments. (`areaStyle` for emphasis is fine; the line itself stays
 linear.)
 
+VAXIS-BASELINE RULE: a value axis must not force a zero baseline when
+the data lives far from zero. ECharts' default (`scale: false`) pins
+0 into the axis extent — a series at −210 m or a rate around 2.4 gets
+~95% dead space and the actual change is unreadable. Whenever all
+data values on a value axis sit more than ~4× the data span away from
+zero (e.g. levels −215…−208, rates 2.36…2.61, counters 80 450…85 420),
+set `scale: true` on that yAxis — or an explicit padded
+`min`/`max` (round numbers are fine, include the min/max markLine
+thresholds in the range). Bar charts with values that approach zero
+keep the zero baseline: bars encode length, so truncating the axis on
+near-zero data exaggerates differences. When in doubt: lines →
+`scale: true`, bars near zero → keep the baseline.
+
 ECharts heatmap (two-axis time, month × category, district × type):
 When the data has two ordinal axes, a heatmap compresses what would
 otherwise be 6–12 line charts. Use a brand-blue ramp:
@@ -781,7 +794,10 @@ WORKFLOW
    near-duplicates don't count. Common fits:
      geographic → `GovMap` for point sets; raw Leaflet only for
                   choropleths or single-point maps
-     time series → ECharts line / area (RTL-friendly)
+     time series → ECharts line / area (RTL-friendly).
+                  VAXIS-BASELINE RULE: if the data sits far from zero,
+                  set `scale: true` on the value yAxis (see ECharts
+                  preset section above)
      two-axis time → ECharts heatmap (month × category, year × month %
                   completion). Compresses 6–12 line charts into one.
      registry   → ECharts bar for a column breakdown; KPI cards for
