@@ -5,13 +5,13 @@
 # reasoning_details round-trip). duckduckgo-search backs the agent's
 # web_search tool. The Podman sandbox used by the local test harness is
 # NOT here — see requirements-test.txt.
-pydantic-ai>=2.23.0,<3
+pydantic-ai>=2.41.0,<3
 # logfire comes in via pydantic-ai's extras; a fresh pip resolve (container
 # build 2026-07-10) hit ResolutionImpossible: newest logfire floats while
 # opentelemetry-instrumentation-httpx exact-pins its matching
 # opentelemetry-instrumentation, and pip can't align the pair. Pin the
 # venv-proven set; drop once pydantic-ai/logfire advance past the conflict.
-logfire[httpx]==4.39.0
+logfire[httpx]==5.0.0
 opentelemetry-instrumentation==0.65b0
 opentelemetry-instrumentation-httpx==0.65b0
 duckduckgo-search>=8.1.1
@@ -21,8 +21,8 @@ httpx>=0.28.1
 # actually parse before the body persists. Validated against the 587
 # published script blocks with zero false positives.
 esprima>=4.0.1,<5
-pydantic>=2.13.4
-pydantic-settings>=2.14.2
+pydantic>=2.13.5
+pydantic-settings>=2.15.0
 functions-framework>=3.10.2
 jinja2>=3.1.6
 tenacity>=9.1.4
@@ -34,6 +34,6 @@ tenacity>=9.1.4
 pandas>=3.0.5,<4
 
 # Google Cloud
-google-cloud-firestore>=2.28.0
-google-cloud-storage>=3.13.0
-google-cloud-build>=3.38.0
+google-cloud-firestore>=2.30.0
+google-cloud-storage>=3.14.1
+google-cloud-build>=3.39.0
