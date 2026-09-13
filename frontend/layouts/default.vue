@@ -98,13 +98,13 @@ const year = new Date().getFullYear()
           <div class="font-display text-base mb-2">מקורות</div>
           <ul class="list-none p-0 m-0 space-y-1.5 text-white/85">
             <li>
-              <a href="https://data.gov.il" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 hover:text-white no-underline hover:no-underline">
+              <a href="https://data.gov.il" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-white/85 hover:text-white no-underline hover:no-underline">
                 <img src="/icons/external-link.svg" alt="" class="w-4 h-4 invert opacity-90" />
                 data.gov.il
               </a>
             </li>
             <li>
-              <a href="https://www.gov.il" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 hover:text-white no-underline hover:no-underline">
+              <a href="https://www.gov.il" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-white/85 hover:text-white no-underline hover:no-underline">
                 <img src="/icons/external-link.svg" alt="" class="w-4 h-4 invert opacity-90" />
                 gov.il
               </a>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { buildInsightPool } from '~/utils/insights'
+import { buildInsightPool, sampleInsights } from '~/utils/insights'
 import type { DatasetKind, SlimEntry } from '~/types/manifest'
 import { loadSearchIndex } from '~/utils/search-index'
 
@@ -50,8 +50,15 @@ const { data } = await useAsyncData('home', async () => {
     kindCounts[d.dataset_kind] = (kindCounts[d.dataset_kind] ?? 0) + 1
   }
 
+  // The carousel only ever renders a handful of slides at a time, but it
+  // randomly resamples on mount so the pool itself has to reach the client.
+  // Shipping all ~400 qualifying engagements blew the hydration payload up to
+  // ~195 KB (the bulk of the homepage document), which dominated LCP. Cap the
+  // build-time pool at a bounded sample — enough variety for a fresh random
+  // draw each visit, small enough to keep the inline payload out of the
+  // critical path.
   return {
-    insightPool: buildInsightPool(datasets),
+    insightPool: sampleInsights(buildInsightPool(datasets), 48),
     latest,
     ministries,
     kindCounts,

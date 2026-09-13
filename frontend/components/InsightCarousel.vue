@@ -270,7 +270,7 @@ onBeforeUnmount(() => {
   >
     <div class="flex items-baseline justify-between mb-3">
       <h2 class="font-display m-0 text-lg md:text-xl text-ink">מומלצים להתחלה</h2>
-      <span class="text-xs text-subtle">דוגמיות אקראיות מתוך מאגרי המידע</span>
+      <span class="text-xs text-ink/70">דוגמיות אקראיות מתוך מאגרי המידע</span>
     </div>
 
     <div

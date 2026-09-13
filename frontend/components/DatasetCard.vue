@@ -10,7 +10,7 @@ defineProps<{ entry: SlimEntry }>()
     class="card card-hover p-4 no-underline hover:no-underline block"
   >
     <div class="flex gap-2 flex-wrap mb-2 text-xs">
-      <span v-if="entry.source_status === 'unavailable'" class="badge badge-archive">ארכיון</span>
+      <span v-if="entry.source_status === 'unavailable'" class="badge bg-[#fff9e6] text-[#8a6d00] border-[#ffc107]">ארכיון</span>
       <span v-if="entry.organization" class="badge">{{ entry.organization }}</span>
       <span v-for="f in entry.formats.slice(0, 3)" :key="f" class="badge">{{ f }}</span>
     </div>
@@ -30,11 +30,3 @@ defineProps<{ entry: SlimEntry }>()
     </div>
   </a>
 </template>
-
-<style scoped>
-.badge-archive {
-  background: #fff9e6;
-  color: #8a6d00;
-  border: 1px solid #ffc107;
-}
-</style>
