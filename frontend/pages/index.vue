@@ -15,6 +15,14 @@ useSeo({
   ],
 })
 
+// Impact site verification. Unhead only emits a named <meta> when `content`
+// is present (a value-only meta is dropped), so the token is mirrored into
+// `content` while `value` keeps the exact attribute Impact documents.
+// Home page only — this lives in the page, not app.head.
+useHead({
+  meta: [{ name: 'impact-site-verification', content: '1963960389', value: '1963960389' }],
+})
+
 interface MinistryRow {
   slug: string
   title: string
