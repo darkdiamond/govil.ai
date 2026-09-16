@@ -359,6 +359,88 @@ def check_js_parses(body: str) -> None:
             )
 
 
+# JS string-literal escapes are consumed by the JS lexer BEFORE JSON.parse
+# runs. A Hebrew abbreviation carrying a quote (מל"ל, רב"ט, ג'לג'וליה)
+# hand-escaped as `\"` inside a '…' literal therefore reaches JSON.parse
+# as a bare, unescaped `"` mid-string and throws `SyntaxError: Expected
+# ',' or ']' after array element` — killing the whole <script> so no
+# chart initialises. esprima cannot see it: the JS itself is perfectly
+# legal. Motivating case (live page b5fecfa2, 2026-09-16):
+#   JSON.parse('{"min_cats": ["חוץ", "מל\"ל", "בריאות"], …}')
+# — the `\\"` is valid JS, invalid JSON at runtime. Only unescaping the
+# literal the way JS would and json.loads-ing the result catches it.
+_JSON_PARSE_LIT_RE = re.compile(
+    r"JSON\.parse\(\s*"
+    r"(?:'((?:[^'\\]|\\.)*)'|\"((?:[^\"\\]|\\.)*)\")"
+    r"\s*[,)]"
+)
+_JS_UNESCAPE_SIMPLE = {
+    "n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f",
+    "v": "\v", "0": "\0", "\\": "\\", "'": "'", '"': '"',
+    "`": "`", "\n": "",  # line continuation
+}
+
+
+def _js_unescape(lit: str) -> str:
+    # Simulate how the JS lexer unescapes a string literal body, so the
+    # text JSON.parse will actually receive can be validated.
+    out: list[str] = []
+    i = 0
+    while i < len(lit):
+        c = lit[i]
+        if c != "\\":
+            out.append(c)
+            i += 1
+            continue
+        nxt = lit[i + 1] if i + 1 < len(lit) else ""
+        if nxt == "x" and len(lit) >= i + 4:
+            out.append(chr(int(lit[i + 2:i + 4], 16)))
+            i += 4
+        elif nxt == "u" and len(lit) >= i + 6 and lit[i + 2] != "{":
+            out.append(chr(int(lit[i + 2:i + 6], 16)))
+            i += 6
+        elif nxt == "u" and lit[i + 2:i + 3] == "{":
+            end = lit.find("}", i + 3)
+            if end < 0:
+                out.append(nxt)
+                i += 2
+            else:
+                out.append(chr(int(lit[i + 3:end], 16)))
+                i = end + 1
+        else:
+            out.append(_JS_UNESCAPE_SIMPLE.get(nxt, nxt))
+            i += 2
+    return "".join(out)
+
+
+def check_json_parse_literals(blocks: list[str]) -> None:
+    # Every JSON.parse('<literal>') whose argument is a single string
+    # literal must be valid JSON after JS unescaping. Concatenated
+    # arguments ('[' + …) and variable/JSON.stringify arguments are not
+    # matched here — only the hand-escaped-literal shape, which is the
+    # one that ships broken.
+    for i, b in enumerate(blocks, 1):
+        for m in _JSON_PARSE_LIT_RE.finditer(b):
+            raw = m.group(1) if m.group(1) is not None else m.group(2)
+            try:
+                json.loads(_js_unescape(raw))
+            except Exception as exc:
+                fail(
+                    f"JSON-ESCAPE: <script> block #{i} calls JSON.parse on a "
+                    "string literal whose JS-unescaped text is not valid JSON "
+                    f"({exc}). JS consumes the literal's backslash escapes "
+                    "BEFORE JSON.parse runs — a quote hand-escaped as \\\" "
+                    "inside a '…' literal reaches JSON as a bare quote and "
+                    "throws, killing the whole <script> so no chart "
+                    "initialises. Write Hebrew quotes as the gershayim "
+                    "character (״) with no escaping, or double-escape as "
+                    "\\\\\" — or better, build the payload with Python "
+                    "json.dumps and paste the RESULT directly as an object "
+                    "literal (no JSON.parse at all).",
+                    code=10,
+                )
+
+
 def check_icon_headers(body: str) -> None:
     # Top-level <section class="card ... mb-6"> must open with the
     # icon-paired flex wrapper, not a bare <h2>. Sub-cards inside grids
@@ -476,6 +558,7 @@ def main(argv: list[str]) -> int:
     check_unrendered_template(blocks)
     # Then the catch-all, which absorbed the per-shape lexical walkers.
     check_js_parses(body)
+    check_json_parse_literals(blocks)
     check_hbar_label_position(blocks)
     check_label_formatter_params(blocks)
 

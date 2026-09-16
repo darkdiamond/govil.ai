@@ -948,6 +948,17 @@ HARD CONSTRAINTS
         formatter: v => v.toFixed(1) + ' מ\''
     In HTML body text (outside `<script>`) the bare apostrophe is
     fine — this rule applies only to JS string literals.
+  • Inside a `JSON.parse('<literal>')` call, JS unescapes the string
+    literal BEFORE JSON.parse runs — so a quote hand-escaped as `\"`
+    inside a '…' literal reaches JSON as a bare `"` mid-string and
+    throws `SyntaxError: Expected ',' or ']' after array element`,
+    killing the whole <script>. (Real failure mode: `"מל\"ל"` inside
+    `JSON.parse('{"min_cats": ["חוץ", "מל\"ל", "בריאות"]}')` —
+    perfectly legal JS, fatal JSON.) Write Hebrew quotes as the
+    gershayim character with no escaping (`מל״ל`), double-escape as
+    `\\"`, or better: skip JSON.parse entirely and paste Python
+    `json.dumps(...)` output directly as an object literal. The
+    CHECK_SCRIPT validates every JSON.parse string literal.
   • When inlining CKAN row data as a JS array literal, JSON-encode
     every string field. CKAN address/name fields routinely carry
     embedded newlines, tabs, or other control chars; a raw LF
