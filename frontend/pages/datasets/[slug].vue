@@ -496,7 +496,7 @@ onMounted(async () => {
           </dl>
         </section>
 
-        <section v-if="entry.resources?.length" class="card p-4">
+        <section v-if="entry.source_status !== 'unavailable' && entry.resources?.length" class="card p-4">
           <h3 class="m-0 mb-3 text-sm font-display text-subtle">קבצים להורדה</h3>
           <div>
             <div v-for="r in entry.resources" :key="r.url" class="res-row">
