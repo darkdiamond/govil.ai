@@ -1,0 +1,13 @@
+{
+  "name": "govdata-dev-tools",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "test": "cd frontend && node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.7"
+  }
+}

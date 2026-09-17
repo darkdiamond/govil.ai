@@ -58,6 +58,9 @@ Thumbs.db
 .coverage
 htmlcov/
 
+# Root development tooling
+/node_modules/
+
 # Frontend (Nuxt 3)
 frontend/node_modules/
 frontend/.output/
