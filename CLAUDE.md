@@ -35,7 +35,7 @@ landing pages. Four layers:
      be kept in lockstep with the job's — both scripts use
      `--set-env-vars`, which replaces the whole set.
    - One container, one task (`--tasks=1 --parallelism=1
-     --max-retries=0`). Per-source parallelism lives inside that
+--max-retries=0`). Per-source parallelism lives inside that
      container, never Cloud Run autoscaling. `--max-retries=0` is
      deliberate: a retried batch would re-bill sessions that already
      succeeded.
@@ -160,9 +160,9 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   formats, organization, metadata_modified) and builder (agent's
   `agent_data` field). On every deploy, `services.page_builder.publish`
   rematerializes from that single doc:
-    `frontend/public/data/manifest.json`        — merged ManifestEntry list
-    `frontend/public/datasets/<id>/data.json`   — DatasetMeta (scanner)
-    `frontend/public/datasets/<id>/agent_data.json` — AgentData (agent)
+  `frontend/public/data/manifest.json` — merged ManifestEntry list
+  `frontend/public/datasets/<id>/data.json` — DatasetMeta (scanner)
+  `frontend/public/datasets/<id>/agent_data.json` — AgentData (agent)
   GCS staging carries only `content.html`. Don't reintroduce a path that
   rsyncs `data.json` from GCS — single writer per file is the whole point.
 - **Selection priority** (`services/page_builder/selector.py`):
@@ -187,23 +187,23 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
      on later daily runs; 3 whole-run failures park the source.
   2. `change_status in {new, updated}` AND `metadata_modified >= cutoff`
      AND CKAN advanced past our build (`metadata_modified >
-     analyzed_metadata_modified`) AND the new version is more than
+analyzed_metadata_modified`) AND the new version is more than
      `REANALYZE_GAP_DAYS` past the version we built from:
      `metadata_modified - analyzed_metadata_modified > gap` (legacy null
      marker falls back to `last_analyzed_at`; both null = eligible) —
      ordered by `metadata_modified` DESC.
-  The (recent) never-analyzed backlog is drained first; re-analysis of
-  already-published pages waits until every recent source has at least
-  one page. The gap gate (replaced the now-based COOLDOWN_DAYS on
-  2026-07-15) applies only to Track 2 and is measured against the DATA
-  VERSION, not the run time: a page built today from January data
-  refreshes as soon as any newer version lands (months-long version
-  jump), while daily-append datasets self-limit to ~one rebuild per gap
-  period since each rebuild resets `analyzed_metadata_modified` to that
-  day's version. **Prod: Track 2 is ON
-  (`REANALYZE_ENABLED=true`) with `REANALYZE_GAP_DAYS=30`.** Both are
-  env-overridable (pipeline reads them; code defaults `reanalyze=true`,
-  `DEFAULT_REANALYZE_GAP_DAYS=30`).
+     The (recent) never-analyzed backlog is drained first; re-analysis of
+     already-published pages waits until every recent source has at least
+     one page. The gap gate (replaced the now-based COOLDOWN_DAYS on
+     2026-07-15) applies only to Track 2 and is measured against the DATA
+     VERSION, not the run time: a page built today from January data
+     refreshes as soon as any newer version lands (months-long version
+     jump), while daily-append datasets self-limit to ~one rebuild per gap
+     period since each rebuild resets `analyzed_metadata_modified` to that
+     day's version. **Prod: Track 2 is ON
+     (`REANALYZE_ENABLED=true`) with `REANALYZE_GAP_DAYS=30`.** Both are
+     env-overridable (pipeline reads them; code defaults `reanalyze=true`,
+     `DEFAULT_REANALYZE_GAP_DAYS=30`).
 - **Related-datasets scoring** (deterministic, content-first):
   `1.5·same_ministry + 2·min(shared_tag_count, 6) + 8·cosine(embedding) + 6·agent_suggested`.
   Embedding similarity dominates; same-ministry is a tiebreaker only.
@@ -211,24 +211,24 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
 
 ## Key files to read before editing
 
-| Area | File | Why |
-|------|------|-----|
-| Pipeline orchestration | `services/page_builder/pipeline.py` | scan → select → asyncio.gather → mark → trigger publish |
-| Source selection | `services/page_builder/selector.py` | Cooldown + priority query |
-| Firestore layer | `services/shared/firestore.py` | `FirestoreStateStore`, schema, queries |
-| Production session runner | `services/page_builder/agent_runner.py` | Attempt loop (SESSION_ATTEMPTS) → validate (schema + sanitizer + check.py) → upload content.html to GCS + agent_data/usage to Firestore |
-| Agent loop (shared) | `services/page_builder/model_harness.py` | PydanticAI agent + tools + OpenRouter routing + actual-cost extraction; `run_agent_session` used by prod and the test CLI |
-| Agent I/O contract | `services/page_builder/agent_contract.py` | build_user_message (OUTPUTS_DIR/CHECK_SCRIPT), CKAN prefetch, output sanitizer |
-| Prod sandbox | `services/page_builder/local_sandbox.py` | Per-session subprocess workdir, scrubbed env, command timeouts |
-| Publisher | `services/page_builder/publish.py` | Reads each succeeded `sources/<id>` and writes data.json, agent_data.json, manifest.json (single source of truth) |
-| Agent behavior | `agent/system-prompt.md` | Canonical system prompt — design tokens, output contract, chart palette, data-fetching rules (incl. CHART-DATA PROVENANCE, no-spline, distinct-cap traps), RTL snippets, mobile rules. Hand-edit directly; ships in the builder image; byte-identical across sessions so providers serve it from prefix cache. |
-| Self-check | `agent/skills/check.py` | Enforces prompt rules statically; runs in-session (agent) AND host-side (agent_runner) on the sanitized body |
-| Dataset page shell | `frontend/pages/datasets/[slug].vue` | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout |
-| Page chrome | `frontend/layouts/default.vue` | Header/footer — sole source of truth, inherited by every page including datasets |
-| Schema | `services/page_builder/schema.py` | `DatasetMeta` (scanner) + `AgentData` (agent) + merged `ManifestEntry` — split contract |
-| Slug helper | `services/shared/slug.py` | Deterministic Hebrew→Latin slug used by the scanner |
-| Cloud Build pipeline | `cloudbuild-publish.yaml` | rsync content.html only → run publisher (writes data.json + agent_data.json + manifest.json from Firestore) → `nuxt generate` → Firebase deploy |
-| Hosting config | `firebase.json`, `.firebaserc` | Firebase Hosting target + project binding |
+| Area                      | File                                      | Why                                                                                                                                                                                                                                                                                                            |
+| ------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pipeline orchestration    | `services/page_builder/pipeline.py`       | scan → select → asyncio.gather → mark → trigger publish                                                                                                                                                                                                                                                        |
+| Source selection          | `services/page_builder/selector.py`       | Cooldown + priority query                                                                                                                                                                                                                                                                                      |
+| Firestore layer           | `services/shared/firestore.py`            | `FirestoreStateStore`, schema, queries                                                                                                                                                                                                                                                                         |
+| Production session runner | `services/page_builder/agent_runner.py`   | Attempt loop (SESSION_ATTEMPTS) → validate (schema + sanitizer + check.py) → upload content.html to GCS + agent_data/usage to Firestore                                                                                                                                                                        |
+| Agent loop (shared)       | `services/page_builder/model_harness.py`  | PydanticAI agent + tools + OpenRouter routing + actual-cost extraction; `run_agent_session` used by prod and the test CLI                                                                                                                                                                                      |
+| Agent I/O contract        | `services/page_builder/agent_contract.py` | build_user_message (OUTPUTS_DIR/CHECK_SCRIPT), CKAN prefetch, output sanitizer                                                                                                                                                                                                                                 |
+| Prod sandbox              | `services/page_builder/local_sandbox.py`  | Per-session subprocess workdir, scrubbed env, command timeouts                                                                                                                                                                                                                                                 |
+| Publisher                 | `services/page_builder/publish.py`        | Reads each succeeded `sources/<id>` and writes data.json, agent_data.json, manifest.json (single source of truth)                                                                                                                                                                                              |
+| Agent behavior            | `agent/system-prompt.md`                  | Canonical system prompt — design tokens, output contract, chart palette, data-fetching rules (incl. CHART-DATA PROVENANCE, no-spline, distinct-cap traps), RTL snippets, mobile rules. Hand-edit directly; ships in the builder image; byte-identical across sessions so providers serve it from prefix cache. |
+| Self-check                | `agent/skills/check.py`                   | Enforces prompt rules statically; runs in-session (agent) AND host-side (agent_runner) on the sanitized body                                                                                                                                                                                                   |
+| Dataset page shell        | `frontend/pages/datasets/[slug].vue`      | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout                                                                                                                                                                                                               |
+| Page chrome               | `frontend/layouts/default.vue`            | Header/footer — sole source of truth, inherited by every page including datasets                                                                                                                                                                                                                               |
+| Schema                    | `services/page_builder/schema.py`         | `DatasetMeta` (scanner) + `AgentData` (agent) + merged `ManifestEntry` — split contract                                                                                                                                                                                                                        |
+| Slug helper               | `services/shared/slug.py`                 | Deterministic Hebrew→Latin slug used by the scanner                                                                                                                                                                                                                                                            |
+| Cloud Build pipeline      | `cloudbuild-publish.yaml`                 | rsync content.html only → run publisher (writes data.json + agent_data.json + manifest.json from Firestore) → `nuxt generate` → Firebase deploy                                                                                                                                                                |
+| Hosting config            | `firebase.json`, `.firebaserc`            | Firebase Hosting target + project binding                                                                                                                                                                                                                                                                      |
 
 ## Conventions you will be tempted to violate (don't)
 
@@ -273,7 +273,7 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   **Don't restore a Jinja wrapper** or hand-roll chrome in agent output —
   `layouts/default.vue` is the single source of truth.
 - **Don't reintroduce GCS-as-data.json.** Per-dataset `data.json` and
-  `agent_data.json` are *only* written by `services.page_builder.publish`
+  `agent_data.json` are _only_ written by `services.page_builder.publish`
   from Firestore. If they show up in `gs://<staging>/datasets/<id>/`,
   the rsync step in `cloudbuild-publish.yaml` deletes them after sync —
   by design, so the two-writer drift class can't recur.
@@ -283,7 +283,12 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   on ingest (`services/scanner/models.py::_public_resource_url`), the
   agent's HARD CONSTRAINTS + self-check enforce it on output, and the
   Nuxt route regex-rewrites the body as a final belt. Don't skip any of
-  those layers — defense in depth.
+  those layers — defense in depth. Since ~2026-09 CKAN also emits
+  `aws-e.data.gov.il` (AWS ALB OAuth wall) and some URLs carry a
+  `/he/dataset/…` locale prefix, which data.gov.il answers with its
+  "page not found" screen instead of the file. Both are normalized in
+  `_public_resource_url` and its render-time mirror
+  `frontend/utils/resource-url.ts` (download buttons + JSON-LD).
 - **Don't add a session wall-clock timeout.** The agent loop runs until
   the model goes idle; per-tool-command timeouts (120s in LocalSandbox)
   and the Cloud Run timeout (3600s for the whole daily batch) are the
@@ -315,7 +320,7 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
 - **Vue hydration force-patches `v-html`, so body scripts must re-run.**
   Since **vue 3.5.42**, `hydrateElement` patches any prop named in the
   vnode's `dynamicProps`, and `v-html` compiles `innerHTML` into that
-  list. On first load Vue therefore re-sets `article.innerHTML` *after*
+  list. On first load Vue therefore re-sets `article.innerHTML` _after_
   the browser already parsed and ran the agent's inline `<script>`s —
   discarding the ECharts canvases, and re-inserting those scripts via
   `innerHTML`, where they are inert and throw nothing. Symptom: every
@@ -351,7 +356,7 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   Currently disabled for cost. The secret binding (`VOYAGE_API_KEY`
   from Secret Manager) and call sites stay wired so re-enabling is a
   one-line toggle: `gcloud run services update govdata-builder
-  --region=me-west1 --update-env-vars=VOYAGE_ENABLED=true`. While off,
+--region=me-west1 --update-env-vars=VOYAGE_ENABLED=true`. While off,
   `embed()` short-circuits to `None` and `related.py` falls back to
   ministry + shared-tag (CKAN ∪ agent `suggested_tags`) + agent-suggested
   scoring. Existing embeddings already cached on `sources/<id>.embedding`
@@ -363,7 +368,7 @@ run auto-retry on subsequent days via `failed_attempts`, parked at 3).
   Cloud Build can't check out arbitrary filesystems — it needs either a
   GitHub 2nd-gen connection or a Cloud Source Repositories mirror.
   `infra/bootstrap.sh` prints the exact `gcloud builds triggers create
-  manual` command after the connection exists.
+manual` command after the connection exists.
 - **MiniMax M3 API flakes** (~1 in 3 sessions historically): malformed
   tool-call JSON (400 on history replay) and `finish_reason: "error"`
   (HTTP 200, server-side generation error). Both are absorbed by

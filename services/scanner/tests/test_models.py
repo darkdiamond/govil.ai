@@ -33,3 +33,16 @@ def test_from_ckan_response_parses_datastore_active():
     by_id = {r.id: r for r in ds.resources}
     assert by_id["rid-1"].datastore_active is True
     assert by_id["rid-2"].datastore_active is False
+
+
+def test_public_resource_url_rewrites_gated_hosts_and_locale_prefix():
+    from services.scanner.models import _public_resource_url as f
+
+    path = "dataset/x/resource/y/download/a.csv"
+    assert f(f"https://e.data.gov.il/{path}") == f"https://data.gov.il/{path}"
+    assert f(f"https://aws-e.data.gov.il/{path}") == f"https://data.gov.il/{path}"
+    assert f(f"https://e.data.gov.il/he/{path}") == f"https://data.gov.il/{path}"
+    assert f(f"https://data.gov.il/en/{path}") == f"https://data.gov.il/{path}"
+    # Non-CKAN hosts keep their locale segments.
+    assert f("https://www.gov.il/he/Departments/x") == "https://www.gov.il/he/Departments/x"
+    assert f("") == ""

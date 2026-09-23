@@ -54,7 +54,7 @@ HYGIENE_RE = re.compile(
     r'|class="[^"]*\bmax-w-(?:6xl|7xl|3xl|4xl|5xl|full)\b'
     r"|#(?:6f42c1|856404|fd7e14|e83e8c|20c997|6610f2|d63384|0B3D91|EAB308|FAFAF7)"
     r"|\bHeebo\b"
-    r"|https?://e\.data\.gov\.il"
+    r"|https?://(?:aws-)?e\.data\.gov\.il"
     r"|/cdn-cgi/"
     r"|\bdata-cfemail="
     r'|class="[^"]*\b__cf_email__\b'

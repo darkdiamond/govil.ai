@@ -5,6 +5,7 @@ These models represent datasets, resources, and scan results
 as returned from the CKAN API and stored locally.
 """
 
+import re
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
@@ -152,19 +153,23 @@ class ScanSummary(BaseModel):
     results: list[ScanResult] = Field(default_factory=list)
 
 
+_GATED_HOST_RE = re.compile(r"^https?://(?:aws-)?e\.data\.gov\.il/")
+_LOCALE_PREFIX_RE = re.compile(r"^https://data\.gov\.il/(?:he|en)/(?=dataset/)")
+
+
 def _public_resource_url(url: str) -> str:
-    """CKAN publishes resource URLs on `e.data.gov.il`, which is behind Google
-    IAP and redirects anonymous clients to an OAuth consent screen. The same
-    path on `data.gov.il` (no `e.` prefix) is publicly downloadable. Rewrite
-    on ingest so any consumer of the Firestore `resources[]` list sees a URL
-    that actually works in a browser."""
+    """CKAN publishes resource URLs on `e.data.gov.il` / `aws-e.data.gov.il`,
+    which sit behind an OAuth wall (Google IAP / AWS ALB) and redirect
+    anonymous clients to a login screen. The same path on `data.gov.il` (no
+    `e.` prefix) is publicly downloadable. Some URLs also carry a `/he/` or
+    `/en/` locale prefix before `/dataset/`; data.gov.il routes those to its
+    frontend's "page not found" screen, so drop it. Rewrite on ingest so any
+    consumer of the Firestore `resources[]` list sees a URL that actually
+    works in a browser. Mirrored by frontend/utils/resource-url.ts."""
     if not url:
         return url
-    if url.startswith("https://e.data.gov.il/"):
-        return "https://data.gov.il/" + url[len("https://e.data.gov.il/"):]
-    if url.startswith("http://e.data.gov.il/"):
-        return "https://data.gov.il/" + url[len("http://e.data.gov.il/"):]
-    return url
+    url = _GATED_HOST_RE.sub("https://data.gov.il/", url)
+    return _LOCALE_PREFIX_RE.sub("https://data.gov.il/", url)
 
 
 def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
