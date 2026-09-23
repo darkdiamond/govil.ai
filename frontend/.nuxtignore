@@ -1,0 +1,4 @@
+# `nuxt generate` output symlink (-> .output/public). Keep it out of the dev
+# watchers: in a checkout copied off /mnt/d it points back across the 9P
+# bridge, and polling it stalls the dev server (see WATCH_POLL in nuxt.config.ts).
+/dist

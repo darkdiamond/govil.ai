@@ -9,36 +9,39 @@
 // Category routes (ministries/tags/kinds) are enumerated from manifest.json
 // (the merged view) the same way.
 
-import { copyFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { createLogger } from 'vite'
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createLogger } from "vite";
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 interface ManifestEntry {
-  id: string
-  page_slug?: string
-  organization_slug?: string
-  tags_he?: string[]
-  suggested_tags?: string[]
-  dataset_kind?: string
+  id: string;
+  page_slug?: string;
+  organization_slug?: string;
+  tags_he?: string[];
+  suggested_tags?: string[];
+  dataset_kind?: string;
 }
 interface Manifest {
-  datasets?: ManifestEntry[]
-  tag_slugs?: Record<string, string>
+  datasets?: ManifestEntry[];
+  tag_slugs?: Record<string, string>;
 }
 
 function categoryRoutes(): string[] {
-  const path = resolve(__dirname, 'public/data/manifest.json')
-  let data: Manifest
-  try { data = JSON.parse(readFileSync(path, 'utf-8')) }
-  catch { return [] }
+  const path = resolve(__dirname, "public/data/manifest.json");
+  let data: Manifest;
+  try {
+    data = JSON.parse(readFileSync(path, "utf-8"));
+  } catch {
+    return [];
+  }
 
-  const tagSlugs = data.tag_slugs ?? {}
-  const routes = new Set<string>(['/ministries/', '/tags/'])
+  const tagSlugs = data.tag_slugs ?? {};
+  const routes = new Set<string>(["/ministries/", "/tags/"]);
   for (const d of data.datasets ?? []) {
-    if (d.organization_slug) routes.add(`/ministries/${d.organization_slug}/`)
+    if (d.organization_slug) routes.add(`/ministries/${d.organization_slug}/`);
     // Use the publisher-built tag_slugs map (Hebrew tag → URL-safe
     // Hebrew slug, with whitespace normalized to `-`). Pass the slug
     // raw — Nitro's prerender expects decoded routes and writes
@@ -46,12 +49,12 @@ function categoryRoutes(): string[] {
     // tags and the agent's suggested_tags so every chip on every
     // dataset page resolves to a generated tag page.
     for (const t of [...(d.tags_he ?? []), ...(d.suggested_tags ?? [])]) {
-      const slug = tagSlugs[t]
-      if (slug) routes.add(`/tags/${slug}/`)
+      const slug = tagSlugs[t];
+      if (slug) routes.add(`/tags/${slug}/`);
     }
-    if (d.dataset_kind) routes.add(`/kinds/${d.dataset_kind}/`)
+    if (d.dataset_kind) routes.add(`/kinds/${d.dataset_kind}/`);
   }
-  return [...routes]
+  return [...routes];
 }
 
 // Reads from manifest.json (the publisher's view of succeeded sources)
@@ -60,21 +63,21 @@ function categoryRoutes(): string[] {
 // `pending` or `failed` — the publisher skips those, no data.json gets
 // written, and prerendering them would 404 in [id].vue's fs.readFile.
 function datasetRoutes(): string[] {
-  const path = resolve(__dirname, 'public/data/manifest.json')
+  const path = resolve(__dirname, "public/data/manifest.json");
   try {
-    const data = JSON.parse(readFileSync(path, 'utf-8')) as Manifest
+    const data = JSON.parse(readFileSync(path, "utf-8")) as Manifest;
     // Route by page_slug (Hebrew title slug + id slice). Pass it decoded —
     // Nitro's prerender expects decoded routes and writes Unicode-named
     // directories from them (same as the Hebrew tag routes above). Legacy
     // entries without a page_slug fall back to the id.
     // Optional filter for local debugging: PRERENDER_ONLY=<substr> npm run generate
     // restricts dataset prerender to matching routes, cutting build time from ~35s to ~2s.
-    const only = process.env.PRERENDER_ONLY
+    const only = process.env.PRERENDER_ONLY;
     return (data.datasets ?? [])
       .map((d) => `/datasets/${d.page_slug || d.id}/`)
-      .filter((r) => !only || r.includes(only))
+      .filter((r) => !only || r.includes(only));
   } catch {
-    return []
+    return [];
   }
 }
 
@@ -84,49 +87,81 @@ function datasetRoutes(): string[] {
 // fetched at runtime by HeaderSearch and inlined into list-page payloads,
 // so it must exist in public/ before `nuxt generate` copies public/ out.
 function ensureSearchIndex(): void {
-  const idxPath = resolve(__dirname, 'public/data/search-index.json')
-  if (existsSync(idxPath)) return
+  const idxPath = resolve(__dirname, "public/data/search-index.json");
+  if (existsSync(idxPath)) return;
   const SLIM_FIELDS = [
-    'id', 'page_slug', 'title', 'organization', 'organization_slug', 'summary_he',
-    'dataset_kind', 'formats', 'tags_he', 'suggested_tags', 'record_count',
-    'spatial_coverage', 'license', 'metadata_modified', 'last_analyzed_at',
-  ]
+    "id",
+    "page_slug",
+    "title",
+    "organization",
+    "organization_slug",
+    "summary_he",
+    "dataset_kind",
+    "formats",
+    "tags_he",
+    "suggested_tags",
+    "record_count",
+    "spatial_coverage",
+    "license",
+    "metadata_modified",
+    "last_analyzed_at",
+  ];
   try {
     const m = JSON.parse(
-      readFileSync(resolve(__dirname, 'public/data/manifest.json'), 'utf-8'),
-    ) as Manifest & { version?: number; generated_at?: string }
+      readFileSync(resolve(__dirname, "public/data/manifest.json"), "utf-8")
+    ) as Manifest & { version?: number; generated_at?: string };
     const datasets = (m.datasets ?? []).map((d) => {
       // SAFETY: manifest dataset entries are parsed JSON objects keyed by field name
-      const rec = d as unknown as Record<string, unknown>
-      const slim: Record<string, unknown> = {}
+      const rec = d as unknown as Record<string, unknown>;
+      const slim: Record<string, unknown> = {};
       for (const k of SLIM_FIELDS) {
-        if (rec[k] !== undefined && rec[k] !== null) slim[k] = rec[k]
+        if (rec[k] !== undefined && rec[k] !== null) slim[k] = rec[k];
       }
-      return slim
-    })
-    writeFileSync(idxPath, JSON.stringify({
-      version: m.version,
-      generated_at: m.generated_at,
-      tag_slugs: m.tag_slugs,
-      datasets,
-    }))
+      return slim;
+    });
+    writeFileSync(
+      idxPath,
+      JSON.stringify({
+        version: m.version,
+        generated_at: m.generated_at,
+        tag_slugs: m.tag_slugs,
+        datasets,
+      })
+    );
   } catch {
     // No manifest in this checkout — runtime loader has its own fallback.
   }
 }
-ensureSearchIndex()
+ensureSearchIndex();
 
 // Analytics/ads are opt-in per deployment: unset (the default in forks and
 // local builds) means the feature is fully absent from the generated site.
 // Production sets these as GitHub repo variables (see
 // .github/workflows/publish.yml and infra/github-ci.setup.sh).
-const GTAG_ID = process.env.NUXT_PUBLIC_GTAG_ID || ''
-const ADSENSE_ID = process.env.NUXT_PUBLIC_ADSENSE_ID || ''
-const CLARITY_ID = process.env.NUXT_PUBLIC_CLARITY_ID || ''
+const GTAG_ID = process.env.NUXT_PUBLIC_GTAG_ID || "";
+const ADSENSE_ID = process.env.NUXT_PUBLIC_ADSENSE_ID || "";
+const CLARITY_ID = process.env.NUXT_PUBLIC_CLARITY_ID || "";
+
+// File-watcher polling is only needed when the checkout sits on WSL DrvFs
+// (/mnt/<drive>/…), where inotify doesn't cross the Windows↔Linux boundary.
+// On a native filesystem it is pure cost: chokidar stat()s every watched
+// file every interval, and it follows symlinks — `nuxt generate` leaves a
+// `dist -> <abs>/.output/public` symlink, so a checkout copied off /mnt/d
+// kept polling ~3.7k files across the 9P bridge every 300ms. That pinned
+// the dev server's event loop at 50–75% CPU and requests hung >60s.
+// WATCH_POLL=1 / WATCH_POLL=0 overrides the auto-detection.
+const WATCH_POLL = process.env.WATCH_POLL
+  ? process.env.WATCH_POLL === "1"
+  : __dirname.startsWith("/mnt/");
+const pollOpts = WATCH_POLL ? { usePolling: true, interval: 300 } : {};
+// `dist` is generate output (a symlink into .output/public) — never source.
+// Nuxt's own watchers take their ignore list from .nuxtignore (they
+// overwrite `watchers.chokidar.ignored`); this regex covers Vite's watcher.
+const DIST_RE = /[\\/]frontend[\\/]dist([\\/]|$)/;
 
 export default defineNuxtConfig({
   ssr: true,
-  compatibilityDate: '2025-01-01',
+  compatibilityDate: "2025-01-01",
   devtools: { enabled: false },
 
   // The generated `.nuxt/tsconfig.json` sets `types: []` and includes
@@ -135,12 +170,12 @@ export default defineNuxtConfig({
   typescript: {
     tsConfig: {
       compilerOptions: {
-        types: ['node'],
+        types: ["node"],
       },
     },
   },
 
-  modules: ['@nuxtjs/tailwindcss', 'nuxt-gtag'],
+  modules: ["@nuxtjs/tailwindcss", "nuxt-gtag"],
 
   gtag: {
     id: GTAG_ID,
@@ -154,41 +189,47 @@ export default defineNuxtConfig({
     },
   },
 
-  components: [
-    { path: '~/components', pathPrefix: false },
-  ],
+  components: [{ path: "~/components", pathPrefix: false }],
 
   app: {
     head: {
-      htmlAttrs: { lang: 'he', dir: 'rtl' },
-      title: 'govil.ai',
+      htmlAttrs: { lang: "he", dir: "rtl" },
+      title: "govil.ai",
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
-        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
-        { rel: 'manifest', href: '/site.webmanifest' },
+        { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        { rel: "icon", href: "/favicon.ico", sizes: "any" },
+        { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+        { rel: "manifest", href: "/site.webmanifest" },
         // Rubik is self-hosted (assets/css/tailwind.css @font-face, files in
         // public/fonts/). Preload the Hebrew subset — it's on every page's
         // critical path; latin loads on demand via unicode-range.
         {
-          rel: 'preload',
-          href: '/fonts/rubik-var-hebrew.woff2',
-          as: 'font',
-          type: 'font/woff2',
-          crossorigin: '',
+          rel: "preload",
+          href: "/fonts/rubik-var-hebrew.woff2",
+          as: "font",
+          type: "font/woff2",
+          crossorigin: "",
         },
       ],
       meta: [
-        { charset: 'utf-8' },
-        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'theme-color', content: '#0068f5' },
-        { name: 'author', content: 'govil.ai' },
+        { charset: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        { name: "theme-color", content: "#0068f5" },
+        { name: "author", content: "govil.ai" },
         // Per-page useSeo() overrides these; they exist as fallbacks for
         // any page that forgets to call useSeo().
-        { name: 'description', content: 'ניתוחים, גרפים ותובנות בעברית לכל מאגרי המידע הפתוחים של ממשלת ישראל — הנתונים הציבוריים, בשפה של בני אדם.' },
-        { name: 'keywords', content: 'מידע ממשלתי, נתונים פתוחים, מאגרי מידע, data.gov.il, גרפים, תובנות, open data Israel' },
+        {
+          name: "description",
+          content:
+            "ניתוחים, גרפים ותובנות בעברית לכל מאגרי המידע הפתוחים של ממשלת ישראל — הנתונים הציבוריים, בשפה של בני אדם.",
+        },
+        {
+          name: "keywords",
+          content:
+            "מידע ממשלתי, נתונים פתוחים, מאגרי מידע, data.gov.il, גרפים, תובנות, open data Israel",
+        },
         ...(ADSENSE_ID
-          ? [{ name: 'google-adsense-account', content: ADSENSE_ID }]
+          ? [{ name: "google-adsense-account", content: ADSENSE_ID }]
           : []),
       ],
       // AdSense (Auto Ads) is injected post-hydration by
@@ -221,11 +262,11 @@ export default defineNuxtConfig({
     // for unmatched routes), we prerender `/404/` as a real page and
     // mirror that file over the empty fallback once Nitro finishes.
     hooks: {
-      'compiled' (nitro) {
-        const out = nitro.options.output.publicDir
-        const src = resolve(out, '404/index.html')
-        const dst = resolve(out, '404.html')
-        if (existsSync(src)) copyFileSync(src, dst)
+      compiled(nitro) {
+        const out = nitro.options.output.publicDir;
+        const src = resolve(out, "404/index.html");
+        const dst = resolve(out, "404.html");
+        if (existsSync(src)) copyFileSync(src, dst);
       },
     },
     prerender: {
@@ -236,25 +277,25 @@ export default defineNuxtConfig({
       // see the comment above experimental.payloadExtraction).
       concurrency: 8,
       routes: [
-        '/',
-        '/404/',
-        '/datasets/',
-        '/about/',
-        '/how-it-works/',
-        '/faq/',
-        '/contact/',
-        '/privacy/',
-        '/terms/',
-        '/disclaimer/',
-        '/accessibility/',
+        "/",
+        "/404/",
+        "/datasets/",
+        "/about/",
+        "/how-it-works/",
+        "/faq/",
+        "/contact/",
+        "/privacy/",
+        "/terms/",
+        "/disclaimer/",
+        "/accessibility/",
         ...categoryRoutes(),
         ...datasetRoutes(),
       ],
       failOnError: false,
     },
-    // DrvFs polling for the Nitro server-route watcher — see comment on
-    // `vite.server.watch` below for the broader story.
-    watchOptions: { usePolling: true, interval: 300 },
+    // DrvFs polling for the Nitro server-route watcher — see WATCH_POLL
+    // and the comment on `watchers` below.
+    watchOptions: { ...pollOpts },
   },
 
   tailwindcss: {
@@ -262,8 +303,8 @@ export default defineNuxtConfig({
     viewer: false,
   },
 
-  // Repo lives on /mnt/d (WSL DrvFs) — inotify is unreliable across the
-  // Windows↔Linux boundary, so default file watchers miss saves. Nuxt
+  // When the repo lives on /mnt/d (WSL DrvFs), inotify is unreliable across
+  // the Windows↔Linux boundary, so default file watchers miss saves. Nuxt
   // runs three independent watchers in dev; all three need polling, or
   // HMR is silently partial (Vite-only polling reloads existing component
   // edits but misses new files / layout / config / server-route changes).
@@ -272,11 +313,11 @@ export default defineNuxtConfig({
   //   2. Nitro's watchOptions (above) — server/ routes
   //   3. Vite's server.watch — Vue SFC / CSS / JS HMR
   watchers: {
-    chokidar: { usePolling: true, interval: 300 },
+    chokidar: { ...pollOpts },
   },
   vite: {
     server: {
-      watch: { usePolling: true, interval: 300 },
+      watch: { ...pollOpts, ignored: [DIST_RE] },
     },
     // Vite's default 500kB threshold is below the natural size of a
     // Nuxt 3.21 + Vue + Tailwind + components bundle for this app.
@@ -290,9 +331,9 @@ export default defineNuxtConfig({
   hooks: {
     // Disable prefetching on all chunks so browsers don't issue speculative
     // requests that Cloudflare Speed Brain / proxy rejects with 503 (cf-speculation-refused).
-    'build:manifest' (manifest) {
+    "build:manifest"(manifest) {
       for (const chunk of Object.values(manifest)) {
-        chunk.prefetch = false
+        chunk.prefetch = false;
       }
     },
     // Suppress two cosmetic Vite warnings about node:fs/promises and node:path
@@ -302,17 +343,18 @@ export default defineNuxtConfig({
     // (before constant folding), so a runtime guard alone can't silence it.
     // We swap in a wrapped logger via the vite:extendConfig hook so this
     // overrides Nuxt's own logger setup.
-    'vite:extendConfig' (viteConfig) {
-      const logger = createLogger()
-      const _warn = logger.warn.bind(logger)
+    "vite:extendConfig"(viteConfig) {
+      const logger = createLogger();
+      const _warn = logger.warn.bind(logger);
       logger.warn = (msg, opts) => {
         if (
-          typeof msg === 'string' &&
+          typeof msg === "string" &&
           /Module "node:(fs\/promises|path)" has been externalized/.test(msg)
-        ) return
-        _warn(msg, opts)
-      }
-      Object.assign(viteConfig, { customLogger: logger })
+        )
+          return;
+        _warn(msg, opts);
+      };
+      Object.assign(viteConfig, { customLogger: logger });
     },
   },
-})
+});
