@@ -66,6 +66,9 @@ class SourceRecord:
     analysis_status: str = "never"
     last_error: Optional[str] = None
     page_path: Optional[str] = None
+    # Whole-run failures since the last success. Only Track 2 reads it for
+    # `succeeded` sources (see `mark_reanalysis_failed`).
+    failed_attempts: int = 0
 
     # UTC timestamp the reconcile sweep first flagged the source as removed
     # upstream. Set by mark_source_unavailable, cleared by
@@ -107,6 +110,7 @@ class SourceRecord:
             analysis_status=data.get("analysis_status", "never"),
             last_error=data.get("last_error"),
             page_path=data.get("page_path"),
+            failed_attempts=int(data.get("failed_attempts") or 0),
             agent_data=data.get("agent_data"),
             embedding=data.get("embedding"),
             unavailable_since=data.get("unavailable_since"),
@@ -354,8 +358,10 @@ class FirestoreStateStore:
             self.client.collection(SOURCES_COLL)
             .where(filter=FieldFilter("analysis_status", "==", "failed"))
             .order_by("metadata_modified", direction=firestore.Query.DESCENDING)
-            .limit(limit * 2)
         )
+        # Streamed, not a fixed window: parked docs (attempts >= max) can sort
+        # ahead of retryable ones, and a `limit * 2` fetch would fill entirely
+        # with them and starve the eligible tail.
         out: list[SourceRecord] = []
         for d in query.stream():
             attempts = (d.to_dict() or {}).get("failed_attempts")
@@ -634,6 +640,26 @@ class FirestoreStateStore:
             merge=True,
         )
 
+    def mark_reanalysis_failed(self, dataset_id: str, error: str) -> None:
+        """Record a failed Track-2 rebuild of an ALREADY-PUBLISHED source.
+
+        Unlike `mark_analysis_failed` this leaves `analysis_status` at
+        `succeeded`: the publisher emits only succeeded/unavailable sources,
+        so flipping a live page to `failed` would delete it from the site on
+        the next deploy. `failed_attempts` still increments; the selector
+        stops re-picking the source once it reaches the retry budget, and a
+        later success resets it.
+        """
+        self.client.collection(SOURCES_COLL).document(dataset_id).set(
+            {
+                "analysis_status": "succeeded",
+                "analysis_started_at": None,
+                "last_error": (error or "")[:1000],
+                "failed_attempts": firestore.Increment(1),
+            },
+            merge=True,
+        )
+
     def reap_stale_pending(self, *, older_than_minutes: int = 120) -> list[str]:
         """Recycle `pending` sources orphaned by a run that died mid-session.
 
@@ -673,9 +699,16 @@ class FirestoreStateStore:
                     continue
             # No timestamp at all → written before this field existed, so it
             # predates the current run by definition.
-            self.mark_analysis_failed(
-                d.id, "interrupted — run ended mid-session (no page written)"
-            )
+            data = d.to_dict() or {}
+            if data.get("page_path"):
+                # Interrupted Track-2 rebuild: the live page must survive.
+                self.mark_reanalysis_failed(
+                    d.id, "interrupted — re-analysis ended mid-session"
+                )
+            else:
+                self.mark_analysis_failed(
+                    d.id, "interrupted — run ended mid-session (no page written)"
+                )
             reaped.append(d.id)
         return reaped
 

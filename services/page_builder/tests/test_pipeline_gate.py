@@ -47,3 +47,36 @@ def test_generic_error_still_marks_failed(monkeypatch):
     assert result["status"] == "failed"
     store.mark_analysis_failed.assert_called_once()
     store.mark_analysis_restricted.assert_not_called()
+
+
+def _run_published(monkeypatch, *, raises):
+    src = SourceRecord(
+        id="pub1", title="מאגר", resources=[{"id": "r1", "url": "u"}],
+        analysis_status="succeeded", page_path="datasets/pub1/",
+    )
+    store = MagicMock()
+
+    def _session(**_kwargs):
+        raise raises
+
+    monkeypatch.setattr(pipeline, "run_production_session", _session)
+    result = asyncio.run(
+        pipeline._build_one(src, "b", store, asyncio.Semaphore(1), asyncio.Event())
+    )
+    return result, store
+
+
+def test_failed_rebuild_of_published_page_keeps_it_publishable(monkeypatch):
+    result, store = _run_published(monkeypatch, raises=RuntimeError("flake"))
+    assert result["status"] == "failed"
+    store.mark_reanalysis_failed.assert_called_once()
+    store.mark_analysis_failed.assert_not_called()
+
+
+def test_restricted_rebuild_of_published_page_preserves_it(monkeypatch):
+    result, store = _run_published(
+        monkeypatch, raises=ResourceRestrictedError("403")
+    )
+    assert result["status"] == "restricted"
+    store.mark_source_unavailable.assert_called_once()
+    store.mark_analysis_restricted.assert_not_called()

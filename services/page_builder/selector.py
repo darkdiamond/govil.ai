@@ -81,6 +81,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_REANALYZE_GAP_DAYS = 30
 DEFAULT_MAX_AGE_DAYS = 365
+MAX_FAILED_ATTEMPTS = 3
 DEFAULT_MIN_MODIFIED_FLOOR = datetime(2026, 1, 1, tzinfo=timezone.utc)
 # Runaway guard for the Track-2 scan. `change_status` is sticky, so the
 # candidate stream can approach the whole corpus; the DESC-order age_cutoff
@@ -165,6 +166,11 @@ def pick_next(
                 continue
             if src.metadata_modified is None or _as_utc(src.metadata_modified) < age_cutoff:
                 break
+            # Failed rebuilds of a published page keep it `succeeded` (so the
+            # page survives) but count against the retry budget; park it at 3
+            # like Track 1b does, or it would burn an agent run every day.
+            if src.failed_attempts >= MAX_FAILED_ATTEMPTS:
+                continue
             # `change_status` is sticky — the scanner only writes it on
             # NEW/UPDATED and nothing resets it after analysis. Without
             # this guard, every source ever flagged `updated` would be

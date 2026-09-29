@@ -284,3 +284,10 @@ def test_floor_still_excludes_2024_source():
         store, n=5, min_modified_floor=FLOOR_2025, max_age_days=100000
     )
     assert picks == []
+
+
+def test_track2_skips_published_source_that_exhausted_retries():
+    src = _changed_src("parked", modified=MODIFIED, gap_days=200)
+    src.failed_attempts = 3
+    store = _FakeStore([src])
+    assert pick_next(store, n=5, min_modified_floor=FLOOR_2025, max_age_days=100000) == []

@@ -78,3 +78,24 @@ def test_reaped_sources_burn_retry_budget():
     store.reap_stale_pending(older_than_minutes=120)
     payload = client.collection.return_value.document.return_value.set.call_args.args[0]
     assert "failed_attempts" in payload
+
+
+def test_reaping_published_source_keeps_it_succeeded():
+    """An interrupted Track-2 rebuild must not drop the live page."""
+    old = datetime.now(timezone.utc) - timedelta(hours=9)
+    store, client = _store(
+        [_doc("pub1", {"analysis_started_at": old, "page_path": "datasets/pub1/"})]
+    )
+    assert store.reap_stale_pending(older_than_minutes=120) == ["pub1"]
+    payload = client.collection.return_value.document.return_value.set.call_args.args[0]
+    assert payload["analysis_status"] == "succeeded"
+    assert "failed_attempts" in payload
+
+
+def test_failed_retryable_not_starved_by_parked_docs():
+    parked = [_doc(f"p{i}", {"failed_attempts": 3}) for i in range(500)]
+    ok = _doc("ok1", {"failed_attempts": 1})
+    client = MagicMock()
+    client.collection.return_value.where.return_value.order_by.return_value.stream.return_value = iter(parked + [ok])
+    store = FirestoreStateStore(client=client)
+    assert [r.id for r in store.list_failed_retryable(limit=5)] == ["ok1"]

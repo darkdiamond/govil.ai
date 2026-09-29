@@ -75,6 +75,10 @@ async def _build_one(
         # success so the dataset page can show "המידע נכון ל-X" honestly even
         # after CKAN re-publishes a newer version.
         analyzed_metadata_modified = src.metadata_modified
+        # A Track-2 rebuild of a live page: failures must not knock it out of
+        # the publishable statuses (succeeded/unavailable), or the next
+        # deploy deletes it from the site.
+        published = bool(src.page_path)
         await asyncio.to_thread(store.mark_analysis_pending, src.id)
 
         try:
@@ -98,7 +102,10 @@ async def _build_one(
             # neither `succeeded` nor `failed`, so it won't trigger a publish
             # or burn the failed-retry budget.
             log.warning("build skipped for %s — data restricted: %s", src.id, e)
-            await asyncio.to_thread(store.mark_analysis_restricted, src.id, str(e))
+            if published:
+                await asyncio.to_thread(store.mark_source_unavailable, src.id, str(e))
+            else:
+                await asyncio.to_thread(store.mark_analysis_restricted, src.id, str(e))
             return {"id": src.id, "status": "restricted", "error": str(e)}
         except AccountLimitError as e:
             # The provider rejected the ACCOUNT, not this dataset: a dead
@@ -116,7 +123,10 @@ async def _build_one(
             return {"id": src.id, "status": "aborted", "error": str(e)}
         except Exception as e:
             log.exception("build failed for %s", src.id)
-            await asyncio.to_thread(store.mark_analysis_failed, src.id, str(e))
+            if published:
+                await asyncio.to_thread(store.mark_reanalysis_failed, src.id, str(e))
+            else:
+                await asyncio.to_thread(store.mark_analysis_failed, src.id, str(e))
             return {"id": src.id, "status": "failed", "error": str(e)}
 
         # run_production_session already wrote `sources/<id>.agent_data`.
