@@ -112,6 +112,7 @@ frontend/3000/
 
 # Local Claude Code settings
 .claude/
+.pi/
 
 # Firebase local artifacts
 firebase-debug.log
