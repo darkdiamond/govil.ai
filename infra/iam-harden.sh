@@ -27,7 +27,7 @@ DRY_RUN=0
 [[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
 
 run() {
-  if (( DRY_RUN )); then echo "  would run: $*"; else "$@"; fi
+  if (( DRY_RUN )); then echo "  would run: $*" >&2; else "$@"; fi
 }
 
 echo "==> builder SA project roles (before)"
