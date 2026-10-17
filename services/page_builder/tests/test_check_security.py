@@ -216,3 +216,48 @@ def test_main_runs_security_gate(tmp_path, capsys):
         check.main(["check.py", str(html), str(data)])
     assert ei.value.code == 11
     assert "SECURITY/NETWORK-API" in capsys.readouterr().out
+
+
+# ── Parser-differential bypasses (review follow-up) ──
+@pytest.mark.parametrize("src", [
+    "https://gov.il:@evil.com/x.png",          # userinfo `gov.il:` on host evil.com
+    "https://www.gov.il@evil.com/x.png",
+    "https://evil.com/?https://www.gov.il/",
+    "https://www.gov.il\\@evil.com/x.png",
+    "https://www.gov.il:8443/x.png",
+    "https://gov.il.evil.com/x.png",
+    "http://www.gov.il/x.png",
+])
+def test_src_allowlist_parses_urls(src, capsys):
+    _rejects(f'<img src="{src}" alt="">', capsys, "EXTERNAL-SRC")
+
+
+@pytest.mark.parametrize("src", [
+    "https://www.gov.il/logo.png",
+    "https://gov.il/a.png",
+    "https://tile.openstreetmap.org/1/2/3.png",
+    "https://WWW.GOV.IL./x.png",
+])
+def test_src_allowlist_accepts_allowed_hosts(src):
+    _passes(f'<img src="{src}" alt="">')
+
+
+@pytest.mark.parametrize("href", [
+    "java\tscript:alert(1)",
+    "java&#9;script:alert(1)",
+    "java&#10;script:alert(1)",
+    "\x01javascript:alert(1)",
+])
+def test_script_url_with_control_chars(href, capsys):
+    _rejects(f'<a href="{href}">x</a>', capsys, "SCRIPT-URL")
+
+
+@pytest.mark.parametrize("js", [
+    "globalThis.alert(1);",
+    "[].map.constructor('alert(1)')();",
+    "self['ev' + 'al']('1');",
+    "top[k](1);",
+    "document['coo' + 'kie'];",
+])
+def test_dynamic_global_access_rejected(js, capsys):
+    _rejects(_script(js), capsys, "DYNAMIC-CODE")

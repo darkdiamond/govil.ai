@@ -209,11 +209,14 @@ _SEC_JS_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
             r"|\bset(?:Timeout|Interval)\s*\(\s*['\"`]"
             r"|\bcreateElement\s*\(\s*['\"`]\s*script\b"
             r"|\bwindow\s*\[\s*['\"`]"
+            r"|\bglobalThis\b|\.\s*constructor\b"
+            r"|\b(?:self|top|parent|document|frames)\s*\["
             r"|\bdocument\s*\.\s*write(?:ln)?\s*\(|\binsertAdjacentHTML\b"
             r"|\bpostMessage\b|\bdocument\s*\.\s*domain\b"
         ),
         "no dynamic code or script injection (eval, new Function, import(), "
         "string setTimeout, createElement('script'), window['…'], "
+        "globalThis, .constructor, self/top/parent/document[…], "
         "document.write, insertAdjacentHTML, postMessage). Write the chart "
         "code directly as plain JavaScript; for tables use createElement + "
         "textContent.",
@@ -238,11 +241,33 @@ _SRC_ATTR_RE = re.compile(
     r"<[a-z][^<>]*?\s(?:src|poster|background|data)\s*=\s*([\"']?)\s*([^\"'\s>]*)",
     re.IGNORECASE,
 )
-_SRC_ALLOWED_RE = re.compile(
-    r"https://(?:[a-z0-9-]+\.)*(?:gov\.il|openstreetmap\.org)(?:[:/?#]|$)"
-    r"|data:image/(?:png|jpe?g|gif|webp);base64,",
-    re.IGNORECASE,
+_SRC_DATA_IMAGE_RE = re.compile(
+    r"data:image/(?:png|jpe?g|gif|webp);base64,", re.IGNORECASE
 )
+_SRC_ALLOWED_HOSTS = ("gov.il", "openstreetmap.org")
+# Browsers drop ASCII tab/newline anywhere in a URL and trim C0 controls +
+# space at the ends, so `java\tscript:` is `javascript:` to them.
+_URL_STRIP_RE = re.compile(r"[\x00-\x20\x7f]")
+
+
+def _src_allowed(val: str) -> bool:
+    """Parse, don't prefix-match: `https://gov.il:@evil.com/` is userinfo
+    `gov.il:` on host evil.com to a browser."""
+    from urllib.parse import urlsplit
+
+    if _SRC_DATA_IMAGE_RE.match(val):
+        return True
+    if "\\" in val:
+        return False  # browsers treat \ as / in http(s) authorities
+    try:
+        u = urlsplit(val)
+        port = u.port
+    except ValueError:
+        return False
+    host = (u.hostname or "").lower().rstrip(".")
+    if u.scheme.lower() != "https" or "@" in u.netloc or port not in (None, 443):
+        return False
+    return any(host == h or host.endswith("." + h) for h in _SRC_ALLOWED_HOSTS)
 _HAS_SCHEME_RE = re.compile(r"^(?:[a-z][a-z0-9+.\-]*:|//|\\\\)", re.IGNORECASE)
 
 # Identifier names that must never appear as code, matched on esprima's
@@ -252,7 +277,7 @@ _BANNED_IDENTIFIERS = {
     "eval", "Function", "fetch", "XMLHttpRequest", "WebSocket", "EventSource",
     "importScripts", "localStorage", "sessionStorage", "indexedDB",
     "sendBeacon", "postMessage", "insertAdjacentHTML", "cookie", "Worker",
-    "SharedWorker", "serviceWorker", "execScript",
+    "SharedWorker", "serviceWorker", "execScript", "globalThis", "constructor",
 }
 
 
@@ -266,8 +291,11 @@ def check_security(body: str) -> None:
 
     scan = _SAFE_HANDLER_RE.sub(" ", body)
     decoded = _html.unescape(scan)
+    # `java\tscript:` / `java&#9;script:` — browsers strip the control char.
+    compact = _URL_STRIP_RE.sub("", decoded)
     for rule, rx, fix in _SEC_HTML_RULES:
-        for text in (scan, decoded):  # entity-encoded `java&#115;cript:`
+        texts = (scan, decoded, compact) if rule == "SCRIPT-URL" else (scan, decoded)
+        for text in texts:  # entity-encoded `java&#115;cript:`
             m = rx.search(text)
             if m:
                 _sec_fail(rule, text, m.start(), m.end(), fix)
@@ -276,10 +304,10 @@ def check_security(body: str) -> None:
         if m:
             _sec_fail(rule, scan, m.start(), m.end(), fix)
     for m in _SRC_ATTR_RE.finditer(scan):
-        val = _html.unescape(m.group(2)).strip()
+        val = _URL_STRIP_RE.sub("", _html.unescape(m.group(2)))
         if not val or not _HAS_SCHEME_RE.match(val):
             continue  # relative path, or a JS-concatenated src="' + x + '"
-        if not _SRC_ALLOWED_RE.match(val):
+        if not _src_allowed(val):
             _sec_fail(
                 "EXTERNAL-SRC", scan, m.start(), m.end(),
                 f"src={val[:80]!r} loads from a host outside the allowlist. "

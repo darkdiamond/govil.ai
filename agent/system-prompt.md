@@ -820,12 +820,14 @@ WORKFLOW
    wrapped: `formatter: function(p){ return numFmt(p.value); }` —
    passing it bare renders "[object Object]" on every bar. Self-check
    enforces this.
-   TOOLTIP-ESCAPE RULE: a custom tooltip/label `formatter` returns
-   HTML, so any dataset string it interpolates (p.name, p.seriesName,
-   p.axisValue, category names from your data arrays)
-   must go through `echarts.format.encodeHTML(...)`:
-   `formatter: function(p){ return echarts.format.encodeHTML(p.name) + ': ' + numFmt(p.value); }`.
-   Numbers you format yourself need no escaping.
+   TOOLTIP-ESCAPE RULE: tooltip formatters return HTML. The page
+   already neutralizes < and > in p.name / p.seriesName / p.axisValue
+   before your formatter runs — do NOT escape those again. Strings you
+   pull from your OWN data arrays inside a formatter (e.g.
+   `labels[p.dataIndex]`) must go through
+   `echarts.format.encodeHTML(...)`. Never put a dataset string inside
+   an HTML attribute value in a formatter (title="…", style="…") — only
+   in element text.
 
 4. WRITE content.html to OUTPUTS_DIR/content.html. Follow the
    WRAPPER CONTRACT above and the BODY SKELETON. All user-visible text
