@@ -58,7 +58,8 @@ HYGIENE_RE = re.compile(
     r"|/cdn-cgi/"
     r"|\bdata-cfemail="
     r'|class="[^"]*\b__cf_email__\b'
-    r"|<h3[^>]*>\s*(?:פרטים|משאבים)\s*</h3>"
+    r"|<h3[^>]*>\s*(?:פרטים|משאבים)\s*</h3>",
+    re.IGNORECASE,
 )
 INLINE_STYLE_RE = re.compile(r'style="[^"]*\b(?:line-height|color)\s*:')
 SPACING_RHYTHM_RE = re.compile(
@@ -94,6 +95,238 @@ TOP_CARD_BARE_H2_RE = re.compile(
 INSIGHT_HEADING_RE = re.compile(r"<h2[^>]*>\s*(?:תובנות|ממצאים)[^<]*</h2>")
 LI_RE = re.compile(r"<li\b[^>]*>(.*?)</li>", re.DOTALL | re.IGNORECASE)
 UL_OPEN_RE = re.compile(r"<ul\b([^>]*)>")
+
+
+# ── SECURITY gate ──────────────────────────────────────────────────────
+# The agent reads untrusted text (CKAN cells, fetched web pages, search
+# results), and a passing body auto-publishes to govil.ai. A prompt
+# injection that talks the agent into emitting exfiltration / redirect /
+# code-loading JS must die here, not in the browser. Every rule below was
+# verified to produce ZERO hits across the 552 published bodies
+# (frontend/public/datasets/*/content.html, 2026-10-17) — a new rule that
+# trips the corpus must be narrowed, never shipped as-is. These are a
+# speed bump against an injected payload, not a sandbox: the real
+# browser-side containment is the site's CSP + the frontend runtime.
+#
+# Deliberately NOT banned (legit corpus usage): `.innerHTML =` /
+# `.outerHTML =` (15 pages build table rows with them) and `a.href =`
+# (1 page). Escaping dataset strings in tooltips is the frontend
+# runtime's job (it wraps ECharts formatters), not a gate here.
+
+# The only inline event handlers the corpus uses — both benign. They are
+# blanked out before scanning; any OTHER on*= attribute is rejected.
+_SAFE_HANDLER_RE = re.compile(
+    r"""\s(?i:onerror)\s*=\s*"\s*this\.(?:style\.(?:visibility\s*=\s*'hidden'"""
+    r"""|display\s*=\s*'none')|remove\(\))\s*;?\s*\""""
+    r"""|\s(?i:onclick)\s*=\s*"\s*window\.open\('https://(?:www\.)?data\.gov\.il/"""
+    r"""[^'"<>\s\\]*'\s*,\s*'_blank'\)\s*;?\s*\""""
+)
+
+# (rule, pattern, actionable fix). HTML-level rules are case-insensitive
+# (HTML is); JS-API rules are case-sensitive (JS is — `EVAL(` is not eval).
+_SEC_HTML_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
+    (
+        "EMBEDDED-DOCUMENT",
+        re.compile(
+            r"<(?:iframe|frame|frameset|object|embed|applet|portal|base|meta)\b"
+            r"|\ssrcdoc\s*=",
+            re.IGNORECASE,
+        ),
+        "content.html is a body fragment rendered inside govil.ai — no "
+        "<iframe>/<frame>/<object>/<embed>/<base>/<meta> or srcdoc=. Remove "
+        "the element; if you want to point at a source page, use a normal "
+        '<a href="https://…" target="_blank" rel="noopener"> link.',
+    ),
+    (
+        "FORM",
+        re.compile(r"<form\b|\sformaction\s*=", re.IGNORECASE),
+        "no <form> elements — the page must never submit data anywhere. If "
+        "you need a filter control, use a bare <input>/<select>/<button> "
+        "wired with addEventListener inside your <script>.",
+    ),
+    (
+        "SCRIPT-URL",
+        re.compile(r"(?:java|vb)script\s*:|data\s*:\s*text/html", re.IGNORECASE),
+        "no javascript:/vbscript:/data:text/html URLs anywhere (href, src, "
+        "strings). Links must be plain https:// URLs; behaviour goes in "
+        "your <script> via addEventListener.",
+    ),
+    (
+        "INLINE-HANDLER",
+        re.compile(r"<[a-z][^<>]*?[\s\"'/]on[a-z]+\s*=", re.IGNORECASE),
+        "no inline on*= event-handler attributes (onclick, onload, "
+        "onmouseover, …). Give the element an id and attach the handler "
+        "with addEventListener inside your <script>. (The only allowed "
+        "forms: onerror=\"this.style.display='none'\" on an <img>, and a "
+        "data.gov.il window.open onclick.)",
+    ),
+    (
+        "SCRIPT-MODULE",
+        re.compile(r"<script\b[^>]*\btype\s*=\s*[\"']?\s*module", re.IGNORECASE),
+        "no <script type=\"module\"> — use a plain <script> (IIFE). Every "
+        "library you may use is already a page global (echarts, L, GovMap).",
+    ),
+    (
+        "EXTERNAL-RESOURCE",
+        re.compile(
+            r"@import\b|url\(\s*[\"']?\s*(?:https?:)?//|\sping\s*=|\ssrcset\s*="
+            r"|<image\b|\sxlink:href\s*=",
+            re.IGNORECASE,
+        ),
+        "no external resource loads from CSS or markup (@import, url(http…), "
+        "ping=, srcset=, SVG <image>/xlink:href). Icons come from /icons/*.svg "
+        "via a plain <img src>.",
+    ),
+]
+
+_SEC_JS_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
+    (
+        "NETWORK-API",
+        re.compile(
+            r"\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b"
+            r"|\bnavigator\s*\.|\bimportScripts\b|\bnew\s+(?:Shared)?Worker\b"
+            r"|\bnew\s+Image\b|\.src\s*=(?!=)"
+            r"|\bsetAttribute\s*\(\s*['\"`]\s*(?:src|href|srcdoc|on\w+)\b"
+        ),
+        "page scripts must not make network requests or create loading "
+        "elements (fetch, XMLHttpRequest, WebSocket, sendBeacon, new Image, "
+        ".src =, setAttribute('src'…)). All data must be computed in Python "
+        "at build time and inlined as a literal in the <script>.",
+    ),
+    (
+        "STORAGE-API",
+        re.compile(
+            r"\bdocument\s*\.\s*cookie\b|\b(?:localStorage|sessionStorage|indexedDB)\b"
+        ),
+        "page scripts must not touch document.cookie, localStorage, "
+        "sessionStorage or indexedDB — a dataset page keeps no state. "
+        "Remove that code.",
+    ),
+    (
+        "DYNAMIC-CODE",
+        re.compile(
+            r"\beval\s*\(|\bnew\s+Function\b|\bFunction\s*\(|\bimport\s*\("
+            r"|\bset(?:Timeout|Interval)\s*\(\s*['\"`]"
+            r"|\bcreateElement\s*\(\s*['\"`]\s*script\b"
+            r"|\bwindow\s*\[\s*['\"`]"
+            r"|\bdocument\s*\.\s*write(?:ln)?\s*\(|\binsertAdjacentHTML\b"
+            r"|\bpostMessage\b|\bdocument\s*\.\s*domain\b"
+        ),
+        "no dynamic code or script injection (eval, new Function, import(), "
+        "string setTimeout, createElement('script'), window['…'], "
+        "document.write, insertAdjacentHTML, postMessage). Write the chart "
+        "code directly as plain JavaScript; for tables use createElement + "
+        "textContent.",
+    ),
+    (
+        "NAVIGATION",
+        re.compile(
+            r"\b(?:window|top|parent|self|document|globalThis)\s*\.\s*location\b"
+            r"|(?<![\w.$])location\s*(?:\.\s*href\s*)?=(?!=)"
+            r"|(?<![\w.$])location\s*\.\s*(?:assign|replace)\s*\("
+            r"|\bwindow\s*\.\s*open\s*\("
+        ),
+        "page scripts must never navigate or open windows (location =, "
+        "location.href/assign/replace, window.open). Use a normal "
+        '<a href="https://…" target="_blank" rel="noopener"> link.',
+    ),
+]
+
+# Absolute URLs in src= must point at gov.il / OpenStreetMap (images,
+# tiles). Relative paths (/icons/…) and inline raster data: images pass.
+_SRC_ATTR_RE = re.compile(
+    r"<[a-z][^<>]*?\s(?:src|poster|background|data)\s*=\s*([\"']?)\s*([^\"'\s>]*)",
+    re.IGNORECASE,
+)
+_SRC_ALLOWED_RE = re.compile(
+    r"https://(?:[a-z0-9-]+\.)*(?:gov\.il|openstreetmap\.org)(?:[:/?#]|$)"
+    r"|data:image/(?:png|jpe?g|gif|webp);base64,",
+    re.IGNORECASE,
+)
+_HAS_SCHEME_RE = re.compile(r"^(?:[a-z][a-z0-9+.\-]*:|//|\\\\)", re.IGNORECASE)
+
+# Identifier names that must never appear as code, matched on esprima's
+# *cooked* token values so whitespace/comment/unicode-escape tricks
+# (`ev/**/al(`, `eval(`) can't slip past the regexes above.
+_BANNED_IDENTIFIERS = {
+    "eval", "Function", "fetch", "XMLHttpRequest", "WebSocket", "EventSource",
+    "importScripts", "localStorage", "sessionStorage", "indexedDB",
+    "sendBeacon", "postMessage", "insertAdjacentHTML", "cookie", "Worker",
+    "SharedWorker", "serviceWorker", "execScript",
+}
+
+
+def _sec_fail(rule: str, body: str, start: int, end: int, fix: str) -> None:
+    near = body[max(0, start - 30):end + 40]
+    fail(f"SECURITY/{rule}: forbidden construct near {near!r} — {fix}", code=11)
+
+
+def check_security(body: str) -> None:
+    import html as _html
+
+    scan = _SAFE_HANDLER_RE.sub(" ", body)
+    decoded = _html.unescape(scan)
+    for rule, rx, fix in _SEC_HTML_RULES:
+        for text in (scan, decoded):  # entity-encoded `java&#115;cript:`
+            m = rx.search(text)
+            if m:
+                _sec_fail(rule, text, m.start(), m.end(), fix)
+    for rule, rx, fix in _SEC_JS_RULES:
+        m = rx.search(scan)
+        if m:
+            _sec_fail(rule, scan, m.start(), m.end(), fix)
+    for m in _SRC_ATTR_RE.finditer(scan):
+        val = _html.unescape(m.group(2)).strip()
+        if not val or not _HAS_SCHEME_RE.match(val):
+            continue  # relative path, or a JS-concatenated src="' + x + '"
+        if not _SRC_ALLOWED_RE.match(val):
+            _sec_fail(
+                "EXTERNAL-SRC", scan, m.start(), m.end(),
+                f"src={val[:80]!r} loads from a host outside the allowlist. "
+                "Only relative paths (/icons/…), https://*.gov.il and "
+                "https://*.openstreetmap.org may appear in src=. Drop the "
+                "element or use a local /icons/*.svg icon.",
+            )
+    check_js_tokens(body)
+
+
+def check_js_tokens(body: str) -> None:
+    if _esprima is None:
+        return
+    for n, (attrs, src) in enumerate(SCRIPT_TAG_RE.findall(body), 1):
+        if not src.strip():
+            continue
+        m = SCRIPT_TYPE_RE.search(attrs)
+        if m and "json" in m.group(1).lower():
+            continue
+        try:
+            tokens = _esprima.tokenize(src, {"range": True})
+        except Exception:
+            continue  # unparseable — JS-SYNTAX reports it
+        for t in tokens:
+            if t.type not in ("Identifier", "Keyword"):
+                continue
+            r0, r1 = t.range
+            # esprima-python reports escaped identifiers inconsistently
+            # (raw value, or cooked value with a short range) — any of the
+            # three signals means the source spelled a name with escapes.
+            if "\\" in t.value or "\\" in src[r0:r1] or src[r0:r1] != t.value:
+                fail(
+                    f"SECURITY/ESCAPED-IDENTIFIER (script #{n}): an identifier "
+                    f"is written with a unicode escape near "
+                    f"{src[max(0, r0 - 30):r1 + 30]!r}. Write every "
+                    "identifier in plain ASCII.",
+                    code=11,
+                )
+            if t.type == "Identifier" and t.value in _BANNED_IDENTIFIERS:
+                fail(
+                    f"SECURITY/FORBIDDEN-API (script #{n}): `{t.value}` near "
+                    f"{src[max(0, r0 - 40):r1 + 30]!r}. Page scripts may only "
+                    "render charts/maps/tables from data inlined at build "
+                    "time — no network, storage, messaging or dynamic-code "
+                    "APIs. Remove it and inline the computed result instead.",
+                    code=11,
+                )
 
 
 def fail(msg: str, code: int = 1) -> "None":
@@ -548,6 +781,9 @@ def main(argv: list[str]) -> int:
         fail("AGENT-DATA: suggested_tags entries must be non-empty strings")
 
     check_html_hygiene(body)
+    # Security gate before every quality rule: an injected payload must be
+    # reported as such, not masked by a cosmetic diagnostic.
+    check_security(body)
 
     blocks = SCRIPT_BLOCK_RE.findall(body)
     check_inline_data_cap(blocks)

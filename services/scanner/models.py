@@ -9,6 +9,7 @@ import re
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
@@ -153,6 +154,7 @@ class ScanSummary(BaseModel):
     results: list[ScanResult] = Field(default_factory=list)
 
 
+_URL_IGNORED_CHARS_RE = re.compile(r"[\x00-\x20\x7f]")
 _GATED_HOST_RE = re.compile(r"^https?://(?:aws-)?e\.data\.gov\.il/")
 _LOCALE_PREFIX_RE = re.compile(r"^https://data\.gov\.il/(?:he|en)/(?=dataset/)")
 
@@ -165,9 +167,21 @@ def _public_resource_url(url: str) -> str:
     `/en/` locale prefix before `/dataset/`; data.gov.il routes those to its
     frontend's "page not found" screen, so drop it. Rewrite on ingest so any
     consumer of the Firestore `resources[]` list sees a URL that actually
-    works in a browser. Mirrored by frontend/utils/resource-url.ts."""
-    if not url:
-        return url
+    works in a browser. Mirrored by frontend/utils/resource-url.ts.
+
+    Anything that isn't an absolute http(s) URL (`javascript:`, `data:`,
+    `file:`, relative junk) becomes "" — CKAN fields are publisher-supplied,
+    the URL lands in every download button's href, and the publisher
+    already drops resources with an empty url. The scheme is judged with
+    whitespace/control chars removed, as a browser would (`java\tscript:`).
+    """
+    if not url or not isinstance(url, str):
+        return ""
+    url = url.strip()
+    probe = _URL_IGNORED_CHARS_RE.sub("", url)
+    parts = urlsplit(probe)
+    if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
+        return ""
     url = _GATED_HOST_RE.sub("https://data.gov.il/", url)
     return _LOCALE_PREFIX_RE.sub("https://data.gov.il/", url)
 
