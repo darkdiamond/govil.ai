@@ -46,3 +46,18 @@ node_modules/
 .env.*.local
 .DS_Store
 *.db
+
+# Untracked local working dirs (screen recordings, browser-automation
+# screenshots, tool scratch, Firebase CLI cache). Never build inputs, and
+# screenshots of dataset pages can carry the same PII as the eval snapshots.
+motion/
+.playwright-mcp/
+.superpowers/
+.firebase/
+
+# Credentials must never ride along in an upload.
+*.pem
+*.key
+*-sa.json
+*credentials*.json
+service-account*.json

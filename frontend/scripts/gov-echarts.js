@@ -127,11 +127,96 @@
     return o;
   }
 
+  // Security belt: ECharts renders tooltips as HTML, and agent-emitted
+  // tooltip formatters routinely concatenate dataset strings
+  // (`p.name + ': ' + p.value`). Those strings come from CKAN cells, so a
+  // cell like `<img src=x onerror=...>` would execute on hover. Neutralize
+  // the angle brackets in the params' label fields before the agent's
+  // formatter (or a '{b}: {c}' string template) sees them; the formatter's
+  // own markup literals are untouched. Only < and > are replaced — enough
+  // to stop tag injection in text content, and it leaves Hebrew labels with
+  // quotes/gershayim (ת"א, בע"מ) intact for formatters that compare
+  // `p.name === '...'` or use it as a lookup key.
+  var ESCAPED_KEYS = ['name', 'seriesName', 'axisValue', 'axisValueLabel'];
+  function escapeText(s) {
+    return s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function escapeParam(p) {
+    if (!p || typeof p !== 'object') return p;
+    var q = Object.assign({}, p);
+    ESCAPED_KEYS.forEach(function (k) {
+      if (typeof q[k] === 'string') q[k] = escapeText(q[k]);
+    });
+    if (q.data && typeof q.data === 'object' && !Array.isArray(q.data) && typeof q.data.name === 'string') {
+      q.data = Object.assign({}, q.data, { name: escapeText(q.data.name) });
+    }
+    return q;
+  }
+  function escapeParams(p) {
+    return Array.isArray(p) ? p.map(escapeParam) : escapeParam(p);
+  }
+  function safeFormatter(f) {
+    if (!f || f.__govSafe) return f;
+    var w;
+    if (typeof f === 'function') {
+      w = function (p, ticket, cb) { return f.call(this, escapeParams(p), ticket, cb); };
+    } else if (typeof f === 'string' && window.echarts && window.echarts.format && window.echarts.format.formatTpl) {
+      w = function (p) { return window.echarts.format.formatTpl(f, escapeParams(p)); };
+    } else {
+      return f;
+    }
+    w.__govSafe = true;
+    return w;
+  }
+  function secureTooltip(t) {
+    (Array.isArray(t) ? t : [t]).forEach(function (tt) {
+      if (tt && typeof tt === 'object' && tt.formatter) tt.formatter = safeFormatter(tt.formatter);
+    });
+  }
+  function secureTooltips(o) {
+    try {
+      if (!o || typeof o !== 'object') return o;
+      secureTooltip(o.tooltip);
+      var ss = Array.isArray(o.series) ? o.series : o.series ? [o.series] : [];
+      ss.forEach(function (s) {
+        if (!s) return;
+        secureTooltip(s.tooltip);
+        if (Array.isArray(s.data)) {
+          s.data.forEach(function (d) { if (d && typeof d === 'object' && d.tooltip) secureTooltip(d.tooltip); });
+        }
+      });
+    } catch (e) { /* never break a page over a tooltip */ }
+    return o;
+  }
+
+  // Apply the tooltip belt to every chart — including bodies that call
+  // `chart.setOption({...})` without GovEcharts.option. This file loads
+  // right after echarts.min.js (utils/dataset-libs.ts), so window.echarts
+  // is already defined here.
+  if (window.echarts && typeof window.echarts.init === 'function' && !window.echarts.init.__govSafe) {
+    var origInit = window.echarts.init;
+    var patchedInit = function () {
+      var chart = origInit.apply(this, arguments);
+      if (chart && !chart.__govSafe && typeof chart.setOption === 'function') {
+        var origSet = chart.setOption;
+        chart.setOption = function (opt) {
+          var args = Array.prototype.slice.call(arguments);
+          args[0] = secureTooltips(opt);
+          return origSet.apply(this, args);
+        };
+        chart.__govSafe = true;
+      }
+      return chart;
+    };
+    patchedInit.__govSafe = true;
+    window.echarts.init = patchedInit;
+  }
+
   // Shallow-merge helper for the common pattern. Equivalent to
   // `Object.assign({}, base, override)` but reads better at the call
   // site: `chart.setOption(GovEcharts.option({xAxis, yAxis, series}))`.
   function option(override) {
-    return Object.assign({}, base, fixValueAxisScale(fixLabelFormatters(fixHbarLabels(override || {}))));
+    return secureTooltips(Object.assign({}, base, fixValueAxisScale(fixLabelFormatters(fixHbarLabels(override || {})))));
   }
 
   window.GOVIL_PALETTE = GOVIL_PALETTE;

@@ -101,8 +101,18 @@ PUBLISHER_SA="govdata-publisher@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
 echo "==> granting IAM roles"
-# Builder: Firestore r/w, GCS r/w on staging, invoke Cloud Build, write logs.
-for role in roles/datastore.user roles/logging.logWriter roles/cloudbuild.builds.editor; do
+# Builder: Firestore r/w, GCS r/w on staging, write logs.
+#
+# The agent's tool subprocesses can reach the metadata server and mint this
+# SA's token (accepted risk, see CLAUDE.md), so every role here is reachable
+# by a prompt-injected session. Cloud Build rights are therefore opt-in:
+# `cloudbuild.builds.editor` + actAs on the publisher SA let a token holder
+# run an arbitrary build as govdata-publisher (firebasehosting.admin) —
+# i.e. deploy anything to govil.ai. Prod publishes via GitHub Actions
+# (PUBLISH_VIA=github), which needs neither. Set ENABLE_CLOUDBUILD_PUBLISH=1
+# only if you switch the builder to PUBLISH_VIA=cloudbuild.
+ENABLE_CLOUDBUILD_PUBLISH=${ENABLE_CLOUDBUILD_PUBLISH:-0}
+for role in roles/datastore.user roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "$PROJECT" \
     --member="serviceAccount:$BUILDER_SA" --role="$role" --condition=None --quiet >/dev/null
 done
@@ -120,11 +130,15 @@ done
 gcloud storage buckets add-iam-policy-binding "gs://$STAGING_BUCKET" \
   --member="serviceAccount:$PUBLISHER_SA" --role=roles/storage.objectViewer --quiet >/dev/null
 
-# Builder must be able to impersonate the publisher SA to fire the Cloud Build
-# trigger (which runs as the publisher).
-gcloud iam service-accounts add-iam-policy-binding "$PUBLISHER_SA" \
-  --member="serviceAccount:$BUILDER_SA" --role=roles/iam.serviceAccountUser \
-  --project "$PROJECT" --quiet >/dev/null
+# Cloud Build publish fallback only: the builder must be able to fire the
+# trigger and impersonate the publisher SA it runs as.
+if [[ "$ENABLE_CLOUDBUILD_PUBLISH" == "1" ]]; then
+  gcloud projects add-iam-policy-binding "$PROJECT" \
+    --member="serviceAccount:$BUILDER_SA" --role=roles/cloudbuild.builds.editor --condition=None --quiet >/dev/null
+  gcloud iam service-accounts add-iam-policy-binding "$PUBLISHER_SA" \
+    --member="serviceAccount:$BUILDER_SA" --role=roles/iam.serviceAccountUser \
+    --project "$PROJECT" --quiet >/dev/null
+fi
 
 # Scheduler: may invoke the Cloud Run builder.
 # (The run.invoker binding is attached to the service after deploy; see builder.deploy.sh.)

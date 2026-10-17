@@ -48,13 +48,21 @@ def run_host_check(content_html: str, agent_data_json: str, workdir: Path) -> No
     by production (`agent_runner`) before anything reaches GCS/Firestore
     and by the local test harness (`model_harness.run_test_session`) so
     eval runs pass the exact same bar.
+
+    Trust boundary: this always runs the IMAGE's check.py
+    (`CHECK_SCRIPT_PATH`, root-owned under /app) — never the per-session
+    copy the agent self-checks with, which the session can rewrite.
+    `workdir` must be a HOST-owned directory, not the sandbox workdir: the
+    sandbox user owns that tree and could pre-plant a symlink at
+    validated-content.html that this (root) process would write through.
+    `-I` keeps PYTHONPATH/user-site/cwd out of check.py's import path.
     """
     c = workdir / "validated-content.html"
     a = workdir / "validated-agent_data.json"
     c.write_text(content_html, encoding="utf-8")
     a.write_text(agent_data_json, encoding="utf-8")
     proc = subprocess.run(
-        [sys.executable, str(CHECK_SCRIPT_PATH), str(c), str(a)],
+        [sys.executable, "-I", str(CHECK_SCRIPT_PATH), str(c), str(a)],
         capture_output=True,
         text=True,
         timeout=60,

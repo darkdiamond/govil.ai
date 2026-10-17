@@ -39,15 +39,30 @@ gcloud iam workload-identity-pools create "$POOL" \
   --location=global --project="$PROJECT" \
   --display-name="GitHub Actions"
 
-echo "==> WIF OIDC provider (scoped to $REPO)"
-gcloud iam workload-identity-pools providers describe "$PROVIDER" \
-  --workload-identity-pool="$POOL" --location=global --project="$PROJECT" >/dev/null 2>&1 || \
-gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" \
-  --workload-identity-pool="$POOL" --location=global --project="$PROJECT" \
-  --display-name="GitHub OIDC" \
-  --issuer-uri="https://token.actions.githubusercontent.com" \
-  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
-  --attribute-condition="assertion.repository=='${REPO}'"
+# Trust only the publish workflow running on main of THIS repo. Scoping by
+# repository name alone let any workflow on any branch (a pushed feature
+# branch, a compromised PAT) mint a token for govdata-ci, which can deploy
+# Firebase Hosting. repository_id is immutable — the name has changed once
+# already (govdata → govil.ai), and a deleted name can be re-registered.
+REPO_ID=$(gh api "repos/${REPO}" --jq .id)
+WIF_CONDITION="assertion.repository_id=='${REPO_ID}' && assertion.ref=='refs/heads/main' && assertion.workflow_ref.startsWith('${REPO}/.github/workflows/publish.yml@')"
+WIF_MAPPING="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_id=assertion.repository_id,attribute.ref=assertion.ref"
+
+echo "==> WIF OIDC provider (scoped to $REPO main / publish.yml)"
+if gcloud iam workload-identity-pools providers describe "$PROVIDER" \
+  --workload-identity-pool="$POOL" --location=global --project="$PROJECT" >/dev/null 2>&1; then
+  gcloud iam workload-identity-pools providers update-oidc "$PROVIDER" \
+    --workload-identity-pool="$POOL" --location=global --project="$PROJECT" \
+    --attribute-mapping="$WIF_MAPPING" \
+    --attribute-condition="$WIF_CONDITION" >/dev/null
+else
+  gcloud iam workload-identity-pools providers create-oidc "$PROVIDER" \
+    --workload-identity-pool="$POOL" --location=global --project="$PROJECT" \
+    --display-name="GitHub OIDC" \
+    --issuer-uri="https://token.actions.githubusercontent.com" \
+    --attribute-mapping="$WIF_MAPPING" \
+    --attribute-condition="$WIF_CONDITION"
+fi
 
 echo "==> CI service account"
 gcloud iam service-accounts describe "$CI_SA" --project="$PROJECT" >/dev/null 2>&1 || \
