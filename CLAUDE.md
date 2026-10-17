@@ -308,9 +308,13 @@ analyzed_metadata_modified`) AND the new version is more than
   fetches), but that guards the corpus, not this edge behaviour.
 - **Sandbox boundary (accepted risk, know it before touching it):** the
   agent's bash/python tools run as subprocesses in the builder container
-  (Cloud Run can't nest containers). Tool processes get a scrubbed env
-  (no key vars), private workdirs, and 120s timeouts — but they CAN
-  reach the GCP metadata server, i.e. the builder SA token. Keep that SA
+  (Cloud Run can't nest containers). Tool processes run as the
+  unprivileged `sandbox` user (Dockerfile; the builder stays root to
+  setuid — `SANDBOX_USER` overrides, empty disables), with a scrubbed env
+  (no key vars), private 0700 workdirs, and 120s timeouts, so they can't
+  read the builder's `/proc/<pid>/environ` or modify `/app` (incl. the
+  host-side `check.py`). They CAN still reach the network, including the
+  GCP metadata server, i.e. the builder SA token. Keep that SA
   minimal (Firestore + staging bucket + publish-trigger only) and never
   widen its roles for convenience. The local test harness keeps the
   stronger Podman isolation.
@@ -333,6 +337,16 @@ analyzed_metadata_modified`) AND the new version is more than
   unconditionally on mount, which depends on no Vue hydration internals.
   After any Vue/Nuxt bump, re-check a dataset page: charts must render
   on a normal load, not just with `/_nuxt/**` blocked.
+- **CSP is two headers, on purpose** (`firebase.json`, `source: "**"`).
+  `Content-Security-Policy` enforces only directives that can't break a
+  page (`object-src 'none'`, `base-uri`, `form-action 'self'
+  https://formspree.io`, `frame-ancestors`, `upgrade-insecure-requests`).
+  The full allowlist (scripts/connect/frames for GA, AdSense, Clarity,
+  data.gov.il) is `Content-Security-Policy-Report-Only` — agent bodies are
+  inline scripts, so `script-src` needs `'unsafe-inline'`, and AdSense's
+  host set drifts. Promote it to enforced only after a clean console on
+  live pages with ads filling. Adding a third-party script or form target
+  means updating BOTH headers.
 - **Chunk prefetching is disabled on purpose.** The `build:manifest`
   hook in `frontend/nuxt.config.ts` sets `chunk.prefetch = false`.
   Cloudflare Speed Brain speculatively fetches `<link rel="prefetch">`

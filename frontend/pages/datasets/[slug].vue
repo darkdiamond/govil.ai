@@ -384,6 +384,23 @@ async function executeBodyScripts(container: HTMLElement): Promise<void> {
     for (const old of scripts) {
       const parent = old.parentNode;
       if (!parent) continue;
+      // The agent contract forbids <script src=> in bodies (check.py blocks
+      // it at build time). Belt: never (re-)inject a cross-origin script
+      // from body content, so a body that slipped past the check can't pull
+      // third-party code onto govil.ai through this path.
+      const rawSrc = old.getAttribute("src");
+      if (rawSrc !== null) {
+        let sameOrigin = false;
+        try {
+          sameOrigin = new URL(rawSrc, location.href).origin === location.origin;
+        } catch {
+          sameOrigin = false;
+        }
+        if (!sameOrigin) {
+          parent.removeChild(old);
+          continue;
+        }
+      }
       const s = document.createElement("script");
       for (const { name, value } of Array.from(old.attributes))
         s.setAttribute(name, value);
@@ -591,7 +608,7 @@ onMounted(async () => {
                 </div>
               </div>
               <a
-                :href="publicResourceUrl(r.url)"
+                :href="publicResourceUrl(r.url) || undefined"
                 class="btn-ghost text-xs px-3 py-1.5"
                 target="_blank"
                 rel="noopener"

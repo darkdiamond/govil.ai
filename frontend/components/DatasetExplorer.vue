@@ -7,6 +7,7 @@
 // rows already loaded. CORS: data.gov.il allows plain GETs to
 // /api/3/action/ with no custom headers, so no preflight is issued.
 import type { ResourceEntry } from '~/types/manifest'
+import { publicResourceUrl } from '~/utils/resource-url'
 
 const props = defineProps<{
   resources: ResourceEntry[]
@@ -90,7 +91,7 @@ const candidates = computed<Candidate[]>(() => {
 
 const droppedRids = ref<Set<string>>(new Set())
 const visibleCandidates = computed(() => candidates.value.filter((c) => !droppedRids.value.has(c.rid)))
-const activeUrl = computed(() => visibleCandidates.value.find((c) => c.rid === activeRid.value)?.url)
+const activeUrl = computed(() => publicResourceUrl(visibleCandidates.value.find((c) => c.rid === activeRid.value)?.url) || undefined)
 
 const collapsed = ref(false)
 const activeRid = ref<string | null>(null)
