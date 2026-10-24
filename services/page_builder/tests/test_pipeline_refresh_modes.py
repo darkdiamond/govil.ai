@@ -97,6 +97,58 @@ def test_refresh_excludes_recipe_ids_and_alone_publishes(harness, monkeypatch):
     assert s["status"] == "ok" and harness.published
 
 
+def test_unreadable_recipe_list_pauses_track2(harness, monkeypatch):
+    """Fail closed: an agent rebuild must not overwrite a recipe-owned page
+    just because GitHub was unreachable for the listing."""
+    monkeypatch.setenv("REFRESH_ENABLED", "true")
+
+    def _boom():
+        raise RuntimeError("github down")
+
+    monkeypatch.setattr(rf, "recipe_repo_from_env",
+                        lambda: SimpleNamespace(list_ids=_boom))
+    _run()
+    assert harness.picked_with["reanalyze"] is False
+
+
+def test_github_repo_lists_and_pins_one_commit(monkeypatch, tmp_path):
+    calls = []
+
+    class _R:
+        def __init__(self, data=None, content=b""):
+            self._data, self.content = data, content
+
+        def json(self):
+            return self._data
+
+        def raise_for_status(self):
+            pass
+
+    def _get(url, **kw):
+        calls.append(url)
+        if url.endswith("/commits/main"):
+            return _R({"sha": "abc123"})
+        if "/git/trees/abc123" in url:
+            return _R({"tree": [{"path": "recipes/ds1/recipe.json"},
+                                {"path": "recipes/ds1/compute.py"},
+                                {"path": "recipes/README.md"},
+                                {"path": "services/x.py"}]})
+        raise AssertionError(url)
+
+    import httpx
+    monkeypatch.setattr(httpx, "get", _get)
+    repo = rf.GithubRecipeRepo("o/r", "main")
+    assert repo.list_ids() == ["ds1"]
+    assert repo._sha == "abc123"
+
+
+def test_default_recipe_source_is_github_main(monkeypatch):
+    monkeypatch.delenv("RECIPES_SOURCE", raising=False)
+    monkeypatch.setenv("PUBLISH_GITHUB_REPO", "o/r")
+    repo = rf.recipe_repo_from_env()
+    assert isinstance(repo, rf.GithubRecipeRepo) and (repo.repo, repo.ref) == ("o/r", "main")
+
+
 def test_idle_refresh_does_not_publish(harness, monkeypatch):
     monkeypatch.setenv("REFRESH_ENABLED", "true")
     harness.selected = []
