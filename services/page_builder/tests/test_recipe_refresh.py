@@ -347,10 +347,39 @@ def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, cap
     del data["events.חודש"]
     data["events.מחוז"] = "chart-nope"
     cov.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    data["events.שנה"] = "chart-yearly, kpi:no_such_kpi"
+    data["events.typo"] = "chart-yearly"
+    cov.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     assert author.verify(DS, recipes) == 1
     out = capsys.readouterr().out
     assert "NO-FALLBACK: chart #chart-districts" in out
     assert "events.חודש" in out and "'chart-nope' is not an element id" in out
+    assert "'kpi:no_such_kpi': the model has no such KPI" in out
+    assert "(typo or stale): events.typo" in out
+
+
+def test_fallback_check_rules():
+    from services.page_builder.author import _fallback_findings
+
+    tbl = "<details><table><tr><td>x</td></tr></table></details>"
+    # A heatmap id is a chart like any other — no "map" exemption.
+    assert _fallback_findings('<section><div id="chart-heatmap" role="img"></div></section>')
+    # A chart outside any section can't borrow the previous section's table.
+    html = f'<section>{tbl}</section><div class="grid"><div id="c2" role="img"></div></div><section></section>'
+    assert any("#c2" in f for f in _fallback_findings(html))
+    # GovMap containers (no role="img") are not charts.
+    assert _fallback_findings('<section><div id="map-main"></div></section>') == []
+    assert _fallback_findings(f'<section><div id="c1" role="img"></div>{tbl}</section>') == []
+
+
+def test_coverage_requires_unused_resources(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    m = tmp_path / "authoring" / DS / "data" / "manifest.json"
+    man = json.loads(m.read_text())
+    man.append({**man[0], "resource_id": "bbbbbbbb-0000-0000-0000-000000000002", "file": None})
+    m.write_text(json.dumps(man))
+    assert author.verify(DS, FIXTURES) == 1
+    assert "resource:bbbbbbbb-0000-0000-0000-000000000002" in capsys.readouterr().out
 
 
 def test_author_verify_rejects_order_dependent_recipe(tmp_path, monkeypatch, capsys):

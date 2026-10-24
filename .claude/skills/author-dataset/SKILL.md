@@ -90,7 +90,11 @@ dimensions sit unused is too thin. Every column ends up in
 `verify` fails on an unaccounted column. Value format:
 `"chart-a, kpi:total, insight:trend — optional free note"` (references
 first, comma-separated; anything after `—` is a note and may contain
-commas and numbers), or `"skip: <reason>"`. Expect roughly 6–10 charts on a
+commas and numbers), or `"skip: <reason>"`. A prepared resource that no
+input reads (a translated twin, a lookup table) needs its own entry,
+`"resource:<resource_id>": "skip: <reason>"`. `kpi:<name>` must name a KPI
+the model produces, and entries for columns the recipe doesn't read fail
+as stale. Expect roughly 6–10 charts on a
 dataset with several meaningful dimensions; fewer only when the coverage
 file shows the data genuinely doesn't carry more.
 

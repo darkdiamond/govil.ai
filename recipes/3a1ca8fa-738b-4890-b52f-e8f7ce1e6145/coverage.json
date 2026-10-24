@@ -1,4 +1,5 @@
 {
+  "resource:b58b5a80-84b7-490d-ab02-bff12f1941b2": "skip: field-rename dictionary between the old and new report formats (57 rows of metadata), not data; by_schema already excludes it",
   "reports.FUND_ID": "key: track identity for dedup across period files, kpi:tracks",
   "reports.FUND_NAME": "chart-tracks, chart-risk, insight:sharpe",
   "reports.PARENT_COMPANY_ID": "skip: identifier of the parent company; parent ownership is summarised by the managing body, which is what the page groups by",

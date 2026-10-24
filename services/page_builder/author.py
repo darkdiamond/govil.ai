@@ -35,6 +35,7 @@ from .agent_contract import FetchOutcome
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
+    RESOURCE_NAME_COLUMN,
     TEMPLATE_FILENAME,
     Recipe,
     RecipeError,
@@ -296,12 +297,17 @@ _SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNOR
 
 
 def _fallback_findings(html: str) -> list[str]:
+    # GovMap containers carry no role="img", so they never match here (the
+    # shell's explorer is their tabular view) — no id-based exemption.
     out = []
     for m in _CHART_DIV_RE.finditer(html):
         chart_id = m.group(1)
-        if "map" in chart_id.lower():
-            continue  # GovMap: the shell's explorer is the tabular view
         start = html.rfind("<section", 0, m.start())
+        # The nearest <section> must still be open at the chart; otherwise
+        # the chart sits outside any section and has no section to carry a
+        # fallback (don't borrow a closed neighbour's table).
+        if start >= 0 and html.find("</section>", start, m.start()) != -1:
+            start = -1
         end = html.find("</section>", m.end())
         chunk = html[start:end] if start >= 0 and end >= 0 else ""
         if "<table" not in chunk and not _SOURCE_LINK_RE.search(chunk):
@@ -321,7 +327,7 @@ _COVERAGE_TAGS = ("kpi:", "insight:", "table:", "text:", "map:", "filter:", "key
 
 
 def _coverage_findings(
-    recipe: Recipe, inputs: dict, manifest: list[dict], html: str
+    recipe: Recipe, inputs: dict, manifest: list[dict], html: str, model: dict
 ) -> tuple[list[str], list[str]]:
     path = recipe.root / COVERAGE_FILENAME
     if not path.is_file():
@@ -341,12 +347,23 @@ def _coverage_findings(
         for col in fields.get(part.resource_id, [])
         if col != "_id"  # datastore row id; dropped from exports (stale preps may list it)
     }
+    # Whole resources no input reads (a translated twin, a lookup table)
+    # need a reason too: "resource:<id>": "skip: …".
+    read = {part.resource_id for parts in inputs.values() for part in parts}
+    needed |= {f"resource:{m['resource_id']}" for m in manifest if m["resource_id"] not in read}
     problems = []
     missing = sorted(needed - cov.keys())
     if missing:
-        problems.append(f"COVERAGE: {len(missing)} column(s) unaccounted for: "
+        problems.append(f"COVERAGE: {len(missing)} column(s)/resource(s) unaccounted for: "
                         + ", ".join(missing[:15]) + (" …" if len(missing) > 15 else ""))
+    # The synthetic per-file column a concat input carries may be documented.
+    synthetic = {f"{i.name}.{RESOURCE_NAME_COLUMN}" for i in recipe.manifest.inputs if i.concat}
+    stale = sorted(cov.keys() - needed - synthetic)
+    if stale:
+        problems.append("COVERAGE: entries for columns/resources the recipe doesn't read "
+                        "(typo or stale): " + ", ".join(stale[:15]))
     ids = set(re.findall(r'\bid="([^"]+)"', html))
+    kpis = set((model.get("kpis") or {}).keys())
     used = skipped = 0
     for key, value in cov.items():
         value = value.strip()
@@ -362,7 +379,9 @@ def _coverage_findings(
         if not tokens:
             problems.append(f"COVERAGE: {key}: no element id or kpi:/insight:/table: reference")
         for t in tokens:
-            if not t.startswith(_COVERAGE_TAGS) and t not in ids:
+            if t.startswith("kpi:") and t[4:].strip() not in kpis:
+                problems.append(f"COVERAGE: {key} → {t!r}: the model has no such KPI")
+            elif not t.startswith(_COVERAGE_TAGS) and t not in ids:
                 problems.append(f"COVERAGE: {key} → {t!r} is not an element id on the page "
                                 "(put free notes after ' — ')")
     notes = [f"coverage: {len(needed)} column(s) — {used} used, {skipped} skipped"]
@@ -415,7 +434,9 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
                      f"{len(raw.get('insights') or [])} insights, "
                      f"{len(page.content_html):,} bytes")
         problems += _fallback_findings(page.content_html)
-        cov_problems, cov_notes = _coverage_findings(recipe, inputs, manifest, page.content_html)
+        cov_problems, cov_notes = _coverage_findings(
+            recipe, inputs, manifest, page.content_html, raw
+        )
         problems += cov_problems
         notes += cov_notes
 
