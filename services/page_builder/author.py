@@ -40,6 +40,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     dump_model,
+    kpi_format_findings,
     lint_template,
 )
 from .refresh import fetch_inputs, render_page, run_compute
@@ -333,40 +334,6 @@ def _fallback_findings(html: str) -> list[str]:
     return out
 
 
-# KPI cards match the published corpus: a bare number in a dir="ltr" box
-# (real minus sign U+2212, no bidi-isolate characters), units in the label
-# below, colour from a data-driven tone. Hebrew in the value is limited to a
-# short magnitude suffix (מ׳, אלף).
-_KPI_VALUE_RE = re.compile(
-    r'<div\b([^>]*\bclass="[^"]*\btext-[23]xl\b[^"]*\bfont-bold\b[^"]*"[^>]*)>(.*?)</div>',
-    re.DOTALL,
-)
-_KPI_TONES = ("text-brand", "text-ok", "text-warn", "text-info", "text-danger")
-_HEB_WORD_RE = re.compile(r"[א-ת][א-ת׳״\"']*")
-
-
-def _kpi_findings(html: str) -> list[str]:
-    out = []
-    for m in _KPI_VALUE_RE.finditer(html):
-        attrs, value = m.group(1), re.sub(r"<[^>]+>", "", m.group(2)).strip()
-        where = f"KPI {value[:30]!r}"
-        # A bare count reads fine either way; a sign, range, ratio or time
-        # does not ("2014–2026" displays reversed in an RTL paragraph).
-        if re.search(r"[−\-–/:]", value) and 'dir="ltr"' not in attrs:
-            out.append(f'KPI-FORMAT: {where} needs dir="ltr" on the value box')
-        if not any(t in attrs for t in _KPI_TONES):
-            out.append(f"KPI-FORMAT: {where} colour must be one of {', '.join(_KPI_TONES)}")
-        if re.search("[⁦-⁩‎‏]", value):
-            out.append(f"KPI-FORMAT: {where} contains bidi marks — dir=\"ltr\" handles direction")
-        if re.search(r"(?<![\w.])-\d", value):
-            out.append(f"KPI-FORMAT: {where} uses '-' — use the minus sign '−' (U+2212)")
-        words = _HEB_WORD_RE.findall(value)
-        if len(words) > 1 or any(len(w.strip("׳״\"'")) > 3 for w in words) or "₪" in value:
-            out.append(f"KPI-FORMAT: {where} carries a unit/word — keep the number bare "
-                       "(a short suffix like מ׳ is fine) and put units in the label")
-    return out
-
-
 # A per-chart "download at data.gov.il" link only repeats the shell's own
 # downloads + explorer under the page.
 _SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
@@ -500,7 +467,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
                      f"{len(page.content_html):,} bytes")
         problems += _fallback_findings(page.content_html)
         problems += _source_link_findings(page.content_html)
-        problems += _kpi_findings(page.content_html)
+        problems += kpi_format_findings(page.content_html)
         explorer = _explorer_marked(page.content_html)
         if explorer:
             # Visible opt-outs: each should be a genuinely large series.
