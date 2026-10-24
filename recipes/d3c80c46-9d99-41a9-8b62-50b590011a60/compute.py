@@ -347,11 +347,35 @@ def compute(frames):
 
     ytd_cur = iss[iss["y"] == last_iss.year]["f"].sum()
     next12 = red[(red["d"] > last_iss) & (red["d"] <= last_iss + pd.Timedelta(days=365))]["p"].sum()
+    past12_red = red[(red["d"] > last_iss - pd.Timedelta(days=365)) & (red["d"] <= last_iss)]["p"].sum()
+    trading12 = float(last12["total"].sum())
+    prev12_tr = tr[(tr["d"] > last_tr - pd.Timedelta(days=730)) & (tr["d"] <= last_tr - pd.Timedelta(days=365))]
+    trading_prev = float(prev12_tr["total"].sum()) if prev12_tr["d"].nunique() >= 200 else 0.0
+
+    def num_bn(v):
+        # Bare number for a KPI card; the unit goes in the label.
+        return f"{v:,.1f}"
+
+    # Redemptions due in the next 12 months well above the past 12 mean a
+    # heavier refinancing load ahead: caution.
+    next12_tone = "warn" if past12_red > 0 and next12 > past12_red * 1.15 else "brand"
+    # Trading turnover vs the previous 12 months: a 10% move either way.
+    if trading_prev <= 0 or abs(trading12 / trading_prev - 1) < 0.10:
+        trading_tone = "brand"
+    else:
+        trading_tone = "ok" if trading12 > trading_prev else "warn"
     kpis = {
-        "issuance_ytd": {"value": float(ytd_cur), "display": bn_m(ytd_cur)},
-        "last_auction": {"value": last_iss.strftime("%Y-%m-%d"), "display": d_he(last_iss)},
-        "next12": {"value": float(next12), "display": bn_m(next12)},
-        "trading12": {"value": float(last12["total"].sum()), "display": bn(last12["total"].sum())},
+        "issuance_ytd": {"value": float(ytd_cur), "display": num_bn(ytd_cur / 1000), "tone": "brand"},
+        "last_auction": {"value": last_iss.strftime("%Y-%m-%d"),
+                         "display": last_iss.strftime("%d.%m.%Y"), "tone": "brand"},
+        "next12": {"value": float(next12), "display": num_bn(next12 / 1000), "tone": next12_tone},
+        "trading12": {"value": trading12, "display": num_bn(trading12 / 1e9), "tone": trading_tone},
+    }
+    kpi_labels = {
+        "issuance_ytd_kpi": f"גיוס במכרזים מתחילת {last_iss.year} (מיליארד ₪)",
+        "last_auction_kpi": "מכרז ההנפקה האחרון",
+        "next12_kpi": "פדיונות צפויים ב-12 החודשים הקרובים (מיליארד ₪)",
+        "trading12_kpi": "מחזור מסחר ב-12 החודשים האחרונים (מיליארד ₪)",
     }
 
     yr = lambda idx: [str(int(v)) for v in idx]
@@ -458,5 +482,5 @@ def compute(frames):
         "charts": charts,
         "tables": tables,
         "insights": insights,
-        "labels": labels,
+        "labels": {**labels, **kpi_labels},
     }

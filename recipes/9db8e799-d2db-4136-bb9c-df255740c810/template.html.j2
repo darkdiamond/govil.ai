@@ -11,20 +11,20 @@
 
 <div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.entries.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.entries.tone }} mb-1" dir="ltr">{{ model.kpis.entries.display }}</div>
     <div class="text-sm text-subtle">רשומות במחירון</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.current.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.current.tone }} mb-1" dir="ltr">{{ model.kpis.current.display }}</div>
     <div class="text-sm text-subtle">רשומות בשנת הדגם {{ model.kpis.last_year.display }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.importers.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.importers.tone }} mb-1" dir="ltr">{{ model.kpis.importers.display }}</div>
     <div class="text-sm text-subtle">יבואנים בשנת הדגם האחרונה</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.median_private.display }}</div>
-    <div class="text-sm text-subtle">מחיר חציוני, רכב פרטי</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.median_private.tone }} mb-1" dir="ltr">{{ model.kpis.median_private.display }}</div>
+    <div class="text-sm text-subtle">מחיר חציוני, רכב פרטי (אלף ₪)</div>
   </div>
 </div>
 

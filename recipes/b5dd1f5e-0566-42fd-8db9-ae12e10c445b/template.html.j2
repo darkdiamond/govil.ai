@@ -11,23 +11,23 @@
 
 <div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.assets.display }}</div>
-    <div class="text-sm text-subtle">סך נכסים · {{ model.labels.period }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.assets.tone }} mb-1" dir="ltr">{{ model.kpis.assets.display }}</div>
+    <div class="text-sm text-subtle">סך נכסים (מיליארד ₪) · {{ model.labels.period }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.tracks.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.tracks.tone }} mb-1" dir="ltr">{{ model.kpis.tracks.display }}</div>
     <div class="text-sm text-subtle">מסלולים מדווחים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.insurers.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.insurers.tone }} mb-1" dir="ltr">{{ model.kpis.insurers.display }}</div>
     <div class="text-sm text-subtle">חברות ביטוח</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.month_yield.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.month_yield.tone }} mb-1" dir="ltr">{{ model.kpis.month_yield.display }}</div>
     <div class="text-sm text-subtle">תשואה משוקללת בחודש האחרון</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.liquid.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.liquid.tone }} mb-1" dir="ltr">{{ model.kpis.liquid.display }}</div>
     <div class="text-sm text-subtle">נכסים נזילים (משוקלל)</div>
   </div>
 </div>

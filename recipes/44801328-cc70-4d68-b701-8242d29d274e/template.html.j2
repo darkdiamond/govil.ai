@@ -10,19 +10,19 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
     <div class="text-sm text-subtle">תלונות במאגר</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.last_full.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.last_full.tone }} mb-1" dir="ltr">{{ model.kpis.last_full.display }}</div>
     <div class="text-sm text-subtle">{{ model.labels.last_full_label }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.justified.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.justified.tone }} mb-1" dir="ltr">{{ model.kpis.justified.display }}</div>
     <div class="text-sm text-subtle">מההכרעות: התלונה מוצדקת</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.median_days.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.median_days.tone }} mb-1" dir="ltr">{{ model.kpis.median_days.display }}</div>
     <div class="text-sm text-subtle">{{ model.labels.median_label }}</div>
   </div>
 </div>

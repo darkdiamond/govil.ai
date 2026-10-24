@@ -383,13 +383,36 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     total = rows["amt"].sum()
+    # KPI values are bare numbers; ₪ goes in the label. Large sums use the
+    # corpus's compact "מ׳" (millions) suffix.
+    def kpi_ils(v):
+        v = float(v)
+        return f"{v / 1_000_000:,.1f} מ׳" if v >= 1_000_000 else f"{v:,.0f}"
+
+    # Directional KPI: decisions in the latest SETTLED year vs the year before
+    # (later years are still being backfilled). More = more violations found.
+    sy = settled_year(last)
+    sy_n = int((dec["d"].dt.year == sy).sum())
+    sy_prev = int((dec["d"].dt.year == sy - 1).sum())
+    sy_tone = "brand"
+    if sy_prev:
+        ch = (sy_n - sy_prev) / sy_prev
+        sy_tone = "warn" if ch >= 0.10 else "info" if ch <= -0.10 else "brand"
+    n_emp = int(dec["employer"].nunique())
     kpis = {
-        "total": {"value": float(total), "display": ils(total)},
-        "decisions": {"value": len(dec), "display": _int(len(dec))},
-        "employers": {"value": int(dec["employer"].nunique()),
-                      "display": _int(dec["employer"].nunique())},
+        # Millions as a bare number: "432.9 מ׳" wraps in a half-width card at 375px.
+        "total": {"value": float(total), "display": f"{total / 1_000_000:,.1f}", "tone": "brand",
+                  "label": "סך העיצומים (מיליוני ₪)"},
+        "decisions": {"value": len(dec), "display": _int(len(dec)), "tone": "brand",
+                      "label": "החלטות על עיצום"},
+        "settled": {"value": sy_n, "display": _int(sy_n), "tone": sy_tone,
+                    "label": (f"החלטות ב-{sy}"
+                              + (f" (לעומת {_int(sy_prev)} ב-{sy - 1})" if sy_prev else ""))},
+        "employers": {"value": n_emp, "display": _int(n_emp), "tone": "brand",
+                      "label": "מעסיקים"},
         "median": {"value": float(paid["total"].median()) if len(paid) else None,
-                   "display": ils(paid["total"].median()) if len(paid) else "—"},
+                   "display": kpi_ils(paid["total"].median()) if len(paid) else "—",
+                   "tone": "brand", "label": "חציון עיצום להחלטה (₪)"},
     }
 
     y0, y1 = int(first.year), int(last.year)
@@ -398,7 +421,7 @@ def compute(frames):
     labels = {
         "lede": (f"{kpis['decisions']['display']} החלטות על עיצום כספי שהטיל משרד העבודה על "
                  f"{kpis['employers']['display']} מעסיקים בגין הפרת חוקי עבודה, מ-{d_he(first)} ועד "
-                 f"{d_he(last)}, בסך כולל של {kpis['total']['display']}."),
+                 f"{d_he(last)}, בסך כולל של {ils(total)}."),
         "amount_note": (f"סכום העיצום הוא הסכום הסופי שנרשם לכל הפרה; {_int(no_amt)} הפרות "
                         f"נרשמו ללא סכום ואינן נכללות בסכומים." if no_amt else
                         "סכום העיצום הוא הסכום הסופי שנרשם לכל הפרה."),
@@ -438,7 +461,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{kpis['decisions']['display']} החלטות על עיצומים כספיים למעסיקים בגין "
-                           f"הפרת חוקי עבודה, {y0}–{y1}, בסך {kpis['total']['display']} — לפי חוק, "
+                           f"הפרת חוקי עבודה, {y0}–{y1}, בסך {ils(total)} — לפי חוק, "
                            f"ענף, שנה ומקור הבדיקה."),
             "dataset_kind": "registry",
             "suggested_tags": ["זכויות עובדים", "אכיפה", "עיצומים כספיים", "שכר מינימום", "משרד העבודה"],

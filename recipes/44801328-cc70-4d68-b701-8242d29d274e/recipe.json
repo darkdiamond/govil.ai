@@ -1,11 +1,14 @@
 {
   "contract_version": 1,
   "dataset_id": "44801328-cc70-4d68-b701-8242d29d274e",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-10-24T18:50:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T10:25:53.318091+00:00",
-    "rows": { "complaints": 1590, "archive": 444 }
+    "rows": {
+      "complaints": 1590,
+      "archive": 444
+    }
   },
   "inputs": [
     {

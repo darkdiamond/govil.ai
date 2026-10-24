@@ -24,6 +24,14 @@ def _int(n):
     return f"{int(n):,}"
 
 
+def _growth_tone(cur, prev, threshold=0.03):
+    """KPI colour for a count where growth is good: ok / warn / brand."""
+    if not prev:
+        return "brand"
+    change = (cur - prev) / prev
+    return "ok" if change >= threshold else "warn" if change <= -threshold else "brand"
+
+
 def _pct(x):
     return f"{x * 100:.1f}%"
 
@@ -215,11 +223,14 @@ def compute(frames):
             "spatial_coverage": "ישראל",
         },
         "kpis": {
-            "total": {"value": len(df), "display": _int(len(df))},
-            "active": {"value": n_active, "display": _int(n_active)},
-            "last_year": {"value": int((y == full).sum()), "display": _int((y == full).sum())},
-            "public": {"value": public, "display": _int(public)},
-            "gov": {"value": int(df["gov"].sum()), "display": _int(df["gov"].sum())},
+            "total": {"value": len(df), "display": _int(len(df)), "tone": "brand"},
+            "active": {"value": n_active, "display": _int(n_active), "tone": "brand"},
+            # New incorporations vs the year before: growth reads as a good
+            # sign for the economy, a ≥3% fall as caution.
+            "last_year": {"value": int((y == full).sum()), "display": _int((y == full).sum()),
+                          "tone": _growth_tone(int((y == full).sum()), int((y == full - 1).sum()))},
+            "public": {"value": public, "display": _int(public), "tone": "brand"},
+            "gov": {"value": int(df["gov"].sum()), "display": _int(df["gov"].sum()), "tone": "info"},
         },
         "charts": {
             "founded": founded,

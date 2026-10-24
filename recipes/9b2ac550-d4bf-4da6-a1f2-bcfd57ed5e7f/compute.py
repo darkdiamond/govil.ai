@@ -119,7 +119,9 @@ def insight_classic(df, ref_year):
             f"הוותיק ביותר יוצר ב-{oldest}.")
 
 
-def insight_fuel_shift(df):
+def _fuel_cohorts(df):
+    """Electrified share in the last full COHORT of production years vs the
+    one before: (recent, prior, span_recent, span_prior), or None."""
     valid = df.dropna(subset=["year"])
     if valid.empty:
         return None
@@ -129,10 +131,15 @@ def insight_fuel_shift(df):
     if len(recent) < 100 or len(prior) < 100:
         return None
     elec = ("היברידי", "חשמלי")
-    r = recent["fuel"].isin(elec).mean()
-    p = prior["fuel"].isin(elec).mean()
-    span_r = f"{last - COHORT + 1}–{last}"
-    span_p = f"{last - 2 * COHORT + 1}–{last - COHORT}"
+    return (recent["fuel"].isin(elec).mean(), prior["fuel"].isin(elec).mean(),
+            f"{last - COHORT + 1}–{last}", f"{last - 2 * COHORT + 1}–{last - COHORT}")
+
+
+def insight_fuel_shift(df):
+    cohorts = _fuel_cohorts(df)
+    if cohorts is None:
+        return None
+    r, p, span_r, span_p = cohorts
     if abs(r - p) < 0.03:
         return (f"שיעור כלי הרכב החשמליים וההיברידיים דומה בשנתוני {span_r} ({_pct(r)}) "
                 f"ובשנתוני {span_p} ({_pct(p)}).")
@@ -277,6 +284,14 @@ def compute(frames):
     elec_n = int(df["fuel"].isin(["היברידי", "חשמלי"]).sum())
     med_year = int(years["year"].median())
     y0, y1 = int(years["year"].min()), int(years["year"].max())
+    med_age = ref_year - med_year
+    # Tones: an ageing fleet is a caution sign; electrification follows the
+    # cohort trend (the same ±3pp band the insight uses for "similar").
+    cohorts = _fuel_cohorts(df)
+    if cohorts is None or abs(cohorts[0] - cohorts[1]) < 0.03:
+        elec_tone = "brand"
+    else:
+        elec_tone = "ok" if cohorts[0] > cohorts[1] else "warn"
 
     return {
         "agent_data": {
@@ -293,10 +308,11 @@ def compute(frames):
             "temporal_coverage": f"{y0}/{y1}",
         },
         "kpis": {
-            "total": {"value": n, "display": _int(n)},
-            "used": {"value": used_n, "display": _pct(used_n / n)},
-            "median_year": {"value": med_year, "display": str(med_year)},
-            "electrified": {"value": elec_n, "display": _int(elec_n)},
+            "total": {"value": n, "display": _int(n), "tone": "brand"},
+            "used": {"value": used_n, "display": _pct(used_n / n), "tone": "brand"},
+            "median_year": {"value": med_year, "display": str(med_year),
+                            "tone": "warn" if med_age >= 15 else "brand"},
+            "electrified": {"value": elec_n, "display": _int(elec_n), "tone": elec_tone},
         },
         "charts": {
             "vintage": vintage,
@@ -325,6 +341,9 @@ def compute(frames):
                      f"לבדיקת הרישוי האחרונה שנרשמה בו ({_d_he(ref)}). חציון שנת הייצור הוא "
                      f"{med_year}; {_int(within_year)} כלי רכב עברו בדיקה שנתית בשנה האחרונה."),
             "as_of": _d_he(ref),
+            "used_kpi": f"יובאו כמשומשים ({_int(used_n)} כלי רכב)",
+            "median_kpi": f"חציון שנת הייצור (גיל חציוני: {med_age} שנים)",
+            "elec_kpi": f"חשמליים והיברידיים ({_pct(elec_n / n)} מהצי)",
             "vintage_aria": f"תרשים עמודות: כלי רכב לפי שנת ייצור ({y0}–{y1}), משומש מול חדש.",
             "vintage_note": ("שנת הייצור של כלי הרכב הפעילים. המאגר אינו כולל את מועד היבוא "
                              "לישראל, ולכן זו תמונת הצי הנוכחי — לא קצב יבוא."),

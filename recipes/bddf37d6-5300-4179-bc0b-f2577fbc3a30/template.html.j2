@@ -24,20 +24,20 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.sites.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.sites.tone }} mb-1" dir="ltr">{{ model.kpis.sites.display }}</div>
     <div class="text-sm text-subtle">אתרי בנייה פעילים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cities.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
     <div class="text-sm text-subtle">יישובים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cranes.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.cranes.tone }} mb-1" dir="ltr">{{ model.kpis.cranes.display }}</div>
     <div class="text-sm text-subtle">אתרים עם עגורנים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.with_orders.display }}</div>
-    <div class="text-sm text-subtle">מהאתרים קיבלו צו בטיחות</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.with_orders.tone }} mb-1" dir="ltr">{{ model.kpis.with_orders.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.orders_kpi }}</div>
   </div>
 </div>
 

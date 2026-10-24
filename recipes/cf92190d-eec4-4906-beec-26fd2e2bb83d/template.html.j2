@@ -27,19 +27,19 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.decisions.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.decisions.tone }} mb-1" dir="ltr">{{ model.kpis.decisions.display }}</div>
     <div class="text-sm text-subtle">החלטות במאגר</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cases.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.cases.tone }} mb-1" dir="ltr">{{ model.kpis.cases.display }}</div>
     <div class="text-sm text-subtle">תיקים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.last_year.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.last_year.tone }} mb-1" dir="ltr">{{ model.kpis.last_year.display }}</div>
     <div class="text-sm text-subtle">החלטות ב-{{ model.labels.full_year }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.judges.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.judges.tone }} mb-1" dir="ltr">{{ model.kpis.judges.display }}</div>
     <div class="text-sm text-subtle">דיינים פעילים בשנה האחרונה</div>
   </div>
 </div>

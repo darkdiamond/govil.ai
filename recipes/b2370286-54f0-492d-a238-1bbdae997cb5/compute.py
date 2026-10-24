@@ -234,6 +234,8 @@ def compute(frames):
     in_inv = int((df["status"] == "בחקירה/ בשיקום").sum())
     in_rem = int((df["stage"] == "בשיקום").sum())
     recent = int((df["updated"] > last - pd.Timedelta(days=WINDOW_DAYS)).sum())
+    recent_prev = int(((df["updated"] <= last - pd.Timedelta(days=WINDOW_DAYS))
+                       & (df["updated"] > last - pd.Timedelta(days=2 * WINDOW_DAYS))).sum())
     no_stage = int((df["stage"] == "").sum())
     no_town = int((df["town"] == "").sum())
 
@@ -262,10 +264,12 @@ def compute(frames):
             "spatial_coverage": "ישראל",
         },
         "kpis": {
-            "sites": {"value": n, "display": _int(n)},
-            "investigating": {"value": in_inv, "display": _int(in_inv)},
-            "remediating": {"value": in_rem, "display": _int(in_rem)},
-            "recent": {"value": recent, "display": _int(recent)},
+            "sites": {"value": n, "display": _int(n), "tone": "brand"},
+            # Open contamination cases are a caution sign; none open is good.
+            "investigating": {"value": in_inv, "display": _int(in_inv),
+                              "tone": "warn" if in_inv else "ok"},
+            "remediating": {"value": in_rem, "display": _int(in_rem), "tone": "info"},
+            "recent": {"value": recent, "display": _int(recent), "tone": "brand"},
         },
         "charts": {
             "status": {"names": [k for k, _ in status], "values": [v for _, v in status]},
@@ -281,6 +285,10 @@ def compute(frames):
         },
         "insights": insights,
         "labels": {
+            "inv_kpi": f"מסווגים 'בחקירה/ בשיקום' ({_pct(in_inv / n)} מהאתרים)",
+            "rem_kpi": f"בשלב מנהלי 'בשיקום' ({_pct(in_rem / n)} מהאתרים)",
+            "recent_kpi": (f"עודכנו ב-{WINDOW_DAYS} הימים האחרונים "
+                           f"(ב-{WINDOW_DAYS} הימים שקדמו: {_int(recent_prev)})"),
             "lede": (f"{_int(n)} אתרים עם קרקע מזוהמת או חשד לזיהום, לפי סוג פעילות, שלב "
                      f"הטיפול המנהלי ומצב גזי הקרקע ומי התהום. העדכון האחרון במאגר: {last_he}."),
             "as_of": last_he,

@@ -261,16 +261,23 @@ def compute(frames):
 
     n = len(df)
     with_orders = int((df["orders"] > 0).sum())
+    order_share = with_orders / n if n else 0.0
     kpis = {
-        "sites": {"value": n, "display": _int(n)},
+        "sites": {"value": n, "display": _int(n), "tone": "brand"},
         "cities": {"value": int(df.loc[df["city"] != "", "city"].nunique()),
-                   "display": _int(df.loc[df["city"] != "", "city"].nunique())},
-        "cranes": {"value": int(df["cranes"].sum()), "display": _int(df["cranes"].sum())},
-        "with_orders": {"value": with_orders, "display": _pct(with_orders / n) if n else "—"},
+                   "display": _int(df.loc[df["city"] != "", "city"].nunique()), "tone": "brand"},
+        "cranes": {"value": int(df["cranes"].sum()), "display": _int(df["cranes"].sum()),
+                   "tone": "info"},
+        # Share of active sites under a safety order: a quarter or more is a
+        # bad state, a tenth or more calls for caution, below that is good.
+        "with_orders": {"value": with_orders, "display": _pct(order_share) if n else "—",
+                        "tone": ("danger" if order_share >= 0.25
+                                 else "warn" if order_share >= 0.10 else "ok")},
     }
 
     order_table = [{"bucket": b, "n": _int(v)} for b, v in order_dist.items()]
     labels = {
+        "orders_kpi": f"מהאתרים קיבלו צו בטיחות ({_int(with_orders)} אתרים)",
         "lede": (f"{_int(n)} אתרי בנייה פעילים שעליהם התקבלה הודעה על פעולות בנייה, "
                  f"ב-{kpis['cities']['display']} יישובים. המאגר מתאר את המצב הנוכחי ומתעדכן "
                  f"כשאתרים נפתחים ונסגרים."),

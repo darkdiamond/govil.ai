@@ -143,7 +143,9 @@ def insight_town(n):
             f"({_int(vc.iloc[2])}).")
 
 
-def insight_certs(c, cert_now):
+def _cert_rates(c, cert_now):
+    """Approval rate in the last full certificate year and the one before:
+    (full, prev, {year: rate}), or None when either year is too thin."""
     full, prev = cert_now.year - 1, cert_now.year - 2
     rate = {}
     for y in (full, prev):
@@ -151,6 +153,14 @@ def insight_certs(c, cert_now):
         if len(g) < 100:
             return None
         rate[y] = (g["status"] == "נחתם אישור").mean()
+    return full, prev, rate
+
+
+def insight_certs(c, cert_now):
+    rates = _cert_rates(c, cert_now)
+    if rates is None:
+        return None
+    full, prev, rate = rates
     diff = rate[full] - rate[prev]
     trend = (f"שיעור דומה ל-{prev}" if abs(diff) < 0.01
              else f"לעומת {_pct(rate[prev])} ב-{prev}")
@@ -274,6 +284,16 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
     total, active = len(n), int((n["group"] == "פעילה").sum())
     now_he = f"{now.day}/{now.month}/{now.year}"
+    certs_now = int(((c["year"] == cert_now.year) & (c["status"] == "נחתם אישור")).sum())
+    # Certificate tone follows the full-year approval-rate trend (±1pp = similar).
+    rates = _cert_rates(c, cert_now)
+    if rates is None or abs(rates[2][rates[0]] - rates[2][rates[1]]) < 0.01:
+        cert_tone = "brand"
+    else:
+        cert_tone = "ok" if rates[2][rates[0]] > rates[2][rates[1]] else "warn"
+    cert_label = f"אישורי ניהול תקין לשנת {cert_now.year}"
+    if rates is not None:
+        cert_label += f" (שיעור האישור ב-{rates[0]}: {_pct(rates[2][rates[0]])})"
 
     def bar(items):
         return {"names": [k for k, _ in items], "values": [v for _, v in items]}
@@ -289,12 +309,12 @@ def compute(frames):
             "spatial_coverage": "ישראל",
         },
         "kpis": {
-            "total": {"value": total, "display": _int(total)},
-            "active": {"value": active, "display": _int(active)},
-            "certs": {"value": int(((c["year"] == cert_now.year) & (c["status"] == "נחתם אישור")).sum()),
-                      "display": _int(((c["year"] == cert_now.year) & (c["status"] == "נחתם אישור")).sum())},
-            "donations": {"value": float(d["amount"].sum()), "display": _ils_m(d["amount"].sum())},
-            "pbcs": {"value": len(p), "display": _int(len(p))},
+            "total": {"value": total, "display": _int(total), "tone": "brand"},
+            "active": {"value": active, "display": _int(active), "tone": "brand"},
+            "certs": {"value": certs_now, "display": _int(certs_now), "tone": cert_tone},
+            "donations": {"value": float(d["amount"].sum()),
+                          "display": f"{d['amount'].sum() / 1e6:,.1f}", "tone": "info"},
+            "pbcs": {"value": len(p), "display": _int(len(p)), "tone": "brand"},
         },
         "charts": {
             "registrations": registrations,
@@ -319,6 +339,9 @@ def compute(frames):
                      f"אישורי ניהול תקין, {_int(len(d))} דיווחים על תרומות מישויות מדיניות זרות "
                      f"ו-{_int(len(p))} חברות לתועלת הציבור. עדכון הסטטוס האחרון: {now_he}."),
             "cert_year": str(cert_now.year),
+            "cert_kpi": cert_label,
+            "active_kpi": f"עמותות פעילות ({_pct(active / total)} מהרשומות)",
+            "don_kpi": "תרומות מישויות מדיניות זרות, מצטבר (מיליון ₪)",
             "reg_aria": f"גרף עמודות מוערמות: עמותות לפי שנת רישום ({REG_FROM} ואילך) ומצבן כיום.",
             "reg_note": (f"עמותות לפי שנת הרישום, צבועות לפי מצבן היום. ל-{_int(n['registered'].isna().sum())} "
                          f"עמותות אין תאריך רישום והן אינן מוצגות."),

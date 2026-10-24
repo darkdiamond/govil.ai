@@ -25,6 +25,13 @@ def _int(n):
     return f"{int(n):,}"
 
 
+def _swing_tone(cur, prev, threshold=0.10):
+    """KPI colour for a directionless count: info on a big year-over-year swing."""
+    if not prev:
+        return "brand"
+    return "info" if abs(cur - prev) / prev >= threshold else "brand"
+
+
 def _pct(x):
     return f"{x * 100:.1f}%"
 
@@ -190,10 +197,14 @@ def compute(frames):
             "spatial_coverage": "ישראל",
         },
         "kpis": {
-            "decisions": {"value": len(df), "display": _int(len(df))},
-            "cases": {"value": int(per_case.size), "display": _int(per_case.size)},
-            "last_year": {"value": int((y == full).sum()), "display": _int((y == full).sum())},
-            "judges": {"value": int(recent["judge"].nunique()), "display": _int(recent["judge"].nunique())},
+            "decisions": {"value": len(df), "display": _int(len(df)), "tone": "brand"},
+            "cases": {"value": int(per_case.size), "display": _int(per_case.size), "tone": "brand"},
+            # Caseload has no good/bad direction; a swing of ≥10% vs the
+            # year before is flagged as notable (info).
+            "last_year": {"value": int((y == full).sum()), "display": _int((y == full).sum()),
+                          "tone": _swing_tone(int((y == full).sum()), int((y == full - 1).sum()))},
+            "judges": {"value": int(recent["judge"].nunique()),
+                       "display": _int(recent["judge"].nunique()), "tone": "brand"},
         },
         "charts": {
             "yearly": yearly,

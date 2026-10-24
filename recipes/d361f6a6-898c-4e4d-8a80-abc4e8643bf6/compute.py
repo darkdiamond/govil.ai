@@ -212,12 +212,22 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     lf = stats.loc[last_full] if last_full in stats.index else None
+    # Share scoring SCORE_LINE+ in the last full year vs the 5 years before
+    # it: green when it rose 3+ points, amber when it fell 3+, red when it
+    # fell 10+, neutral otherwise.
+    ge_tone = "brand"
+    prev5 = stats[(stats.index < last_full) & (stats.index >= last_full - 5)]
+    if lf is not None and len(prev5) >= 3:
+        diff = (float(lf["ge"]) - float(prev5["ge"].mean())) * 100
+        ge_tone = ("ok" if diff >= 3 else "danger" if diff <= -10
+                   else "warn" if diff <= -3 else "brand")
     kpis = {
-        "brokers": {"value": total, "display": n(total)},
-        "cities": {"value": int(cities.size), "display": n(cities.size)},
-        "examinees": {"value": int(len(done)), "display": n(len(done))},
+        "brokers": {"value": total, "display": n(total), "tone": "brand"},
+        "cities": {"value": int(cities.size), "display": n(cities.size), "tone": "brand"},
+        "examinees": {"value": int(len(done)), "display": n(len(done)), "tone": "brand"},
         "ge_last": {"value": None if lf is None else float(lf["ge"]),
-                    "display": "—" if lf is None else pct(lf["ge"] * 100)},
+                    "display": "—" if lf is None else f"{lf['ge'] * 100:.1f}%",
+                    "tone": ge_tone},
     }
     y0 = int(done["d"].dt.year.min())
     labels = {

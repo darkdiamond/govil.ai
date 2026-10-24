@@ -425,13 +425,26 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     last_y = wy.get(last)
+    def kpi_pct(v, digits=1, signed=False):
+        # Bare KPI value: real minus sign, no bidi marks (dir="ltr" on the box).
+        s = f"{v:+.{digits}f}%" if signed else f"{v:.{digits}f}%"
+        return s.replace("-", "−")
+
+    prev_y = last - 100  # same month a year earlier (yyyymm)
+    yoy = (assets[last] / assets[prev_y] - 1) if prev_y in assets.index and assets[prev_y] > 0 else None
+    # Assets vs a year earlier: a 1% move either way is a direction.
+    assets_tone = ("brand" if yoy is None or abs(yoy) < 0.01 else "ok" if yoy > 0 else "danger")
+    yield_tone = ("brand" if last_y is None or last_y == 0 else "ok" if last_y > 0 else "danger")
     kpis = {
-        "assets": {"value": float(assets[last]), "display": bn(assets[last])},
-        "tracks": {"value": int(cur["fund"].nunique()), "display": f"{cur['fund'].nunique():,}"},
-        "managers": {"value": int(mgr.size), "display": f"{mgr.size:,}"},
+        "assets": {"value": float(assets[last]), "display": f"{assets[last] / 1000:,.1f}",
+                   "tone": assets_tone},
+        "tracks": {"value": int(cur["fund"].nunique()), "display": f"{cur['fund'].nunique():,}",
+                   "tone": "brand"},
+        "managers": {"value": int(mgr.size), "display": f"{mgr.size:,}", "tone": "brand"},
         "month_yield": {"value": None if last_y is None else float(last_y),
-                        "display": "—" if last_y is None else pct(last_y, 2, signed=True)},
-        "liquid": {"value": liq, "display": "—" if liq is None else pct(liq)},
+                        "display": "—" if last_y is None else kpi_pct(last_y, 2, signed=True),
+                        "tone": yield_tone},
+        "liquid": {"value": liq, "display": "—" if liq is None else kpi_pct(liq), "tone": "info"},
     }
 
     ytd_label = f"ינואר–{MONTHS_HE[last % 100 - 1]} {last // 100}"

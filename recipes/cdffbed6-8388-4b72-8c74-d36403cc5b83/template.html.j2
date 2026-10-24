@@ -10,19 +10,19 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.on_last.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.on_last.tone }} mb-1" dir="ltr">{{ model.kpis.on_last.display }}</div>
     <div class="text-sm text-subtle">עצירות בזמן · {{ model.kpis.month_last.display }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.on12.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.on12.tone }} mb-1" dir="ltr">{{ model.kpis.on12.display }}</div>
     <div class="text-sm text-subtle">בזמן ב-12 החודשים האחרונים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.stops12.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.stops12.tone }} mb-1" dir="ltr">{{ model.kpis.stops12.display }}</div>
     <div class="text-sm text-subtle">עצירות ב-12 החודשים האחרונים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.stations.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.stations.tone }} mb-1" dir="ltr">{{ model.kpis.stations.display }}</div>
     <div class="text-sm text-subtle">תחנות</div>
   </div>
 </div>

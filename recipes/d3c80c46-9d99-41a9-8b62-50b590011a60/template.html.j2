@@ -11,20 +11,20 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.issuance_ytd.display }}</div>
-    <div class="text-sm text-subtle">גיוס במכרזים מתחילת השנה</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.issuance_ytd.tone }} mb-1" dir="ltr">{{ model.kpis.issuance_ytd.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.issuance_ytd_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.last_auction.display }}</div>
-    <div class="text-sm text-subtle">מכרז ההנפקה האחרון</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.last_auction.tone }} mb-1" dir="ltr">{{ model.kpis.last_auction.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_auction_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.next12.display }}</div>
-    <div class="text-sm text-subtle">פדיונות צפויים בשנה הקרובה</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.next12.tone }} mb-1" dir="ltr">{{ model.kpis.next12.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.next12_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.trading12.display }}</div>
-    <div class="text-sm text-subtle">מחזור מסחר בשנה האחרונה</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.trading12.tone }} mb-1" dir="ltr">{{ model.kpis.trading12.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.trading12_kpi }}</div>
   </div>
 </div>
 

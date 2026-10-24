@@ -50,6 +50,21 @@ def _int(n):
     return f"{int(n):,}"
 
 
+def _growth_tone(cur, prev, threshold=0.03):
+    """KPI colour for a count where growth is good: ok / warn / brand."""
+    if not prev:
+        return "brand"
+    change = (cur - prev) / prev
+    return "ok" if change >= threshold else "warn" if change <= -threshold else "brand"
+
+
+def _lag_tone(cur, prev, threshold=0.2):
+    """KPI colour for a wait in years where shorter is better."""
+    if cur is None or prev is None:
+        return "brand"
+    return "ok" if cur <= prev - threshold else "warn" if cur >= prev + threshold else "brand"
+
+
 def _pct(x, d=1):
     return f"{x * 100:.{d}f}%"
 
@@ -290,11 +305,20 @@ def compute(frames):
             "temporal_coverage": f"{y0}/{anchor.strftime('%Y-%m-%d')}",
         },
         "kpis": {
-            "applications": {"value": n_apps, "display": _int(n_apps)},
-            "in_force": {"value": in_force_now, "display": _int(in_force_now)},
+            "applications": {"value": n_apps, "display": _int(n_apps), "tone": "brand"},
+            "in_force": {"value": in_force_now, "display": _int(in_force_now), "tone": "brand"},
+            # More grants than the year before reads as good; a ≥3% drop as caution.
             "grants_last": {"value": grants["y"][years.index(last_full)],
-                            "display": _int(grants["y"][years.index(last_full)])},
-            "lag_last": {"value": lag_last, "display": "—" if lag_last is None else f"{lag_last:.1f} שנים"},
+                            "display": _int(grants["y"][years.index(last_full)]),
+                            "tone": _growth_tone(
+                                grants["y"][years.index(last_full)],
+                                grants["y"][years.index(last_full) - 1]
+                                if years.index(last_full) > 0 else 0)},
+            # Shorter wait for a grant is good: ±0.2 years vs the year before.
+            "lag_last": {"value": lag_last,
+                         "display": "—" if lag_last is None else f"{lag_last:.1f}",
+                         "tone": _lag_tone(lag_last, float(med[last_full - 1])
+                                           if (last_full - 1) in med.index else None)},
         },
         "charts": {"filings": filings, "grants": grants, "status": status, "origin": origin,
                    "lag": lag, "lag_trend": lag_trend, "fate": fate_chart,
@@ -306,7 +330,7 @@ def compute(frames):
         "labels": {
             "last_full": str(last_full),
             "grants_last_label": f"פטנטים שניתנו ב-{last_full}",
-            "lag_last_label": f"חציון הזמן עד מתן פטנט ({last_full})",
+            "lag_last_label": f"חציון השנים עד מתן פטנט ({last_full})",
             "lede": (f"{_int(n_apps)} בקשות לפטנט, מ-{y0} ועד {d_he(anchor)}. כל בקשה מוצגת פעם אחת, "
                      f"בסטטוס המתקדם ביותר שלה; {_int(test_rows)} רשומות בדיקה ({_int(raw_rows)} שורות במאגר) הוסרו."),
             "filings_note": (f"לפי שנת ההגשה בישראל. {cur} חלקית — עד {d_he(anchor)}. בקשה במסלול PCT "

@@ -10,19 +10,19 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cases.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.cases.tone }} mb-1" dir="ltr">{{ model.kpis.cases.display }}</div>
     <div class="text-sm text-subtle">צווי נגישות</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.defects.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.defects.tone }} mb-1" dir="ltr">{{ model.kpis.defects.display }}</div>
     <div class="text-sm text-subtle">ליקויים שפורטו בצווים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.debtors.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.debtors.tone }} mb-1" dir="ltr">{{ model.kpis.debtors.display }}</div>
     <div class="text-sm text-subtle">גורמים חייבים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-2xl font-bold text-brand mb-1">{{ model.kpis.latest.display }}</div>
+    <div class="text-2xl font-bold text-{{ model.kpis.latest.tone }} mb-1" dir="ltr">{{ model.kpis.latest.display }}</div>
     <div class="text-sm text-subtle">הצו האחרון במאגר</div>
   </div>
 </div>

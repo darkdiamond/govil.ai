@@ -269,8 +269,21 @@ def compute(frames):
     d365 = _level_on_or_before(df, last["d"] - pd.Timedelta(days=365))
 
     def signed_cm(delta):
-        sign = "+" if delta > 0 else "-" if delta < 0 else ""
-        return f"{LRI}{sign}{cm(delta)}{PDI} ס״מ"
+        # KPI value: bare signed number, U+2212 minus; units live in the label.
+        sign = "+" if delta > 0 else "−" if delta < 0 else ""
+        return f"{sign}{cm(delta)}"
+
+    def change_tone(delta, warn_at, danger_at):
+        # Falling is the bad direction for the lake.
+        if delta is None:
+            return "brand"
+        if delta <= -danger_at:
+            return "danger"
+        if delta <= -warn_at:
+            return "warn"
+        if delta >= warn_at:
+            return "ok"
+        return "brand"
 
     zone_label = {
         "above_upper": "מעל הקו האדום העליון",
@@ -279,16 +292,34 @@ def compute(frames):
         "below_black": "בקו השחור או מתחתיו",
     }[_zone(last["lvl"])]
 
+    zone = _zone(last["lvl"])
+    # Level colour follows the operating lines: healthy between them, alarm
+    # below the lower red line, notable (flood management) above the upper.
+    zone_tone = {"above_upper": "info", "between": "ok",
+                 "below_lower": "danger", "below_black": "danger"}[zone]
+    d30_delta = None if d30 is None else float(last["lvl"] - d30["lvl"])
+    d365_delta = None if d365 is None else float(last["lvl"] - d365["lvl"])
+    to_red = float(last["lvl"] - LOWER_RED)
     kpis = {
-        "level": {"value": float(last["lvl"]), "display": f"{m(last['lvl'])} מ'"},
+        "level": {"value": float(last["lvl"]),
+                  "display": f"{last['lvl']:.2f}".replace("-", "−"), "tone": zone_tone},
         "as_of": {"value": last["d"].strftime("%Y-%m-%d"), "display": d_he(last["d"])},
-        "zone": {"value": _zone(last["lvl"]), "display": zone_label},
-        "to_lower_red": {"value": float(last["lvl"] - LOWER_RED),
-                         "display": signed_cm(last["lvl"] - LOWER_RED)},
-        "d30": {"value": None if d30 is None else float(last["lvl"] - d30["lvl"]),
-                "display": "—" if d30 is None else signed_cm(last["lvl"] - d30["lvl"])},
-        "d365": {"value": None if d365 is None else float(last["lvl"] - d365["lvl"]),
-                 "display": "—" if d365 is None else signed_cm(last["lvl"] - d365["lvl"])},
+        "zone": {"value": zone, "display": zone_label},
+        "to_lower_red": {"value": to_red, "display": signed_cm(to_red),
+                         "tone": "ok" if to_red >= 0 else "danger"},
+        "d30": {"value": d30_delta,
+                "display": "—" if d30_delta is None else signed_cm(d30_delta),
+                "tone": change_tone(d30_delta, 0.05, 0.25)},
+        "d365": {"value": d365_delta,
+                 "display": "—" if d365_delta is None else signed_cm(d365_delta),
+                 "tone": change_tone(d365_delta, 0.10, 0.50)},
+    }
+    as_of_num = f"{last['d'].day}.{last['d'].month}.{last['d'].year}"
+    kpi_labels = {
+        "level": f"מפלס נוכחי, מ' יחסית לפני הים ({as_of_num})",
+        "to_lower_red": f"ס״מ ביחס לקו האדום התחתון — {zone_label}",
+        "d30": "שינוי בחודש האחרון (ס״מ)",
+        "d365": "שינוי בשנה האחרונה (ס״מ)",
     }
 
     lines = {
@@ -342,6 +373,7 @@ def compute(frames):
             "spatial_coverage": "כנרת",
         },
         "kpis": kpis,
+        "kpi_labels": kpi_labels,
         "lines": lines,
         "charts": {
             "history": history,

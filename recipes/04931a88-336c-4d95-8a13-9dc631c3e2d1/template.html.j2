@@ -24,22 +24,12 @@
 </section>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "settlements", "groups", "mapped"] %}
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
-    <div class="text-sm text-subtle">אתרים במאגר</div>
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
   </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.settlements.display }}</div>
-    <div class="text-sm text-subtle">יישובים</div>
-  </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.groups.display }}</div>
-    <div class="text-sm text-subtle">תחומי פעילות</div>
-  </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.mapped.display }}</div>
-    <div class="text-sm text-subtle">מהאתרים עם מיקום במפה</div>
-  </div>
+{%- endfor %}
 </div>
 
 <section class="card p-5 mb-6">

@@ -191,11 +191,14 @@ def compute(frames):
             "spatial_coverage": "ישראל",
         },
         "kpis": {
-            "atms": {"value": n, "display": _int(n)},
-            "banks": {"value": int(len(banks)), "display": _int(len(banks))},
-            "cities": {"value": int(len(cities)), "display": _int(len(cities))},
+            "atms": {"value": n, "display": _int(n), "tone": "brand"},
+            "banks": {"value": int(len(banks)), "display": _int(len(banks)), "tone": "brand"},
+            "cities": {"value": int(len(cities)), "display": _int(len(cities)), "tone": "brand"},
+            # Cash deposit is a service: most machines offering it is good,
+            # a minority is a gap worth flagging.
             "deposit": {"value": float(_yes(df["Cash_Deposit"]).mean()),
-                        "display": _pct(_yes(df["Cash_Deposit"]).mean())},
+                        "display": _pct(_yes(df["Cash_Deposit"]).mean()),
+                        "tone": "ok" if _yes(df["Cash_Deposit"]).mean() >= 0.5 else "warn"},
         },
         "charts": {"banks": by_bank, "cities": by_city, "services": svc, "svc_heat": svc_heat,
                    "location": {"banks": bank_order, "series": loc_series},

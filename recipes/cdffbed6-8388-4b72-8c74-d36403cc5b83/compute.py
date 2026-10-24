@@ -224,12 +224,22 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
+    def vs_prev(share):
+        # On-time share against the previous 12 months: half a point either
+        # way is a real move; inside that it is neutral.
+        if prv["total"] <= 0:
+            return "brand"
+        d = share - prv["on"]
+        return "ok" if d >= 0.005 else "danger" if d <= -0.005 else "brand"
+
+    on_last = float(complete.loc[end, "on"])
     kpis = {
-        "on_last": {"value": float(complete.loc[end, "on"]), "display": pct(complete.loc[end, "on"])},
+        "on_last": {"value": on_last, "display": pct(on_last), "tone": vs_prev(on_last)},
         "month_last": {"value": str(end), "display": mlabel(end)},
-        "on12": {"value": float(cur["on"]), "display": pct(cur["on"])},
-        "stops12": {"value": int(cur["total"]), "display": f"{int(cur['total']):,}"},
-        "stations": {"value": int(df["station"].nunique()), "display": f"{df['station'].nunique()}"},
+        "on12": {"value": float(cur["on"]), "display": pct(cur["on"]), "tone": vs_prev(float(cur["on"]))},
+        "stops12": {"value": int(cur["total"]), "display": f"{int(cur['total']):,}", "tone": "brand"},
+        "stations": {"value": int(df["station"].nunique()), "display": f"{df['station'].nunique()}",
+                     "tone": "brand"},
     }
 
     p0, p1 = mon.index[0], mon.index[-1]

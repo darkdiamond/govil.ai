@@ -220,10 +220,13 @@ def compute(frames):
             "temporal_coverage": f"{cases['ordered'].min().strftime('%Y-%m-%d')}/{anchor.strftime('%Y-%m-%d')}",
         },
         "kpis": {
-            "cases": {"value": n_cases, "display": _int(n_cases)},
-            "defects": {"value": n_def, "display": _int(n_def)},
-            "debtors": {"value": int(cases["debtor"].nunique()), "display": _int(cases["debtor"].nunique())},
-            "latest": {"value": anchor.strftime("%Y-%m-%d"), "display": d_he(anchor)},
+            "cases": {"value": n_cases, "display": _int(n_cases), "tone": "brand"},
+            "defects": {"value": n_def, "display": _int(n_def), "tone": "brand"},
+            "debtors": {"value": int(cases["debtor"].nunique()),
+                        "display": _int(cases["debtor"].nunique()), "tone": "brand"},
+            # The data's own "as of" date — context, not a good/bad state.
+            "latest": {"value": anchor.strftime("%Y-%m-%d"),
+                       "display": f"{anchor.day}.{anchor.month}.{anchor.year}", "tone": "info"},
         },
         "charts": {"yearly": yearly, "category": cat_chart,
                    "etype": {"names": et_names, "values": et_vals},

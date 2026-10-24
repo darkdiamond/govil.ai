@@ -27,23 +27,23 @@
 
 <div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
     <div class="text-sm text-subtle">עמותות שנרשמו אי-פעם</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.active.display }}</div>
-    <div class="text-sm text-subtle">עמותות פעילות</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.active_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.certs.display }}</div>
-    <div class="text-sm text-subtle">אישורי ניהול תקין לשנת {{ model.labels.cert_year }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.certs.tone }} mb-1" dir="ltr">{{ model.kpis.certs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cert_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.donations.display }}</div>
-    <div class="text-sm text-subtle">תרומות מישויות מדיניות זרות (מצטבר)</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.donations.tone }} mb-1" dir="ltr">{{ model.kpis.donations.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.don_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.pbcs.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.pbcs.tone }} mb-1" dir="ltr">{{ model.kpis.pbcs.display }}</div>
     <div class="text-sm text-subtle">חברות לתועלת הציבור</div>
   </div>
 </div>

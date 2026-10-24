@@ -26,22 +26,12 @@
 </section>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["active", "banks", "cities", "accessible"] %}
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.active.display }}</div>
-    <div class="text-sm text-subtle">סניפים פעילים</div>
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
   </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.banks.display }}</div>
-    <div class="text-sm text-subtle">בנקים וגופים בנקאיים</div>
-  </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cities.display }}</div>
-    <div class="text-sm text-subtle">יישובים עם סניף</div>
-  </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.accessible.display }}</div>
-    <div class="text-sm text-subtle">מהסניפים מסומנים כנגישים</div>
-  </div>
+{%- endfor %}
 </div>
 
 <section class="card p-5 mb-6">
