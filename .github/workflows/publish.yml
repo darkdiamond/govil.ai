@@ -31,7 +31,6 @@ on:
       - "services/page_builder/requirements-publish.txt"
       - "services/shared/**"
       - "firebase.json"
-      - "recipes/**"
       - ".github/workflows/publish.yml"
   workflow_dispatch:
     inputs:
@@ -106,16 +105,9 @@ jobs:
           FIRESTORE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT }}
           GOOGLE_CLOUD_PROJECT: ${{ vars.FIREBASE_PROJECT }}
 
-      # Recipes are reviewed in git; the nightly refresh reads them from
-      # GCS. Live lane only — demo recipes live under preview/recipes/.
-      - name: Sync recipes to staging
-        if: env.TARGET == 'live'
-        run: |
-          if [ -d recipes ]; then
-            gcloud storage rsync recipes/ "gs://${STAGING_BUCKET}/recipes/" \
-              --recursive --delete-unmatched-destination-objects
-          fi
-
+      # No recipe sync here: the nightly refresh reads recipes/ straight from
+      # git main (services/page_builder/refresh.py::GithubRecipeRepo), so
+      # this workflow keeps read-only access to the staging bucket.
       - name: Overlay recipe-refresh demo lane
         if: env.TARGET == 'preview'
         run: |

@@ -416,10 +416,19 @@ async def run_pipeline(
     recipe_ids: frozenset[str] = frozenset()
     if refresh_enabled and not override_id:
         from . import refresh as _refresh
+        repo = None
         try:
             repo = _refresh.recipe_repo_from_env()
             recipe_ids = frozenset(await asyncio.to_thread(repo.list_ids))
-            if not dry_run:
+        except Exception:
+            # Fail closed: without the recipe list we can't tell which
+            # published pages a recipe owns, and a Track-2 agent rebuild
+            # would overwrite them. New sources (Track 1) still build.
+            log.exception("recipe list unavailable — pausing Track 2 for this run")
+            reanalyze = False
+            repo = None
+        if repo is not None and not dry_run:
+            try:
                 refresh_summary = await asyncio.to_thread(
                     _refresh.run_refresh,
                     store,
@@ -427,8 +436,8 @@ async def run_pipeline(
                     preview=False,
                     staging_bucket=staging_bucket,
                 )
-        except Exception:
-            log.exception("recipe refresh failed — continuing with select")
+            except Exception:
+                log.exception("recipe refresh failed — continuing with select")
     refreshed_ids = list((refresh_summary or {}).get("refreshed") or [])
 
     # [2] select

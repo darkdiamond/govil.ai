@@ -109,7 +109,8 @@ class LocalRecipeRepo:
 
 
 class GcsRecipeRepo:
-    """Recipes synced from git to gs://<bucket>/<prefix><id>/ by publish.yml."""
+    """Recipes uploaded to gs://<bucket>/<prefix><id>/ — the preview lane
+    (`infra/refresh-preview.deploy.sh sync-recipes`)."""
 
     def __init__(self, bucket: str, prefix: str = "recipes/"):
         from google.cloud import storage
@@ -137,15 +138,83 @@ class GcsRecipeRepo:
         return Recipe.load(dest)
 
 
-def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo:
-    """RECIPES_SOURCE: a local dir, or gs://bucket/prefix (default: the
-    staging bucket's recipes/ prefix)."""
+class GithubRecipeRepo:
+    """Recipes read straight from git — `recipes/` at a branch of the
+    (public) repo. Production's source of truth: merging a recipe PR is what
+    puts a dataset on the recipe list, with no sync step or write grant.
+
+    The branch is resolved to one commit per run (git trees API), and every
+    file is fetched at that commit, so a merge landing mid-run can't mix
+    two versions of a recipe.
+    """
+
+    def __init__(self, repo: str, ref: str = "main", token: Optional[str] = None):
+        self.repo, self.ref = repo, ref
+        self._headers = {"Accept": "application/vnd.github+json",
+                         "X-GitHub-Api-Version": "2022-11-28"}
+        if token:
+            self._headers["Authorization"] = f"Bearer {token}"
+        self._sha: Optional[str] = None
+        self._ids: Optional[list[str]] = None
+
+    def _get(self, url: str, **kw):
+        import httpx
+
+        r = httpx.get(url, headers=self._headers, timeout=30.0,
+                      follow_redirects=True, **kw)
+        r.raise_for_status()
+        return r
+
+    def list_ids(self) -> list[str]:
+        if self._ids is None:
+            sha = self._get(
+                f"https://api.github.com/repos/{self.repo}/commits/{self.ref}"
+            ).json()["sha"]
+            tree = self._get(
+                f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
+                params={"recursive": "1"},
+            ).json()
+            if tree.get("truncated"):
+                raise RuntimeError("git tree listing truncated — recipe list incomplete")
+            ids = set()
+            for node in tree.get("tree") or []:
+                parts = node.get("path", "").split("/")
+                if len(parts) == 3 and parts[0] == "recipes" and parts[2] == MANIFEST_FILENAME:
+                    ids.add(parts[1])
+            self._sha, self._ids = sha, sorted(ids)
+        return list(self._ids)
+
+    def load(self, dataset_id: str, scratch: Path) -> Recipe:
+        if self._sha is None:
+            self.list_ids()
+        dest = scratch / dataset_id
+        dest.mkdir(parents=True, exist_ok=True)
+        for name in RECIPE_FILES:
+            r = self._get(
+                f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
+                f"recipes/{dataset_id}/{name}"
+            )
+            (dest / name).write_bytes(r.content)
+        return Recipe.load(dest)
+
+
+def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo:
+    """RECIPES_SOURCE:
+      github:<owner/repo>@<ref>   (default: PUBLISH_GITHUB_REPO @ main)
+      gs://bucket/prefix/         (the preview lane's uploaded demo recipes)
+      a local directory           (tests, local runs)
+    """
     src = os.environ.get("RECIPES_SOURCE", "").strip()
     if not src:
-        bucket = os.environ.get("GCS_STAGING_BUCKET", "")
-        if not bucket:
-            raise RuntimeError("set RECIPES_SOURCE or GCS_STAGING_BUCKET")
-        src = f"gs://{bucket}/recipes/"
+        src = "github:{}@main".format(
+            os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
+        )
+    if src.startswith("github:"):
+        repo, _, ref = src[len("github:"):].partition("@")
+        return GithubRecipeRepo(
+            repo, ref or "main",
+            token=os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip() or None,
+        )
     if src.startswith("gs://"):
         bucket, _, prefix = src[len("gs://"):].partition("/")
         return GcsRecipeRepo(bucket, prefix or "recipes/")
