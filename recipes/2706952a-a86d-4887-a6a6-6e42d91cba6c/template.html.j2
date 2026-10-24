@@ -1,0 +1,208 @@
+<h1>מפלס כנרת</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.level.display }}</div>
+    <div class="text-sm text-subtle">מפלס אחרון · {{ model.kpis.as_of.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.to_lower_red.display }}</div>
+    <div class="text-sm text-subtle">ביחס לקו האדום התחתון · {{ model.kpis.zone.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.d30.display }}</div>
+    <div class="text-sm text-subtle">שינוי בחודש האחרון</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.d365.display }}</div>
+    <div class="text-sm text-subtle">שינוי בשנה האחרונה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המפלס בשנתיים האחרונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מדידות יומיות, עם הקווים האדומים והקו השחור שקבעה רשות המים.</p>
+  <div id="chart-recent" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כל ההיסטוריה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }} ניתן להתמקד בתקופה בעזרת המחוון שמתחת לגרף.</p>
+  <div id="chart-history" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.table_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">מינימום</th><th scope="col">מקסימום</th><th scope="col">ממוצע</th><th scope="col">ימי מדידה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.min }}</td><td>{{ r.max }}</td><td>{{ r.mean }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחזור עונתי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">המפלס לפי שבוע בשנה ההידרולוגית (מאוקטובר), בעונות האחרונות לעומת החציון ההיסטורי.</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עליית המפלס בכל חורף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gains_note }}</p>
+    <div id="chart-gains" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gains_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ממוצע המפלס בכל חודש. גוון כהה יותר = מפלס גבוה יותר.</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/2706952a-a86d-4887-a6a6-6e42d91cba6c" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<script>
+  (function () {
+    var L = {{ model.lines | tojson }};
+    function redLines() {
+      return {
+        silent: true, symbol: "none",
+        data: [
+          { yAxis: L.upper, name: L.upper_label, lineStyle: { color: "#9a6700", type: "dashed" } },
+          { yAxis: L.lower, name: L.lower_label, lineStyle: { color: "#dc3545", type: "dashed" } },
+          { yAxis: L.black, name: L.black_label, lineStyle: { color: "#dc3545", type: "solid" } }
+        ],
+        label: { formatter: "{b}", position: "insideEndTop", fontFamily: "Rubik" }
+      };
+    }
+    function axisRange(values) {
+      var lo = Math.min.apply(null, values.filter(function (v) { return v !== null; }).concat([L.black]));
+      var hi = Math.max.apply(null, values.filter(function (v) { return v !== null; }).concat([L.upper]));
+      return { min: Math.floor(lo * 2) / 2 - 0.5, max: Math.ceil(hi * 2) / 2 + 0.5 };
+    }
+    function fmt(v) { return (typeof v === "number") ? v.toFixed(2) : v; }
+
+    var r = {{ model.charts.recent | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-recent"));
+    var r1 = axisRange(r.y);
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      grid: { left: 56, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", min: r1.min, max: r1.max, name: "מטר" },
+      series: [{ type: "line", name: "מפלס", data: r.y, showSymbol: false, markLine: redLines() }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var h = {{ model.charts.history | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-history"));
+    var r2 = axisRange(h.y);
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      grid: { left: 56, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x },
+      yAxis: { type: "value", min: r2.min, max: r2.max, name: "מטר" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [{ type: "line", name: "ממוצע חודשי", data: h.y, showSymbol: false, markLine: redLines() }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function fmt(v) { return (typeof v === "number") ? v.toFixed(2) : v; }
+    var s = {{ model.charts.season | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-season"));
+    var series = s.series.map(function (x) {
+      return { type: "line", name: x.name, data: x.data, showSymbol: false, connectNulls: true };
+    });
+    series.push({ type: "line", name: s.median_label, data: s.median, showSymbol: false,
+                  lineStyle: { type: "dashed", color: "#6c757d" }, itemStyle: { color: "#6c757d" } });
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 56, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.weeks, name: "שבוע" },
+      yAxis: { type: "value", scale: true, name: "מטר" },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var g = {{ model.charts.gains | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-gains"));
+    var last = g.y.length - 1;
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " ס״מ"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: g.x },
+      yAxis: { type: "value", name: "ס״מ" },
+      dataZoom: [{ type: "inside", startValue: Math.max(0, last - 19), endValue: last }],
+      series: [{ type: "bar", name: "עלייה בעונה", data: g.y.map(function (v, i) {
+        return i === last ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-heat"));
+    c5.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2].toFixed(2);
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: hm.min, max: hm.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>

@@ -78,6 +78,21 @@ landing pages. Four layers:
    Build trigger `govdata-publish` (`PUBLISH_VIA=cloudbuild`) and
    `infra/publish-local.sh` (same steps, your machine).
 
+5. **Recipe refresh (rolling out — demo lane first)** —
+   `services/page_builder/{recipe,refresh,author}.py`. A dataset is
+   authored ONCE, locally, with Claude Code (`/author-dataset <id>`,
+   `.claude/skills/author-dataset/SKILL.md`) into `recipes/<id>/`
+   (`recipe.json` + pure `compute.py` + Jinja `template.html.j2`); every
+   number and insight sentence is computed from the data. On each CKAN
+   update the refresh re-runs it with **no LLM** (sandboxed compute →
+   sanitizer → check.py → stage). Failures keep the last-good page and open
+   a `needs-authoring` GitHub issue. Knobs (both default to today's
+   behaviour): `REFRESH_ENABLED` (prod refresh), `AUTHORING_MODE=local`
+   (no cloud agent sessions; queue + issue instead). Demo lane:
+   `infra/refresh-preview.deploy.sh` → job `govdata-refresh-preview` writes
+   only `preview_sources/*` + `gs://…/preview/`, and `publish.yml
+target=preview` deploys the `recipes-demo` Hosting channel.
+
 State: Firestore `sources/{id}` (per-dataset), `scan_runs/{run_id}`
 (per invocation). No SQLite. No Anthropic Managed
 Agents (migrated to OpenRouter 2026-06-12; sources that fail a whole
@@ -340,7 +355,7 @@ analyzed_metadata_modified`) AND the new version is more than
 - **CSP is two headers, on purpose** (`firebase.json`, `source: "**"`).
   `Content-Security-Policy` enforces only directives that can't break a
   page (`object-src 'none'`, `base-uri`, `form-action 'self'
-  https://formspree.io`, `frame-ancestors`, `upgrade-insecure-requests`).
+https://formspree.io`, `frame-ancestors`, `upgrade-insecure-requests`).
   The full allowlist (scripts/connect/frames for GA, AdSense, Clarity,
   data.gov.il) is `Content-Security-Policy-Report-Only` — agent bodies are
   inline scripts, so `script-src` needs `'unsafe-inline'`, and AdSense's

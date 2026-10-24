@@ -149,12 +149,16 @@ async def _build_one(
         }
 
 
-async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> Optional[str]:
+async def _trigger_publish_github(
+    repo: str, workflow: str, branch: str, inputs: Optional[dict] = None
+) -> Optional[str]:
     """Fire the GitHub Actions publish workflow (workflow_dispatch).
 
     Fire-and-forget — the API returns 204 with no run id, so we return a
     synthetic marker for the summary. Needs GITHUB_DISPATCH_TOKEN (a
     fine-grained PAT with Actions:write on this repo, from Secret Manager).
+    `inputs` are workflow_dispatch inputs (`{"target": "preview"}` deploys
+    the recipe-refresh demo channel instead of live).
     """
     token = os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip()
     if not token:
@@ -170,7 +174,7 @@ async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> Opti
         # exactly that — 307 → logged failure, pages built but not deployed).
         r = httpx.post(
             f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
-            json={"ref": branch},
+            json={"ref": branch, **({"inputs": inputs} if inputs else {})},
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",
@@ -232,6 +236,34 @@ async def _trigger_publish(
         return None
 
 
+def _env_flag(name: str, default: bool) -> bool:
+    raw = os.environ.get(name, "").strip().lower()
+    if not raw:
+        return default
+    return raw in ("true", "1", "yes", "on")
+
+
+async def _dispatch_publish(
+    should: bool,
+    publish_via: str,
+    repo: str,
+    workflow: str,
+    branch: str,
+    project_id: str,
+    trigger_id: str,
+    region: str,
+) -> Optional[str]:
+    if not should:
+        return None
+    if publish_via == "github":
+        return await _trigger_publish_github(repo, workflow, branch)
+    if publish_via == "cloudbuild" and trigger_id:
+        return await _trigger_publish(project_id, trigger_id, branch, region=region)
+    if publish_via:
+        log.error("unknown PUBLISH_VIA=%r — publish skipped", publish_via)
+    return None
+
+
 async def run_pipeline(
     *,
     mode: str = "scheduled",
@@ -262,6 +294,15 @@ async def run_pipeline(
     # 2026 (~433) + 2025 (~92) → 800 with headroom. Raise it in lockstep
     # when MIN_MODIFIED_FLOOR drops to admit an older year.
     scan_limit = int(os.environ.get("SCAN_LIMIT", "800"))
+    # Recipe refresh (services/page_builder/refresh.py): sources with a
+    # recipe are re-rendered deterministically — no LLM — whenever CKAN
+    # advances, and no agent track may pick them. Default off until the
+    # preview soak passes.
+    refresh_enabled = _env_flag("REFRESH_ENABLED", False)
+    # AUTHORING_MODE=local: no agent sessions run in the cloud at all.
+    # Sources a track selects are queued for local authoring with Claude
+    # Code (GitHub issue per dataset) instead. `cloud` = today's behaviour.
+    authoring_mode = os.environ.get("AUTHORING_MODE", "cloud").strip().lower()
     # Selection date gates, env-overridable so widening coverage one year
     # at a time is a `gcloud run` env change, not a redeploy. Unset →
     # selector.DEFAULT_* (floor 2026-01-01, rolling window 365d).
@@ -368,6 +409,28 @@ async def run_pipeline(
         except Exception:
             log.exception("pending reap failed — continuing with select")
 
+    # [1.7] recipe refresh — deterministic re-render of every recipe'd
+    # source CKAN moved past. Runs before select so the recipe set can be
+    # excluded from the agent tracks.
+    refresh_summary = None
+    recipe_ids: frozenset[str] = frozenset()
+    if refresh_enabled and not override_id:
+        from . import refresh as _refresh
+        try:
+            repo = _refresh.recipe_repo_from_env()
+            recipe_ids = frozenset(await asyncio.to_thread(repo.list_ids))
+            if not dry_run:
+                refresh_summary = await asyncio.to_thread(
+                    _refresh.run_refresh,
+                    store,
+                    repo,
+                    preview=False,
+                    staging_bucket=staging_bucket,
+                )
+        except Exception:
+            log.exception("recipe refresh failed — continuing with select")
+    refreshed_ids = list((refresh_summary or {}).get("refreshed") or [])
+
     # [2] select
     if override_id:
         src = await asyncio.to_thread(store.get_source, override_id)
@@ -375,23 +438,54 @@ async def run_pipeline(
             raise RuntimeError(f"override source {override_id} not found in Firestore")
         to_process = [src]
     else:
+        if authoring_mode == "local":
+            n = int(os.environ.get("AUTHORING_NOTIFY_CAP", "100"))
         to_process = await asyncio.to_thread(
-            selector.pick_next, store, n, reanalyze=reanalyze, **selector_gates
+            selector.pick_next,
+            store,
+            n,
+            reanalyze=reanalyze,
+            exclude_ids=recipe_ids,
+            **selector_gates,
         )
 
     summary: dict = {
         "mode": mode,
         "dry_run": dry_run,
+        "authoring_mode": authoring_mode,
         "selected": [s.id for s in to_process],
         "scan": _scan_summary_dict(scan_summary) if scan_summary else None,
         "reconcile": reconcile_summary,
         "reaped_pending": reaped,
+        "refresh": refresh_summary,
     }
+
+    # [2.5] local authoring: queue instead of build. Idempotent — a source
+    # whose issue is already open is a no-op, so re-selecting it daily
+    # costs one Firestore read.
+    if authoring_mode == "local" and not override_id and not dry_run:
+        from .refresh import queue_authoring
+
+        queued = []
+        for src in to_process:
+            reason = "legacy_updated" if src.page_path else "new"
+            issue = await asyncio.to_thread(queue_authoring, store, src, reason)
+            queued.append({"id": src.id, "reason": reason, "issue": issue})
+        summary["authoring_queued"] = queued
+        to_process = []
 
     if dry_run or not to_process:
         summary["processed"] = []
         summary["build_id"] = None
-        summary["status"] = "idle" if not to_process else "dry_run"
+        if dry_run:
+            summary["status"] = "dry_run" if to_process else "idle"
+            return summary
+        summary["build_id"] = await _dispatch_publish(
+            bool(refreshed_ids) and not skip_publish,
+            publish_via, publish_repo, publish_workflow, publish_branch,
+            project_id, trigger_id, publish_region,
+        )
+        summary["status"] = "ok" if refreshed_ids else "idle"
         return summary
 
     # [3] fan-out agent sessions, bounded by MAX_CONCURRENT.
@@ -413,20 +507,12 @@ async def run_pipeline(
     summary["processed"] = results
     succeeded_ids = [r["id"] for r in results if r.get("status") == "succeeded"]
 
-    # [4] trigger publisher if any page was written
-    build_id = None
-    if succeeded_ids and not skip_publish:
-        if publish_via == "github":
-            build_id = await _trigger_publish_github(
-                publish_repo, publish_workflow, publish_branch
-            )
-        elif publish_via == "cloudbuild" and trigger_id:
-            build_id = await _trigger_publish(
-                project_id, trigger_id, publish_branch, region=publish_region
-            )
-        elif publish_via:
-            log.error("unknown PUBLISH_VIA=%r — publish skipped", publish_via)
-    summary["build_id"] = build_id
+    # [4] trigger publisher if any page was written (agent or refresh)
+    summary["build_id"] = await _dispatch_publish(
+        bool(succeeded_ids or refreshed_ids) and not skip_publish,
+        publish_via, publish_repo, publish_workflow, publish_branch,
+        project_id, trigger_id, publish_region,
+    )
     # `aborted` outranks `ok`: a batch that lost the provider mid-run is a
     # broken batch even if a few pages landed first, and it must not read as
     # a normal day. `_cli` turns both it and `all_failed` into a non-zero
@@ -434,7 +520,7 @@ async def run_pipeline(
     if any(r.get("status") == "aborted" for r in results):
         summary["status"] = "aborted"
     else:
-        summary["status"] = "ok" if succeeded_ids else "all_failed"
+        summary["status"] = "ok" if succeeded_ids or refreshed_ids else "all_failed"
     return summary
 
 

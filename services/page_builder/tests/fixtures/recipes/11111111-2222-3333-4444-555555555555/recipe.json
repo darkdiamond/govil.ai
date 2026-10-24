@@ -1,0 +1,18 @@
+{
+  "contract_version": 1,
+  "dataset_id": "11111111-2222-3333-4444-555555555555",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T00:00:00Z",
+    "rows": { "events": 36 }
+  },
+  "inputs": [
+    {
+      "name": "events",
+      "by_id": "aaaaaaaa-0000-0000-0000-000000000001",
+      "required_columns": ["שנה", "חודש", "מחוז", "מספר אירועים"]
+    }
+  ],
+  "min_insights": 2
+}
