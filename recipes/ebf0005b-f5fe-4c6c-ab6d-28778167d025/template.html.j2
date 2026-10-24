@@ -1,0 +1,258 @@
+<h1>מפלס ים המלח</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.level.display }}</div>
+    <div class="text-sm text-subtle">מפלס אחרון · {{ model.kpis.as_of.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.d12.display }}</div>
+    <div class="text-sm text-subtle">שינוי בשנה האחרונה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.rate10.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rate10_label }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_label }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כל ההיסטוריה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המפלס החודשי מאז תחילת המדידות במאגר. ניתן להתמקד בתקופה בעזרת המחוון שמתחת לגרף.</p>
+  <div id="chart-history" data-fallback="explorer" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שלוש השנים האחרונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המפלס החודשי בשלוש השנים האחרונות — המחזור העונתי בולט כשמתמקדים בטווח קצר.</p>
+  <div id="chart-recent" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השינוי בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  <div id="chart-annual" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.annual_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.annual_table_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">שינוי (ס״מ)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.annual %}
+        <tr><th scope="row">{{ r.year }}</th><td dir="ltr">{{ r.chg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קצב הירידה לפי עשור</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">השינוי השנתי הממוצע בשנים המלאות של כל עשור.</p>
+    <div id="chart-decades" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.decades_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.decades_aria }}</caption>
+        <thead><tr><th scope="col">עשור</th><th scope="col">שינוי ממוצע לשנה (ס״מ)</th><th scope="col">שנים מלאות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.decades %}
+          <tr><th scope="row">{{ r.dec }}</th><td dir="ltr">{{ r.avg }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחזור עונתי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">השינוי החודשי הממוצע במפלס לפי חודש בשנה, לאורך כל שנות המדידה.</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_aria }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">שינוי ממוצע (ס״מ)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.m }}</th><td dir="ltr">{{ r.v }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן לוקח לרדת חמישה מטרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">לכל סימן דרך: מספר השנים שעברו מאז שהמפלס חצה את סימן הדרך הקודם.</p>
+  <div id="chart-miles" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.miles_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.miles_aria }}</caption>
+      <thead><tr><th scope="col">מפלס (מ')</th><th scope="col">נחצה לראשונה</th><th scope="col">שנים מסימן הדרך הקודם</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.miles %}
+        <tr><th scope="row">{{ r.mark }}</th><td>{{ r.date }}</td><td>{{ r.gap }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המפלס בכל חודש. גוון כהה יותר = מפלס גבוה יותר; המעבר ההדרגתי לבהיר מתאר את הירידה המתמשכת.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    function fmt(v) { return (typeof v === "number") ? v.toFixed(2) : v; }
+    var h = {{ model.charts.history | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-history"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      grid: { left: 56, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x },
+      yAxis: { type: "value", scale: true, name: "מטר" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [{ type: "line", name: "מפלס", data: h.y, showSymbol: false }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var r = {{ model.charts.recent | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-recent"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      grid: { left: 56, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", scale: true, name: "מטר" },
+      series: [{ type: "line", name: "מפלס", data: r.y }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var a = {{ model.charts.annual | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-annual"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " ס״מ"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: a.x },
+      yAxis: { type: "value", name: "ס״מ" },
+      dataZoom: [{ type: "inside" }],
+      series: [{ type: "bar", name: "שינוי בשנה", data: a.y.map(function (v) {
+        return v > 0 ? { value: v, itemStyle: { color: "#198754" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var d = {{ model.charts.decades | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-decades"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " ס״מ"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "ס״מ לשנה" },
+      series: [{ type: "bar", name: "שינוי ממוצע לשנה", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var s = {{ model.charts.season | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-season"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " ס״מ"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "ס״מ" },
+      series: [{ type: "bar", name: "שינוי חודשי ממוצע", data: s.y.map(function (v) {
+        return v > 0 ? { value: v, itemStyle: { color: "#198754" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var mi = {{ model.charts.miles | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-miles"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + " שנים"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: mi.x, name: "מטר" },
+      yAxis: { type: "value", name: "שנים" },
+      series: [{ type: "bar", name: "שנים לחציית סימן הדרך", data: mi.gap }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-heat"));
+    c7.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2].toFixed(2);
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: hm.min, max: hm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+  })();
+</script>

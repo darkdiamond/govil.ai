@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cdffbed6-8388-4b72-8c74-d36403cc5b83",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T19:15:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T10:35:11.983351+00:00",
+    "rows": { "stops": 16629 }
+  },
+  "inputs": [
+    {
+      "name": "stops",
+      "by_id": "1ebbbb91-1d44-4f41-a85c-4a93a35e32d6",
+      "required_columns": [
+        "shana",
+        "hodesh",
+        "train_station_nm",
+        "station_status_nm",
+        "status_count"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["12 החודשים", "ב-12"]
+}

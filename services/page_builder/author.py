@@ -269,10 +269,15 @@ def _pii_findings(recipe: Recipe) -> list[str]:
 
 # compute() must be a pure function of the frames: the same CKAN version has
 # to render the same page tonight and in six months.
+# Modules count only as imports or attribute use, so an insight id or a
+# string that happens to read "requests" / "random" is not impure.
+_IMPURE_MODULES = r"(?:random|uuid|requests|urllib|httpx|socket|subprocess|secrets)"
 _IMPURE_RE = re.compile(
     r"\b(?:datetime\.(?:now|today|utcnow)|date\.today|time\.time|open|"
     r"pd\.Timestamp\.(?:now|today))\s*\("
-    r"|\b(?:random|np\.random|uuid|requests|urllib|httpx|socket|subprocess|os\.environ)\b"
+    rf"|^\s*(?:import|from)\s+{_IMPURE_MODULES}\b"
+    rf"|(?<![\w.\"']){_IMPURE_MODULES}\.\w"
+    r"|\bnp\.random\b|\bos\.environ\b"
 )
 
 

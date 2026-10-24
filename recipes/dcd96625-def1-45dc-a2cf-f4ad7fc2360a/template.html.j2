@@ -1,0 +1,302 @@
+<h1>ריביות של פיקדונות חסכון לכל ילד</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.best.display }}</div>
+    <div class="text-sm text-subtle">הריבית הגבוהה ביותר במסלול הדגל · {{ model.kpis.best_bank.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.median.display }}</div>
+    <div class="text-sm text-subtle">ריבית חציונית בין הבנקים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.banks.display }}</div>
+    <div class="text-sm text-subtle">בנקים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.as_of.display }}</div>
+    <div class="text-sm text-subtle">מועד הפרסום האחרון</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מסלול הדגל: הריביות בכל בנק היום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">תינוק בגיל הלידה, הפקדה ללא תחנות יציאה. הריבית המשתנה מוצגת כמרווח מריבית הפריים (ערך שלילי = מתחת לפריים).</p>
+  <div id="chart-banks" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.banks_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.banks_aria }}</caption>
+      <thead><tr><th scope="col">בנק</th><th scope="col">קבועה לא צמודה (%)</th><th scope="col">קבועה צמודה (%)</th><th scope="col">מרווח מהפריים (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.banks %}
+        <tr><th scope="row">{{ r.bank }}</th><td>{{ r.fixed }}</td><td>{{ r.linked }}</td><td dir="ltr">{{ r.spread }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מסלול הדגל לאורך זמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הריבית הקבועה הלא צמודה בכל בנק בכל מועד פרסום. ניתן להסתיר בנקים בלחיצה על המקרא.</p>
+  <div id="chart-trend" data-fallback="explorer" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.trend_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הפער בין הבנקים לאורך זמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הריבית הגבוהה, הממוצעת והנמוכה בין הבנקים במסלול הדגל בכל מועד פרסום.</p>
+  <div id="chart-range" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.range_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הריבית לפי גיל הילד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ככל שהילד מבוגר יותר, תקופת החיסכון שנותרה עד גיל 18 קצרה יותר. ריבית קבועה לא צמודה, ללא תחנות יציאה.</p>
+  <div id="chart-age" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.age_aria }}</caption>
+      <thead><tr><th scope="col">גיל</th><th scope="col">נמוכה (%)</th><th scope="col">חציונית (%)</th><th scope="col">גבוהה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.age %}
+        <tr><th scope="row" dir="ltr">{{ r.age }}</th><td>{{ r.min }}</td><td>{{ r.med }}</td><td>{{ r.max }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המחיר של תחנות יציאה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">בכמה נקודות אחוז נמוכה הריבית במסלול עם תחנות יציאה כל 5 שנים, בממוצע על פני הגילים.</p>
+    <div id="chart-exit" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.exit_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.exit_aria }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">פער (נקודות אחוז)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.exit %}
+          <tr><th scope="row">{{ r.bank }}</th><td dir="ltr">{{ r.gap }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה פעמים שינה כל בנק את הריבית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שינויים בריבית הקבועה הלא צמודה במסלול הדגל, בתקופה שבמאגר.</p>
+    <div id="chart-changes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.changes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.changes_aria }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">שינויים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.changes %}
+          <tr><th scope="row">{{ r.bank }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מגיל 18: סכום חד-פעמי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ריבית קבועה לא צמודה על הסכום שנצבר, לפי תקופת ההמשך שבוחרים.</p>
+  <div id="chart-adult" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.adult_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.adult_aria }}</caption>
+      <thead><tr><th scope="col">בנק</th>{% for p in model.tables.adult_periods %}<th scope="col" dir="ltr">{{ p }} (%)</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.adult %}
+        <tr><th scope="row">{{ r.bank }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: בנק מול גיל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הריבית הקבועה הלא צמודה, מסלול ללא תחנות יציאה. גוון כהה = ריבית גבוהה יותר.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    var b = {{ model.charts.banks | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-banks"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "%" },
+      yAxis: { type: "category", data: b.banks, inverse: true },
+      series: b.series.map(function (s) { return { type: "bar", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var t = {{ model.charts.trend | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-trend"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: t.x },
+      yAxis: { type: "value", scale: true, name: "%" },
+      dataZoom: [{ type: "inside" }],
+      series: t.series.map(function (s) {
+        return { type: "line", step: "end", name: s.name, data: s.data, showSymbol: false, connectNulls: true };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var r = {{ model.charts.range | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-range"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", scale: true, name: "%" },
+      series: [
+        { type: "line", step: "end", name: "הגבוהה", data: r.max, showSymbol: false },
+        { type: "line", step: "end", name: "ממוצע", data: r.mean, showSymbol: false, lineStyle: { type: "dashed" } },
+        { type: "line", step: "end", name: "הנמוכה", data: r.min, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    var a = {{ model.charts.age | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-age"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: a.x, name: "גיל", axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true, name: "%" },
+      series: [
+        { type: "line", name: "הגבוהה", data: a.max },
+        { type: "line", name: "חציון", data: a.median },
+        { type: "line", name: "הנמוכה", data: a.min }
+      ]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var e = {{ model.charts.exit | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-exit"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toFixed(2) + " נק׳ אחוז"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: e.x, inverse: true },
+      series: [{ type: "bar", name: "פער", data: e.y }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var ch = {{ model.charts.changes | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-changes"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: ch.x, inverse: true },
+      series: [{ type: "bar", name: "שינויים", data: ch.y }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var ad = {{ model.charts.adult | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-adult"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: ad.banks, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "%" },
+      series: ad.series.map(function (s) { return { type: "bar", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c8 = echarts.init(document.getElementById("chart-heat"));
+    c8.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.banks[p.value[1]] + ", גיל " + hm.ages[p.value[0]] + ": " + p.value[2].toFixed(2) + "%";
+      } },
+      grid: { left: 96, right: 24, top: 16, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: hm.ages, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+      yAxis: { type: "category", data: hm.banks, splitArea: { show: true } },
+      visualMap: {
+        min: hm.min, max: hm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells }]
+    }));
+    window.addEventListener("resize", function () { c8.resize(); });
+  })();
+</script>

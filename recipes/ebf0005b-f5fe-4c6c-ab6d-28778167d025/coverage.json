@@ -1,0 +1,4 @@
+{
+  "levels.תאריך מדידה": "chart-history, chart-recent, chart-annual, chart-decades, chart-season, chart-miles, chart-heat, kpi:as_of, insight:now, insight:pace, insight:milestones",
+  "levels.מפלס": "chart-history, chart-recent, chart-annual, chart-decades, chart-season, chart-miles, chart-heat, kpi:level, kpi:d12, kpi:rate10, kpi:total, insight:now, insight:rises, insight:season, insight:total"
+}

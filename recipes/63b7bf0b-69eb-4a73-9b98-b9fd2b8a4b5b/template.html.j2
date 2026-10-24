@@ -1,0 +1,304 @@
+<h1>רכבת ישראל — תכנון מול ביצוע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.rate_last.display }}</div>
+    <div class="text-sm text-subtle">שיעור ביצוע · {{ model.kpis.month_last.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.rate12.display }}</div>
+    <div class="text-sm text-subtle">שיעור ביצוע ב-12 החודשים האחרונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cancel12.display }}</div>
+    <div class="text-sm text-subtle">נסיעות שבוטלו ב-12 החודשים האחרונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.extra12.display }}</div>
+    <div class="text-sm text-subtle">נסיעות שבוצעו ללא תכנון</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור הביצוע בכל חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הקו: אחוז הנסיעות המתוכננות שבוצעו. העמודות: מספר הנסיעות המתוכננות. חודשים חסרים במאגר מוצגים כרווח.</p>
+  <div id="chart-monthly" data-fallback="explorer" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ביטולים ונסיעות לא מתוכננות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">נסיעות שתוכננו ולא בוצעו, ונסיעות שבוצעו בלי שתוכננו, בכל חודש.</p>
+  <div id="chart-cancel" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cancel_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שנה אחר שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">שיעור ביצוע (%)</th><th scope="col">מתוכננות</th><th scope="col">בוטלו</th><th scope="col">חודשים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.yearly %}
+        <tr><th scope="row">{{ r.y }}</th><td>{{ r.rate }}</td><td>{{ r.plan }}</td><td>{{ r.cancel }}</td><td>{{ r.months }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור הביצוע לפי חודש בשנה, כל השנים במאגר יחד.</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_aria }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">שיעור ביצוע (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.m }}</th><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה רכבות בוצעו במלואן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">צירופי מספר רכבת וחודש ב-12 החודשים האחרונים, לפי שיעור הנסיעות שבוצעו.</p>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_aria }}</caption>
+        <thead><tr><th scope="col">שיעור ביצוע</th><th scope="col">צירופי רכבת וחודש</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dist %}
+          <tr><th scope="row" dir="ltr">{{ r.b }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחנות המוצא עם שיעור הביטולים הגבוה ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stations_note }}</p>
+  <div id="chart-stations" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.stations_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.stations_aria }}</caption>
+      <thead><tr><th scope="col">תחנת מוצא</th><th scope="col">בוטלו (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.stations %}
+        <tr><th scope="row">{{ r.s }}</th><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המסלולים העמוסים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">נסיעות מתוכננות לפי תחנת מוצא ותחנת יעד, 12 החודשים האחרונים.</p>
+  <div id="chart-routes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.routes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.routes_aria }}</caption>
+      <thead><tr><th scope="col">מסלול</th><th scope="col">מתוכננות</th><th scope="col">שיעור ביצוע (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.routes %}
+        <tr><th scope="row">{{ r.r }}</th><td>{{ r.plan }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הביצוע בכל חודש. גוון בהיר = יותר ביטולים.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    var mo = {{ model.charts.monthly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-monthly"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 32 },
+      grid: { left: 56, right: 56, top: 24, bottom: 96, containLabel: true },
+      xAxis: { type: "category", data: mo.x },
+      yAxis: [
+        { type: "value", name: "% ביצוע", scale: true, max: 100 },
+        { type: "value", name: "נסיעות", splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4 }],
+      series: [
+        { type: "bar", name: "נסיעות מתוכננות", data: mo.plan, yAxisIndex: 1, itemStyle: { opacity: 0.35 } },
+        { type: "line", name: "שיעור ביצוע", data: mo.rate, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var c2 = echarts.init(document.getElementById("chart-cancel"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: mo.x },
+      yAxis: { type: "value", name: "נסיעות" },
+      dataZoom: [{ type: "inside" }],
+      series: [
+        { type: "bar", name: "בוטלו", data: mo.cancel, itemStyle: { color: "#dc3545" } },
+        { type: "bar", name: "בוצעו ללא תכנון", data: mo.extra }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    var y = {{ model.charts.yearly | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-yearly"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 56, right: 56, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: [
+        { type: "value", name: "% ביצוע", scale: true, max: 100 },
+        { type: "value", name: "נסיעות", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "נסיעות מתוכננות", data: y.plan, yAxisIndex: 1, itemStyle: { opacity: 0.35 } },
+        { type: "line", name: "שיעור ביצוע", data: y.rate }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var s = {{ model.charts.season | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-season"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true, name: "%" },
+      series: [{ type: "bar", name: "שיעור ביצוע", data: s.rate }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var d = {{ model.charts.dist | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-dist"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.x, inverse: true },
+      series: [{ type: "bar", name: "צירופים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var st = {{ model.charts.stations | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-stations"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "% בוטלו" },
+      yAxis: { type: "category", data: st.x, inverse: true },
+      series: [{ type: "bar", name: "בוטלו", data: st.y }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var rt = {{ model.charts.routes | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-routes"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: rt.x, inverse: true },
+      series: [{ type: "bar", name: "נסיעות מתוכננות", data: rt.plan }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c8 = echarts.init(document.getElementById("chart-heat"));
+    c8.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2].toFixed(1) + "%";
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: hm.min, max: hm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells }]
+    }));
+    window.addEventListener("resize", function () { c8.resize(); });
+  })();
+</script>

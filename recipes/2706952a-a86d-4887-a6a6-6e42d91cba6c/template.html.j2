@@ -39,8 +39,6 @@
   </ul>
 </section>
 
-{% macro source_link() -%}
-{%- endmacro %}
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -49,7 +47,6 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">מדידות יומיות, עם הקווים האדומים והקו השחור שקבעה רשות המים.</p>
   <div id="chart-recent" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
-  {{ source_link() }}
 </section>
 
 <section class="card p-5 mb-6">
@@ -59,7 +56,6 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }} ניתן להתמקד בתקופה בעזרת המחוון שמתחת לגרף.</p>
   <div id="chart-history" data-fallback="explorer" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
-  {{ source_link() }}
 </section>
 
 <section class="card p-5 mb-6">
@@ -156,7 +152,6 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">ממוצע המפלס בכל חודש. גוון כהה יותר = מפלס גבוה יותר.</p>
   <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
-  {{ source_link() }}
 </section>
 
 <script>

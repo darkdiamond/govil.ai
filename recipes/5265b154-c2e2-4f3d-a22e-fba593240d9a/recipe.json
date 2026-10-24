@@ -1,0 +1,47 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5265b154-c2e2-4f3d-a22e-fba593240d9a",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T04:00:00+00:00",
+    "rows": { "reports": 186897 }
+  },
+  "inputs": [
+    {
+      "name": "reports",
+      "by_schema": [
+        "FUND_ID",
+        "FUND_NAME",
+        "MANAGING_CORPORATION",
+        "FUND_CLASSIFICATION",
+        "TARGET_POPULATION",
+        "SPECIALIZATION",
+        "SUB_SPECIALIZATION",
+        "REPORT_PERIOD",
+        "TOTAL_ASSETS",
+        "MONTHLY_YIELD",
+        "YEAR_TO_DATE_YIELD",
+        "AVG_ANNUAL_MANAGEMENT_FEE",
+        "AVG_DEPOSIT_FEE",
+        "NET_MONTHLY_DEPOSITS"
+      ],
+      "concat": true,
+      "required_columns": [
+        "DEPOSITS",
+        "WITHDRAWLS",
+        "INTERNAL_TRANSFERS",
+        "LIQUID_ASSETS_PERCENT",
+        "AVG_ANNUAL_YIELD_TRAILING_3YRS",
+        "AVG_ANNUAL_YIELD_TRAILING_5YRS",
+        "STANDARD_DEVIATION",
+        "SHARPE_RATIO",
+        "STOCK_MARKET_EXPOSURE",
+        "FOREIGN_EXPOSURE",
+        "FOREIGN_CURRENCY_EXPOSURE"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": ["12 החודשים", "12 חודשים", "ב-2024"]
+}

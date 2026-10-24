@@ -1,0 +1,7 @@
+{
+  "stops.shana": "chart-monthly, chart-yearly, chart-season, chart-movers, chart-heat, kpi:month_last, insight:latest, insight:rate12, insight:early",
+  "stops.hodesh": "chart-monthly, chart-season, chart-heat, kpi:month_last, insight:latest, insight:worst_month",
+  "stops.train_station_nm": "chart-stations, chart-best, chart-movers, chart-heat, kpi:stations, insight:worst, insight:movers",
+  "stops.station_status_nm": "chart-monthly, chart-yearly, chart-season, chart-stations, chart-best, chart-movers, chart-heat, kpi:on_last, kpi:on12, insight:early",
+  "stops.status_count": "chart-monthly, chart-yearly, chart-season, chart-stations, chart-best, chart-movers, chart-heat, kpi:stops12, kpi:on_last, kpi:on12"
+}

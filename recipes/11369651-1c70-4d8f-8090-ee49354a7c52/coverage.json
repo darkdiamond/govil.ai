@@ -1,0 +1,5 @@
+{
+  "tags.MISPAR RECHEV": "chart-plates, kpi:vehicles, insight:multi, insight:plates — aggregated only (distinct-vehicle count, digit length); no plate is ever shown",
+  "tags.TAARICH HAFAKAT TAG": "chart-monthly, chart-yearly, chart-daily, chart-weekday, chart-age, chart-heat, kpi:last_30, kpi:as_of, insight:volume, insight:month_yoy, insight:weekday",
+  "tags.SUG TAV": "chart-yearly, kpi:tags, insight:type"
+}

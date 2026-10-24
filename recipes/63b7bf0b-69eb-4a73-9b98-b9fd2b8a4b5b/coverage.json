@@ -1,0 +1,11 @@
+{
+  "trips.shana": "chart-monthly, chart-cancel, chart-yearly, chart-season, chart-heat, kpi:month_last, insight:latest, insight:rate12, insight:gaps",
+  "trips.hodesh": "chart-monthly, chart-cancel, chart-season, chart-heat, kpi:month_last, insight:latest, insight:worst",
+  "trips.train_trip_cd": "chart-dist, insight:full — unit of the per-train distribution; train numbers themselves are not meaningful to readers",
+  "trips.first_train_station_nm": "chart-stations, chart-routes, insight:station",
+  "trips.last_train_station_nm": "chart-routes",
+  "trips.rishui_all": "chart-monthly, chart-yearly, chart-season, chart-stations, chart-routes, chart-dist, chart-heat, kpi:rate_last, kpi:rate12",
+  "trips.rishui_only": "chart-monthly, chart-cancel, chart-yearly, chart-stations, chart-dist, kpi:cancel12, insight:worst, insight:station, insight:full",
+  "trips.bitzua_only": "chart-cancel, kpi:extra12",
+  "trips.ahuz_bitzua": "skip: derived column — equals (rishui_all − rishui_only) / rishui_all exactly on every row; rates are recomputed from the counts so they can be aggregated correctly"
+}

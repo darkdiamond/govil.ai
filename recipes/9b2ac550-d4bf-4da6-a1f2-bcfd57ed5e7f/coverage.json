@@ -1,0 +1,19 @@
+{
+  "vehicles.mispar_rechev": "skip: licence plate — a per-vehicle identifier, never shown",
+  "vehicles.shilda": "skip: chassis (VIN) number — a per-vehicle identifier, never shown",
+  "vehicles.tozeret_cd": "skip: numeric maker code, one-to-one with tozeret_nm which is shown",
+  "vehicles.tozeret_nm": "chart-makers, insight:maker",
+  "vehicles.sug_rechev_cd": "skip: numeric vehicle-type code, one-to-one with sug_rechev_nm which is shown",
+  "vehicles.sug_rechev_nm": "chart-types, chart-engine, insight:engine",
+  "vehicles.degem_nm": "skip: 17,070 distinct model strings, mostly factory codes (e.g. 221.156) that mean nothing to a reader",
+  "vehicles.mishkal_kolel": "skip: gross weight is 0 for 57% of vehicles — too sparse to chart",
+  "vehicles.shnat_yitzur": "chart-vintage, chart-age, chart-fuel, chart-heat, kpi:median_year, insight:classic, insight:fuel_shift",
+  "vehicles.nefach_manoa": "chart-engine, insight:engine",
+  "vehicles.tozeret_eretz_nm": "chart-countries, chart-heat, insight:country",
+  "vehicles.degem_manoa": "skip: 6,058 engine-model codes (e.g. M272, 2GR) — not meaningful without a lookup",
+  "vehicles.mivchan_acharon_dt": "kpi:total, insight:licence — defines the page's as-of date and the last-year inspection count in the lede",
+  "vehicles.tokef_dt": "chart-licence, insight:licence",
+  "vehicles.sug_yevu": "chart-vintage, chart-age, kpi:used, insight:used",
+  "vehicles.moed_aliya_lakvish": "skip: first road-entry month always equals the production year (first registration abroad, not the import date), so it adds nothing beyond shnat_yitzur",
+  "vehicles.sug_delek_nm": "chart-fuel, kpi:electrified, insight:fuel_shift"
+}
