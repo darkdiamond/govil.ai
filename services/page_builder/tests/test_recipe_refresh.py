@@ -355,10 +355,26 @@ def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, cap
     assert author.verify(DS, recipes) == 1
     out = capsys.readouterr().out
     assert "NO-FALLBACK: chart #chart-districts" in out
-    assert "SOURCE-LINK: template links to data.gov.il" in out
+    assert "SOURCE-LINK: page links to data.gov.il" in out
     assert "events.חודש" in out and "'chart-nope' is not an element id" in out
     assert "'kpi:no_such_kpi': the model has no such KPI" in out
     assert "(typo or stale): events.typo" in out
+
+
+@pytest.mark.parametrize("line, impure", [
+    ('t = pd.Timestamp("today")', True),
+    ('pd.to_datetime("now")', True),
+    ('os.getenv("X")', True),
+    ('Path("lookup.csv").read_text()', True),
+    ('pd.read_csv("side.csv")', True),
+    ("import requests", True),
+    ('rules = [("requests", f(x))]', False),
+    ('pd.to_datetime(df["d"], errors="coerce")', False),
+])
+def test_purity_lint(line, impure):
+    from services.page_builder.author import _IMPURE_RE
+
+    assert bool(_IMPURE_RE.search(line)) is impure
 
 
 def test_fallback_check_rules():

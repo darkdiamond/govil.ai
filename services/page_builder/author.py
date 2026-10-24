@@ -277,7 +277,12 @@ _IMPURE_RE = re.compile(
     r"pd\.Timestamp\.(?:now|today))\s*\("
     rf"|^\s*(?:import|from)\s+{_IMPURE_MODULES}\b"
     rf"|(?<![\w.\"']){_IMPURE_MODULES}\.\w"
-    r"|\bnp\.random\b|\bos\.environ\b"
+    r"|\bnp\.random\b|\bos\.(?:environ|getenv)\b"
+    # The wall clock spelled as a string: pd.Timestamp("now"), to_datetime("today"), …
+    r"""|\b(?:Timestamp|to_datetime|datetime64)\s*\(\s*['"](?:now|today)['"]"""
+    # File I/O beyond open(): compute() gets its data only as frames.
+    r"|\.(?:read_text|read_bytes|write_text|write_bytes)\s*\("
+    r"|\bpd\.read_\w+\s*\("
 )
 
 
@@ -333,10 +338,16 @@ def _fallback_findings(html: str) -> list[str]:
 _SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
 
 
-def _source_link_findings(template_src: str) -> list[str]:
-    n = len(_SOURCE_LINK_RE.findall(template_src))
-    return [f"SOURCE-LINK: template links to data.gov.il {n}x — the shell already "
+def _source_link_findings(html: str) -> list[str]:
+    # Checked on the RENDERED page, so a link built from a model value or a
+    # Jinja expression is caught as well as a literal one.
+    n = len(_SOURCE_LINK_RE.findall(html))
+    return [f"SOURCE-LINK: page links to data.gov.il {n}x — the shell already "
             "renders downloads and the data explorer under every page; remove them"] if n else []
+
+
+def _explorer_marked(html: str) -> list[str]:
+    return [m.group(1) for m in _CHART_DIV_RE.finditer(html) if _EXPLORER_FALLBACK in m.group(0)]
 
 
 # Coverage: every column of every input is accounted for — which view uses
@@ -432,7 +443,6 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     )
     problems += _pii_findings(recipe)
     problems += _purity_findings(recipe)
-    problems += _source_link_findings(recipe.template_path.read_text(encoding="utf-8"))
 
     work = Path(tempfile.mkdtemp(prefix=f"author-{dataset_id[:8]}-"))
     try:
@@ -455,6 +465,11 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
                      f"{len(raw.get('insights') or [])} insights, "
                      f"{len(page.content_html):,} bytes")
         problems += _fallback_findings(page.content_html)
+        problems += _source_link_findings(page.content_html)
+        explorer = _explorer_marked(page.content_html)
+        if explorer:
+            # Visible opt-outs: each should be a genuinely large series.
+            notes.append("explorer fallback (no table): " + ", ".join(explorer))
         cov_problems, cov_notes = _coverage_findings(
             recipe, inputs, manifest, page.content_html, raw
         )
