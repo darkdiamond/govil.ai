@@ -269,10 +269,20 @@ def _pii_findings(recipe: Recipe) -> list[str]:
 
 # compute() must be a pure function of the frames: the same CKAN version has
 # to render the same page tonight and in six months.
+# Modules count only as imports or attribute use, so an insight id or a
+# string that happens to read "requests" / "random" is not impure.
+_IMPURE_MODULES = r"(?:random|uuid|requests|urllib|httpx|socket|subprocess|secrets)"
 _IMPURE_RE = re.compile(
     r"\b(?:datetime\.(?:now|today|utcnow)|date\.today|time\.time|open|"
     r"pd\.Timestamp\.(?:now|today))\s*\("
-    r"|\b(?:random|np\.random|uuid|requests|urllib|httpx|socket|subprocess|os\.environ)\b"
+    rf"|^\s*(?:import|from)\s+{_IMPURE_MODULES}\b"
+    rf"|(?<![\w.\"']){_IMPURE_MODULES}\.\w"
+    r"|\bnp\.random\b|\bos\.(?:environ|getenv)\b"
+    # The wall clock spelled as a string: pd.Timestamp("now"), to_datetime("today"), …
+    r"""|\b(?:Timestamp|to_datetime|datetime64)\s*\(\s*['"](?:now|today)['"]"""
+    # File I/O beyond open(): compute() gets its data only as frames.
+    r"|\.(?:read_text|read_bytes|write_text|write_bytes)\s*\("
+    r"|\bpd\.read_\w+\s*\("
 )
 
 
@@ -287,13 +297,15 @@ def _purity_findings(recipe: Recipe) -> list[str]:
     return out
 
 
-# DATA-TABLE FALLBACK (agent/system-prompt.md): a chart is never the only
-# representation of its data — its section carries a <details><table> (≤20
-# rows) or a link to the source on data.gov.il.
+# Chart fallback: a chart small enough to tabulate (~20 rows) carries a
+# <details><table> of its own numbers in its section. A larger series is
+# marked data-fallback="explorer" on the chart element — the shell's data
+# explorer and download section under every page are its tabular view, so
+# no per-chart link to data.gov.il. Either way it is a deliberate choice.
 _CHART_DIV_RE = re.compile(
     r'<div\b(?=[^>]*\bid="([^"]+)")(?=[^>]*\brole="img")[^>]*>', re.IGNORECASE
 )
-_SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
+_EXPLORER_FALLBACK = 'data-fallback="explorer"'
 
 
 def _fallback_findings(html: str) -> list[str]:
@@ -302,6 +314,8 @@ def _fallback_findings(html: str) -> list[str]:
     out = []
     for m in _CHART_DIV_RE.finditer(html):
         chart_id = m.group(1)
+        if _EXPLORER_FALLBACK in m.group(0):
+            continue
         start = html.rfind("<section", 0, m.start())
         # The nearest <section> must still be open at the chart; otherwise
         # the chart sits outside any section and has no section to carry a
@@ -310,13 +324,30 @@ def _fallback_findings(html: str) -> list[str]:
             start = -1
         end = html.find("</section>", m.end())
         chunk = html[start:end] if start >= 0 and end >= 0 else ""
-        if "<table" not in chunk and not _SOURCE_LINK_RE.search(chunk):
+        if "<table" not in chunk:
             out.append(
-                f"NO-FALLBACK: chart #{chart_id} has no <details><table> (≤20 rows) "
-                "or data.gov.il source link in its section — a chart must never be "
-                "the only representation of its data"
+                f"NO-FALLBACK: chart #{chart_id} has no <details><table> in its "
+                "section — add one (≤20 rows), or mark a larger series "
+                f'{_EXPLORER_FALLBACK} on the chart element'
             )
     return out
+
+
+# A per-chart "download at data.gov.il" link only repeats the shell's own
+# downloads + explorer under the page.
+_SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
+
+
+def _source_link_findings(html: str) -> list[str]:
+    # Checked on the RENDERED page, so a link built from a model value or a
+    # Jinja expression is caught as well as a literal one.
+    n = len(_SOURCE_LINK_RE.findall(html))
+    return [f"SOURCE-LINK: page links to data.gov.il {n}x — the shell already "
+            "renders downloads and the data explorer under every page; remove them"] if n else []
+
+
+def _explorer_marked(html: str) -> list[str]:
+    return [m.group(1) for m in _CHART_DIV_RE.finditer(html) if _EXPLORER_FALLBACK in m.group(0)]
 
 
 # Coverage: every column of every input is accounted for — which view uses
@@ -434,6 +465,11 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
                      f"{len(raw.get('insights') or [])} insights, "
                      f"{len(page.content_html):,} bytes")
         problems += _fallback_findings(page.content_html)
+        problems += _source_link_findings(page.content_html)
+        explorer = _explorer_marked(page.content_html)
+        if explorer:
+            # Visible opt-outs: each should be a genuinely large series.
+            notes.append("explorer fallback (no table): " + ", ".join(explorer))
         cov_problems, cov_notes = _coverage_findings(
             recipe, inputs, manifest, page.content_html, raw
         )

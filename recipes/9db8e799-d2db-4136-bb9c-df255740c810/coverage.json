@@ -1,0 +1,12 @@
+{
+  "prices.semel_yevuan": "key: importer identity — groups spelling variants of an importer's name, kpi:importers",
+  "prices.shem_yevuan": "chart-importers, insight:importer — importers are companies, named",
+  "prices.sug_degem": "chart-median, chart-counts, chart-bands, insight:commercial, kpi:median_private — private (P) vs commercial (M)",
+  "prices.tozeret_cd": "chart-l4l — maker code, part of the like-for-like match key",
+  "prices.tozeret_nm": "chart-country, chart-brands, chart-china, insight:china, insight:brands — split into brand and country of manufacture",
+  "prices.degem_cd": "chart-l4l — model code, part of the like-for-like match key",
+  "prices.degem_nm": "chart-l4l, insight:like4like — variant code, part of the like-for-like match key; not displayed (meaningless to readers)",
+  "prices.shnat_yitzur": "chart-median, chart-counts, chart-country, chart-models, kpi:last_year, insight:price_trend",
+  "prices.mehir": "chart-median, chart-brands, chart-bands, chart-models, insight:price_trend, insight:luxury, kpi:median_private",
+  "prices.kinuy_mishari": "chart-models — commercial names that recur across model years"
+}

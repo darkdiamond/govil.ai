@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cf92190d-eec4-4906-beec-26fd2e2bb83d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T19:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T17:14:00+00:00",
+    "rows": { "decisions": 66919 }
+  },
+  "inputs": [
+    {
+      "name": "decisions",
+      "by_id": "b9580b33-6b41-4ca3-b6e1-eb4bbf96a318",
+      "required_columns": [
+        "מספר תיק",
+        "בית דין",
+        "שם דיין",
+        "תאריך החלטה",
+        "סוג בקשה",
+        "נושא"
+      ]
+    }
+  ],
+  "min_insights": 5
+}

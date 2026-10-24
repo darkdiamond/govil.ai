@@ -1,0 +1,8 @@
+{
+  "open.MISPAR_RECHEV": "chart-vehicles, kpi:vehicles, insight:multi — counted only; licence plates are never shown",
+  "open.RECALL_ID": "chart-campaigns, chart-pareto, kpi:campaigns, insight:concentration",
+  "open.SUG_RECALL": "chart-years, insight:kind",
+  "open.SUG_TAKALA": "chart-faults, chart-heat, chart-campaigns, insight:airbags",
+  "open.TEUR_TAKALA": "chart-campaigns, kpi:takata, insight:takata — description shown in the campaigns table; TAKATA mentions counted",
+  "open.TAARICH_PTICHA": "chart-years, chart-heat, insight:old"
+}

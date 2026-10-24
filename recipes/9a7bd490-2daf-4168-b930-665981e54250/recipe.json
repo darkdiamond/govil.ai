@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9a7bd490-2daf-4168-b930-665981e54250",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T18:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T02:36:48.484624+00:00",
+    "rows": { "open": 126090 }
+  },
+  "inputs": [
+    {
+      "name": "open",
+      "by_id": "36bf1404-0be4-49d2-82dc-2f1ead4a8b93",
+      "required_columns": [
+        "MISPAR_RECHEV",
+        "RECALL_ID",
+        "SUG_RECALL",
+        "SUG_TAKALA",
+        "TEUR_TAKALA",
+        "TAARICH_PTICHA"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

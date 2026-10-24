@@ -1,0 +1,20 @@
+{
+  "sites.name": "map-main — site name (mostly the business on the site) as the map popup title; 3,799 distinct values, no aggregate view",
+  "sites.address": "chart-towns, insight:town — town derived from the address prefix; the street address itself isn't charted (free text, 2,775 distinct values)",
+  "sites.X": "map-main",
+  "sites.Y": "map-main",
+  "sites.gush": "skip: cadastral block number, 55% empty; an identifier, not an analytical dimension",
+  "sites.helka": "skip: cadastral parcel number, 56% empty; an identifier",
+  "sites.org_id": "skip: internal site identifier",
+  "sites.legend": "chart-status, map-main, insight:status, kpi:investigating",
+  "sites.matzav": "chart-stage, chart-heat, map-main, insight:pipeline, kpi:remediating",
+  "sites.peeilut": "chart-activity, chart-heat, map-main, insight:activity",
+  "sites.date": "chart-updates, insight:updates, kpi:recent — the row's last-update date",
+  "sites.sug": "chart-treat — multi-valued (semicolon-separated), each method counted",
+  "sites.stat_gas": "chart-env, insight:water",
+  "sites.stat_zih": "chart-env, map-main, insight:water",
+  "sites.drisha": "chart-drisha",
+  "sites.d_begin": "chart-years, insight:began",
+  "sites.d_end": "chart-years",
+  "sites.link": "skip: constant — the same gov.il guide URL on every row"
+}

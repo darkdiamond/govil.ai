@@ -39,9 +39,6 @@
   </ul>
 </section>
 
-{% macro source_link() -%}
-<p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/2706952a-a86d-4887-a6a6-6e42d91cba6c" target="_blank" rel="noopener">data.gov.il</a>.</p>
-{%- endmacro %}
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -49,8 +46,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">המפלס בשנתיים האחרונות</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">מדידות יומיות, עם הקווים האדומים והקו השחור שקבעה רשות המים.</p>
-  <div id="chart-recent" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
-  {{ source_link() }}
+  <div id="chart-recent" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
 </section>
 
 <section class="card p-5 mb-6">
@@ -59,8 +55,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">כל ההיסטוריה</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }} ניתן להתמקד בתקופה בעזרת המחוון שמתחת לגרף.</p>
-  <div id="chart-history" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
-  {{ source_link() }}
+  <div id="chart-history" data-fallback="explorer" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
 </section>
 
 <section class="card p-5 mb-6">
@@ -156,8 +151,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">ממוצע המפלס בכל חודש. גוון כהה יותר = מפלס גבוה יותר.</p>
-  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
-  {{ source_link() }}
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
 </section>
 
 <script>

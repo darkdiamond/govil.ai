@@ -1,0 +1,12 @@
+{
+  "resource:d4b0d8f5-a0c0-4614-866c-107fe879cf26": "skip: 9-row data dictionary (column name → Hebrew description); its descriptions are used for the page's labels",
+  "rates.INTERESTSDATE": "chart-trend, chart-range, chart-changes, kpi:as_of, insight:trend, insight:changes",
+  "rates.SAVINGSPROGRAMBYAGE": "skip: derivable from SAVINGSPLAN (up-to-18 plans vs the 18+ one-time-sum plan), which is used",
+  "rates.AGE": "chart-age, chart-heat, chart-exit, insight:age, insight:exit — the flagship is age 0-1",
+  "rates.BANK": "chart-banks, chart-trend, chart-exit, chart-changes, chart-adult, chart-heat, kpi:banks, kpi:best_bank, insight:best, insight:twins",
+  "rates.SAVINGSPLAN": "chart-exit, chart-adult, insight:exit, insight:twins",
+  "rates.SAVINGSPERIOD": "chart-adult — for up-to-18 plans it mirrors AGE (years left to 18)",
+  "rates.FIXEDWITHOUTLINKAGEVAL": "chart-banks, chart-trend, chart-range, chart-age, chart-exit, chart-adult, chart-heat, chart-changes, kpi:best, kpi:median, insight:best, insight:trend",
+  "rates.FIXEDLINKEDCONSUMERPRICEINDVAL": "chart-banks, insight:twins",
+  "rates.VARIABLESPREAD": "chart-banks, insight:twins"
+}

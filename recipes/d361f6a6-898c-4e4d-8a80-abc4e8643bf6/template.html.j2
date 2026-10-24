@@ -45,8 +45,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">נבחנים בכל שנה</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.volume_note }}</p>
-  <div id="chart-volume" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-volume" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
 </section>
 
 <section class="card p-5 mb-6">
@@ -55,8 +54,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">ציונים לאורך השנים</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scores_note }}</p>
-  <div id="chart-scores" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.scores_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-scores" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.scores_aria }}"></div>
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -85,8 +83,7 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">מועדי הבחינה האחרונים</h2>
     </div>
     <p class="m-0 text-sm text-subtle mb-3">נבחנים בכל מועד. מועדים עתידיים (נרשמים, טרם נבחנו) בגוון בהיר.</p>
-    <div id="chart-sittings" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.sittings_aria }}"></div>
-    <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+    <div id="chart-sittings" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.sittings_aria }}"></div>
   </section>
 </div>
 
@@ -108,7 +105,6 @@
       </tbody>
     </table>
   </details>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
 </section>
 
 
@@ -161,8 +157,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות הציונים לאורך השנים</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
-  <div id="chart-bands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-bands" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
 </section>
 
 <script>

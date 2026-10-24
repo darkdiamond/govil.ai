@@ -33,8 +33,26 @@ page's agent_data, same-ministry `related_ids` candidates). Read the brief. If
 the dataset has a live page (`https://govil.ai/datasets/<slug>`), look at it —
 it's the floor, not the ceiling.
 
-`tmp/authoring/` holds raw rows that can include personal details. It is
-gitignored; never copy rows or names of private individuals into a recipe.
+`tmp/authoring/` holds raw rows; it is gitignored — never commit it or paste
+raw rows into a recipe.
+
+**Naming people on the page.** The data is public, and every row (names
+included) is already in the shell's explorer under the page. What the page
+itself writes is search-indexed and regenerated unattended, so:
+
+- **Name freely** people in a public, professional or commercial capacity
+  when it adds something — officials, directors, office holders, licensed
+  professionals (brokers, appraisers, accountants, notaries, attorneys),
+  arbitrators/decision-makers, inventors and applicants on public filings,
+  sole traders and businesses (incl. ones named after their owner). Top-N
+  rankings and "who leads" insights are fine.
+- **Never put on the page** lookup/tracking identifiers (licence plates,
+  personal ID numbers, an individual's registration number), private
+  contact details (home address, private phone/email), or a person tied to
+  sensitive circumstances (health/disability, custody/detention,
+  personal-status cases, victims) — aggregate those.
+- Otherwise use judgment: be open when naming informs, aggregate when it
+  only exposes.
 
 ## 2. Explore
 
@@ -86,7 +104,7 @@ concentration, change). A page that stops at 5–6 safe charts while
 dimensions sit unused is too thin. Every column ends up in
 `recipes/<id>/coverage.json` — mapped to the chart id(s) / `kpi:` /
 `insight:` / `table:` / `map:` that use it, or to `skip: <reason>`
-(identifier, free text, constant, >80% empty, private person, …).
+(identifier, free text, constant, >80% empty, sensitive personal data, …).
 `verify` fails on an unaccounted column. Value format:
 `"chart-a, kpi:total, insight:trend — optional free note"` (references
 first, comma-separated; anything after `—` is a note and may contain
@@ -101,8 +119,11 @@ file shows the data genuinely doesn't carry more.
 **Every chart has a fallback** — `verify` enforces it per chart section:
 a `<details><table>` of the chart's own numbers when they fit in ~20 rows
 (top-N lists, yearly series, category splits — rendered from the same model
-arrays), otherwise a link to the source on `data.gov.il` in that section.
-Prefer the table; a link is for genuinely large series.
+arrays). A genuinely large series (daily history, a heatmap, a scatter) is
+instead marked `data-fallback="explorer"` on the chart element: the shell's
+data explorer and download section under every page are its tabular view.
+**No links to data.gov.il** — not per chart, not at the bottom: the shell
+already renders the downloads, and `verify` rejects them.
 
 Constraints that don't move: every `<script>` block < 50KB (aggregate in
 `compute`, never ship rows; one IIFE per chart keeps blocks small), mobile at

@@ -1,0 +1,34 @@
+{
+  "contract_version": 1,
+  "dataset_id": "67759a6a-4167-439b-af53-0eb792321264",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T18:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T09:00:47.821414+00:00",
+    "rows": { "atms": 2959 }
+  },
+  "inputs": [
+    {
+      "name": "atms",
+      "by_id": "21fde05f-62e3-401b-81cf-5c385862026d",
+      "required_columns": [
+        "Bank_Code",
+        "Bank_Name",
+        "Atm_Num",
+        "City",
+        "Commission",
+        "Casd_Withdrawal",
+        "Cash_Deposit",
+        "Cheque_Deposit",
+        "Envelope_Deposit",
+        "Forex_Transaction",
+        "Additional_Transactions",
+        "ATM_Location",
+        "Handicap_Access",
+        "X_Coordinate",
+        "Y_Coordinate"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

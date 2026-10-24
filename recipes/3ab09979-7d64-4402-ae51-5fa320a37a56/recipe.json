@@ -1,11 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "3ab09979-7d64-4402-ae51-5fa320a37a56",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-10-24T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T21:15:11.212675+00:00",
-    "rows": { "sanctions": 5150 }
+    "rows": {
+      "sanctions": 5150
+    }
   },
   "inputs": [
     {

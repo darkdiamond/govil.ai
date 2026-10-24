@@ -1,0 +1,16 @@
+{
+  "orders.מספר תיק בקרה": "key: one order per case, kpi:cases",
+  "orders.גורם חייב": "chart-category, chart-debtors, chart-biz, chart-heat, kpi:debtors, insight:category, insight:debtor — public bodies and businesses incl. sole traders are named",
+  "orders.תאריך  משלוח צו": "chart-yearly, chart-lag, kpi:latest, insight:latest, insight:peak, insight:lag",
+  "orders.תאריך משלוח נוסף": "skip: second dispatch date, 96% empty",
+  "orders.סוג מסמך": "insight:extended — extension letters mark extended orders; the base order type is 93% plain צו נגישות",
+  "orders.ישות מפוקחת": "skip: free-text name of the inspected site (710 distinct); the obligated party and site type carry the comparable information",
+  "orders.סוג ישות מפוקחת": "chart-etype",
+  "orders.תאריך ושעת פיקוח": "chart-lag, insight:lag",
+  "orders.ישוב": "chart-city — also identifies municipalities listed by their bare city name",
+  "orders.רחוב": "skip: street of the inspected site, 80% empty",
+  "orders.מספר בית": "skip: house number, 80% empty",
+  "orders.רכיב נגישות לקוי": "chart-component, chart-heat, kpi:defects, insight:component, insight:defects",
+  "orders.תת רכיב נגישות לקוי": "skip: finer breakdown of the component (168 values); the component level is what aggregates across orders",
+  "orders.רכיב נגישות  משנה לקוי": "skip: third-level detail (614 values), too fragmented to chart"
+}

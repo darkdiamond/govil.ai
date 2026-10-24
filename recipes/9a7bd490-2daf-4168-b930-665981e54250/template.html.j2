@@ -1,0 +1,231 @@
+<h1>כלי רכב שלא ביצעו ריקול (קריאת שירות)</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.vehicles.display }}</div>
+    <div class="text-sm text-subtle">כלי רכב שלא תוקנו</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.pairs.display }}</div>
+    <div class="text-sm text-subtle">תיקונים פתוחים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.campaigns.display }}</div>
+    <div class="text-sm text-subtle">קריאות שירות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.takata.display }}</div>
+    <div class="text-sm text-subtle">תיקונים שבתיאורם מוזכרת TAKATA</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro rank_table(rows, caption, head, unit) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור (%)</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג התקלה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">תיקונים פתוחים לפי המערכת שבה התגלתה התקלה.</p>
+    <div id="chart-faults" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.faults_aria }}"></div>
+    {{ rank_table(model.tables.faults, model.labels.faults_aria, "סוג התקלה", "תיקונים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה תיקונים ממתינים לכל רכב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כלי רכב לפי מספר הקריאות הפתוחות שלהם.</p>
+    <div id="chart-vehicles" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.vehicles_aria }}"></div>
+    {{ rank_table(model.tables.vehicles, model.labels.vehicles_aria, "קריאות פתוחות", "כלי רכב") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שנת פתיחת הקריאה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">סך הכול</th>
+{%- for k in model.tables.kinds %}<th scope="col">{{ k }}</th>{% endfor -%}
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקריאות עם הכי הרבה כלי רכב שלא תוקנו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר הקריאה וסוג התקלה; התיאור המלא בטבלה.</p>
+  <div id="chart-campaigns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.campaigns_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.campaigns_aria }}</caption>
+      <thead><tr><th scope="col">קריאה</th><th scope="col">כלי רכב</th><th scope="col">סוג התקלה</th><th scope="col">נפתחה</th><th scope="col">תיאור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.campaigns %}
+        <tr><th scope="row">{{ r.id }}</th><td>{{ r.count }}</td><td>{{ r.fault }}</td><td>{{ r.opened }}</td><td>{{ r.desc }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ריכוזיות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כמה מהתיקונים הפתוחים מרוכזים בקריאות הגדולות ביותר.</p>
+    <div id="chart-pareto" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pareto_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pareto_aria }}</caption>
+        <thead><tr><th scope="col">הקריאות הגדולות</th><th scope="col">שיעור מצטבר (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pareto %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל התקלות לפי שנת פתיחה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור כל סוג תקלה מתוך התיקונים הפתוחים של אותה שנה.</p>
+    <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    function hbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-faults", {{ model.charts.faults | tojson }});
+    hbar("chart-campaigns", {{ model.charts.campaigns | tojson }});
+
+    var v = {{ model.charts.vehicles | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-vehicles"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: v.names, name: "קריאות" },
+      yAxis: { type: "log", name: "כלי רכב" },
+      series: [{ type: "bar", data: v.values }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var y = {{ model.charts.years | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-years"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value" },
+      series: y.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var p = {{ model.charts.pareto | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-pareto"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: p.x, name: "קריאות" },
+      yAxis: { type: "value", max: 100, name: "%" },
+      series: [{ type: "line", data: p.y }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-heat"));
+    c4.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (q) {
+        return h.cats[q.value[1]] + " · " + h.years[q.value[0]] + ": " + q.value[2] + "% (" + q.value[3] + ")";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.cats, splitArea: { show: true }, axisLabel: { width: 120, overflow: "truncate" } },
+      visualMap: {
+        dimension: 2, min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>

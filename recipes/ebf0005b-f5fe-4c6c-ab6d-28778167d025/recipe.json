@@ -1,0 +1,18 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ebf0005b-f5fe-4c6c-ab6d-28778167d025",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T18:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T12:30:06.612376+00:00",
+    "rows": { "levels": 694 }
+  },
+  "inputs": [
+    {
+      "name": "levels",
+      "by_id": "823479b4-4771-43d8-9189-6a2a1dcaaf10",
+      "required_columns": ["תאריך מדידה", "מפלס"]
+    }
+  ],
+  "min_insights": 4
+}

@@ -1,0 +1,274 @@
+<h1>צווי נגישות שנשלחו לחייבים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cases.display }}</div>
+    <div class="text-sm text-subtle">צווי נגישות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.defects.display }}</div>
+    <div class="text-sm text-subtle">ליקויים שפורטו בצווים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.debtors.display }}</div>
+    <div class="text-sm text-subtle">גורמים חייבים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-brand mb-1">{{ model.kpis.latest.display }}</div>
+    <div class="text-sm text-subtle">הצו האחרון במאגר</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro share_table(rows, aria, head, unit) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ aria }}</caption>
+      <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור (%)</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+
+{% macro debtor_table(rows, aria) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ aria }}</caption>
+      <thead><tr><th scope="col">גורם</th><th scope="col">צווים</th><th scope="col">ליקויים</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.d }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צווים וליקויים לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">צווים</th><th scope="col">ליקויים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td><td>{{ r.d }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">למי נשלחו הצווים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.category_note }}</p>
+    <div id="chart-category" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.category_aria }}"></div>
+    {{ share_table(model.tables.category, model.labels.category_aria, "סוג גורם", "צווים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה מקום נבדק</h2>
+    </div>
+    <div id="chart-etype" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.etype_aria }}"></div>
+    {{ share_table(model.tables.etype, model.labels.etype_aria, "סוג מקום", "צווים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה לא היה נגיש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">רכיבי הנגישות הלקויים שחזרו בצווים הכי הרבה פעמים.</p>
+  <div id="chart-component" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.component_aria }}"></div>
+  {{ share_table(model.tables.component, model.labels.component_aria, "רכיב", "ליקויים") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ליקויים לפי סוג הגורם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור כל רכיב מתוך הליקויים של כל סוג גורם. גוון כהה יותר = שיעור גבוה יותר.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הגורמים עם הכי הרבה צווים</h2>
+    </div>
+    <div id="chart-debtors" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.debtors_aria }}"></div>
+    {{ debtor_table(model.tables.debtors, model.labels.debtors_aria) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות ועוסקים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הגורמים הפרטיים עם הכי הרבה צווים.</p>
+    <div id="chart-biz" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.biz_aria }}"></div>
+    {{ debtor_table(model.tables.biz, model.labels.biz_aria) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צווים לפי יישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+    <div id="chart-city" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+    {{ share_table(model.tables.city, model.labels.city_aria, "יישוב", "צווים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה ליקויים בכל צו</h2>
+    </div>
+    <div id="chart-defects" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.defects_aria }}"></div>
+    {{ share_table(model.tables.defects, model.labels.defects_aria, "ליקויים בצו", "צווים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מהפיקוח ועד הצו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_note }}</p>
+  <div id="chart-lag" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+  {{ share_table(model.tables.lag, model.labels.lag_aria, "זמן", "צווים") }}
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function vbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 40, right: 16, top: 24, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 25 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function debtors(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: [
+          { type: "bar", name: "צווים", data: d.cases.slice().reverse() },
+          { type: "bar", name: "ליקויים", data: d.defects.slice().reverse() }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var y = {{ model.charts.yearly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-yearly"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 40, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: [{ type: "value", name: "צווים" }, { type: "value", name: "ליקויים" }],
+      series: [
+        { type: "bar", name: "צווים", data: y.cases },
+        { type: "line", name: "ליקויים", yAxisIndex: 1, data: y.defects }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    vbar("chart-category", {{ model.charts.category | tojson }}, "צווים");
+    hbar("chart-etype", {{ model.charts.etype | tojson }}, "צווים");
+    hbar("chart-component", {{ model.charts.component | tojson }}, "ליקויים");
+    hbar("chart-city", {{ model.charts.city | tojson }}, "צווים");
+    vbar("chart-defects", {{ model.charts.defects | tojson }}, "צווים");
+    vbar("chart-lag", {{ model.charts.lag | tojson }}, "צווים");
+    debtors("chart-debtors", {{ model.charts.debtors | tojson }});
+    debtors("chart-biz", {{ model.charts.biz | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.categories[p.value[1]] + " · " + h.components[p.value[0]] + ": " + p.value[2] + "%";
+      } },
+      grid: { left: 110, right: 24, top: 16, bottom: 110, containLabel: true },
+      xAxis: { type: "category", data: h.components, splitArea: { show: true },
+               axisLabel: { interval: 0, rotate: 35, width: 110, overflow: "truncate" } },
+      yAxis: { type: "category", data: h.categories, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: Math.max.apply(null, h.cells.map(function (x) { return x[2]; }).concat([1])),
+        calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
