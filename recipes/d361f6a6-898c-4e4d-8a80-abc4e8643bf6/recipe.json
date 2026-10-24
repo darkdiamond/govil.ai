@@ -1,0 +1,23 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d361f6a6-898c-4e4d-8a80-abc4e8643bf6",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T16:12:54.769697+00:00",
+    "rows": { "brokers": 25132, "exams": 151516 }
+  },
+  "inputs": [
+    {
+      "name": "brokers",
+      "by_id": "a0f56034-88db-4132-8803-854bcdb01ca1",
+      "required_columns": ["עיר מגורים"]
+    },
+    {
+      "name": "exams",
+      "by_id": "61de50d3-ab3a-42cd-9846-ddf4b4661c39",
+      "required_columns": ["תאריך הבחינה", "ציון", "מוסד לימודי"]
+    }
+  ],
+  "min_insights": 3
+}

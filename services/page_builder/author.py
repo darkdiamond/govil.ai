@@ -35,6 +35,7 @@ from .agent_contract import FetchOutcome
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
+    RESOURCE_NAME_COLUMN,
     TEMPLATE_FILENAME,
     Recipe,
     RecipeError,
@@ -256,7 +257,9 @@ _IL_PHONE_RE = re.compile(r"(?<!\d)0(?:[2-9]|5\d|7\d)-?\d{7}(?!\d)")
 
 def _pii_findings(recipe: Recipe) -> list[str]:
     out = []
-    for name in (COMPUTE_FILENAME, TEMPLATE_FILENAME, MANIFEST_FILENAME):
+    for name in (COMPUTE_FILENAME, TEMPLATE_FILENAME, MANIFEST_FILENAME, COVERAGE_FILENAME):
+        if not (recipe.root / name).is_file():
+            continue
         text = (recipe.root / name).read_text(encoding="utf-8")
         for rx, what in ((_EMAIL_RE, "email"), (_IL_PHONE_RE, "phone number")):
             for m in rx.finditer(text):
@@ -282,6 +285,107 @@ def _purity_findings(recipe: Recipe) -> list[str]:
             out.append(f"IMPURE: compute.py:{n} uses {m.group(0).strip()!r} — compute() "
                        "may not read the clock, randomness, files, env or network")
     return out
+
+
+# DATA-TABLE FALLBACK (agent/system-prompt.md): a chart is never the only
+# representation of its data — its section carries a <details><table> (≤20
+# rows) or a link to the source on data.gov.il.
+_CHART_DIV_RE = re.compile(
+    r'<div\b(?=[^>]*\bid="([^"]+)")(?=[^>]*\brole="img")[^>]*>', re.IGNORECASE
+)
+_SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
+
+
+def _fallback_findings(html: str) -> list[str]:
+    # GovMap containers carry no role="img", so they never match here (the
+    # shell's explorer is their tabular view) — no id-based exemption.
+    out = []
+    for m in _CHART_DIV_RE.finditer(html):
+        chart_id = m.group(1)
+        start = html.rfind("<section", 0, m.start())
+        # The nearest <section> must still be open at the chart; otherwise
+        # the chart sits outside any section and has no section to carry a
+        # fallback (don't borrow a closed neighbour's table).
+        if start >= 0 and html.find("</section>", start, m.start()) != -1:
+            start = -1
+        end = html.find("</section>", m.end())
+        chunk = html[start:end] if start >= 0 and end >= 0 else ""
+        if "<table" not in chunk and not _SOURCE_LINK_RE.search(chunk):
+            out.append(
+                f"NO-FALLBACK: chart #{chart_id} has no <details><table> (≤20 rows) "
+                "or data.gov.il source link in its section — a chart must never be "
+                "the only representation of its data"
+            )
+    return out
+
+
+# Coverage: every column of every input is accounted for — which view uses
+# it, or why it gets none. Lives beside the recipe (never read by the
+# refresh), so it changes nothing in production.
+COVERAGE_FILENAME = "coverage.json"
+_COVERAGE_TAGS = ("kpi:", "insight:", "table:", "text:", "map:", "filter:", "key:")
+
+
+def _coverage_findings(
+    recipe: Recipe, inputs: dict, manifest: list[dict], html: str, model: dict
+) -> tuple[list[str], list[str]]:
+    path = recipe.root / COVERAGE_FILENAME
+    if not path.is_file():
+        return [f"COVERAGE: recipes/{recipe.dataset_id}/{COVERAGE_FILENAME} is missing — "
+                'map every "<input>.<column>" to the chart id(s) / kpi: / insight: / '
+                'table: that use it, or to "skip: <reason>"'], []
+    try:
+        cov = json.loads(path.read_text(encoding="utf-8"))
+        assert isinstance(cov, dict) and all(isinstance(v, str) for v in cov.values())
+    except Exception:
+        return [f"COVERAGE: {COVERAGE_FILENAME} must be a JSON object of strings"], []
+    fields = {m["resource_id"]: m["fields"] for m in manifest}
+    needed = {
+        f"{name}.{col}"
+        for name, parts in inputs.items()
+        for part in parts
+        for col in fields.get(part.resource_id, [])
+        if col != "_id"  # datastore row id; dropped from exports (stale preps may list it)
+    }
+    # Whole resources no input reads (a translated twin, a lookup table)
+    # need a reason too: "resource:<id>": "skip: …".
+    read = {part.resource_id for parts in inputs.values() for part in parts}
+    needed |= {f"resource:{m['resource_id']}" for m in manifest if m["resource_id"] not in read}
+    problems = []
+    missing = sorted(needed - cov.keys())
+    if missing:
+        problems.append(f"COVERAGE: {len(missing)} column(s)/resource(s) unaccounted for: "
+                        + ", ".join(missing[:15]) + (" …" if len(missing) > 15 else ""))
+    # The synthetic per-file column a concat input carries may be documented.
+    synthetic = {f"{i.name}.{RESOURCE_NAME_COLUMN}" for i in recipe.manifest.inputs if i.concat}
+    stale = sorted(cov.keys() - needed - synthetic)
+    if stale:
+        problems.append("COVERAGE: entries for columns/resources the recipe doesn't read "
+                        "(typo or stale): " + ", ".join(stale[:15]))
+    ids = set(re.findall(r'\bid="([^"]+)"', html))
+    kpis = set((model.get("kpis") or {}).keys())
+    used = skipped = 0
+    for key, value in cov.items():
+        value = value.strip()
+        if value.startswith("skip:"):
+            skipped += 1
+            if len(value[5:].strip()) < 8:
+                problems.append(f"COVERAGE: {key}: give a real reason after 'skip:'")
+            continue
+        used += 1
+        # "<ref>, <ref> — free note": refs before the first ' — ' / ' - ' / ';'.
+        head = re.split(r"\s+[—–-]\s+|;", value, maxsplit=1)[0]
+        tokens = [t.strip() for t in head.split(",") if t.strip()]
+        if not tokens:
+            problems.append(f"COVERAGE: {key}: no element id or kpi:/insight:/table: reference")
+        for t in tokens:
+            if t.startswith("kpi:") and t[4:].strip() not in kpis:
+                problems.append(f"COVERAGE: {key} → {t!r}: the model has no such KPI")
+            elif not t.startswith(_COVERAGE_TAGS) and t not in ids:
+                problems.append(f"COVERAGE: {key} → {t!r} is not an element id on the page "
+                                "(put free notes after ' — ')")
+    notes = [f"coverage: {len(needed)} column(s) — {used} used, {skipped} skipped"]
+    return problems, notes
 
 
 def _resources_from_manifest(manifest: list[dict]) -> list[dict]:
@@ -325,8 +429,16 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
             print(f"FAIL [{e.reason}] {e}")
             return 1
         rows = {k: sum(i.rows for i in v) for k, v in inputs.items()}
-        notes.append(f"full run OK — rows {rows}, {len(raw.get('insights') or [])} insights, "
+        charts = len(_CHART_DIV_RE.findall(page.content_html))
+        notes.append(f"full run OK — rows {rows}, {charts} chart(s), "
+                     f"{len(raw.get('insights') or [])} insights, "
                      f"{len(page.content_html):,} bytes")
+        problems += _fallback_findings(page.content_html)
+        cov_problems, cov_notes = _coverage_findings(
+            recipe, inputs, manifest, page.content_html, raw
+        )
+        problems += cov_problems
+        notes += cov_notes
 
         raw2, page2, _ = run(tag="again")
         if dump_model(raw) != dump_model(raw2) or page.content_html != page2.content_html:

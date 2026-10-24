@@ -1,0 +1,11 @@
+{
+  "sites.Shem_Atar_Svivati": "map-main, text: popup title only — site names may be sole proprietors' business names so the page never lists or ranks individual sites",
+  "sites.Mispar_Atar": "skip: site number that appears to hold personal ID numbers of sole proprietors — deliberately never used",
+  "sites.Mispar_Mezahe": "skip: unique row identifier (26138 distinct values) — no analytic content",
+  "sites.Machoz": "chart-districts, chart-heat, map-main, insight:districts, insight:contaminated, insight:coords",
+  "sites.Yeshuv": "map-main, insight:concentration, kpi:settlements, text: 1238 settlements are a finer split of Rashut_Mekomit (269 authorities) which carries the charts",
+  "sites.mehute_Atar": "chart-treemap, chart-acts, chart-heat, chart-profile, chart-mapped, map-main, insight:top_group, insight:contaminated, insight:concentration, insight:mapped_gap, kpi:groups",
+  "sites.Rashut_Mekomit": "chart-auth, chart-profile, map-main, insight:authority",
+  "sites.Nekudat_Tsiun_X": "map-main, chart-districts, chart-mapped, insight:coords, insight:mapped_gap, kpi:mapped",
+  "sites.Nekudat_Tsiun_Y": "map-main, chart-districts, chart-mapped, insight:coords, insight:mapped_gap, kpi:mapped"
+}

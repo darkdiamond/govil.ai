@@ -40,7 +40,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_SCRIPT_PATH = REPO_ROOT / "agent" / "skills" / "check.py"
 
 
-def run_host_check(content_html: str, agent_data_json: str, workdir: Path) -> None:
+def run_host_check(
+    content_html: str, agent_data_json: str, workdir: Path, *, recipe: bool = False
+) -> None:
     """Run agent/skills/check.py on the sanitized outputs; raise on non-zero.
 
     The agent already self-checked in its sandbox, but the sanitizer may
@@ -62,7 +64,8 @@ def run_host_check(content_html: str, agent_data_json: str, workdir: Path) -> No
     c.write_text(content_html, encoding="utf-8")
     a.write_text(agent_data_json, encoding="utf-8")
     proc = subprocess.run(
-        [sys.executable, "-I", str(CHECK_SCRIPT_PATH), str(c), str(a)],
+        [sys.executable, "-I", str(CHECK_SCRIPT_PATH), *(["--recipe"] if recipe else []),
+         str(c), str(a)],
         capture_output=True,
         text=True,
         timeout=60,

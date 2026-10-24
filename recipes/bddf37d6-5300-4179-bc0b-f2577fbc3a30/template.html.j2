@@ -1,0 +1,313 @@
+{%- macro two_col(rows, caption, head1, head2) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th><th scope="col">{{ head2 }}</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+<h1>אתרי בנייה פעילים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.sites.display }}</div>
+    <div class="text-sm text-subtle">אתרי בנייה פעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cranes.display }}</div>
+    <div class="text-sm text-subtle">אתרים עם עגורנים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.with_orders.display }}</div>
+    <div class="text-sm text-subtle">מהאתרים קיבלו צו בטיחות</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים מובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר אתרי הבנייה הפעילים בכל יישוב.</p>
+    <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    {{ two_col(model.tables.cities, model.labels.cities_aria, "יישוב", "אתרים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור האתרים שקיבלו צו בטיחות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rates_note }}</p>
+    <div id="chart-rates" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.rates_aria }}"></div>
+    {{ two_col(model.tables.rates, model.labels.rates_aria, "יישוב", "קיבלו צו (%)") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות הבנייה הגדולות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.exec_note }}</p>
+  <div id="chart-exec" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.exec_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.exec_aria }}</caption>
+      <thead><tr><th scope="col">חברה</th><th scope="col">אתרים פעילים</th><th scope="col">צווי בטיחות באתרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.executors %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.sites }}</td><td>{{ r.orders }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המבצע ושיעור הצווים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.port_note }}</p>
+  <div id="chart-portfolio" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.port_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.port_aria }}</caption>
+      <thead><tr><th scope="col">אתרים למבצע</th><th scope="col">מבצעים</th><th scope="col">אתרים</th><th scope="col">קיבלו צו (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.portfolio %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.execs }}</td><td>{{ r.sites }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה הסיכון גבוה יותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seg_note }}</p>
+  <div id="chart-segments" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.seg_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.seg_aria }}</caption>
+      <thead><tr><th scope="col">קבוצה</th><th scope="col">קיבלו צו (%)</th><th scope="col">אתרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.segments %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.rate }}</td><td>{{ r.sites }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צווי בטיחות לאתר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כמה אתרים קיבלו אפס, אחד או יותר צווי בטיחות.</p>
+    <div id="chart-orders" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.orders_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.orders_caption }}</caption>
+        <thead><tr><th scope="col">צווים</th><th scope="col">אתרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.orders %}
+          <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג הבנייה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    {{ two_col(model.tables.types, model.labels.types_aria, "סוג בנייה", "אתרים") }}
+  </section>
+</div>
+{%- if model.flags.sanctions %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עיצומים כספיים לפי יישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sanc_note }}</p>
+  <div id="chart-sanctions" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.sanc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sanc_aria }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">סך עיצומים</th><th scope="col">אתרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sanctions %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td><td>{{ r.sites }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן פועלים עגורנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר האתרים הפעילים עם עגורן בכל יישוב.</p>
+  <div id="chart-cranes" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cranes_aria }}"></div>
+  {{ two_col(model.tables.cranes, model.labels.cranes_aria, "יישוב", "אתרים עם עגורן") }}
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/bddf37d6-5300-4179-bc0b-f2577fbc3a30" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, name, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v + unit; } },
+        grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values,
+                   label: { show: true, position: "right", formatter: "{c}" + unit } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "אתרים", "");
+    hbar("chart-rates", {{ model.charts.rates | tojson }}, "קיבלו צו", "%");
+    hbar("chart-cranes", {{ model.charts.cranes | tojson }}, "אתרים עם עגורן", "");
+
+    var e = {{ model.charts.executors | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-exec"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, data: ["אתרים פעילים", "צווי בטיחות באתרים"] },
+      grid: { left: 16, right: 40, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: e.names, inverse: true,
+               axisLabel: { width: 170, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "אתרים פעילים", data: e.sites, label: { show: true, position: "right" } },
+        { type: "bar", name: "צווי בטיחות באתרים", data: e.orders }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function vbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.names },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: name, data: d.values, label: { show: true, position: "top" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    vbar("chart-orders", {{ model.charts.orders | tojson }}, "אתרים");
+    vbar("chart-types", {{ model.charts.types | tojson }}, "אתרים");
+
+    var p = {{ model.charts.portfolio | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-portfolio"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, data: ["אתרים", "קיבלו צו (%)"] },
+      grid: { left: 48, right: 48, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: p.names, name: "אתרים למבצע" },
+      yAxis: [{ type: "value", name: "אתרים" },
+              { type: "value", name: "%", axisLabel: { formatter: "{value}%" } }],
+      series: [
+        { type: "bar", name: "אתרים", data: p.sites },
+        { type: "line", name: "קיבלו צו (%)", yAxisIndex: 1, data: p.rates,
+          label: { show: true, formatter: "{c}%" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var sg = {{ model.charts.segments | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-segments"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: sg.names, inverse: true,
+               axisLabel: { width: 140, overflow: "truncate" } },
+      series: [{ type: "bar", name: "קיבלו צו", data: sg.rates,
+                 label: { show: true, position: "right", formatter: "{c}%" } }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+{%- if model.flags.sanctions %}
+
+<script>
+  (function () {
+    var s = {{ model.charts.sanctions | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-sanctions"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + " ₪"; } },
+      grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: s.names, inverse: true,
+               axisLabel: { width: 140, overflow: "truncate" } },
+      series: [{ type: "bar", name: "עיצומים", data: s.values }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>
+{%- endif %}

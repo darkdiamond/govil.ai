@@ -41,6 +41,18 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">מגמה שנתית</h2>
   </div>
   <div id="chart-yearly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">אירועים</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.yearly.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.yearly.y[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
 </section>
 
 <section class="card p-5 mb-6">
@@ -49,6 +61,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">אירועים לפי מחוז</h2>
   </div>
   <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/11111111-2222-3333-4444-555555555555" target="_blank" rel="noopener">data.gov.il</a>.</p>
 </section>
 
 <script>

@@ -287,6 +287,24 @@ def test_unavailable_source_is_not_refreshed(env):
     assert s["refreshed"] == []
 
 
+def test_percent_conflict_skipped_only_for_recipe_renders(tmp_path):
+    """Recipe numbers are recomputed nightly, so a coincidental equal % in
+    two different years must not fail a correct refresh — but the agent path
+    keeps the rule."""
+    from services.page_builder.agent_contract import run_host_check
+
+    body = (
+        '<h1>t</h1><section class="card p-5 mb-6"><div class="flex items-center gap-2 mb-3 '
+        'text-brand"><img src="/icons/info.svg" alt="" class="w-5 h-5" /><h2>תקציר</h2>'
+        "</div><p>ב-2019 השיעור היה 45.2%.</p>" + "<p>" + "מילוי " * 20 + "</p>"
+        "<p>ב-2024 השיעור היה 45.2%.</p></section>"
+    )
+    ad = json.dumps({"summary_he": "x", "dataset_kind": "misc", "suggested_tags": ["a"]})
+    run_host_check(body, ad, tmp_path, recipe=True)
+    with pytest.raises(RuntimeError, match="PERCENT-CONFLICT"):
+        run_host_check(body, ad, tmp_path)
+
+
 # ── author verify ────────────────────────────────────────────────────────
 
 
@@ -313,6 +331,55 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
     assert author.verify(DS, FIXTURES) == 0, capsys.readouterr().out
     out = tmp_path / "model_test" / DS
     assert (out / "content.html").is_file() and (out / "agent_data.json").is_file()
+
+
+def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    t = recipes / DS / "template.html.j2"
+    # Drop the districts chart's source link → that chart has no fallback.
+    t.write_text(t.read_text(encoding="utf-8").replace(
+        'href="https://data.gov.il/dataset/', 'href="https://example.org/'),
+        encoding="utf-8")
+    cov = recipes / DS / "coverage.json"
+    data = json.loads(cov.read_text(encoding="utf-8"))
+    del data["events.חודש"]
+    data["events.מחוז"] = "chart-nope"
+    cov.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    data["events.שנה"] = "chart-yearly, kpi:no_such_kpi"
+    data["events.typo"] = "chart-yearly"
+    cov.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    assert author.verify(DS, recipes) == 1
+    out = capsys.readouterr().out
+    assert "NO-FALLBACK: chart #chart-districts" in out
+    assert "events.חודש" in out and "'chart-nope' is not an element id" in out
+    assert "'kpi:no_such_kpi': the model has no such KPI" in out
+    assert "(typo or stale): events.typo" in out
+
+
+def test_fallback_check_rules():
+    from services.page_builder.author import _fallback_findings
+
+    tbl = "<details><table><tr><td>x</td></tr></table></details>"
+    # A heatmap id is a chart like any other — no "map" exemption.
+    assert _fallback_findings('<section><div id="chart-heatmap" role="img"></div></section>')
+    # A chart outside any section can't borrow the previous section's table.
+    html = f'<section>{tbl}</section><div class="grid"><div id="c2" role="img"></div></div><section></section>'
+    assert any("#c2" in f for f in _fallback_findings(html))
+    # GovMap containers (no role="img") are not charts.
+    assert _fallback_findings('<section><div id="map-main"></div></section>') == []
+    assert _fallback_findings(f'<section><div id="c1" role="img"></div>{tbl}</section>') == []
+
+
+def test_coverage_requires_unused_resources(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    m = tmp_path / "authoring" / DS / "data" / "manifest.json"
+    man = json.loads(m.read_text())
+    man.append({**man[0], "resource_id": "bbbbbbbb-0000-0000-0000-000000000002", "file": None})
+    m.write_text(json.dumps(man))
+    assert author.verify(DS, FIXTURES) == 1
+    assert "resource:bbbbbbbb-0000-0000-0000-000000000002" in capsys.readouterr().out
 
 
 def test_author_verify_rejects_order_dependent_recipe(tmp_path, monkeypatch, capsys):

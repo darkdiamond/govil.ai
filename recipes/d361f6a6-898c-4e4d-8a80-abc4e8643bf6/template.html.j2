@@ -1,0 +1,296 @@
+<h1>מאגר מתווכים פעילים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.brokers.display }}</div>
+    <div class="text-sm text-subtle">מתווכים מורשים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובי מגורים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.examinees.display }}</div>
+    <div class="text-sm text-subtle">רישומי נבחנים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.ge_last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ge_label }} · {{ model.labels.last_full }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נבחנים בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.volume_note }}</p>
+  <div id="chart-volume" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ציונים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scores_note }}</p>
+  <div id="chart-scores" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.scores_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.dist_title }}</h2>
+    </div>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_caption }}</caption>
+        <thead><tr><th scope="col">טווח ציון</th><th scope="col">נבחנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dist %}
+          <tr><th scope="row" dir="ltr">{{ r.range }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מועדי הבחינה האחרונים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">נבחנים בכל מועד. מועדים עתידיים (נרשמים, טרם נבחנו) בגוון בהיר.</p>
+    <div id="chart-sittings" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.sittings_aria }}"></div>
+    <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתווכים לפי יישוב מגורים</h2>
+  </div>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">מתווכים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לוח הבחינות לפי חודש</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר הנבחנים בכל חודש, בכל השנים יחד — הבחינה נערכת במועדים קבועים.</p>
+    <div id="chart-months" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.months_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.months_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">נבחנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.months %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נבחנים לפי מוסד לימודי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inst_note }}</p>
+    <div id="chart-institutions" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.inst_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.inst_caption }}</caption>
+        <thead><tr><th scope="col">מוסד</th><th scope="col">נבחנים</th><th scope="col">ציון ממוצע</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.institutions %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.mean }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות הציונים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
+  <div id="chart-bands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/d361f6a6-898c-4e4d-8a80-abc4e8643bf6" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<script>
+  (function () {
+    var v = {{ model.charts.volume | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-volume"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: v.x },
+      yAxis: { type: "value", name: "נבחנים" },
+      series: [
+        { type: "bar", stack: "t", name: "עם ציון", data: v.graded },
+        { type: "bar", stack: "t", name: "ללא ציון", data: v.ungraded, itemStyle: { color: "#c3cfe7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var s = {{ model.charts.scores | tojson }};
+    var geLabel = {{ model.labels.ge_label | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-scores"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 48, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x },
+      yAxis: [
+        { type: "value", name: "ציון ממוצע", scale: true },
+        { type: "value", name: "%", min: 0, max: 100 }
+      ],
+      series: [
+        { type: "line", name: "ציון ממוצע", data: s.mean },
+        { type: "line", name: geLabel + " (%)", yAxisIndex: 1, data: s.ge, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-dist"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", name: "נבחנים" },
+      series: [{ type: "bar", name: "נבחנים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var t = {{ model.charts.sittings | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-sittings"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: t.x },
+      yAxis: { type: "value", name: "נבחנים" },
+      series: [{ type: "bar", name: "נבחנים", data: t.y.map(function (v, i) {
+        return t.upcoming[i] ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var c = {{ model.charts.cities | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-cities"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "מתווכים" },
+      yAxis: { type: "category", data: c.names, inverse: true },
+      series: [{ type: "bar", name: "מתווכים", data: c.values }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var mo = {{ model.charts.months | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-months"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: mo.names },
+      yAxis: { type: "value", name: "נבחנים" },
+      series: [{ type: "bar", name: "נבחנים", data: mo.values }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+
+    var ins = {{ model.charts.institutions | tojson }};
+    var c8 = echarts.init(document.getElementById("chart-institutions"));
+    c8.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "נבחנים" },
+      yAxis: { type: "category", data: ins.names, inverse: true },
+      series: [{ type: "bar", name: "נבחנים", data: ins.values }]
+    }));
+    window.addEventListener("resize", function () { c8.resize(); });
+
+    var b = {{ model.charts.bands | tojson }};
+    var c9 = echarts.init(document.getElementById("chart-bands"));
+    c9.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return b.years[p.value[0]] + " · " + b.bands[p.value[1]] + ": " + p.value[2] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: b.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: b.bands, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: b.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: b.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c9.resize(); });
+  })();
+</script>

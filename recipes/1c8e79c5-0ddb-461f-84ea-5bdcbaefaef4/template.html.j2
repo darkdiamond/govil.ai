@@ -1,0 +1,270 @@
+<h1>הודעות יצרני הרכב על קריאות חוזרות (ריקול)</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">הודעות ריקול במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.last_full.display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis.last_full.label }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.makers.display }}</div>
+    <div class="text-sm text-subtle">יצרני רכב</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.safety.display }}</div>
+    <div class="text-sm text-subtle">תקלות סדרתיות בטיחותיות</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro rank_table(rows, caption, head, summary="הצג כטבלה") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">{{ summary }}</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">הודעות</th><th scope="col">שיעור</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+{% macro source_link() -%}
+<p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים בטבלת הנתונים שבהמשך העמוד ולהורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/1c8e79c5-0ddb-461f-84ea-5bdcbaefaef4" target="_blank" rel="noopener">data.gov.il</a>.</p>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הודעות ריקול לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_table_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">הודעות</th><th scope="col">מתוכן תקלה סדרתית בטיחותית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.count }}</td><td>{{ r.safety }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+  {{ rank_table(model.tables.types, model.labels.type_table_caption, "סוג ההודעה", "סוג ההודעה — טבלה") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי התקלות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר ההודעות לפי המערכת שבה התגלתה התקלה.</p>
+    <div id="chart-faults" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.faults_aria }}"></div>
+    {{ rank_table(model.tables.faults, model.labels.faults_table_caption, "סוג התקלה") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יצרנים מובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.makers_note }}</p>
+    <div id="chart-makers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.makers_aria }}"></div>
+    {{ rank_table(model.tables.makers, model.labels.makers_table_caption, "יצרן") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הדגמים עם הכי הרבה הודעות ריקול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.models_note }}</p>
+  <div id="chart-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.models_aria }}"></div>
+  {{ rank_table(model.tables.models, model.labels.models_table_caption, "יצרן ודגם") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל התקלות לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  {{ source_link() }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך מתקנים: אופן התיקון לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fix_note }}</p>
+  <div id="chart-fix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fix_aria }}"></div>
+  {{ rank_table(model.tables.fix, model.labels.fix_table_caption, "אופן התיקון", "הצג כטבלה (כל השנים)") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יבואנים מובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">היבואן האחראי לביצוע הריקול בישראל.</p>
+    <div id="chart-importers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.importers_aria }}"></div>
+    {{ rank_table(model.tables.importers, model.labels.importers_table_caption, "יבואן") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה שנות ייצור מושפעות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.span_note }}</p>
+    <div id="chart-span" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.span_aria }}"></div>
+    {{ rank_table(model.tables.span, model.labels.span_table_caption, "טווח ייצור") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אילו שנות ייצור מושפעות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.vintage_note }}</p>
+  <div id="chart-vintage" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.vintage_aria }}"></div>
+  {{ source_link() }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קטגוריית רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">סיווג הרכב לפי התקינה האירופית (M1 — רכב נוסעים, N — רכב מסחרי, L — דו-גלגלי).</p>
+  {{ rank_table(model.tables.cats, model.labels.cat_table_caption, "קטגוריה", "הצג טבלה") }}
+</section>
+
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-years"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value" },
+      series: y.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data.map(function (v, i) {
+          return i === y.partial_index ? { value: v, itemStyle: { opacity: 0.55 } } : v;
+        }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    function hbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-faults", {{ model.charts.faults | tojson }});
+    hbar("chart-makers", {{ model.charts.makers | tojson }});
+    hbar("chart-importers", {{ model.charts.importers | tojson }});
+    hbar("chart-models", {{ model.charts.models | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-heat"));
+    c3.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.cats[p.value[1]] + " · " + h.years[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3] + ")";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.cats, splitArea: { show: true }, axisLabel: { width: 120, overflow: "truncate" } },
+      visualMap: {
+        dimension: 2, min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var f = {{ model.charts.fix | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-fix"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value", name: "%" },
+      series: f.series.map(function (s) { return { type: "line", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var s = {{ model.charts.span | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-span"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: s.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", data: s.values }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var v = {{ model.charts.vintage | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-vintage"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: v.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "הודעות ריקול", data: v.y }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+  })();
+</script>

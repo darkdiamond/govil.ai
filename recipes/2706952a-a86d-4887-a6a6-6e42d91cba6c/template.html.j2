@@ -39,6 +39,10 @@
   </ul>
 </section>
 
+{% macro source_link() -%}
+<p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/2706952a-a86d-4887-a6a6-6e42d91cba6c" target="_blank" rel="noopener">data.gov.il</a>.</p>
+{%- endmacro %}
+
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
@@ -46,6 +50,7 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">מדידות יומיות, עם הקווים האדומים והקו השחור שקבעה רשות המים.</p>
   <div id="chart-recent" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
+  {{ source_link() }}
 </section>
 
 <section class="card p-5 mb-6">
@@ -55,6 +60,16 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }} ניתן להתמקד בתקופה בעזרת המחוון שמתחת לגרף.</p>
   <div id="chart-history" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
+  {{ source_link() }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">טווח המפלס בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המפלס הנמוך, הממוצע והגבוה בכל שנה — רוחב הפס מראה כמה המפלס השתנה בתוך השנה.</p>
+  <div id="chart-annual" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.annual_aria }}"></div>
   <details class="mt-3">
     <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
     <table class="mt-2 w-full text-sm">
@@ -77,6 +92,20 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">המפלס לפי שבוע בשנה ההידרולוגית (מאוקטובר), בעונות האחרונות לעומת החציון ההיסטורי.</p>
     <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה (ממוצע חודשי)</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th>{% for c in model.tables.season.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.season.rows %}
+          <tr><th scope="row">{{ r.month }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -85,8 +114,41 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gains_note }}</p>
     <div id="chart-gains" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gains_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.gains_caption }}</caption>
+        <thead><tr><th scope="col">עונה</th><th scope="col">עלייה (ס״מ)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.gains %}
+          <tr><th scope="row">{{ r.season }}</th><td>{{ r.gain }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
   </section>
 </div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שנים מתחת לקו האדום התחתון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור המדידות בכל שנה שבהן המפלס היה בקו האדום התחתון או מתחתיו. שיעור ולא מספר ימים — תדירות המדידה עלתה לאורך השנים.</p>
+  <div id="chart-below" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.below_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.below_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">שיעור המדידות מתחת לקו (באחוזים)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.below %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -95,7 +157,7 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">ממוצע המפלס בכל חודש. גוון כהה יותר = מפלס גבוה יותר.</p>
   <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/2706952a-a86d-4887-a6a6-6e42d91cba6c" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  {{ source_link() }}
 </section>
 
 <script>
@@ -204,5 +266,47 @@
                  emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
     }));
     window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var L = {{ model.lines | tojson }};
+    function fmt(v) { return (typeof v === "number") ? v.toFixed(2) : v; }
+    var a = {{ model.charts.annual | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-annual"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { bottom: 0 },
+      grid: { left: 56, right: 16, top: 24, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: a.x },
+      yAxis: { type: "value", scale: true, name: "מטר" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 32 }],
+      series: [
+        { type: "line", name: "מקסימום", data: a.max, showSymbol: false },
+        { type: "line", name: "ממוצע", data: a.mean, showSymbol: false, lineStyle: { type: "dashed" } },
+        { type: "line", name: "מינימום", data: a.min, showSymbol: false,
+          markLine: { silent: true, symbol: "none",
+            data: [{ yAxis: L.lower, name: L.lower_label, lineStyle: { color: "#dc3545", type: "dashed" } }],
+            label: { formatter: "{b}", position: "insideEndTop", fontFamily: "Rubik" } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var b = {{ model.charts.below | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-below"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: b.x },
+      yAxis: { type: "value", max: 100, name: "%" },
+      dataZoom: [{ type: "inside" }],
+      series: [{ type: "bar", name: "מדידות מתחת לקו", data: b.y.map(function (v) {
+        return v > 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
   })();
 </script>

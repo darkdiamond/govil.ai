@@ -18,6 +18,7 @@ MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "י
 RECENT_DAYS = 730          # daily-resolution window for the "recent" chart
 SEASON_YEARS = 6           # hydrological years overlaid in the seasonal chart
 SAME_DAY_TOLERANCE = 10    # days: a year counts for "same date" if measured this close
+TABLE_ROWS = 20            # rows in the accessible table fallbacks
 
 
 LRI, PDI = "⁦", "⁩"   # bidi isolate: keeps "-213.72" intact in RTL text
@@ -217,8 +218,40 @@ def compute(frames):
     table_years = [
         {"year": str(int(y)), "min": m(r["min"]), "max": m(r["max"]),
          "mean": m(r["mean"]), "n": f"{int(r['count']):,}"}
-        for y, r in yearly.tail(10).iterrows()
+        for y, r in yearly.tail(TABLE_ROWS).iterrows()
     ]
+    annual = {"x": [str(int(y)) for y in yearly.index],
+              "min": [round(float(v), 3) for v in yearly["min"]],
+              "max": [round(float(v), 3) for v in yearly["max"]],
+              "mean": [round(float(v), 3) for v in yearly["mean"]]}
+
+    # Share of each year's measurements at or below the lower red line.
+    # A share, not a day count: measurement frequency changed from
+    # weekly/fortnightly to daily in the 1990s.
+    below = (df.assign(b=df["lvl"] <= LOWER_RED)
+             .groupby(df["d"].dt.year)["b"].mean())
+    below_chart = {"x": [str(int(y)) for y in below.index],
+                   "y": [round(float(v) * 100, 1) for v in below]}
+    table_below = [{"year": str(int(y)), "share": f"{v * 100:.0f}"}
+                   for y, v in below.items() if v > 0]
+
+    # Seasonal table: monthly mean per hydrological month for the overlaid
+    # seasons + the median of complete seasons (12 rows).
+    hy_month_order = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    mm = df.groupby(["hy", df["d"].dt.month])["lvl"].mean()
+    med_m = (mm[mm.index.get_level_values(0).isin(full_hys)]
+             .groupby(level=1).median())
+    season_table = {
+        "cols": [hy_label(int(hy)) for hy in season_hys] + ["חציון"],
+        "rows": [
+            {"month": MONTHS_HE[mo - 1],
+             "vals": [(m(mm[(hy, mo)]) if (hy, mo) in mm.index else "—") for hy in season_hys]
+                     + [m(med_m[mo]) if mo in med_m.index else "—"]}
+            for mo in hy_month_order
+        ],
+    }
+    table_gains = [{"season": hy_label(hy), "gain": f"{g * 100:,.0f}"}
+                   for hy, g in gains[-TABLE_ROWS:]]
 
     # Insights ----------------------------------------------------------
     rules = [
@@ -283,6 +316,14 @@ def compute(frames):
                        "בכל 12 החודשים."),
         "heat_aria": f"מפת חום: ממוצע חודשי של המפלס לפי חודש ושנה, {y0} עד {y1}.",
         "table_caption": f"מפלס מינימלי, מקסימלי וממוצע ב-{len(table_years)} השנים האחרונות.",
+        "annual_aria": (f"גרף: טווח המפלס בכל שנה — מינימום, ממוצע ומקסימום — "
+                        f"בשנים {y0} עד {y1}."),
+        "below_aria": (f"תרשים עמודות: שיעור המדידות בכל שנה שבהן המפלס היה בקו האדום "
+                       f"התחתון או מתחתיו, {y0} עד {y1}."),
+        "below_caption": (f"השנים שבהן לפחות חלק מהמדידות היו בקו האדום התחתון או מתחתיו "
+                          f"({len(table_below)} שנים)."),
+        "season_caption": "ממוצע חודשי של המפלס בעונות האחרונות לעומת החציון של העונות המלאות.",
+        "gains_caption": f"העלייה במפלס מהשפל לשיא ב-{len(table_gains)} העונות המלאות האחרונות (ס״מ).",
     }
 
     return {
@@ -307,9 +348,12 @@ def compute(frames):
             "recent": recent,
             "season": season,
             "gains": gains_chart,
+            "annual": annual,
+            "below": below_chart,
             "heat": heat,
         },
-        "tables": {"years": table_years},
+        "tables": {"years": table_years, "below": table_below,
+                   "season": season_table, "gains": table_gains},
         "insights": insights,
         "labels": labels,
     }

@@ -79,6 +79,31 @@ and the cost is paid once. Go deeper:
 - Interactivity ECharts gives for free (dataZoom on long series, legend
   toggles, tooltips with units) — no custom JS frameworks, no network calls.
 
+**Depth bar — coverage, not a chart quota.** Before designing, list every
+column of every input and the questions it can answer alone and in
+combination (by time, by place, by category, distribution, cross-tab,
+concentration, change). A page that stops at 5–6 safe charts while
+dimensions sit unused is too thin. Every column ends up in
+`recipes/<id>/coverage.json` — mapped to the chart id(s) / `kpi:` /
+`insight:` / `table:` / `map:` that use it, or to `skip: <reason>`
+(identifier, free text, constant, >80% empty, private person, …).
+`verify` fails on an unaccounted column. Value format:
+`"chart-a, kpi:total, insight:trend — optional free note"` (references
+first, comma-separated; anything after `—` is a note and may contain
+commas and numbers), or `"skip: <reason>"`. A prepared resource that no
+input reads (a translated twin, a lookup table) needs its own entry,
+`"resource:<resource_id>": "skip: <reason>"`. `kpi:<name>` must name a KPI
+the model produces, and entries for columns the recipe doesn't read fail
+as stale. Expect roughly 6–10 charts on a
+dataset with several meaningful dimensions; fewer only when the coverage
+file shows the data genuinely doesn't carry more.
+
+**Every chart has a fallback** — `verify` enforces it per chart section:
+a `<details><table>` of the chart's own numbers when they fit in ~20 rows
+(top-N lists, yearly series, category splits — rendered from the same model
+arrays), otherwise a link to the source on `data.gov.il` in that section.
+Prefer the table; a link is for genuinely large series.
+
 Constraints that don't move: every `<script>` block < 50KB (aggregate in
 `compute`, never ship rows; one IIFE per chart keeps blocks small), mobile at
 375px, RTL, Hebrew-only text, design tokens, `check.py` must pass.
@@ -198,7 +223,13 @@ sandboxed compute, sanitizer, `check.py`), then:
 - **robustness** — re-runs on the first 70% of rows (must still pass
   `min_insights` and produce _different_ numbers — proof they're computed)
   and on shuffled rows (must produce the _same_ model);
-- template numeric-literal lint, PII grep.
+- template numeric-literal lint, PII grep;
+- a chart-fallback check per chart section, and `coverage.json` completeness
+  (every `"<input>.<column>"` mapped to element ids on the page or to
+  `skip: <reason>`).
+
+`coverage.json` is authoring documentation only: the nightly refresh never
+reads it, so updating it can't break a live page.
 
 It also writes `tmp/model_test/<id>/{content.html,agent_data.json,model.json}`.
 Read `model.json` and the truncated-run insight sentences it prints: do the
@@ -211,6 +242,10 @@ Chart heights: prefer the corpus's existing pairs (`h-64 md:h-80`,
 compiles classes from published bodies at build time, so a new arbitrary
 value (`h-[520px]`) works on the site but is missing from the live CSS that
 `preview render` borrows — the chart then collapses to 0px in the preview.
+
+Heatmap cells with extra fields (`[x, y, value, count]`): set
+`visualMap.dimension: 2`. ECharts otherwise colours by the LAST element,
+so a count column silently drives the colour scale.
 
 ## 6. Look at it
 
@@ -225,7 +260,8 @@ and re-verify.
 
 ## 7. Ship
 
-- Commit only `recipes/<dataset_id>/` (never `tmp/`).
+- Commit only `recipes/<dataset_id>/` — the three contract files plus
+  `coverage.json` (never `tmp/`).
 - PR title `recipe: <short Hebrew/English title> (<id8>)`; body: what the page
   shows, the insight rules and their thresholds, how it handles growth, the
   `verify` output. Add `Closes #N` when authoring from an issue.

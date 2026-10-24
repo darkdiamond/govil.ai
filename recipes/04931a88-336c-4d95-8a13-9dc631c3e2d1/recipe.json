@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "04931a88-336c-4d95-8a13-9dc631c3e2d1",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-22T19:01:16.493803+00:00",
+    "rows": { "sites": 26139 }
+  },
+  "inputs": [
+    {
+      "name": "sites",
+      "by_id": "88d1883c-3b7a-4580-9be9-6d54659666c3",
+      "required_columns": [
+        "Shem_Atar_Svivati",
+        "Machoz",
+        "Yeshuv",
+        "mehute_Atar",
+        "Rashut_Mekomit",
+        "Nekudat_Tsiun_X",
+        "Nekudat_Tsiun_Y"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

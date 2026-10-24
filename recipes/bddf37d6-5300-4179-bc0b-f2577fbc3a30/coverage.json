@@ -1,0 +1,13 @@
+{
+  "sites.work_id": "key: one row per active site (deduplicated on it), kpi:sites",
+  "sites.site_name": "skip: free-text site name — often a street address or a private home; identifies a site without adding an aggregate view",
+  "sites.executor_name": "chart-exec, insight:concentration",
+  "sites.executor_id": "chart-exec, chart-portfolio, insight:portfolio, insight:concentration",
+  "sites.foreman_name": "skip: names of site foremen — private individuals",
+  "sites.has_cranes": "chart-cranes, chart-segments, insight:cranes, insight:crane_risk, kpi:cranes",
+  "sites.city_name": "chart-cities, chart-rates, chart-cranes, chart-sanctions, insight:city, insight:city_rate, kpi:cities",
+  "sites.build_types": "chart-types, chart-segments, insight:types",
+  "sites.safety_warrents": "chart-orders, chart-rates, chart-exec, chart-portfolio, chart-segments, insight:orders, insight:portfolio, insight:crane_risk, kpi:with_orders",
+  "sites.sanctions": "chart-sanctions, insight:sanctions",
+  "sites.sanctions_sum": "chart-sanctions, insight:sanctions"
+}

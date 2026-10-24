@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "bddf37d6-5300-4179-bc0b-f2577fbc3a30",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T21:15:26.546079+00:00",
+    "rows": { "sites": 10925 }
+  },
+  "inputs": [
+    {
+      "name": "sites",
+      "by_id": "b072e36c-a53b-49e1-be08-4a608fcf4638",
+      "required_columns": [
+        "work_id",
+        "executor_name",
+        "executor_id",
+        "has_cranes",
+        "city_name",
+        "build_types",
+        "safety_warrents",
+        "sanctions",
+        "sanctions_sum"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

@@ -784,8 +784,15 @@ def check_percent_consistency(body: str) -> None:
 
 
 def main(argv: list[str]) -> int:
+    # --recipe: the body was rendered by a deterministic recipe
+    # (services/page_builder/refresh.py), not written by a model. Skips only
+    # PERCENT-CONFLICT, a guard against an LLM contradicting itself: recipe
+    # numbers are recomputed nightly, so two figures can coincide by chance
+    # and fail a correct refresh. Every other rule still applies.
+    recipe = "--recipe" in argv[1:]
+    argv = [a for a in argv if a != "--recipe"]
     if len(argv) != 3:
-        print(f"usage: {argv[0]} content.html agent_data.json", file=sys.stderr)
+        print(f"usage: {argv[0]} [--recipe] content.html agent_data.json", file=sys.stderr)
         return 64
     html_path, json_path = argv[1], argv[2]
 
@@ -828,7 +835,8 @@ def main(argv: list[str]) -> int:
 
     check_icon_headers(body)
     check_insights(body)
-    check_percent_consistency(body)
+    if not recipe:
+        check_percent_consistency(body)
 
     print(f"OK {d['dataset_kind']}")
     return 0
