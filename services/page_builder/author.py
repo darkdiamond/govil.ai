@@ -287,13 +287,15 @@ def _purity_findings(recipe: Recipe) -> list[str]:
     return out
 
 
-# DATA-TABLE FALLBACK (agent/system-prompt.md): a chart is never the only
-# representation of its data — its section carries a <details><table> (≤20
-# rows) or a link to the source on data.gov.il.
+# Chart fallback: a chart small enough to tabulate (~20 rows) carries a
+# <details><table> of its own numbers in its section. A larger series is
+# marked data-fallback="explorer" on the chart element — the shell's data
+# explorer and download section under every page are its tabular view, so
+# no per-chart link to data.gov.il. Either way it is a deliberate choice.
 _CHART_DIV_RE = re.compile(
     r'<div\b(?=[^>]*\bid="([^"]+)")(?=[^>]*\brole="img")[^>]*>', re.IGNORECASE
 )
-_SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
+_EXPLORER_FALLBACK = 'data-fallback="explorer"'
 
 
 def _fallback_findings(html: str) -> list[str]:
@@ -302,6 +304,8 @@ def _fallback_findings(html: str) -> list[str]:
     out = []
     for m in _CHART_DIV_RE.finditer(html):
         chart_id = m.group(1)
+        if _EXPLORER_FALLBACK in m.group(0):
+            continue
         start = html.rfind("<section", 0, m.start())
         # The nearest <section> must still be open at the chart; otherwise
         # the chart sits outside any section and has no section to carry a
@@ -310,13 +314,24 @@ def _fallback_findings(html: str) -> list[str]:
             start = -1
         end = html.find("</section>", m.end())
         chunk = html[start:end] if start >= 0 and end >= 0 else ""
-        if "<table" not in chunk and not _SOURCE_LINK_RE.search(chunk):
+        if "<table" not in chunk:
             out.append(
-                f"NO-FALLBACK: chart #{chart_id} has no <details><table> (≤20 rows) "
-                "or data.gov.il source link in its section — a chart must never be "
-                "the only representation of its data"
+                f"NO-FALLBACK: chart #{chart_id} has no <details><table> in its "
+                "section — add one (≤20 rows), or mark a larger series "
+                f'{_EXPLORER_FALLBACK} on the chart element'
             )
     return out
+
+
+# A per-chart "download at data.gov.il" link only repeats the shell's own
+# downloads + explorer under the page.
+_SOURCE_LINK_RE = re.compile(r'href="https://(?:www\.)?data\.gov\.il/', re.IGNORECASE)
+
+
+def _source_link_findings(template_src: str) -> list[str]:
+    n = len(_SOURCE_LINK_RE.findall(template_src))
+    return [f"SOURCE-LINK: template links to data.gov.il {n}x — the shell already "
+            "renders downloads and the data explorer under every page; remove them"] if n else []
 
 
 # Coverage: every column of every input is accounted for — which view uses
@@ -412,6 +427,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     )
     problems += _pii_findings(recipe)
     problems += _purity_findings(recipe)
+    problems += _source_link_findings(recipe.template_path.read_text(encoding="utf-8"))
 
     work = Path(tempfile.mkdtemp(prefix=f"author-{dataset_id[:8]}-"))
     try:

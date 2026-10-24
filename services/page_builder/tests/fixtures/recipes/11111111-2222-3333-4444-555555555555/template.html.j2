@@ -60,8 +60,7 @@
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">אירועים לפי מחוז</h2>
   </div>
-  <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/11111111-2222-3333-4444-555555555555" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-districts" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.districts_aria }}"></div>
 </section>
 
 <script>

@@ -45,8 +45,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">רישום כלים לפי שנה וסוג הנעה</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reg_note }}</p>
-  <div id="chart-reg" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.reg_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/0219b34f-43c7-435b-bdfe-e65e944cde50" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-reg" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.reg_aria }}"></div>
 </section>
 
 <section class="card p-5 mb-6">
@@ -55,8 +54,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">המעבר לחשמל</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">שיעור הכלים בהנעה חשמלית (סוללות או רשת) מבין הכלים שנרשמו בכל שנה — בכלל הצמ״ה ובמלגזות בלבד.</p>
-  <div id="chart-electric" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.electric_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/0219b34f-43c7-435b-bdfe-e65e944cde50" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-electric" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.electric_aria }}"></div>
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">

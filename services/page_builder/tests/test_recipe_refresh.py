@@ -338,9 +338,11 @@ def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, cap
     recipes = tmp_path / "recipes"
     shutil.copytree(FIXTURES / DS, recipes / DS)
     t = recipes / DS / "template.html.j2"
-    # Drop the districts chart's source link → that chart has no fallback.
+    # Unmark the districts chart → it has neither a table nor the explorer
+    # marker; and a per-chart data.gov.il link is rejected outright.
     t.write_text(t.read_text(encoding="utf-8").replace(
-        'href="https://data.gov.il/dataset/', 'href="https://example.org/'),
+        ' data-fallback="explorer"', "").replace(
+        "</h1>", '</h1><p><a href="https://data.gov.il/dataset/x">data.gov.il</a></p>', 1),
         encoding="utf-8")
     cov = recipes / DS / "coverage.json"
     data = json.loads(cov.read_text(encoding="utf-8"))
@@ -353,6 +355,7 @@ def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, cap
     assert author.verify(DS, recipes) == 1
     out = capsys.readouterr().out
     assert "NO-FALLBACK: chart #chart-districts" in out
+    assert "SOURCE-LINK: template links to data.gov.il" in out
     assert "events.חודש" in out and "'chart-nope' is not an element id" in out
     assert "'kpi:no_such_kpi': the model has no such KPI" in out
     assert "(typo or stale): events.typo" in out
@@ -370,6 +373,9 @@ def test_fallback_check_rules():
     # GovMap containers (no role="img") are not charts.
     assert _fallback_findings('<section><div id="map-main"></div></section>') == []
     assert _fallback_findings(f'<section><div id="c1" role="img"></div>{tbl}</section>') == []
+    # A large series opts into the shell's explorer explicitly.
+    assert _fallback_findings(
+        '<section><div id="c3" role="img" data-fallback="explorer"></div></section>') == []
 
 
 def test_coverage_requires_unused_resources(tmp_path, monkeypatch, capsys):

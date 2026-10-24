@@ -50,8 +50,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הנכסים לאורך זמן</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">סך הנכסים בכל חודש לפי סוג קרן, במיליארדי ₪.</p>
-  <div id="chart-assets" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.assets_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הסדרה המלאה זמינה להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/3a1ca8fa-738b-4890-b52f-e8f7ce1e6145" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-assets" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.assets_aria }}"></div>
 </section>
 
 <section class="card p-5 mb-6">
@@ -82,8 +81,7 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">תשואה חודשית משוקללת</h2>
     </div>
     <p class="m-0 text-sm text-subtle mb-3">ממוצע תשואות המסלולים, משוקלל לפי נכסים. חודשים שליליים באדום.</p>
-    <div id="chart-yields" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yields_aria }}"></div>
-    <p class="mt-3 text-sm text-subtle">הסדרה המלאה זמינה להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/3a1ca8fa-738b-4890-b52f-e8f7ce1e6145" target="_blank" rel="noopener">data.gov.il</a>.</p>
+    <div id="chart-yields" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yields_aria }}"></div>
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -91,8 +89,7 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">תשואה ל-12 חודשים מתגלגלים</h2>
     </div>
     <p class="m-0 text-sm text-subtle mb-3">התשואה המצטברת בשנה שהסתיימה בכל חודש.</p>
-    <div id="chart-rolling" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rolling_aria }}"></div>
-    <p class="mt-3 text-sm text-subtle">הסדרה המלאה זמינה להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/3a1ca8fa-738b-4890-b52f-e8f7ce1e6145" target="_blank" rel="noopener">data.gov.il</a>.</p>
+    <div id="chart-rolling" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rolling_aria }}"></div>
   </section>
 </div>
 
@@ -123,8 +120,7 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">הפקדות נטו</h2>
     </div>
     <p class="m-0 text-sm text-subtle mb-3">הפקדות פחות משיכות והעברות, במיליארדי ₪, במסלולים שדיווחו עליהן.</p>
-    <div id="chart-net" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.net_aria }}"></div>
-    <p class="mt-3 text-sm text-subtle">הסדרה המלאה זמינה להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/3a1ca8fa-738b-4890-b52f-e8f7ce1e6145" target="_blank" rel="noopener">data.gov.il</a>.</p>
+    <div id="chart-net" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.net_aria }}"></div>
   </section>
 </div>
 
@@ -147,7 +143,6 @@
       </tbody>
     </table>
   </details>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/3a1ca8fa-738b-4890-b52f-e8f7ce1e6145" target="_blank" rel="noopener">data.gov.il</a>.</p>
 </section>
 
 
@@ -200,8 +195,7 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">סיכון מול תשואה (חמש שנים)</h2>
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.risk_note }}</p>
-    <div id="chart-risk" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.risk_aria }}"></div>
-    <p class="mt-3 text-sm text-subtle">הסדרה המלאה זמינה להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/3a1ca8fa-738b-4890-b52f-e8f7ce1e6145" target="_blank" rel="noopener">data.gov.il</a>.</p>
+    <div id="chart-risk" data-fallback="explorer" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.risk_aria }}"></div>
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">

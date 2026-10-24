@@ -101,8 +101,11 @@ file shows the data genuinely doesn't carry more.
 **Every chart has a fallback** — `verify` enforces it per chart section:
 a `<details><table>` of the chart's own numbers when they fit in ~20 rows
 (top-N lists, yearly series, category splits — rendered from the same model
-arrays), otherwise a link to the source on `data.gov.il` in that section.
-Prefer the table; a link is for genuinely large series.
+arrays). A genuinely large series (daily history, a heatmap, a scatter) is
+instead marked `data-fallback="explorer"` on the chart element: the shell's
+data explorer and download section under every page are its tabular view.
+**No links to data.gov.il** — not per chart, not at the bottom: the shell
+already renders the downloads, and `verify` rejects them.
 
 Constraints that don't move: every `<script>` block < 50KB (aggregate in
 `compute`, never ship rows; one IIFE per chart keeps blocks small), mobile at

@@ -1,11 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "2706952a-a86d-4887-a6a6-6e42d91cba6c",
-  "recipe_version": 2,
+  "recipe_version": 3,
   "authored_at": "2026-10-24T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T12:30:05.423355+00:00",
-    "rows": { "levels": 11371 }
+    "rows": {
+      "levels": 11371
+    }
   },
   "inputs": [
     {

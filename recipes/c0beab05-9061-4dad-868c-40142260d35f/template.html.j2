@@ -137,8 +137,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">נושאי הצווים בכל ענף</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">כל שורה היא ענף; כל תא הוא חלקו של נושא ההפרה מכלל צווי הענף. גוון כהה יותר = חלק גדול יותר.</p>
-  <div id="chart-sec-theme" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.sec_theme_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/c0beab05-9061-4dad-868c-40142260d35f" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-sec-theme" data-fallback="explorer" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.sec_theme_aria }}"></div>
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -188,8 +187,7 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">מספר הצווים בכל חודש. גוון כהה יותר = יותר צווים.</p>
-  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
-  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/c0beab05-9061-4dad-868c-40142260d35f" target="_blank" rel="noopener">data.gov.il</a>.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
 </section>
 
 <script>
