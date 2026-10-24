@@ -315,6 +315,26 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
     assert (out / "content.html").is_file() and (out / "agent_data.json").is_file()
 
 
+def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    t = recipes / DS / "template.html.j2"
+    # Drop the districts chart's source link → that chart has no fallback.
+    t.write_text(t.read_text(encoding="utf-8").replace(
+        'href="https://data.gov.il/dataset/', 'href="https://example.org/'),
+        encoding="utf-8")
+    cov = recipes / DS / "coverage.json"
+    data = json.loads(cov.read_text(encoding="utf-8"))
+    del data["events.חודש"]
+    data["events.מחוז"] = "chart-nope"
+    cov.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    assert author.verify(DS, recipes) == 1
+    out = capsys.readouterr().out
+    assert "NO-FALLBACK: chart #chart-districts" in out
+    assert "events.חודש" in out and "'chart-nope' is not an element id" in out
+
+
 def test_author_verify_rejects_order_dependent_recipe(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     recipes = tmp_path / "recipes"
