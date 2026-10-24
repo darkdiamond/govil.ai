@@ -296,13 +296,24 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
+    # More orders than the prior 12 months = more hazards found (caution);
+    # fewer is notable but not clearly good (could be less enforcement).
+    recent_tone = "brand"
+    if len(prev):
+        ch = (len(recent) - len(prev)) / len(prev)
+        recent_tone = "warn" if ch >= 0.10 else "info" if ch <= -0.10 else "brand"
+    n_sites = int(df.loc[df["work"] != "", "work"].nunique())
+    n_cities = int(df.loc[df["city"] != "", "city"].nunique())
     kpis = {
-        "total": {"value": len(df), "display": _int(len(df))},
-        "recent": {"value": len(recent), "display": _int(len(recent))},
-        "sites": {"value": int(df.loc[df["work"] != "", "work"].nunique()),
-                  "display": _int(df.loc[df["work"] != "", "work"].nunique())},
-        "cities": {"value": int(df.loc[df["city"] != "", "city"].nunique()),
-                   "display": _int(df.loc[df["city"] != "", "city"].nunique())},
+        "total": {"value": len(df), "display": _int(len(df)), "tone": "brand",
+                  "label": "צווי בטיחות במאגר"},
+        "recent": {"value": len(recent), "display": _int(len(recent)), "tone": recent_tone,
+                   "label": ("צווים ב-12 החודשים האחרונים"
+                             + (f" (לעומת {_int(len(prev))} בשנה שלפניהם)" if len(prev) else ""))},
+        "sites": {"value": n_sites, "display": _int(n_sites), "tone": "brand",
+                  "label": "אתרי עבודה שקיבלו צו"},
+        "cities": {"value": n_cities, "display": _int(n_cities), "tone": "brand",
+                   "label": "יישובים"},
     }
 
     year_table = [{"year": str(y), "n": _int(v)} for y, v in yearly.items()]
@@ -350,7 +361,6 @@ def compute(frames):
                       "מבצעים שהם אנשים פרטיים או שלא צוינו אינם מדורגים."),
         "heat_aria": f"מפת חום: מספר הצווים לפי חודש ושנה, {y0} עד {y1}.",
         "year_caption": f"מספר צווי הבטיחות לפי שנה, {y0} עד {y1}.",
-        "recent_kpi": f"צווים ב-12 החודשים האחרונים",
         "laws_aria": (f"תרשים עמודות אופקי: {min(TOP_LAWS, len(top_laws))} החיקוקים שעליהם "
                       "מבוססים הכי הרבה צווים."),
         "laws_note": (f"החיקוק שעליו נשען הצו. ב-{_int(len(df) - len(cited))} צווים "

@@ -1,11 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "029b6747-551b-47ad-9a05-ef7f7868fcd0",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-10-24T18:10:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T14:14:11.633314+00:00",
-    "rows": { "applications": 286200 }
+    "rows": {
+      "applications": 286200
+    }
   },
   "inputs": [
     {

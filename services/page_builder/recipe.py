@@ -120,10 +120,17 @@ class RecipeManifest(BaseModel):
         return self
 
 
+KpiTone = Literal["brand", "ok", "warn", "info", "danger"]
+
+
 class Kpi(BaseModel):
     model_config = ConfigDict(extra="allow")
     value: Any = None
     display: str
+    # Validated here, not only in author verify: a tone branch that only
+    # fires on some future data state must fail the refresh (page kept,
+    # issue opened), not ship an uncoloured `text-<typo>` KPI.
+    tone: Optional[KpiTone] = None
 
 
 class Insight(BaseModel):
@@ -360,6 +367,44 @@ def lint_template(template_src: str, allow: list[str] = ()) -> list[str]:
             "listed in recipe.json lint_allow_numbers"
         )
     return findings
+
+
+# ── KPI card format ──────────────────────────────────────────────────────
+# Published look: a bare number in a dir="ltr" box (real minus U+2212, no
+# bidi-isolate characters), units in the label below, colour from a
+# data-driven tone. Hebrew in the value is limited to a short magnitude
+# suffix (מ׳, אלף). Shared by `author verify` (fails) and the nightly
+# refresh (reported), since a display can drift with the data.
+_KPI_VALUE_RE = re.compile(
+    r'<div\b([^>]*\bclass="(?=[^"]*\btext-(?:xl|[2-5]xl)\b)(?=[^"]*\bfont-bold\b)'
+    r'[^"]*"[^>]*)>(.*?)</div>',
+    re.DOTALL,
+)
+_KPI_TONE_RE = re.compile(r"\btext-(?:brand|ok|warn|info|danger)\b")
+_HEB_WORD_RE = re.compile(r"[א-ת][א-ת׳״\"']*")
+
+
+def kpi_format_findings(html: str) -> list[str]:
+    out = []
+    for m in _KPI_VALUE_RE.finditer(html):
+        attrs, value = m.group(1), re.sub(r"<[^>]+>", "", m.group(2)).strip()
+        where = f"KPI {value[:30]!r}"
+        # A bare count reads fine either way; a sign, range, ratio or time
+        # does not ("2014–2026" displays reversed in an RTL paragraph).
+        if re.search(r"[−\-–+/:]", value) and 'dir="ltr"' not in attrs:
+            out.append(f'KPI-FORMAT: {where} needs dir="ltr" on the value box')
+        if not _KPI_TONE_RE.search(attrs):
+            out.append(f"KPI-FORMAT: {where} colour must be one of text-brand, "
+                       "text-ok, text-warn, text-info, text-danger")
+        if re.search("[⁦-⁩‎‏]", value):
+            out.append(f'KPI-FORMAT: {where} contains bidi marks — dir="ltr" handles direction')
+        if re.search(r"(?<![\w.])-\d", value):
+            out.append(f"KPI-FORMAT: {where} uses '-' — use the minus sign '−' (U+2212)")
+        words = _HEB_WORD_RE.findall(value)
+        if len(words) > 1 or any(len(w.strip("׳״\"'")) > 3 for w in words) or "₪" in value:
+            out.append(f"KPI-FORMAT: {where} carries a unit/word — keep the number bare "
+                       "(a short suffix like מ׳ is fine) and put units in the label")
+    return out
 
 
 def dump_model(model: dict) -> str:

@@ -1,11 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "246d949c-a253-4811-8a11-41a137d3d613",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-10-24T19:15:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T01:14:00+00:00",
-    "rows": { "companies": 732595 }
+    "rows": {
+      "companies": 732595
+    }
   },
   "inputs": [
     {

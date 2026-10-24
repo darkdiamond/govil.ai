@@ -40,6 +40,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     dump_model,
+    kpi_format_findings,
     lint_template,
 )
 from .refresh import fetch_inputs, render_page, run_compute
@@ -466,6 +467,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
                      f"{len(page.content_html):,} bytes")
         problems += _fallback_findings(page.content_html)
         problems += _source_link_findings(page.content_html)
+        problems += kpi_format_findings(page.content_html)
         explorer = _explorer_marked(page.content_html)
         if explorer:
             # Visible opt-outs: each should be a genuinely large series.

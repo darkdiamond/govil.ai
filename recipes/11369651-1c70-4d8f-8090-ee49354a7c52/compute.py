@@ -166,6 +166,17 @@ def compute(frames):
             "max": int(hm.max()) if len(hm) else 0}
 
     last_30 = int((df["date"] > ref - pd.Timedelta(days=30)).sum())
+    # Typical 30-day volume over the 12 months before that window: the tone
+    # flags an unusually slow (warn) or busy (info) recent month.
+    prior_year = df["date"].between(ref - pd.Timedelta(days=395), ref - pd.Timedelta(days=30),
+                                    inclusive="right")
+    typical_30 = int(round(prior_year.sum() / 12.17)) if prior_year.any() else 0
+    if typical_30 and last_30 < 0.75 * typical_30:
+        last_30_tone = "warn"
+    elif typical_30 and last_30 > 1.25 * typical_30:
+        last_30_tone = "info"
+    else:
+        last_30_tone = "brand"
     rules = [
         ("volume", insight_volume(df, vehicles, ref)),
         ("month_yoy", insight_month_yoy(df, ref)),
@@ -190,11 +201,14 @@ def compute(frames):
             "temporal_coverage": f"{df['date'].min().strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
         },
         "kpis": {
-            "vehicles": {"value": vehicles, "display": _int(vehicles)},
-            "tags": {"value": len(df), "display": _int(len(df))},
-            "last_30": {"value": last_30, "display": _int(last_30),
-                        "label": "תגים שהונפקו ב-30 הימים האחרונים"},
-            "as_of": {"value": ref.strftime("%Y-%m-%d"), "display": _d_he(ref)},
+            "vehicles": {"value": vehicles, "display": _int(vehicles), "tone": "brand"},
+            "tags": {"value": len(df), "display": _int(len(df)), "tone": "brand"},
+            "last_30": {"value": last_30, "display": _int(last_30), "tone": last_30_tone,
+                        "label": (f"תגים שהונפקו ב-30 הימים האחרונים (בשנה שקדמה: "
+                                  f"כ-{_int(typical_30)} ל-30 יום)" if typical_30
+                                  else "תגים שהונפקו ב-30 הימים האחרונים")},
+            "as_of": {"value": ref.strftime("%Y-%m-%d"), "display": ref.strftime("%d.%m.%Y"),
+                      "tone": "brand"},
         },
         "charts": {
             "monthly": m_chart,

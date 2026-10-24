@@ -243,18 +243,32 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     best = flag_now.iloc[0] if len(flag_now) else None
+    # Median flagship rate now vs at the start of the window: for savers a
+    # rise is good (green), a fall of 0.05pp or more calls for caution.
+    med_now = float(flag_now["fixed"].median()) if len(flag_now) else None
+    start = flag[flag["d"] == d0]["fixed"]
+    med_start = float(start.median()) if len(start) and d0 != d1 else None
+    if med_now is None or med_start is None or abs(med_now - med_start) < 0.05:
+        median_tone = "brand"
+    else:
+        median_tone = "ok" if med_now > med_start else "warn"
     kpis = {
+        # The best available flagship rate is the good news for savers.
         "best": {"value": None if best is None else float(best["fixed"]),
-                 "display": "—" if best is None else pct(best["fixed"])},
+                 "display": "—" if best is None else pct(best["fixed"]), "tone": "ok"},
         "best_bank": {"value": None if best is None else best["bank"],
                       "display": "—" if best is None else best["bank"]},
-        "median": {"value": float(flag_now["fixed"].median()) if len(flag_now) else None,
-                   "display": pct(flag_now["fixed"].median()) if len(flag_now) else "—"},
-        "banks": {"value": len(banks), "display": f"{len(banks)}"},
-        "as_of": {"value": d1.strftime("%Y-%m-%d"), "display": d_he(d1)},
+        "median": {"value": med_now, "display": pct(med_now) if med_now is not None else "—",
+                   "tone": median_tone},
+        "banks": {"value": len(banks), "display": f"{len(banks)}", "tone": "brand"},
+        "as_of": {"value": d1.strftime("%Y-%m-%d"),
+                  "display": f"{d1.day}.{d1.month}.{d1.year}", "tone": "brand"},
     }
+    median_kpi_label = ("ריבית חציונית בין הבנקים"
+                        + (f" (בתחילת התקופה: {pct(med_start)})" if med_start is not None else ""))
 
     labels = {
+        "median_kpi": median_kpi_label,
         "lede": (f"ריביות פיקדונות \"חיסכון לכל ילד\" ב-{len(banks)} בנקים, כפי שפורסמו "
                  f"ב-{len(dates)} מועדים מ-{d_he(d0)} ועד {d_he(d1)}. מסלול הדגל בעמוד: "
                  f"תינוק בגיל {FLAG_AGE}, הפקדה ללא תחנות יציאה."),

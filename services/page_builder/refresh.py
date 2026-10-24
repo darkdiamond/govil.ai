@@ -50,6 +50,7 @@ from .recipe import (
     RECIPE_FILES,
     Recipe,
     RecipeError,
+    kpi_format_findings,
     render_template,
     resolve_inputs,
     validate_model,
@@ -381,6 +382,9 @@ class RenderedPage:
     content_html: str
     agent_data: dict
     model: dict
+    # Cosmetic drift (KPI format) reported, not fatal: the page is correct,
+    # just not in house style, and failing the refresh would freeze data.
+    warnings: list = field(default_factory=list)
 
 
 def inputs_context(inputs: dict[str, list[FetchedInput]]) -> dict:
@@ -412,7 +416,10 @@ def render_page(
             )
         except RuntimeError as e:
             raise RecipeError(str(e)) from e
-    return RenderedPage(content_html=html, agent_data=agent_data, model=raw_model)
+    return RenderedPage(
+        content_html=html, agent_data=agent_data, model=raw_model,
+        warnings=kpi_format_findings(html),
+    )
 
 
 def build_page(
@@ -542,7 +549,11 @@ def refresh_one(
             k: (v or {}).get("display") for k, v in (page.model.get("kpis") or {}).items()
         },
         "insights": [i.get("text_he") for i in page.model.get("insights") or []],
+        "warnings": page.warnings,
     }
+    if page.warnings:
+        log.warning("refresh %s: %d format warning(s): %s", src.id[:8],
+                    len(page.warnings), "; ".join(page.warnings)[:500])
     previous = (previous_state or {}).get("last_snapshot")
     prefix = "preview/datasets" if preview else "datasets"
     write_gcs(

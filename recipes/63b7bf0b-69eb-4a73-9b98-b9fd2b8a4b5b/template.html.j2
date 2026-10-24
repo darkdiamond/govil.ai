@@ -10,19 +10,19 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.rate_last.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.rate_last.tone }} mb-1" dir="ltr">{{ model.kpis.rate_last.display }}</div>
     <div class="text-sm text-subtle">שיעור ביצוע · {{ model.kpis.month_last.display }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.rate12.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.rate12.tone }} mb-1" dir="ltr">{{ model.kpis.rate12.display }}</div>
     <div class="text-sm text-subtle">שיעור ביצוע ב-12 החודשים האחרונים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cancel12.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.cancel12.tone }} mb-1" dir="ltr">{{ model.kpis.cancel12.display }}</div>
     <div class="text-sm text-subtle">נסיעות שבוטלו ב-12 החודשים האחרונים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.extra12.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.extra12.tone }} mb-1" dir="ltr">{{ model.kpis.extra12.display }}</div>
     <div class="text-sm text-subtle">נסיעות שבוצעו ללא תכנון</div>
   </div>
 </div>

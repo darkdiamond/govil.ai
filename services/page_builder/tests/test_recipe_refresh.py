@@ -361,6 +361,63 @@ def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, cap
     assert "(typo or stale): events.typo" in out
 
 
+def _kpi(value, cls="text-brand", ltr=True):
+    d = ' dir="ltr"' if ltr else ""
+    return f'<div class="text-3xl font-bold {cls} mb-1"{d}>{value}</div>'
+
+
+@pytest.mark.parametrize("html, problem", [
+    (_kpi("1,695", ltr=False), None),            # bare count: no dir needed
+    (_kpi("−213.72"), None),
+    (_kpi("432.9 מ׳"), None),                    # short magnitude suffix
+    (_kpi("45.2%", "text-danger"), None),
+    (_kpi("2014–2026", ltr=False), 'needs dir="ltr"'),
+    (_kpi("-6.3%"), "minus sign"),
+    (_kpi("⁦-213.72⁩ מ'"), "bidi marks"),
+    (_kpi("432.9 מיליון ₪"), "carries a unit"),
+    (_kpi("1,567", "text-ink"), "colour must be"),
+    (_kpi("+0.76%", ltr=False), 'needs dir="ltr"'),       # leading plus flips in RTL
+    # Class order and size don't let a value escape the check.
+    ('<div class="font-bold text-brand text-4xl">432.9 מיליון ₪</div>', "carries a unit"),
+])
+def test_kpi_format(html, problem):
+    from services.page_builder.recipe import kpi_format_findings
+
+    out = kpi_format_findings(html)
+    assert (not out) if problem is None else any(problem in f for f in out), out
+
+
+def test_kpi_tone_is_validated_at_refresh():
+    """A tone outside the palette fails the page model (so the refresh keeps
+    the old page) instead of rendering an uncoloured text-<typo> KPI."""
+    raw = {"agent_data": {"summary_he": "x", "dataset_kind": "misc", "suggested_tags": ["a"]},
+           "kpis": {"k": {"display": "1", "tone": "good"}}}
+    m = RecipeManifest.model_validate({
+        "dataset_id": DS, "recipe_version": 1, "authored_at": "2026-10-24T00:00:00Z",
+        "inputs": [{"name": "x", "by_id": RID}], "min_insights": 0})
+    from services.page_builder.recipe import validate_model
+
+    with pytest.raises(RecipeError):
+        validate_model(raw, m)
+    raw["kpis"]["k"]["tone"] = "danger"
+    validate_model(raw, m)
+
+
+def test_refresh_reports_kpi_format_drift(env, tmp_path):
+    """A display that drifts out of house style on new data is reported on
+    the snapshot (page still ships), not silently published."""
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    t = recipes / DS / "template.html.j2"
+    t.write_text(t.read_text(encoding="utf-8").replace(
+        "{{ model.kpis.total.display }}", "{{ model.kpis.total.display }} ₪"), encoding="utf-8")
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["refreshed"] == [DS]
+    warnings = store.states[(DS, True)]["last_snapshot"]["warnings"]
+    assert any("carries a unit" in w for w in warnings)
+
+
 @pytest.mark.parametrize("line, impure", [
     ('t = pd.Timestamp("today")', True),
     ('pd.to_datetime("now")', True),

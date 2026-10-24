@@ -287,15 +287,31 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     electric_total = int(df["drive"].isin(ELECTRIC).sum())
+    fleet_share = electric_total / total * 100
+    new_reg = df[df["reg"].dt.year == last_full]
+    new_share = (new_reg["drive"].isin(ELECTRIC).mean() * 100) if len(new_reg) else None
+    # Direction of electrification: the last full year's registrations vs
+    # the whole active fleet — green while new machines are more electric
+    # than the fleet, amber if they are less, neutral info when similar.
+    if new_share is None or abs(new_share - fleet_share) < 3:
+        electric_tone = "info"
+    else:
+        electric_tone = "ok" if new_share > fleet_share else "warn"
     kpis = {
-        "total": {"value": total, "display": n(total)},
-        "types": {"value": int(types.size), "display": n(types.size)},
-        "makers": {"value": int(makers.size), "display": n(makers.size)},
-        "electric": {"value": electric_total, "display": pct(electric_total / total * 100)},
+        "total": {"value": total, "display": n(total), "tone": "brand"},
+        "types": {"value": int(types.size), "display": n(types.size), "tone": "brand"},
+        "makers": {"value": int(makers.size), "display": n(makers.size), "tone": "brand"},
+        "electric": {"value": electric_total, "display": f"{fleet_share:.1f}%",
+                     "tone": electric_tone},
     }
+    electric_kpi_label = (
+        "מהכלים בהנעה חשמלית"
+        + (f" ({new_share:.1f}% מהרישומים ב-{last_full})" if new_share is not None else "")
+    )
 
     partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
     labels = {
+        "electric_kpi": electric_kpi_label,
         "lede": (f"מרשם כלי הצמ\"ה הפעילים של משרד התחבורה: {n(total)} כלים מ-{types.size} "
                  f"סוגים ו-{n(makers.size)} יצרני שלדה. הרישום האחרון במאגר: {d_he(ref)}."),
         "reg_note": (f"כלים פעילים לפי שנת הרישום בישראל, מ-{TREND_FROM}. כלים שהורדו מהכביש "

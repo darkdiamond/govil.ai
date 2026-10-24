@@ -10,20 +10,20 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
     <div class="text-sm text-subtle">כלי רכב פעילים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.used.display }}</div>
-    <div class="text-sm text-subtle">יובאו כמשומשים</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.used.tone }} mb-1" dir="ltr">{{ model.kpis.used.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.used_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.median_year.display }}</div>
-    <div class="text-sm text-subtle">חציון שנת הייצור</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.median_year.tone }} mb-1" dir="ltr">{{ model.kpis.median_year.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.electrified.display }}</div>
-    <div class="text-sm text-subtle">חשמליים והיברידיים</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.electrified.tone }} mb-1" dir="ltr">{{ model.kpis.electrified.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.elec_kpi }}</div>
   </div>
 </div>
 

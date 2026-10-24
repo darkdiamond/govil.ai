@@ -23,6 +23,13 @@ def cm(v):
     return f"{abs(v) * 100:,.0f}"
 
 
+def kv(v, digits=2, signed=False):
+    """A KPI value: bare number, real minus sign (U+2212), no bidi marks —
+    the value box is dir=ltr and the unit lives in the label."""
+    s = f"{v:+,.{digits}f}" if signed else f"{v:,.{digits}f}"
+    return s.replace("-", "−")
+
+
 def signed_cm(v):
     sign = "+" if v > 0 else "-" if v < 0 else ""
     return f"{LRI}{sign}{cm(v)}{PDI} ס״מ"
@@ -217,15 +224,40 @@ def compute(frames):
     d12 = _on_or_before(df, last["d"] - pd.Timedelta(days=365))
     recent10 = annual[-10:]
     rate10 = sum(v for _, v in recent10) / len(recent10) if recent10 else None
+    change12 = None if d12 is None else float(last["lvl"] - d12["lvl"])
+    rate_all = sum(v for _, v in annual) / len(annual) if annual else None
+    total_change = float(last["lvl"] - first["lvl"])
+    # Level: red at (within 5 cm of) the record low, amber while still
+    # falling over 12 months, green once the year-on-year change is a rise.
+    if last["lvl"] <= df["lvl"].min() + 0.05:
+        level_tone = "danger"
+    elif change12 is not None and change12 < 0:
+        level_tone = "warn"
+    else:
+        level_tone = "ok"
+    # 12-month change and decade pace: a rise is green; a fall is amber,
+    # red when the recent pace is 10+ cm/yr faster than the long-run mean.
+    d12_tone = ("brand" if change12 is None or abs(change12) < 0.01
+                else "ok" if change12 > 0 else "danger")
+    if rate10 is None:
+        rate_tone = "brand"
+    elif rate10 >= 0:
+        rate_tone = "ok"
+    elif rate_all is not None and rate10 < rate_all - 0.10:
+        rate_tone = "danger"
+    else:
+        rate_tone = "warn"
     kpis = {
-        "level": {"value": float(last["lvl"]), "display": f"{m(last['lvl'])} מ'"},
+        "level": {"value": float(last["lvl"]), "display": kv(last["lvl"]), "tone": level_tone},
         "as_of": {"value": last["d"].strftime("%Y-%m-%d"), "display": d_he(last["d"])},
-        "d12": {"value": None if d12 is None else float(last["lvl"] - d12["lvl"]),
-                "display": "—" if d12 is None else signed_cm(last["lvl"] - d12["lvl"])},
+        "d12": {"value": change12,
+                "display": "—" if change12 is None else kv(change12 * 100, 0, signed=True),
+                "tone": d12_tone},
         "rate10": {"value": rate10,
-                   "display": "—" if rate10 is None else f"{signed_cm(rate10)} לשנה"},
-        "total": {"value": float(last["lvl"] - first["lvl"]),
-                  "display": f"{LRI}{last['lvl'] - first['lvl']:.2f}{PDI} מ'"},
+                   "display": "—" if rate10 is None else kv(rate10 * 100, 0, signed=True),
+                   "tone": rate_tone},
+        "total": {"value": total_change, "display": kv(total_change, signed=True),
+                  "tone": "danger" if total_change < 0 else "ok"},
     }
 
     y0, y1 = int(first["d"].year), int(last["d"].year)
@@ -233,8 +265,9 @@ def compute(frames):
     labels = {
         "lede": (f"מדידות מפלס ים המלח מ-{d_he(first['d'])} ועד {d_he(last['d'])} — "
                  f"{len(df):,} מדידות, כמעט אחת לחודש. המדידה האחרונה: {m(last['lvl'])} מ'."),
-        "rate10_label": f"קצב ממוצע {span10}",
-        "total_label": f"שינוי מאז {y0}",
+        "rate10_label": f"ס״מ לשנה — קצב ממוצע {span10}",
+        "total_label": f"מטר — שינוי מאז {y0}",
+        "level_kpi": f"מטר — מפלס אחרון, {d_he(last['d'])}",
         "history_aria": f"גרף קו: מפלס ים המלח החודשי, {y0} עד {y1}.",
         "recent_aria": f"גרף קו: מפלס ים המלח ב-{len(recent_m)} החודשים האחרונים.",
         "annual_aria": f"תרשים עמודות: שינוי המפלס בכל אחת מ-{len(annual)} השנים המלאות, בס״מ.",

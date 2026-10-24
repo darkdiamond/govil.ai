@@ -273,11 +273,18 @@ def compute(frames):
     n_no_xy = int((lat.isna() | lng.isna()).sum())
 
     accessible = float((act["Handicap_Access"] == "כן").mean()) if n_act else 0.0
+    # Accessibility is a legal duty: near-universal is good, gaps are not.
+    acc_tone = "ok" if accessible >= 0.95 else "warn" if accessible >= 0.80 else "danger"
     kpis = {
-        "active": {"value": n_act, "display": _int(n_act)},
-        "banks": {"value": int(banks.size), "display": _int(banks.size)},
-        "cities": {"value": int(cities.size), "display": _int(cities.size)},
-        "accessible": {"value": accessible, "display": _pct(accessible)},
+        "active": {"value": n_act, "display": _int(n_act), "tone": "brand",
+                   "label": "סניפים פעילים"},
+        "banks": {"value": int(banks.size), "display": _int(banks.size), "tone": "brand",
+                  "label": "בנקים וגופים בנקאיים"},
+        "cities": {"value": int(cities.size), "display": _int(cities.size), "tone": "brand",
+                   "label": "יישובים עם סניף"},
+        "accessible": {"value": accessible, "display": _pct(accessible), "tone": acc_tone,
+                       "label": f"מהסניפים הפעילים מסומנים כנגישים "
+                                f"({_int(n_act - round(accessible * n_act))} אינם)"},
     }
 
     labels = {

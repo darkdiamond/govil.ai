@@ -180,7 +180,7 @@ Return:
     "temporal_coverage": "2019/2026",   # computed, optional
     "spatial_coverage": "...",          # optional
   },
-  "kpis": {"total": {"value": 1695, "display": "1,695"}, ...},
+  "kpis": {"total": {"value": 1695, "display": "1,695", "tone": "brand"}, ...},
   "charts": {"by_year": {"x": [...], "y": [...]}, ...},
   "insights": [{"id": "trend", "text_he": "..."}, ...],
   # anything else the template needs: "labels" (aria-labels, chart ledes),
@@ -214,6 +214,36 @@ that inspects the data and returns a Hebrew sentence or `None`:
   ordering/mapping known codes — with a fallback for unknown ones).
 - Explicit, total sorts (stable sort with full tie-break keys): `verify`
   shuffles the rows and requires identical output.
+
+### KPI cards — match the published look
+
+```html
+<div class="card p-4 text-center">
+  <div
+    class="text-3xl font-bold text-{{ model.kpis.level.tone }} mb-1"
+    dir="ltr"
+  >
+    {{ model.kpis.level.display }}
+  </div>
+  <div class="text-sm text-subtle">{{ model.labels.level_kpi }}</div>
+</div>
+```
+
+- **`display` is a bare number:** `1,695`, `−213.72` (minus sign U+2212,
+  never `-`), `45.2%`, `2014–2026`, `432.9 מ׳`. Units and context go in the
+  label: "סך העיצומים (מיליון ₪)", "מפלס נוכחי, מ' מתחת לפני הים (22.10.2026)".
+  No `₪`/unit words and no bidi-isolate characters in the value; `dir="ltr"`
+  on the value box handles direction. `verify` enforces this (KPI-FORMAT).
+- **`tone` carries meaning, computed from the data** — `brand` for neutral
+  counts/sizes; `ok` for a good state (recovering, above a target, record
+  high where high is good); `warn` for caution (approaching a threshold,
+  partial/degrading); `danger` for a bad state (below a red line, a sharp
+  fall, a record low where low is bad); `info` for notable-but-neutral
+  context. Because it is computed, the colour flips when the data does
+  (Kinneret's level turns `danger` below the lower red line and `ok` once
+  it recovers). Aim for colour where the KPI has a direction — the published
+  pages colour roughly a third of their KPIs; a page of four neutral counts
+  stays all `brand`.
 
 ### `template.html.j2`
 

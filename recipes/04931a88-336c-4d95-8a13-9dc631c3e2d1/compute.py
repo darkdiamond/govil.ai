@@ -247,11 +247,19 @@ def compute(frames):
 
     with_xy = int(df["has_xy"].sum())
     n_bad = int(df["bad_xy"].sum())
+    mapped = with_xy / total if total else 0
+    # Map coverage is data completeness: most sites missing is a caution.
+    mapped_tone = "ok" if mapped >= 0.90 else "info" if mapped >= 0.60 else "warn"
+    n_settle = int(df["settlement"].nunique())
     kpis = {
-        "total": {"value": total, "display": _int(total)},
-        "settlements": {"value": int(df["settlement"].nunique()), "display": _int(df["settlement"].nunique())},
-        "groups": {"value": int(groups.size), "display": _int(groups.size)},
-        "mapped": {"value": with_xy / total if total else 0, "display": _pct(with_xy / total if total else 0)},
+        "total": {"value": total, "display": _int(total), "tone": "brand",
+                  "label": "אתרים במאגר"},
+        "settlements": {"value": n_settle, "display": _int(n_settle), "tone": "brand",
+                        "label": "יישובים"},
+        "groups": {"value": int(groups.size), "display": _int(groups.size), "tone": "brand",
+                   "label": "תחומי פעילות"},
+        "mapped": {"value": mapped, "display": _pct(mapped), "tone": mapped_tone,
+                   "label": f"מהאתרים עם מיקום במפה ({_int(with_xy)} אתרים)"},
     }
 
     test_note = f" לא נכללו {_int(n_test)} רשומות של מחוז הבדיקות." if n_test else ""

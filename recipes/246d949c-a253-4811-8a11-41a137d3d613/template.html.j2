@@ -27,23 +27,23 @@
 
 <div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
     <div class="text-sm text-subtle">חברות שנרשמו אי-פעם</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.active.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
     <div class="text-sm text-subtle">חברות פעילות</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.last_year.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.last_year.tone }} mb-1" dir="ltr">{{ model.kpis.last_year.display }}</div>
     <div class="text-sm text-subtle">חברות חדשות ב-{{ model.labels.full_year }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.public.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.public.tone }} mb-1" dir="ltr">{{ model.kpis.public.display }}</div>
     <div class="text-sm text-subtle">חברות ציבוריות</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.gov.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.gov.tone }} mb-1" dir="ltr">{{ model.kpis.gov.display }}</div>
     <div class="text-sm text-subtle">חברות ממשלתיות</div>
   </div>
 </div>

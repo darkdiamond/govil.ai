@@ -190,10 +190,12 @@ def compute(frames):
             "temporal_coverage": f"{df['opened'].min().strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
         },
         "kpis": {
-            "vehicles": {"value": vehicles, "display": _int(vehicles)},
-            "pairs": {"value": len(df), "display": _int(len(df))},
-            "campaigns": {"value": campaigns, "display": _int(campaigns)},
-            "takata": {"value": takata_n, "display": _int(takata_n)},
+            "vehicles": {"value": vehicles, "display": _int(vehicles), "tone": "brand"},
+            "pairs": {"value": len(df), "display": _int(len(df)), "tone": "brand"},
+            "campaigns": {"value": campaigns, "display": _int(campaigns), "tone": "brand"},
+            # Any open TAKATA-airbag repair is a safety risk on the road.
+            "takata": {"value": takata_n, "display": _int(takata_n),
+                       "tone": "danger" if takata_n else "ok"},
         },
         "charts": {
             "faults": f_chart,

@@ -217,12 +217,31 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     c12_rate = 1 - last12["cancel"].sum() / last12["plan"].sum()
+    prev12 = complete[(complete.index <= end - 12) & (complete.index > end - 24)]
+    p12_rate = (1 - prev12["cancel"].sum() / prev12["plan"].sum()) if len(prev12) >= 10 else None
+    p12_cancel = int(prev12["cancel"].sum()) if len(prev12) >= 10 else None
+    rate_last = float(complete["rate"].iloc[-1])
+    cancel12 = int(last12["cancel"].sum())
+
+    def rate_tone(r):
+        # ≥98% of planned trips run is good, below 95% is bad, between is caution.
+        return "ok" if r >= 0.98 else "danger" if r < 0.95 else "warn"
+
+    def vs_prev(cur, prev, better_if_higher, tol):
+        if prev is None or abs(cur - prev) <= tol:
+            return "brand"
+        return "ok" if (cur > prev) == better_if_higher else "danger"
+
     kpis = {
-        "rate_last": {"value": float(complete["rate"].iloc[-1]), "display": pct(complete["rate"].iloc[-1])},
+        "rate_last": {"value": rate_last, "display": pct(rate_last), "tone": rate_tone(rate_last)},
         "month_last": {"value": str(end), "display": mlabel(end)},
-        "rate12": {"value": float(c12_rate), "display": pct(c12_rate)},
-        "cancel12": {"value": int(last12["cancel"].sum()), "display": f"{int(last12['cancel'].sum()):,}"},
-        "extra12": {"value": int(last12["extra"].sum()), "display": f"{int(last12['extra'].sum()):,}"},
+        "rate12": {"value": float(c12_rate), "display": pct(c12_rate),
+                   "tone": vs_prev(c12_rate, p12_rate, True, 0.003)},
+        "cancel12": {"value": cancel12, "display": f"{cancel12:,}",
+                     "tone": vs_prev(cancel12, p12_cancel, False,
+                                     0.1 * p12_cancel if p12_cancel else 0)},
+        "extra12": {"value": int(last12["extra"].sum()), "display": f"{int(last12['extra'].sum()):,}",
+                    "tone": "info"},
     }
 
     p0, p1 = mon.index[0], mon.index[-1]

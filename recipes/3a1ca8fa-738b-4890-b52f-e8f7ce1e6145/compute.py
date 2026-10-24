@@ -44,6 +44,13 @@ def num(v, digits=1, signed=False):
     return f"{LRI}{s}{PDI}"
 
 
+def kv(v, digits=1, signed=False, suffix=""):
+    """A KPI value: bare number, real minus sign (U+2212), no bidi marks —
+    the value box is dir=ltr and units live in the label."""
+    s = f"{v:+,.{digits}f}" if signed else f"{v:,.{digits}f}"
+    return s.replace("-", "−") + suffix
+
+
 def short(name):
     return name.replace(' בע"מ', "").replace(" בע״מ", "").strip()
 
@@ -384,14 +391,21 @@ def compute(frames):
 
     last_y = wy.get(last)
     kpis = {
-        "assets": {"value": float(assets[last]), "display": bn(assets[last])},
-        "tracks": {"value": int(cur["fund"].nunique()), "display": f"{cur['fund'].nunique():,}"},
-        "managers": {"value": int(mgr.size), "display": f"{mgr.size:,}"},
+        "assets": {"value": float(assets[last]), "display": kv(assets[last] / 1000),
+                   "tone": "brand"},
+        "tracks": {"value": int(cur["fund"].nunique()), "display": f"{cur['fund'].nunique():,}",
+                   "tone": "brand"},
+        "managers": {"value": int(mgr.size), "display": f"{mgr.size:,}", "tone": "brand"},
+        # Last month's asset-weighted return: green when positive, red when
+        # negative (a flat month stays neutral).
         "month_yield": {"value": None if last_y is None else float(last_y),
-                        "display": "—" if last_y is None else pct(last_y, 2, signed=True)},
+                        "display": "—" if last_y is None else kv(last_y, 2, signed=True, suffix="%"),
+                        "tone": ("brand" if last_y is None or round(last_y, 2) == 0
+                                 else "ok" if last_y > 0 else "danger")},
     }
 
-    kpis["liquid"] = {"value": liq, "display": "—" if liq is None else pct(liq)}
+    kpis["liquid"] = {"value": liq, "display": "—" if liq is None else kv(liq, suffix="%"),
+                      "tone": "info"}
 
     table = [{"name": n, "assets": bn(v), "share": num(v / mgr.sum() * 100)}
              for n, v in mgr.items()]

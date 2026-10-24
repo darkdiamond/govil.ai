@@ -293,13 +293,25 @@ def compute(frames):
 
     safety_share = float((df["SUG_RECALL"] == SAFETY).mean())
     last_full = full[-1] if full else None
+    prev_full = full[-2] if len(full) >= 2 else None
+    # More recalls than the year before is the cautionary direction.
+    lf_tone, lf_label = "brand", ""
+    if last_full is not None:
+        lf_label = f"הודעות ריקול ב-{last_full}"
+        if prev_full is not None and yearly[prev_full]:
+            ratio = yearly[last_full] / yearly[prev_full]
+            lf_label += f" (לעומת {_int(yearly[prev_full])} ב-{prev_full})"
+            lf_tone = "warn" if ratio >= 1.10 else "ok" if ratio <= 0.90 else "brand"
     kpis = {
-        "total": {"value": total, "display": _int(total)},
-        "makers": {"value": int(makers.size), "display": _int(makers.size)},
+        "total": {"value": total, "display": _int(total), "tone": "brand",
+                  "label": "הודעות ריקול במאגר"},
         "last_full": {"value": None if last_full is None else int(yearly[last_full]),
                       "display": "—" if last_full is None else _int(yearly[last_full]),
-                      "label": "" if last_full is None else f"הודעות ב-{last_full}"},
-        "safety": {"value": safety_share, "display": _pct(safety_share)},
+                      "tone": lf_tone, "label": lf_label},
+        "makers": {"value": int(makers.size), "display": _int(makers.size), "tone": "brand",
+                   "label": "יצרני רכב"},
+        "safety": {"value": safety_share, "display": _pct(safety_share), "tone": "info",
+                   "label": "מההודעות הן תקלות סדרתיות בטיחותיות"},
     }
 
     labels = {

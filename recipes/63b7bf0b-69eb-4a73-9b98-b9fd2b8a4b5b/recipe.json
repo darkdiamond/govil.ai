@@ -1,11 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "63b7bf0b-69eb-4a73-9b98-b9fd2b8a4b5b",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-10-24T19:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T10:35:10.014773+00:00",
-    "rows": { "trips": 127358 }
+    "rows": {
+      "trips": 127358
+    }
   },
   "inputs": [
     {

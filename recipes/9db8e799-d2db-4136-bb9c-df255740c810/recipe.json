@@ -1,11 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "9db8e799-d2db-4136-bb9c-df255740c810",
-  "recipe_version": 1,
+  "recipe_version": 2,
   "authored_at": "2026-10-24T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T02:29:00+00:00",
-    "rows": { "prices": 102116 },
+    "rows": {
+      "prices": 102116
+    },
     "note": "CKAN datastore_search reports total=130,885 but serves 102,116 records (_id 1..102116)"
   },
   "inputs": [

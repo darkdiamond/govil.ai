@@ -10,20 +10,20 @@
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
     <div class="text-sm text-subtle">כלים פעילים</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.types.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.types.tone }} mb-1" dir="ltr">{{ model.kpis.types.display }}</div>
     <div class="text-sm text-subtle">סוגי צמ״ה</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.makers.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.makers.tone }} mb-1" dir="ltr">{{ model.kpis.makers.display }}</div>
     <div class="text-sm text-subtle">יצרני שלדה</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.electric.display }}</div>
-    <div class="text-sm text-subtle">כלים בהנעה חשמלית</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.electric.tone }} mb-1" dir="ltr">{{ model.kpis.electric.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.electric_kpi }}</div>
   </div>
 </div>
 

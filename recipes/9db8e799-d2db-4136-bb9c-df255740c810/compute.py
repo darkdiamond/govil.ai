@@ -276,13 +276,23 @@ def compute(frames):
     insights = [{"id": k, "text_he": v} for k, v in rules if v]
 
     p_med = med.get("פרטי")
+    # Price tone follows the LIKE-FOR-LIKE change (same variants, consecutive
+    # model years), not the median, which moves with the mix: ≥2% up is a
+    # cost increase for buyers (warn), ≥2% down is a relief (ok).
+    lfl = l4l.get(last)
+    if lfl and lfl["matched"] >= 100 and abs(lfl["mean"]) >= 2:
+        price_tone = "warn" if lfl["mean"] > 0 else "ok"
+    else:
+        price_tone = "brand"
+    has_med = p_med is not None and last in p_med.index
     kpis = {
-        "entries": {"value": int(len(df)), "display": f"{len(df):,}"},
+        "entries": {"value": int(len(df)), "display": f"{len(df):,}", "tone": "brand"},
         "last_year": {"value": last, "display": str(last)},
-        "current": {"value": int(len(cur)), "display": f"{len(cur):,}"},
-        "importers": {"value": int(imp.size), "display": f"{imp.size:,}"},
-        "median_private": {"value": None if p_med is None or last not in p_med.index else float(p_med[last]),
-                           "display": "—" if p_med is None or last not in p_med.index else k_nis(p_med[last])},
+        "current": {"value": int(len(cur)), "display": f"{len(cur):,}", "tone": "brand"},
+        "importers": {"value": int(imp.size), "display": f"{imp.size:,}", "tone": "brand"},
+        "median_private": {"value": float(p_med[last]) if has_med else None,
+                           "display": f"{p_med[last] / 1000:,.0f}" if has_med else "—",
+                           "tone": price_tone},
     }
 
     charts = {

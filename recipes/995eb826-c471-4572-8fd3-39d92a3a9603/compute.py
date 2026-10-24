@@ -213,6 +213,9 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
     g5 = int(df["g5"].sum())
     med = float(measured["rad"].median()) if len(measured) else 0.0
+    rad_all = df["rad"].dropna()
+    at_threshold = int((rad_all >= 100).sum())
+    rad_max = float(rad_all.max()) if len(rad_all) else 0.0
 
     return {
         "agent_data": {
@@ -225,10 +228,15 @@ def compute(frames):
             "spatial_coverage": "ישראל",
         },
         "kpis": {
-            "sites": {"value": n, "display": _int(n)},
-            "g5": {"value": g5, "display": _pct(g5 / n)},
-            "median_rad": {"value": med, "display": f"{med:.2f}%"},
-            "juris": {"value": int(df["juris"].nunique()), "display": _int(df["juris"].nunique())},
+            "sites": {"value": n, "display": _int(n), "tone": "brand"},
+            "g5": {"value": g5, "display": _pct(g5 / n), "tone": "brand"},
+            "median_rad": {"value": med, "display": f"{med:.2f}%",
+                           "tone": "ok" if med < RAD_HIGH else "warn"},
+            # Sites at or above the health threshold: the number that matters.
+            "at_threshold": {"value": at_threshold, "display": _int(at_threshold),
+                             "tone": "danger" if at_threshold else "ok",
+                             "label": (f"אתרים שבהם נמדדה קרינה בסף הבריאות או מעליו "
+                                       f"(התוצאה הגבוהה ביותר: {rad_max:.1f}% מהסף)")},
         },
         "charts": {
             "operators": o_chart,

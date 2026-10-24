@@ -9,22 +9,12 @@
 </section>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["level", "to_lower_red", "d30", "d365"] %}
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.level.display }}</div>
-    <div class="text-sm text-subtle">מפלס אחרון · {{ model.kpis.as_of.display }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpi_labels[key] }}</div>
   </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.to_lower_red.display }}</div>
-    <div class="text-sm text-subtle">ביחס לקו האדום התחתון · {{ model.kpis.zone.display }}</div>
-  </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.d30.display }}</div>
-    <div class="text-sm text-subtle">שינוי בחודש האחרון</div>
-  </div>
-  <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.d365.display }}</div>
-    <div class="text-sm text-subtle">שינוי בשנה האחרונה</div>
-  </div>
+{%- endfor %}
 </div>
 
 <section class="card p-5 mb-6">

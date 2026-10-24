@@ -29,6 +29,21 @@ def _int(n):
     return f"{int(n):,}"
 
 
+def _swing_tone(cur, prev, threshold=0.10):
+    """KPI colour for a directionless count: info on a big year-over-year swing."""
+    if not prev:
+        return "brand"
+    return "info" if abs(cur - prev) / prev >= threshold else "brand"
+
+
+def _wait_tone(cur, prev, threshold=0.20):
+    """KPI colour for a duration where shorter is better."""
+    if cur is None or not prev:
+        return "brand"
+    change = (cur - prev) / prev
+    return "ok" if change <= -threshold else "warn" if change >= threshold else "brand"
+
+
 def _pct(x, d=0):
     return f"{x * 100:.{d}f}%"
 
@@ -262,10 +277,22 @@ def compute(frames):
             "temporal_coverage": f"{df['received'].min().strftime('%Y-%m-%d')}/{anchor.strftime('%Y-%m-%d')}",
         },
         "kpis": {
-            "total": {"value": n, "display": _int(n)},
-            "last_full": {"value": int(per_year.get(last_full, 0)), "display": _int(per_year.get(last_full, 0))},
-            "justified": {"value": just_rate, "display": "—" if just_rate is None else _pct(just_rate)},
-            "median_days": {"value": med_last, "display": "—" if med_last is None else f"{med_last:.0f} ימים"},
+            "total": {"value": n, "display": _int(n), "tone": "brand"},
+            # Complaint volume has no good/bad direction: a ≥10% swing vs the
+            # year before is flagged as notable (info).
+            "last_full": {"value": int(per_year.get(last_full, 0)),
+                          "display": _int(per_year.get(last_full, 0)),
+                          "tone": _swing_tone(int(per_year.get(last_full, 0)),
+                                              int(per_year.get(last_full - 1, 0)))},
+            # A complaint found justified means a public body failed its FOI
+            # duty: a majority is bad, 40%+ is caution.
+            "justified": {"value": just_rate, "display": "—" if just_rate is None else _pct(just_rate),
+                          "tone": "brand" if just_rate is None else
+                          "danger" if just_rate >= 0.6 else "warn" if just_rate >= 0.4 else "ok"},
+            # Handling time: shorter is better, ±20% vs the year before.
+            "median_days": {"value": med_last, "display": "—" if med_last is None else f"{med_last:.0f}",
+                            "tone": _wait_tone(med_last, float(med_year[last_full - 1])
+                                               if (last_full - 1) in med_year.index else None)},
         },
         "charts": {"volume": volume, "bodies": bodies_chart, "just_body": just_body, "decisions": dec_year,
                    "topics": topics_chart, "ctype": ctype_chart, "orgs": orgs_chart,
@@ -284,7 +311,7 @@ def compute(frames):
         "insights": insights,
         "labels": {
             "last_full_label": f"תלונות ב-{last_full}",
-            "median_label": f"חציון משך טיפול ({last_full})",
+            "median_label": f"חציון ימי טיפול בתלונה ({last_full})",
             "lede": (f"{_int(n)} תלונות מ-{d_he(df['received'].min())} ועד {d_he(anchor)}, משני קבצים: "
                      f"ארכיון עד אפריל 2021 ומאגר שוטף מאז. {_int(open_now)} תלונות עדיין בטיפול."),
             "volume_note": f"תלונות לפי רבעון קבלה. {cur} חלקית — עד {d_he(anchor)}.",
