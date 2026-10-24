@@ -1,0 +1,192 @@
+<h1>מפעלים ואתרים סביבתיים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">אתרים במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.settlements.display }}</div>
+    <div class="text-sm text-subtle">יישובים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.groups.display }}</div>
+    <div class="text-sm text-subtle">תחומי פעילות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.mapped.display }}</div>
+    <div class="text-sm text-subtle">מהאתרים עם מיקום במפה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת האתרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי הפעילות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treemap_note }}</p>
+  <div id="chart-treemap" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.treemap_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+      <thead><tr><th scope="col">תחום</th><th scope="col">אתרים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.groups %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אתרים לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר האתרים בכל מחוז, ומהם כמה עם נקודת ציון.</p>
+    <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רשויות מקומיות מובילות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הרשויות עם מספר האתרים הגבוה ביותר.</p>
+    <div id="chart-auth" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הפעילות הנפוצים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">לפי תיאור הפעילות המפורט כפי שהוא רשום במאגר.</p>
+  <div id="chart-acts" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.acts_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל הפעילות בכל מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור כל תחום מתוך האתרים במחוז — כך אפשר להשוות מחוזות בגדלים שונים.</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">רשימת האתרים המלאה זמינה בטבלת הנתונים שבהמשך העמוד ולהורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/04931a88-336c-4d95-8a13-9dc631c3e2d1" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.sites[0].id | tojson }},
+    latField: "Nekudat_Tsiun_Y",
+    lngField: "Nekudat_Tsiun_X",
+    projection: "itm",
+    popupTitleField: "Shem_Atar_Svivati",
+    popupFields: [
+      { field: "mehute_Atar", label: "מהות האתר" },
+      { field: "Yeshuv", label: "יישוב" },
+      { field: "Rashut_Mekomit", label: "רשות מקומית" },
+      { field: "Machoz", label: "מחוז" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 160, overflow: "truncate" } },
+        series: [{ type: "bar", data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-acts", {{ model.charts.acts | tojson }});
+    hbar("chart-auth", {{ model.charts.auth | tojson }});
+
+    var d = {{ model.charts.districts | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-districts"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "t", name: "עם מיקום", data: d.with_xy },
+        { type: "bar", stack: "t", name: "בלי מיקום", data: d.without_xy, itemStyle: { color: "#c3cfe7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var t = {{ model.charts.treemap | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-treemap"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) { return p.name + ": " + p.value.toLocaleString("he-IL"); } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: false,
+                 breadcrumb: { show: false }, width: "100%", height: "100%",
+                 label: { show: true, formatter: "{b}", overflow: "truncate" },
+                 levels: [{ colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 2, gapWidth: 2 } }] }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-heat"));
+    c3.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.groups[p.value[1]] + " · " + h.districts[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3] + ")";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.districts, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.groups, splitArea: { show: true }, axisLabel: { width: 140, overflow: "truncate" } },
+      visualMap: {
+        dimension: 2, min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>

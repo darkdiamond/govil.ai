@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3a1ca8fa-738b-4890-b52f-e8f7ce1e6145",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T04:00:50.614219+00:00",
+    "rows": { "reports": 31364 }
+  },
+  "inputs": [
+    {
+      "name": "reports",
+      "by_schema": [
+        "FUND_ID",
+        "FUND_NAME",
+        "MANAGING_CORPORATION",
+        "FUND_CLASSIFICATION",
+        "REPORT_PERIOD",
+        "TOTAL_ASSETS",
+        "MONTHLY_YIELD",
+        "YEAR_TO_DATE_YIELD",
+        "AVG_ANNUAL_MANAGEMENT_FEE",
+        "AVG_DEPOSIT_FEE",
+        "NET_MONTHLY_DEPOSITS"
+      ],
+      "concat": true
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["12 חודשים"]
+}

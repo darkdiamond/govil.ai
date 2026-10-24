@@ -212,6 +212,10 @@ compiles classes from published bodies at build time, so a new arbitrary
 value (`h-[520px]`) works on the site but is missing from the live CSS that
 `preview render` borrows — the chart then collapses to 0px in the preview.
 
+Heatmap cells with extra fields (`[x, y, value, count]`): set
+`visualMap.dimension: 2`. ECharts otherwise colours by the LAST element,
+so a count column silently drives the colour scale.
+
 ## 6. Look at it
 
 ```bash

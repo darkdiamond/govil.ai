@@ -1,0 +1,192 @@
+<h1>כלי צמ״ה (ציוד מכני הנדסי)</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">כלים פעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.types.display }}</div>
+    <div class="text-sm text-subtle">סוגי צמ״ה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.makers.display }}</div>
+    <div class="text-sm text-subtle">יצרני שלדה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.electric.display }}</div>
+    <div class="text-sm text-subtle">כלים בהנעה חשמלית</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישום כלים לפי שנה וסוג הנעה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reg_note }}</p>
+  <div id="chart-reg" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.reg_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המעבר לחשמל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הכלים בהנעה חשמלית (סוללות או רשת) מבין הכלים שנרשמו בכל שנה — בכלל הצמ״ה ובמלגזות בלבד.</p>
+  <div id="chart-electric" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.electric_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הצמ״ה הנפוצים</h2>
+    </div>
+    <div id="chart-types" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יצרני השלדה הנפוצים</h2>
+    </div>
+    <div id="chart-makers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.makers_aria }}"></div>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל הכלים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שנים מאז שנת הייצור.</p>
+    <div id="chart-ages" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ages_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ages_caption }}</caption>
+        <thead><tr><th scope="col">גיל (שנים)</th><th scope="col">כלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ages %}
+          <tr><th scope="row" dir="ltr">{{ r.bucket }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל לפי סוג כלי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר כלים בכל קבוצת גיל, בסוגים הנפוצים.</p>
+    <div id="chart-heat" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  </section>
+</div>
+
+<p class="mb-6 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/0219b34f-43c7-435b-bdfe-e65e944cde50" target="_blank" rel="noopener">data.gov.il</a>.</p>
+
+<script>
+  (function () {
+    var r = {{ model.charts.registrations | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-reg"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", name: "כלים" },
+      series: r.series.map(function (s) { return { type: "bar", stack: "total", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var e = {{ model.charts.electric | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-electric"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: e.x },
+      yAxis: { type: "value", name: "%", max: 100 },
+      series: [
+        { type: "line", name: "כלל הצמ״ה", data: e.all, showSymbol: false },
+        { type: "line", name: "מלגזות", data: e.forklifts, showSymbol: false, connectNulls: true }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: "כלים", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-types", {{ model.charts.types | tojson }});
+    hbar("chart-makers", {{ model.charts.makers | tojson }});
+
+    var a = {{ model.charts.ages | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-ages"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: a.names, name: "שנים" },
+      yAxis: { type: "value", name: "כלים" },
+      series: [{ type: "bar", name: "כלים", data: a.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-heat"));
+    c4.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>

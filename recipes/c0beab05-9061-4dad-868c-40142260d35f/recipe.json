@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "c0beab05-9061-4dad-868c-40142260d35f",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T21:15:34.136800+00:00",
+    "rows": { "orders": 47397 }
+  },
+  "inputs": [
+    {
+      "name": "orders",
+      "by_id": "264cec97-c8f8-496f-84e5-052a63fdea3f",
+      "required_columns": [
+        "send_date",
+        "warrent_id",
+        "work_id",
+        "city_name",
+        "executor_name",
+        "category_name",
+        "felony_name"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

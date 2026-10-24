@@ -1,0 +1,197 @@
+<h1>רשימת צווי בטיחות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">צווי בטיחות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.recent.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.sites.display }}</div>
+    <div class="text-sm text-subtle">אתרי עבודה שקיבלו צו</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-brand mb-1">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צווים לפי חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.year_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">צווים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צווים לפי שנה וענף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">חלוקת הצווים בכל שנה לפי ענף המשק. השנה האחרונה חלקית.</p>
+  <div id="chart-cat" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על מה ניתנים הצווים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הצווים לפי נושא ההפרה — בכל התקופה ובשנה האחרונה. הנושא נקבע לפי מילות מפתח בתיאור ההפרה; תיאור שאינו מתאים לאף נושא מסווג "אחר".</p>
+  <div id="chart-themes" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים מובילים בשנה האחרונה</h2>
+    </div>
+    <div id="chart-cities" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות שקיבלו הכי הרבה צווים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.exec_note }}</p>
+    <div id="chart-exec" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.exec_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר הצווים בכל חודש. גוון כהה יותר = יותר צווים.</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/c0beab05-9061-4dad-868c-40142260d35f" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<script>
+  (function () {
+    var m = {{ model.charts.monthly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-monthly"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [{ type: "line", name: "צווים", data: m.y, showSymbol: false, areaStyle: { opacity: 0.15 } }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var cy = {{ model.charts.cat_year | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-cat"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: cy.years },
+      yAxis: { type: "value" },
+      series: cy.series.map(function (s) {
+        return { type: "bar", stack: "all", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pct(v) { return v + "%"; }
+    var t = {{ model.charts.themes | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-themes"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0, data: ["כל התקופה", "השנה האחרונה"] },
+      grid: { left: 16, right: 40, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: t.names, inverse: true },
+      series: [
+        { type: "bar", name: "כל התקופה", data: t.all },
+        { type: "bar", name: "השנה האחרונה", data: t.recent }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values,
+                   label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "צווים");
+    hbar("chart-exec", {{ model.charts.executors | tojson }}, "צווים");
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-heat"));
+    c5.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2];
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: hm.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>

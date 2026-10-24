@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "32348d0b-dc49-4bd0-a931-860e55709689",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T09:00:46.277642+00:00",
+    "rows": { "branches": 1157 }
+  },
+  "inputs": [
+    {
+      "name": "branches",
+      "by_id": "2202bada-4baf-45f5-aa61-8c5bad9646d3",
+      "required_columns": [
+        "Bank_Name",
+        "Branch_Code",
+        "Branch_Name",
+        "Branch_Address",
+        "City",
+        "Telephone",
+        "Handicap_Access",
+        "day_closed",
+        "Branch_Type",
+        "Open_Date",
+        "Close_Date",
+        "X_Coordinate",
+        "Y_Coordinate"
+      ]
+    }
+  ],
+  "min_insights": 4
+}
