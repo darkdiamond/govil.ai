@@ -1,0 +1,12 @@
+{
+  "orders.send_date": "chart-monthly, chart-cat, chart-theme-year, chart-heat, insight:trend, insight:peak_year, insight:theme_shift, kpi:recent",
+  "orders.warrent_id": "key: one row per order — the unit every count is made of (deduplicated on it), kpi:total",
+  "orders.work_id": "chart-sites, insight:repeat_sites, kpi:sites",
+  "orders.work_name": "skip: free-text site name — 29k distinct values, frequently a street address or a private home; identifies sites (and through them people) without adding an aggregate view beyond work_id",
+  "orders.city_name": "chart-cities, insight:city, kpi:cities",
+  "orders.executor_name": "chart-exec",
+  "orders.category_name": "chart-cat, chart-sec-theme, insight:category",
+  "orders.felony_name": "chart-themes, chart-theme-year, chart-sec-theme, insight:theme, insight:theme_shift",
+  "orders.law_name": "chart-laws, insight:law",
+  "orders.clause_name": "skip: 589 distinct section references, 37% empty — too granular to chart; the legal-basis view is carried at law level by chart-laws"
+}

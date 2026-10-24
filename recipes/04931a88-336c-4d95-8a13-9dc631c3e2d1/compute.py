@@ -20,6 +20,9 @@ TOP_DIVISIONS = 25
 TOP_ACTIVITIES = 20
 TOP_AUTHORITIES = 15
 HEAT_DIVISIONS = 10
+PROFILE_AUTHORITIES = 12   # rows of the authority × activity profile
+PROFILE_GROUPS = 6         # stacked groups in the profile (rest = "other")
+COVERAGE_GROUPS = 12       # groups on the map-coverage chart
 UNCODED_MIN = 50          # an uncoded description this common gets its own group
 CONCENTRATION_SHARE = 0.4  # "X% of division D is in one settlement" threshold
 ITM_X = (100_000, 300_000)
@@ -141,6 +144,19 @@ def insight_authority(df):
             f"({_pct(share, 1)}), מתוך {_int(a.size)} רשויות.")
 
 
+def insight_mapped_gap(df):
+    """Largest gap in map coverage between activity groups (top groups,
+    ≥30 points apart)."""
+    top = list(_ranked(df["group"]).index[:COVERAGE_GROUPS])
+    share = df.groupby("group")["has_xy"].mean()
+    s = sorted(top, key=lambda g: (share[g], g))
+    lo, hi = s[0], s[-1]
+    if share[hi] - share[lo] < 0.3:
+        return None
+    return (f"הכיסוי במפה תלוי בסוג האתר: ל-{_pct(share[hi])} מאתרי {hi} יש נקודת ציון, "
+            f"לעומת {_pct(share[lo])} בלבד מאתרי {lo}.")
+
+
 def compute(frames):
     df, n_test = _prepare(frames["sites"])
     labels = _division_labels(df)
@@ -184,6 +200,40 @@ def compute(frames):
     t_groups = [{"name": n, "count": _int(v), "share": _pct(v / total, 1)}
                 for n, v in groups.head(TOP_DIVISIONS).items()]
 
+    def rows(series, limit):
+        return [{"name": n, "count": _int(v), "share": _pct(v / total, 1)}
+                for n, v in series.head(limit).items()]
+
+    t_acts = rows(acts, TOP_ACTIVITIES)
+    t_auth = rows(auth, TOP_AUTHORITIES)
+    t_districts = [{"name": d, "total": _int(districts[d]),
+                    "with_xy": _int(by_d_xy.get((d, True), 0)),
+                    "without_xy": _int(by_d_xy.get((d, False), 0))} for d in districts.index]
+
+    # What kind of activity sits in each of the largest authorities.
+    prof_auth = list(auth.index[:PROFILE_AUTHORITIES])
+    prof_groups = list(groups.index[:PROFILE_GROUPS])
+    by_ag = df.groupby(["authority", "group"]).size()
+    profile = {
+        "names": prof_auth,
+        "series": [{"name": g, "data": [int(by_ag.get((a, g), 0)) for a in prof_auth]}
+                   for g in prof_groups]
+                  + [{"name": "תחומים אחרים",
+                      "data": [int(auth[a]) - sum(int(by_ag.get((a, g), 0)) for g in prof_groups)
+                               for a in prof_auth]}],
+    }
+    t_profile = {"cols": [s["name"] for s in profile["series"]],
+                 "rows": [{"name": a, "vals": [_int(s["data"][i]) for s in profile["series"]]}
+                          for i, a in enumerate(prof_auth)]}
+
+    # Map coverage by activity group: which kinds of sites lack a location.
+    cov_groups = list(groups.index[:COVERAGE_GROUPS])
+    cov_share = df.groupby("group")["has_xy"].mean()
+    mapped_chart = {"names": cov_groups,
+                    "values": [round(float(cov_share[g]) * 100, 1) for g in cov_groups]}
+    t_mapped = [{"name": g, "count": _int(groups[g]), "share": f"{cov_share[g] * 100:.1f}"}
+                for g in cov_groups]
+
     rules = [
         ("top_group", insight_top_group(df)),
         ("districts", insight_districts(df)),
@@ -191,6 +241,7 @@ def compute(frames):
         ("concentration", insight_concentration(df)),
         ("authority", insight_authority(df)),
         ("coords", insight_coords(df)),
+        ("mapped_gap", insight_mapped_gap(df)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -223,6 +274,16 @@ def compute(frames):
         "auth_aria": f"תרשים עמודות אופקי: {len(auth_chart['names'])} הרשויות המקומיות עם הכי הרבה אתרים.",
         "heat_aria": f"מפת חום: שיעור כל אחד מ-{len(heat_groups)} התחומים הגדולים מתוך האתרים בכל מחוז.",
         "groups_caption": f"{TOP_DIVISIONS} תחומי הפעילות הגדולים לפי מספר אתרים.",
+        "acts_caption": f"{len(t_acts)} סוגי הפעילות הנפוצים ביותר.",
+        "auth_caption": f"{len(t_auth)} הרשויות המקומיות עם הכי הרבה אתרים.",
+        "districts_caption": "מספר האתרים בכל מחוז, עם נקודת ציון ובלי.",
+        "profile_aria": (f"תרשים עמודות אופקי מוערם: תמהיל הפעילות ב-{len(prof_auth)} הרשויות "
+                         f"המקומיות עם הכי הרבה אתרים, לפי {len(prof_groups)} התחומים הגדולים."),
+        "profile_caption": (f"מספר האתרים בכל אחת מ-{len(prof_auth)} הרשויות הגדולות לפי "
+                            f"תחום פעילות."),
+        "mapped_aria": (f"תרשים עמודות אופקי: שיעור האתרים עם נקודת ציון בכל אחד מ-"
+                        f"{len(cov_groups)} התחומים הגדולים."),
+        "mapped_caption": "שיעור האתרים עם נקודת ציון לפי תחום פעילות (באחוזים).",
     }
 
     return {
@@ -240,8 +301,11 @@ def compute(frames):
             "acts": acts_chart,
             "auth": auth_chart,
             "heat": heat,
+            "profile": profile,
+            "mapped": mapped_chart,
         },
-        "tables": {"groups": t_groups},
+        "tables": {"groups": t_groups, "acts": t_acts, "auth": t_auth,
+                   "districts": t_districts, "profile": t_profile, "mapped": t_mapped},
         "insights": insights,
         "labels": labels_out,
     }

@@ -17,6 +17,11 @@ CLOSE_RECENT_YEARS = 3
 ISRAEL_LAT = (29.4, 33.4)
 ISRAEL_LNG = (34.2, 35.95)
 DAY_LABELS ={"יום ו": "שישי", "יום א": "ראשון", "יום ש": "שבת", "": "לא צוין"}
+PRESENCE_CITIES = 10       # rows of the bank × city matrix
+PRESENCE_BANKS = 8         # columns of the bank × city matrix
+PRESENCE_MIN_BRANCHES = 10
+PRESENCE_MIN_SHARE = 0.4
+TABLE_YEARS = 20
 
 
 def _int(n):
@@ -120,6 +125,39 @@ def insight_digital(act):
             f"{banks.index[0]} מפעיל {_int(banks.iloc[0])} מהם.")
 
 
+def insight_merges(df):
+    """Closures that were mergers into another branch (Merge_Branch set)."""
+    cl = df[~df["active"]]
+    if len(cl) < 5:
+        return None
+    merged = int((cl["Merge_Branch"].str.strip() != "").sum())
+    if merged == 0:
+        return (f"אף אחד מ-{_int(len(cl))} הסניפים שנסגרו אינו רשום כמאוחד לסניף אחר — "
+                f"כולם נסגרו ללא סניף ממשיך במרשם.")
+    return (f"מתוך {_int(len(cl))} הסניפים שנסגרו, {_int(merged)} ({_pct(merged / len(cl))}) "
+            f"רשומים כמאוחדים לסניף אחר, והשאר נסגרו ללא סניף ממשיך במרשם.")
+
+
+def insight_presence(act, top_cities):
+    """The city where a single bank holds the largest share of branches
+    (among the top cities, ≥10 branches, ≥40% share)."""
+    best = None
+    for city in top_cities:
+        sub = act[act["city"] == city]
+        if len(sub) < PRESENCE_MIN_BRANCHES:
+            continue
+        banks = _ranked(sub["bank"])
+        share = banks.iloc[0] / len(sub)
+        key = (share, -top_cities.index(city))
+        if share >= PRESENCE_MIN_SHARE and (best is None or key > best[0]):
+            best = (key, city, banks.index[0], int(banks.iloc[0]), len(sub))
+    if best is None:
+        return None
+    _, city, bank, n, tot = best
+    return (f"ב{city} {bank} מחזיק {_int(n)} מתוך {_int(tot)} הסניפים הפעילים "
+            f"({_pct(n / tot)}) — הריכוזיות הגבוהה ביותר של בנק אחד בין היישובים הגדולים.")
+
+
 def compute(frames):
     df = _prepare(frames["branches"])
     act = df[df["active"]]
@@ -172,6 +210,47 @@ def compute(frames):
                  "bank": r["bank"], "branch": r["Branch_Name"], "city": r["city"]}
                 for _, r in closed_rows.tail(15).iloc[::-1].iterrows()]
     t_banks = [{"name": b, "count": _int(v), "share": _pct(v / n_act, 1)} for b, v in banks.items()]
+    t_cities = [{"name": c, "count": _int(v), "share": _pct(v / n_act, 1)}
+                for c, v in cities.iloc[:TOP_CITIES].items()]
+    t_days = {"cols": [s["name"] for s in day_chart["series"]],
+              "rows": [{"name": b, "vals": [_int(s["data"][i]) for s in day_chart["series"]]}
+                       for i, b in enumerate(top_banks)]}
+    t_flow = [{"year": x, "opened": _int(o), "closed": _int(c)}
+              for x, o, c in list(zip(flow_chart["x"], flow_chart["opened"],
+                                      flow_chart["closed"]))[-TABLE_YEARS:]]
+    t_access = [{"name": n, "share": f"{v:.1f}"} for n, v in zip(access_chart["names"], access_chart["values"])]
+
+    # Closures by bank, split by whether the branch was merged into another.
+    cl = df[~df["active"]]
+    merged = cl["Merge_Branch"].str.strip() != ""
+    cl_banks = _ranked(cl["bank"])
+    status_chart = {
+        "names": list(cl_banks.index),
+        "series": [
+            {"name": "אוחד לסניף אחר",
+             "data": [int((merged & (cl["bank"] == b)).sum()) for b in cl_banks.index]},
+            {"name": "נסגר ללא סניף ממשיך",
+             "data": [int((~merged & (cl["bank"] == b)).sum()) for b in cl_banks.index]},
+        ],
+    }
+    t_status = [{"name": b, "closed": _int(cl_banks[b]),
+                 "merged": _int(status_chart["series"][0]["data"][i]),
+                 "active": _int(banks.get(b, 0))}
+                for i, b in enumerate(cl_banks.index)]
+
+    # Bank × city presence: the largest cities against the largest banks.
+    p_cities = list(cities.index[:PRESENCE_CITIES])
+    p_banks = list(banks.index[:PRESENCE_BANKS])
+    by_city_bank = act.groupby(["city", "bank"]).size()
+    presence = {
+        "cities": p_cities, "banks": p_banks,
+        "cells": [[bi, ci, int(by_city_bank.get((c, b), 0))]
+                  for ci, c in enumerate(p_cities) for bi, b in enumerate(p_banks)],
+    }
+    presence["max"] = max((c[2] for c in presence["cells"]), default=0)
+    t_presence = {"cols": p_banks,
+                  "rows": [{"name": c, "vals": [_int(by_city_bank.get((c, b), 0)) for b in p_banks]}
+                           for c in p_cities]}
 
     rules = [
         ("top_banks", insight_top_banks(act)),
@@ -180,6 +259,8 @@ def compute(frames):
         ("sunday", insight_sunday(act)),
         ("access", insight_access(act)),
         ("digital", insight_digital(act)),
+        ("merges", insight_merges(df)),
+        ("presence", insight_presence(act, list(cities.index[:PRESENCE_CITIES]))),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -225,6 +306,19 @@ def compute(frames):
         "access_aria": "תרשים עמודות אופקי: שיעור הסניפים המסומנים כנגישים, לפי בנק.",
         "closed_caption": "הסניפים שנסגרו לאחרונה לפי תאריך הסגירה.",
         "banks_caption": "מספר הסניפים הפעילים לפי בנק.",
+        "cities_caption": f"{len(t_cities)} היישובים עם מספר הסניפים הפעילים הגבוה ביותר.",
+        "days_caption": "סניפים פעילים לפי בנק ויום הסגירה השבועי.",
+        "flow_caption": f"סניפים שנפתחו ונסגרו בכל שנה, {len(t_flow)} השנים האחרונות.",
+        "access_caption": "שיעור הסניפים הפעילים המסומנים כנגישים, לפי בנק (באחוזים).",
+        "status_aria": (f"תרשים עמודות אופקי מוערם: {_int(len(cl))} הסניפים שנסגרו, לפי בנק "
+                        f"ולפי האם אוחדו לסניף אחר."),
+        "status_note": (f"כל הסניפים שנסגרו ונשמרו במרשם ({_int(len(cl))}), לפי בנק. סניף "
+                        f"\"אוחד\" — רשום במרשם סניף ממשיך שאליו הועבר."),
+        "status_caption": "סניפים שנסגרו לפי בנק: סך הכול, מתוכם אוחדו, ומספר הסניפים הפעילים.",
+        "presence_aria": (f"מפת חום: מספר הסניפים הפעילים של {len(p_banks)} הבנקים הגדולים "
+                          f"ב-{len(p_cities)} היישובים עם הכי הרבה סניפים."),
+        "presence_caption": (f"סניפים פעילים לפי יישוב ובנק — {len(p_cities)} היישובים ו-"
+                             f"{len(p_banks)} הבנקים הגדולים."),
     }
 
     return {
@@ -242,8 +336,12 @@ def compute(frames):
             "days": day_chart,
             "flow": flow_chart,
             "access": access_chart,
+            "status": status_chart,
+            "presence": presence,
         },
-        "tables": {"closed": t_closed, "banks": t_banks},
+        "tables": {"closed": t_closed, "banks": t_banks, "cities": t_cities, "days": t_days,
+                   "flow": t_flow, "access": t_access, "status": t_status,
+                   "presence": t_presence},
         "insights": insights,
         "labels": labels,
     }

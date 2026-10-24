@@ -30,10 +30,16 @@ def d_he(ts):
     return f"{ts.day} ב{MONTHS_HE[ts.month - 1]} {ts.year}"
 
 
+TOP_INST = 10
+MIN_INST_GRADED = 100     # graded examinees with an institution, for the comparison insight
+HEAT_YEARS = 15
+
+
 def _exams(df):
     out = pd.DataFrame({
         "d": pd.to_datetime(df["תאריך הבחינה"], format="%d/%m/%Y", errors="coerce"),
         "s": pd.to_numeric(df["ציון"], errors="coerce"),
+        "inst": df["מוסד לימודי"].str.strip(),
     }).dropna(subset=["d"])
     out.loc[(out["s"] < 0) | (out["s"] > 100), "s"] = float("nan")
     return out
@@ -92,6 +98,21 @@ def insight_long_trend(stats, last_full):
             f"{pct(l * 100)} ב-{int(late.index.min())}–{int(late.index.max())}.")
 
 
+def insight_institution(g):
+    w = g[g["inst"] != ""]
+    if len(w) < MIN_INST_GRADED:
+        return None
+    wo = g[g["inst"] == ""]
+    a, b = w["s"].mean(), wo["s"].mean()
+    share = len(w) / len(g)
+    if abs(a - b) < 2:
+        return (f"רק {pct(share * 100)} מהנבחנים רשומים עם מוסד לימודי, וציוניהם דומים לשאר "
+                f"({a:.1f} מול {b:.1f}).")
+    rel = "גבוה" if a > b else "נמוך"
+    return (f"רק {pct(share * 100)} מהנבחנים רשומים עם מוסד לימודי, אך הציון הממוצע שלהם "
+            f"({a:.1f}) {rel} מזה של שאר הנבחנים ({b:.1f}).")
+
+
 def insight_upcoming(upcoming):
     """Next regular sitting: the first future date with a real cohort (a few
     stray rows on other dates are make-up or special sittings)."""
@@ -136,6 +157,29 @@ def compute(frames):
     top_c = cities.head(TOP_CITIES)
     other = int(cities.iloc[TOP_CITIES:].sum())
 
+    # Institutions: sparse (most examinees have none) — counted over all years.
+    wi = done[done["inst"] != ""]
+    inst_n = wi["inst"].value_counts().sort_index().sort_values(ascending=False, kind="stable")
+    inst_top = list(inst_n.head(TOP_INST).index)
+    inst_mean = wi.dropna(subset=["s"]).groupby("inst")["s"].mean()
+    inst_rows = [{"name": i, "count": n(inst_n[i]),
+                  "mean": "—" if i not in inst_mean.index else f"{inst_mean[i]:.1f}"}
+                 for i in inst_top]
+
+    # Examinees by calendar month (all completed sittings): the exam calendar.
+    by_month = done.groupby(done["d"].dt.month).size().reindex(range(1, 13), fill_value=0)
+
+    # Score-band share per year, last HEAT_YEARS full years.
+    hy = [y for y in stats.index if last_full - HEAT_YEARS < y <= last_full]
+    band_lo = list(range(0, 100, 10))
+    heat_cells = []
+    for xi, y in enumerate(hy):
+        s = g_year.loc[g_year["d"].dt.year == y, "s"]
+        for yi, lo in enumerate(band_lo):
+            hi_ok = (s < lo + 10) if lo < 90 else (s <= 100)
+            share = float(((s >= lo) & hi_ok).mean() * 100) if len(s) else 0.0
+            heat_cells.append([xi, yi, round(share, 1)])
+
     charts = {
         "volume": {"x": [str(y) for y in years],
                    "graded": [int(per_year[y] - ungraded.get(y, 0)) for y in years],
@@ -149,6 +193,12 @@ def compute(frames):
                      "upcoming": [bool(d > ref) for d in sit.index]},
         "cities": {"names": [*top_c.index, *(["שאר היישובים"] if other else [])],
                    "values": [int(v) for v in top_c.values] + ([other] if other else [])},
+        "institutions": {"names": inst_top, "values": [int(inst_n[i]) for i in inst_top]},
+        "months": {"names": MONTHS_HE, "values": [int(v) for v in by_month.values]},
+        "bands": {"years": [str(y) for y in hy],
+                  "bands": [f"{lo}–{lo + 9}" if lo < 90 else "90–100" for lo in band_lo],
+                  "cells": heat_cells,
+                  "max": max([c[2] for c in heat_cells] or [1])},
     }
 
     rules = [
@@ -157,6 +207,7 @@ def compute(frames):
         ("scores", insight_scores(stats, last_full)),
         ("long_trend", insight_long_trend(stats, last_full)),
         ("upcoming", insight_upcoming(upcoming)),
+        ("institution", insight_institution(g_year)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -185,6 +236,16 @@ def compute(frames):
         "dist_caption": f"מספר נבחנים לפי טווח ציון, {last_full - DIST_YEARS + 1}–{last_full}.",
         "sittings_aria": "תרשים עמודות: נבחנים בכל מועד בחינה בשנתיים האחרונות, כולל מועדים עתידיים.",
         "cities_aria": f"תרשים עמודות: מתווכים מורשים לפי יישוב מגורים, {TOP_CITIES} היישובים המובילים.",
+        "cities_caption": f"מתווכים מורשים לפי יישוב מגורים ({TOP_CITIES} המובילים ושאר היישובים).",
+        "inst_aria": f"תרשים עמודות: {len(inst_top)} המוסדות הלימודיים עם מספר הנבחנים הגדול ביותר.",
+        "inst_note": (f"מוסד לימודי רשום רק אצל {pct(len(wi) / len(done) * 100)} מהנבחנים "
+                      f"({n(len(wi))}); הנתון מוצג לכל השנים יחד."),
+        "inst_caption": "נבחנים וציון ממוצע לפי מוסד לימודי.",
+        "months_aria": "תרשים עמודות: נבחנים לפי חודש הבחינה, בכל השנים.",
+        "months_caption": "מספר הנבחנים לפי חודש הבחינה, בכל השנים.",
+        "bands_aria": (f"מפת חום: שיעור הנבחנים בכל טווח ציון לפי שנה, "
+                       f"{hy[0] if hy else ''}–{hy[-1] if hy else ''}."),
+        "bands_note": "שיעור מהנבחנים בעלי ציון באותה שנה. גוון כהה = שיעור גבוה יותר.",
     }
 
     return {
@@ -201,7 +262,13 @@ def compute(frames):
         },
         "kpis": kpis,
         "charts": charts,
-        "tables": {"dist": [{"range": a, "count": n(v)} for a, v in dist]},
+        "tables": {
+            "dist": [{"range": a, "count": n(v)} for a, v in dist],
+            "cities": [{"name": k, "count": n(v)} for k, v in
+                       zip(charts["cities"]["names"], charts["cities"]["values"])],
+            "institutions": inst_rows,
+            "months": [{"name": k, "count": n(v)} for k, v in zip(MONTHS_HE, by_month.values)],
+        },
         "insights": insights,
         "labels": labels,
     }

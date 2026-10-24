@@ -87,7 +87,10 @@ dimensions sit unused is too thin. Every column ends up in
 `recipes/<id>/coverage.json` — mapped to the chart id(s) / `kpi:` /
 `insight:` / `table:` / `map:` that use it, or to `skip: <reason>`
 (identifier, free text, constant, >80% empty, private person, …).
-`verify` fails on an unaccounted column. Expect roughly 6–10 charts on a
+`verify` fails on an unaccounted column. Value format:
+`"chart-a, kpi:total, insight:trend — optional free note"` (references
+first, comma-separated; anything after `—` is a note and may contain
+commas and numbers), or `"skip: <reason>"`. Expect roughly 6–10 charts on a
 dataset with several meaningful dimensions; fewer only when the coverage
 file shows the data genuinely doesn't carry more.
 

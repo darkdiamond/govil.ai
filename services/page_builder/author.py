@@ -339,6 +339,7 @@ def _coverage_findings(
         for name, parts in inputs.items()
         for part in parts
         for col in fields.get(part.resource_id, [])
+        if col != "_id"  # datastore row id; dropped from exports (stale preps may list it)
     }
     problems = []
     missing = sorted(needed - cov.keys())
@@ -348,16 +349,22 @@ def _coverage_findings(
     ids = set(re.findall(r'\bid="([^"]+)"', html))
     used = skipped = 0
     for key, value in cov.items():
-        tokens = [t.strip() for t in value.split(",") if t.strip()]
-        if tokens and tokens[0].startswith("skip:"):
+        value = value.strip()
+        if value.startswith("skip:"):
             skipped += 1
-            if len(tokens[0][5:].strip()) < 8:
+            if len(value[5:].strip()) < 8:
                 problems.append(f"COVERAGE: {key}: give a real reason after 'skip:'")
             continue
         used += 1
+        # "<ref>, <ref> — free note": refs before the first ' — ' / ' - ' / ';'.
+        head = re.split(r"\s+[—–-]\s+|;", value, maxsplit=1)[0]
+        tokens = [t.strip() for t in head.split(",") if t.strip()]
+        if not tokens:
+            problems.append(f"COVERAGE: {key}: no element id or kpi:/insight:/table: reference")
         for t in tokens:
             if not t.startswith(_COVERAGE_TAGS) and t not in ids:
-                problems.append(f"COVERAGE: {key} → {t!r} is not an element id on the page")
+                problems.append(f"COVERAGE: {key} → {t!r} is not an element id on the page "
+                                "(put free notes after ' — ')")
     notes = [f"coverage: {len(needed)} column(s) — {used} used, {skipped} skipped"]
     return problems, notes
 

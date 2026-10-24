@@ -1,0 +1,4 @@
+{
+  "levels.Survey_Date": "chart-recent, chart-history, chart-annual, chart-season, chart-gains, chart-below, chart-heat, kpi:as_of, insight:status, insight:year_change, insight:same_date",
+  "levels.Kinneret_Level": "chart-recent, chart-history, chart-annual, chart-season, chart-gains, chart-below, chart-heat, kpi:level, kpi:to_lower_red, kpi:d30, kpi:d365, insight:status, insight:records, insight:winter, insight:below_lower"
+}

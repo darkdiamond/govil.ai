@@ -20,7 +20,10 @@
         "final_sanction_amount",
         "reason_of_review",
         "law",
-        "appeal"
+        "appeal",
+        "court_appeal",
+        "employees_general_number",
+        "financial_sanction_reduction"
       ]
     }
   ],

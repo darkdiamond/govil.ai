@@ -24,5 +24,6 @@
       ]
     }
   ],
-  "min_insights": 4
+  "min_insights": 4,
+  "lint_allow_numbers": ["M1"]
 }

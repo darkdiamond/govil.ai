@@ -39,6 +39,24 @@
   </ul>
 </section>
 
+{% macro rank_table(rows, caption, head, summary="הצג כטבלה") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">{{ summary }}</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">הודעות</th><th scope="col">שיעור</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+{% macro source_link() -%}
+<p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים בטבלת הנתונים שבהמשך העמוד ולהורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/1c8e79c5-0ddb-461f-84ea-5bdcbaefaef4" target="_blank" rel="noopener">data.gov.il</a>.</p>
+{%- endmacro %}
+
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
@@ -47,17 +65,18 @@
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
   <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
   <details class="mt-3">
-    <summary class="text-sm text-subtle">הצג כטבלה (סוג ההודעה)</summary>
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
     <table class="mt-2 w-full text-sm">
-      <caption class="sr-only">{{ model.labels.type_table_caption }}</caption>
-      <thead><tr><th scope="col">סוג ההודעה</th><th scope="col">הודעות</th><th scope="col">שיעור</th></tr></thead>
+      <caption class="sr-only">{{ model.labels.years_table_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">הודעות</th><th scope="col">מתוכן תקלה סדרתית בטיחותית</th></tr></thead>
       <tbody>
-{%- for r in model.tables.types %}
-        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.count }}</td><td>{{ r.safety }}</td></tr>
 {%- endfor %}
       </tbody>
     </table>
   </details>
+  {{ rank_table(model.tables.types, model.labels.type_table_caption, "סוג ההודעה", "סוג ההודעה — טבלה") }}
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -68,6 +87,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">מספר ההודעות לפי המערכת שבה התגלתה התקלה.</p>
     <div id="chart-faults" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.faults_aria }}"></div>
+    {{ rank_table(model.tables.faults, model.labels.faults_table_caption, "סוג התקלה") }}
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -76,8 +96,19 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.makers_note }}</p>
     <div id="chart-makers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.makers_aria }}"></div>
+    {{ rank_table(model.tables.makers, model.labels.makers_table_caption, "יצרן") }}
   </section>
 </div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הדגמים עם הכי הרבה הודעות ריקול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.models_note }}</p>
+  <div id="chart-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.models_aria }}"></div>
+  {{ rank_table(model.tables.models, model.labels.models_table_caption, "יצרן ודגם") }}
+</section>
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -86,6 +117,7 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
   <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  {{ source_link() }}
 </section>
 
 <section class="card p-5 mb-6">
@@ -95,18 +127,7 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fix_note }}</p>
   <div id="chart-fix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fix_aria }}"></div>
-  <details class="mt-3">
-    <summary class="text-sm text-subtle">הצג כטבלה (כל השנים)</summary>
-    <table class="mt-2 w-full text-sm">
-      <caption class="sr-only">{{ model.labels.fix_table_caption }}</caption>
-      <thead><tr><th scope="col">אופן התיקון</th><th scope="col">הודעות</th><th scope="col">שיעור</th></tr></thead>
-      <tbody>
-{%- for r in model.tables.fix %}
-        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
-{%- endfor %}
-      </tbody>
-    </table>
-  </details>
+  {{ rank_table(model.tables.fix, model.labels.fix_table_caption, "אופן התיקון", "הצג כטבלה (כל השנים)") }}
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -117,6 +138,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">היבואן האחראי לביצוע הריקול בישראל.</p>
     <div id="chart-importers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.importers_aria }}"></div>
+    {{ rank_table(model.tables.importers, model.labels.importers_table_caption, "יבואן") }}
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -125,22 +147,28 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.span_note }}</p>
     <div id="chart-span" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.span_aria }}"></div>
-    <details class="mt-3">
-      <summary class="text-sm text-subtle">קטגוריית רכב</summary>
-      <table class="mt-2 w-full text-sm">
-        <caption class="sr-only">{{ model.labels.cat_table_caption }}</caption>
-        <thead><tr><th scope="col">קטגוריה</th><th scope="col">הודעות</th><th scope="col">שיעור</th></tr></thead>
-        <tbody>
-{%- for r in model.tables.cats %}
-          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
-{%- endfor %}
-        </tbody>
-      </table>
-    </details>
+    {{ rank_table(model.tables.span, model.labels.span_table_caption, "טווח ייצור") }}
   </section>
 </div>
 
-<p class="mt-3 text-sm text-subtle">פרטי כל הודעה, כולל הדגם ופרטי הקשר של היבואן, זמינים בטבלת הנתונים שבהמשך העמוד ולהורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/1c8e79c5-0ddb-461f-84ea-5bdcbaefaef4" target="_blank" rel="noopener">data.gov.il</a>.</p>
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אילו שנות ייצור מושפעות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.vintage_note }}</p>
+  <div id="chart-vintage" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.vintage_aria }}"></div>
+  {{ source_link() }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קטגוריית רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">סיווג הרכב לפי התקינה האירופית (M1 — רכב נוסעים, N — רכב מסחרי, L — דו-גלגלי).</p>
+  {{ rank_table(model.tables.cats, model.labels.cat_table_caption, "קטגוריה", "הצג טבלה") }}
+</section>
 
 <script>
   (function () {
@@ -176,6 +204,7 @@
     hbar("chart-faults", {{ model.charts.faults | tojson }});
     hbar("chart-makers", {{ model.charts.makers | tojson }});
     hbar("chart-importers", {{ model.charts.importers | tojson }});
+    hbar("chart-models", {{ model.charts.models | tojson }});
   })();
 </script>
 
@@ -225,5 +254,17 @@
       series: [{ type: "bar", data: s.values }]
     }));
     window.addEventListener("resize", function () { c5.resize(); });
+
+    var v = {{ model.charts.vintage | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-vintage"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: v.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "הודעות ריקול", data: v.y }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
   })();
 </script>

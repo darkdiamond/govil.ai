@@ -46,6 +46,7 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reg_note }}</p>
   <div id="chart-reg" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.reg_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/0219b34f-43c7-435b-bdfe-e65e944cde50" target="_blank" rel="noopener">data.gov.il</a>.</p>
 </section>
 
 <section class="card p-5 mb-6">
@@ -55,6 +56,7 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">שיעור הכלים בהנעה חשמלית (סוללות או רשת) מבין הכלים שנרשמו בכל שנה — בכלל הצמ״ה ובמלגזות בלבד.</p>
   <div id="chart-electric" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.electric_aria }}"></div>
+  <p class="mt-3 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/0219b34f-43c7-435b-bdfe-e65e944cde50" target="_blank" rel="noopener">data.gov.il</a>.</p>
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -64,6 +66,18 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הצמ״ה הנפוצים</h2>
     </div>
     <div id="chart-types" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">כלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -71,6 +85,18 @@
       <h2 class="m-0 text-lg font-semibold text-ink-deep">יצרני השלדה הנפוצים</h2>
     </div>
     <div id="chart-makers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.makers_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.makers_caption }}</caption>
+        <thead><tr><th scope="col">יצרן</th><th scope="col">כלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.makers %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
   </section>
 </div>
 
@@ -102,10 +128,123 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">מספר כלים בכל קבוצת גיל, בסוגים הנפוצים.</p>
     <div id="chart-heat" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th>{% for x in model.tables.heat_x %}<th scope="col">{{ x }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr><th scope="row">{{ r.type }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
   </section>
 </div>
 
-<p class="mb-6 text-sm text-subtle">הנתונים המלאים זמינים להורדה בעמוד המאגר ב-<a class="text-brand underline" href="https://data.gov.il/dataset/0219b34f-43c7-435b-bdfe-e65e944cde50" target="_blank" rel="noopener">data.gov.il</a>.</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הגבלות רישוי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.restr_note }}</p>
+    <div id="chart-restrictions" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.restr_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.restr_caption }}</caption>
+        <thead><tr><th scope="col">הגבלה</th><th scope="col">כלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.restrictions %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">משקל עצמי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.weights_note }}</p>
+    <div id="chart-weights" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.weights_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.weights_caption }}</caption>
+        <thead><tr><th scope="col">משקל</th><th scope="col">כלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.weights %}
+          <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כוח סוס לפי סוג כלי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hp_note }}</p>
+    <div id="chart-hp" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.hp_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.hp_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">כוח סוס חציוני</th><th scope="col">כלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.hp %}
+          <tr><th scope="row">{{ r.type }}</th><td>{{ r.hp }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מלגזות: כושר הרמה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר המלגזות בכל קבוצת כושר הרמה, חשמליות מול מנוע שריפה. מלגזות ללא כושר הרמה רשום אינן נכללות.</p>
+    <div id="chart-lift" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.lift_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lift_caption }}</caption>
+        <thead><tr><th scope="col">כושר הרמה</th><th scope="col">חשמלית</th><th scope="col">מנוע שריפה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lift %}
+          <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.e }}</td><td>{{ r.c }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הדגמים הנפוצים</h2>
+  </div>
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.models_caption }}</caption>
+    <thead><tr><th scope="col">דגם</th><th scope="col">יצרן</th><th scope="col">סוג</th><th scope="col">כלים</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.models %}
+      <tr><th scope="row" dir="ltr">{{ r.model }}</th><td>{{ r.maker }}</td><td>{{ r.type }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+
 
 <script>
   (function () {
@@ -188,5 +327,49 @@
                  emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
     }));
     window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", name: unit },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-restrictions", {{ model.charts.restrictions | tojson }}, "כלים");
+    hbar("chart-hp", {{ model.charts.hp | tojson }}, "כוח סוס");
+
+    var w = {{ model.charts.weights | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-weights"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: w.names },
+      yAxis: { type: "value", name: "כלים" },
+      series: [{ type: "bar", name: "כלים", data: w.values }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var l = {{ model.charts.lift | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-lift"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: l.names },
+      yAxis: { type: "value", name: "מלגזות" },
+      series: l.series.map(function (x) { return { type: "bar", name: x.name, data: x.data }; })
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
   })();
 </script>

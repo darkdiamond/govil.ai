@@ -407,7 +407,9 @@ def render_page(
     check_root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="check-", dir=check_root) as d:
         try:
-            run_host_check(html, json.dumps(agent_data, ensure_ascii=False), Path(d))
+            run_host_check(
+                html, json.dumps(agent_data, ensure_ascii=False), Path(d), recipe=True
+            )
         except RuntimeError as e:
             raise RecipeError(str(e)) from e
     return RenderedPage(content_html=html, agent_data=agent_data, model=raw_model)

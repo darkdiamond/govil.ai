@@ -287,6 +287,24 @@ def test_unavailable_source_is_not_refreshed(env):
     assert s["refreshed"] == []
 
 
+def test_percent_conflict_skipped_only_for_recipe_renders(tmp_path):
+    """Recipe numbers are recomputed nightly, so a coincidental equal % in
+    two different years must not fail a correct refresh — but the agent path
+    keeps the rule."""
+    from services.page_builder.agent_contract import run_host_check
+
+    body = (
+        '<h1>t</h1><section class="card p-5 mb-6"><div class="flex items-center gap-2 mb-3 '
+        'text-brand"><img src="/icons/info.svg" alt="" class="w-5 h-5" /><h2>תקציר</h2>'
+        "</div><p>ב-2019 השיעור היה 45.2%.</p>" + "<p>" + "מילוי " * 20 + "</p>"
+        "<p>ב-2024 השיעור היה 45.2%.</p></section>"
+    )
+    ad = json.dumps({"summary_he": "x", "dataset_kind": "misc", "suggested_tags": ["a"]})
+    run_host_check(body, ad, tmp_path, recipe=True)
+    with pytest.raises(RuntimeError, match="PERCENT-CONFLICT"):
+        run_host_check(body, ad, tmp_path)
+
+
 # ── author verify ────────────────────────────────────────────────────────
 
 

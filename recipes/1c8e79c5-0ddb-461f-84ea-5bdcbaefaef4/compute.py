@@ -13,7 +13,11 @@ SOFTWARE = "עדכון תוכנה"
 SAFETY = "תקלה סידרתית בטיחותית"
 TOP_MAKERS = 15
 TOP_IMPORTERS = 10
+TOP_MODELS = 15
 HEAT_YEARS = 10
+TABLE_YEARS = 20           # rows in the yearly table fallback
+VINTAGE_FROM = 1995        # first production year on the vintage-exposure chart
+VINTAGE_MIN_SPANS = 50     # fewer valid build spans → no vintage insight
 TREND_MIN_YEARLY = 30      # years with fewer recalls are too thin to compare
 BUILD_YEAR_FLOOR = 1980    # BUILD_BEGIN_A carries 1970-01-01 placeholders
 
@@ -40,10 +44,14 @@ def _prepare(df):
     out["fault"] = out["SUG_TAKALA"].replace("", OTHER)
     out["fix"] = out["OFEN_TIKUN"].replace("", "לא צוין")
     out["importer"] = out["YEVUAN_TEUR"].replace("", "לא צוין")
+    model = out["DEGEM"].str.strip()
+    out["model"] = (out["maker"] + " " + model).where(model != "")
     b = pd.to_datetime(out["BUILD_BEGIN_A"], errors="coerce")
     e = pd.to_datetime(out["BUILD_END_A"], errors="coerce")
     ok = b.notna() & e.notna() & (b.dt.year >= BUILD_YEAR_FLOOR) & (e >= b)
     out["span_years"] = ((e - b).dt.days / 365.25).where(ok)
+    out["build_from"] = b.dt.year.where(ok)
+    out["build_to"] = e.dt.year.where(ok)
     return out.reset_index(drop=True)
 
 
@@ -149,6 +157,33 @@ def insight_span(df):
             f"וב-{_pct(long_share)} מההודעות טווח הייצור המושפע ארוך מ-4 שנים.")
 
 
+def insight_top_model(df):
+    models = _ranked(df["model"].dropna())
+    if models.empty or int(models.iloc[0]) < 10:
+        return None
+    name, v = models.index[0], int(models.iloc[0])
+    tail = (f", ואחריו {models.index[1]} ({_int(models.iloc[1])})"
+            if len(models) > 1 else "")
+    return f"הדגם עם מספר הודעות הריקול הגבוה ביותר הוא {name} — {_int(v)} הודעות{tail}."
+
+
+def _vintage(df, last_year):
+    """Recalls covering each production year (a recall counts for every
+    year inside its affected build span)."""
+    spans = df[["build_from", "build_to"]].dropna().astype(int)
+    years = list(range(VINTAGE_FROM, last_year + 1))
+    counts = [int(((spans["build_from"] <= y) & (spans["build_to"] >= y)).sum()) for y in years]
+    return years, counts, len(spans)
+
+
+def insight_vintage(years, counts, n_spans):
+    if n_spans < VINTAGE_MIN_SPANS or not counts or max(counts) == 0:
+        return None
+    peak_i = max(range(len(counts)), key=lambda i: (counts[i], -years[i]))
+    return (f"רכבים משנת הייצור {years[peak_i]} מושפעים מהמספר הגדול ביותר של הודעות "
+            f"ריקול — {_int(counts[peak_i])} הודעות שטווח הייצור שלהן כולל את השנה הזו.")
+
+
 def compute(frames):
     df = _prepare(frames["recalls"])
     total = len(df)
@@ -213,7 +248,29 @@ def compute(frames):
                   "values": [int(((spans >= lo) & (spans < hi)).sum()) for lo, hi, _ in SPAN_BINS]}
     span_excluded = total - len(spans)
 
+    models = _ranked(df["model"].dropna()).head(TOP_MODELS)
+    models_chart = {"names": list(models.index), "values": [int(v) for v in models]}
+
+    # Vintage runs to the last production year any recall covers, capped at
+    # the year after the latest recall year (model years run ahead).
+    max_build = df["build_to"].max()
+    last_vintage = int(min(max_build, y_max + 1)) if pd.notna(max_build) else y_max
+    v_years, v_counts, n_spans = _vintage(df, last_vintage)
+    vintage_chart = {"x": [str(y) for y in v_years], "y": v_counts}
+
     # Tables -----------------------------------------------------------
+    def rows(series):
+        return [{"name": n, "count": _int(v), "share": _pct(v / total, 1)} for n, v in series.items()]
+
+    t_years = [{"year": str(y), "count": _int(yearly[y]),
+                "safety": _int(by_year_type.get((y, SAFETY), 0))}
+               for y in list(yearly.index)[-TABLE_YEARS:]]
+    t_faults = rows(faults)
+    t_makers = rows(makers.head(TOP_MAKERS))
+    t_models = rows(models)
+    t_importers = rows(imp.head(TOP_IMPORTERS))
+    t_span = [{"name": n, "count": _int(v), "share": _pct(v / max(len(spans), 1), 1)}
+              for n, v in zip(span_chart["names"], span_chart["values"])]
     t_fix = [{"name": n, "count": _int(v), "share": _pct(v / total, 1)} for n, v in fixes.items()]
     cats = _ranked(df["TKINA_EU"].replace("", "לא צוין"))
     t_cats = [{"name": n, "count": _int(v), "share": _pct(v / total, 1)} for n, v in cats.items()]
@@ -229,6 +286,8 @@ def compute(frames):
         ("top_maker", insight_top_maker(df)),
         ("importers", insight_importer(df)),
         ("span", insight_span(df)),
+        ("top_model", insight_top_model(df)),
+        ("vintage", insight_vintage(v_years, v_counts, n_spans)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -271,6 +330,21 @@ def compute(frames):
         "fix_table_caption": "מספר ההודעות לפי אופן התיקון.",
         "cat_table_caption": "מספר ההודעות לפי קטגוריית רכב אירופית.",
         "type_table_caption": "מספר ההודעות לפי סוג ההודעה.",
+        "years_table_caption": (f"מספר ההודעות ומתוכן תקלות סדרתיות בטיחותיות, "
+                                f"{len(t_years)} השנים האחרונות."),
+        "faults_table_caption": "מספר ההודעות לפי סוג התקלה.",
+        "makers_table_caption": f"{len(t_makers)} היצרנים עם מספר ההודעות הגבוה ביותר.",
+        "importers_table_caption": f"{len(t_importers)} היבואנים עם מספר ההודעות הגבוה ביותר.",
+        "span_table_caption": "מספר ההודעות לפי אורך תקופת הייצור המושפעת.",
+        "models_aria": f"תרשים עמודות אופקי: {len(models)} הדגמים עם מספר הודעות הריקול הגבוה ביותר.",
+        "models_table_caption": f"{len(t_models)} הדגמים עם מספר הודעות הריקול הגבוה ביותר.",
+        "models_note": (f"יצרן ודגם כפי שנרשמו בהודעה. דגם אחד יכול להופיע בכמה הודעות "
+                        f"לאורך השנים ({_int(df['model'].nunique())} צירופי יצרן-דגם במאגר)."),
+        "vintage_aria": (f"תרשים עמודות: מספר הודעות הריקול שחלות על רכבים מכל שנת ייצור, "
+                         f"{v_years[0]} עד {v_years[-1]}."),
+        "vintage_note": (f"כל הודעה נספרת בכל שנות הייצור שבטווח המושפע שלה ({_int(n_spans)} "
+                         f"הודעות עם טווח ייצור תקין). שנות ייצור אחרונות עשויות לגדול "
+                         f"כשיתפרסמו הודעות נוספות."),
     }
 
     return {
@@ -291,8 +365,12 @@ def compute(frames):
             "fix": fix_chart,
             "importers": importers_chart,
             "span": span_chart,
+            "models": models_chart,
+            "vintage": vintage_chart,
         },
-        "tables": {"fix": t_fix, "cats": t_cats, "types": t_types},
+        "tables": {"fix": t_fix, "cats": t_cats, "types": t_types, "years": t_years,
+                   "faults": t_faults, "makers": t_makers, "models": t_models,
+                   "importers": t_importers, "span": t_span},
         "insights": insights,
         "labels": labels,
     }

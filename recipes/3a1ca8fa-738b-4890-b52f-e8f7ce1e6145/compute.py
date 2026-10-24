@@ -36,12 +36,27 @@ def pct(v, digits=1, signed=False):
     return f"{LRI}{s}%{PDI}"
 
 
+def num(v, digits=1, signed=False):
+    """A percentage for a table cell: the unit lives in the column header.
+    (check.py's PERCENT-CONFLICT reads repeated 'N%' near different years
+    as a contradiction — a %-per-year table would trip it by coincidence.)"""
+    s = f"{v:+.{digits}f}" if signed else f"{v:.{digits}f}"
+    return f"{LRI}{s}{PDI}"
+
+
 def short(name):
     return name.replace(' בע"מ', "").replace(" בע״מ", "").strip()
 
 
 def _num(s):
     return pd.to_numeric(s.str.replace(",", "", regex=False), errors="coerce")
+
+
+EXPOSURES = [("STOCK_MARKET_EXPOSURE", "חשיפה למניות"),
+             ("FOREIGN_EXPOSURE", "חשיפה לחו״ל"),
+             ("FOREIGN_CURRENCY_EXPOSURE", "חשיפה למט״ח")]
+BIG_TRACK_M = 1000          # ₪ millions: "large track" for the Sharpe insight
+MIN_RISK_TRACKS = 10
 
 
 def _prepare(df):
@@ -57,6 +72,16 @@ def _prepare(df):
         "mfee": _num(df["AVG_ANNUAL_MANAGEMENT_FEE"]),
         "dfee": _num(df["AVG_DEPOSIT_FEE"]),
         "net": _num(df["NET_MONTHLY_DEPOSITS"]),
+        "dep": _num(df["DEPOSITS"]),
+        "wd": _num(df["WITHDRAWLS"]),
+        "tr": _num(df["INTERNAL_TRANSFERS"]),
+        "liq": _num(df["LIQUID_ASSETS_PERCENT"]),
+        "y3": _num(df["AVG_ANNUAL_YIELD_TRAILING_3YRS"]),
+        "y5": _num(df["AVG_ANNUAL_YIELD_TRAILING_5YRS"]),
+        "sd": _num(df["STANDARD_DEVIATION"]),
+        "sharpe": _num(df["SHARPE_RATIO"]),
+        "alpha": _num(df["ALPHA"]),
+        **{c: _num(df[c]) for c, _ in EXPOSURES},
         "src": df["_resource_name"],
     })
     out = out.dropna(subset=["rp"])
@@ -79,6 +104,59 @@ def _weighted(df, col):
 
 def _prev_year(rp):
     return rp - 100
+
+
+def _exposure_shares(df):
+    """Asset-weighted exposure % per month.
+
+    The exposure columns are ₪ millions for nearly all tracks, but a few
+    small tracks report what look like percentages. A value is read as ₪
+    only when it is ≤ 105% of the track's assets and not a percentage-sized
+    number on a much larger track; the rest are excluded, and the share of
+    assets that could be read is returned for disclosure.
+    """
+    out, cover = {}, []
+    a = df["assets"]
+    for col, label in EXPOSURES:
+        e = df[col]
+        ok = e.notna() & (a > 0)
+        pct_like = ok & (e <= 100) & (a > 100) & (e < 0.05 * a)
+        good = ok & (e <= 1.05 * a) & ~pct_like
+        g = df[good].groupby("rp")
+        share = (g[col].sum() / g["assets"].sum() * 100).sort_index()
+        out[label] = share
+        cover.append(float(df[good]["assets"].sum() / df[ok]["assets"].sum()))
+    return out, min(cover) if cover else 0.0
+
+
+def insight_exposure(shares, last):
+    s = shares.get("חשיפה למניות")
+    then = last - 300
+    if s is None or last not in s.index or then not in s.index:
+        return None
+    d = s[last] - s[then]
+    if abs(d) < 2:
+        return (f"החשיפה למניות נותרה כמעט ללא שינוי בשלוש השנים האחרונות: "
+                f"{pct(s[last])} מהנכסים ב{p_he(last)}.")
+    word = "עלתה" if d > 0 else "ירדה"
+    text = (f"החשיפה למניות {word} מ-{pct(s[then])} מהנכסים ב{p_he(then)} ל-{pct(s[last])} "
+            f"ב{p_he(last)}")
+    f = shares.get("חשיפה לחו״ל")
+    if f is not None and last in f.index:
+        text += f"; החשיפה לחו״ל עומדת על {pct(f[last])}"
+    return text + "."
+
+
+def insight_sharpe(cur):
+    big = cur.dropna(subset=["sharpe", "y5"])
+    big = big[big["assets"] >= BIG_TRACK_M]
+    if len(big) < MIN_RISK_TRACKS:
+        return None
+    best = big.sort_values(["sharpe", "fund"], ascending=[False, True]).iloc[0]
+    med = big["sharpe"].median()
+    return (f"מבין {len(big)} המסלולים הגדולים (נכסים מעל מיליארד ₪) עם נתוני 5 שנים, יחס "
+            f"שארפ הגבוה ביותר — {best['sharpe']:.2f} — שייך ל{best['name']} "
+            f"(תשואה שנתית ממוצעת {pct(best['y5'], 2)}); החציון: {med:.2f}.")
 
 
 def insight_growth(assets, last):
@@ -202,6 +280,50 @@ def compute(frames):
     recent_y = wy.tail(RECENT_MONTHS)
     recent_n = net_m.tail(RECENT_MONTHS)
 
+    exp, exp_cover = _exposure_shares(df)
+    exp_x = sorted(set().union(*[set(s.index) for s in exp.values()])) if exp else []
+    # Year-end (or latest) exposure per year for the table fallback.
+    exp_years = sorted({r // 100 for r in exp_x})
+    exp_rows = []
+    for y in exp_years:
+        rp = max(r for r in exp_x if r // 100 == y)
+        exp_rows.append({"period": p_he(rp),
+                         **{lbl: (num(s[rp]) if rp in s.index else "—") for lbl, s in exp.items()}})
+
+    flows = df.dropna(subset=["dep", "wd", "tr"]).groupby(df["rp"] // 100)[["dep", "wd", "tr"]].sum().sort_index()
+    flow_rows = [{"year": f"{int(y)}{' (חלקית)' if y == partial_year else ''}",
+                  "dep": bn(r["dep"]), "wd": bn(r["wd"]), "tr": bn(r["tr"]),
+                  "net": bn(r["dep"] - r["wd"] + r["tr"])}
+                 for y, r in flows.iterrows()]
+
+    risk = cur.dropna(subset=["sd", "y5"])
+    risk = risk[risk["assets"] > 0].sort_values(["assets", "fund"], ascending=[False, True])
+
+    m5 = cur.dropna(subset=["y5"])
+    m5 = m5[m5["assets"] > 0]
+    m3 = cur.dropna(subset=["y3"])
+    m3 = m3[m3["assets"] > 0]
+    w5 = ((m5["y5"] * m5["assets"]).groupby(m5["manager"]).sum()
+          / m5.groupby("manager")["assets"].sum())
+    w3 = ((m3["y3"] * m3["assets"]).groupby(m3["manager"]).sum()
+          / m3.groupby("manager")["assets"].sum())
+    mgr_order = [n for n in mgr.index if n in w5.index or n in w3.index]
+    mgr_rows = [{"name": n,
+                 "y3": num(w3[n], 2) if n in w3.index else "—",
+                 "y5": num(w5[n], 2) if n in w5.index else "—"} for n in mgr_order]
+
+    liq_c = cur.dropna(subset=["liq"])
+    liq_c = liq_c[liq_c["assets"] > 0]
+    liq = float((liq_c["liq"] * liq_c["assets"]).sum() / liq_c["assets"].sum()) if len(liq_c) else None
+
+    fee_rows = [{"year": f"{x}{' (חלקית)' if int(x) == partial_year else ''}",
+                 "mgmt": num(v, 3),
+                 "dep": "—" if d is None else num(d, 3)}
+                for x, v, d in zip([str(int(y)) for y in mfee_y.index], mfee_y.values,
+                                   [dfee_y.get(y) for y in mfee_y.index])]
+    track_rows = [{"name": n, "ytd": num(v, 2, signed=True), "assets": bn(a)}
+                  for n, v, a in zip(tracks["name"], tracks["ytd"], tracks["assets"])]
+
     charts = {
         "assets": {
             "x": [p_iso(r) for r in by_cls.index],
@@ -223,6 +345,29 @@ def compute(frames):
                 "y": [round(v / 1000, 2) for v in recent_n.values]},
         "tracks": {"names": list(tracks["name"]),
                    "values": [round(v, 2) for v in tracks["ytd"]]},
+        "exposure": {
+            "x": [p_iso(r) for r in exp_x],
+            "series": [{"name": lbl, "data": [round(float(s[r]), 1) if r in s.index else None
+                                              for r in exp_x]}
+                       for lbl, s in exp.items()],
+        },
+        "flows": {
+            "x": [str(int(y)) for y in flows.index],
+            "dep": [round(v / 1000, 1) for v in flows["dep"]],
+            "wd": [round(-v / 1000, 1) for v in flows["wd"]],
+            "tr": [round(v / 1000, 1) for v in flows["tr"]],
+        },
+        "risk": {
+            "points": [[round(float(r["sd"]), 2), round(float(r["y5"]), 2),
+                        round(float(r["assets"]) / 1000, 2), r["name"], r["cls"]]
+                       for _, r in risk.iterrows()],
+            "classes": sorted(risk["cls"].unique().tolist()),
+        },
+        "mgr_yield": {
+            "names": mgr_order,
+            "y3": [round(float(w3[n]), 2) if n in w3.index else None for n in mgr_order],
+            "y5": [round(float(w5[n]), 2) if n in w5.index else None for n in mgr_order],
+        },
     }
 
     rules = [
@@ -232,6 +377,8 @@ def compute(frames):
         ("fees", insight_fees(mfee_y, partial_year)),
         ("net", insight_net(net_m, last)),
         ("classes", insight_classes(cur.groupby("cls")["assets"].sum())),
+        ("exposure", insight_exposure(exp, last)),
+        ("sharpe", insight_sharpe(cur)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -244,7 +391,9 @@ def compute(frames):
                         "display": "—" if last_y is None else pct(last_y, 2, signed=True)},
     }
 
-    table = [{"name": n, "assets": bn(v), "share": pct(v / mgr.sum() * 100)}
+    kpis["liquid"] = {"value": liq, "display": "—" if liq is None else pct(liq)}
+
+    table = [{"name": n, "assets": bn(v), "share": num(v / mgr.sum() * 100)}
              for n, v in mgr.items()]
 
     labels = {
@@ -268,6 +417,24 @@ def compute(frames):
         "tracks_aria": (f"תרשים עמודות: תשואה מתחילת השנה של {len(tracks)} המסלולים "
                         f"הגדולים ב{p_he(last)}."),
         "table_caption": f"נכסים ונתח שוק לפי גוף מנהל, {p_he(last)}.",
+        "exposure_aria": (f"גרף קווים: חשיפה למניות, לחו״ל ולמט״ח כאחוז מהנכסים, משוקללת לפי "
+                          f"נכסים, {p_he(FROM_PERIOD)} עד {p_he(last)}."),
+        "exposure_note": (f"שיעור החשיפה מסך הנכסים, משוקלל לפי נכסים. כמה מסלולים קטנים מדווחים "
+                          f"ערכים שנראים כאחוזים ולא כמיליוני ₪; הם הוצאו מהחישוב, והמסלולים "
+                          f"שנכללו מחזיקים לפחות {pct(exp_cover * 100)} מהנכסים בכל אחד מהמדדים."),
+        "flows_aria": ("תרשים עמודות: הפקדות, משיכות והעברות בין קופות לפי שנה, "
+                       "במיליארדי ₪."),
+        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים — סטיית תקן מול "
+                      f"תשואה שנתית ממוצעת, גודל הבועה לפי נכסים."),
+        "risk_note": (f"כל נקודה היא מסלול השקעה ({len(risk)} מסלולים עם היסטוריה של 5 שנים "
+                      f"לפחות, נכון ל{p_he(last)}). גודל הנקודה מבטא את היקף הנכסים."),
+        "mgr_yield_aria": ("תרשים עמודות: תשואה שנתית ממוצעת ל-3 ול-5 שנים לפי גוף מנהל, "
+                           "משוקללת לפי נכסי המסלולים."),
+        "fees_caption": "דמי ניהול ממוצעים מצבירה ומהפקדה לפי שנה.",
+        "tracks_caption": f"תשואה מתחילת השנה ונכסים של המסלולים הגדולים, {p_he(last)}.",
+        "flows_caption": "הפקדות, משיכות, העברות בין קופות והפקדות נטו לפי שנה.",
+        "exposure_caption": "שיעור החשיפה בסוף כל שנה (או בחודש האחרון של שנה חלקית).",
+        "mgr_yield_caption": "תשואה שנתית ממוצעת לפי גוף מנהל, משוקללת לפי נכסים.",
     }
 
     return {
@@ -285,7 +452,9 @@ def compute(frames):
         },
         "kpis": kpis,
         "charts": charts,
-        "tables": {"managers": table},
+        "tables": {"managers": table, "fees": fee_rows, "tracks": track_rows,
+                   "flows": flow_rows, "exposure": exp_rows, "mgr_yield": mgr_rows,
+                   "exposure_labels": [lbl for _, lbl in EXPOSURES]},
         "insights": insights,
         "labels": labels,
     }

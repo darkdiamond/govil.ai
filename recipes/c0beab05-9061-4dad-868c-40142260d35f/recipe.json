@@ -18,7 +18,8 @@
         "city_name",
         "executor_name",
         "category_name",
-        "felony_name"
+        "felony_name",
+        "law_name"
       ]
     }
   ],

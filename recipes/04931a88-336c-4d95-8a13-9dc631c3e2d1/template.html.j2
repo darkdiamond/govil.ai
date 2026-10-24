@@ -1,3 +1,18 @@
+{% macro rank_table(rows, caption, head, unit="אתרים") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
 <h1>מפעלים ואתרים סביבתיים</h1>
 
 <section class="card p-5 mb-6">
@@ -77,6 +92,18 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">מספר האתרים בכל מחוז, ומהם כמה עם נקודת ציון.</p>
     <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.districts_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th><th scope="col">אתרים</th><th scope="col">עם מיקום</th><th scope="col">בלי מיקום</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.districts %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.with_xy }}</td><td>{{ r.without_xy }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -85,6 +112,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">הרשויות עם מספר האתרים הגבוה ביותר.</p>
     <div id="chart-auth" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+    {{ rank_table(model.tables.auth, model.labels.auth_caption, "רשות מקומית") }}
   </section>
 </div>
 
@@ -95,6 +123,30 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">לפי תיאור הפעילות המפורט כפי שהוא רשום במאגר.</p>
   <div id="chart-acts" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.acts_aria }}"></div>
+  {{ rank_table(model.tables.acts, model.labels.acts_caption, "סוג הפעילות") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה יש בכל רשות: תמהיל הפעילות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הרשויות המקומיות עם הכי הרבה אתרים, לפי תחומי הפעילות הגדולים. מראה אם הרשות מוטה לתחום אחד (למשל נמל או קרקעות מזוהמות) או מגוונת.</p>
+  <div id="chart-profile" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.profile_caption }}</caption>
+      <thead><tr><th scope="col">רשות מקומית</th>{% for c in model.tables.profile.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.profile.rows %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
 </section>
 
 <section class="card p-5 mb-6">
@@ -105,6 +157,27 @@
   <p class="m-0 text-sm text-subtle mb-3">שיעור כל תחום מתוך האתרים במחוז — כך אפשר להשוות מחוזות בגדלים שונים.</p>
   <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
   <p class="mt-3 text-sm text-subtle">רשימת האתרים המלאה זמינה בטבלת הנתונים שבהמשך העמוד ולהורדה ב-<a class="text-brand underline" href="https://data.gov.il/dataset/04931a88-336c-4d95-8a13-9dc631c3e2d1" target="_blank" rel="noopener">data.gov.il</a>.</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אילו אתרים מופיעים במפה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור האתרים עם נקודת ציון בכל תחום פעילות. אתרים בלי נקודת ציון חסרים במפה שלמעלה.</p>
+  <div id="chart-mapped" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.mapped_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mapped_caption }}</caption>
+      <thead><tr><th scope="col">תחום</th><th scope="col">אתרים</th><th scope="col">עם נקודת ציון (באחוזים)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.mapped %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
 </section>
 
 <script>
@@ -188,5 +261,32 @@
                  emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
     }));
     window.addEventListener("resize", function () { c3.resize(); });
+
+    var pf = {{ model.charts.profile | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-profile"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 8, right: 24, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: pf.names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+      series: pf.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var mp = {{ model.charts.mapped | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-mapped"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100 },
+      yAxis: { type: "category", data: mp.names.slice().reverse(), axisLabel: { width: 160, overflow: "truncate" } },
+      series: [{ type: "bar", name: "עם נקודת ציון", data: mp.values.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
   })();
 </script>

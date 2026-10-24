@@ -1,3 +1,20 @@
+{% macro matrix_table(t, caption, head, summary="הצג כטבלה") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">{{ summary }}</summary>
+  <div class="overflow-x-auto">
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th>{% for c in t.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in t.rows %}
+      <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
 <h1>סניפי בנקים פיזיים</h1>
 
 <section class="card p-5 mb-6">
@@ -77,6 +94,18 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">סניפים פעילים לפי יישוב.</p>
     <div id="chart-cities" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">סניפים פעילים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -85,6 +114,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">באיזה יום הסניף סגור, לפי בנק.</p>
     <div id="chart-days" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.day_aria }}"></div>
+    {{ matrix_table(model.tables.days, model.labels.days_caption, "בנק") }}
   </section>
 </div>
 
@@ -96,6 +126,18 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.flow_note }}</p>
     <div id="chart-flow" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.flow_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.flow_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">נפתחו</th><th scope="col">נסגרו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.flow %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.opened }}</td><td>{{ r.closed }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
     <details class="mt-3">
       <summary class="text-sm text-subtle">הסניפים שנסגרו לאחרונה</summary>
       <table class="mt-2 w-full text-sm">
@@ -116,6 +158,50 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">שיעור הסניפים הפעילים המסומנים כנגישים לאנשים עם מוגבלות.</p>
     <div id="chart-access" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.access_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.access_caption }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">סניפים נגישים (באחוזים)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.access %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סניפים שנסגרו לפי בנק</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">נסגרו</th><th scope="col">מתוכם אוחדו</th><th scope="col">פעילים היום</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.closed }}</td><td>{{ r.merged }}</td><td>{{ r.active }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה בנק נוכח באיזה יישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">סניפים פעילים של הבנקים הגדולים ביישובים עם הכי הרבה סניפים. גוון כהה = יותר סניפים.</p>
+    <div id="chart-presence" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.presence_aria }}"></div>
+    {{ matrix_table(model.tables.presence, model.labels.presence_caption, "יישוב") }}
   </section>
 </div>
 
@@ -181,5 +267,27 @@
       ]
     }));
     window.addEventListener("resize", function () { c5.resize(); });
+
+    stackedH("chart-status", {{ model.charts.status | tojson }});
+
+    var pr = {{ model.charts.presence | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-presence"));
+    c7.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return pr.cities[p.value[1]] + " · " + pr.banks[p.value[0]] + ": " + p.value[2];
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: pr.banks, splitArea: { show: true },
+               axisLabel: { interval: 0, rotate: 30, width: 90, overflow: "truncate" } },
+      yAxis: { type: "category", data: pr.cities, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: pr.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: pr.cells, label: { show: true, fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
   })();
 </script>

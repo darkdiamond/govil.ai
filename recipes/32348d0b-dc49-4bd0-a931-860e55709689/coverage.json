@@ -1,0 +1,20 @@
+{
+  "branches.Bank_Code": "skip: numeric bank code; one-to-one with Bank_Name, which is shown",
+  "branches.Bank_Name": "chart-banks, chart-days, chart-access, chart-status, chart-presence, map-main, insight:top_banks, insight:presence, kpi:banks",
+  "branches.Branch_Code": "skip: branch number within its bank — an identifier, not an analytic dimension",
+  "branches.Branch_Name": "map-main, table:closed",
+  "branches.Branch_Address": "map-main",
+  "branches.City": "chart-cities, chart-presence, map-main, insight:cities, insight:presence, kpi:cities",
+  "branches.Zip_Code": "skip: postal code — finer-grained duplicate of City and Branch_Address (754 distinct values)",
+  "branches.POB": "skip: PO box — 56% empty and a contact detail, not an analytic dimension",
+  "branches.Telephone": "map-main",
+  "branches.Handicap_Access": "chart-access, map-main, insight:access, kpi:accessible",
+  "branches.day_closed": "chart-days, map-main, insight:sunday",
+  "branches.Branch_Type": "chart-banks, insight:digital",
+  "branches.Open_Date": "chart-flow, text: used only from 2000 — 416 rows carry a 1949 placeholder and 83 a 01/01/2019 re-registration date so there is no branch-age view",
+  "branches.Close_Date": "chart-flow, chart-status, map-main, table:closed, insight:closures, insight:merges",
+  "branches.Merge_Bank": "skip: code of the absorbing bank (set on 9 rows) in a 5-digit scheme that does not match Bank_Code, so it cannot be mapped to a bank name reliably; whether a branch was merged comes from Merge_Branch",
+  "branches.Merge_Branch": "chart-status, insight:merges",
+  "branches.X_Coordinate": "map-main",
+  "branches.Y_Coordinate": "map-main"
+}

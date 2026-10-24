@@ -1,0 +1,18 @@
+{
+  "sanctions.employer_name": "chart-emp, kpi:employers, key: part of the decision key (employer + date)",
+  "sanctions.employer_number": "filter: only 9-digit registrations starting with 5 (corporations) are ranked in chart-emp",
+  "sanctions.more_details": "skip: per-decision link to the decision PDF on gov.il — one document per employer; not aggregable and it names the employer",
+  "sanctions.city": "chart-cities",
+  "sanctions.address": "skip: street address of the employer — often a sole trader's home or shop; privacy, and city already carries the geography",
+  "sanctions.decision_date": "chart-yearly, chart-reasons, insight:trend, key: part of the decision key; detail period start",
+  "sanctions.industry": "chart-ind, insight:industry, insight:size",
+  "sanctions.final_sanction_amount": "chart-yearly, chart-ind, chart-buckets, chart-emp, chart-sizes, insight:size, kpi:total, kpi:median",
+  "sanctions.reason_of_review": "chart-reasons, insight:reason",
+  "sanctions.law": "chart-laws, insight:law",
+  "sanctions.note": "skip: free-text clerk note, 72% empty; its recurring content (turnover-based reduction) is structured in financial_sanction_reduction",
+  "sanctions.employees_general_number": "chart-sizes, insight:employer_size",
+  "sanctions.checked_employees_number": "skip: number of employees the inspector sampled (median 4, max 20) — an inspection convention, not a property of the employer or the violation",
+  "sanctions.appeal": "chart-appeals, insight:appeals",
+  "sanctions.court_appeal": "chart-appeals",
+  "sanctions.financial_sanction_reduction": "chart-reductions, insight:reductions"
+}

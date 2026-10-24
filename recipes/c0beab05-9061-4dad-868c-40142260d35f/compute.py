@@ -57,6 +57,23 @@ def theme_of(text):
     return OTHER
 
 
+NO_LAW = "לא צוין חיקוק"
+SITE_BUCKETS = [(1, 1, "צו אחד"), (2, 2, "2"), (3, 3, "3"), (4, 5, "4–5"),
+                (6, 9, "6–9"), (10, None, "10 ומעלה")]
+TOP_LAWS = 8
+THEME_TREND_N = 5
+
+
+def law_short(name):
+    """'תקנות הבטיחות בעבודה (עבודות בניה)- התשמ"ח-1988' → the title before
+    the Hebrew-year suffix, so amendments of one law read as one row."""
+    s = (name or "").strip()
+    if not s:
+        return NO_LAW
+    s = re.split(r"\s*-\s*(?:ה?תש|תש)", s, maxsplit=1)[0].strip(" -")
+    return re.sub(r"\s*\(תיקון[^)]*\)", "", s).strip() or NO_LAW
+
+
 def _prepare(df):
     out = pd.DataFrame({
         "id": df["warrent_id"].str.strip(),
@@ -66,6 +83,7 @@ def _prepare(df):
         "executor": df["executor_name"].str.strip(),
         "category": df["category_name"].str.strip().replace("", "לא צוין"),
         "theme": df["felony_name"].str.strip().map(theme_of),
+        "law": df["law_name"].map(law_short),
     })
     out = out[out["id"] != ""].drop_duplicates("id")
     return out.sort_values(["d", "id"], kind="stable").reset_index(drop=True)
@@ -144,6 +162,39 @@ def insight_repeat_sites(df):
             f"{_int(sites.size)} אתרים שקיבלו צו אחד לפחות.")
 
 
+def insight_theme_shift(dated, last):
+    """Biggest change in a named theme's share between the first and the last
+    COMPLETE year (the current year is partial). Needs ≥4 complete years and
+    a move of ≥3 percentage points."""
+    full = dated[dated["d"].dt.year < last.year]
+    years = sorted(full["d"].dt.year.unique())
+    if len(years) < 4:
+        return None
+    y0, y1 = int(years[0]), int(years[-1])
+    a = full[full["d"].dt.year == y0]["theme"].value_counts(normalize=True)
+    b = full[full["d"].dt.year == y1]["theme"].value_counts(normalize=True)
+    names = sorted(t for t in set(a.index) | set(b.index) if t != OTHER)
+    if not names:
+        return None
+    best = max(names, key=lambda t: (abs(b.get(t, 0) - a.get(t, 0)), t))
+    d = b.get(best, 0) - a.get(best, 0)
+    if abs(d) < 0.03:
+        return None
+    word = "עלה" if d > 0 else "ירד"
+    return (f"השינוי הבולט בנושאי הצווים: חלקם של צווי \"{best}\" {word} מ-{_pct(a.get(best, 0))} "
+            f"ב-{y0} ל-{_pct(b.get(best, 0))} ב-{y1}.")
+
+
+def insight_law(df):
+    cited = df[df["law"] != NO_LAW]
+    if len(cited) < 100:
+        return None
+    top = _top(cited["law"], 1)
+    share = top.iloc[0] / len(cited)
+    return (f"{_pct(share)} מהצווים שבהם צוין חיקוק מבוססים על {top.index[0]}; "
+            f"ב-{_pct(1 - len(cited) / len(df))} מהצווים לא צוין חיקוק.")
+
+
 def compute(frames):
     df = _prepare(frames["orders"])
     dated = df.dropna(subset=["d"])
@@ -196,13 +247,52 @@ def compute(frames):
         "max": int(monthly.max()),
     }
 
+    # Legal basis: top laws among orders that cite one; the rest disclosed.
+    cited = df[df["law"] != NO_LAW]
+    top_laws = _top(cited["law"], TOP_LAWS)
+    other_laws = len(cited) - int(top_laws.sum())
+    laws = {"names": list(top_laws.index) + (["חיקוקים אחרים"] if other_laws else []),
+            "values": [int(v) for v in top_laws] + ([other_laws] if other_laws else [])}
+
+    # Sector × theme: each sector's orders split by theme (% of the sector).
+    sector_names = [c for c in _top(df["category"], 6).index]
+    ct = pd.crosstab(df["category"], df["theme"])
+    sec_theme = {
+        "themes": theme_order,
+        "sectors": sector_names,
+        "cells": [[ti, si, round(float(ct.at[s, t]) / float(ct.loc[s].sum()) * 100, 1),
+                   int(ct.at[s, t])]
+                  for si, s in enumerate(sector_names) for ti, t in enumerate(theme_order)
+                  if s in ct.index and t in ct.columns],
+    }
+
+    # Orders per work site, bucketed.
+    per_site = df.loc[df["work"] != "", "work"].value_counts()
+    site_buckets = {"names": [], "values": []}
+    for lo, hi, label in SITE_BUCKETS:
+        n = int(((per_site >= lo) & ((per_site <= hi) if hi else True)).sum())
+        site_buckets["names"].append(label)
+        site_buckets["values"].append(n)
+
+    # Share of the leading named themes, per year (current year partial).
+    named = [t for t in theme_order if t != OTHER][:THEME_TREND_N]
+    ty = pd.crosstab(dated["d"].dt.year, dated["theme"], normalize="index")
+    theme_year = {
+        "years": [str(y) for y in years],
+        "series": [{"name": t, "data": [round(float(ty.at[y, t]) * 100, 1)
+                                        if t in ty.columns and y in ty.index else 0.0
+                                        for y in years]} for t in named],
+    }
+
     rules = [
         ("trend", insight_trend(len(recent), len(prev), last)),
         ("peak_year", insight_peak_year(yearly, last)),
         ("theme", insight_theme(recent)),
+        ("theme_shift", insight_theme_shift(dated, last)),
         ("category", insight_category(recent)),
         ("city", insight_city(recent)),
         ("repeat_sites", insight_repeat_sites(df)),
+        ("law", insight_law(df)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -216,6 +306,30 @@ def compute(frames):
     }
 
     year_table = [{"year": str(y), "n": _int(v)} for y, v in yearly.items()]
+    tables = {
+        "years": year_table,
+        "cat_year": {
+            "cols": [s["name"] for s in cat_year["series"]],
+            "rows": [{"year": y, "vals": [_int(s["data"][i]) for s in cat_year["series"]]}
+                     for i, y in enumerate(cat_year["years"])],
+        },
+        # Percent tables carry "%" in the header, not the cells: a table of
+        # yearly shares repeats values across years, which check.py's
+        # PERCENT-CONFLICT rule (same "x%" near different years) rejects.
+        "themes": [{"name": n, "all": a, "recent": r}
+                   for n, a, r in zip(themes["names"], themes["all"], themes["recent"])],
+        "cities": [{"name": n, "v": _int(v)} for n, v in zip(cities["names"], cities["values"])],
+        "executors": [{"name": n, "v": _int(v)}
+                      for n, v in zip(executors["names"], executors["values"])],
+        "laws": [{"name": n, "v": _int(v)} for n, v in zip(laws["names"], laws["values"])],
+        "site_buckets": [{"name": n, "v": _int(v)}
+                         for n, v in zip(site_buckets["names"], site_buckets["values"])],
+        "theme_year": {
+            "cols": [f"{s['name']} (%)" for s in theme_year["series"]],
+            "rows": [{"year": y, "vals": [s["data"][i] for s in theme_year["series"]]}
+                     for i, y in enumerate(theme_year["years"])],
+        },
+    }
     y0, y1 = int(first.year), int(last.year)
     undated_note = (f" {_int(undated)} צווים ללא תאריך אינם נכללים בגרפי הזמן."
                     if undated else "")
@@ -237,6 +351,17 @@ def compute(frames):
         "heat_aria": f"מפת חום: מספר הצווים לפי חודש ושנה, {y0} עד {y1}.",
         "year_caption": f"מספר צווי הבטיחות לפי שנה, {y0} עד {y1}.",
         "recent_kpi": f"צווים ב-12 החודשים האחרונים",
+        "laws_aria": (f"תרשים עמודות אופקי: {min(TOP_LAWS, len(top_laws))} החיקוקים שעליהם "
+                      "מבוססים הכי הרבה צווים."),
+        "laws_note": (f"החיקוק שעליו נשען הצו. ב-{_int(len(df) - len(cited))} צווים "
+                      f"({_pct(1 - len(cited) / len(df))}) לא צוין חיקוק והם אינם בגרף. "
+                      "תיקונים לאותו חוק מאוחדים."),
+        "sec_theme_aria": (f"מפת חום: חלוקת הצווים בכל ענף לפי נושא ההפרה, באחוזים מצווי "
+                           f"הענף, ב-{len(sector_names)} ענפים."),
+        "sites_aria": (f"תרשים עמודות: מספר אתרי העבודה לפי כמות הצווים שקיבלו, "
+                       f"{_int(per_site.size)} אתרים."),
+        "theme_year_aria": (f"גרף קווים: חלקם של {len(named)} נושאי ההפרה הנפוצים מכלל "
+                            f"הצווים בכל שנה, {y0} עד {y1}."),
     }
 
     return {
@@ -256,8 +381,12 @@ def compute(frames):
             "cities": cities,
             "executors": executors,
             "heat": heat,
+            "laws": laws,
+            "sec_theme": sec_theme,
+            "sites": site_buckets,
+            "theme_year": theme_year,
         },
-        "tables": {"years": year_table},
+        "tables": tables,
         "insights": insights,
         "labels": labels,
     }

@@ -39,6 +39,25 @@ BUCKETS = [(0, 25_000), (25_000, 50_000), (50_000, 100_000), (100_000, 250_000),
            (250_000, 1_000_000), (1_000_000, None)]
 TOP_N = 12
 LAG_DAYS = 182
+# Detail fields (headcount, reductions, appeals) are filled only from the year
+# the publication format changed (2023 at authoring). The detail views cover
+# the years from the first one where at least this share of rows is filled.
+DETAIL_FILL = 0.8
+# Reduction grounds (regulation 1 of the sanctions-reduction rules), multi-label.
+REDUCTIONS = [
+    ("עבר נקי (5 שנים ללא הפרה)", r"1\(א\)\(1\)|לא הפר"),
+    ("הפסקת ההפרה לפני פניית מפקח", r"1\(א\)\(2\)|הפסיק את ההפרה"),
+    ("צעדים למניעת הישנות", r"1\(א\)\(3\)|נקט פעולות|נקט בפעולות"),
+    ("מחזור עסקאות נמוך", r"מחזור|1א\s*-|1א\("),
+    ("נסיבות אישיות חריגות", r"1\(א\)\(5\)|נסיבות אישיות"),
+]
+NO_REDUCTION = "ללא הפחתה"
+SIZE_BUCKETS = [(1, 5, "1–5"), (6, 20, "6–20"), (21, 50, "21–50"),
+                (51, 250, "51–250"), (251, None, "251 ומעלה")]
+# Ordered, first match wins: "טרם התקבלה החלטה" (pending) contains "התקבלה",
+# and "התקבלה חלקית" contains it too — both must be tested before it.
+OUTCOMES = [("טרם הוחלט", r"טרם"), ("נדחתה", r"נדחת"), ("התקבלה חלקית", r"חלקית"),
+            ("התקבלה", r"התקבלה")]
 
 
 def _int(n):
@@ -82,6 +101,10 @@ def _prepare(df):
         "law": df["law"].str.strip(),
         "city": df["city"].map(_city),
         "appeal": df["appeal"].str.strip(),
+        "court": df["court_appeal"].str.strip(),
+        "employees": pd.to_numeric(df["employees_general_number"].str.replace(",", "")
+                                   .str.strip(), errors="coerce"),
+        "reduction": df["financial_sanction_reduction"].str.strip(),
     })
     out = out.dropna(subset=["d"])
     out["decision"] = out["employer"] + "|" + out["d"].dt.strftime("%Y-%m-%d")
@@ -180,6 +203,63 @@ def insight_appeals(dec):
             f"הפחתה; {_int(rejected)} מתוך {_int(len(appealed))} בקשות נדחו.")
 
 
+def detail_start(rows):
+    """First year from which the detail fields are consistently filled, or
+    None if no year reaches DETAIL_FILL."""
+    filled = (rows["appeal"] != "").groupby(rows["d"].dt.year).mean().sort_index()
+    # The run of well-filled years that reaches the latest year: a stray
+    # early year with a few filled rows must not pull the window back.
+    start = None
+    for y in reversed(list(filled.index)):
+        if filled[y] < DETAIL_FILL:
+            break
+        start = int(y)
+    return start
+
+
+def outcome_of(text):
+    if not text.startswith("כן"):
+        return None
+    for name, rx in OUTCOMES:
+        if re.search(rx, text):
+            return name
+    return "אחר"
+
+
+def size_bucket(n):
+    if pd.isna(n) or n < 1:
+        return None
+    for lo, hi, label in SIZE_BUCKETS:
+        if n >= lo and (hi is None or n <= hi):
+            return label
+    return None
+
+
+def insight_reductions(detail_dec, start):
+    known = detail_dec[detail_dec["red_known"]]
+    if len(known) < 50:
+        return None
+    reduced = known[known["reduced"]]
+    share = len(reduced) / len(known)
+    counts = {name: int(known[name].sum()) for name, _ in REDUCTIONS}
+    top = max(counts, key=lambda k: (counts[k], k))
+    if not reduced.empty and counts[top] > 0:
+        return (f"מאז {start} קיבלו {_pct(share)} מההחלטות הפחתה בעיצום; הנימוק הנפוץ: "
+                f"{top} ({_int(counts[top])} החלטות).")
+    return f"מאז {start} כמעט לא ניתנו הפחתות בעיצום ({_pct(share)} מההחלטות)."
+
+
+def insight_employer_size(detail_dec, start):
+    known = detail_dec.dropna(subset=["size"])
+    if len(known) < 50:
+        return None
+    small = known["size"].isin(["1–5", "6–20"]).mean()
+    if small >= 0.5:
+        return (f"מאז {start}, {_pct(small)} מההחלטות הוטלו על מעסיקים עם עד 20 עובדים — "
+                "האכיפה פוגשת בעיקר עסקים קטנים.")
+    return f"מאז {start}, {_pct(1 - small)} מההחלטות הוטלו על מעסיקים עם יותר מ-20 עובדים."
+
+
 def compute(frames):
     rows = _prepare(frames["sanctions"])
     last, first = rows["d"].max(), rows["d"].min()
@@ -187,11 +267,59 @@ def compute(frames):
     rows["amt"] = rows["amt"].fillna(0.0)
 
     dec = (rows.groupby("decision", sort=True)
+           # appeal/court: "max" — rows are sorted by every column, so "first"
+           # would pick "" whenever one row of a decision left it empty.
            .agg(d=("d", "first"), total=("amt", "sum"), industry=("industry", "first"),
-                reason=("reason", "first"), appeal=("appeal", "first"),
+                reason=("reason", "first"), appeal=("appeal", "max"),
+                court=("court", "max"), employees=("employees", "max"),
                 employer=("employer", "first"), emp_no=("emp_no", "first"),
                 city=("city", "first"))
            .reset_index())
+
+    # Detail views: decisions from the first consistently-filled year.
+    start = detail_start(rows)
+    red_rows = rows.assign(red_text=rows["reduction"])
+    for name, rx in REDUCTIONS:
+        red_rows[name] = red_rows["red_text"].str.contains(rx)
+    red_dec = red_rows.groupby("decision").agg(
+        red_known=("red_text", lambda s: bool((s != "").any())),
+        **{name: (name, "any") for name, _ in REDUCTIONS},
+    )
+    dec = dec.join(red_dec, on="decision")
+    dec["reduced"] = dec[[n for n, _ in REDUCTIONS]].any(axis=1)
+    dec["size"] = dec["employees"].map(size_bucket)
+    detail = dec[dec["d"].dt.year >= start] if start is not None else dec.iloc[0:0]
+
+    known_red = detail[detail["red_known"]]
+    reductions = {
+        "names": [n for n, _ in REDUCTIONS] + [NO_REDUCTION],
+        "values": [int(known_red[n].sum()) for n, _ in REDUCTIONS]
+                  + [int((~known_red["reduced"]).sum())],
+        "base": len(known_red),
+    }
+
+    sized = detail.dropna(subset=["size"])
+    size_order = [label for _, _, label in SIZE_BUCKETS]
+    by_size_n = sized.groupby("size").size()
+    by_size_med = sized[sized["total"] > 0].groupby("size")["total"].median()
+    sizes = {
+        "names": size_order,
+        "decisions": [int(by_size_n.get(s, 0)) for s in size_order],
+        "median": [int(round(float(by_size_med.get(s, 0)))) if s in by_size_med.index else 0
+                   for s in size_order],
+    }
+
+    outcome_names = [n for n, _ in OUTCOMES] + ["אחר"]
+    req = detail["appeal"].map(outcome_of).dropna()
+    crt = detail["court"].map(outcome_of).dropna()
+    appeals = {
+        "stages": ["בקשה לביטול או הפחתה", "ערעור לבית הדין לעבודה"],
+        "series": [{"name": o, "data": [int((req == o).sum()), int((crt == o).sum())]}
+                   for o in outcome_names if (req == o).any() or (crt == o).any()],
+        "asked": int(len(req)),
+        "court": int(len(crt)),
+        "base": int((detail["appeal"] != "").sum()),
+    }
 
     years = list(range(int(first.year), int(last.year) + 1))
     by_year_n = dec.groupby(dec["d"].dt.year).size()
@@ -249,6 +377,8 @@ def compute(frames):
         ("size", insight_size(dec)),
         ("reason", insight_reason(dec)),
         ("appeals", insight_appeals(dec)),
+        ("reductions", insight_reductions(detail, start)),
+        ("employer_size", insight_employer_size(detail, start)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -286,6 +416,23 @@ def compute(frames):
                     f"בדיעבד, ולכן השנים שאחרי {settled_year(last)} עדיין חלקיות ועשויות לגדול."),
         "year_caption": f"מספר החלטות וסך עיצומים לפי שנה, {y0} עד {y1}.",
         "multi_law_note": "החלטה אחת עשויה לכלול הפרות של כמה חוקים — כל הפרה נספרת.",
+        "detail_note": (f"מאז {start} המאגר מפרט לכל החלטה את מספר העובדים, נימוקי ההפחתה "
+                        f"ובקשות הביטול; בהחלטות מוקדמות יותר שדות אלה כמעט ריקים, ולכן "
+                        f"הגרפים בחלק זה מתייחסים ל-{_int(len(detail))} ההחלטות מ-{start} ואילך."
+                        if start is not None else ""),
+        "red_aria": (f"תרשים עמודות אופקי: מספר ההחלטות לפי נימוק ההפחתה בעיצום, מתוך "
+                     f"{_int(reductions['base'])} החלטות עם מידע על הפחתה."),
+        "red_note": ("החלטה אחת עשויה לקבל הפחתה מכמה נימוקים — כל נימוק נספר. "
+                     f"בסיס: {_int(reductions['base'])} החלטות."),
+        "size_aria": ("תרשים משולב: מספר ההחלטות (עמודות) וחציון העיצום להחלטה (קו) לפי "
+                      "מספר העובדים אצל המעסיק."),
+        "size_note": (f"{_int(len(sized))} החלטות שבהן צוין מספר העובדים. חציון העיצום "
+                      "מחושב על החלטות עם סכום."),
+        "appeals_aria": (f"תרשים עמודות מוערמות: תוצאות {_int(appeals['asked'])} בקשות לביטול "
+                         f"או הפחתה ו-{_int(appeals['court'])} ערעורים לבית הדין."),
+        "appeals_note": (f"מתוך {_int(appeals['base'])} החלטות עם מידע: "
+                         f"{_int(appeals['asked'])} בקשות לביטול או הפחתה, "
+                         f"{_int(appeals['court'])} ערעורים לבית הדין לעבודה."),
     }
 
     return {
@@ -307,8 +454,37 @@ def compute(frames):
             "buckets": buckets,
             "employers": employers,
             "cities": cities,
+            "reductions": reductions,
+            "sizes": sizes,
+            "appeals": appeals,
         },
-        "tables": {"years": year_table},
+        "flags": {"detail": start is not None and len(detail) >= 50},
+        "tables": {
+            "years": year_table,
+            "laws": [{"name": n, "v": _int(v)} for n, v in zip(laws["names"], laws["values"])],
+            "buckets": [{"name": n, "v": _int(v)}
+                        for n, v in zip(buckets["names"], buckets["values"])],
+            "industries": [{"name": n, "amt": ils(a * 1e6), "n": _int(c)}
+                           for n, a, c in zip(industries["names"], industries["millions"],
+                                              industries["decisions"])],
+            "reasons": {
+                "cols": [s["name"] for s in reasons["series"]],
+                "rows": [{"year": y, "vals": [_int(s["data"][i]) for s in reasons["series"]]}
+                         for i, y in enumerate(reasons["years"])],
+            },
+            "employers": [{"name": n, "v": ils(m * 1e6)}
+                          for n, m in zip(employers["names"], employers["millions"])],
+            "cities": [{"name": n, "v": _int(v)} for n, v in zip(cities["names"], cities["values"])],
+            "reductions": [{"name": n, "v": _int(v)}
+                           for n, v in zip(reductions["names"], reductions["values"])],
+            "sizes": [{"name": n, "n": _int(c), "med": ils(md) if md else "—"}
+                      for n, c, md in zip(sizes["names"], sizes["decisions"], sizes["median"])],
+            "appeals": {
+                "cols": appeals["stages"],
+                "rows": [{"year": s["name"], "vals": [_int(v) for v in s["data"]]}
+                         for s in appeals["series"]],
+            },
+        },
         "insights": insights,
         "labels": labels,
     }

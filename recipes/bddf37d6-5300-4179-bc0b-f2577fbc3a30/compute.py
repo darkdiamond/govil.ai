@@ -21,6 +21,10 @@ CORPORATE_RE = re.compile(
 TOP_N = 15
 MIN_CITY_SITES = 100   # cities compared on rates need at least this many sites
 ORDER_BUCKETS = ["0", "1", "2", "3", "4+"]
+# Executor portfolio size (active sites per executor_id).
+PORTFOLIO = [(1, 1, "אתר אחד"), (2, 5, "2–5"), (6, 20, "6–20"), (21, None, "21 ומעלה")]
+MIN_SEGMENT_SITES = 100   # a rate is shown/compared only on at least this many sites
+RATE_GAP = 0.05           # rate differences below this are not called out
 
 
 def _int(n):
@@ -146,6 +150,38 @@ def insight_types(type_counts, n_sites):
             f"({_pct(spec.iloc[0] / total_spec)}); ב-{_pct(unspec / n_sites)} מהאתרים הסוג לא צוין.")
 
 
+def _rate(s):
+    return float((s > 0).mean()) if len(s) else 0.0
+
+
+def insight_crane_risk(df):
+    yes, no = df[df["cranes"]], df[~df["cranes"]]
+    if len(yes) < MIN_SEGMENT_SITES or len(no) < MIN_SEGMENT_SITES:
+        return None
+    ry, rn = _rate(yes["orders"]), _rate(no["orders"])
+    if abs(ry - rn) < RATE_GAP:
+        return (f"שיעור האתרים שקיבלו צו בטיחות דומה באתרים עם עגורנים ({_pct(ry)}) "
+                f"ובאתרים בלי ({_pct(rn)}).")
+    word = "גבוה" if ry > rn else "נמוך"
+    return (f"באתרים עם עגורנים שיעור האתרים שקיבלו צו בטיחות {word} יותר: {_pct(ry)}, "
+            f"לעומת {_pct(rn)} באתרים בלי עגורנים.")
+
+
+def insight_portfolio(port):
+    """Order rate at single-site executors vs the largest portfolio bucket."""
+    small, large = port[0], port[-1]
+    if small["sites"] < MIN_SEGMENT_SITES or large["sites"] < MIN_SEGMENT_SITES:
+        return None
+    gap = small["rate"] - large["rate"]
+    if abs(gap) < RATE_GAP:
+        return None
+    if gap > 0:
+        return (f"אצל מבצעים שמפעילים אתר אחד בלבד {_pct(small['rate'])} מהאתרים קיבלו צו "
+                f"בטיחות, לעומת {_pct(large['rate'])} אצל מבצעים עם {large['phrase']}.")
+    return (f"דווקא אצל מבצעים עם {large['phrase']} שיעור האתרים שקיבלו צו גבוה יותר "
+            f"({_pct(large['rate'])}) מאשר אצל מבצעים עם אתר אחד ({_pct(small['rate'])}).")
+
+
 def compute(frames):
     df = _prepare(frames["sites"])
     names = _executor_names(df)
@@ -170,6 +206,46 @@ def compute(frames):
 
     cranes = _top(df.loc[df["cranes"] & (df["city"] != ""), "city"].value_counts(), 10)
 
+    # Order rate by segment: building type (multi-label) and crane presence.
+    seg_rows = []
+    ex_types = df[["types", "orders"]].explode("types")
+    for t, g in ex_types.groupby("types"):
+        if len(g) >= MIN_SEGMENT_SITES:
+            seg_rows.append((f"סוג: {t}", len(g), _rate(g["orders"])))
+    for flag, label in ((True, "עם עגורנים"), (False, "בלי עגורנים")):
+        g = df[df["cranes"] == flag]
+        if len(g) >= MIN_SEGMENT_SITES:
+            seg_rows.append((label, len(g), _rate(g["orders"])))
+    seg_rows.sort(key=lambda r: (-r[2], r[0]))
+    segments = {"names": [r[0] for r in seg_rows],
+                "rates": [round(r[2] * 100, 1) for r in seg_rows],
+                "sites": [r[1] for r in seg_rows]}
+
+    # Executor portfolio size vs order rate (site-weighted).
+    per_exec = df[df["exec_id"] != ""].groupby("exec_id")["work"].size()
+    with_size = df[df["exec_id"] != ""].assign(psize=lambda d: d["exec_id"].map(per_exec))
+    port = []
+    for lo, hi, label in PORTFOLIO:
+        sel = (with_size["psize"] >= lo) & ((with_size["psize"] <= hi) if hi else True)
+        g = with_size[sel]
+        execs = int(((per_exec >= lo) & ((per_exec <= hi) if hi else True)).sum())
+        phrase = f"{lo} אתרים ומעלה" if hi is None else f"{lo}–{hi} אתרים"
+        port.append({"label": label, "phrase": phrase, "execs": execs, "sites": len(g),
+                     "rate": _rate(g["orders"])})
+    portfolio = {"names": [p["label"] for p in port],
+                 "sites": [p["sites"] for p in port],
+                 "execs": [p["execs"] for p in port],
+                 "rates": [round(p["rate"] * 100, 1) for p in port]}
+    no_exec = int((df["exec_id"] == "").sum())
+
+    # Financial sanctions by city (₪).
+    sanc = df[df["sanctions"] > 0]
+    sanc_city = _top(sanc[sanc["city"] != ""].groupby("city")["sanctions_sum"].sum(), 10)
+    sanc_sites = sanc.groupby("city").size()
+    sanctions = {"names": list(sanc_city.index),
+                 "values": [int(round(v)) for v in sanc_city],
+                 "sites": [int(sanc_sites.get(c, 0)) for c in sanc_city.index]}
+
     rules = [
         ("city", insight_city(df, cities)),
         ("orders", insight_orders(df)),
@@ -178,6 +254,8 @@ def compute(frames):
         ("sanctions", insight_sanctions(df)),
         ("concentration", insight_concentration(df, names)),
         ("types", insight_types(type_counts, len(df))),
+        ("crane_risk", insight_crane_risk(df)),
+        ("portfolio", insight_portfolio(port)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -208,6 +286,18 @@ def compute(frames):
                       "באתרים אלה. מבצעים שהם אנשים פרטיים אינם מדורגים."),
         "cranes_aria": f"תרשים עמודות אופקי: {len(cranes)} היישובים עם מספר האתרים עם עגורנים הגבוה ביותר.",
         "orders_caption": "מספר האתרים לפי מספר צווי הבטיחות שקיבלו.",
+        "seg_aria": ("תרשים עמודות אופקי: שיעור האתרים שקיבלו צו בטיחות לפי סוג הבנייה ולפי "
+                     "נוכחות עגורנים."),
+        "seg_note": (f"אחוז האתרים שקיבלו צו בטיחות אחד לפחות, בכל קבוצה עם {MIN_SEGMENT_SITES} "
+                     "אתרים לפחות. אתר עם כמה סוגי בנייה נספר בכל אחד מהם."),
+        "port_aria": ("תרשים משולב: מספר האתרים (עמודות) ושיעור האתרים שקיבלו צו בטיחות (קו) "
+                      "לפי גודל תיק האתרים של המבצע."),
+        "port_note": (f"המבצעים מקובצים לפי מספר האתרים הפעילים שהם מפעילים. "
+                      f"{_int(no_exec)} אתרים ללא מזהה מבצע אינם נכללים."),
+        "sanc_aria": (f"תרשים עמודות אופקי: {len(sanctions['names'])} היישובים עם סך העיצומים "
+                      "הכספיים הגבוה ביותר באתרי בנייה פעילים."),
+        "sanc_note": (f"עיצומים כספיים שהוטלו על {_int(len(sanc))} אתרים פעילים, בסך "
+                      f"{ils(sanc['sanctions_sum'].sum())}."),
     }
 
     return {
@@ -227,8 +317,31 @@ def compute(frames):
                       "values": [round(float(v) * 100, 1) for v in rates_chart]},
             "executors": executors,
             "cranes": {"names": list(cranes.index), "values": [int(v) for v in cranes]},
+            "segments": segments,
+            "portfolio": portfolio,
+            "sanctions": sanctions,
         },
-        "tables": {"orders": order_table},
+        "flags": {"sanctions": len(sanctions["names"]) > 0},
+        "tables": {
+            "orders": order_table,
+            "cities": [{"name": c, "v": _int(v)} for c, v in cities.items()],
+            "rates": [{"name": c, "v": f"{round(float(v) * 100, 1)}"}
+                      for c, v in rates_chart.items()],
+            "executors": [{"name": n, "sites": _int(s), "orders": _int(o)}
+                          for n, s, o in zip(executors["names"], executors["sites"],
+                                             executors["orders"])],
+            "types": [{"name": t, "v": _int(v)} for t, v in type_counts.items()],
+            "cranes": [{"name": c, "v": _int(v)} for c, v in cranes.items()],
+            "segments": [{"name": n, "rate": r, "sites": _int(s)}
+                         for n, r, s in zip(segments["names"], segments["rates"],
+                                            segments["sites"])],
+            "portfolio": [{"name": n, "execs": _int(e), "sites": _int(s), "rate": r}
+                          for n, e, s, r in zip(portfolio["names"], portfolio["execs"],
+                                                portfolio["sites"], portfolio["rates"])],
+            "sanctions": [{"name": n, "v": ils(v), "sites": _int(s)}
+                          for n, v, s in zip(sanctions["names"], sanctions["values"],
+                                             sanctions["sites"])],
+        },
         "insights": insights,
         "labels": labels,
     }

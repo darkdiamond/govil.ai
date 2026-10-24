@@ -12,6 +12,12 @@ HEAT_TYPES = 10
 TREND_FROM = 1990
 ELECTRIC = {"סוללות", "רשת חשמל"}
 AGE_BUCKETS = [(0, 4), (5, 9), (10, 14), (15, 19), (20, 29), (30, None)]
+WEIGHT_BUCKETS = [(0, 1), (1, 3.5), (3.5, 10), (10, 30), (30, None)]      # tonnes
+LIFT_BUCKETS = [(0, 1.5), (1.5, 2.5), (2.5, 3.5), (3.5, 5), (5, None)]   # tonnes
+FORKLIFTS = ["מלגזה מנוע חשמל", "מלגזה מנוע שריפה"]
+HP_TYPES = 10
+TOP_MODELS = 12
+RESTRICTION_COLS = ["hagbala_nm_1", "hagbala_nm_2", "hagbala_nm_3", "hagbala_nm_4"]
 LRI, PDI = "⁦", "⁩"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -40,12 +46,60 @@ def _prepare(df):
         "drive": df["hanaa_nm"].str.strip(),
         "built": pd.to_numeric(df["shnat_yitzur"], errors="coerce"),
         "reg": pd.to_datetime(df["rishum_date"], errors="coerce", format="%Y-%m-%d"),
+        "hp": pd.to_numeric(df["koah_sus"], errors="coerce"),
+        "w": pd.to_numeric(df["mishkal_ton"], errors="coerce"),
+        "lift": pd.to_numeric(df["kosher_harama_ton"], errors="coerce"),
+        "model": df["degem_nm"].str.strip(),
     })
+    # Restriction labels, multi-valued across 4 columns; unmapped codes
+    # ("לא ידוע קוד X") are grouped and disclosed.
+    r = pd.DataFrame({c: df[c].str.strip() for c in RESTRICTION_COLS})
+    r = r.where(~r.apply(lambda col: col.str.startswith("לא ידוע")), "קוד הגבלה לא מזוהה")
+    out["restr"] = r.apply(lambda row: sorted({v for v in row if v}), axis=1)
     out["type"] = out["type"].replace("", "לא ידוע")
     out["maker"] = out["maker"].replace("", "לא ידוע")
     out["drive_grp"] = out["drive"].map(
         lambda d: "חשמלי" if d in ELECTRIC else ("סולר" if d == "סולר" else "אחר / לא ידוע"))
     return out
+
+
+def bucket_t(lo, hi):
+    def f(x):
+        return f"{x:g}"
+    return f"{f(lo)}+ טון" if hi is None else f"{f(lo)}–{f(hi)} טון"
+
+
+def _bucketize(series, buckets):
+    rows = []
+    for lo, hi in buckets:
+        m = series >= lo
+        if hi is not None:
+            m &= series < hi
+        rows.append((bucket_t(lo, hi), int(m.sum())))
+    return rows
+
+
+def insight_speed(restr_counts, total):
+    slow = restr_counts.get("עד 30 קמש", 0)
+    if total == 0 or slow / total < 0.5:
+        return None
+    fast = restr_counts.get("מעל 30 קמש", 0)
+    return (f"{pct(slow / total * 100)} מהכלים רשומים בהגבלת מהירות של עד 30 קמ״ש, "
+            f"ו-{pct(fast / total * 100)} מורשים לנסוע מעל 30 קמ״ש.")
+
+
+def insight_lift(df):
+    f = df[df["type"].isin(FORKLIFTS) & (df["lift"] > 0)]
+    med = f.groupby("type")["lift"].median()
+    if not set(FORKLIFTS) <= set(med.index) or f["type"].value_counts().min() < 100:
+        return None
+    e, c = med["מלגזה מנוע חשמל"], med["מלגזה מנוע שריפה"]
+    if abs(e - c) < 0.2:
+        return (f"כושר ההרמה החציוני של מלגזות חשמליות ושל מלגזות בעלות מנוע שריפה דומה "
+                f"(כ-{e:.1f} טון).")
+    word = "נמוך" if e < c else "גבוה"
+    return (f"כושר ההרמה החציוני של מלגזה חשמלית ({e:.1f} טון) {word} מזה של מלגזה בעלת מנוע "
+            f"שריפה ({c:.1f} טון) — החשמליות נפוצות יותר במשימות קלות.")
 
 
 def _top(counts, k):
@@ -186,12 +240,49 @@ def compute(frames):
                  "cells": cells, "max": max([c[2] for c in cells] or [1])},
     }
 
+    restr_counts = pd.Series([v for lst in df["restr"] for v in lst]).value_counts()
+    restr_counts = restr_counts.sort_index().sort_values(ascending=False, kind="stable")
+    restr_rows = [(k, int(v)) for k, v in restr_counts.items()]
+
+    weight_known = df["w"] > 0
+    weight_rows = _bucketize(df.loc[weight_known, "w"], WEIGHT_BUCKETS)
+
+    hp_types = [t for t in types.index if t != "לא ידוע"][:HP_TYPES]
+    hp = df[df["type"].isin(hp_types) & (df["hp"] > 0)]
+    hp_med = hp.groupby("type")["hp"].median()
+    hp_n = hp.groupby("type").size()
+    hp_list = [t for t in hp_types if t in hp_med.index]
+
+    lift_rows = []
+    for lo, hi in LIFT_BUCKETS:
+        row = {"bucket": bucket_t(lo, hi)}
+        for t in FORKLIFTS:
+            sub = df.loc[(df["type"] == t) & (df["lift"] > 0), "lift"]
+            m = sub >= lo
+            if hi is not None:
+                m &= sub < hi
+            row[t] = int(m.sum())
+        lift_rows.append(row)
+
+    models = (df[df["model"] != ""].groupby(["model", "maker", "type"]).size()
+                .reset_index(name="n")
+                .sort_values(["n", "model", "maker", "type"], ascending=[False, True, True, True])
+                .head(TOP_MODELS))
+
+    charts["restrictions"] = {"names": [k for k, _ in restr_rows], "values": [v for _, v in restr_rows]}
+    charts["weights"] = {"names": [k for k, _ in weight_rows], "values": [v for _, v in weight_rows]}
+    charts["hp"] = {"names": hp_list, "values": [round(float(hp_med[t])) for t in hp_list]}
+    charts["lift"] = {"names": [r["bucket"] for r in lift_rows],
+                      "series": [{"name": t, "data": [r[t] for r in lift_rows]} for t in FORKLIFTS]}
+
     rules = [
         ("top_type", insight_top_type(types, total)),
         ("forklift_electric", insight_forklift_electric(df, last_full)),
         ("registrations", insight_registrations(per_year, last_full)),
         ("age", insight_age(df["age"])),
         ("maker", insight_maker(makers, total)),
+        ("speed", insight_speed(restr_counts, total)),
+        ("lift", insight_lift(df)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -216,8 +307,40 @@ def compute(frames):
         "ages_aria": "תרשים עמודות: כלים לפי גיל (לפי שנת ייצור).",
         "ages_caption": f"מספר כלים פעילים לפי קבוצת גיל, נכון ל-{ref_year}.",
         "heat_aria": f"מפת חום: מספר כלים לפי סוג ({HEAT_TYPES} הנפוצים) וקבוצת גיל.",
+        "heat_caption": f"מספר כלים לפי סוג ({HEAT_TYPES} הנפוצים) וקבוצת גיל בשנים.",
+        "types_caption": f"מספר כלים לפי סוג ({TOP_N} הנפוצים ואחר).",
+        "makers_caption": f"מספר כלים לפי יצרן שלדה ({TOP_N} הנפוצים ואחר).",
+        "restr_aria": "תרשים עמודות: מספר כלים לפי הגבלת רישוי (כלי יכול לשאת יותר מהגבלה אחת).",
+        "restr_note": (f"הגבלות הרישום של כל כלי (עד ארבע לכלי). קודי הגבלה שאין להם תיאור במאגר "
+                       f"מקובצים יחד. {pct((df['restr'].str.len() > 0).mean() * 100)} מהכלים "
+                       f"רשומים עם הגבלה אחת לפחות."),
+        "restr_caption": "מספר כלים לפי הגבלת רישוי.",
+        "weights_aria": "תרשים עמודות: כלים לפי משקל עצמי, בטונות.",
+        "weights_note": (f"משקל עצמי לפי רישום הכלי; {pct((~weight_known).mean() * 100)} מהכלים "
+                         f"רשומים ללא משקל (0) ואינם נכללים."),
+        "weights_caption": "מספר כלים לפי קבוצת משקל עצמי.",
+        "hp_aria": f"תרשים עמודות: כוח סוס חציוני ב-{len(hp_list)} סוגי הכלים הנפוצים.",
+        "hp_note": ("חציון כוח הסוס של כלים שיש להם ערך רשום; רשומות ללא ערך (0) — בעיקר כלים "
+                    "חשמליים — אינן נכללות."),
+        "hp_caption": "כוח סוס חציוני ומספר הכלים שנכללו, לפי סוג.",
+        "lift_aria": "תרשים עמודות: מלגזות חשמליות ובעלות מנוע שריפה לפי כושר הרמה.",
+        "lift_caption": "מספר מלגזות לפי כושר הרמה וסוג מנוע.",
+        "models_caption": f"{TOP_MODELS} הדגמים הנפוצים במאגר, עם יצרן וסוג.",
     }
-    tables = {"ages": [{"bucket": a, "count": n(v)} for a, v in age_rows]}
+    tables = {
+        "ages": [{"bucket": a, "count": n(v)} for a, v in age_rows],
+        "types": [{"name": k, "count": n(v)} for k, v in zip(t_names, t_vals)],
+        "makers": [{"name": k, "count": n(v)} for k, v in zip(m_names, m_vals)],
+        "heat": [{"type": t, "cells": [n(c[2]) for c in cells if c[1] == yi]}
+                 for yi, t in enumerate(heat_types)],
+        "restrictions": [{"name": k, "count": n(v)} for k, v in restr_rows],
+        "weights": [{"bucket": k, "count": n(v)} for k, v in weight_rows],
+        "hp": [{"type": t, "hp": n(hp_med[t]), "count": n(hp_n[t])} for t in hp_list],
+        "lift": [{"bucket": r["bucket"], "e": n(r[FORKLIFTS[0]]), "c": n(r[FORKLIFTS[1]])} for r in lift_rows],
+        "models": [{"model": r["model"], "maker": r["maker"], "type": r["type"], "count": n(r["n"])}
+                   for _, r in models.iterrows()],
+        "heat_x": [bucket_label(lo, hi) for lo, hi in AGE_BUCKETS],
+    }
 
     return {
         "agent_data": {

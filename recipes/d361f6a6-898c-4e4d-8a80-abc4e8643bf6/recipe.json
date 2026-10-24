@@ -16,7 +16,7 @@
     {
       "name": "exams",
       "by_id": "61de50d3-ab3a-42cd-9846-ddf4b4661c39",
-      "required_columns": ["תאריך הבחינה", "ציון"]
+      "required_columns": ["תאריך הבחינה", "ציון", "מוסד לימודי"]
     }
   ],
   "min_insights": 3

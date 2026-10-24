@@ -5,7 +5,9 @@
   "authored_at": "2026-10-24T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T09:00:46.277642+00:00",
-    "rows": { "branches": 1157 }
+    "rows": {
+      "branches": 1157
+    }
   },
   "inputs": [
     {
@@ -24,7 +26,8 @@
         "Open_Date",
         "Close_Date",
         "X_Coordinate",
-        "Y_Coordinate"
+        "Y_Coordinate",
+        "Merge_Branch"
       ]
     }
   ],

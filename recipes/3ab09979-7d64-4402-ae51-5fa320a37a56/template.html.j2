@@ -1,3 +1,33 @@
+{%- macro two_col(rows, caption, head1, head2) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th><th scope="col">{{ head2 }}</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+{%- macro wide(t, caption, head1) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th>{% for c in t.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in t.rows %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro -%}
 <h1>עיצומים כספיים למעסיקים - הפרת חוקי עבודה</h1>
 
 <section class="card p-5 mb-6">
@@ -69,6 +99,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.multi_law_note }}</p>
     <div id="chart-laws" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.laws_aria }}"></div>
+    {{ two_col(model.tables.laws, model.labels.laws_aria, "חוק", "הפרות") }}
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -77,6 +108,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">מספר ההחלטות לפי הסכום הכולל שהוטל בהן.</p>
     <div id="chart-buckets" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.buckets_aria }}"></div>
+    {{ two_col(model.tables.buckets, model.labels.buckets_aria, "גובה העיצום", "החלטות") }}
   </section>
 </div>
 
@@ -87,6 +119,18 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">סך העיצומים במיליוני ₪ ומספר ההחלטות בענפים המובילים.</p>
   <div id="chart-ind" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ind_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ind_aria }}</caption>
+      <thead><tr><th scope="col">ענף</th><th scope="col">סך עיצומים</th><th scope="col">החלטות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.industries %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.amt }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
 </section>
 
 <section class="card p-5 mb-6">
@@ -96,7 +140,61 @@
   </div>
   <p class="m-0 text-sm text-subtle mb-3">האם הבדיקה שהובילה לעיצום הייתה יזומה, או בעקבות תלונה או פנייה.</p>
   <div id="chart-reasons" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.reasons_aria }}"></div>
+  {{ wide(model.tables.reasons, model.labels.reasons_aria, "שנה") }}
 </section>
+
+{%- if model.flags.detail %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מבט מפורט על ההחלטות האחרונות</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.detail_note }}</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המעסיק וגובה העיצום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  <div id="chart-sizes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.size_aria }}</caption>
+      <thead><tr><th scope="col">עובדים אצל המעסיק</th><th scope="col">החלטות</th><th scope="col">חציון עיצום</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sizes %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.med }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הפחתות בעיצום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.red_note }}</p>
+    <div id="chart-reductions" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.red_aria }}"></div>
+    {{ two_col(model.tables.reductions, model.labels.red_aria, "נימוק", "החלטות") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות ביטול וערעורים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.appeals_note }}</p>
+    <div id="chart-appeals" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.appeals_aria }}"></div>
+    {{ wide(model.tables.appeals, model.labels.appeals_aria, "תוצאה") }}
+  </section>
+</div>
+{%- endif %}
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
@@ -106,6 +204,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.emp_note }}</p>
     <div id="chart-emp" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.emp_aria }}"></div>
+    {{ two_col(model.tables.employers, model.labels.emp_aria, "תאגיד", "סך עיצומים") }}
   </section>
   <section class="card p-5">
     <div class="flex items-center gap-2 mb-3 text-brand">
@@ -114,6 +213,7 @@
     </div>
     <p class="m-0 text-sm text-subtle mb-3">מספר ההחלטות לפי יישוב המעסיק (כשצוין).</p>
     <div id="chart-cities" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    {{ two_col(model.tables.cities, model.labels.cities_aria, "יישוב", "החלטות") }}
   </section>
 </div>
 
@@ -205,3 +305,58 @@
     window.addEventListener("resize", function () { c4.resize(); });
   })();
 </script>
+{%- if model.flags.detail %}
+
+<script>
+  (function () {
+    var s = {{ model.charts.sizes | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-sizes"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, data: ["החלטות", "חציון עיצום (₪)"] },
+      grid: { left: 48, right: 56, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: s.names, name: "עובדים" },
+      yAxis: [{ type: "value", name: "החלטות" }, { type: "value", name: "₪" }],
+      series: [
+        { type: "bar", name: "החלטות", data: s.decisions },
+        { type: "line", name: "חציון עיצום (₪)", yAxisIndex: 1, data: s.median }
+      ]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var rd = {{ model.charts.reductions | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-reductions"));
+    var lastR = rd.values.length - 1;
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: rd.names, inverse: true,
+               axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "החלטות", label: { show: true, position: "right" },
+                 data: rd.values.map(function (v, i) {
+                   return i === lastR ? { value: v, itemStyle: { color: "#6c757d" } } : v;
+                 }) }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var ap = {{ model.charts.appeals | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-appeals"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 16, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: ap.stages, inverse: true,
+               axisLabel: { width: 120, overflow: "truncate" } },
+      series: ap.series.map(function (x) {
+        return { type: "bar", stack: "all", name: x.name, data: x.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+  })();
+</script>
+{%- endif %}
