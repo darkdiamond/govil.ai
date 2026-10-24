@@ -361,6 +361,29 @@ def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, cap
     assert "(typo or stale): events.typo" in out
 
 
+def _kpi(value, cls="text-brand", ltr=True):
+    d = ' dir="ltr"' if ltr else ""
+    return f'<div class="text-3xl font-bold {cls} mb-1"{d}>{value}</div>'
+
+
+@pytest.mark.parametrize("html, problem", [
+    (_kpi("1,695", ltr=False), None),            # bare count: no dir needed
+    (_kpi("−213.72"), None),
+    (_kpi("432.9 מ׳"), None),                    # short magnitude suffix
+    (_kpi("45.2%", "text-danger"), None),
+    (_kpi("2014–2026", ltr=False), 'needs dir="ltr"'),
+    (_kpi("-6.3%"), "minus sign"),
+    (_kpi("⁦-213.72⁩ מ'"), "bidi marks"),
+    (_kpi("432.9 מיליון ₪"), "carries a unit"),
+    (_kpi("1,567", "text-ink"), "colour must be"),
+])
+def test_kpi_format(html, problem):
+    from services.page_builder.author import _kpi_findings
+
+    out = _kpi_findings(html)
+    assert (not out) if problem is None else any(problem in f for f in out), out
+
+
 @pytest.mark.parametrize("line, impure", [
     ('t = pd.Timestamp("today")', True),
     ('pd.to_datetime("now")', True),
