@@ -76,9 +76,12 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: frontend/public/datasets
-          key: datasets-${{ github.run_id }}
+          # Per-lane keys: the cache is saved AFTER the preview overlay has
+          # written demo content.html into this tree, so a shared key would
+          # let a live run restore demo pages (and rsync could skip them).
+          key: datasets-${{ inputs.target || 'live' }}-${{ github.run_id }}
           restore-keys: |
-            datasets-
+            datasets-${{ inputs.target || 'live' }}-
 
       - name: Fetch agent pages from staging
         run: |
