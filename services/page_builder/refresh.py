@@ -1,0 +1,721 @@
+"""Deterministic page refresh — re-run a dataset's recipe on fresh data.
+
+No LLM anywhere in this module. Per source with a recipe whose CKAN version
+(or recipe version) moved past what was last rendered:
+
+    resolve inputs → full CKAN fetch → compute() in a LocalSandbox
+    → validate page model → render template → sanitize → check.py
+    → stage content.html to GCS → write agent_data + refresh state
+
+A failure keeps the last-good page live (nothing is staged), records why,
+and — when a human has to act (recipe broke, schema moved, data outgrew
+the fetch cap) — opens a `needs-authoring` GitHub issue. A transient fetch
+failure just retries on the next run.
+
+Two targets share every step and differ only in where results land:
+    prod     `sources/<id>` + gs://<staging>/datasets/<id>/content.html
+    preview  `preview_sources/<id>` + gs://<staging>/preview/datasets/…
+             (`sources/*` is read, never written — the demo lane)
+
+CLI (what the preview Cloud Run job runs; also handy locally):
+    python -m services.page_builder.refresh run --target preview
+    python -m services.page_builder.refresh run --source <id> --no-publish
+    python -m services.page_builder.refresh overlay --out frontend/public/
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+import shutil
+import tempfile
+import time
+import uuid
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Callable, Optional
+
+from .agent_contract import (
+    ResourceRestrictedError,
+    fetch_resource_preview,
+    fetch_resource_records_to_file,
+    run_host_check,
+    sanitize_content_html,
+)
+from .local_sandbox import LocalSandbox
+from .recipe import (
+    MANIFEST_FILENAME,
+    RECIPE_FILES,
+    Recipe,
+    RecipeError,
+    render_template,
+    resolve_inputs,
+    validate_model,
+)
+
+log = logging.getLogger("page_builder.refresh")
+
+CONTENT_FILENAME = "content.html"
+RECIPE_EXEC_PATH = Path(__file__).resolve().parent / "recipe_exec.py"
+
+# Refresh fetches FULL data — a sampled frame would silently change what
+# every number means. No LLM context to protect, so the caps are about
+# container memory and CKAN politeness only.
+_DEFAULT_MAX_RECORDS = 2_000_000
+_DEFAULT_MAX_BYTES = 300_000_000
+_DEFAULT_TOTAL_BYTES = 600_000_000
+_DEFAULT_WALL_BUDGET_S = 900.0
+_DEFAULT_PAGE_SIZE = 25_000
+_PAGE_TIMEOUT_S = 60.0
+_COMPUTE_TIMEOUT_S = 300
+
+# Failure reasons a human must act on → open an authoring issue. Anything
+# else (`fetch_failed`) is transient and simply retried next run.
+AUTHORING_REASONS = ("recipe_failed", "schema_changed", "too_large")
+
+
+def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
+    """Keep what a traceback is about (head) AND where it ended (tail)."""
+    return msg if len(msg) <= head + tail else f"{msg[:head]} … {msg[-tail:]}"
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, "") or default)
+    except ValueError:
+        return default
+
+
+# ── recipe repositories ──────────────────────────────────────────────────
+
+
+class LocalRecipeRepo:
+    """Recipes from a directory (the repo's `recipes/`, or a test fixture)."""
+
+    def __init__(self, root: Path):
+        self.root = Path(root)
+
+    def list_ids(self) -> list[str]:
+        if not self.root.is_dir():
+            return []
+        return sorted(
+            p.name for p in self.root.iterdir() if (p / MANIFEST_FILENAME).is_file()
+        )
+
+    def load(self, dataset_id: str, scratch: Path) -> Recipe:
+        return Recipe.load(self.root / dataset_id)
+
+
+class GcsRecipeRepo:
+    """Recipes synced from git to gs://<bucket>/<prefix><id>/ by publish.yml."""
+
+    def __init__(self, bucket: str, prefix: str = "recipes/"):
+        from google.cloud import storage
+
+        self._bucket = storage.Client().bucket(bucket)
+        self.prefix = prefix if prefix.endswith("/") else prefix + "/"
+
+    def list_ids(self) -> list[str]:
+        ids = set()
+        for blob in self._bucket.client.list_blobs(self._bucket, prefix=self.prefix):
+            rel = blob.name[len(self.prefix):]
+            parts = rel.split("/")
+            if len(parts) == 2 and parts[1] == MANIFEST_FILENAME:
+                ids.add(parts[0])
+        return sorted(ids)
+
+    def load(self, dataset_id: str, scratch: Path) -> Recipe:
+        dest = scratch / dataset_id
+        dest.mkdir(parents=True, exist_ok=True)
+        for name in RECIPE_FILES:
+            blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{name}")
+            if not blob.exists():
+                raise RecipeError(f"recipe {dataset_id} missing {name} in GCS")
+            blob.download_to_filename(str(dest / name))
+        return Recipe.load(dest)
+
+
+def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo:
+    """RECIPES_SOURCE: a local dir, or gs://bucket/prefix (default: the
+    staging bucket's recipes/ prefix)."""
+    src = os.environ.get("RECIPES_SOURCE", "").strip()
+    if not src:
+        bucket = os.environ.get("GCS_STAGING_BUCKET", "")
+        if not bucket:
+            raise RuntimeError("set RECIPES_SOURCE or GCS_STAGING_BUCKET")
+        src = f"gs://{bucket}/recipes/"
+    if src.startswith("gs://"):
+        bucket, _, prefix = src[len("gs://"):].partition("/")
+        return GcsRecipeRepo(bucket, prefix or "recipes/")
+    return LocalRecipeRepo(Path(src))
+
+
+# ── fetch ────────────────────────────────────────────────────────────────
+
+
+@dataclass
+class FetchedInput:
+    file: Path
+    resource_id: str
+    resource_name: str
+    rows: int
+
+
+def fetch_inputs(
+    recipe: Recipe,
+    resources: list[dict],
+    dest_dir: Path,
+    *,
+    preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
+    fetch_fn: Callable = fetch_resource_records_to_file,
+) -> dict[str, list[FetchedInput]]:
+    """Full export of every resource the recipe reads, as CSV in `dest_dir`.
+
+    Raises RecipeError: `schema_changed` (inputs no longer resolve),
+    `too_large` (over REFRESH_MAX_RECORDS — sampling is never an option
+    here), `fetch_failed` (CKAN/network; transient).
+    """
+    previews: dict[str, Optional[dict]] = {}
+
+    def _preview(rid: str) -> Optional[dict]:
+        if rid not in previews:
+            previews[rid] = preview_fn(rid)
+        return previews[rid]
+
+    def _fields(rid: str) -> Optional[list[str]]:
+        p = _preview(rid)
+        return [f["id"] for f in (p or {}).get("fields") or []] if p else None
+
+    resolved = resolve_inputs(recipe.manifest, resources, _fields)
+
+    max_records = _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
+    max_bytes = _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    remaining = _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES)
+    page_size = _env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE)
+    deadline = time.monotonic() + float(
+        _env_int("REFRESH_WALL_BUDGET_S", int(_DEFAULT_WALL_BUDGET_S))
+    )
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    out: dict[str, list[FetchedInput]] = {}
+    for inp in recipe.manifest.inputs:
+        parts: list[FetchedInput] = []
+        for i, res in enumerate(resolved[inp.name]):
+            rid = res["id"]
+            total = int((_preview(rid) or {}).get("total") or 0)
+            if total <= 0:
+                raise RecipeError(
+                    f"input {inp.name!r}: resource {rid[:8]} has no rows",
+                    reason="fetch_failed",
+                )
+            if total > max_records:
+                raise RecipeError(
+                    f"input {inp.name!r}: {total:,} rows > REFRESH_MAX_RECORDS "
+                    f"{max_records:,}",
+                    reason="too_large",
+                )
+            dest = dest_dir / f"{inp.name}__{i + 1}.csv"
+            outcome = fetch_fn(
+                rid,
+                total,
+                dest,
+                max_bytes=min(max_bytes, remaining),
+                page_size=page_size,
+                page_timeout_s=_PAGE_TIMEOUT_S,
+                deadline=deadline,
+                sample_target_rows=0,
+                prefer_sample=False,
+            )
+            if outcome is None or outcome.mode != "full":
+                raise RecipeError(
+                    f"input {inp.name!r}: full fetch of {rid[:8]} failed "
+                    "(network, wall budget or byte cap)",
+                    reason="fetch_failed",
+                )
+            remaining -= outcome.bytes
+            parts.append(
+                FetchedInput(dest, rid, res.get("name") or "", outcome.rows)
+            )
+        out[inp.name] = parts
+    return out
+
+
+# ── compute + render ─────────────────────────────────────────────────────
+
+
+def run_compute(
+    recipe: Recipe,
+    inputs: dict[str, list[FetchedInput]],
+    work_root: Path,
+    *,
+    timeout: int = _COMPUTE_TIMEOUT_S,
+) -> dict:
+    """Execute compute.py in a fresh LocalSandbox; return the raw model.
+
+    Recipe code is reviewed (it arrives by PR) but still runs with agent-
+    tool isolation: scrubbed env, unprivileged uid in the container,
+    wall-clock timeout, output read back through the untrusted-read path.
+    """
+    work_root.mkdir(parents=True, exist_ok=True)
+    workdir = Path(tempfile.mkdtemp(prefix=f"{recipe.dataset_id[:8]}-recipe-", dir=work_root))
+    sandbox = LocalSandbox.create(workdir)
+    try:
+        (workdir / "recipe").mkdir()
+        for name in RECIPE_FILES:
+            shutil.copyfile(recipe.root / name, workdir / "recipe" / name)
+        shutil.copyfile(RECIPE_EXEC_PATH, workdir / "recipe_exec.py")
+        (workdir / "data").mkdir()
+        spec: dict[str, list[dict]] = {}
+        input_concat = {i.name: i.concat for i in recipe.manifest.inputs}
+        for name, parts in inputs.items():
+            spec[name] = []
+            for p in parts:
+                target = workdir / "data" / p.file.name
+                try:
+                    os.link(p.file, target)
+                except OSError:
+                    shutil.copyfile(p.file, target)
+                spec[name].append(
+                    {
+                        "file": f"data/{p.file.name}",
+                        "resource_name": p.resource_name,
+                        "concat": input_concat.get(name, False),
+                    }
+                )
+        (workdir / "inputs.json").write_text(
+            json.dumps(spec, ensure_ascii=False), encoding="utf-8"
+        )
+        execution = sandbox.run_code(
+            "import runpy; runpy.run_path('recipe_exec.py', run_name='__main__')",
+            language="python",
+            timeout=timeout,
+        )
+        if execution.error is not None:
+            stderr = (execution.logs.stderr or "").strip()
+            raise RecipeError(
+                f"compute() failed ({execution.error.name}: {execution.error.value}): "
+                f"{stderr[-1500:]}"
+            )
+        try:
+            raw = sandbox.files.read("outputs/model.json")
+        except FileNotFoundError as e:
+            raise RecipeError(f"compute() wrote no model: {e}") from e
+        return json.loads(raw.decode("utf-8"))
+    finally:
+        sandbox.kill()
+
+
+@dataclass
+class RenderedPage:
+    content_html: str
+    agent_data: dict
+    model: dict
+
+
+def inputs_context(inputs: dict[str, list[FetchedInput]]) -> dict:
+    return {
+        name: [{"id": p.resource_id, "name": p.resource_name, "rows": p.rows} for p in parts]
+        for name, parts in inputs.items()
+    }
+
+
+def render_page(
+    recipe: Recipe,
+    raw_model: dict,
+    check_root: Path,
+    inputs: Optional[dict[str, list[FetchedInput]]] = None,
+) -> RenderedPage:
+    """Model → validated body. Same gates an agent page passed: sanitizer,
+    then the image's check.py on the sanitized output."""
+    model = validate_model(raw_model, recipe.manifest)
+    agent_data = model.agent_data.model_dump(mode="json", exclude_none=True)
+    template_src = recipe.template_path.read_text(encoding="utf-8")
+    # The template sees exactly what compute() returned (extras included).
+    html = render_template(template_src, raw_model, inputs_context(inputs or {}))
+    html = sanitize_content_html(html, dataset_id=recipe.dataset_id)
+    check_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="check-", dir=check_root) as d:
+        try:
+            run_host_check(html, json.dumps(agent_data, ensure_ascii=False), Path(d))
+        except RuntimeError as e:
+            raise RecipeError(str(e)) from e
+    return RenderedPage(content_html=html, agent_data=agent_data, model=raw_model)
+
+
+def build_page(
+    recipe: Recipe,
+    resources: list[dict],
+    work_root: Path,
+    **fetch_kwargs,
+) -> tuple[RenderedPage, dict[str, list[FetchedInput]]]:
+    """fetch → compute → render, in a scratch dir under `work_root`."""
+    data_dir = Path(tempfile.mkdtemp(prefix=f"{recipe.dataset_id[:8]}-data-", dir=work_root))
+    try:
+        inputs = fetch_inputs(recipe, resources, data_dir, **fetch_kwargs)
+        raw = run_compute(recipe, inputs, work_root)
+        return render_page(recipe, raw, work_root, inputs), inputs
+    finally:
+        shutil.rmtree(data_dir, ignore_errors=True)
+
+
+# ── selection + orchestration ────────────────────────────────────────────
+
+
+def version_key(metadata_modified: Optional[datetime], recipe_version: int) -> str:
+    mm = metadata_modified.isoformat() if metadata_modified else "none"
+    return f"{mm}|v{recipe_version}"
+
+
+def needs_refresh(src, state: dict, recipe: Recipe) -> Optional[str]:
+    """Why this source should be refreshed now, or None to skip it."""
+    if src is None:
+        return None
+    if src.analysis_status in ("unavailable", "restricted"):
+        return None  # data gone upstream; keep the frozen page
+    rv = recipe.manifest.recipe_version
+    key = version_key(src.metadata_modified, rv)
+    if state.get("refresh_failed_version") == key and state.get(
+        "refresh_reason"
+    ) in AUTHORING_REASONS:
+        return None  # same data + same recipe would fail the same way
+    if state.get("recipe_version") != rv:
+        return "recipe_version"
+    done = state.get("refreshed_metadata_modified")
+    if done is None:
+        return "never_refreshed"
+    if src.metadata_modified and src.metadata_modified > done:
+        return "data_updated"
+    return None
+
+
+def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
+    from google.cloud import storage
+
+    blob = storage.Client().bucket(bucket).blob(relpath)
+    blob.upload_from_string(data, content_type="text/html; charset=utf-8")
+    return f"gs://{bucket}/{relpath}"
+
+
+@dataclass
+class RefreshOutcome:
+    id: str
+    status: str                      # refreshed | failed | skipped
+    trigger: Optional[str] = None
+    reason: Optional[str] = None
+    error: Optional[str] = None
+    elapsed_s: float = 0.0
+    rows: dict = field(default_factory=dict)
+    kpis: dict = field(default_factory=dict)
+    insights: list = field(default_factory=list)
+    changes: dict = field(default_factory=dict)
+    issue: Optional[int] = None
+
+
+def refresh_one(
+    src,
+    recipe: Recipe,
+    *,
+    store,
+    preview: bool,
+    staging_bucket: str,
+    work_root: Path,
+    trigger: str,
+    previous_state: Optional[dict] = None,
+    notify: bool = True,
+    write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
+    **fetch_kwargs,
+) -> RefreshOutcome:
+    started = time.monotonic()
+    rv = recipe.manifest.recipe_version
+    try:
+        page, inputs = build_page(recipe, src.resources, work_root, **fetch_kwargs)
+    except ResourceRestrictedError as e:
+        # Data went private upstream. Not the recipe's fault, not
+        # actionable by re-authoring; the reconcile sweep owns this state.
+        log.warning("refresh %s: restricted upstream: %s", src.id[:8], e)
+        return RefreshOutcome(src.id, "failed", trigger, "restricted", str(e))
+    except RecipeError as e:
+        log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
+        store.mark_refresh_failed(
+            src.id,
+            error=str(e),
+            reason=e.reason,
+            failed_version=version_key(src.metadata_modified, rv),
+            preview=preview,
+        )
+        outcome = RefreshOutcome(
+            src.id, "failed", trigger, e.reason, _clip(str(e)),
+            round(time.monotonic() - started, 2),
+        )
+        if notify and e.reason in AUTHORING_REASONS:
+            outcome.issue = queue_authoring(
+                store, src, e.reason, detail=str(e), preview=preview
+            )
+        return outcome
+    except Exception as e:  # infra bug, not a data/recipe verdict
+        log.exception("refresh %s crashed", src.id[:8])
+        store.mark_refresh_failed(
+            src.id,
+            error=f"{type(e).__name__}: {e}",
+            reason="error",
+            failed_version=version_key(src.metadata_modified, rv),
+            preview=preview,
+        )
+        return RefreshOutcome(src.id, "failed", trigger, "error", _clip(str(e)))
+
+    snapshot = {
+        "rows": {k: sum(p.rows for p in v) for k, v in inputs.items()},
+        "kpis": {
+            k: (v or {}).get("display") for k, v in (page.model.get("kpis") or {}).items()
+        },
+        "insights": [i.get("text_he") for i in page.model.get("insights") or []],
+    }
+    previous = (previous_state or {}).get("last_snapshot")
+    prefix = "preview/datasets" if preview else "datasets"
+    write_gcs(
+        page.content_html.encode("utf-8"),
+        staging_bucket,
+        f"{prefix}/{src.id}/{CONTENT_FILENAME}",
+    )
+    store.mark_refreshed(
+        src.id,
+        metadata_modified=src.metadata_modified,
+        recipe_version=rv,
+        agent_data=page.agent_data,
+        page_path=f"datasets/{src.id}/",
+        snapshot=snapshot,
+        preview=preview,
+    )
+    return RefreshOutcome(
+        src.id,
+        "refreshed",
+        trigger,
+        elapsed_s=round(time.monotonic() - started, 2),
+        rows=snapshot["rows"],
+        kpis=snapshot["kpis"],
+        insights=snapshot["insights"],
+        changes=snapshot_diff(previous, snapshot),
+    )
+
+
+def snapshot_diff(before: Optional[dict], after: dict) -> dict:
+    """What moved since the last successful render — the daily "did the
+    numbers change, and did the wording follow" view of the demo soak."""
+    if not before:
+        return {"first_refresh": True}
+    old_k, new_k = before.get("kpis") or {}, after.get("kpis") or {}
+    old_i, new_i = before.get("insights") or [], after.get("insights") or []
+    return {
+        "rows": [before.get("rows"), after.get("rows")],
+        "kpis_changed": {k: [old_k.get(k), v] for k, v in new_k.items() if old_k.get(k) != v},
+        "insights_added": [t for t in new_i if t not in old_i],
+        "insights_removed": [t for t in old_i if t not in new_i],
+    }
+
+
+def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool = False) -> Optional[int]:
+    """Flag a dataset for local authoring and open its issue (once)."""
+    from . import notify as _notify
+
+    state = store.get_refresh_state(src.id, preview=preview)
+    store.mark_authoring_needed(src.id, reason, preview=preview)
+    if state.get("authoring_issue"):
+        return int(state["authoring_issue"])
+    number = _notify.open_authoring_issue(
+        dataset_id=src.id,
+        title=src.title or src.id,
+        org=(src.organization or {}).get("title", "") or "",
+        reason=reason,
+        detail=detail,
+        preview=preview,
+    )
+    if number is not None:
+        store.set_authoring_issue(src.id, number, preview=preview)
+    return number
+
+
+def run_refresh(
+    store,
+    repo,
+    *,
+    preview: bool,
+    staging_bucket: str,
+    only_ids: Optional[list[str]] = None,
+    cap: Optional[int] = None,
+    force: bool = False,
+    notify: bool = True,
+    work_root: Optional[Path] = None,
+    **kwargs,
+) -> dict:
+    """Refresh every eligible recipe'd source (sequentially — a refresh is
+    CKAN-bound and cheap; there is no model latency to hide)."""
+    cap = cap if cap is not None else _env_int("REFRESH_CAP", 200)
+    work_root = work_root or Path(os.environ.get("SESSIONS_ROOT", "/tmp/sessions"))
+    work_root.mkdir(parents=True, exist_ok=True)
+    scratch = Path(tempfile.mkdtemp(prefix="recipes-", dir=work_root))
+    ids = repo.list_ids()
+    if only_ids is not None:
+        ids = [i for i in ids if i in set(only_ids)]
+    outcomes: list[RefreshOutcome] = []
+    try:
+        for dataset_id in ids:
+            if len([o for o in outcomes if o.status != "skipped"]) >= cap:
+                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="cap"))
+                continue
+            src = store.get_source(dataset_id)
+            if src is None:
+                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="no_source_doc"))
+                continue
+            try:
+                recipe = repo.load(dataset_id, scratch)
+            except Exception as e:
+                log.exception("recipe %s failed to load", dataset_id[:8])
+                outcomes.append(
+                    RefreshOutcome(dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e)))
+                )
+                continue
+            state = store.get_refresh_state(dataset_id, preview=preview)
+            trigger = "forced" if force else needs_refresh(src, state, recipe)
+            if trigger is None:
+                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="up_to_date"))
+                continue
+            log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
+            outcomes.append(
+                refresh_one(
+                    src, recipe, store=store, preview=preview,
+                    staging_bucket=staging_bucket, work_root=work_root,
+                    trigger=trigger, previous_state=state, notify=notify, **kwargs,
+                )
+            )
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    refreshed = [o.id for o in outcomes if o.status == "refreshed"]
+    failed = [o.id for o in outcomes if o.status == "failed"]
+    return {
+        "target": "preview" if preview else "prod",
+        "recipes": len(ids),
+        "refreshed": refreshed,
+        "failed": failed,
+        "outcomes": [o.__dict__ for o in outcomes],
+    }
+
+
+# ── preview overlay (publish.yml, target=preview) ────────────────────────
+
+
+def overlay_preview(store, out_dir: Path) -> list[str]:
+    """Lay the preview lane over a freshly published prod tree.
+
+    publish.py has already written prod `datasets/<id>/agent_data.json` and
+    `data/manifest.json`; content.html for preview ids was rsynced from
+    gs://…/preview/datasets/ by the workflow. Here: replace agent_data.json
+    for every preview-refreshed id and patch its manifest summary so cards
+    and the page agree.
+    """
+    from .schema import AgentData
+
+    done: dict[str, dict] = {}
+    for dataset_id, state in store.iter_preview_states():
+        # agent_data is only ever written by a successful refresh, so its
+        # presence (not refresh_status, which a later failure overwrites)
+        # is what says "this id has a preview page to show".
+        ad = state.get("agent_data")
+        if not ad:
+            continue
+        AgentData.model_validate(ad)
+        d = out_dir / "datasets" / dataset_id
+        if not d.is_dir():
+            log.warning("overlay: %s has no published dir — skipped", dataset_id[:8])
+            continue
+        (d / "agent_data.json").write_text(
+            json.dumps(ad, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        done[dataset_id] = ad
+    manifest_path = out_dir / "data" / "manifest.json"
+    if done and manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for entry in manifest.get("datasets") or []:
+            ad = done.get(entry.get("id"))
+            if ad:
+                for k in ("summary_he", "temporal_coverage", "spatial_coverage"):
+                    if ad.get(k):
+                        entry[k] = ad[k]
+        manifest_path.write_text(
+            json.dumps(manifest, ensure_ascii=False), encoding="utf-8"
+        )
+    return sorted(done)
+
+
+# ── CLI ──────────────────────────────────────────────────────────────────
+
+
+def _cli() -> None:
+    p = argparse.ArgumentParser(description="Deterministic recipe refresh (no LLM).")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    r = sub.add_parser("run", help="refresh eligible recipe'd sources")
+    r.add_argument("--target", choices=("prod", "preview"),
+                   default=os.environ.get("REFRESH_TARGET", "preview"))
+    r.add_argument("--source", action="append", help="limit to dataset id(s)")
+    r.add_argument("--force", action="store_true", help="refresh even if up to date")
+    r.add_argument("--no-publish", action="store_true")
+    r.add_argument("--no-notify", action="store_true")
+    o = sub.add_parser("overlay", help="apply the preview lane to a published tree")
+    o.add_argument("--out", required=True, type=Path)
+    args = p.parse_args()
+
+    from services.shared.firestore import FirestoreStateStore
+
+    store = FirestoreStateStore()
+    if args.cmd == "overlay":
+        ids = overlay_preview(store, args.out)
+        print(json.dumps({"overlaid": ids}, indent=2))
+        return
+
+    preview = args.target == "preview"
+    bucket = os.environ.get("GCS_STAGING_BUCKET", "")
+    if not bucket:
+        raise SystemExit("GCS_STAGING_BUCKET must be set")
+    run_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
+    started = datetime.now(timezone.utc)
+    summary = run_refresh(
+        store,
+        recipe_repo_from_env(),
+        preview=preview,
+        staging_bucket=bucket,
+        only_ids=args.source,
+        force=args.force,
+        notify=not args.no_notify,
+    )
+    summary["run_id"] = run_id
+    summary["started_at"] = started
+    summary["completed_at"] = datetime.now(timezone.utc)
+
+    publish = None
+    if summary["refreshed"] and not args.no_publish:
+        import asyncio
+        from .pipeline import _trigger_publish_github
+
+        publish = asyncio.run(
+            _trigger_publish_github(
+                os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai"),
+                os.environ.get("PUBLISH_GITHUB_WORKFLOW", "publish.yml"),
+                os.environ.get("PUBLISH_BRANCH", "main"),
+                inputs={"target": "preview"} if preview else None,
+            )
+        )
+    summary["publish"] = publish
+    if preview:
+        try:
+            store.record_preview_run(run_id, summary)
+        except Exception:
+            log.exception("failed to record preview run report")
+    print(json.dumps(summary, indent=2, default=str, ensure_ascii=False))
+    if summary["failed"] and not summary["refreshed"]:
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+    _cli()

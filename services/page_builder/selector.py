@@ -97,7 +97,11 @@ def pick_next(
     max_age_days: int = DEFAULT_MAX_AGE_DAYS,
     min_modified_floor: datetime = DEFAULT_MIN_MODIFIED_FLOOR,
     reanalyze: bool = True,
+    exclude_ids: frozenset[str] = frozenset(),
 ) -> list[SourceRecord]:
+    """`exclude_ids` are sources a recipe owns (services/page_builder/
+    refresh.py): their page is re-rendered deterministically on every data
+    update, so no track may hand them to an agent session."""
     now = datetime.now(timezone.utc)
     reanalyze_gap = timedelta(days=reanalyze_gap_days)
     age_cutoff = max(now - timedelta(days=max_age_days), _as_utc(min_modified_floor))
@@ -108,7 +112,9 @@ def pick_next(
     # Rows are ordered by `metadata_modified` DESC; once we hit one past
     # `age_cutoff` every remaining row is also too old, so we break. No
     # client-side skip filter exists in this track, so `limit=n` is exact.
-    for src in store.list_never_analyzed(limit=n):
+    for src in store.list_never_analyzed(limit=n + len(exclude_ids)):
+        if src.id in exclude_ids:
+            continue
         if src.metadata_modified is None or _as_utc(src.metadata_modified) < age_cutoff:
             break
         picks.append(src)
@@ -120,8 +126,8 @@ def pick_next(
     # API flakes self-heal on the next daily run; 3 whole-run failures
     # park the source). Same age cutoff and ordering as Track 1.
     if len(picks) < n:
-        for src in store.list_failed_retryable(limit=n - len(picks)):
-            if src.id in seen:
+        for src in store.list_failed_retryable(limit=n - len(picks) + len(exclude_ids)):
+            if src.id in seen or src.id in exclude_ids:
                 continue
             if src.metadata_modified is None or _as_utc(src.metadata_modified) < age_cutoff:
                 break
@@ -154,7 +160,7 @@ def pick_next(
                     TRACK2_SCAN_CAP, len(picks), n,
                 )
                 break
-            if src.id in seen:
+            if src.id in seen or src.id in exclude_ids:
                 continue
             # A source removed upstream (reconcile flagged it `unavailable`)
             # keeps its preserved snapshot page. Re-selecting it would run an

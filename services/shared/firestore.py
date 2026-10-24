@@ -21,6 +21,11 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 SOURCES_COLL = "sources"
 SCAN_RUNS_COLL = "scan_runs"
+# Recipe-refresh preview lane (REFRESH_TARGET=preview): per-dataset refresh
+# state + agent_data, kept OUT of `sources/*` so a demo run never touches
+# what the live site publishes. Read by `refresh overlay` in publish.yml.
+PREVIEW_SOURCES_COLL = "preview_sources"
+PREVIEW_RUNS_COLL = "preview_runs"
 
 
 def _count(query) -> int:
@@ -711,6 +716,123 @@ class FirestoreStateStore:
                 )
             reaped.append(d.id)
         return reaped
+
+    # ---- Recipe refresh --------------------------------------------------
+    #
+    # A recipe'd page is re-rendered deterministically (no LLM) whenever
+    # CKAN advances past the version it was last rendered from. `preview`
+    # selects the demo lane: state lives in `preview_sources/<id>` and
+    # `sources/*` is never written.
+
+    def _refresh_ref(self, dataset_id: str, preview: bool):
+        coll = PREVIEW_SOURCES_COLL if preview else SOURCES_COLL
+        return self.client.collection(coll).document(dataset_id)
+
+    def get_refresh_state(self, dataset_id: str, *, preview: bool = False) -> dict:
+        snap = self._refresh_ref(dataset_id, preview).get()
+        return (snap.to_dict() or {}) if snap.exists else {}
+
+    def mark_refreshed(
+        self,
+        dataset_id: str,
+        *,
+        metadata_modified: Optional[datetime],
+        recipe_version: int,
+        agent_data: dict,
+        page_path: str,
+        snapshot: Optional[dict] = None,
+        preview: bool = False,
+    ) -> None:
+        """Record a successful recipe refresh.
+
+        `snapshot` (row counts, KPI displays, insight sentences) is what the
+        next refresh diffs against to report what moved.
+
+        Prod writes the same analysis fields an agent success did
+        (`mark_analysis_succeeded`) — the page's data vintage is now the
+        version just rendered — plus agent_data, in one merged write.
+        """
+        now = datetime.now(timezone.utc)
+        payload: dict[str, Any] = {
+            "agent_data": agent_data,
+            "recipe_version": recipe_version,
+            "refreshed_metadata_modified": metadata_modified,
+            "last_refreshed_at": now,
+            "refresh_status": "succeeded",
+            "refresh_error": None,
+            "refresh_failed_version": None,
+            "authoring_status": "done",
+            "authoring_reason": None,
+            "last_snapshot": snapshot,
+        }
+        if not preview:
+            payload.update(
+                {
+                    "analysis_status": "succeeded",
+                    "last_analyzed_at": now,
+                    "analyzed_metadata_modified": metadata_modified,
+                    "last_analyzed_version": firestore.Increment(1),
+                    "page_path": page_path,
+                    "last_error": None,
+                    "failed_attempts": 0,
+                }
+            )
+        self._refresh_ref(dataset_id, preview).set(payload, merge=True)
+
+    def mark_refresh_failed(
+        self,
+        dataset_id: str,
+        *,
+        error: str,
+        reason: str,
+        failed_version: str,
+        preview: bool = False,
+    ) -> None:
+        """Record a failed refresh. Never touches `analysis_status`: the
+        last-good page stays live. `failed_version` (metadata_modified +
+        recipe_version) lets the next run skip a deterministic re-failure
+        until either the data or the recipe moves."""
+        self._refresh_ref(dataset_id, preview).set(
+            {
+                "refresh_status": "failed",
+                "refresh_error": (error or "")[:1000],
+                "refresh_reason": reason,
+                "refresh_failed_version": failed_version,
+                "last_refresh_attempt_at": datetime.now(timezone.utc),
+            },
+            merge=True,
+        )
+
+    def mark_authoring_needed(
+        self, dataset_id: str, reason: str, *, preview: bool = False
+    ) -> None:
+        self._refresh_ref(dataset_id, preview).set(
+            {"authoring_status": "needed", "authoring_reason": reason},
+            merge=True,
+        )
+
+    def set_authoring_issue(
+        self, dataset_id: str, issue_number: int, *, preview: bool = False
+    ) -> None:
+        self._refresh_ref(dataset_id, preview).set(
+            {"authoring_status": "notified", "authoring_issue": issue_number},
+            merge=True,
+        )
+
+    def iter_authoring_queue(self) -> Iterator[tuple[str, dict]]:
+        """Prod sources waiting for a locally-authored recipe."""
+        query = self.client.collection(SOURCES_COLL).where(
+            filter=FieldFilter("authoring_status", "in", ["needed", "notified"])
+        )
+        for d in query.stream():
+            yield d.id, (d.to_dict() or {})
+
+    def iter_preview_states(self) -> Iterator[tuple[str, dict]]:
+        for d in self.client.collection(PREVIEW_SOURCES_COLL).stream():
+            yield d.id, (d.to_dict() or {})
+
+    def record_preview_run(self, run_id: str, report: dict) -> None:
+        self.client.collection(PREVIEW_RUNS_COLL).document(run_id).set(report)
 
     # ---- Ops helpers -----------------------------------------------------
 

@@ -1,0 +1,18 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2706952a-a86d-4887-a6a6-6e42d91cba6c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T12:30:05.423355+00:00",
+    "rows": { "levels": 11371 }
+  },
+  "inputs": [
+    {
+      "name": "levels",
+      "by_id": "2de7b543-e13d-4e7e-b4c8-56071bc4d3c8",
+      "required_columns": ["Survey_Date", "Kinneret_Level"]
+    }
+  ],
+  "min_insights": 4
+}
