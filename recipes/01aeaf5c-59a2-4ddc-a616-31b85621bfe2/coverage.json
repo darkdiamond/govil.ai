@@ -1,0 +1,18 @@
+{
+  "main.מספר חברה": "chart-series, table:next, table:stragglers — first 3 digits = sequential registration band (age proxy); full number shown only as the public corporate identifier in the named tables",
+  "main.שם חברה": "table:next, table:stragglers — companies may be named; ~ in the export is rendered as ״",
+  "main.שם באנגלית": "chart-profile — share registered with a foreign-language name",
+  "main.סוג תאגיד": "skip: constant (every row is ישראלית חברה פרטית) — stated in the lede",
+  "main.סטטוס חברה": "chart-status, insight:status, table:stragglers",
+  "main.תת סטטוס": "chart-status, insight:stragglers, table:stragglers — extra flags beyond the constant fast-track sub-status are counted in the status note",
+  "main.אישור בקשת הפירוק": "chart-timeline, chart-dow, chart-heat, kpi:last30, insight:pace, insight:batch, insight:window, table:next",
+  "main.מועד החיסול הצפוי": "kpi:soon, insight:soon, insight:window, insight:stragglers, table:next, table:stragglers",
+  "main.מפרה": "kpi:violators, chart-series, chart-profile, insight:violators, table:next",
+  "main.שם עיר": "chart-cities, insight:cities, table:next",
+  "main.שם רחוב": "chart-profile — only whether a street is recorded; street values are not shown (registered addresses can be private homes)",
+  "main.מספר בית": "skip: part of the street address — not shown",
+  "main.מיקוד": "skip: postal code of the registered address — not shown",
+  "main.ת.ד.": "skip: 100% empty",
+  "main.מדינה": "skip: constant (ישראל)",
+  "main.אצל": "chart-profile — only whether a c/o addressee exists; values (often private persons, some ID-like numbers) are never shown"
+}

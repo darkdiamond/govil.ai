@@ -1,0 +1,9 @@
+{
+  "applicants.מספר בקשה": "chart-bands, chart-type-mix, chart-conc, chart-newcomers, chart-comp, chart-co, kpi:apps, kpi:conc_last, insight:conc_trend, insight:ind, insight:new, insight:co — application key; bands of 10,000 sequential numbers serve as the time axis (no date column), as in the inventors and CPC recipes",
+  "applicants.שם מבקש באנגלית": "chart-top, chart-top-il, chart-acad, chart-types, chart-type-mix, chart-prolific, chart-conc, chart-newcomers, chart-co, chart-il-types, kpi:applicants, kpi:conc_last, insight:leader, insight:conc, insight:il_top, insight:acad, insight:ind, insight:il_type, insight:placeholder — applicant identity (case, punctuation and legal-form suffix folded) and the name-form heuristic for applicant type; the APPLICANT pp placeholder is excluded",
+  "applicants.שם מבקש בעברית": "chart-top, chart-top-il, chart-acad, chart-types, insight:il_top — display name for Israeli applicants (98% carry one), identity and type fallback when the English name is empty; 80% empty overall",
+  "applicants.כתובת מבקש באנגלית": "chart-countries, chart-comp, chart-il-types, chart-top-il, kpi:il_share, insight:il, insight:country, insight:il_type — only the country token (after the last comma) is used; street addresses never reach the page",
+  "applicants.כתובת מבקש בעברית": "skip: street address (personal for individual applicants), 74% empty; read only for exact-duplicate row removal — the English twin carries the country",
+  "applicants.שם האמצאה בעברית": "skip: free-text invention title; covered by the CPC recipe's technology views; read only for exact-duplicate row removal",
+  "applicants.שם האמצאה באנגלית": "skip: free-text English twin of the title; read only for exact-duplicate row removal"
+}

@@ -1,0 +1,416 @@
+<h1>מנהל הטובין</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.terms.tone }} mb-1" dir="ltr">{{ model.kpis.terms.display }}</div>
+    <div class="text-sm text-subtle">מונחים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rows.tone }} mb-1" dir="ltr">{{ model.kpis.rows.display }}</div>
+    <div class="text-sm text-subtle">נוסחים בעברית ובאנגלית</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.accept.tone }} mb-1" dir="ltr">{{ model.kpis.accept.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.accept_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.bilingual.tone }} mb-1" dir="ltr">{{ model.kpis.bilingual.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.bilingual_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המונחים לפי סוג ניצה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.classes_note }}</p>
+  <div id="chart-classes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.classes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.classes_caption }}</caption>
+        <thead><tr><th scope="col">סוג ניצה</th><th scope="col">טובין / שירותים</th><th scope="col">מונחים</th><th scope="col">נוסחים</th><th scope="col">לא קבילים</th><th scope="col">דו-לשוניים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.classes %}
+          <tr><th scope="row">{{ r.cls }}</th><td>{{ r.kind }}</td><td>{{ r.terms }}</td><td>{{ r.rows }}</td><td dir="ltr">{{ r.rej }}</td><td dir="ltr">{{ r.bi }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מקור המונחים: רשימה בינלאומית ומחלקת סימני מסחר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.src_note }}</p>
+  <div id="chart-src" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.src_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.src_caption }}</caption>
+        <thead><tr><th scope="col">סוג ניצה</th>{% for h in model.tables.src_heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.src %}
+          <tr><th scope="row">{{ r.cls }}</th>{% for v in r.v %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נוסחים לא קבילים לפי סוג</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rej_note }}</p>
+    <div id="chart-rej" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.rej_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rej_caption }}</caption>
+        <thead><tr><th scope="col">סוג ניצה</th><th scope="col">נוסחים לא קבילים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rej %}
+          <tr><th scope="row">{{ r.cls }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבילות לפי מקור ושפה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rs_note }}</p>
+    <div id="chart-rs" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.rs_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rs_caption }}</caption>
+        <thead><tr><th scope="col">מקור</th><th scope="col">שפה</th><th scope="col">נוסחים</th><th scope="col">לא קבילים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rs %}
+          <tr><th scope="row">{{ r.src }}</th><td>{{ r.lang }}</td><td>{{ r.rows }}</td><td>{{ r.rej }}</td><td dir="ltr">{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מונחים בשפה אחת בלבד</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lang_note }}</p>
+    <div id="chart-lang" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.lang_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lang_caption }}</caption>
+        <thead><tr><th scope="col">סוג ניצה</th><th scope="col">באנגלית בלבד</th><th scope="col">בעברית בלבד</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lang %}
+          <tr><th scope="row">{{ r.cls }}</th><td>{{ r.en }}</td><td>{{ r.he }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נוסחים לכל מונח</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.var_note }}</p>
+    <div id="chart-var" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.var_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.var_caption }}</caption>
+        <thead><tr><th scope="col">נוסחים למונח</th><th scope="col">מונחים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.var %}
+          <tr><th scope="row" dir="ltr">{{ r.b }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך הנוסחים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+    <div id="chart-box" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.box_caption }}</caption>
+          <thead><tr><th scope="col">שפה ומקור</th><th scope="col">אחוזון חמישי</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">אחוזון תשעים וחמישה</th><th scope="col">נוסחים</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.box %}
+            <tr><th scope="row">{{ r.name }}</th>{% for v in r.q %}<td>{{ v }}</td>{% endfor %}<td>{{ r.count }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איך נפתח נוסח בעברית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.words_note }}</p>
+    <div id="chart-words" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.words_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.words_caption }}</caption>
+        <thead><tr><th scope="col">מילה פותחת</th><th scope="col">נוסחים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.words %}
+          <tr><th scope="row">{{ r.w }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.latest %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המונחים האחרונים שנוספו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.latest_note }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-latest" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.latest_caption }}</caption>
+      <thead><tr><th scope="col">מספר מונח</th><th scope="col">נוסח בעברית</th><th scope="col">נוסח באנגלית</th><th scope="col">סוג ניצה</th><th scope="col">מקור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.latest %}
+        <tr><th scope="row" dir="ltr">{{ r.num }}</th><td>{{ r.he }}</td><td dir="ltr" class="text-start">{{ r.en }}</td><td>{{ r.cls }}</td><td>{{ r.src }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if model.flags.ap %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כינויי מקור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ap_note }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-appellations" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ap_caption }}</caption>
+      <thead><tr><th scope="col">נוסח בעברית</th><th scope="col">נוסח באנגלית</th><th scope="col">סוג ניצה</th><th scope="col">קבילות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ap %}
+        <tr><th scope="row">{{ r.he }}</th><td dir="ltr" class="text-start">{{ r.en }}</td><td>{{ r.cls }}</td><td>{{ r.ok }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר עזר ליצירת רשימת סחורות /שירותים לפי סיווג "ניצה" בהגשת בקשה לרישום סימן מסחר .</p>
+</section>
+
+<script>
+  (function () {
+    var t = {{ model.charts.classes | tojson }};
+    var c = echarts.init(document.getElementById("chart-classes"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        return p.name + ": " + (p.value || 0).toLocaleString("he-IL") + " מונחים";
+      } },
+      series: [{
+        type: "treemap", data: t, roam: false, nodeClick: false,
+        breadcrumb: { show: false }, top: 8, bottom: 8, left: 4, right: 4,
+        label: { show: true, fontFamily: "Rubik", fontSize: 11, overflow: "truncate" },
+        upperLabel: { show: true, height: 22, fontFamily: "Rubik", color: "#0c3058", fontWeight: "bold" },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 0, gapWidth: 3 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColor: "#ffffff", borderWidth: 3, gapWidth: 1 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var s = {{ model.charts.src | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-src"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, out = s.x[i];
+        ps.forEach(function (p) {
+          var x = s.series[p.seriesIndex];
+          out += "<br>" + p.marker + x.name + ": " + x.share[i] + "% (" + x.data[i].toLocaleString("he-IL") + ")";
+        });
+        return out;
+      } },
+      xAxis: { type: "value", max: 100, interval: 50, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.x, inverse: true,
+               axisLabel: { width: 130, overflow: "truncate", interval: 0, fontSize: 11 } },
+      series: s.series.map(function (x) { return { type: "bar", stack: "src", name: x.name, data: x.share }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var r = {{ model.charts.rej | tojson }};
+    var c = echarts.init(document.getElementById("chart-rej"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return r.x[i] + "<br>" + r.rates[i] + "% · " + r.counts[i].toLocaleString("he-IL") + " נוסחים לא קבילים";
+      } },
+      grid: { left: 16, right: 32, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: r.x, inverse: true,
+               axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שיעור לא קבילים", data: r.rates,
+                 markLine: { symbol: "none", silent: true, data: [{ xAxis: r.overall }],
+                             lineStyle: { type: "dashed", color: "#0c3058" },
+                             label: { formatter: "ממוצע", position: "start", fontFamily: "Rubik" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var q = {{ model.charts.rs | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-rs"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: q.x, axisLabel: { interval: 0, width: 110, overflow: "break" } },
+      yAxis: { type: "value", name: "%" },
+      series: q.series.map(function (x) { return { type: "bar", name: x.name, data: x.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var l = {{ model.charts.lang | tojson }};
+    var c = echarts.init(document.getElementById("chart-lang"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: l.x, inverse: true,
+               axisLabel: { width: 130, overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "l", name: "באנגלית בלבד", data: l.en },
+        { type: "bar", stack: "l", name: "בעברית בלבד", data: l.he }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var v = {{ model.charts.var | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-var"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: v.x },
+      yAxis: { type: "value", name: "מונחים" },
+      series: [{ type: "bar", name: "מונחים", data: v.y }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var b = {{ model.charts.box | tojson }};
+    var c = echarts.init(document.getElementById("chart-box"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var d = p.data.slice(-5);
+        return p.name + "<br>חציון: " + d[2] + " מילים<br>רבעונים: " + d[1] + "–" + d[3]
+          + "<br>אחוזונים חמישי עד תשעים וחמישה: " + d[0] + "–" + d[4];
+      } },
+      grid: { left: 16, right: 24, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: b.names, inverse: true,
+               axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "boxplot", name: "אורך נוסח", data: b.data,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var w = {{ model.charts.words | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-words"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: w.names, inverse: true },
+      series: [{ type: "bar", name: "נוסחים", data: w.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>

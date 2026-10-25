@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "176f2727-476e-440e-bc8d-5d3461ea0e76",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T19:13:04.951932+00:00",
+    "rows": {
+      "appointments": 2617634
+    }
+  },
+  "inputs": [
+    {
+      "name": "appointments",
+      "by_schema": [
+        "שם פרטי",
+        "שם משפחה",
+        "מספר תיק בית המשפט שבו מונה",
+        "מספר תיק הסנגוריה הציבורית",
+        "מחוז"
+      ],
+      "concat": true
+    }
+  ],
+  "min_insights": 4
+}

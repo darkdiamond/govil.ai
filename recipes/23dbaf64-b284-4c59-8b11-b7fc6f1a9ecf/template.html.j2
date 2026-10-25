@@ -1,0 +1,408 @@
+<h1>מאגר פנקס מאגרי המידע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">מאגרי מידע רשומים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.approved.tone }} mb-1" dir="ltr">{{ model.kpis.approved.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.approved_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.recent.tone }} mb-1" dir="ltr">{{ model.kpis.recent.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.owners.tone }} mb-1" dir="ltr">{{ model.kpis.owners.display }}</div>
+    <div class="text-sm text-subtle">בעלי מאגרים מזוהים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.abroad.tone }} mb-1" dir="ltr">{{ model.kpis.abroad.display }}</div>
+    <div class="text-sm text-subtle">מהמאגרים מעבירים מידע לחו״ל</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.outsourced.tone }} mb-1" dir="ltr">{{ model.kpis.outsourced.display }}</div>
+    <div class="text-sm text-subtle">מהמאגרים מוחזקים גם אצל גורם חיצוני</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רישום מאגרים לפי שנה וסטטוס</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+    <div id="chart-years" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+
+  </section>
+
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רישומים חדשים בשלוש השנים האחרונות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+    <div id="chart-recent" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
+
+  </section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סטטוס המאגרים</h2>
+    </div>
+    <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">סטטוס</th><th scope="col">מאגרים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מחזיק במאגרים: סוג הבעלים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.otypes_note }}</p>
+    <div id="chart-otypes" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.otypes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.otypes_caption }}</caption>
+        <thead><tr><th scope="col">סוג בעלים</th><th scope="col">מאגרים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.otypes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בעלי המאגרים הגדולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owners_note }}</p>
+    <div id="chart-owners" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.owners_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.owners_caption }}</caption>
+        <thead><tr><th scope="col">בעל המאגר</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.owners %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי המידע במאגרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג מידע</th><th scope="col">מאגרים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה סוגי מידע במאגר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ntypes_note }}</p>
+    <div id="chart-ntypes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ntypes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ntypes_caption }}</caption>
+        <thead><tr><th scope="col">סוגי מידע</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ntypes %}
+          <tr><th scope="row" dir="ltr">{{ r.k }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי מידע לפי סוג הבעלים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+    <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+        <thead><tr><th scope="col">סוג בעלים</th><th scope="col">מאגרים</th>{% for x in model.tables.heat_x %}<th scope="col">{{ x }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr><th scope="row">{{ r.otype }}</th><td>{{ r.count }}</td>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מטרות המאגרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.purposes_note }}</p>
+    <div id="chart-purposes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.purposes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.purposes_caption }}</caption>
+        <thead><tr><th scope="col">מטרה</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.purposes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">העברת מידע לחו״ל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.abroad_note }}</p>
+    <div id="chart-abroad" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.abroad_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.abroad_caption }}</caption>
+        <thead><tr><th scope="col">סוג בעלים</th><th scope="col">שיעור מעבירים</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.abroad %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.rate }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחזיקים חיצוניים במידע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.holders_note }}</p>
+    <div id="chart-holders" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.holders_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.holders_caption }}</caption>
+        <thead><tr><th scope="col">מחזיק</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.holders %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובי בעלי המאגרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+    <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות המאגרים הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.names_note }}</p>
+    <div id="chart-names" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.names_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.names_caption }}</caption>
+        <thead><tr><th scope="col">שם המאגר</th><th scope="col">מאגרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.names %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{% if model.labels.dedup_note %}
+<p class="text-sm text-subtle mb-6">{{ model.labels.dedup_note }}</p>
+{% endif %}
+
+<script>
+  (function () {
+    var r = {{ model.charts.years | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-years"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", name: "מאגרים" },
+      series: r.series.map(function (s) { return { type: "bar", stack: "total", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var m = {{ model.charts.recent | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-recent"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "מאגרים" },
+      series: [{ type: "bar", name: "מאגרים חדשים", data: m.y }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, extra) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      var lw = Math.max(110, Math.min(260, Math.round(el.clientWidth * 0.4)));
+      var series = { type: "bar", name: unit, data: d.values };
+      if (extra) { Object.assign(series, extra); }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 32, top: 28, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: el.clientWidth < 500 ? 2 : 4,
+                 axisLabel: { hideOverlap: true, rotate: el.clientWidth < 500 ? 45 : 0 } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: lw, overflow: "truncate" } },
+        series: [series]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-status", {{ model.charts.status | tojson }}, "מאגרים");
+    hbar("chart-otypes", {{ model.charts.otypes | tojson }}, "מאגרים");
+    hbar("chart-owners", {{ model.charts.owners | tojson }}, "מאגרים");
+    hbar("chart-types", {{ model.charts.types | tojson }}, "מאגרים");
+    hbar("chart-purposes", {{ model.charts.purposes | tojson }}, "מאגרים");
+    hbar("chart-holders", {{ model.charts.holders | tojson }}, "מאגרים");
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "מאגרים");
+    hbar("chart-names", {{ model.charts.names | tojson }}, "מאגרים");
+
+    var a = {{ model.charts.abroad | tojson }};
+    hbar("chart-abroad", a, "שיעור מעבירים לחו״ל (%)", {
+      markLine: { symbol: "none", lineStyle: { type: "dashed", color: "#0b3668" },
+                  label: { show: false }, data: [{ xAxis: a.avg }] }
+    });
+
+    var nt = {{ model.charts.ntypes | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-ntypes"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 32, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: nt.names, name: "סוגים" },
+      yAxis: { type: "value", name: "מאגרים" },
+      series: [{ type: "bar", name: "מאגרים", data: nt.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-heat"));
+    c4.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: { rotate: 40, width: 110, overflow: "truncate" } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { width: 140, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>

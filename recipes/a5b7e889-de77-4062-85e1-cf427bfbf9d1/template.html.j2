@@ -1,0 +1,369 @@
+<h1>סיווגי IPC לבקשות פטנט</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.apps.tone }} mb-1" dir="ltr">{{ model.kpis.apps.display }}</div>
+    <div class="text-sm text-subtle">בקשות פטנט</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.codes.tone }} mb-1" dir="ltr">{{ model.kpis.codes.display }}</div>
+    <div class="text-sm text-subtle">שיוכי סיווג IPC</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.groups.tone }} mb-1" dir="ltr">{{ model.kpis.groups.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.groups_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.main.tone }} mb-1" dir="ltr">{{ model.kpis.main.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.main_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי הטכנולוגיה (סעיפי IPC)</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sections_note }}</p>
+  <div id="chart-sections" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.sections_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sections_aria }}</caption>
+      <thead><tr><th scope="col">סעיף</th><th scope="col">לפי סיווג ראשי</th><th scope="col">סיווג כלשהו בסעיף</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sections %}
+        <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.main }}</td><td dir="ltr">{{ r.any }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקבוצות הנפוצות בסיווג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+  <div id="chart-groups" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.groups_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.groups_aria }}</caption>
+      <thead><tr><th scope="col">קבוצה</th><th scope="col">בקשות</th><th scope="col">מכלל הבקשות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.groups %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.flags.has_targets %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יעדים טיפוליים בבקשות לתרופות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.targets_note }}</p>
+  <div id="chart-targets" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.targets_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.targets_aria }}</caption>
+      <thead><tr><th scope="col">יעד טיפולי</th><th scope="col">בקשות</th><th scope="col">{{ model.labels.targets_share_col }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.targets %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.has_bands %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הבקשות לאורך סדר ההגשה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.band_note }} {{ model.labels.volume_note }}</p>
+  <div id="chart-volume" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.volume_aria }}</caption>
+      <thead><tr><th scope="col">טווח מספרי בקשה</th><th scope="col">בקשות</th><th scope="col">עם סיווג ראשי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.volume %}
+        <tr><th scope="row">{{ r.band }}</th><td>{{ r.apps }}</td><td dir="ltr">{{ r.cov }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל התחומים לאורך סדר ההגשה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הבקשות לפי סעיף הסיווג הראשי בכל טווח. {{ model.labels.mix_minor }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+      <thead><tr><th scope="col">טווח</th>{% for g in model.tables.mix_groups %}<th scope="col">{{ g }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.band }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מתרופות כימיות לביולוגיות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.modality_note }}</p>
+    <div id="chart-modality" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.modality_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.modality_aria }}</caption>
+        <thead><tr><th scope="col">טווח</th>{% for g in model.tables.mod_names %}<th scope="col">{{ g }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.modality %}
+          <tr><th scope="row">{{ r.band }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה סיווגים לבקשה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.depth_note }}</p>
+    <div id="chart-depth" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.depth_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.depth_aria }}</caption>
+        <thead><tr><th scope="col">טווח</th><th scope="col">ממוצע</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">עשירון עליון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.depth %}
+          <tr><th scope="row">{{ r.band }}</th><td>{{ r.mean }}</td><td>{{ r.p50 }}</td><td>{{ r.p75 }}</td><td>{{ r.p90 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תתי-הסעיפים המובילים לאורך סדר ההגשה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">סיווגי IPC בבקשות לרישום פטנט בישראל</p>
+</section>
+
+<script>
+  (function () {
+    var s = {{ model.charts.sections | tojson }};
+    var el = document.getElementById("chart-sections");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { width: Math.min(150, el.clientWidth * 0.4), overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "לפי סיווג ראשי", data: s.main },
+        { type: "bar", name: "סיווג כלשהו בסעיף", data: s.any }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", formatter: function (p) {
+          var i = p[0].dataIndex;
+          return d.names[i] + "<br>" + d.values[i].toLocaleString("he-IL") + " בקשות (" + d.share[i] + "%" + unit + ")";
+        } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(190, el.clientWidth * 0.5), overflow: "truncate" } },
+        series: [{ type: "bar", name: "בקשות", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-groups", {{ model.charts.groups | tojson }}, "");
+    hbar("chart-targets", {{ model.charts.targets | tojson }}, {{ model.labels.targets_unit | tojson }});
+  })();
+</script>
+
+{% if model.flags.has_bands %}
+<script>
+  (function () {
+    var d = {{ model.charts.volume | tojson }};
+    var c = echarts.init(document.getElementById("chart-volume"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 80, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 35, fontSize: 10 } },
+      yAxis: [
+        { type: "value", name: "בקשות" },
+        { type: "value", name: "עם סיווג ראשי", min: 0, max: 100, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "בקשות", data: d.apps },
+        { type: "line", name: "עם סיווג ראשי (%)", yAxisIndex: 1, data: d.cov, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.mix | tojson }};
+    var el = document.getElementById("chart-mix");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: el.clientWidth < 600 ? 150 : 100, containLabel: true },
+      xAxis: { type: "category", data: m.x, boundaryGap: false, axisLabel: { rotate: 35, fontSize: 10 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: m.series.map(function (s) {
+        return { type: "line", stack: "mix", name: s.name, data: s.data, areaStyle: {}, showSymbol: false, lineStyle: { width: 1 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.modality | tojson }};
+    var c = echarts.init(document.getElementById("chart-modality"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 24, bottom: 120, containLabel: true },
+      xAxis: { type: "category", data: m.x, axisLabel: { rotate: 35, fontSize: 10 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: m.series.map(function (s) { return { type: "line", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var d = {{ model.charts.depth | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-depth"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 24, bottom: 100, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 35, fontSize: 10 } },
+      yAxis: { type: "value", name: "סיווגים" },
+      series: [
+        { type: "line", name: "עשירון עליון", data: d.p90, lineStyle: { type: "dashed" } },
+        { type: "line", name: "רבעון עליון", data: d.p75 },
+        { type: "line", name: "ממוצע", data: d.mean, lineStyle: { width: 3 } },
+        { type: "line", name: "חציון", data: d.p50 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var narrow = el.clientWidth < 600;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + "<br>" + h.x[p.value[0]] + ": " + p.value[2] + "% מהבקשות";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: narrow ? 8 : 64, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: { rotate: narrow ? 60 : 45, fontSize: narrow ? 9 : 10 } },
+      yAxis: { type: "category", data: narrow ? h.codes : h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { interval: 0, width: narrow ? 60 : 220, overflow: "truncate", fontSize: narrow ? 10 : 11 } },
+      visualMap: {
+        show: !narrow, dimension: 2, min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        formatter: function (v) { return Math.round(v) + "%"; },
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ebf84395-4784-4438-b9ca-08caf263beaf",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:14:14.431018+00:00",
+    "rows": {
+      "applicants": 288951
+    }
+  },
+  "inputs": [
+    {
+      "name": "applicants",
+      "by_id": "b2b87f6c-832c-410d-a753-c52ec15cd793",
+      "required_columns": [
+        "מספר בקשה",
+        "שם האמצאה בעברית",
+        "שם האמצאה באנגלית",
+        "שם מבקש בעברית",
+        "כתובת מבקש בעברית",
+        "שם מבקש באנגלית",
+        "כתובת מבקש באנגלית"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

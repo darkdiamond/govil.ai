@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a5b7e889-de77-4062-85e1-cf427bfbf9d1",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:17:18.952536+00:00",
+    "rows": {
+      "ipc": 791136
+    }
+  },
+  "inputs": [
+    {
+      "name": "ipc",
+      "by_id": "3343e150-79b5-4927-adad-50ebe14925b5",
+      "required_columns": ["מספר בקשה", "IPC סיווג", "ראשי"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

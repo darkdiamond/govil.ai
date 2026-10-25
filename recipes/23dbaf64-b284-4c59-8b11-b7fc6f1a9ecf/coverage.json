@@ -1,0 +1,19 @@
+{
+  "registry.מספר מאגר": "kpi:total — database number; used only to collapse rows repeating one database under several addresses, never shown",
+  "registry.מזהה בעל המאגר": "chart-otypes, chart-abroad, chart-heat, insight:otype — only the legal-entity prefix / length is used to classify the owner; ids never reach the page",
+  "registry.שם מלא": "chart-owners, kpi:owners, insight:owner — owners are organisations; owners whose details the register withholds are counted, not named",
+  "registry.שם המאגר": "chart-names — free-text database name, top normalised names only",
+  "registry.ישוב": "chart-cities",
+  "registry.רחוב": "skip: street of the owner's address — address detail, no aggregate story beyond the city",
+  "registry.מספר בית": "skip: house number — address detail",
+  "registry.ת.ד": "skip: PO box — 80% empty address detail",
+  "registry.מיקוד": "skip: postal code — address detail; city is used instead",
+  "registry.ארץ": "skip: 53% empty and 99.9% of the rest is ישראל — carries no contrast",
+  "registry.העברת מידע לחול": "chart-abroad, kpi:abroad, insight:abroad",
+  "registry.סטטוס מאגר": "chart-status, chart-years, kpi:approved, insight:status",
+  "registry.תאריך רישום המאגר": "chart-years, chart-recent, kpi:recent, insight:recent, insight:gap, insight:peak — 1900 placeholder dates treated as unknown and disclosed",
+  "registry.סוגי מידע": "chart-types, chart-heat, chart-ntypes, insight:types",
+  "registry.מטרות": "chart-purposes — standard purpose list; free-text ״אחר-…״ purposes counted and disclosed, not shown",
+  "registry.קבלת מידע דרך קבע מגוף ציבורי": "insight:public_src — 99.5% empty, so an insight rather than a chart",
+  "registry.מחזיקים במאגר": "chart-holders, kpi:outsourced, insight:holders"
+}

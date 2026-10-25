@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ad4e7cbf-0f86-4e8a-b159-6dd6f3a003ef",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T02:13:53.003237+00:00",
+    "rows": {
+      "decisions": 31605
+    }
+  },
+  "inputs": [
+    {
+      "name": "decisions",
+      "by_id": "c4e178ff-9038-45f4-9dd1-fe7aeea6f70c",
+      "required_columns": [
+        "appraisal_header",
+        "appraisal_type",
+        "appraiser_type",
+        "committee",
+        "decision_date",
+        "decisive_appraiser",
+        "publicity_date"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,456 @@
+<h1>מאגר כוח אדם ברשויות הרווחה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for k, lbl in [("total", "total_kpi"), ("filled", "filled_kpi"), ("vacant", "vacant_kpi"), ("rate", "rate_kpi"),
+                   ("sw_share", "sw_share_kpi"), ("sw_rate", "sw_rate_kpi"), ("authorities", "auth_kpi"), ("roles", "roles_kpi")] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[lbl] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקנים ואיוש לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  <div id="chart-district" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.district_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.district_caption }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">תקנים</th><th scope="col">מאוישים</th><th scope="col">פנויים</th><th scope="col">שיעור איוש</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.district %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.tot }}</td><td>{{ r.fil }}</td><td>{{ r.vac }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עובדים סוציאליים מול שאר התקנים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sw_note }}</p>
+    <div id="chart-sw" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.sw_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.sw_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th><th scope="col">תקני עו״ס</th><th scope="col">שאר התקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.sw %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.sw }}</td><td>{{ r.ns }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לפי סוג רשות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג רשות</th><th scope="col">רשויות</th><th scope="col">תקנים</th><th scope="col">שיעור איוש</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.tot }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי התקנים הגדולים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.roles_note }}</p>
+  <div id="chart-roles" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.roles_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.roles_caption }}</caption>
+      <thead><tr><th scope="col">סוג תקן</th><th scope="col">תקנים</th><th scope="col">מאוישים</th><th scope="col">פנויים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.roles %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.tot }}</td><td>{{ r.fil }}</td><td>{{ r.vac }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי התקנים עם האיוש הנמוך ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.role_low_note }}</p>
+  <div id="chart-role-low" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.role_low_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.role_low_caption }}</caption>
+      <thead><tr><th scope="col">סוג תקן</th><th scope="col">שיעור איוש</th><th scope="col">תקנים</th><th scope="col">רשויות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.role_low %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.rate }}</td><td>{{ r.tot }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איוש לפי סוג תקן ומחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+      <thead><tr><th scope="col">סוג תקן</th>{% for d in model.districts %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat %}
+        <tr><th scope="row">{{ r.role }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשויות הרווחה הגדולות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auth_top_note }}</p>
+  <div id="chart-auth-top" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.auth_top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.auth_top_caption }}</caption>
+      <thead><tr><th scope="col">רשות</th><th scope="col">מחוז</th><th scope="col">תקנים</th><th scope="col">פנויים</th><th scope="col">שיעור איוש</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.auth_top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.district }}</td><td>{{ r.tot }}</td><td>{{ r.vac }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשויות עם האיוש הנמוך ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auth_low_note }}</p>
+  <div id="chart-auth-low" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.auth_low_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.auth_low_caption }}</caption>
+      <thead><tr><th scope="col">רשות</th><th scope="col">מחוז</th><th scope="col">תקנים</th><th scope="col">שיעור איוש</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.auth_low %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.district }}</td><td>{{ r.tot }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות שיעורי האיוש ברשויות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+    <div id="chart-hist" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.hist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.hist_caption }}</caption>
+        <thead><tr><th scope="col">שיעור איוש</th>{% for d in model.districts %}<th scope="col">{{ d }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.hist %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מצב האיוש של הקצאות התקן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">מצב</th><th scope="col">הקצאות</th><th scope="col">תקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.rows }}</td><td>{{ r.fte }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל הרשות מול שיעור האיוש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var c = echarts.init(document.getElementById("chart-district"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 54, overflow: "break", fontSize: 11 } },
+      yAxis: [
+        { type: "value", name: "תקנים" },
+        { type: "value", name: "% איוש", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", stack: "t", name: "מאוישים", data: d.fil },
+        { type: "bar", stack: "t", name: "פנויים", data: d.vac, itemStyle: { color: "#c3cfe7" } },
+        { type: "line", name: "שיעור איוש", yAxisIndex: 1, data: d.rate, itemStyle: { color: "#0b3668" },
+          label: { show: true, formatter: "{c}%", fontFamily: "Rubik, sans-serif" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.sw | tojson }};
+    var c = echarts.init(document.getElementById("chart-sw"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: s.names, axisLabel: { interval: 0, width: 46, overflow: "break", fontSize: 10 } },
+      yAxis: { type: "value", name: "% איוש", min: 0, max: 100 },
+      series: [
+        { type: "bar", name: "תקני עו״ס", data: s.sw },
+        { type: "bar", name: "שאר התקנים", data: s.ns }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var t = {{ model.charts.types | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-types"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: t.names, axisLabel: { interval: 0, width: 60, overflow: "break", fontSize: 11 } },
+      yAxis: [
+        { type: "value", name: "תקנים" },
+        { type: "value", name: "% איוש", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "תקנים", data: t.tot },
+        { type: "line", name: "שיעור איוש", yAxisIndex: 1, data: t.rate, itemStyle: { color: "#0b3668" },
+          label: { show: true, formatter: "{c}%", fontFamily: "Rubik, sans-serif" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 130, overflow: "truncate" } },
+        series: [
+          { type: "bar", stack: "t", name: "מאוישים", data: d.fil },
+          { type: "bar", stack: "t", name: "פנויים", data: d.vac, itemStyle: { color: "#c3cfe7" } }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-roles", {{ model.charts.roles | tojson }});
+    stacked("chart-auth-top", {{ model.charts.auth_top | tojson }});
+
+    function low(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v + "%"; } },
+        grid: { left: 16, right: 40, top: 28, bottom: 16, containLabel: true },
+        xAxis: { type: "value", min: 0, max: 100, interval: 25, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{
+          type: "bar", name: "שיעור איוש", data: d.rate,
+          label: { show: true, position: "right", formatter: "{c}%", fontFamily: "Rubik, sans-serif" },
+          markLine: { symbol: "none", silent: true,
+                      lineStyle: { color: "#0b3668", type: "dashed" },
+                      label: { position: "start", formatter: "ממוצע {c}%", fontFamily: "Rubik, sans-serif", color: "#0b3668" },
+                      data: [{ xAxis: d.overall }] }
+        }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    low("chart-role-low", {{ model.charts.role_low | tojson }});
+    low("chart-auth-low", {{ model.charts.auth_low | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% איוש (" +
+          p.value[3].toLocaleString("he-IL") + " תקנים)";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, width: 40, overflow: "break", fontSize: 10 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { width: 120, overflow: "truncate" } },
+      visualMap: {
+        min: h.min, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik, sans-serif", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 label: { show: true, fontFamily: "Rubik, sans-serif", formatter: function (p) { return String(Math.round(p.value[2])); } },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.hist | tojson }};
+    var c = echarts.init(document.getElementById("chart-hist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: h.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "רשויות", minInterval: 1 },
+      series: h.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var st = {{ model.charts.status | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-status"));
+    var colors = ["#0068f5", "#7fb0f5", "#c3cfe7"];
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + ": " + p.value.toLocaleString("he-IL") + " הקצאות (" + p.percent + "%), " +
+          st.fte[p.dataIndex].toLocaleString("he-IL") + " תקנים";
+      } },
+      legend: { bottom: 0, formatter: function (n) {
+        var i = st.names.indexOf(n);
+        var tot = st.rows.reduce(function (a, b) { return a + b; }, 0);
+        return n + " " + (tot ? (st.rows[i] / tot * 100).toFixed(1) : "0") + "%";
+      } },
+      series: [{
+        type: "pie", radius: ["34%", "58%"], center: ["50%", "40%"],
+        label: { show: false },
+        data: st.names.map(function (n, i) { return { name: n, value: st.rows[i], itemStyle: { color: colors[i % colors.length] } }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.scatter | tojson }};
+    var c = echarts.init(document.getElementById("chart-scatter"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.value[2] + " (" + p.seriesName + ")<br>" + p.value[0].toLocaleString("he-IL") +
+          " תקנים · " + p.value[1] + "% איוש";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 72, containLabel: true },
+      xAxis: { type: "log", name: "תקנים", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "% איוש", min: function (v) { return Math.max(0, Math.floor(v.min / 10) * 10); }, max: 100 },
+      dataZoom: [{ type: "inside", xAxisIndex: 0 }],
+      series: s.series.map(function (x) {
+        return { type: "scatter", name: x.name, data: x.data, symbolSize: 8, itemStyle: { opacity: 0.75 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

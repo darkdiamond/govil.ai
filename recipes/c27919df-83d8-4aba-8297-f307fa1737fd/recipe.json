@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "c27919df-83d8-4aba-8297-f307fa1737fd",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T10:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T18:07:58.457520+00:00",
+    "rows": {
+      "vets": 1512
+    }
+  },
+  "inputs": [
+    {
+      "name": "vets",
+      "by_id": "4ea86e61-2b54-4a01-81e4-27dc6cd2c00c",
+      "required_columns": ["סמל_ישוב", "ישוב", "אזור", "רופא", "לשכה"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
