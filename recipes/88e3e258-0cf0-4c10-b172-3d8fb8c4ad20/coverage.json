@@ -1,0 +1,5 @@
+{
+  "main.shana": "chart-decomp, chart-trend, chart-dumb, chart-share, chart-heat, kpi:last, kpi:change, kpi:total, insight:trend, insight:unknown, insight:yoy, insight:movers, insight:record, insight:suicide_share",
+  "main.sivug_rashi": "chart-decomp, chart-cats, chart-trend, chart-dumb, chart-share, chart-heat, kpi:cats, insight:trend, insight:unknown, insight:leader, insight:movers, insight:record, insight:suicide_share",
+  "main.sivug_rashi_count": "chart-decomp, chart-cats, chart-trend, chart-dumb, chart-share, chart-heat, kpi:last, kpi:change, kpi:total, insight:trend, insight:yoy, insight:leader, insight:movers, insight:record — counts per year × classification; missing combinations are zero"
+}

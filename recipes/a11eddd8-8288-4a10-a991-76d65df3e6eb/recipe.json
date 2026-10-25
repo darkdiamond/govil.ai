@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a11eddd8-8288-4a10-a991-76d65df3e6eb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T18:39:34.396351+00:00",
+    "rows": { "main": 3738 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "3ee1cd66-6176-4c1f-8d38-8f36a1461426",
+      "required_columns": [
+        "חומר_פעיל",
+        "גידול",
+        "גידול_אנגלי",
+        "MRL",
+        "תאריך_עדכון",
+        "MRL_בהמתנה"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

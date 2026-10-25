@@ -1,0 +1,10 @@
+{
+  "main.מספר הסימן": "table-latest, table-national — shown as the application number in the two tables; tie-break key for ordering",
+  "main.מצב": "chart-years, chart-status, chart-dec, chart-cls, chart-waves, kpi:reg_share, insight:closure_era, insight:first_batch, insight:recent, insight:national",
+  "main.לאומי/בינלאומי": "kpi:national, insight:national, table-national",
+  "main.תיאור סימן עברית": "chart-script, insight:script, table-latest, table-national — the 'Hebrew' column also carries Persian/Arabic-script descriptions, detected by script",
+  "main.תיאור סימן אנגלית": "chart-script, insight:script, table-latest, table-national",
+  "main.תאריך בקשה": "chart-years, chart-dec, chart-heat, chart-waves, chart-lag, chart-script, kpi:span, insight:first_batch, insight:waves, insight:recent, table-latest",
+  "main.תאריך רישום": "chart-lag, insight:lag, table-latest, table-national",
+  "main.סוגי ניצה לבקשה": "chart-cls, chart-heat, chart-waves, insight:top_class, insight:national, table-latest, table-national"
+}

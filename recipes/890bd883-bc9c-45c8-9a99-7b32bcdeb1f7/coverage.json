@@ -1,0 +1,16 @@
+{
+  "permits.ישוב": "chart-towns, chart-years, kpi:towns, insight:towns — settlement names only; permit holders themselves are not in the data",
+  "permits.תאריך תחילת תוקף": "chart-years, chart-heat, chart-season, chart-dm, chart-window, chart-validity, chart-wd, kpi:ytd, insight:trend, insight:ytd, insight:season, insight:weekday",
+  "permits.תאריך סיום תוקף": "chart-validity, kpi:one_day, insight:validity",
+  "permits.מס היתר": "skip: running permit number — an identifier, no aggregate meaning",
+  "permits.מחוז": "chart-years, chart-dm, chart-dfam, chart-towns, insight:district",
+  "permits.גידול": "chart-fams, chart-crops, chart-season, chart-dfam, insight:season, insight:district — grouped into crop families by keyword rules, unknown labels fall to אחר",
+  "permits.שעות שריפה": "chart-window, insight:window",
+  "permits.גוש ראשון": "skip: land-registry block of a private farmer's plot — used only to count parcels per permit (lede), never shown",
+  "permits.חלקה ראשונה": "skip: land-registry parcel of a private plot — used only to count parcels per permit (lede), never shown",
+  "permits.גוש שני": "skip: land-registry block (79% empty) — counted only, never shown",
+  "permits.חלקה שניה": "skip: land-registry parcel (79% empty) — counted only, never shown",
+  "permits.גוש שלישי": "skip: land-registry block (93% empty) — counted only, never shown",
+  "permits.חלקה שלישית": "skip: land-registry parcel (93% empty) — counted only, never shown",
+  "resource:c84d51d8-af63-4f5d-92c8-1419337b9378": "skip: row-for-row twin of the Hebrew-header resource with transliterated column names (verified identical)"
+}

@@ -1,0 +1,16 @@
+{
+  "he.shem_mdn": "chart-regions, chart-multi, chart-shared, chart-visa, kpi:countries, kpi:shared, insight:regions, insight:multi, insight:shared — country; distinct countries are the country-level grain",
+  "he.ybsht": "chart-regions, chart-visa, insight:regions, insight:visa — MFA region, Hebrew labels as published",
+  "he.k_ntz": "chart-shared, chart-types, chart-multi, kpi:missions, insight:shared — mission code; one mission row per country it serves",
+  "he.shem_ntz": "chart-shared, insight:shared — mission city",
+  "he.maamad": "chart-types, chart-multi, kpi:top_type, insight:multi — mission status; empty shown as לא צוין",
+  "he.Address": "chart-contacts, insight:contacts — completeness only; the address text itself is in the explorer",
+  "he.Kabala": "chart-hours, chart-contacts, insight:hours — parsed into weekly reception hours",
+  "he.email": "chart-contacts, insight:contacts — completeness only (official mission mailboxes)",
+  "he.tel": "chart-contacts, insight:contacts — completeness only",
+  "he.fax": "chart-contacts, insight:contacts — completeness only",
+  "he.Atar": "chart-contacts, insight:contacts — completeness only",
+  "he.visa_to_mdn": "chart-visa, insight:visa, insight:reciprocity — does an Israeli need a visa to enter the country",
+  "he.visa_to_Israel": "chart-visa, insight:reciprocity — does a citizen of the country need a visa to enter Israel",
+  "resource:6fc859cb-8a6f-458b-bd5a-9bd0cfbfce11": "skip: English translation of the Hebrew file (same rows, same mission codes); the page is Hebrew"
+}

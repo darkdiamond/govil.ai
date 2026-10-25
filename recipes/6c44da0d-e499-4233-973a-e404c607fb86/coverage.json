@@ -1,0 +1,11 @@
+{
+  "companies.COMPANY_NAME": "chart-status, chart-office, chart-boards, chart-gboards, kpi:companies, kpi:listed, insight:missing, insight:biggest, insight:nowomen, table:multi — join key to the directors file; shortened (בע\"מ dropped) for axis labels",
+  "companies.COMPANY_SITE": "kpi:companies — only whether a website is listed (count in the lede); URLs not reproduced",
+  "companies.PRIMARY_OCCUPATION": "skip: free text, one unique description per company — readable in the explorer",
+  "companies.STATUS": "chart-status, chart-office, insight:status, insight:missing",
+  "companies.GOVERMENT_OFFICE": "chart-office, chart-goffice, insight:office, insight:missing",
+  "directors.COMPANY_NAME": "chart-status, chart-boards, chart-size, chart-gaps, kpi:listed, kpi:seats, insight:biggest, insight:small, insight:gaps",
+  "directors.ROLE": "chart-roles, chart-gaps, chart-boards, chart-grole, insight:gaps, insight:chairs",
+  "directors.FIRST_NAME": "chart-grole, chart-gboards, chart-goffice, kpi:women, insight:gender, insight:chairs, insight:nowomen, insight:multi, table:multi — gender estimated from the given name (fixed name lists; ambiguous names unclassified)",
+  "directors.LAST_NAME": "kpi:seats, insight:multi, table:multi — with FIRST_NAME forms the person key"
+}

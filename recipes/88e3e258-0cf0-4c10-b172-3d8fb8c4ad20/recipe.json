@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "88e3e258-0cf0-4c10-b172-3d8fb8c4ad20",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T10:35:07.688355+00:00",
+    "rows": { "main": 108 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "5e57b0f2-60ce-4c69-9312-9aba3a56a52a",
+      "required_columns": ["shana", "sivug_rashi", "sivug_rashi_count"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["1201"]
+}

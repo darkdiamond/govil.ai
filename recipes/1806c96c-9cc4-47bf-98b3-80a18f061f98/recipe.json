@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1806c96c-9cc4-47bf-98b3-80a18f061f98",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T18:13:49.234719+00:00",
+    "rows": {
+      "attorneys": 582
+    }
+  },
+  "inputs": [
+    {
+      "name": "attorneys",
+      "by_id": "0ff306c2-1ad9-4974-a2be-0420acf35685",
+      "required_columns": [
+        "תואר",
+        "שנת רישום בפנקס",
+        "תשלום לשנה",
+        "כתובת מייל",
+        "יישוב",
+        "ישוב באנגלית"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

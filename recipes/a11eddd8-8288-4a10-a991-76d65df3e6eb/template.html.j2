@@ -1,0 +1,416 @@
+<h1>מאגר שאריות חומרי הדברה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.limits.tone }} mb-1" dir="ltr">{{ model.kpis.limits.display }}</div>
+    <div class="text-sm text-subtle">גבולות שארית (חומר × גידול)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ai.tone }} mb-1" dir="ltr">{{ model.kpis.ai.display }}</div>
+    <div class="text-sm text-subtle">חומרים פעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.crops.tone }} mb-1" dir="ltr">{{ model.kpis.crops.display }}</div>
+    <div class="text-sm text-subtle">גידולים ומוצרים מן החי</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median.tone }} mb-1" dir="ltr">{{ model.kpis.median.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.pending.tone }} mb-1" dir="ltr">{{ model.kpis.pending.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.pending_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cancel.tone }} mb-1" dir="ltr">{{ model.kpis.cancel.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cancel_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עדכוני גבולות לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות ערכי הגבול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mrl_note }}</p>
+    <div id="chart-mrl" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.mrl_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mrl_caption }}</caption>
+        <thead><tr><th scope="col">גבול (מ״ג/ק״ג)</th><th scope="col">גבולות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.mrl %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצות גידולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+    <div id="chart-groups" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.groups_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+        <thead><tr><th scope="col">קבוצה</th><th scope="col">גבולות</th><th scope="col">חומרים פעילים</th><th scope="col">גידולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.groups %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.limits }}</td><td>{{ r.ai }}</td><td>{{ r.crops }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רמת הגבול לפי קבוצת גידולים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  <div id="chart-box" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_caption }}</caption>
+      <thead><tr><th scope="col">קבוצה</th><th scope="col">גבולות</th><th scope="col">עשירון תחתון</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">עשירון עליון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.p10 }}</td><td>{{ r.q1 }}</td><td>{{ r.med }}</td><td>{{ r.q3 }}</td><td>{{ r.p90 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גבולות בהמתנה ומיועדים לביטול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+  <div id="chart-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+      <thead><tr><th scope="col">קבוצה</th>{% for s in model.tables.statuses %}<th scope="col">{{ s }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.status %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הגידולים עם הכי הרבה חומרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.crops_note }}</p>
+    <div id="chart-crops" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.crops_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.crops_caption }}</caption>
+        <thead><tr><th scope="col">גידול</th><th scope="col">קבוצה</th><th scope="col">חומרים פעילים</th><th scope="col">חציון (מ״ג/ק״ג)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.crops %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.group }}</td><td>{{ r.ai }}</td><td>{{ r.med }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">החומרים הפעילים עם הכיסוי הרחב ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ai_note }}</p>
+    <div id="chart-ai" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ai_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ai_caption }}</caption>
+        <thead><tr><th scope="col">חומר פעיל</th><th scope="col">גידולים</th><th scope="col">מינימום</th><th scope="col">חציון</th><th scope="col">מקסימום</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ai %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.crops }}</td><td>{{ r.min }}</td><td>{{ r.med }}</td><td>{{ r.max }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חומרים נפוצים מול קבוצות גידולים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הכיסוי מול רמת הגבול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+</section>
+
+<section id="table-high" class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הגבולות הגבוהים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.high_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.high_caption }}</caption>
+    <thead><tr><th scope="col">חומר פעיל</th><th scope="col">גידול</th><th scope="col">גבול (מ״ג/ק״ג)</th><th scope="col">עדכון</th><th scope="col">סימון</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.high %}
+      <tr><th scope="row" dir="ltr">{{ r.ai }}</th><td>{{ r.crop }}</td><td>{{ r.mrl }}</td><td dir="ltr">{{ r.date }}</td><td>{{ r.status }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="table-recent" class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">העדכונים האחרונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.recent_caption }}</caption>
+    <thead><tr><th scope="col">חומר פעיל</th><th scope="col">גידול</th><th scope="col">גבול (מ״ג/ק״ג)</th><th scope="col">עדכון</th><th scope="col">סימון</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.recent %}
+      <tr><th scope="row" dir="ltr">{{ r.ai }}</th><td>{{ r.crop }}</td><td>{{ r.mrl }}</td><td dir="ltr">{{ r.date }}</td><td>{{ r.status }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var STATUS_COLORS = { "ללא סימון": "#0068f5", "בהמתנה": "#ffc107", "מיועד לביטול": "#dc3545", "סימון אחר": "#6c757d" };
+    function colors(series) { return series.map(function (s) { return STATUS_COLORS[s.name] || "#6c757d"; }); }
+
+    var t = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    var c = echarts.init(el);
+    var last = t.x.length - 1;
+    c.setOption(window.GovEcharts.option({
+      color: colors(t.series),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var s = ps[0].axisValue + ((t.partial && ps[0].dataIndex === last) ? " (שנה חלקית)" : "");
+        var sum = 0;
+        ps.forEach(function (p) { sum += p.value; s += "<br>" + p.marker + p.seriesName + ": " + Number(p.value).toLocaleString("he-IL"); });
+        return s + "<br>סה״כ: " + sum.toLocaleString("he-IL");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 88, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 28, height: 18 }],
+      xAxis: { type: "category", data: t.x },
+      yAxis: { type: "value", name: "גבולות" },
+      series: t.series.map(function (s) { return { type: "bar", stack: "a", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var st = {{ model.charts.status | tojson }};
+    var sc = echarts.init(document.getElementById("chart-status"));
+    sc.setOption(window.GovEcharts.option({
+      color: colors(st.series),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, s = ps[0].axisValue;
+        ps.forEach(function (p, k) { s += "<br>" + p.marker + p.seriesName + ": " + p.value + "% (" + st.counts[i][k].toLocaleString("he-IL") + ")"; });
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: st.rows, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: st.series.map(function (s) { return { type: "bar", stack: "a", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { sc.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.mrl | tojson }};
+    var el = document.getElementById("chart-mrl");
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        return ps[0].axisValue + " מ״ג/ק״ג<br>" + Number(ps[0].value).toLocaleString("he-IL") + " גבולות";
+      } },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.names, axisLabel: { interval: 0, rotate: narrow ? 40 : 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", name: "גבולות" },
+      series: [{ type: "bar", name: "גבולות", data: m.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var g = {{ model.charts.groups | tojson }};
+    var gEl = document.getElementById("chart-groups");
+    var gNarrow = gEl.clientWidth < 500;
+    var gc = echarts.init(gEl);
+    gc.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: gNarrow ? 3 : 5, axisLabel: { hideOverlap: true, fontSize: gNarrow ? 10 : 12 } },
+      yAxis: { type: "category", data: g.names, inverse: true, axisLabel: { width: 100, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "גבולות", data: g.limits },
+        { type: "bar", name: "חומרים פעילים", data: g.ai }
+      ]
+    }));
+    window.addEventListener("resize", function () { gc.resize(); });
+
+    var bx = {{ model.charts.box | tojson }};
+    var bc = echarts.init(document.getElementById("chart-box"));
+    bc.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (q) {
+        var v = q.value;
+        return q.name + "<br>עשירון תחתון: " + v[1] + "<br>רבעון תחתון: " + v[2] + "<br>חציון: " + v[3] +
+               "<br>רבעון עליון: " + v[4] + "<br>עשירון עליון: " + v[5] + " (מ״ג/ק״ג)";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "log", logBase: 10, name: "מ״ג/ק״ג", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "category", data: bx.names, inverse: true, axisLabel: { width: 100, overflow: "truncate" } },
+      series: [{ type: "boxplot", name: "גבול", data: bx.box,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { bc.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, ltr) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      var narrow = el.clientWidth < 500;
+      var lw = Math.min(170, Math.round(el.clientWidth * 0.42));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          return ps[0].axisValue + "<br>" + Number(ps[0].value).toLocaleString("he-IL") + " " + unit;
+        } },
+        grid: { left: 16, right: narrow ? 36 : 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { show: !narrow } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: lw, overflow: "truncate", fontSize: ltr && narrow ? 10 : 12 } },
+        series: [{ type: "bar", name: unit, data: d.values,
+                   label: { show: narrow, position: "right", fontSize: 10, color: "#0c3058" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-crops", {{ model.charts.crops | tojson }}, "חומרים פעילים", false);
+    hbar("chart-ai", {{ model.charts.ai | tojson }}, "גידולים", true);
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var narrow = el.clientWidth < 600;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " גידולים";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: narrow ? { interval: 0, rotate: 50, width: 80, overflow: "truncate", fontSize: 10 }
+                                 : { interval: 0, width: 90, overflow: "break" } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { interval: 0, fontSize: narrow ? 9 : 12, width: narrow ? 110 : 180, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 4, itemHeight: 120,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik", fontSize: narrow ? 8 : 11 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var s = {{ model.charts.scatter | tojson }};
+    var sc = echarts.init(document.getElementById("chart-scatter"));
+    sc.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.value[2] + "<br>גידולים: " + p.value[0] + "<br>חציון הגבול: " + p.value[1] + " מ״ג/ק״ג";
+      } },
+      grid: { left: 16, right: 24, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "value", name: "גידולים", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "log", logBase: 10, name: "חציון (מ״ג/ק״ג)" },
+      series: [{ type: "scatter", name: "חומר פעיל", data: s.points, symbolSize: 8,
+                 itemStyle: { opacity: 0.6 } }]
+    }));
+    window.addEventListener("resize", function () { sc.resize(); });
+  })();
+</script>

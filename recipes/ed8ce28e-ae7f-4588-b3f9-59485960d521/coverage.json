@@ -1,0 +1,13 @@
+{
+  "main.equipment_group": "chart-groups, chart-tree, chart-bridge, insight:legacy, insight:empty_groups, table:groups — 35 groups; top 12 + אחר on the chart, all in the table",
+  "main.equipment_group_id": "skip: numeric code, 1:1 with equipment_group",
+  "main.device_type": "chart-bridge — capacity range; only the bridge-scale tonnage is parsed into a chart, other ranges are free-form text per group",
+  "main.manufacter_id": "chart-makers, chart-size, kpi:makers, insight:makers — grouping key for manufacturers",
+  "main.manufacter_name": "chart-makers, table:makers, insight:makers — businesses, named; placeholder 'כללי' and blank excluded from rankings (disclosed)",
+  "main.model_id": "kpi:total — one row per model id (unique); the id itself is not shown",
+  "main.manufactor_model": "skip: model designation, free text (2,546 distinct) — browsable in the explorer",
+  "main.eqitf_is_commercial": "chart-tree, chart-approvals, chart-expiry, chart-term, chart-makers, insight:valid, insight:term — Y/N mapped to commercial vs household use",
+  "main.eqitf_confirmation_number": "chart-approvals, chart-term, kpi:certs, kpi:last_full, insight:certs, insight:trend — approval year parsed from the trailing two digits",
+  "main.eqitf_confirmation_validity": "chart-expiry, chart-term, kpi:exp_this, kpi:exp_next, insight:expiry, insight:missing — also infers the reference year with is_valid",
+  "main.is_valid": "chart-groups, chart-tree, chart-makers, chart-size, chart-bridge, kpi:valid, kpi:share, insight:valid"
+}

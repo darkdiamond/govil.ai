@@ -1,0 +1,466 @@
+<h1>היתרי שריפת גזם חקלאי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">היתרי שריפה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.towns.tone }} mb-1" dir="ltr">{{ model.kpis.towns.display }}</div>
+    <div class="text-sm text-subtle">יישובים שקיבלו היתר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ytd.tone }} mb-1" dir="ltr">{{ model.kpis.ytd.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ytd_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.one_day.tone }} mb-1" dir="ltr">{{ model.kpis.one_day.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.one_day_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היתרים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">היתרים</th><th scope="col">יישובים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}{% if r.partial %} (חלקית){% endif %}</th><td>{{ r.count }}</td><td>{{ r.towns }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות: היתרים לפי שנה וחודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונת השריפה של כל גידול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_note }}</p>
+    <div id="chart-season" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th>{% for f in model.tables.season_fams %}<th scope="col">{{ f }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.month }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dm_note }}</p>
+    <div id="chart-dm" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dm_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dm_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th>{% for m in model.charts.dm.x %}<th scope="col">{{ m }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.dm %}
+          <tr><th scope="row">{{ r.district }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על איזה גידול שורפים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fams_note }}</p>
+  <div id="chart-fams" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.fams_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.fams_caption }}</caption>
+      <thead><tr><th scope="col">קבוצה</th><th scope="col">היתרים</th><th scope="col">שיעור</th><th scope="col">גידולים</th><th scope="col">הגידול המוביל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.fams %}
+        <tr><th scope="row">{{ r.fam }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.crops }}</td><td>{{ r.top }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הגידולים המובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.crops_note }}</p>
+    <div id="chart-crops" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.crops_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.crops_caption }}</caption>
+        <thead><tr><th scope="col">גידול</th><th scope="col">קבוצה</th><th scope="col">היתרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.crops %}
+          <tr><th scope="row">{{ r.crop }}</th><td>{{ r.fam }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל הגידולים בכל מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור כל קבוצת גידולים מהיתרי המחוז.</p>
+    <div id="chart-dfam" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.dfam_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dfam_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th>{% for f in model.tables.dfam_cols %}<th scope="col">{{ f }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dfam %}
+          <tr><th scope="row">{{ r.district }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חלון שעות השריפה לפי חודש</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כל היתר מתיר שריפה בחלון שעות אחד; החלון נקבע לפי עונת השנה.</p>
+    <div id="chart-window" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.window_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.window_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th>{% for w in model.tables.windows %}<th scope="col" dir="ltr">{{ w }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.window %}
+          <tr><th scope="row">{{ r.month }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">משך תוקף ההיתר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.validity_note }}</p>
+    <div id="chart-validity" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.validity_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.validity_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for b in model.tables.vlabels %}<th scope="col">{{ b }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.validity %}
+          <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.towns_note }}</p>
+    <div id="chart-towns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.towns_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.towns_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">מחוז</th><th scope="col">היתרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.towns %}
+          <tr><th scope="row">{{ r.town }}</th><td>{{ r.district }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יום תחילת התוקף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">באיזה יום בשבוע נכנס ההיתר לתוקף.</p>
+    <div id="chart-wd" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wd_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.wd_caption }}</caption>
+        <thead><tr><th scope="col">יום</th><th scope="col">היתרים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.wd %}
+          <tr><th scope="row">{{ r.day }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    var series = d.series.map(function (s) { return { type: "bar", stack: "total", name: s.name, data: s.data }; });
+    series.push({ type: "line", name: "יישובים", yAxisIndex: 1, data: d.towns, symbolSize: 6,
+                  lineStyle: { color: "#0c3058", width: 2 }, itemStyle: { color: "#0c3058" } });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", name: "היתרים" }, { type: "value", name: "יישובים", splitLine: { show: false } }],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " היתרים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: h.y, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.season | tojson }};
+    var c = echarts.init(document.getElementById("chart-season"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "% מהיתרי הקבוצה" },
+      series: s.series.map(function (x, i) {
+        var sym = ["circle", "rect", "triangle", "diamond", "roundRect"];
+        return { type: "line", name: x.name, data: x.data, symbol: sym[i % sym.length], symbolSize: 7 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var h = {{ model.charts.dm | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-dm"));
+    c2.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " היתרים)";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { width: 90, overflow: "break" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.fams | tojson }};
+    var c = echarts.init(document.getElementById("chart-fams"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) { return p.name + ": " + p.value.toLocaleString("he-IL") + " היתרים"; } },
+      series: [{
+        type: "treemap", data: t, roam: false, nodeClick: "zoomToNode",
+        top: 8, left: 4, right: 4, bottom: 32,
+        breadcrumb: { bottom: 0, itemStyle: { color: "#0068f5" } },
+        label: { show: true, fontFamily: "Rubik", formatter: "{b}" },
+        upperLabel: { show: true, height: 22, fontFamily: "Rubik", color: "#fff" },
+        levels: [
+          { itemStyle: { borderColor: "#fff", borderWidth: 2, gapWidth: 2 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { gapWidth: 1, borderColorSaturation: 0.6 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.crops | tojson }};
+    var c = echarts.init(document.getElementById("chart-crops"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "היתרים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var m = {{ model.charts.dfam | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-dfam"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", max: 100, name: "%" },
+      yAxis: { type: "category", data: m.y, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: m.series.map(function (s) { return { type: "bar", stack: "mix", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var w = {{ model.charts.window | tojson }};
+    var c = echarts.init(document.getElementById("chart-window"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: w.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "היתרים" },
+      series: w.series.map(function (s) { return { type: "bar", stack: "w", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var v = {{ model.charts.validity | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-validity"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (x) { return x + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: v.x },
+      yAxis: { type: "value", max: 100, name: "% מההיתרים" },
+      series: v.series.map(function (s) { return { type: "bar", stack: "v", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.towns | tojson }};
+    var c = echarts.init(document.getElementById("chart-towns"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return p.name + " (" + t.districts[p.dataIndex] + "): " + p.value.toLocaleString("he-IL") + " היתרים"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: t.names, inverse: true },
+      series: [{ type: "bar", name: "היתרים", data: t.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var d = {{ model.charts.wd | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-wd"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", name: "היתרים" },
+      series: [{ type: "bar", name: "היתרים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>

@@ -1,0 +1,13 @@
+{
+  "main.identitynumber": "chart-combos, chart-forms, kpi:holders, insight:dual, insight:form — grouping key and legal-form prefix only; the number itself never reaches the page",
+  "main.companyname": "skip: holder name (free text) — shown in the shell's data explorer; the page aggregates by registration number instead",
+  "main.fieldfactivity": "chart-fields, insight:fields — only reliable for valid service-contractor licences (constant/mismatched elsewhere)",
+  "main.licensenumber": "skip: licence identifier; separate numbering per licence type, carries no date",
+  "main.companyowner": "chart-fill, insight:fill — fill rate only; owner names (often private individuals) are never shown",
+  "main.companyceo": "chart-fill, insight:fill — fill rate only; names are never shown",
+  "main.address": "chart-fill — fill rate only; street addresses (can be a sole trader's home) are never shown",
+  "main.town": "chart-towns, chart-mix, chart-pareto, chart-fill, insight:towns",
+  "main.validuntil": "chart-expiry, kpi:next3, insight:expiry",
+  "main.status": "chart-types, kpi:active, kpi:total, insight:inactive, insight:type_gap",
+  "main.sugrishayon": "chart-types, chart-combos, chart-forms, chart-expiry, chart-towns, chart-mix, chart-fill, insight:type_gap, insight:dual, insight:form"
+}

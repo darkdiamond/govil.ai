@@ -1,0 +1,425 @@
+<h1>מאגר תקנים רשמיים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for k in ["total", "adopted", "eu", "cassis", "revising", "transition", "gazette", "eu_regs"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מקור התקן: מקורי או מאומץ</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orig_note }}</p>
+    <div id="chart-orig" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.orig_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.orig_caption }}</caption>
+        <thead><tr><th scope="col">אופן האימוץ</th><th scope="col">תקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.orig %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל המהדורות בתוקף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.editions_note }}</p>
+    <div id="chart-editions" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.editions_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.editions_caption }}</caption>
+        <thead><tr><th scope="col">שנות המהדורה</th><th scope="col">מקוריים</th><th scope="col">מאומצים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.editions %}
+          <tr><th scope="row" dir="ltr">{{ r.label }}</th><td>{{ r.orig }}</td><td>{{ r.adopt }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הנושאים עם מספר התקנים הרב ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.topics_note }}</p>
+  <div id="chart-topics" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.topics_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.topics_caption }}</caption>
+      <thead><tr><th scope="col">נושא</th><th scope="col">תקנים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.topics %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מסלולי יבוא חלופיים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.routes_note }}</p>
+    <div id="chart-routes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.routes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.routes_caption }}</caption>
+        <thead><tr><th scope="col">מסלול</th><th scope="col">תקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.routes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצות יבוא</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+    <div id="chart-groups" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.groups_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+        <thead><tr><th scope="col">קבוצה</th><th scope="col">תקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.groups %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מסלול קסיס: לפי סוג המסמך הזר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cassis_note }}</p>
+    <div id="chart-cassis" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.cassis_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cassis_caption }}</caption>
+        <thead><tr><th scope="col">סוג המסמך</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cassis %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גופי התקינה המוזכרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bodies_note }}</p>
+    <div id="chart-bodies" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.bodies_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bodies_caption }}</caption>
+        <thead><tr><th scope="col">גוף</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.bodies %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תקנים בתהליך עדכון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.process_note }}</p>
+    <div id="chart-process" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.process_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.process_caption }}</caption>
+        <thead><tr><th scope="col">תהליך</th><th scope="col">תקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.process %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גיליונות תיקון לתקן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.amend_note }}</p>
+    <div id="chart-amend" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.amend_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.amend_caption }}</caption>
+        <thead><tr><th scope="col">גיליונות תיקון</th><th scope="col">תקנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.amend %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{%- if model.tables.transition %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מהדורות בתקופת מעבר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.transition_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.transition_caption }}</caption>
+      <thead><tr><th scope="col">תקן ומהדורה</th><th scope="col">בתוקף עד</th><th scope="col">מהדורה חדשה ותחילת תוקפה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.transition %}
+        <tr>
+          <th scope="row" class="font-normal align-top text-start"><span class="font-semibold whitespace-nowrap">{{ r.num }}</span> · {{ r.edition }}<div class="text-xs text-subtle">{{ r.name }}</div></th>
+          <td class="whitespace-nowrap align-top" dir="ltr">{{ r.until }}</td>
+          <td class="align-top">{{ r.new }}{% if r.new_from != "—" %}<div class="text-xs text-subtle" dir="ltr">{{ r.new_from }}</div>{% endif %}</td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פרסומי תקינה ברשומות לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gazette_note }}</p>
+  <div id="chart-gazette" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.gazette_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הפעולות ברשומות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.actions_note }}</p>
+    <div id="chart-actions" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.actions_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.actions_caption }}</caption>
+        <thead><tr><th scope="col">סוג פעולה</th><th scope="col">פרסומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.actions %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התקנים המוזכרים ביותר ברשומות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gaz_std_note }}</p>
+    <div id="chart-gaz-std" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.gaz_std_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.gaz_std_caption }}</caption>
+        <thead><tr><th scope="col">תקן</th><th scope="col">שם</th><th scope="col">פרסומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.gaz_std %}
+          <tr><th scope="row" class="whitespace-nowrap">{{ r.num }}</th><td>{{ r.name }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אסדרות אירופיות שאומצו</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.eu_note }}</p>
+    <div id="chart-eu" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.eu_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.eu_caption }}</caption>
+        <thead><tr><th scope="col">שנת כניסה לתוקף</th>{% for k in model.tables.eu_kinds %}<th scope="col">{{ k }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.eu %}
+          <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת הרפורמה מול המאגר הנוכחי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reform_note }}</p>
+    <div id="chart-reform" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.reform_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.reform_caption }}</caption>
+        <thead><tr><th scope="col">קבוצה</th><th scope="col">מספרי תקן</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.reform %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת התקנים הרשמיים בישראל. הרשימה כוללת תקנים רשמיים המצויים בתוקף בלבד.</p>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, labels, full) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      var lw = Math.max(110, Math.min(300, Math.round(el.clientWidth * 0.42)));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", formatter: function (p) {
+          var i = p[0].dataIndex;
+          return (full ? full[i] : d.names[i]) + "<br/>" + p[0].value.toLocaleString("he-IL") + " " + unit;
+        } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: el.clientWidth < 500 ? 3 : 5 },
+        yAxis: { type: "category", data: labels || d.names, inverse: true,
+                 axisLabel: { width: lw, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var o = {{ model.charts.orig | tojson }};
+    hbar("chart-orig", o, "תקנים");
+    var t = {{ model.charts.topics | tojson }};
+    hbar("chart-topics", t, "תקנים", t.short, t.names);
+    hbar("chart-routes", {{ model.charts.routes | tojson }}, "תקנים");
+    hbar("chart-cassis", {{ model.charts.cassis | tojson }}, "מסלולים");
+    hbar("chart-bodies", {{ model.charts.bodies | tojson }}, "מסלולים");
+    hbar("chart-process", {{ model.charts.process | tojson }}, "תקנים");
+    hbar("chart-actions", {{ model.charts.actions | tojson }}, "פרסומים");
+    var g = {{ model.charts.gaz_std | tojson }};
+    hbar("chart-gaz-std", g, "פרסומים", null, g.names.map(function (x, i) { return x + " " + g.full[i]; }));
+    hbar("chart-reform", {{ model.charts.reform | tojson }}, "מספרי תקן");
+  })();
+</script>
+
+<script>
+  (function () {
+    function vbar(id, d, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+        xAxis: { type: "category", data: d.names },
+        yAxis: { type: "value", name: unit },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    vbar("chart-groups", {{ model.charts.groups | tojson }}, "תקנים");
+    vbar("chart-amend", {{ model.charts.amend | tojson }}, "תקנים");
+
+    function stacked(id, x, series, unit, zoom) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        legend: { bottom: 0, type: "scroll" },
+        grid: { left: 40, right: 16, top: 24, bottom: 64, containLabel: true },
+        xAxis: { type: "category", data: x },
+        yAxis: { type: "value", name: unit },
+        series: series.map(function (s) { return { type: "bar", stack: "total", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var e = {{ model.charts.editions | tojson }};
+    stacked("chart-editions", e.x, [{ name: "מאומצים", data: e.adopt }, { name: "מקוריים", data: e.orig }], "תקנים");
+    var gz = {{ model.charts.gazette | tojson }};
+    stacked("chart-gazette", gz.x, gz.series, "פרסומים");
+    var eu = {{ model.charts.eu | tojson }};
+    stacked("chart-eu", eu.x, eu.series, "אסדרות");
+  })();
+</script>

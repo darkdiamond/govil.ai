@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "27b4b40e-b019-4a70-8e5d-4741110fc55d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:59:23.556044+00:00",
+    "rows": { "branches": 655 }
+  },
+  "inputs": [
+    {
+      "name": "branches",
+      "by_id": "f7d9c47e-3414-4524-a187-a0f0e057b08a",
+      "required_columns": [
+        "store",
+        "branch",
+        "city",
+        "address",
+        "X",
+        "Y",
+        "report_date"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

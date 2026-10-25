@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "49f21b3f-3ffc-43d1-b8c8-d9abad2ace9a",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T14:14:23.172585+00:00",
+    "rows": {
+      "files": 1018
+    }
+  },
+  "inputs": [
+    {
+      "name": "files",
+      "by_id": "f3fd5657-1b75-46ef-9a10-9f434b326aa7",
+      "required_columns": [
+        "מספר תיק פיקוח",
+        "סוג הישות המפוקחת",
+        "מסלול פיקוח",
+        "תאריך ושעת פיקוח",
+        "ישוב",
+        "קואורדינטות  רוחב 1",
+        "קואורדינטות אורך 1"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

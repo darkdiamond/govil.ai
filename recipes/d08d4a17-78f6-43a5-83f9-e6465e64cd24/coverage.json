@@ -1,0 +1,6 @@
+{
+  "notaries.מספר תיק רשיון": "skip: individual licence file number — a per-person identifier, kept off the page by policy",
+  "notaries.שם": "chart-surnames, chart-firsts, insight:surname — aggregate counts only, no individual singled out",
+  "notaries.ישוב": "chart-cities, chart-curve, chart-sizes, chart-share, chart-heat, kpi:cities, insight:concentration, insight:tail, insight:hotspot — spelling variants folded on a normalized key",
+  "notaries.שפות": "chart-langs, chart-nl, chart-share, chart-heat, chart-pairs, kpi:foreign, kpi:langs, insight:foreign, insight:hotspot, insight:pairs, insight:multi — English names translated to Hebrew, unknown ones bucketed"
+}
