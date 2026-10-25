@@ -47,12 +47,18 @@ def _rows(years, *, north=10, south=5, center=20):
 class FakeCkan:
     def __init__(self, rows, cols=COLS):
         self.rows, self.cols = rows, cols
+        self.fetches = 0
 
     def preview(self, rid):
-        return {"fields": [{"id": c} for c in self.cols], "total": len(self.rows)}
+        return {
+            "fields": [{"id": c} for c in self.cols],
+            "total": len(self.rows),
+            "sample_rows": [dict(zip(self.cols, r, strict=True)) for r in self.rows[:5]],
+        }
 
     def fetch(self, rid, total, dest, **kw):
         assert kw["prefer_sample"] is False and kw["sample_target_rows"] == 0
+        self.fetches += 1
         with open(dest, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(self.cols)
@@ -75,12 +81,26 @@ class FakeStore:
         self.states.setdefault((dataset_id, preview), {}).update(kw)
 
     def mark_refreshed(self, dataset_id, *, metadata_modified, recipe_version,
-                       agent_data, page_path, snapshot=None, preview=False):
+                       agent_data, page_path, snapshot=None, input_fingerprint=None,
+                       inputs_hash=None, content_hash=None, preview=False):
         self._upd(dataset_id, preview, agent_data=agent_data,
                   recipe_version=recipe_version,
                   refreshed_metadata_modified=metadata_modified,
                   refresh_status="succeeded", refresh_failed_version=None,
-                  last_snapshot=snapshot)
+                  last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
+                  input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
+                  content_hash=content_hash)
+
+    def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
+                               inputs_hash=None, reason, advance_version, preview=False):
+        kw = {"input_fingerprint": input_fingerprint, "unchanged_reason": reason}
+        if inputs_hash is not None:
+            kw["inputs_hash"] = inputs_hash
+        if advance_version:
+            kw.update(refreshed_metadata_modified=metadata_modified, refresh_status="succeeded",
+                      refresh_failed_version=None, authoring_status="done",
+                      authoring_reason=None)
+        self._upd(dataset_id, preview, **kw)
 
     def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version, preview=False):
         self._upd(dataset_id, preview, refresh_status="failed", refresh_error=error,
@@ -473,3 +493,191 @@ def test_author_verify_rejects_order_dependent_recipe(tmp_path, monkeypatch, cap
     ))
     assert author.verify(DS, recipes) == 1
     assert "ORDER-DEPENDENT" in capsys.readouterr().out
+
+
+# ── REFRESH_PRECHECK: skip CKAN bumps that changed nothing ───────────────
+
+
+def _bump(store, mm):
+    store.src.metadata_modified = datetime.fromisoformat(mm).replace(tzinfo=timezone.utc)
+
+
+def _first(s):
+    return s["outcomes"][0]
+
+
+def _with_mode(monkeypatch, mode):
+    monkeypatch.setenv("REFRESH_PRECHECK", mode)
+
+
+def _stage_then_bump_same_rows(env, monkeypatch, mode, **kw):
+    """Render once, then CKAN bumps the version with byte-identical data."""
+    _with_mode(monkeypatch, mode)
+    store = FakeStore(_src("2026-10-01"))
+    ckan = FakeCkan(_rows([2024, 2025]))
+    s1 = _run(env, store, ckan, preview=False, **kw)
+    assert _first(s1)["status"] == "refreshed"
+    staged = dict(env.staged)
+    _bump(store, "2026-10-02")
+    return store, ckan, staged
+
+
+def test_precheck_off_rerenders_identical_data(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "off")
+    s = _run(env, store, ckan, preview=False)
+    assert _first(s)["status"] == "refreshed" and ckan.fetches == 2
+    assert _first(s)["precheck"] == {}
+    st = store.states[(DS, False)]
+    assert st["input_fingerprint"] is None and st["content_hash"] is None
+
+
+def test_precheck_unknown_mode_is_off(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "bogus")
+    s = _run(env, store, ckan, preview=False)
+    assert _first(s)["status"] == "refreshed" and _first(s)["precheck"] == {}
+
+
+def test_precheck_observe_reports_agreement_and_never_skips(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    # first render had nothing to compare against
+    s = _run(env, store, ckan, preview=False)
+    o = _first(s)
+    assert o["status"] == "refreshed" and ckan.fetches == 2
+    assert o["precheck"] == {
+        "mode": "observe", "fp_same": True, "inputs_same": True, "content_same": True,
+    }
+
+
+def test_precheck_first_run_has_nothing_to_compare(env, monkeypatch):
+    _with_mode(monkeypatch, "observe")
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), preview=False)
+    pc = _first(s)["precheck"]
+    assert pc["fp_same"] is None and pc["inputs_same"] is None and pc["content_same"] is None
+    st = store.states[(DS, False)]
+    assert st["input_fingerprint"] and st["inputs_hash"] and st["content_hash"]
+
+
+def test_precheck_inputs_skips_after_fetch_and_before_compute(env, monkeypatch):
+    store, ckan, staged = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
+    env.staged.clear()
+    s = _run(env, store, ckan, preview=False)
+    o = _first(s)
+    assert (o["status"], o["reason"]) == ("unchanged", "inputs_hash")
+    assert ckan.fetches == 2          # B needs the export…
+    assert env.staged == {}           # …but nothing was re-rendered or staged
+    assert s["refreshed"] == [] and s["unchanged"] == [DS]
+    st = store.states[(DS, False)]
+    assert st["refreshed_metadata_modified"] == store.src.metadata_modified
+    # the marker advanced, so the next run has nothing to do
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "up_to_date"
+
+
+def test_precheck_full_skips_on_fingerprint_without_fetching(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    rendered_mm = store.states[(DS, False)]["refreshed_metadata_modified"]
+    env.staged.clear()
+    s = _run(env, store, ckan, preview=False)
+    o = _first(s)
+    assert (o["status"], o["reason"]) == ("unchanged", "fingerprint")
+    assert ckan.fetches == 1 and env.staged == {}
+    # not proof: the bump stays pending and is re-probed (no fetch) next run
+    assert store.states[(DS, False)]["refreshed_metadata_modified"] == rendered_mm
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "fingerprint"
+    assert ckan.fetches == 1
+
+
+def test_precheck_fingerprint_blind_spot_is_bounded_without_new_bumps(env, monkeypatch):
+    """A same-count edit A can't see, and CKAN never bumps again: the pending
+    bump still re-renders once the page passes the max age."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    edited = FakeCkan(_deep_edit(ckan.rows))
+    assert _first(_run(env, store, edited, preview=False))["reason"] == "fingerprint"
+    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    s = _run(env, store, edited, preview=False)        # no new bump
+    assert _first(s)["status"] == "refreshed" and edited.fetches == 1
+
+
+def test_precheck_exact_skip_settles_an_open_authoring_flag(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
+    store.states[(DS, False)].update(authoring_status="notified", authoring_issue=77,
+                                     refresh_failed_version="x", refresh_status="failed")
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "inputs_hash"
+    st = store.states[(DS, False)]
+    assert st["authoring_status"] == "done" and st["refresh_status"] == "succeeded"
+
+
+def _deep_edit(rows):
+    """Same row count, same first 5 rows, one number changed near the end —
+    the edit check A cannot see."""
+    out = [list(r) for r in rows]
+    out[-2][-1] = str(int(out[-2][-1]) + 100)
+    return out
+
+
+def test_precheck_inputs_mode_catches_what_the_fingerprint_misses(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
+    edited = FakeCkan(_deep_edit(ckan.rows))
+    s = _run(env, store, edited, preview=False)
+    o = _first(s)
+    assert o["status"] == "refreshed"
+    assert o["precheck"]["fp_same"] is True       # A would have skipped…
+    assert o["precheck"]["inputs_same"] is False  # …B knows better
+    assert o["precheck"]["content_same"] is False
+
+
+def test_precheck_full_documents_the_fingerprint_blind_spot(env, monkeypatch):
+    """`full` trusts A: a same-count edit deeper than the sampled rows is
+    skipped until the max-age safety net forces a re-render."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    edited = FakeCkan(_deep_edit(ckan.rows))
+    assert _first(_run(env, store, edited, preview=False))["reason"] == "fingerprint"
+    # …and the safety net: page older than the max age → always re-render
+    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    _bump(store, "2026-10-03")
+    s = _run(env, store, edited, preview=False)
+    assert _first(s)["status"] == "refreshed" and edited.fetches == 1
+
+
+def test_precheck_changed_rows_always_refresh(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    more = FakeCkan(_rows([2024, 2025, 2026]))
+    s = _run(env, store, more, preview=False)
+    assert _first(s)["status"] == "refreshed" and more.fetches == 1
+
+
+def test_precheck_never_skips_a_recipe_version_change(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store.states[(DS, False)]["recipe_version"] = 0   # recipe moved on
+    s = _run(env, store, ckan, preview=False)
+    o = _first(s)
+    assert o["status"] == "refreshed" and o["trigger"] == "recipe_version"
+
+
+def test_precheck_never_skips_a_forced_run(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    s = _run(env, store, ckan, preview=False, force=True)
+    assert _first(s)["status"] == "refreshed"
+
+
+def test_precheck_edited_recipe_without_version_bump_rerenders(env, monkeypatch, tmp_path):
+    _with_mode(monkeypatch, "full")
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    store = FakeStore(_src("2026-10-01"))
+    ckan = FakeCkan(_rows([2024, 2025]))
+    _run(env, store, ckan, preview=False, recipes=recipes)
+    t = recipes / DS / "template.html.j2"
+    t.write_text(t.read_text() + "\n<!-- edited -->\n")
+    _bump(store, "2026-10-02")
+    s = _run(env, store, ckan, preview=False, recipes=recipes)
+    assert _first(s)["status"] == "refreshed"
+
+
+def test_unchanged_by_fingerprint_does_not_spend_the_cap():
+    mk = rf.RefreshOutcome
+    assert not rf._spends_cap(mk("a", "unchanged", reason="fingerprint"))
+    assert rf._spends_cap(mk("a", "unchanged", reason="inputs_hash"))
+    assert rf._spends_cap(mk("a", "refreshed"))
+    assert rf._spends_cap(mk("a", "failed"))
+    assert not rf._spends_cap(mk("a", "skipped"))
