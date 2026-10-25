@@ -1,0 +1,35 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a545d0ba-0d30-4fbc-be38-e965c5dae56b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-17T00:01:20.690316+00:00",
+    "rows": {
+      "main": 24373
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "4eb61bd6-18cf-4e7c-9f9c-e166dfa0a2d8",
+      "required_columns": [
+        "MISPAR_YESHUT",
+        "SHEM_YESHUT",
+        "MISPAR_KABLAN",
+        "SHEM_YISHUV",
+        "TAARICH_KABLAN",
+        "KOD_ANAF",
+        "TEUR_ANAF",
+        "KVUTZA",
+        "SIVUG",
+        "TARICH_SUG",
+        "HEKEF",
+        "KABLAN_MUKAR",
+        "HEARA"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}
