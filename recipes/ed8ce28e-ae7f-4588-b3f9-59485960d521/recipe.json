@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ed8ce28e-ae7f-4588-b3f9-59485960d521",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:59:06.243816+00:00",
+    "rows": {
+      "main": 2570
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "5cc7cc5b-9e38-42bd-bc77-f70297c10a1f",
+      "required_columns": [
+        "equipment_group",
+        "device_type",
+        "manufacter_id",
+        "manufacter_name",
+        "model_id",
+        "eqitf_is_commercial",
+        "eqitf_confirmation_number",
+        "eqitf_confirmation_validity",
+        "is_valid"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,318 @@
+<h1>רשימת נציגויות ישראל בעולם</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.missions.tone }} mb-1" dir="ltr">{{ model.kpis.missions.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.missions_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.countries_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.top_type.tone }} mb-1" dir="ltr">{{ model.kpis.top_type.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.top_type_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.shared.tone }} mb-1" dir="ltr">{{ model.kpis.shared.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.shared_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מדינות לפי אזור</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regions_note }}</p>
+    <div id="chart-regions" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.regions_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.regions_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th><th scope="col">מדינות</th><th scope="col">נציגות ייעודית בלבד</th><th scope="col">בנציגות משותפת</th><th scope="col">נציגויות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.regions %}
+          <tr><th scope="row">{{ r.region }}</th><td>{{ r.countries }}</td><td>{{ r.dedicated }}</td><td>{{ r.shared }}</td><td>{{ r.missions }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מעמד הנציגויות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">מעמד</th><th scope="col">נציגויות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.type }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נציגויות שמשרתות כמה מדינות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shared_note }}</p>
+  <div id="chart-shared" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.shared_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.shared_caption }}</caption>
+      <thead><tr><th scope="col">עיר הנציגות</th><th scope="col">מעמד</th><th scope="col">מדינות</th><th scope="col">המדינות המשורתות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.shared %}
+        <tr><th scope="row">{{ r.city }}</th><td>{{ r.type }}</td><td>{{ r.count }}</td><td>{{ r.countries }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מדינות עם כמה נציגויות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.multi_note }}</p>
+    <div id="chart-multi" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.multi_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.multi_caption }}</caption>
+        <thead><tr><th scope="col">מדינה</th>{% for t in model.tables.multi_types %}<th scope="col">{{ t }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.multi %}
+          <tr><th scope="row">{{ r.country }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דרישות אשרה לפי אזור</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.visa_note }}</p>
+    <div id="chart-visa" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.visa_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.visa_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th>{% for h in model.tables.visa_heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.visa %}
+          <tr><th scope="row">{{ r.region }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שעות קבלת קהל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hours_note }}</p>
+    <div id="chart-hours" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.hours_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.hours_caption }}</caption>
+        <thead><tr><th scope="col">שעות בשבוע</th><th scope="col">נציגויות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.hours %}
+          <tr><th scope="row">{{ r.bin }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שלמות פרטי הקשר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contacts_note }}</p>
+    <div id="chart-contacts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.contacts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.contacts_caption }}</caption>
+        <thead><tr><th scope="col">פרט קשר</th><th scope="col">נציגויות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.contacts %}
+          <tr><th scope="row">{{ r.field }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle">רשימת נציגויות בעולם ומעמדן כולל כתובת</p>
+</section>
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({ color: window.GOVIL_PALETTE }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var r = {{ model.charts.regions | tojson }};
+    mk("chart-regions", {
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: r.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", name: "מדינות" },
+      series: [
+        { type: "bar", stack: "t", name: "נציגות ייעודית בלבד", data: r.dedicated },
+        { type: "bar", stack: "t", name: "בנציגות משותפת", data: r.shared }
+      ]
+    });
+    var t = {{ model.charts.types | tojson }};
+    mk("chart-types", {
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: t.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "נציגויות", data: t.values, label: { show: true, position: "right" } }]
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({ color: window.GOVIL_PALETTE }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var s = {{ model.charts.shared | tojson }};
+    mk("chart-shared", {
+      tooltip: {
+        trigger: "item",
+        confine: true,
+        formatter: function (p) { return p.name + ": " + p.value + " מדינות<br>" + s.lists[p.dataIndex]; },
+        extraCssText: "max-width:280px;white-space:normal;"
+      },
+      grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: s.names, inverse: true },
+      series: [{ type: "bar", name: "מדינות משורתות", data: s.values, label: { show: true, position: "right" } }]
+    });
+    var m = {{ model.charts.multi | tojson }};
+    mk("chart-multi", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: m.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: m.series.map(function (x) { return { type: "bar", stack: "t", name: x.name, data: x.data }; })
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({ color: window.GOVIL_PALETTE }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var v = {{ model.charts.visa | tojson }};
+    var vc = { free_both: "#198754", israelis_only: "#0068f5", foreign_only: "#7fb0f8", both: "#0b3668", na: "#c3cfe7" };
+    mk("chart-visa", {
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" }, confine: true,
+        formatter: function (ps) {
+          var out = ps[0].name;
+          ps.forEach(function (p) {
+            out += "<br>" + p.marker + p.seriesName + ": " + v.series[p.seriesIndex].counts[p.dataIndex] + " (" + p.value + "%)";
+          });
+          return out;
+        }
+      },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 120, containLabel: true },
+      xAxis: { type: "category", data: v.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: v.series.map(function (x) {
+        return { type: "bar", stack: "t", name: x.name, data: x.data, itemStyle: { color: vc[x.key] } };
+      })
+    });
+    var h = {{ model.charts.hours | tojson }};
+    mk("chart-hours", {
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 40, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: h.x, axisLabel: { interval: 0, fontSize: 10 }, name: "שעות בשבוע", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "נציגויות", minInterval: 1 },
+      series: [{ type: "bar", name: "נציגויות", data: h.y, label: { show: true, position: "top" } }]
+    });
+    var k = {{ model.charts.contacts | tojson }};
+    mk("chart-contacts", {
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { var p = ps[0]; return p.name + ": " + k.counts[p.dataIndex] + " (" + p.value + "%)"; }
+      },
+      grid: { left: 16, right: 48, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: k.names, inverse: true },
+      series: [{ type: "bar", name: "שיעור הנציגויות", data: k.values, label: { show: true, position: "right", formatter: "{c}%" } }]
+    });
+  })();
+</script>

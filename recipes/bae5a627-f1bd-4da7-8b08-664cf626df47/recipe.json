@@ -1,0 +1,35 @@
+{
+  "contract_version": 1,
+  "dataset_id": "bae5a627-f1bd-4da7-8b08-664cf626df47",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T00:00:10.811072+00:00",
+    "rows": {
+      "he": 152,
+      "en": 152
+    }
+  },
+  "inputs": [
+    {
+      "name": "he",
+      "by_id": "95ce3d91-34fb-42d2-bcb7-fefdf54cee42",
+      "required_columns": [
+        "k_ntz",
+        "shem_mdn",
+        "shem_ntz",
+        "maamad",
+        "address",
+        "tel",
+        "fax"
+      ]
+    },
+    {
+      "name": "en",
+      "by_id": "dffd4e30-2330-4c1c-893c-e2df910fe1d4",
+      "required_columns": ["k_ntz", "shem_mdn_a", "shem_ntz_a"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

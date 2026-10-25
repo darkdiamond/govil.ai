@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "90b08091-d516-4b89-bea5-cce542ac61fb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T21:15:19.249376+00:00",
+    "rows": {
+      "main": 8164
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "243fe1ce-b2ae-4c26-9e5e-ce306a602040",
+      "required_columns": [
+        "identitynumber",
+        "fieldfactivity",
+        "companyowner",
+        "companyceo",
+        "address",
+        "town",
+        "validuntil",
+        "status",
+        "sugrishayon"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

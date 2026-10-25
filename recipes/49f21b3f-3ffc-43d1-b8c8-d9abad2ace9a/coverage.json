@@ -1,0 +1,16 @@
+{
+  "files.מספר תיק פיקוח": "kpi:files — key: one inspection file per row",
+  "files.ישות מפוקחת": "skip: free-text description of the inspected place; some rows name a private complainant (\"תלונת <name> על ...\"), so the page never quotes it — type and town carry the comparable information",
+  "files.סוג הישות המפוקחת": "chart-family, chart-mix, chart-etype, chart-complaints, chart-building, map-main, insight:type, insight:building, insight:city — 93 raw types grouped into broad families by keyword, unknown types fall to אחר",
+  "files.מסלול פיקוח": "chart-yearly, chart-complaints, kpi:complaints, insight:track",
+  "files.תאריך ושעת פיקוח": "chart-yearly, chart-mix, chart-heat, chart-weekday, map-main, kpi:latest, insight:latest, insight:peak, insight:trend, insight:month",
+  "files.ישוב": "chart-city, map-main, kpi:cities, insight:city",
+  "files.רחוב": "skip: street, 77% empty",
+  "files.מספר בית": "skip: house number, 77% empty",
+  "files.הערות לכתובת": "skip: free-text address remarks, 95% empty, includes an email address",
+  "files.קואורדינטות רוחב": "skip: WGS84 latitude; a few rows have lat/lon swapped — the map uses the ITM pair, whose sanity check drops those rows",
+  "files.קואורדינטות אורך": "skip: WGS84 longitude, same reason as the latitude",
+  "files.קואורדינטות  רוחב 1": "map-main — ITM northing",
+  "files.קואורדינטות אורך 1": "map-main — ITM easting",
+  "files.כתובת  אתר האינטרנט": "skip: URL of the inspected website, 96% empty"
+}

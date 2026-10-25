@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9859abec-1c73-410a-971e-fbb571245003",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:13:31.065171+00:00",
+    "rows": { "main": 1192 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "defdbacf-de63-425e-962c-569b6f643292",
+      "required_columns": [
+        "מספר הסימן",
+        "מצב",
+        "לאומי/בינלאומי",
+        "תיאור סימן עברית",
+        "תיאור סימן אנגלית",
+        "תאריך בקשה",
+        "תאריך רישום",
+        "סוגי ניצה לבקשה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

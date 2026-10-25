@@ -1,0 +1,16 @@
+{
+  "attorneys.מספר רישיון": "skip: individual licence number — a per-person identifier, kept off the page by policy",
+  "attorneys.תואר": "chart-titles, chart-cohort, insight:lawyers — only the advocate title is read; מר/גב׳ are inconsistent in the source (often swapped) and are not used to infer gender",
+  "attorneys.שם משפחה": "skip: individual name — in the explorer; the page aggregates only (523 distinct surnames, no meaningful concentration)",
+  "attorneys.שם פרטי": "skip: individual name — in the explorer; the page aggregates only",
+  "attorneys.שנת רישום בפנקס": "chart-years, chart-seniority, chart-cohort, kpi:seniority, insight:pace, insight:peak, insight:seniority, insight:cohort",
+  "attorneys.תשלום לשנה": "chart-fees, chart-years, chart-cohort, kpi:current, insight:fees, insight:cohort — current cycle = most common last-paid year",
+  "attorneys.כתובת מייל": "chart-orgs, chart-contact, insight:orgs — domain only; organisational domains shared by 3+ attorneys are shown, addresses never",
+  "attorneys.כתובת": "skip: postal address — private contact detail for individuals",
+  "attorneys.יישוב": "chart-cities, kpi:cities, insight:cities — spelling variants folded on a normalized key",
+  "attorneys.מיקוד": "skip: postal code — part of the private address, 23% empty",
+  "attorneys.ישוב באנגלית": "chart-cities, kpi:cities — fallback for rows with no Hebrew settlement, mapped through rows that carry both",
+  "attorneys.כתובת באנגלית": "skip: English twin of the postal address — private contact detail",
+  "attorneys.שם משפחה באנגלית": "skip: English twin of an individual name",
+  "attorneys.שם פרטי באנגלית": "skip: English twin of an individual name"
+}

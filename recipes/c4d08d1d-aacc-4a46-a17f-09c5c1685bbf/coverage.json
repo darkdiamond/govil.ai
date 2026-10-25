@@ -1,0 +1,12 @@
+{
+  "main.מספר התאגיד": "chart-series, table:recent, table:revival, insight:land, insight:english — first 3 digits = sequential registration band (age proxy); full number shown only as the public corporate identifier beside the name in the named tables",
+  "main.שם התאגיד": "chart-words, chart-years, chart-series, insight:words, insight:land, table:recent, table:revival — companies may be named; ~ in the export is rendered as ״",
+  "main.שם התאגיד באנגלית": "chart-series, insight:english — share registered with a foreign-language name, per number series",
+  "main.סוג תאגיד": "kpi:total — constant today (every row is חברה פרטית); stated in the lede, which switches wording if other kinds appear",
+  "main.סטטוס התאגיד": "chart-status, kpi:active, insight:active, insight:liq, table:recent, table:revival",
+  "main.תת סטטוס התאגיד": "chart-flags, insight:liq, insight:revival, table:revival — split on ~, the base בהליכי מחיקה flag removed",
+  "main.מועד פרסום סטטוס ~מיועדת למחיקה~": "chart-waves, chart-gantt, kpi:recent, kpi:past, insight:wave, insight:window, insight:overdue, table:recent",
+  "main.מועד המחיקה הצפוי אם לא תוגש התנגד": "chart-gantt, kpi:past, insight:window, insight:overdue, table:recent",
+  "main.קוד סוג תאגיד": "skip: code twin of סוג תאגיד",
+  "main.קוד סטטוס התאגיד": "skip: code twin of סטטוס התאגיד"
+}

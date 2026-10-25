@@ -1,0 +1,378 @@
+<h1>מאגר קבלני כוח אדם, שירותי אבטחה וניקיון, לשכות פרטיות ועגורנים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">רישיונות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.active_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.holders.tone }} mb-1" dir="ltr">{{ model.kpis.holders.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.holders_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.next3.tone }} mb-1" dir="ltr">{{ model.kpis.next3.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.next3_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי רישיונות ומצב תוקף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג רישיון</th><th scope="col">בתוקף</th><th scope="col">לא בתוקף</th><th scope="col">שיעור בתוקף</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.type }}</th><td>{{ r.valid }}</td><td>{{ r.invalid }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צירופי רישיונות אצל אותו בעל רישיון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.combo_note }}</p>
+    <div id="chart-combos" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.combo_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.combo_caption }}</caption>
+        <thead><tr><th scope="col">צירוף רישיונות בתוקף</th><th scope="col">בעלי רישיון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.combos %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.fields %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבלני שירות: ניקיון, שמירה ואבטחה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fields_note }}</p>
+    <div id="chart-fields" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fields_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fields_caption }}</caption>
+        <thead><tr><th scope="col">תחום פעילות</th><th scope="col">רישיונות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.fields %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מחזיק ברישיון: תאגיד או עוסק יחיד</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.form_note }}</p>
+    <div id="chart-forms" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.form_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.form_caption }}</caption>
+        <thead><tr><th scope="col">סוג רישיון</th>{% for f in model.tables.forms %}<th scope="col">{{ f }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.form_rows %}
+          <tr><th scope="row">{{ r.type }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+{%- if model.flags.expiry %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">לוח פקיעת הרישיונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.expiry_note }}</p>
+  <div id="chart-expiry" data-fallback="explorer" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.expiry_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.expiry_caption }}</caption>
+      <thead><tr><th scope="col">שנת פקיעה</th>{% for t in model.tables.act_types %}<th scope="col">{{ t }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.expiry_years %}
+        <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.towns_note }}</p>
+  <div id="chart-towns" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.towns_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.towns_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th>{% for t in model.tables.act_types %}<th scope="col">{{ t }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.towns %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הרכב הרישיונות ביישובים הגדולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+    <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th>{% for t in model.tables.act_types %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ריכוז גאוגרפי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pareto_note }}</p>
+    <div id="chart-pareto" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.pareto_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pareto_caption }}</caption>
+        <thead><tr><th scope="col">היישובים המובילים</th><th scope="col">רישיונות בתוקף</th><th scope="col">שיעור מצטבר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pareto %}
+          <tr><th scope="row">{{ r.k }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שלמות הפרטים ברשומות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fill_note }}</p>
+  <div id="chart-fill" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.fill_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.fill_caption }}</caption>
+      <thead><tr><th scope="col">סוג רישיון</th>{% for f in model.tables.fill_names %}<th scope="col">{{ f }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.fill %}
+        <tr><th scope="row">{{ r.type }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var pal = [P[0], P[1], P[2], P[6], P[5], P[3], P[7], P[8], P[4], P[9]];
+    function mk(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option(Object.assign({ color: pal }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var t = {{ model.charts.types | tojson }};
+    mk("chart-types", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: t.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [
+        { type: "bar", stack: "s", name: "בתוקף", data: t.valid },
+        { type: "bar", stack: "s", name: "לא בתוקף", data: t.invalid, itemStyle: { color: "#c3cfe7" } }
+      ]
+    });
+    var cb = {{ model.charts.combos | tojson }};
+    mk("chart-combos", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: cb.names, inverse: true, axisLabel: { width: 150, overflow: "break", fontSize: 11 } },
+      series: [{ type: "bar", name: "בעלי רישיון", data: cb.values }]
+    });
+{%- if model.flags.fields %}
+    var fd = {{ model.charts.fields | tojson }};
+    mk("chart-fields", {
+      tooltip: { trigger: "item", formatter: function (p) { return p.name + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], name: "קבלני שירות",
+                 label: { position: "inside", color: "#fff", fontWeight: "bold",
+                          formatter: function (p) { return p.percent >= 5 ? Math.round(p.percent) + "%" : ""; } },
+                 labelLine: { show: false }, data: fd }]
+    });
+{%- endif %}
+    var fm = {{ model.charts.forms | tojson }};
+    mk("chart-forms", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: fm.x, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: fm.series.map(function (s) { return { type: "bar", stack: "f", name: s.name, data: s.data }; })
+    });
+  })();
+</script>
+
+{%- if model.flags.expiry %}
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var pal = [P[0], P[1], P[2], P[6], P[5], P[3], P[7], P[8], P[4], P[9]];
+    var e = {{ model.charts.expiry | tojson }};
+    var c = echarts.init(document.getElementById("chart-expiry"));
+    var series = e.series.map(function (s) { return { type: "bar", stack: "e", name: s.name, data: s.data }; });
+    series.push({ type: "line", name: "שיעור מצטבר", yAxisIndex: 1, data: e.cum, showSymbol: false,
+                  lineStyle: { width: 2.5, color: "#0b3668" }, itemStyle: { color: "#0b3668" } });
+    c.setOption(window.GovEcharts.option({
+      color: pal,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 40, top: 32, bottom: 90, containLabel: true },
+      xAxis: { type: "category", data: e.x, axisLabel: { hideOverlap: true } },
+      yAxis: [{ type: "value", name: "רישיונות" },
+              { type: "value", name: "%", max: 100, splitLine: { show: false } }],
+      dataZoom: [{ type: "inside" }],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var pal = [P[0], P[1], P[2], P[6], P[5], P[3], P[7], P[8], P[4], P[9]];
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({ color: pal }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var tw = {{ model.charts.towns | tojson }};
+    mk("chart-towns", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: tw.names, inverse: true, axisLabel: { interval: 0, fontSize: 11 } },
+      series: tw.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    });
+    var mx = {{ model.charts.mix | tojson }};
+    mk("chart-mix", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: mx.names, inverse: true },
+      series: mx.series.map(function (s) { return { type: "bar", stack: "m", name: s.name, data: s.data }; })
+    });
+    var pr = {{ model.charts.pareto | tojson }};
+    mk("chart-pareto", {
+      tooltip: { trigger: "axis", formatter: function (p) {
+        return "היישובים המובילים: " + p[0].axisValue + "<br>" + p[0].value + "% מהרישיונות"; } },
+      grid: { left: 40, right: 24, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: pr.x, name: "דירוג", nameLocation: "middle", nameGap: 28,
+               axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור מצטבר", data: pr.y, showSymbol: false,
+                 areaStyle: { opacity: 0.15 } }]
+    });
+    var fl = {{ model.charts.fill | tojson }};
+    mk("chart-fill", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: fl.x, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: fl.series.map(function (s) { return { type: "bar", name: s.name, data: s.data }; })
+    });
+  })();
+</script>

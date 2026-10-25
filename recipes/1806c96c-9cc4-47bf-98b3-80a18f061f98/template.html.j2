@@ -1,0 +1,306 @@
+<h1>מאגר עורכי פטנטים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">עורכי פטנטים רשומים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.current.tone }} mb-1" dir="ltr">{{ model.kpis.current.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.current_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.seniority.tone }} mb-1" dir="ltr">{{ model.kpis.seniority.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.seniority_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">ישובים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עורכי הפטנטים לפי שנת הרישום בפנקס</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק בפנקס</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seniority_note }}</p>
+    <div id="chart-seniority" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.seniority_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.seniority_caption }}</caption>
+        <thead><tr><th scope="col">ותק (שנים)</th><th scope="col">עורכי פטנטים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.seniority %}
+          <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">השנה האחרונה ששולמה בה אגרה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fees_note }}</p>
+    <div id="chart-fees" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fees_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fees_caption }}</caption>
+        <thead><tr><th scope="col">שנה ששולמה</th><th scope="col">עורכי פטנטים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.fees %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תשלום האגרה לפי עשור הרישום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cohort_note }}</p>
+  <div id="chart-cohort" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.cohort_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cohort_caption }}</caption>
+        <thead><tr><th scope="col">עשור</th><th scope="col">רשומים</th><th scope="col">בתואר עו״ד</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cohort %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.law }}</td>{% for v in r.shares %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עורכי פטנטים לפי ישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+    <div id="chart-cities" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">ישוב</th><th scope="col">עורכי פטנטים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ארגונים מובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orgs_note }}</p>
+    <div id="chart-orgs" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.orgs_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.orgs_caption }}</caption>
+        <thead><tr><th scope="col">דומיין</th><th scope="col">עורכי פטנטים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.orgs %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תואר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.titles_note }}</p>
+    <div id="chart-titles" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.titles_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.titles_caption }}</caption>
+        <thead><tr><th scope="col">תואר</th><th scope="col">עורכי פטנטים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.titles %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג כתובת הדוא״ל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_note }}</p>
+    <div id="chart-contact" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.contact_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">עורכי פטנטים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.contact %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת עורכי הפטנטים המורשים, מתעדכן אחת לחודש.</p>
+</section>
+
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 40, right: 16, top: 80, bottom: 56, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 18 }],
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "עורכי פטנטים", minInterval: 1 },
+      series: y.series.map(function (s) {
+        return { type: "bar", stack: "total", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var a = {{ model.charts.seniority | tojson }};
+    var c = echarts.init(document.getElementById("chart-seniority"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 32, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: a.names, name: "שנים" },
+      yAxis: { type: "value", name: "עורכי פטנטים", minInterval: 1 },
+      series: [{ type: "bar", name: "עורכי פטנטים", data: a.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var f = {{ model.charts.fees | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-fees"));
+    c2.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 32, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: f.x, axisLabel: { fontSize: 10, hideOverlap: true } },
+      yAxis: { type: "value", name: "עורכי פטנטים", minInterval: 1 },
+      series: [{ type: "bar", name: "עורכי פטנטים",
+                 data: f.values.map(function (v, i) { return { value: v, itemStyle: { color: f.colors[i] } }; }) }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var k = {{ model.charts.cohort | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-cohort"));
+    c3.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: k.x, inverse: true },
+      series: k.series.map(function (s) {
+        return { type: "bar", stack: "total", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, ltr) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, minInterval: 1, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: ltr ? 11 : 12 } },
+        series: [{ type: "bar", name: "עורכי פטנטים", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, false);
+    hbar("chart-orgs", {{ model.charts.orgs | tojson }}, true);
+
+    function donut(id, d) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: d.colors,
+        tooltip: { trigger: "item", formatter: function (p) {
+          return p.name + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+        } },
+        legend: { bottom: 0 },
+        series: [{ type: "pie", radius: ["42%", "68%"], center: ["50%", "44%"], label: { show: false },
+                   data: d.names.map(function (nm, i) { return { name: nm, value: d.values[i] }; }) }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    donut("chart-titles", {{ model.charts.titles | tojson }});
+    donut("chart-contact", {{ model.charts.contact | tojson }});
+  })();
+</script>

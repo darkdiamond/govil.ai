@@ -1,0 +1,53 @@
+{
+  "contract_version": 1,
+  "dataset_id": "fdf06a98-0fe3-47df-8c3e-18ee582d1445",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:53:00.449484+00:00",
+    "rows": { "main": 1967 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "8f890276-e5e3-478e-a772-17553d2cb10f",
+      "required_columns": [
+        "CODE_EPPO",
+        "CASUAL_AGENT",
+        "SCIENTIFIC_NAME",
+        "COMMON_NAMES_IN_HEBREW",
+        "COMMON_NAMES_IN_ENGLISH",
+        "FAMILY",
+        "CLASS",
+        "ORDER",
+        "PHYLUM",
+        "GENUS",
+        "KINGDOM",
+        "SYNONYMES",
+        "ACRONYMS",
+        "NEGA_IN_ISRAEL",
+        "COMMENTS",
+        "STATUS",
+        "SYMPTOMS",
+        "SYMPTOMS_E",
+        "PLANT_PARTS_AFFECTED",
+        "PLANT_PARTS_AFFECTED_E",
+        "DAMAGE",
+        "DAMAGE_E",
+        "BIOLOGY",
+        "BIOLOGY_E",
+        "ADDITIONAL_INFORMATION",
+        "ADDITIONAL_INFORMATION_E",
+        "LITERATURE_AND_LINKS",
+        "LITERATURE_AND_LINKS_E",
+        "PESTICIDES_CODE",
+        "HOST_HEBREW_NAME",
+        "HOST_BOTANIC_NAME",
+        "NEGA_DESCRIBER",
+        "TRANSFER_DATE"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

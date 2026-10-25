@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "96b3081f-f7d0-45da-ac6b-76c12c60d222",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:15:06.166820+00:00",
+    "rows": {
+      "cases": 1099
+    }
+  },
+  "inputs": [
+    {
+      "name": "cases",
+      "by_id": "329b3f63-fa09-44e7-bddf-286c7f8e3999",
+      "required_columns": [
+        "סטטוס",
+        "תאריך פתיחת התיק",
+        "סוג התיק",
+        "סטטוס הפניה",
+        "תאריך הפניה",
+        "נושא התיק",
+        "הגורם הפונה",
+        "תאריך יצירה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

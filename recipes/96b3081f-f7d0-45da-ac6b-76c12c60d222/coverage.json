@@ -1,0 +1,12 @@
+{
+  "cases.סטטוס": "chart-yearly, chart-status, kpi:open, insight:open, insight:legacy",
+  "cases.תאריך יצירה": "chart-yearly, chart-mheat, chart-ttrend, chart-strend, kpi:total, kpi:last_year, kpi:latest, insight:volume, insight:topic_shift, insight:source_shift, insight:legacy — the only date present on every row; sentinel years (1753/1900) treated as missing",
+  "cases.תאריך פתיחת התיק": "chart-lag, insight:lag — sentinel 01/01/1753 treated as missing",
+  "cases.תאריך הפניה": "chart-lag, insight:lag — sentinel 01/01/1900 treated as missing",
+  "cases.סוג התיק": "chart-types, chart-theat, chart-victims, insight:type_topic, insight:victims, insight:legacy — empty on all legacy rows, shown as ללא סיווג; first year with typed majority defines the trend era",
+  "cases.נושא התיק": "chart-topics, chart-ttrend, chart-theat, chart-victims, insight:topic_shift, insight:type_topic, insight:victims — topics under 5 files merged",
+  "cases.הגורם הפונה": "chart-sources, chart-strend, insight:source_shift — referrers under 5 files merged",
+  "cases.סטטוס הפניה": "chart-status",
+  "cases.תאריך סטטוס": "skip: equals the creation date on 99% of rows — adds nothing beyond it",
+  "cases.תאריך סגירה": "skip: a sentinel on 95% of rows, and the 50 real dates sit mostly on rows still marked open — not a usable closure date"
+}

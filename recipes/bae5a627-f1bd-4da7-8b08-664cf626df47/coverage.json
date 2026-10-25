@@ -1,0 +1,16 @@
+{
+  "he.k_ntz": "kpi:missions — mission key; joins the Hebrew and English twins and collapses duplicate phone/fax rows",
+  "he.shem_mdn": "kpi:countries, table-multi, table-jerusalem, insight:multi, insight:jerusalem",
+  "he.shem_ntz": "table-jerusalem — mission's full Hebrew name",
+  "he.maamad": "chart-status, chart-region, chart-city, kpi:embassies, kpi:nonres, insight:scale, insight:region",
+  "he.address": "chart-city, chart-contact, insight:concentration, insight:contact — parsed for the seat city only; the address itself is not printed",
+  "he.tel": "chart-contact, insight:contact — counted only (present / missing)",
+  "he.fax": "chart-contact — counted only (present / missing)",
+  "en.k_ntz": "kpi:missions — join key to the Hebrew file",
+  "en.shem_mdn_a": "chart-region, insight:region — English country name keys the MFA region map",
+  "en.shem_ntz_a": "chart-city — 'in <City>' gives the seat of consulates that list no address",
+  "en.maamad_a": "skip: English twin of he.maamad",
+  "en.addrs": "skip: identical to he.address",
+  "en.tel": "skip: twin of he.tel",
+  "en.fax": "skip: twin of he.fax"
+}

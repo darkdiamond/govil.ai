@@ -1,0 +1,269 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart, num="int") -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th></tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{% if num == "int" %}{{ chart["values"][loop.index0] | fmt_int }}{% else %}{{ chart["values"][loop.index0] }}{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+{%- macro kpi(k, label) -%}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro -%}
+<h1>סניפי ברזל</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ kpi(model.kpis.branches, model.labels.branches_kpi) }}
+  {{ kpi(model.kpis.chains, model.labels.chains_kpi) }}
+  {{ kpi(model.kpis.cities, model.labels.cities_kpi) }}
+  {{ kpi(model.kpis.median_nn, model.labels.median_nn_kpi) }}
+  {{ kpi(model.kpis.far, model.labels.far_kpi) }}
+  {{ kpi(model.kpis.single_city, model.labels.single_city_kpi) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("מפת סניפי הברזל", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("סניפים ויישובים לפי רשת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chains_note }}</p>
+  <div id="chart-chains" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.chains_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.chains_aria }}</caption>
+      <thead><tr><th scope="col">רשת</th><th scope="col">סניפים</th><th scope="col">יישובים</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.chains.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.chains.branches[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.chains.cities[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("היישובים עם מספר הסניפים הגבוה ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  {{ table(model.labels.cities_aria, "יישוב", "סניפים", model.charts.cities) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("כמה סניפים יש בכל יישוב") }}
+    <p class="m-0 text-sm text-subtle mb-3">מספר היישובים לפי מספר סניפי הברזל שבהם.</p>
+    <div id="chart-city-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.city_size_aria }}"></div>
+    {{ table(model.labels.city_size_aria, "סניפים ביישוב", "יישובים", model.charts.city_size) }}
+  </section>
+  <section class="card p-5">
+    {{ head("כמה רשתות פועלות בכל יישוב") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_chains_note }}</p>
+    <div id="chart-city-chains" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.city_chains_aria }}"></div>
+    {{ table(model.labels.city_chains_aria, "רשתות ביישוב", "יישובים", model.charts.city_chains) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("רשתות מול יישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("פריסה מצפון לדרום", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
+  <div id="chart-bands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.bands_aria }}</caption>
+      <thead><tr><th scope="col">קו רוחב</th><th scope="col">היישוב המוביל</th><th scope="col">סניפים</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.bands.ranges %}
+        <tr><th scope="row" dir="ltr">{{ r }}</th><td>{{ model.charts.bands.names[loop.index0] }}</td><td dir="ltr">{{ model.charts.bands["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("פיזור הרשתות מצפון לדרום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  <div id="chart-box" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_aria }}</caption>
+      <thead><tr><th scope="col">רשת</th><th scope="col">סניפים</th><th scope="col">קו רוחב חציוני</th><th scope="col">רוחב המחצית האמצעית (ק״מ)</th><th scope="col">הצפוני ביותר</th><th scope="col">הדרומי ביותר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.chain }}</th><td dir="ltr">{{ r.n | fmt_int }}</td><td dir="ltr">{{ r.median }}</td><td dir="ltr">{{ r.iqr }}</td><td>{{ r.north }}</td><td>{{ r.south }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("המרחק לסניף הברזל הקרוב") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nn_note }}</p>
+    <div id="chart-nn" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.nn_aria }}"></div>
+    {{ table(model.labels.nn_aria, "מרחק", "סניפים", model.charts.nn) }}
+  </section>
+  <section class="card p-5">
+    {{ head("הסניפים המבודדים ביותר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.isolated_note }}</p>
+    <div id="chart-isolated" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.isolated_aria }}"></div>
+    {{ table(model.labels.isolated_aria, "סניף", "ק״מ לסניף הקרוב", model.charts.isolated, "raw") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תיאור מקורי", "list") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת "סניפי ברזל" של סופרים שיהיו פתוחים בעת חרום.</p>
+</section>
+
+<script>
+  (function () {
+    function bars(id, d, opts) {
+      opts = opts || {};
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: 130, overflow: "truncate" } };
+      var val = { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v + (opts.unit ? " " + opts.unit : ""); } },
+        grid: { left: 16, right: 32, top: 24, bottom: 24, containLabel: true },
+        xAxis: opts.horizontal ? val : cat,
+        yAxis: opts.horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: [{ type: "bar", name: opts.name || "סניפים", data: d.values,
+                   label: { show: true, position: opts.horizontal ? "right" : "top" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-cities", {{ model.charts.cities | tojson }}, { horizontal: true });
+    bars("chart-city-size", {{ model.charts.city_size | tojson }}, { horizontal: true, name: "יישובים" });
+    bars("chart-city-chains", {{ model.charts.city_chains | tojson }}, { horizontal: true, name: "יישובים" });
+    bars("chart-nn", {{ model.charts.nn | tojson }}, { horizontal: true });
+    bars("chart-isolated", {{ model.charts.isolated | tojson }}, { horizontal: true, name: "מרחק", unit: "ק״מ" });
+
+    var ch = {{ model.charts.chains | tojson }};
+    var cc = echarts.init(document.getElementById("chart-chains"));
+    cc.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 32, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: ch.names, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "סניפים", data: ch.branches },
+        { type: "bar", name: "יישובים", data: ch.cities }
+      ]
+    }));
+    window.addEventListener("resize", function () { cc.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var ch = echarts.init(document.getElementById("chart-heat"));
+    ch.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2];
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 110, containLabel: true },
+      xAxis: { type: "category", data: h.x, axisLabel: { interval: 0, rotate: 40, width: 90, overflow: "truncate" } },
+      yAxis: { type: "category", data: h.y, inverse: true, axisLabel: { interval: 0, width: 100, overflow: "truncate" } },
+      visualMap: {
+        min: 1, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { ch.resize(); });
+
+    var b = {{ model.charts.bands | tojson }};
+    var cb = echarts.init(document.getElementById("chart-bands"));
+    cb.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return b.ranges[i] + "<br>" + b.names[i] + ": " + b.values[i];
+      } },
+      grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: b.names, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "סניפים", data: b.values,
+                 label: { show: true, position: "right", formatter: function (p) { return p.value ? String(p.value) : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { cb.resize(); });
+
+    var x = {{ model.charts.box | tojson }};
+    var cx = echarts.init(document.getElementById("chart-box"));
+    cx.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value;
+        return x.names[p.dataIndex] + "<br>חציון: " + v[3].toFixed(2) + "°<br>מחצית אמצעית: " +
+          v[2].toFixed(2) + "°–" + v[4].toFixed(2) + "°<br>טווח: " + v[1].toFixed(2) + "°–" + v[5].toFixed(2) + "°";
+      } },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: x.names, axisLabel: { interval: 0, rotate: 40, width: 90, overflow: "truncate" } },
+      yAxis: { type: "value", scale: true, name: "קו רוחב (°)", axisLabel: { formatter: function (v) { return v.toFixed(1); } } },
+      series: [{ type: "boxplot", name: "קו רוחב", data: x.data,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { cx.resize(); });
+
+    GovMap.create({
+      container: "#map-main",
+      resourceId: {{ inputs.branches[0].id | tojson }},
+      latField: "Y",
+      lngField: "X",
+      projection: "itm",
+      popupTitleField: "store",
+      popupFields: [
+        { field: "branch", label: "סניף" },
+        { field: "address", label: "כתובת" }
+      ]
+    });
+  })();
+</script>

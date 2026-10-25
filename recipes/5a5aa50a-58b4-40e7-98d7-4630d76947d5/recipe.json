@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5a5aa50a-58b4-40e7-98d7-4630d76947d5",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T03:12:19.108925+00:00",
+    "rows": {
+      "main": 5030
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "9c55a7dd-3b92-4141-811c-5e30cc74a8a4",
+      "required_columns": [
+        "title",
+        "expire_date",
+        "gmp_expire_date",
+        "ProductActivityFoodType",
+        "accountType",
+        "gmpstatuscode",
+        "health_district_desc",
+        "city_number",
+        "city"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,13 @@
+{
+  "register.שם שמאי": "chart-surnames, kpi:register, insight:register — aggregate surname counts only, no individual singled out",
+  "register.מספר רשיון": "skip: individual licence number — a per-person identifier, kept off the page by policy",
+  "register.מספר תיק": "skip: individual licence file number — a per-person identifier, kept off the page by policy",
+  "register.עיר": "insight:cities — 88% empty, so no chart; the insight discloses how few rows carry a city",
+  "exams.תיאור הבחינה": "chart-subjects, chart-heat, chart-esubj, insight:subjects, insight:exempt — a truncated duplicate spelling is folded",
+  "exams.תאריך הבחינה": "chart-years, chart-rate, chart-heat, chart-months, kpi:rate, insight:overall, insight:trend, insight:ytd, insight:season, insight:noscore",
+  "exams.מוסד לימודי": "chart-inst, insight:institutions",
+  "exams.ציון": "chart-years, chart-rate, chart-dist, chart-subjects, chart-inst, kpi:rate, kpi:attempts, insight:overall, insight:trend, insight:ytd, insight:bunching, insight:subjects, insight:institutions, insight:noscore",
+  "exempt.תיאור הבחינה": "chart-esubj, kpi:exempt, insight:exempt",
+  "exempt.תאריך הבחינה": "chart-eyears",
+  "exempt.מוסד לימודי": "chart-einst — free-text degree descriptions bucketed into top-N + אחר"
+}

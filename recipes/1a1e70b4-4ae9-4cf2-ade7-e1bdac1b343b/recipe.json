@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1a1e70b4-4ae9-4cf2-ade7-e1bdac1b343b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:59:07.818471+00:00",
+    "rows": {
+      "dealers": 7534
+    }
+  },
+  "inputs": [
+    {
+      "name": "dealers",
+      "by_id": "7a0727d5-17cf-4457-a5e2-ff6e07234347",
+      "required_columns": ["diamond_dealer_name", "status", "license_type"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

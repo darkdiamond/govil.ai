@@ -1,0 +1,19 @@
+{
+  "batches.vaccinationCode": "chart-status, kpi:coverage, insight:mandatory, insight:integrity — joins batches to the mandatory-reporting list and checks against the catalogue",
+  "batches.vaccinationDesc": "chart-types, chart-tree, chart-heat, kpi:types_b, kpi:passive, insight:passive, insight:competition — passive (immunoglobulin) flag derived from the IG suffix",
+  "batches.manufacturerCode": "chart-manucat, insight:dormant, insight:integrity",
+  "batches.manufacturerDesc": "chart-manu, chart-heat, chart-blen, kpi:manu_b, insight:manu, insight:competition",
+  "batches.tradeNameCode": "chart-manucat, chart-typecat, chart-evo, insight:dormant, insight:integrity, table:newest",
+  "batches.tradeNameDesc": "chart-products, chart-pareto, chart-tree, kpi:tn_b, kpi:top_share, insight:top_product",
+  "batches.batchNumber": "chart-blen, kpi:batches, insight:integrity — length and first-character pattern only; uniqueness checked",
+  "tradenames.vaccinationCode": "chart-status, kpi:coverage, insight:mandatory",
+  "tradenames.vaccinationDesc": "chart-typecat, chart-evo, insight:diverse, table:newest",
+  "tradenames.manufacturerCode": "insight:dormant, insight:integrity",
+  "tradenames.manufacturerDesc": "chart-manucat, chart-evo, insight:diverse, table:newest",
+  "tradenames.tradeNameCode": "chart-manucat, chart-typecat, chart-evo, kpi:catalog, insight:dormant, table:newest — code order used as catalogue order",
+  "tradenames.tradeNameDesc": "chart-evo, table:newest",
+  "manufacturers.manufacturerCode": "insight:dormant",
+  "manufacturers.manufacturerDesc": "insight:dormant",
+  "vaccines.vaccinationCode": "chart-status, kpi:coverage, insight:mandatory",
+  "vaccines.vaccinationDesc": "chart-status, insight:mandatory"
+}

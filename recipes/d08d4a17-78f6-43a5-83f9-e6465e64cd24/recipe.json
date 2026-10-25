@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d08d4a17-78f6-43a5-83f9-e6465e64cd24",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T20:12:26.914828+00:00",
+    "rows": {
+      "notaries": 7738
+    }
+  },
+  "inputs": [
+    {
+      "name": "notaries",
+      "by_id": "3ead5fae-3513-46f8-a458-959ea3e035ae",
+      "required_columns": ["שם", "ישוב", "שפות"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,80 @@
+{
+  "contract_version": 1,
+  "dataset_id": "dda8f0aa-8901-473d-a4d6-8b361aa51417",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:59:11.077266+00:00",
+    "rows": {
+      "standards": 551,
+      "routes": 357,
+      "gazette": 686,
+      "reform": 622,
+      "eu": 69
+    }
+  },
+  "inputs": [
+    {
+      "name": "standards",
+      "by_id": "1a4d94e2-369a-488d-a223-eb1020612fbd",
+      "required_columns": [
+        "index",
+        "standard_number",
+        "standard_name",
+        "standard_edition",
+        "validity_from",
+        "validity_to",
+        "amendments",
+        "mandatory_sections",
+        "standard_process",
+        "standard_originality",
+        "standard_import_groups",
+        "standard_import_conditions",
+        "is_standard_mandatory",
+        "is_in_cassis",
+        "is_in_international_regulations"
+      ]
+    },
+    {
+      "name": "routes",
+      "by_id": "bb8b098e-40dd-47e6-927b-42c8a6339cce",
+      "required_columns": [
+        "index",
+        "adoption_route_name",
+        "conditions",
+        "documents_combination",
+        "additional_documents_for_specific_products",
+        "detailed_comments"
+      ]
+    },
+    {
+      "name": "gazette",
+      "by_id": "d8611d0e-f5c8-4552-8615-da37e920f07b",
+      "required_columns": [
+        "publication",
+        "date",
+        "summary_full",
+        "summary",
+        "standards"
+      ]
+    },
+    {
+      "name": "reform",
+      "by_id": "8efcc32a-a1b0-41ef-a056-8becc2619f95",
+      "required_columns": ["index", "standard_number", "standard_edition"]
+    },
+    {
+      "name": "eu",
+      "by_id": "8612ebae-0e11-48b9-a9a5-331ddfed8d94",
+      "required_columns": [
+        "directive_en_name",
+        "directive_hebrew_name",
+        "directive_date",
+        "terms",
+        "comments"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

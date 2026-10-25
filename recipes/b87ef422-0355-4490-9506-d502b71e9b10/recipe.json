@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b87ef422-0355-4490-9506-d502b71e9b10",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T03:12:15.874430+00:00",
+    "rows": {
+      "main": 3102
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "31c36cee-80e1-482e-9661-7539c4b27c1b",
+      "required_columns": [
+        "Regnum",
+        "importer_name",
+        "Address",
+        "importer_type_name",
+        "tz"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

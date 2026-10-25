@@ -1,0 +1,12 @@
+{
+  "main.Regnum": "chart-bands, insight:new_track — running registration number, used as a proxy for registration age (never shown per business)",
+  "main.importer_name": "chart-legal, chart-themes, table:multi, insight:legal — business names; only corporations are listed by name",
+  "main.Address": "chart-cities, chart-mix, kpi:cities, insight:cities, insight:type_city — settlement extracted from the free-text address; street addresses are never shown",
+  "main.importer_type": "skip: numeric code of importer_type_name (1:1)",
+  "main.importer_type_name": "chart-types, chart-bands, chart-combos, chart-cities, chart-mix, kpi:multi, insight:types, insight:multi, insight:new_track, insight:type_city",
+  "main.naut": "skip: numeric code of naut_description (1:1)",
+  "main.naut_description": "skip: undocumented flag, meaning unknown",
+  "main.trust": "skip: numeric code of Trust_description (1:1)",
+  "main.Trust_description": "skip: undocumented flag, meaning unknown",
+  "main.tz": "chart-combos, chart-legal, kpi:holders, kpi:multi, insight:multi, insight:legal — dealer/company number used only as a holder key and for its corporate prefix; never shown (personal ID for sole traders)"
+}
