@@ -162,3 +162,17 @@ def test_local_authoring_queues_instead_of_building(harness, monkeypatch):
     assert harness.built == []
     assert harness.queued == [("new1", "new"), ("old1", "legacy_updated")]
     assert s["status"] == "idle" and not harness.published
+
+
+def test_unchanged_refresh_does_not_publish(harness, monkeypatch):
+    """REFRESH_PRECHECK: a CKAN bump the precheck proved a no-op leaves the
+    live page standing — no publish dispatch for it."""
+    monkeypatch.setenv("REFRESH_ENABLED", "true")
+    harness.selected = []
+    monkeypatch.setattr(
+        rf, "run_refresh",
+        lambda store, repo, **kw: {"refreshed": [], "unchanged": ["rec1"],
+                                   "failed": [], "outcomes": []},
+    )
+    s = _run()
+    assert s["status"] == "idle" and not harness.published

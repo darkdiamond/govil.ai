@@ -25,6 +25,8 @@ CLI (what the preview Cloud Run job runs; also handy locally):
 from __future__ import annotations
 
 import argparse
+import functools
+import hashlib
 import json
 import logging
 import os
@@ -33,7 +35,7 @@ import tempfile
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -87,6 +89,25 @@ def _env_int(name: str, default: int) -> int:
         return int(os.environ.get(name, "") or default)
     except ValueError:
         return default
+
+
+# No-op precheck (REFRESH_PRECHECK): CKAN bumps `metadata_modified` on every
+# re-upload, including byte-identical ones. Two checks run before the recipe:
+#   A  fingerprint — the datastore preview already fetched to resolve inputs
+#      (row total, columns, first rows) + the recipe's own files. Costs no
+#      extra CKAN call; blind to same-count edits deeper in the table.
+#   B  inputs hash — sha256 of the exported CSVs + recipe files. Exact.
+# off      today's behaviour
+# observe  compute A/B and report agreement with the rendered output; never skip
+# inputs   skip on B (A observed)
+# full     skip on A, else fetch and skip on B
+PRECHECK_MODES = ("off", "observe", "inputs", "full")
+_DEFAULT_PRECHECK_MAX_AGE_DAYS = 14
+
+
+def precheck_mode() -> str:
+    mode = os.environ.get("REFRESH_PRECHECK", "off").strip().lower()
+    return mode if mode in PRECHECK_MODES else "off"
 
 
 # ── recipe repositories ──────────────────────────────────────────────────
@@ -233,6 +254,125 @@ class FetchedInput:
     rows: int
 
 
+@dataclass
+class InputProbe:
+    """Inputs resolved against CKAN + the datastore previews that resolution
+    needed. `fetch_inputs` reuses it, so probing for the precheck adds no
+    CKAN calls."""
+
+    resolved: dict[str, list[dict]]
+    _previews: dict[str, Optional[dict]]
+    _preview_fn: Callable[[str], Optional[dict]]
+
+    def preview(self, rid: str) -> Optional[dict]:
+        if rid not in self._previews:
+            self._previews[rid] = self._preview_fn(rid)
+        return self._previews[rid]
+
+
+def probe_inputs(
+    recipe: Recipe,
+    resources: list[dict],
+    preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
+) -> InputProbe:
+    """Resolve the recipe's inputs. Raises RecipeError `schema_changed` when
+    they no longer resolve; ResourceRestrictedError passes through."""
+    previews: dict[str, Optional[dict]] = {}
+    probe = InputProbe({}, previews, preview_fn)
+
+    def _fields(rid: str) -> Optional[list[str]]:
+        p = probe.preview(rid)
+        return [f["id"] for f in (p or {}).get("fields") or []] if p else None
+
+    probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
+    return probe
+
+
+# Shared code between the data and the page: the compute runner, template
+# rendering/validation, the sanitizer. A deploy that changes any of them can
+# change the output with identical data, so it invalidates both prechecks.
+_RENDER_CODE_FILES = (
+    RECIPE_EXEC_PATH,
+    Path(__file__).resolve().parent / "recipe.py",
+    Path(__file__).resolve().parent / "agent_contract.py",
+)
+
+
+@functools.lru_cache(maxsize=1)
+def _render_code_hash() -> str:
+    h = hashlib.sha256()
+    for path in _RENDER_CODE_FILES:
+        h.update(path.read_bytes())
+        h.update(b"\0")
+    return h.hexdigest()
+
+
+def recipe_identity(recipe: Recipe) -> str:
+    """The recipe's code + template + the shared render code. Folded into both
+    prechecks so an edited recipe that kept its `recipe_version`, or a deploy
+    that changed rendering, still re-renders."""
+    h = hashlib.sha256()
+    for name in RECIPE_FILES:
+        h.update(name.encode())
+        h.update(b"\0")
+        h.update((recipe.root / name).read_bytes())
+        h.update(b"\0")
+    h.update(_render_code_hash().encode())
+    return h.hexdigest()
+
+
+def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
+    """Check A: what the datastore preview says about every input — row total,
+    columns, first rows (`_id` dropped) — plus `recipe_identity`."""
+    parts = []
+    for inp in recipe.manifest.inputs:
+        for res in probe.resolved[inp.name]:
+            p = probe.preview(res["id"]) or {}
+            parts.append(
+                [
+                    inp.name,
+                    res["id"],
+                    p.get("total"),
+                    [[f.get("id"), f.get("type")] for f in p.get("fields") or []],
+                    [
+                        {k: v for k, v in row.items() if k != "_id"}
+                        for row in p.get("sample_rows") or []
+                    ],
+                ]
+            )
+    h = hashlib.sha256()
+    h.update(json.dumps(parts, ensure_ascii=False, sort_keys=True, default=str).encode())
+    h.update(identity.encode())
+    return h.hexdigest()
+
+
+def inputs_hash(
+    recipe: Recipe, inputs: dict[str, list["FetchedInput"]], identity: str
+) -> str:
+    """Check B: exact — the exported CSVs (deterministic: datastore order,
+    `_id` dropped, schema field order) + `recipe_identity`."""
+    h = hashlib.sha256()
+    for inp in recipe.manifest.inputs:
+        for part in inputs.get(inp.name, []):
+            h.update(f"{inp.name}|{part.resource_id}|".encode())
+            with open(part.file, "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 20), b""):
+                    h.update(chunk)
+            h.update(b"\0")
+    h.update(identity.encode())
+    return h.hexdigest()
+
+
+def content_hash(page: "RenderedPage") -> str:
+    h = hashlib.sha256()
+    h.update(page.content_html.encode("utf-8"))
+    h.update(b"\0")
+    h.update(
+        json.dumps(page.agent_data, ensure_ascii=False, sort_keys=True, default=str).encode()
+    )
+    return h.hexdigest()
+
+
 def fetch_inputs(
     recipe: Recipe,
     resources: list[dict],
@@ -240,25 +380,19 @@ def fetch_inputs(
     *,
     preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
     fetch_fn: Callable = fetch_resource_records_to_file,
+    probe: Optional[InputProbe] = None,
 ) -> dict[str, list[FetchedInput]]:
     """Full export of every resource the recipe reads, as CSV in `dest_dir`.
 
     Raises RecipeError: `schema_changed` (inputs no longer resolve),
     `too_large` (over REFRESH_MAX_RECORDS — sampling is never an option
     here), `fetch_failed` (CKAN/network; transient).
+
+    `probe` (from `probe_inputs`) skips the resolve + preview calls already made.
     """
-    previews: dict[str, Optional[dict]] = {}
-
-    def _preview(rid: str) -> Optional[dict]:
-        if rid not in previews:
-            previews[rid] = preview_fn(rid)
-        return previews[rid]
-
-    def _fields(rid: str) -> Optional[list[str]]:
-        p = _preview(rid)
-        return [f["id"] for f in (p or {}).get("fields") or []] if p else None
-
-    resolved = resolve_inputs(recipe.manifest, resources, _fields)
+    probe = probe or probe_inputs(recipe, resources, preview_fn)
+    _preview = probe.preview
+    resolved = probe.resolved
 
     max_records = _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
     max_bytes = _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
@@ -426,12 +560,20 @@ def build_page(
     recipe: Recipe,
     resources: list[dict],
     work_root: Path,
+    *,
+    probe: Optional[InputProbe] = None,
+    after_fetch: Optional[Callable[[dict[str, list[FetchedInput]]], None]] = None,
     **fetch_kwargs,
 ) -> tuple[RenderedPage, dict[str, list[FetchedInput]]]:
-    """fetch → compute → render, in a scratch dir under `work_root`."""
+    """fetch → compute → render, in a scratch dir under `work_root`.
+
+    `after_fetch(inputs)` runs between fetch and compute — the precheck's
+    exact input-hash gate raises `_Unchanged` from it to stop before compute."""
     data_dir = Path(tempfile.mkdtemp(prefix=f"{recipe.dataset_id[:8]}-data-", dir=work_root))
     try:
-        inputs = fetch_inputs(recipe, resources, data_dir, **fetch_kwargs)
+        inputs = fetch_inputs(recipe, resources, data_dir, probe=probe, **fetch_kwargs)
+        if after_fetch is not None:
+            after_fetch(inputs)
         raw = run_compute(recipe, inputs, work_root)
         return render_page(recipe, raw, work_root, inputs), inputs
     finally:
@@ -479,7 +621,7 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
 @dataclass
 class RefreshOutcome:
     id: str
-    status: str                      # refreshed | failed | skipped
+    status: str                      # refreshed | unchanged | failed | skipped
     trigger: Optional[str] = None
     reason: Optional[str] = None
     error: Optional[str] = None
@@ -489,6 +631,39 @@ class RefreshOutcome:
     insights: list = field(default_factory=list)
     changes: dict = field(default_factory=dict)
     issue: Optional[int] = None
+    # REFRESH_PRECHECK report: {mode, fp_same, inputs_same, content_same, skipped}
+    # (True/False; None = no stored hash to compare against yet).
+    precheck: dict = field(default_factory=dict)
+
+
+class _Unchanged(Exception):
+    """Precheck proved the inputs identical to the last render — stop before
+    the expensive steps. `reason` is `fingerprint` or `inputs_hash`."""
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _precheck_may_skip(trigger: str, state: dict) -> bool:
+    """Skipping is only safe for a plain data bump on a recently re-rendered
+    page: a forced run, a recipe_version change, or a page older than
+    REFRESH_PRECHECK_MAX_AGE_DAYS (bounds check A's blind spot and picks up
+    shell-code changes that alter output without any data change) always
+    re-render."""
+    if trigger != "data_updated":
+        return False
+    last = state.get("last_refreshed_at")
+    if last is None:
+        return False
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    max_age = _env_int("REFRESH_PRECHECK_MAX_AGE_DAYS", _DEFAULT_PRECHECK_MAX_AGE_DAYS)
+    return datetime.now(timezone.utc) - last <= timedelta(days=max_age)
+
+
+def _same(new: str, old: Optional[str]) -> Optional[bool]:
+    return None if old is None else new == old
 
 
 def refresh_one(
@@ -507,8 +682,56 @@ def refresh_one(
 ) -> RefreshOutcome:
     started = time.monotonic()
     rv = recipe.manifest.recipe_version
+    mode = precheck_mode()
+    state = previous_state or {}
+    may_skip = mode != "off" and _precheck_may_skip(trigger, state)
+    pc: dict = {"mode": mode} if mode != "off" else {}
+    hashes: dict[str, str] = {}  # stored on success; names match mark_refreshed kwargs
     try:
-        page, inputs = build_page(recipe, src.resources, work_root, **fetch_kwargs)
+        probe = None
+        after_fetch = None
+        if mode != "off":
+            identity = recipe_identity(recipe)
+            probe = probe_inputs(
+                recipe, src.resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
+            )
+            fp = hashes["input_fingerprint"] = input_fingerprint(recipe, probe, identity)
+            pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
+            if may_skip and mode == "full" and pc["fp_same"]:
+                raise _Unchanged("fingerprint")
+
+            def after_fetch(inputs):
+                ih = hashes["inputs_hash"] = inputs_hash(recipe, inputs, identity)
+                pc["inputs_same"] = _same(ih, state.get("inputs_hash"))
+                if may_skip and mode in ("inputs", "full") and pc["inputs_same"]:
+                    raise _Unchanged("inputs_hash")
+
+        page, inputs = build_page(
+            recipe, src.resources, work_root,
+            probe=probe, after_fetch=after_fetch, **fetch_kwargs,
+        )
+    except _Unchanged as u:
+        # Same inputs + same recipe ⇒ same page: keep the live one and report
+        # `unchanged` (never triggers a publish). Only the exact check (B)
+        # advances the version marker. After a fingerprint skip the bump stays
+        # pending, so it is re-probed each run (one cheap preview call) until
+        # the max age forces a real render. That is what bounds A's blind spot
+        # even when CKAN never bumps the dataset again.
+        pc["skipped"] = u.reason
+        store.mark_refresh_unchanged(
+            src.id,
+            metadata_modified=src.metadata_modified,
+            input_fingerprint=hashes["input_fingerprint"],
+            inputs_hash=hashes.get("inputs_hash"),
+            reason=u.reason,
+            advance_version=u.reason == "inputs_hash",
+            preview=preview,
+        )
+        log.info("refresh precheck %s: unchanged (%s) — skipped", src.id[:8], u.reason)
+        return RefreshOutcome(
+            src.id, "unchanged", trigger, u.reason,
+            elapsed_s=round(time.monotonic() - started, 2), precheck=pc,
+        )
     except ResourceRestrictedError as e:
         # Data went private upstream. Not the recipe's fault, not
         # actionable by re-authoring; the reconcile sweep owns this state.
@@ -554,7 +777,11 @@ def refresh_one(
     if page.warnings:
         log.warning("refresh %s: %d format warning(s): %s", src.id[:8],
                     len(page.warnings), "; ".join(page.warnings)[:500])
-    previous = (previous_state or {}).get("last_snapshot")
+    previous = state.get("last_snapshot")
+    if mode != "off":
+        ch = hashes["content_hash"] = content_hash(page)
+        pc["content_same"] = _same(ch, state.get("content_hash"))
+        _log_precheck(src.id, pc)
     prefix = "preview/datasets" if preview else "datasets"
     write_gcs(
         page.content_html.encode("utf-8"),
@@ -569,6 +796,7 @@ def refresh_one(
         page_path=f"datasets/{src.id}/",
         snapshot=snapshot,
         preview=preview,
+        **hashes,
     )
     return RefreshOutcome(
         src.id,
@@ -579,7 +807,26 @@ def refresh_one(
         kpis=snapshot["kpis"],
         insights=snapshot["insights"],
         changes=snapshot_diff(previous, snapshot),
+        precheck=pc,
     )
+
+
+def _log_precheck(dataset_id: str, pc: dict) -> None:
+    """One line per refreshed source: did the cheap checks agree with the
+    rendered output? A "same" check with changed content is a false skip
+    (`full`/`inputs` would have kept a stale page) — the rollout gate."""
+    log.info(
+        "refresh precheck %s: mode=%s fp_same=%s inputs_same=%s content_same=%s",
+        dataset_id[:8], pc.get("mode"), pc.get("fp_same"),
+        pc.get("inputs_same"), pc.get("content_same"),
+    )
+    if pc.get("content_same") is False:
+        for check in ("fp_same", "inputs_same"):
+            if pc.get(check):
+                log.warning(
+                    "refresh precheck %s: FALSE-SKIP candidate — %s but the page changed",
+                    dataset_id[:8], check,
+                )
 
 
 def snapshot_diff(before: Optional[dict], after: dict) -> dict:
@@ -618,6 +865,12 @@ def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool 
     return number
 
 
+def _spends_cap(o: RefreshOutcome) -> bool:
+    return o.status != "skipped" and not (
+        o.status == "unchanged" and o.reason == "fingerprint"
+    )
+
+
 def run_refresh(
     store,
     repo,
@@ -643,7 +896,8 @@ def run_refresh(
     outcomes: list[RefreshOutcome] = []
     try:
         for dataset_id in ids:
-            if len([o for o in outcomes if o.status != "skipped"]) >= cap:
+            # A fingerprint skip made no export, so it doesn't spend the cap.
+            if len([o for o in outcomes if _spends_cap(o)]) >= cap:
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="cap"))
                 continue
             src = store.get_source(dataset_id)
@@ -674,11 +928,13 @@ def run_refresh(
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     refreshed = [o.id for o in outcomes if o.status == "refreshed"]
+    unchanged = [o.id for o in outcomes if o.status == "unchanged"]
     failed = [o.id for o in outcomes if o.status == "failed"]
     return {
         "target": "preview" if preview else "prod",
         "recipes": len(ids),
         "refreshed": refreshed,
+        "unchanged": unchanged,
         "failed": failed,
         "outcomes": [o.__dict__ for o in outcomes],
     }
@@ -794,7 +1050,7 @@ def _cli() -> None:
         except Exception:
             log.exception("failed to record preview run report")
     print(json.dumps(summary, indent=2, default=str, ensure_ascii=False))
-    if summary["failed"] and not summary["refreshed"]:
+    if summary["failed"] and not (summary["refreshed"] or summary["unchanged"]):
         raise SystemExit(1)
 
 

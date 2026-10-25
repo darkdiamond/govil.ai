@@ -88,7 +88,19 @@ landing pages. Four layers:
    sanitizer → check.py → stage). Failures keep the last-good page and open
    a `needs-authoring` GitHub issue. Knobs (both default to today's
    behaviour): `REFRESH_ENABLED` (prod refresh), `AUTHORING_MODE=local`
-   (no cloud agent sessions; queue + issue instead). Demo lane:
+   (no cloud agent sessions; queue + issue instead). `REFRESH_PRECHECK`
+   (`off`|`observe`|`inputs`|`full`, default `off`) skips CKAN version bumps
+   that changed nothing — CKAN bumps `metadata_modified` on byte-identical
+   re-uploads: check A = datastore fingerprint (no extra calls; blind to
+   same-count edits), check B = sha256 of the exported CSVs (exact), both
+   folded with a hash of the recipe files. `observe` only logs
+   `refresh precheck …` lines (`FALSE-SKIP candidate` = a "same" check but a
+   changed page — the gate for promoting a mode); `unchanged` outcomes never
+   stage and never trigger a publish. Only check B advances the version
+   marker. A fingerprint skip leaves the bump pending (re-probed each run),
+   so pages older than `REFRESH_PRECHECK_MAX_AGE_DAYS` (14) always re-render,
+   which bounds A's blind spot. Render code (`recipe_exec.py`, `recipe.py`,
+   `agent_contract.py`) is folded into both hashes. Demo lane:
    `infra/refresh-preview.deploy.sh` → job `govdata-refresh-preview` writes
    only `preview_sources/*` + `gs://…/preview/`, and `publish.yml
 target=preview` deploys the `recipes-demo` Hosting channel.

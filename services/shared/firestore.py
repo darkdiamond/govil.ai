@@ -741,12 +741,19 @@ class FirestoreStateStore:
         agent_data: dict,
         page_path: str,
         snapshot: Optional[dict] = None,
+        input_fingerprint: Optional[str] = None,
+        inputs_hash: Optional[str] = None,
+        content_hash: Optional[str] = None,
         preview: bool = False,
     ) -> None:
         """Record a successful recipe refresh.
 
         `snapshot` (row counts, KPI displays, insight sentences) is what the
         next refresh diffs against to report what moved.
+
+        The three hashes (REFRESH_PRECHECK) describe the render just staged.
+        Always written — None when the precheck was off — so a stale hash from
+        an earlier render can never vouch for a page it didn't produce.
 
         Prod writes the same analysis fields an agent success did
         (`mark_analysis_succeeded`) — the page's data vintage is now the
@@ -764,6 +771,9 @@ class FirestoreStateStore:
             "authoring_status": "done",
             "authoring_reason": None,
             "last_snapshot": snapshot,
+            "input_fingerprint": input_fingerprint,
+            "inputs_hash": inputs_hash,
+            "content_hash": content_hash,
         }
         if not preview:
             payload.update(
@@ -777,6 +787,55 @@ class FirestoreStateStore:
                     "failed_attempts": 0,
                 }
             )
+        self._refresh_ref(dataset_id, preview).set(payload, merge=True)
+
+    def mark_refresh_unchanged(
+        self,
+        dataset_id: str,
+        *,
+        metadata_modified: Optional[datetime],
+        input_fingerprint: str,
+        inputs_hash: Optional[str] = None,
+        reason: str,
+        advance_version: bool,
+        preview: bool = False,
+    ) -> None:
+        """Record that CKAN bumped the version but the precheck found the
+        recipe's inputs unchanged since the last render, so the live page
+        stands.
+
+        `advance_version` (exact input-hash match only): the page's data
+        vintage equals this version. Advance the version markers so the next
+        run doesn't re-check this bump, and settle any earlier failure or
+        authoring flag the same way `mark_refreshed` would. A fingerprint
+        match isn't proof, so the bump stays pending.
+
+        Leaves `last_refreshed_at`, `agent_data`, `last_snapshot` and
+        `content_hash` alone. They describe the last render that actually
+        changed the page, and the precheck's max-age safety net is keyed on
+        that time. `inputs_hash` is None after a fingerprint skip (nothing
+        was fetched); the stored one still holds.
+        """
+        payload: dict[str, Any] = {
+            "last_unchanged_at": datetime.now(timezone.utc),
+            "unchanged_reason": reason,
+            "input_fingerprint": input_fingerprint,
+        }
+        if inputs_hash is not None:
+            payload["inputs_hash"] = inputs_hash
+        if advance_version:
+            payload.update(
+                {
+                    "refreshed_metadata_modified": metadata_modified,
+                    "refresh_status": "succeeded",
+                    "refresh_error": None,
+                    "refresh_failed_version": None,
+                    "authoring_status": "done",
+                    "authoring_reason": None,
+                }
+            )
+            if not preview:
+                payload["analyzed_metadata_modified"] = metadata_modified
         self._refresh_ref(dataset_id, preview).set(payload, merge=True)
 
     def mark_refresh_failed(
