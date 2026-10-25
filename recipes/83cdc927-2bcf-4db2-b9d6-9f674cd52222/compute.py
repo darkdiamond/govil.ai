@@ -353,7 +353,7 @@ def compute(frames):
     pts = []
     for key, sub in geo.groupby("key", sort=True):
         top_sp = _sorted_counts(sub["species"]).index[0]
-        pts.append([round(float(sub["lat"].mean()), 4), round(float(sub["lon"].mean()), 4), int(len(sub)),
+        pts.append([round(math.fsum(sub["lat"]) / len(sub), 4), round(math.fsum(sub["lon"]) / len(sub), 4), int(len(sub)),
                     "" if key.startswith("@") else key, int(sub["year"].min()), int(sub["year"].max()), top_sp])
     pts.sort(key=lambda p: (-p[2], p[3], p[0], p[1]))
     map_trim = len(pts) > MAP_MAX

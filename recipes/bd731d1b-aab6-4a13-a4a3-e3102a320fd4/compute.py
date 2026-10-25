@@ -596,8 +596,7 @@ def compute(frames):
         "dataset_kind": "registry",
         "suggested_tags": ["אזורי פיתוח", "עדיפות לאומית", "עידוד השקעות הון", "פריפריה",
                            "אזורי תעשייה", "עוטף עזה"],
-        "related_ids": ["4acf8b98-776e-4c36-8f98-73cc73fed623",
-                        "3d71fe33-b239-4ed9-b6ef-950c8fcc54bc"],
+        "related_ids": ["4acf8b98-776e-4c36-8f98-73cc73fed623"],
         "spatial_coverage": "ישראל",
     }
     if first_year and last_year:

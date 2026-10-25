@@ -396,12 +396,13 @@ def compute(frames):
                    for w, v in words_top.items()]
 
     # ---- newest term numbers
+    shortest = (df.assign(L=df["text"].str.len())
+                  .sort_values(["term", "lang", "L", "text"])
+                  .drop_duplicates(["term", "lang"])
+                  .set_index(["term", "lang"])["text"])
+
     def pick_text(term, lang):
-        sub = df[(df["term"] == term) & (df["lang"] == lang)]
-        if sub.empty:
-            return ""
-        sub = sub.assign(L=sub["text"].str.len()).sort_values(["L", "text"])
-        return sub["text"].iloc[0]
+        return shortest.get((term, lang), "")
 
     latest = t.dropna(subset=["tnum"]).sort_values(["tnum"], ascending=False).head(LATEST_N)
     latest_table = []

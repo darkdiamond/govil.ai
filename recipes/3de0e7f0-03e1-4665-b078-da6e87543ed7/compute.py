@@ -730,7 +730,6 @@ def compute(frames):
             "suggested_tags": ["מכס", "יבוא", "תעריף המכס", "מס קנייה", "סיווג טובין", "ספר המכס"],
             "related_ids": ["3e4e79f7-643b-4be6-94c2-e47667d42916",
                             "15fd7d7f-da3a-461e-94dd-1dfbbec52a22",
-                            "3b1e6441-83c5-47de-a1e2-1d35063bab3d",
                             "965b52b6-7267-45d9-bccd-020416fbcfb5"],
             "spatial_coverage": "ישראל",
         },
