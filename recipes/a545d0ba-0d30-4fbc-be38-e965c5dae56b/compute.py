@@ -63,7 +63,9 @@ def _restriction(suffix):
         return "רישיון מוקפא"
     if "עבודות חדשות" in suffix:
         return "אסור בעבודות חדשות"
-    return "הגבלת תחום בתוך הענף"
+    if any(w in suffix for w in ("רשאי", "בלבד", "מגבל")):
+        return "הגבלת תחום בתוך הענף"
+    return ""  # a dash in a branch name that isn't a restriction
 
 
 def _sivug_order(values):
@@ -174,7 +176,8 @@ def insight_growth(c, now, partial):
     return f"ב-{last} נרשמו לראשונה {n(a)} קבלנים — {trend}.{tail}"
 
 
-def insight_ytd(c, now):
+def _ytd(c, now):
+    """New contractors from 1 Jan to `now`, and in the same window a year earlier."""
     start, prev_start = pd.Timestamp(now.year, 1, 1), pd.Timestamp(now.year - 1, 1, 1)
     try:
         prev_end = now.replace(year=now.year - 1)
@@ -182,6 +185,20 @@ def insight_ytd(c, now):
         prev_end = now.replace(year=now.year - 1, day=28)
     a = int(((c["first"] >= start) & (c["first"] <= now)).sum())
     b = int(((c["first"] >= prev_start) & (c["first"] <= prev_end)).sum())
+    return a, b
+
+
+def _latest(df):
+    """Data vintage: the latest day carrying at least 3 registration or
+    classification dates, so one mistyped future date can't move it."""
+    days = pd.concat([df["first"], df["sug_date"]]).dropna().dt.normalize()
+    vc = days.value_counts()
+    solid = vc[vc >= 3]
+    return solid.index.max() if len(solid) else days.max()
+
+
+def insight_ytd(c, now):
+    a, b = _ytd(c, now)
     if b < 100:
         return None
     ch = (a - b) / b
@@ -270,7 +287,7 @@ def _bar(items):
 def compute(frames):
     df = _prepare(frames.pop("main"))
     c = _contractors(df)
-    now = max(df["first"].max(), df["sug_date"].max())
+    now = _latest(df)
     partial = not (now.month == 12 and now.day >= 31)
     sivugs = _sivug_order(set(df["sivug"]))
     bvc = _vc(df["branch"])
@@ -342,7 +359,8 @@ def compute(frames):
     monthly = {"x": [f"{p.month:02d}/{p.year}" for p in months], "y": [int(pm.get(p, 0)) for p in months]}
 
     # 6. age of the current classification, by tier
-    age = (now - df["sug_date"]).dt.days / 365.25
+    age = ((now - df["sug_date"]).dt.days / 365.25).clip(lower=0)
+    n_nodate = int(df["sug_date"].isna().sum())
     age_names = [_bucket(lo, hi, "") for lo, hi in AGE_BUCKETS]
     age_series = []
     for tname, tset in TIERS:
@@ -394,14 +412,15 @@ def compute(frames):
     # 13. seniority by top classification (contractor level)
     sen = (now - c["first"]).dt.days / 365.25
     box_names, box_data, box_rows = [], [], []
-    for s in sivugs:
+    for s in [x for x in SIVUG_ORDER if x in sivugs] + ["אחר"]:
         v = np.sort(sen[c["top_sivug"] == s].dropna().to_numpy())
         if len(v) < 10:
             continue
         q = [round(float(np.percentile(v, p)), 1) for p in (5, 25, 50, 75, 95)]
-        box_names.append(f"סיווג {s}")
+        label = "סיווג אחר" if s == "אחר" else f"סיווג {s}"
+        box_names.append(label)
         box_data.append(q)
-        box_rows.append({"name": f"סיווג {s}", "count": int(len(v)), "q1": q[1], "med": q[2], "q3": q[3]})
+        box_rows.append({"name": label, "count": int(len(v)), "q1": q[1], "med": q[2], "q3": q[3]})
     seniority = {"names": box_names, "data": box_data, "rows": box_rows}
 
     # restrictions table
@@ -427,13 +446,7 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     # KPIs
-    start, prev_start = pd.Timestamp(now.year, 1, 1), pd.Timestamp(now.year - 1, 1, 1)
-    try:
-        prev_end = now.replace(year=now.year - 1)
-    except ValueError:
-        prev_end = now.replace(year=now.year - 1, day=28)
-    ytd = int(((c["first"] >= start) & (c["first"] <= now)).sum())
-    ytd_prev = int(((c["first"] >= prev_start) & (c["first"] <= prev_end)).sum())
+    ytd, ytd_prev = _ytd(c, now)
     ch = (ytd - ytd_prev) / ytd_prev if ytd_prev else 0
     ytd_tone = "brand" if not ytd_prev or abs(ch) < 0.03 else ("ok" if ch > 0 else "warn")
     unl = int((c["n5"] > 0).sum())
@@ -493,7 +506,7 @@ def compute(frames):
             "lede": (f"{n(len(c))} קבלנים רשומים בפנקס, ב-{n(len(df))} רישומים — רישום אחד לכל ענף "
                      f"שבו הקבלן מורשה לעבוד, בממוצע {mean_br:.2f} ענפים לקבלן. לכל רישום סיווג "
                      f"(ק, 1–5) וקבוצה (א–ג) הקובעים את ההיקף הכספי המרבי לעבודה בודדת. "
-                     f"הרישום האחרון בקובץ: {d_he(now)}."),
+                     f"העדכון האחרון בקובץ: {d_he(now)}."),
             "year": str(now.year),
             "top": top_label,
             "in_top": f"ב{top_label}",
@@ -511,7 +524,8 @@ def compute(frames):
             "by_year_aria": f"גרף עמודות: קבלנים חדשים לפי שנה, {first_year}–{now.year}.",
             "monthly_aria": f"גרף עמודות: קבלנים חדשים בכל חודש, {MONTHS} החודשים האחרונים.",
             "sug_age_note": (f"כמה זמן עבר מאז נקבע הסיווג הנוכחי של כל רישום (עד {d_he(now)}). "
-                             f"{pct(recent_share)} מהרישומים סווגו או עודכנו בשנה האחרונה."),
+                             f"{pct(recent_share)} מהרישומים סווגו או עודכנו בשנה האחרונה."
+                             + (f" {n(n_nodate)} רישומים ללא תאריך סיווג אינם נכללים." if n_nodate else "")),
             "sug_age_aria": "גרף עמודות מוערמות: רישומים לפי ותק הסיווג הנוכחי, בשנים, לפי דרגת סיווג.",
             "towns_note": ("לפי היישוב הרשום של הקבלן."
                            + (f" בשאר {n(towns_rest[0])} היישובים רשומים עוד {n(towns_rest[1])} קבלנים."
