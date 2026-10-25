@@ -303,11 +303,14 @@ def compute(frames):
     asym_isr = int(vc_all.get("israelis_only", 0))
     asym_for = int(vc_all.get("foreign_only", 0))
     if n_known >= 10 and (asym_isr + asym_for) > 0:
+        def in_countries(k):
+            return "במדינה אחת" if k == 1 else f"ב-{n(k)} מדינות"
         parts = []
         if asym_for:
-            parts.append(f"ב-{n(asym_for)} מדינות ישראל דורשת אשרה מאזרחי המדינה בעוד שישראלים פטורים")
+            parts.append(f"{in_countries(asym_for)} ישראל דורשת אשרה מאזרחי המדינה בעוד שישראלים פטורים")
         if asym_isr:
-            parts.append(f"ב-{n(asym_isr)} המצב הפוך")
+            parts.append(f"{in_countries(asym_isr)} המצב הפוך" if asym_for else
+                         f"{in_countries(asym_isr)} ישראלים זקוקים לאשרה בעוד שאזרחי המדינה פטורים בישראל")
         insights.append({"id": "reciprocity", "text_he": (
             f"משטר האשרות הדדי ב-{n(recip)} מדינות ({pct(recip / n_known * 100)}); " + ", ו".join(parts) + ".")})
 

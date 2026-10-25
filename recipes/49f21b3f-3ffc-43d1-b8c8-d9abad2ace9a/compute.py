@@ -76,6 +76,8 @@ def _family(t):
 
 
 def _building(t):
+    if "חדש" in t and "קיים" in t:
+        return "ללא ציון קיים או חדש"
     if "חדש" in t:
         return "מבנה או מקום חדש"
     if "קיים" in t:

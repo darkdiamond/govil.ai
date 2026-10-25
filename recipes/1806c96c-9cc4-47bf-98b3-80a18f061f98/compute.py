@@ -117,9 +117,13 @@ def insight_fees(st, total, cycle):
     if st.get(ST_ONE, 0):
         tail.append(f"{n(st[ST_ONE])} שילמו לאחרונה לשנת {cycle - 1}")
     if st.get(ST_OLD, 0):
-        tail.append(f"{n(st[ST_OLD])} לא שילמו מאז {cycle - 2} או קודם לכן")
+        tail.append(f"{n(st[ST_OLD])} שילמו לאחרונה לשנת {cycle - 2} או לפניה")
+    if st.get(ST_UNK, 0):
+        tail.append(f"ל-{n(st[ST_UNK])} לא רשומה שנת תשלום")
     if tail:
-        s += "; " + (" ו-".join(tail))
+        last = tail[-1]
+        last = ("ו-" if last[0].isdigit() else "ו") + last
+        s += "; " + ", ".join(tail[:-1] + [last]) if len(tail) > 1 else "; " + tail[0]
     return s + "."
 
 
