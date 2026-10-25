@@ -1,0 +1,21 @@
+{
+  "main.מספר שותפות": "skip: registration number — a unique identifier",
+  "main.שם שותפות": "chart-sector, insight:sector — keyword read of the line of business; names themselves are not listed (no amount to rank by)",
+  "main.שם באנגלית": "chart-sector, insight:sector — English keywords feed the sector read; 72% empty",
+  "main.סוג תאגיד": "chart-yearly, chart-monthly, chart-tstat, chart-survival, chart-towns, chart-sector, insight:mix, insight:survival, insight:foreign, kpi:limited",
+  "main.סטטוס תאגיד": "chart-status, chart-tstat, chart-survival, insight:active, insight:survival, kpi:active",
+  "main.תאריך התאגדות": "chart-yearly, chart-monthly, chart-heat, chart-survival, insight:registrations, insight:ytd, insight:month, insight:mix, kpi:total, kpi:last_year, kpi:ytd",
+  "main.ישוב": "chart-towns, insight:town — 36% empty, mostly old records",
+  "main.רחוב": "skip: street of the registered address — finer than town, which is charted",
+  "main.מספר בית": "skip: address detail",
+  "main.מיקוד": "skip: postal code — finer than town",
+  "main.ת.ד": "skip: PO box, 99.8% empty",
+  "main.מדינה": "insight:foreign — 95% Israel; a few dozen foreign addresses",
+  "main.אצל": "skip: c/o address line, 84% empty free text",
+  "main.קוד סטטוס שותפות": "skip: code twin of סטטוס תאגיד",
+  "main.קוד סוג חברה": "skip: code twin of סוג תאגיד (Israeli / foreign)",
+  "main.קוד סיווג חברה": "skip: code twin of סוג תאגיד (general / limited / converted)",
+  "main.קוד ישוב": "skip: code twin of ישוב",
+  "main.קוד רחוב": "skip: code twin of רחוב",
+  "main.קוד מדינה": "skip: code twin of מדינה"
+}

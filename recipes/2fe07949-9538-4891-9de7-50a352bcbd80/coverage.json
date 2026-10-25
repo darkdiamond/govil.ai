@@ -1,0 +1,5 @@
+{
+  "closures.fromDate": "chart-years, chart-monthly, chart-heat, chart-weekday, chart-etype, insight:trend, insight:peak_year, insight:weekday, insight:repeat, kpi:total, kpi:last12 — also the dedupe key with site and executor",
+  "closures.workName": "chart-cities, chart-districts, chart-kinds, insight:city, insight:kind, insight:repeat, kpi:repeat — never shown verbatim (often names private home owners); used only for the derived locality, district and project kind, and to detect repeat closures of one site",
+  "closures.executorName": "chart-etype, chart-exec, chart-kinds, insight:exec_type, insight:top_exec, kpi:companies — only corporate executors are named; private individuals stay aggregate"
+}

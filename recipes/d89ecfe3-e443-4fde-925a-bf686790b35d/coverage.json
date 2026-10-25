@@ -1,0 +1,14 @@
+{
+  "fleet.operator_nm": "chart-operators, chart-scatter, chart-protection, chart-tree, kpi:operators, insight:concentration, insight:elec_leader, insight:protection",
+  "fleet.cluster_nm": "chart-tree, kpi:clusters",
+  "fleet.bus_license_id": "skip: licence plate number — a lookup identifier, never shown on the page (aggregate only)",
+  "fleet.stone_proof_nm": "chart-protection, kpi:stone, insight:protection",
+  "fleet.bullet_proof_nm": "chart-protection, insight:protection",
+  "fleet.BusSize_nm": "chart-size, chart-seats",
+  "fleet.BusType_nm": "chart-size, chart-km, chart-annual, insight:mileage",
+  "fleet.SeatsNum": "chart-seats",
+  "fleet.production_year": "chart-year, chart-mix, chart-scatter, chart-km, chart-annual, kpi:age, insight:young, insight:electric, insight:zero_km",
+  "fleet.production_country": "chart-countries, insight:country",
+  "fleet.PropulsionType_nm": "chart-year, chart-mix, chart-operators, chart-scatter, chart-countries, kpi:electric, insight:electric, insight:elec_leader, insight:country",
+  "fleet.total_kilometer": "chart-km, chart-annual, kpi:km_total, kpi:annual, insight:mileage, insight:zero_km"
+}

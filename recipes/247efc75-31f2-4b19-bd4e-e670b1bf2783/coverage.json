@@ -1,0 +1,9 @@
+{
+  "inventors.מספר בקשה": "chart-bands, chart-team, chart-trend, chart-mix, chart-comp, chart-type-mix, chart-pairs, kpi:apps, kpi:team_last, insight:team, insight:solo — application key; bands of 10,000 sequential numbers serve as the time axis (no date column)",
+  "inventors.שם ממציא באנגלית": "chart-top, chart-prolific, chart-pairs, chart-team, kpi:inventors, insight:leader, insight:pair, insight:prolific — inventor identity (case/punctuation folded); filled on 99.6% of rows",
+  "inventors.שם ממציא בעברית": "chart-top, chart-pairs, insight:leader, insight:pair — Hebrew display name when consistent for the inventor; identity fallback when the English name is empty; 79% empty",
+  "inventors.כתובת ממציא באנגלית": "chart-countries, chart-mix, chart-comp, kpi:il_share, insight:countries, insight:rising, insight:comp, insight:addr — only the country token (after the last comma) is used; street addresses never reach the page",
+  "inventors.שם האמצאה בעברית": "chart-types, chart-type-mix, insight:type — invention type from the first word of the title",
+  "inventors.שם האמצאה באנגלית": "skip: free-text English twin of the Hebrew title; read only for exact-duplicate row removal",
+  "inventors.כתובת ממציא בעברית": "skip: personal address, 96% empty; read only for exact-duplicate row removal"
+}

@@ -1,0 +1,14 @@
+{
+  "decisions.appraisal_header": "chart-corp, insight:corp — used only for an aggregate corporate-party heuristic; party names (private owners) are never shown",
+  "decisions.appraisal_type": "chart-years, chart-claims, table:xtab, insight:types",
+  "decisions.appraisal_version": "skip: populated only from mid-2021 (59% empty) and almost always 'שומה מקורית'; the 1 / revised-after-appeal values are a few dozen rows",
+  "decisions.appraiser_type": "chart-claims, table:xtab",
+  "decisions.block": "skip: land-registry block (gush) — with plot, identifies a specific private parcel",
+  "decisions.committee": "chart-committees, chart-heat, insight:committees, insight:appraisers",
+  "decisions.decision_date": "chart-years, chart-monthly, chart-season, chart-heat, chart-cohorts, chart-active, chart-lag, chart-lagdist, chart-corp, kpi:last_full, insight:trend, insight:season, insight:cohorts",
+  "decisions.decisive_appraiser": "chart-appraisers, chart-cohorts, chart-active, kpi:active, insight:appraisers, insight:cohorts",
+  "decisions.department_id": "skip: constant (667) — the MoJ department code",
+  "decisions.plot": "skip: land-registry plot (helka) — with block, identifies a specific private parcel",
+  "decisions.publicity_date": "chart-lag, chart-lagdist, kpi:lag, insight:lag, insight:ytd",
+  "decisions.link": "skip: per-document URL — an identifier; the explorer links rows"
+}

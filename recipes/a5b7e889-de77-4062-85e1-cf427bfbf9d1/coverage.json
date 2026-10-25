@@ -1,0 +1,7 @@
+{
+  "ipc.מספר בקשה": "chart-volume, chart-mix, chart-modality, chart-depth, chart-heat, kpi:apps, insight:depth, insight:main_cov, insight:biologics, insight:rise — application number is the per-application key and, being issued in ascending order, the filing-order axis (number bands)",
+  "ipc.שם האמצאה בעברית": "skip: free-text invention title; the sibling CPC page already mines the English titles, so this page sticks to the classification codes",
+  "ipc.שם האמצאה באנגלית": "skip: free-text invention title (English twin of the Hebrew title)",
+  "ipc.IPC סיווג": "chart-sections, chart-groups, chart-targets, chart-mix, chart-modality, chart-depth, chart-heat, kpi:codes, kpi:groups, insight:lead, insight:biologics, insight:target, insight:rise, insight:depth, insight:bare — section/subclass/main-group levels; subclass-only codes counted and excluded",
+  "ipc.ראשי": "chart-sections, chart-mix, chart-volume, kpi:main, insight:lead, insight:main_cov"
+}

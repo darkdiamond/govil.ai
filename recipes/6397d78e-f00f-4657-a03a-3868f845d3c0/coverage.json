@@ -1,0 +1,8 @@
+{
+  "main.מספר תאגיד": "chart-per-corp, chart-top-corps, table:kinds, kpi:corps, kpi:avg, kpi:liq, insight:tail, insight:fast_liq — the number itself is never shown; grouping key, and its 2-digit prefix gives the register",
+  "main.שם תאגיד": "chart-top-corps, insight:charge_conc — companies and partnerships are businesses and may be named",
+  "main.סוג בקשה": "chart-families, chart-types, chart-monthly, chart-annual, chart-charges, chart-liq, chart-top-corps, kpi:reg, kpi:dis, kpi:liq, insight:family, insight:charges, insight:viol_wave, insight:directors, insight:fast_liq, insight:peak_month",
+  "main.תאריך עדכון סטטוס": "chart-timeline, chart-monthly, chart-charges, chart-weekday, insight:viol_wave, insight:peak_month, insight:weekday",
+  "main.מזהה השיעבוד": "chart-charges — distinct (corporation, charge id) pairs give the number of separate charges in the lede",
+  "main.קוד סוג בקשה": "skip: code twin of סוג בקשה"
+}

@@ -1,0 +1,23 @@
+{
+  "cases.OBJECTID": "skip: ArcGIS row identifier",
+  "cases.Animal_Lab_ID": "skip: laboratory sample identifier (not unique even — re-used across distinct cases)",
+  "cases.Event": "skip: per-year serial number of the ministry's case report; carries no meaning beyond the date order",
+  "cases.Date": "chart-years, chart-mix, chart-season, chart-heat, chart-rheat, chart-rshare, chart-lineage, kpi:total, kpi:last_year, kpi:trend12, insight:record, insight:trend12, insight:dogs, insight:season, insight:waves, map:map-main",
+  "cases.LinkToTest": "skip: URL of the per-case lab/report PDF on gov.il — a document link, no aggregate meaning",
+  "cases.OpenLink": "skip: HTML anchor wrapping LinkToTest",
+  "cases.LinkToMre": "skip: URL of an additional report document, 37% empty",
+  "cases.LinkMoreOpen": "skip: HTML anchor wrapping LinkToMre",
+  "cases.Year": "skip: redundant with Date (the page derives the year from Date; Year is set on rows with no date, which are dropped)",
+  "cases.SpeciesNameEng": "skip: English twin of SpeciesNameHeb (used)",
+  "cases.RegionEng": "skip: English twin of RegionHeb (used)",
+  "cases.RegionHeb": "chart-rheat, chart-rshare, chart-rsp, table:locations, insight:region_shift",
+  "cases.SpeciesNameHeb": "chart-years, chart-species, chart-mix, chart-rsp, insight:dogs, map:map-main",
+  "cases.Species": "chart-lineage, insight:lineage — virus genetic lineage code (VII, VIIA, VIIB, I …); whitespace normalized",
+  "cases.SettlementHeb": "chart-locations, kpi:locations, insight:hotspots, map:map-main",
+  "cases.SettlementEng": "skip: English twin of SettlementHeb (used)",
+  "cases.LocationNotSettlementEng": "skip: English twin of LocationNotSettlementHeb (used)",
+  "cases.LocationNotSettlementHeb": "chart-locations, map:map-main — named site used when no settlement is given",
+  "cases.GlobalID": "skip: ArcGIS global identifier",
+  "cases.x": "map:map-main — Web-Mercator (EPSG:3857) easting, converted to longitude",
+  "cases.y": "map:map-main — Web-Mercator (EPSG:3857) northing, converted to latitude"
+}

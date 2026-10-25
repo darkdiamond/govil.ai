@@ -1,0 +1,416 @@
+<h1>ממציאים לבקשות פטנטים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.apps.tone }} mb-1" dir="ltr">{{ model.kpis.apps.display }}</div>
+    <div class="text-sm text-subtle">בקשות פטנט במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.inventors.tone }} mb-1" dir="ltr">{{ model.kpis.inventors.display }}</div>
+    <div class="text-sm text-subtle">שמות ממציאים שונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.team_last.tone }} mb-1" dir="ltr">{{ model.kpis.team_last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.team_last_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.il_share.tone }} mb-1" dir="ltr">{{ model.kpis.il_share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.il_share_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות לפי טווח מספרי בקשה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
+  <div id="chart-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.bands_aria }}</caption>
+      <thead><tr><th scope="col">מספרי בקשה</th><th scope="col">בקשות</th><th scope="col">ממציאים בממוצע</th><th scope="col">ממציא יחיד (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.bands %}
+        <tr><th scope="row" dir="ltr">{{ r.range }}</th><td>{{ r.apps }}</td><td>{{ r.mean }}</td><td>{{ r.solo }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה ממציאים בכל בקשה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.team_note }}</p>
+    <div id="chart-team" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.team_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.team_aria }}</caption>
+        <thead><tr><th scope="col">ממציאים בבקשה</th><th scope="col">בקשות</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.team %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הצוותים הולכים וגדלים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+    <div id="chart-trend" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.trend_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.trend_aria }}</caption>
+        <thead><tr><th scope="col">מספרי בקשה</th><th scope="col">ממציאים בממוצע</th><th scope="col">ממציא יחיד (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.bands %}
+          <tr><th scope="row" dir="ltr">{{ r.range }}</th><td>{{ r.mean }}</td><td>{{ r.solo }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הממציאים הפוריים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_aria }}</caption>
+      <thead><tr><th scope="col">ממציא</th><th scope="col">בקשות</th><th scope="col">מדינה רשומה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.country }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ממציא חד-פעמי או סדרתי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prolific_note }}</p>
+    <div id="chart-prolific" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.prolific_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.prolific_aria }}</caption>
+        <thead><tr><th scope="col">בקשות לממציא</th><th scope="col">ממציאים</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.prolific %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צמדי הממציאים הקבועים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pairs_note }}</p>
+    <div id="chart-pairs" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.pairs_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pairs_aria }}</caption>
+        <thead><tr><th scope="col">ממציא</th><th scope="col">שותף</th><th scope="col">בקשות משותפות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pairs %}
+          <tr><th scope="row">{{ r.a }}</th><td>{{ r.b }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.countries %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מאיפה מגיעים הממציאים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.countries_note }}</p>
+  <div id="chart-countries" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.countries_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.countries_aria }}</caption>
+      <thead><tr><th scope="col">מדינה</th><th scope="col">רשומות ממציאים</th><th scope="col">שיעור (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.countries %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל המדינות לאורך הזמן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+    <div id="chart-mix" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה (%)</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+        <thead><tr><th scope="col">טווח</th>{% for h in model.tables.mix_heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row">{{ r.band }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צוותים ישראליים, זרים ומשותפים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_note }}</p>
+    <div id="chart-comp" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה (%)</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.comp_aria }}</caption>
+        <thead><tr><th scope="col">טווח</th>{% for s in model.charts.comp.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.comp_bands %}
+          <tr><th scope="row">{{ r.band }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">על מה ממציאים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+        <thead><tr><th scope="col">סוג אמצאה</th><th scope="col">בקשות</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי האמצאות לאורך הזמן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_mix_note }}</p>
+    <div id="chart-type-mix" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.type_mix_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">שמות ממציאים לבקשות להגנה ישראלית על פטנט</p>
+</section>
+
+<script>
+  (function () {
+    var b = {{ model.charts.bands | tojson }};
+    var last = b.y.length - 1;
+    var c1 = echarts.init(document.getElementById("chart-bands"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: b.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "בקשות", data: b.y.map(function (v, i) {
+        return (b.partial && i === last) ? { value: v, itemStyle: { color: "#9fc3f7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var t = {{ model.charts.team_dist | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-team"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: t.names, name: "ממציאים", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "בקשות", data: t.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var tr = {{ model.charts.team_trend | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-trend"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 40, top: 32, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: tr.x, axisLabel: { rotate: 45 } },
+      yAxis: [
+        { type: "value", scale: true, name: "ממציאים" },
+        { type: "value", name: "%", min: 0, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "line", name: "ממציאים בממוצע לבקשה", data: tr.mean },
+        { type: "line", name: "ממציא יחיד (%)", yAxisIndex: 1, data: tr.solo, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var narrow = window.innerWidth < 640;
+    function hbar(id, d, name, w) {
+      if (narrow) { w = Math.min(w, 120); }
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: narrow ? 2 : 5, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: w, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-top", {{ model.charts.top | tojson }}, "בקשות", 150);
+    hbar("chart-pairs", {{ model.charts.pairs | tojson }}, "בקשות משותפות", 170);
+    hbar("chart-types", {{ model.charts.types | tojson }}, "בקשות", 180);
+
+    var p = {{ model.charts.prolific | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-prolific"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: p.names, name: "בקשות לממציא", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "log", min: 1 },
+      series: [{ type: "bar", name: "ממציאים", data: p.values }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+{% if model.flags.countries %}
+<script>
+  (function () {
+    var cn = {{ model.charts.countries | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-countries"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: window.innerWidth < 640 ? 2 : 5, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: cn.names.slice().reverse() },
+      series: [{ type: "bar", name: "רשומות ממציאים", data: cn.values.slice().reverse().map(function (v, i, a) {
+        return cn.names[a.length - 1 - i] === "ישראל" ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    function stack100(id, d, colors) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 40, right: 16, top: 24, bottom: 88, containLabel: true },
+        xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, formatter: function (v) { return v.replace(" (", "\n("); } } },
+        yAxis: { type: "value", max: 100, name: "%" },
+        series: d.series.map(function (s) { return { type: "bar", stack: "s", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stack100("chart-mix", {{ model.charts.mix | tojson }}, ["#0068f5", "#0b3668", "#9fc3f7", "#5a9bf6", "#c3cfe7", "#6c757d"]);
+    stack100("chart-comp", {{ model.charts.comp | tojson }}, ["#0068f5", "#0b3668", "#9fc3f7"]);
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var tm = {{ model.charts.type_mix | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-type-mix"));
+    c6.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return tm.types[p.value[1]] + ", " + tm.x[p.value[0]] + ": " + p.value[2] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 80, containLabel: true },
+      xAxis: { type: "category", data: tm.x, axisLabel: { rotate: 45 }, splitArea: { show: true } },
+      yAxis: { type: "category", data: tm.types, axisLabel: { width: 120, overflow: "truncate" }, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: tm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", name: "שיעור", data: tm.cells }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+  })();
+</script>

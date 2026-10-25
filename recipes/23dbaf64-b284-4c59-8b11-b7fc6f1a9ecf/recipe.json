@@ -1,0 +1,34 @@
+{
+  "contract_version": 1,
+  "dataset_id": "23dbaf64-b284-4c59-8b11-b7fc6f1a9ecf",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T14:13:01.400063+00:00",
+    "rows": {
+      "registry": 32099
+    }
+  },
+  "inputs": [
+    {
+      "name": "registry",
+      "by_id": "fd56bf5b-7918-4906-99e4-b0e5102ae268",
+      "required_columns": [
+        "מספר מאגר",
+        "מזהה בעל המאגר",
+        "שם מלא",
+        "שם המאגר",
+        "ישוב",
+        "העברת מידע לחול",
+        "סטטוס מאגר",
+        "תאריך רישום המאגר",
+        "סוגי מידע",
+        "מטרות",
+        "קבלת מידע דרך קבע מגוף ציבורי",
+        "מחזיקים במאגר"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

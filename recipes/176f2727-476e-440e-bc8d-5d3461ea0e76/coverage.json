@@ -1,0 +1,10 @@
+{
+  "appointments.שם פרטי": "chart-att, chart-top, chart-load, kpi:attorneys, insight:concentration, insight:leader, insight:attorneys — combined with שם משפחה into the attorney's name (attorneys are licensed professionals in a public role; nameable)",
+  "appointments.שם משפחה": "chart-att, chart-top, chart-load, kpi:attorneys, insight:concentration, insight:leader, insight:attorneys",
+  "appointments.תאריך מינוי": "chart-yearly, chart-heat, chart-mix, chart-week, chart-att, kpi:last_full, kpi:ytd, insight:ytd, insight:season — date column of six of the seven district files",
+  "appointments.תאריך המינוי": "chart-yearly, chart-heat, chart-mix, chart-week, chart-att, kpi:last_full, kpi:ytd, insight:ytd, insight:season — the same date under the southern district file's name; compute() coalesces the two",
+  "appointments.מספר תיק בית המשפט שבו מונה": "chart-codes, chart-mix, chart-dmix, chart-week, insight:detention, insight:weekend — only the file-type prefix code is used; the case number itself points at a defendant's case and is never shown",
+  "appointments.מספר תיק הסנגוריה הציבורית": "insight:files — aggregated only (appointments per defence file); the number itself is a case identifier and is never shown",
+  "appointments.מחוז": "chart-yearly, chart-dist, chart-dmix, chart-top, insight:districts",
+  "appointments._resource_name": "skip: one file per district; the מחוז column already carries the same split"
+}

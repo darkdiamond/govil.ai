@@ -1,0 +1,7 @@
+{
+  "cpc.מספר בקשה": "chart-depth, chart-mix, chart-markers, chart-per-app, chart-nsec, kpi:apps, insight:depth — application number is the per-application key and, being issued in ascending order, the filing-order axis (number bands)",
+  "cpc.שם האמצאה בעברית": "skip: free-text title; its English twin is used for the keyword-based invention-kind chart (consistent tokenisation)",
+  "cpc.שם האמצאה באנגלית": "chart-kinds — keyword families (METHOD, SYSTEM, DEVICE, COMPOSITION, …), multi-label",
+  "cpc.לבקשה CPC סיווג": "chart-sections, chart-subclasses, chart-tree, chart-mix, chart-markers, chart-cooc, chart-nsec, chart-per-app, kpi:codes, kpi:subclasses, kpi:multi, insight:lead, insight:life, insight:shift, insight:markers, insight:multi, insight:pair",
+  "cpc.ראשי": "chart-sections, chart-tree, chart-mix, insight:lead, insight:shift, insight:main"
+}

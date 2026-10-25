@@ -1,0 +1,23 @@
+{
+  "dev.town": "skip: CBS locality code — an identifier, empty for industrial areas; the page keys on the locality name",
+  "dev.datasource_city_name": "chart-profile, chart-sub, chart-history, chart-trans, chart-overlap, chart-rev, kpi:localities, insight:classes — locality key; best class per locality",
+  "dev.priority_class": "chart-history, chart-waves, chart-trans, chart-status, chart-sub, chart-profile, chart-kinds, kpi:class_a, kpi:upgraded, kpi:downgraded, insight:classes, insight:decree, insight:trend",
+  "dev.from_date": "chart-history, chart-waves, chart-trans, insight:decree, insight:trend",
+  "dev.to_date": "chart-history, chart-trans, insight:trend — also the validity date in the lede",
+  "dev.program_status": "chart-status, chart-profile, kpi:split, insight:split",
+  "dev.SubDistrict": "chart-sub, insight:sub",
+  "dev.is_history": "kpi:history, kpi:localities, chart-profile, chart-status — current vs historical rows",
+  "dev.is_surrounding_Gaza": "kpi:gaza, insight:gaza",
+  "dev.is_industrial_area": "chart-kinds, insight:industrial",
+  "nap.town": "skip: CBS locality code — an identifier, empty for industrial areas",
+  "nap.datasource_city_name": "kpi:nap, chart-overlap, chart-rev, insight:overlap",
+  "nap.priority_class": "skip: constant (עדיפות לאומית) — the file itself is the framework",
+  "nap.from_date": "chart-nap-dates, insight:nap_new",
+  "nap.to_date": "chart-nap-dates — validity end in the chart note and lede",
+  "nap.program_status": "skip: 99% empty",
+  "nap.SubDistrict": "chart-nap-sub",
+  "nap.is_history": "skip: constant (לא) — the file holds only the current map",
+  "nap.is_surrounding_Gaza": "insight:gaza",
+  "nap.is_industrial_area": "chart-kinds",
+  "resource:1277353c-25aa-43ac-86b7-08dc1dfe9d71": "skip: 'אזורי פיתוח א' is exactly the current class-א slice of the full development-areas file (all 701 rows match), which the page reads"
+}

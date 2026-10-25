@@ -1,0 +1,264 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro kpi(k, label) -%}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro -%}
+<h1>מאגר שותפויות - רשם החברות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ kpi(model.kpis.total, "שותפויות שנרשמו אי-פעם") }}
+  {{ kpi(model.kpis.active, "שותפויות פעילות") }}
+  {{ kpi(model.kpis.limited, "שותפויות מוגבלות פעילות") }}
+  {{ kpi(model.kpis.last_year, "שותפויות חדשות ב-" ~ model.labels.full_year) }}
+  {{ kpi(model.kpis.ytd, model.labels.ytd_kpi) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("רישום שותפויות לפי שנה וסוג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.yearly_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("שותפויות חדשות לפי חודש") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+    <div id="chart-monthly" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.monthly_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    {{ head("עונתיות הרישום") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+    <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("שרידות לפי שנתון רישום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.survival_note }}</p>
+  <div id="chart-survival" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.survival_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("סטטוס השותפויות ברשם") }}
+    <div id="chart-status" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_aria }}</caption>
+        <thead><tr><th scope="col">סטטוס</th><th scope="col">שותפויות</th></tr></thead>
+        <tbody>
+{%- for name in model.charts.status.names %}
+          <tr><th scope="row">{{ name }}</th><td>{{ model.charts.status["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("מצב השותפויות לפי סוג", "building-2") }}
+    <p class="m-0 text-sm text-subtle mb-3">התפלגות הסטטוס בתוך כל סוג שותפות, באחוזים.</p>
+    <div id="chart-tstat" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.tstat_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.tstat_aria }}</caption>
+        <thead><tr><th scope="col">סוג</th>{% for g in model.charts.tstat.groups %}<th scope="col">{{ g }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for t in model.charts.tstat.types %}
+          <tr><th scope="row">{{ t }}</th>{% for c in model.charts.tstat.counts[loop.index0] %}<td>{{ c | fmt_int }}</td>{% endfor %}<td>{{ model.charts.tstat.totals[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("יישובים", "map-pin") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.towns_note }}</p>
+    <div id="chart-towns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.towns_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.towns_aria }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">שותפויות פעילות</th><th scope="col">מהן מוגבלות</th></tr></thead>
+        <tbody>
+{%- for r in model.charts.towns.rows %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total | fmt_int }}</td><td>{{ r.limited | fmt_pct }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("תחומי פעילות לפי שם השותפות", "tag") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sector_note }}</p>
+    <div id="chart-sector" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sector_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.sector_aria }}</caption>
+        <thead><tr><th scope="col">תחום</th><th scope="col">שותפויות פעילות</th><th scope="col">מהן מוגבלות</th></tr></thead>
+        <tbody>
+{%- for r in model.charts.sector.rows %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total | fmt_int }}</td><td>{{ r.limited | fmt_pct }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var f = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside", start: f.zoom_start, end: 100 }, { type: "slider", bottom: 8, height: 20, start: f.zoom_start, end: 100 }],
+      series: f.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.monthly | tojson }};
+    var c = echarts.init(document.getElementById("chart-monthly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value" },
+      series: m.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) { return h.months[p.value[0]] + "/" + h.years[p.value[1]] + ": " + p.value[2]; } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: h.months, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.years, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", name: "שותפויות חדשות", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.survival | tojson }};
+    var c = echarts.init(document.getElementById("chart-survival"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "—" : v + "%"; } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: s.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: s.series.map(function (r) { return { type: "line", name: r.name, data: r.data, showSymbol: false, connectNulls: false }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var c = echarts.init(document.getElementById("chart-status"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { interval: 0, width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שותפויות", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.tstat | tojson }};
+    var c = echarts.init(document.getElementById("chart-tstat"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: t.types, axisLabel: { interval: 0, width: 130, overflow: "truncate" } },
+      series: t.groups.map(function (g, k) {
+        return { type: "bar", stack: "all", name: g, data: t.shares.map(function (row) { return row[k]; }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        legend: { type: "scroll", top: 0 },
+        grid: { left: 16, right: 24, top: 40, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { interval: 0, width: 130, overflow: "truncate" } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-towns", {{ model.charts.towns | tojson }});
+    stacked("chart-sector", {{ model.charts.sector | tojson }});
+  })();
+</script>

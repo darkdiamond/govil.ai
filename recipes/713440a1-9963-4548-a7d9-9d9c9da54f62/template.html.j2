@@ -1,0 +1,370 @@
+<h1>מאגר רואי החשבון</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">רישיונות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.active_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.new.tone }} mb-1" dir="ltr">{{ model.kpis.new.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.new_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">ישובים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סטטוס הרישיונות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">סטטוס</th><th scope="col">רישיונות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק רואי החשבון הפעילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seniority_note }}</p>
+    <div id="chart-seniority" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.seniority_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.seniority_caption }}</caption>
+        <thead><tr><th scope="col">ותק (שנים)</th><th scope="col">רואי חשבון פעילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.seniority %}
+          <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישיונות שניתנו לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה נשאר מכל מחזור: סטטוס לפי עשור הרישוי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cohort_note }}</p>
+  <div id="chart-cohort" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cohort_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cohort_caption }}</caption>
+        <thead><tr><th scope="col">עשור</th><th scope="col">רישיונות</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cohort %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.shares %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישיונות לפי חודש ושנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קצב הרישוי מתחילת השנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cum_note }}</p>
+  <div id="chart-cumulative" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cum_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cum_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th>{% for c in model.tables.cum_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.cumulative %}
+        <tr><th scope="row">{{ r.month }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רואי חשבון לפי ישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">ישוב</th><th scope="col">סה״כ</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות המשפחה הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.surnames_note }}</p>
+    <div id="chart-surnames" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.surnames_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.surnames_caption }}</caption>
+        <thead><tr><th scope="col">שם משפחה</th><th scope="col">רשומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.surnames %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות פרטיים בדור החדש</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.firsts_note }}</p>
+    <div id="chart-firsts" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.firsts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.firsts_caption }}</caption>
+        <thead><tr><th scope="col">שם פרטי</th><th scope="col">בעלי רישיון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.firsts %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">המאגר מכיל את רשימת רואי החשבון הפעילים.</p>
+</section>
+
+<script>
+  (function () {
+    var s = {{ model.charts.status | tojson }};
+    var c = echarts.init(document.getElementById("chart-status"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", radius: ["42%", "68%"], center: ["50%", "44%"],
+        label: { show: false },
+        data: s.names.map(function (nm, i) {
+          var o = { name: nm, value: s.values[i] };
+          if (s.colors[i]) { o.itemStyle = { color: s.colors[i] }; }
+          return o;
+        })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var a = {{ model.charts.seniority | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-seniority"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: a.names, name: "שנים" },
+      yAxis: { type: "value", name: "רואי חשבון" },
+      series: [{ type: "bar", name: "רואי חשבון פעילים", data: a.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 48, right: 16, top: 72, bottom: 48, containLabel: true },
+      dataZoom: [{ type: "inside", startValue: y.zoom_from }, { type: "slider", bottom: 8, height: 18, startValue: y.zoom_from }],
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "רישיונות" },
+      series: y.series.map(function (s) {
+        var o = { type: "bar", stack: "total", name: s.name, data: s.data };
+        if (s.color) { o.itemStyle = { color: s.color }; }
+        return o;
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var k = {{ model.charts.cohort | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-cohort"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: k.x, inverse: true },
+      series: k.series.map(function (s) {
+        var o = { type: "bar", stack: "total", name: s.name, data: s.data };
+        if (s.color) { o.itemStyle = { color: s.color }; }
+        return o;
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: 10 } },
+      yAxis: { type: "category", data: h.y, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var m = {{ model.charts.cumulative | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-cumulative"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: m.x, axisLabel: { fontSize: 10 } },
+      yAxis: { type: "value", name: "רישיונות" },
+      series: m.series.map(function (s, i) {
+        return { type: "line", name: s.name, data: s.data, showSymbol: true,
+                 lineStyle: { width: i === 0 ? 3 : 1.5 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.cities | tojson }};
+    var c = echarts.init(document.getElementById("chart-cities"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: t.names, inverse: true },
+      series: t.series.map(function (s) {
+        var o = { type: "bar", stack: "total", name: s.name, data: s.data };
+        if (s.color) { o.itemStyle = { color: s.color }; }
+        return o;
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    function hbar(id, d, unit) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    hbar("chart-surnames", {{ model.charts.surnames | tojson }}, "רשומים");
+    hbar("chart-firsts", {{ model.charts.firsts | tojson }}, "בעלי רישיון");
+  })();
+</script>

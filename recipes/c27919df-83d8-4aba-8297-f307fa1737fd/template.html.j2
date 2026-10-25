@@ -1,0 +1,225 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th></tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ chart["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+<h1>רופאים וטרינריים רשותיים</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.vets.tone }} mb-1" dir="ltr">{{ model.kpis.vets.display }}</div>
+    <div class="text-sm text-subtle">רופאים וטרינריים רשותיים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.places.tone }} mb-1" dir="ltr">{{ model.kpis.places.display }}</div>
+    <div class="text-sm text-subtle">יישובים מכוסים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.auths.tone }} mb-1" dir="ltr">{{ model.kpis.auths.display }}</div>
+    <div class="text-sm text-subtle">רשויות מקומיות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.bureaus.tone }} mb-1" dir="ltr">{{ model.kpis.bureaus.display }}</div>
+    <div class="text-sm text-subtle">לשכות וטרינריות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.top10.tone }} mb-1" dir="ltr">{{ model.kpis.top10.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.top10_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.gaps.tone }} mb-1" dir="ltr">{{ model.kpis.gaps.display }}</div>
+    <div class="text-sm text-subtle">יישובים ללא רופא או לשכה רשומים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("כמה יישובים באחריות כל רופא", "database") }}
+    <p class="m-0 text-sm text-subtle mb-3">מספר הרופאים לפי מספר היישובים שבאחריותם.</p>
+    <div id="chart-load" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.load_aria }}"></div>
+    {{ table(model.labels.load_aria, "יישובים לרופא", "רופאים", model.charts.load) }}
+  </section>
+  <section class="card p-5">
+    {{ head("ריכוזיות העומס") }}
+    <p class="m-0 text-sm text-subtle mb-3">אחוז מצטבר של היישובים, כשהרופאים מסודרים מהעמוס ביותר לפחות עמוס.</p>
+    <div id="chart-conc" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.conc_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.conc_aria }}</caption>
+        <thead><tr><th scope="col">רופאים</th><th scope="col">אחוז מהיישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.conc %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.pct }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("הרופאים המשרתים הכי הרבה יישובים", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_aria }}</caption>
+      <thead><tr><th scope="col">רופא</th><th scope="col">יישובים</th><th scope="col">רשויות</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.top_vets.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ model.charts.top_vets["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.top_vets.auths[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("לשכות וטרינריות", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">היישובים בכל לשכה של השירותים הווטרינריים, לפי סוג הרשות המקומית.</p>
+  <div id="chart-btype" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.btype_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.btype_aria }}</caption>
+      <thead><tr><th scope="col">לשכה</th><th scope="col">יישובים</th><th scope="col">רשויות</th><th scope="col">רופאים</th><th scope="col">יישובים לרופא</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.bureaus %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.places | fmt_int }}</td><td>{{ r.auths | fmt_int }}</td><td>{{ r.vets | fmt_int }}</td><td>{{ r.ratio | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("סוגי הרשויות", "building-2") }}
+    <p class="m-0 text-sm text-subtle mb-3">מספר הרשויות ומספר היישובים שבתחומן, לפי סוג הרשות.</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+        <thead><tr><th scope="col">סוג רשות</th><th scope="col">רשויות</th><th scope="col">יישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.auths | fmt_int }}</td><td>{{ r.places | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("רופאים לפי מספר הרשויות שהם משרתים", "database") }}
+    <p class="m-0 text-sm text-subtle mb-3">רופא רשותי אחד יכול לשמש כמה רשויות סמוכות.</p>
+    <div id="chart-multi" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.multi_aria }}"></div>
+    {{ table(model.labels.multi_aria, "רשויות", "רופאים", model.charts.multi) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("הרשויות עם הכי הרבה יישובים", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auth_note }}</p>
+  <div id="chart-auth" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+  {{ table(model.labels.auth_aria, "רשות", "יישובים", model.charts.auth_top) }}
+</section>
+
+<script>
+  (function () {
+    function bars(id, d, horizontal, name) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: window.innerWidth < 640 ? 150 : 180, overflow: "truncate" } };
+      var val = { type: "value", splitNumber: window.innerWidth < 640 ? 3 : 5 };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-load", {{ model.charts.load | tojson }}, true, "רופאים");
+    bars("chart-top", {{ model.charts.top_vets | tojson }}, true, "יישובים");
+    bars("chart-multi", {{ model.charts.multi | tojson }}, true, "רופאים");
+    bars("chart-auth", {{ model.charts.auth_top | tojson }}, true, "יישובים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var k = {{ model.charts.conc | tojson }};
+    var ck = echarts.init(document.getElementById("chart-conc"));
+    ck.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 16, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: k.x, name: "רופאים", nameLocation: "middle", nameGap: 24, axisLabel: { interval: "auto" } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "אחוז מצטבר מהיישובים", data: k.y, showSymbol: false, areaStyle: { opacity: 0.15 } }]
+    }));
+    window.addEventListener("resize", function () { ck.resize(); });
+
+    var b = {{ model.charts.btype | tojson }};
+    var cb = echarts.init(document.getElementById("chart-btype"));
+    cb.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", inverse: true, data: b.names },
+      series: b.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { cb.resize(); });
+
+    var t = {{ model.charts.types | tojson }};
+    var ct = echarts.init(document.getElementById("chart-types"));
+    ct.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", inverse: true, data: t.names, axisLabel: { interval: 0 } },
+      series: [
+        { type: "bar", name: "רשויות", data: t.auths },
+        { type: "bar", name: "יישובים", data: t.places }
+      ]
+    }));
+    window.addEventListener("resize", function () { ct.resize(); });
+  })();
+</script>

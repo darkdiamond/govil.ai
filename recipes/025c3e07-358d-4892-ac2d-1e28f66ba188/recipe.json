@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "025c3e07-358d-4892-ac2d-1e28f66ba188",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T18:24:15.947441+00:00",
+    "rows": { "terms": 145231 }
+  },
+  "inputs": [
+    {
+      "name": "terms",
+      "by_id": "b7c4b1fb-6e3c-4d6a-92a9-4546dfa0112e",
+      "required_columns": [
+        "מספר מונח",
+        "תיאור",
+        "מקור המונח",
+        "שפה",
+        "סיווג ניצה עברית",
+        "קבילות המונח",
+        "האם כינוי מקור"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
