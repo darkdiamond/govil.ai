@@ -1,0 +1,20 @@
+{
+  "main.MISPAR_YESHUT": "chart-corp, insight:corp — only its presence is used (corporation vs. sole trader); the number itself never reaches the page",
+  "main.SHEM_YESHUT": "chart-leaders, insight:breadth — business names, only in the multi-branch leaders ranking",
+  "main.MISPAR_KABLAN": "kpi:contractors, chart-breadth, chart-years — contractor key for distinct counts; the registry number is never shown",
+  "main.SHEM_YISHUV": "chart-towns, insight:town",
+  "main.SHEM_REHOV": "skip: street of the business address — finer than settlement, which is charted; private for sole traders",
+  "main.MISPAR_BAIT": "skip: house number — address detail",
+  "main.TAARICH_KABLAN": "chart-years, chart-monthly, chart-seniority, insight:growth, insight:ytd, kpi:ytd",
+  "main.MISPAR_TEL": "skip: phone number — private contact detail for sole traders",
+  "main.EMAIL": "skip: e-mail address — private contact detail for sole traders",
+  "main.KOD_ANAF": "chart-branches, chart-heat, chart-staff, kpi:branches, insight:concentration — branch key",
+  "main.TEUR_ANAF": "chart-branches, chart-heat, kpi:restricted, insight:restrictions, table:restrictions — branch label; the restriction suffix after the dash is classified",
+  "main.KVUTZA": "chart-ladder, table:ladder",
+  "main.SIVUG": "chart-ladder, chart-branches, chart-heat, chart-recognised, chart-corp, chart-seniority, chart-sugage, kpi:unlimited, insight:ladder",
+  "main.TARICH_SUG": "chart-sugage — age of the current classification",
+  "main.HEKEF": "table:ladder — financial ceiling per sivug/group (a function of the two)",
+  "main.KABLAN_MUKAR": "chart-recognised, kpi:recognised, insight:recognised",
+  "main.OVDIM": "skip: name of the qualifying manager/professional — an individual, not the registered business; no aggregate meaning",
+  "main.HEARA": "chart-staff, insight:staff"
+}
