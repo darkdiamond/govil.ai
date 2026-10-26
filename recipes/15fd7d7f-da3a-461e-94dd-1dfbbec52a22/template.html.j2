@@ -421,10 +421,10 @@
     c2.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
-        var i = ps[0].dataIndex, out = s.names[i];
+        var i = ps[0].dataIndex, out = ps[0].axisValue;
         ps.forEach(function (p) {
           var q = s.series[p.seriesIndex];
-          if (q.counts[i]) { out += "<br>" + q.name + ": " + q.data[i] + "% (" + Number(q.counts[i]).toLocaleString("he-IL") + ")"; }
+          if (q.counts[i]) { out += "<br>" + p.seriesName + ": " + q.data[i] + "% (" + Number(q.counts[i]).toLocaleString("he-IL") + ")"; }
         });
         return out;
       } },

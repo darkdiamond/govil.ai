@@ -251,7 +251,7 @@ def compute(frames):
     for (imp, p), g in pp.groupby(["importer", "product"], sort=True):
         vals = sorted(g["price"].tolist())
         matrix.append({"importer": imp, "product": short[p], "points": n(len(g)),
-                       "range": money(vals[0]) if vals[0] == vals[-1] else f"{money(vals[0])}–{money(vals[-1])}",
+                       "range": money(vals[0]) if vals[0] == vals[-1] else f"\u2066{money(vals[0])}–{money(vals[-1])}\u2069",
                        "mean": money(fmean(vals)), "_k": (importers.index(imp), products.index(p))})
     matrix.sort(key=lambda r: r["_k"])
     for r in matrix:
@@ -431,7 +431,7 @@ def compute(frames):
         "range_kpi": "טווח המחיר המרבי (₪ ל־100 גרם, כולל מע״מ)",
         "prices_note": (f"מספר נקודות המכירה בכל רמת מחיר מרבי, לכל מוצר (₪ ל־100 גרם). {stats_txt}. "
                         f"המחיר הוא תקרה — בפועל מותר למכור בזול יותר."),
-        "prices_aria": f"נקודות מכירה לפי מחיר מרבי ומוצר; טווח {kpis['range']['display']} ₪ ל־100 גרם",
+        "prices_aria": f"נקודות מכירה לפי מחיר מרבי ומוצר; טווח \u2066{kpis['range']['display']}\u2069 ₪ ל־100 גרם",
         "matrix_note": "המחיר המרבי של כל יבואן לכל מוצר — טווח וממוצע על פני נקודות המכירה (₪ ל־100 גרם).",
         "importers_note": (f"מספר נקודות המכירה שכל יבואן מספק להן, לפי מוצר. «{lead_imp}» מספק ל־"
                            f"{n(imp_points.iloc[0]) if len(imp_points) else 0} נקודות."),

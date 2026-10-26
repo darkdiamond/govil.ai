@@ -377,7 +377,7 @@
         tooltip: { trigger: "item", formatter: function (p) {
           var v = p.data.value || p.data;
           var o = v.length > 5 ? v.slice(1) : v;
-          return b.names[p.dataIndex] + "<br>חציון: " + fmt(o[2]) + unit + "<br>רבעונים: " + fmt(o[1]) + " עד " + fmt(o[3]) +
+          return p.name + "<br>חציון: " + fmt(o[2]) + unit + "<br>רבעונים: " + fmt(o[1]) + " עד " + fmt(o[3]) +
             "<br>אחוזון 5 עד 95: " + fmt(o[0]) + " עד " + fmt(o[4]);
         } },
         grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
