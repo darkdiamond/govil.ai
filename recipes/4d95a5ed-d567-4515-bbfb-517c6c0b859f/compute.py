@@ -447,7 +447,7 @@ def compute(frames):
     by_med = sorted(intens, key=lambda r: (-r["median"], r["name"]))
     int_hi, int_lo = (by_med[0], by_med[-1]) if by_med else (None, None)
     intens_table = [{"name": r["name"], "n": n(r["n"]), "median": f"{r['median'] * 1000:.0f}",
-                     "range": f"{r['min'] * 1000:.0f}–{r['max'] * 1000:.0f}"} for r in intens]
+                     "range": f"\u2066{r['min'] * 1000:.0f}–{r['max'] * 1000:.0f}\u2069"} for r in intens]
 
     # heatmap: A1–A3 indicators relative to group max
     hp = p[p["grp"].isin(multi)].copy()
@@ -540,7 +540,7 @@ def compute(frames):
     }
 
     pub_years = sorted({int(t.year) for t in df["pub"].dropna()})
-    years_span = (f"{pub_years[0]}–{pub_years[-1]}" if len(pub_years) > 1 else (str(pub_years[0]) if pub_years else ""))
+    years_span = (f"\u2066{pub_years[0]}–{pub_years[-1]}\u2069" if len(pub_years) > 1 else (str(pub_years[0]) if pub_years else ""))
     lede = (f"המדרך מרכז הצהרות סביבתיות מאומתות (EPD) שיצרנים מדווחים באופן וולונטרי: {n(total_prod)} מוצרים "
             f"של {n(len(producers))} יצרנים, ב-{n(total_rows)} פריטי קטלוג, "
             + (f"שפורסמו בשנים {years_span}. " if len(pub_years) > 1 else (f"שפורסמו ב-{years_span}. " if pub_years else ""))

@@ -251,7 +251,7 @@
         var v = p.data.value || p.data;
         var o = v.length > 5 ? v.slice(1) : v;
         var f = function (x) { return x.toLocaleString("he-IL"); };
-        return b.names[p.dataIndex] + "<br>חציון: " + f(o[2]) + " ק״ג<br>רבעונים: " + f(o[1]) + " עד " + f(o[3]) + "<br>אחוזון 5 עד 95: " + f(o[0]) + " עד " + f(o[4]);
+        return p.name + "<br>חציון: " + f(o[2]) + " ק״ג<br>רבעונים: " + f(o[1]) + " עד " + f(o[3]) + "<br>אחוזון 5 עד 95: " + f(o[0]) + " עד " + f(o[4]);
       } },
       grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
       xAxis: { type: "category", data: b.names },

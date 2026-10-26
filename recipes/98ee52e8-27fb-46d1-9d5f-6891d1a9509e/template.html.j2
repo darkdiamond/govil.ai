@@ -284,7 +284,7 @@
       tooltip: { trigger: "item", formatter: function (p) {
         var v = p.data.value || p.data;
         var o = v.length > 5 ? v.slice(1) : v;
-        return b.names[p.dataIndex] + "<br>חציון: " + o[2] + " שנים<br>רבעונים: " + o[1] + " עד " + o[3] + "<br>אחוזון 5 עד 95: " + o[0] + " עד " + o[4];
+        return p.name + "<br>חציון: " + o[2] + " שנים<br>רבעונים: " + o[1] + " עד " + o[3] + "<br>אחוזון 5 עד 95: " + o[0] + " עד " + o[4];
       } },
       grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
       xAxis: { type: "category", data: b.names },

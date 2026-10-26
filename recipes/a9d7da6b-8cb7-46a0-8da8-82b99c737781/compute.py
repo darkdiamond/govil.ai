@@ -526,8 +526,8 @@ def compute(frames):
                        f"גררו את פס הזמן להתמקדות בתקופה." if years_chart else ""),
         "years_aria": "תרשים עמודות מוערמות: רשומות לפי שנת התחילה וסוג.",
         "months_note": (f"היתרי קרינה, רנטגן ורעלים לפי חודש התחילה, {RECENT_MONTHS} החודשים "
-                        f"האחרונים במאגר ({months_first.month:02d}/{months_first.year}–"
-                        f"{months_last.month:02d}/{months_last.year}, {_int(n_in_window)} היתרים)."
+                        f"האחרונים במאגר (\u2066{months_first.month:02d}/{months_first.year}–"
+                        f"{months_last.month:02d}/{months_last.year}\u2069, {_int(n_in_window)} היתרים)."
                         if months_chart else ""),
         "months_aria": f"תרשים עמודות מוערמות: היתרים לפי חודש תחילה, {RECENT_MONTHS} חודשים.",
         "dur_note": (f"משך ההיתר מתאריך התחילה עד תאריך הסיום, ב-{_int(len(durd))} רשומות עם "

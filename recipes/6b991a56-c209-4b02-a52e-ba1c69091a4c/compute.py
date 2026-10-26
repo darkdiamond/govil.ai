@@ -64,7 +64,7 @@ def pct_plain(v):
 
 
 def band_label(lo, hi):
-    return f"{lo}+" if hi is None else f"{lo}–{hi}"
+    return f"{lo}+" if hi is None else f"\u2066{lo}–{hi}\u2069"
 
 
 def _prepare(df):
@@ -162,7 +162,7 @@ def insight_power(band_rows):
     rm, pm = rate(mid)
     if rs is None or rm is None or ps < MIN_BAND or pm < MIN_BAND or rm < 0.8 or rs > 0.2:
         return None
-    s = (f"בקרב הכלים המזהמים, {pct(rm * 100)} מהכלים בהספק {SMALL_MAX}–{LARGE_MAX} קילוואט "
+    s = (f"בקרב הכלים המזהמים, {pct(rm * 100)} מהכלים בהספק \u2066{SMALL_MAX}–{LARGE_MAX}\u2069 קילוואט "
          f"אינם מורשים לפעול, לעומת {pct(rs * 100)} בלבד מהכלים הקטנים מ-{SMALL_MAX} קילוואט")
     if big and big["pol"] >= 50 and big["pol_unauth"] / big["pol"] <= 0.2:
         s += (f" ואף לא אחד מ-{n(big['pol'])} הכלים המזהמים של {LARGE_MAX} קילוואט ומעלה"
@@ -338,7 +338,7 @@ def compute(frames):
         pol = sub[sub["grade"] == POLLUTING]
         band_rows.append({"band": b, "lo": lo, "hi": hi, "n": len(sub), "pol": len(pol),
                           "pol_unauth": int(pol["unauth"].sum())})
-    power = {"x": [f"{LRI}{b}{PDI}" for b in band_keys],   # isolates: keep "0–19" LTR on canvas
+    power = {"x": [f"{LRI}{b}{PDI}" for b in band_keys],   # isolates: keep "\u20660–19\u2069" LTR on canvas
              "series": [{"name": g, "data": [int(v) for v in bg[g]]} for g in keep_grades],
              "colors": [colors[order.index(g)] for g in keep_grades],
              "rate": [round(r["pol_unauth"] / r["pol"] * 100, 1) if r["pol"] else None

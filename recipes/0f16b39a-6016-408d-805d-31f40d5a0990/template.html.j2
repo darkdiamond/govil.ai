@@ -404,7 +404,7 @@
       tooltip: { trigger: "item", formatter: function (p) {
         var v = p.data.value || p.data;
         var o = v.length > 5 ? v.slice(1) : v;
-        return b.names[p.dataIndex] + "<br>חציון: " + o[2] + " כ״ס<br>רבעונים: " + o[1] + "–" + o[3] + "<br>אחוזון 5–95: " + o[0] + "–" + o[4];
+        return p.name + "<br>חציון: " + o[2] + " כ״ס<br>רבעונים: \u2066" + o[1] + "–" + o[3] + "\u2069<br>אחוזון 5 עד 95: \u2066" + o[0] + "–" + o[4] + "\u2069";
       } },
       grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", name: "כ״ס" },

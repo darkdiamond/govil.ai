@@ -66,9 +66,9 @@ COUNTRY_ALIASES = {"ויטנאם": "וייטנאם", "וייטאנם": "וייט
 ORIGIN_ALIASES = {"ביס לנהיגה": "בי״ס לנהיגה", "יוש-עזה": "יו״ש-עזה"}
 CLASS_ORDER = ["L1", "L2", "L3", "L7"]
 CLASS_DESC = {"L1": "קל", "L2": "בינוני", "L3": "כבד", "L7": "רכב זעיר"}
-CC_BINS = [(1, 50, "עד 50"), (51, 125, "51–125"), (126, 250, "126–250"),
-           (251, 400, "251–400"), (401, 600, "401–600"), (601, 900, "601–900"),
-           (901, 1200, "901–1,200"), (1201, 99999, "מעל 1,200")]
+CC_BINS = [(1, 50, "עד 50"), (51, 125, "\u206651–125\u2069"), (126, 250, "\u2066126–250\u2069"),
+           (251, 400, "\u2066251–400\u2069"), (401, 600, "\u2066401–600\u2069"), (601, 900, "\u2066601–900\u2069"),
+           (901, 1200, "\u2066901–1,200\u2069"), (1201, 99999, "מעל 1,200")]
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 
@@ -205,7 +205,7 @@ def insight_young(df, y1):
     lo = y1 - YOUNG_YEARS + 1
     share = (y >= lo).mean()
     med = int(y.median())
-    return f"{_pct(share)} מהצי הפעיל יוצרו בשנים {lo}–{y1}, ושנת הייצור החציונית היא {med}."
+    return f"{_pct(share)} מהצי הפעיל יוצרו בשנים \u2066{lo}–{y1}\u2069, ושנת הייצור החציונית היא {med}."
 
 
 def insight_ev(ev_by_year, y1, top_ev_brand):
@@ -274,7 +274,7 @@ def insight_season(season):
     hi, lo = season["hi"], season["lo"]
     if hi[1] < SEASON_RATIO / 12:
         return None
-    return (f"בשנים {season['y0']}–{season['y1']} עלו לכביש בממוצע {_pct(hi[1])} מכלי כל שנה "
+    return (f"בשנים \u2066{season['y0']}–{season['y1']}\u2069 עלו לכביש בממוצע {_pct(hi[1])} מכלי כל שנה "
             f"ב{MONTHS_HE[hi[0] - 1]}, לעומת {_pct(lo[1])} בלבד ב{MONTHS_HE[lo[0] - 1]}.")
 
 
@@ -380,7 +380,7 @@ def compute(frames):
                    "series": [{"name": _class_label(c), "data": [int(v) for v in piv[c]]} for c in classes]}
     coh = yv["year"].map(lambda y: 1985 if y < 1990 else y // 5 * 5)
     ct = yv.groupby([coh, "cls"]).size().unstack(fill_value=0).reindex(columns=classes, fill_value=0).sort_index()
-    t_years = [{"name": (f"עד {c + 4}" if c < 1990 else f"{c}–{min(c + 4, y1)}"),
+    t_years = [{"name": (f"עד {c + 4}" if c < 1990 else f"\u2066{c}–{min(c + 4, y1)}\u2069"),
                 "total": _int(ct.loc[c].sum()),
                 "cols": [_int(ct.loc[c, k]) for k in classes]} for c in ct.index]
 
@@ -412,7 +412,7 @@ def compute(frames):
         t_classes.append({
             "name": _class_label(c), "count": _int(len(sub)), "share": f"{len(sub) / n * 100:.1f}",
             "hp_med": _num(h.median()) if len(h) else "—",
-            "hp_rng": f"{_num(h.quantile(0.01))}–{_num(h.quantile(0.99))}" if len(h) else "—",
+            "hp_rng": f"\u2066{_num(h.quantile(0.01))}–{_num(h.quantile(0.99))}\u2069" if len(h) else "—",
             "cc_med": _int(cv.median()) if len(cv) else "—",
         })
 
@@ -545,7 +545,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{_int(n)} כלי רכב דו-גלגליים פעילים — אופנועים, קטנועים ותלת-אופנועים — "
-                           f"מ-{_int(n_brands)} יצרנים, שנות ייצור {y0}–{y1}. "
+                           f"מ-{_int(n_brands)} יצרנים, שנות ייצור \u2066{y0}–{y1}\u2069. "
                            f"{_pct(young_share)} מהם יוצרו ב-{YOUNG_YEARS} השנים האחרונות שבנתונים, "
                            f"והחשמליים הם {_pct(ev_cur['share'])} מכלי שנת {y1}."),
             "dataset_kind": "registry",
@@ -599,7 +599,7 @@ def compute(frames):
         "insights": insights,
         "labels": {
             "lede": (f"המאגר מונה {_int(n)} כלי רכב דו-גלגליים פעילים הרשומים במשרד התחבורה: "
-                     f"אופנועים, קטנועים, תלת-אופנועים ורכבים זעירים, שנות ייצור {y0}–{y1}. "
+                     f"אופנועים, קטנועים, תלת-אופנועים ורכבים זעירים, שנות ייצור \u2066{y0}–{y1}\u2069. "
                      f"זו תמונת הצי הפעיל היום — כלים שנגרעו מהמרשם אינם בו, ולכן שנים ותיקות "
                      f"מיוצגות חלקית."),
             "total_kpi": "כלי רכב דו-גלגליים פעילים",
@@ -610,31 +610,31 @@ def compute(frames):
             "road_note": (f"מספר הכלים הפעילים לפי {road_chart['unit']} העלייה לכביש, מ-{start_year}. "
                           f"השיא — {_m_he(peak_m)} ({_int(peak_sorted.iloc[0]) if len(peak_sorted) else 0} כלים). "
                           f"שנת העלייה לכביש זהה בנתונים לשנת הייצור.{tail_note}{partial_note}"),
-            "road_aria": f"תרשים קו: כלי רכב דו-גלגליים פעילים לפי {road_chart['unit']} עלייה לכביש, {start_year}–{last_m.year}.",
+            "road_aria": f"תרשים קו: כלי רכב דו-גלגליים פעילים לפי {road_chart['unit']} עלייה לכביש, \u2066{start_year}–{last_m.year}\u2069.",
             "heat_note": ("כל תא — מספר הכלים הפעילים שעלו לכביש באותו חודש. "
-                          + (f"בשנים {season['y0']}–{season['y1']} החודש החזק בממוצע הוא "
+                          + (f"בשנים \u2066{season['y0']}–{season['y1']}\u2069 החודש החזק בממוצע הוא "
                              f"{MONTHS_HE[season['hi'][0] - 1]} והחלש — {MONTHS_HE[season['lo'][0] - 1]}."
                              if season else "")),
-            "heat_aria": f"מפת חום: עלייה לכביש לפי חודש ושנה, {start_year}–{last_m.year}.",
-            "years_note": (f"שנות ייצור {y0}–{y1}, כל עמודה מחולקת לפי קטגוריית הכלי. "
+            "heat_aria": f"מפת חום: עלייה לכביש לפי חודש ושנה, \u2066{start_year}–{last_m.year}\u2069.",
+            "years_note": (f"שנות ייצור \u2066{y0}–{y1}\u2069, כל עמודה מחולקת לפי קטגוריית הכלי. "
                            f"{_pct(young_share)} מהצי יוצרו ב-{YOUNG_YEARS} השנים האחרונות שבנתונים."),
-            "years_aria": f"תרשים עמודות: כלי רכב פעילים לפי שנת ייצור וקטגוריה, {y0}–{y1}.",
+            "years_aria": f"תרשים עמודות: כלי רכב פעילים לפי שנת ייצור וקטגוריה, \u2066{y0}–{y1}\u2069.",
             "years_caption": "כלי רכב לפי מחזור שנות ייצור וקטגוריה.",
-            "mix_note": (f"חלקה של כל קטגוריה מכלי כל שנת ייצור, {start_year}–{y1}. "
+            "mix_note": (f"חלקה של כל קטגוריה מכלי כל שנת ייצור, \u2066{start_year}–{y1}\u2069. "
                          f"הקטגוריה נקבעת לפי ההספק: {ceil_text}; L3 — מעליהן."),
-            "mix_aria": f"תרשים שטח מוערם: חלק כל קטגוריה מכלי שנת הייצור, {start_year}–{y1}.",
+            "mix_aria": f"תרשים שטח מוערם: חלק כל קטגוריה מכלי שנת הייצור, \u2066{start_year}–{y1}\u2069.",
             "mix_caption": f"חלק כל קטגוריה (%) ב-{min(TABLE_YEARS, len(mix_years))} שנות הייצור האחרונות.",
             "classes_caption": "הקטגוריות: מספר כלים, הספק ונפח מנוע (טווח ההספק — אחוזון 1 עד 99).",
             "classes_rng_head": "טווח הספק (כ״ס)",
             "ev_note": (f"{_int(n_ev)} כלי רכב חשמליים בצי. העמודות — מספר החשמליים בכל שנת ייצור; "
                         f"הקו — חלקם מכלל כלי אותה שנה."),
-            "ev_aria": f"תרשים משולב: כלי רכב חשמליים וחלקם לפי שנת ייצור, {start_year}–{y1}.",
+            "ev_aria": f"תרשים משולב: כלי רכב חשמליים וחלקם לפי שנת ייצור, \u2066{start_year}–{y1}\u2069.",
             "ev_caption": f"חשמליים לפי שנת ייצור, {min(TABLE_YEARS, len(ev_years))} השנים האחרונות.",
             "brands_note": (f"{_int(n_brands)} יצרנים בצי. שם היצרן מאוחד מכל ארצות המפעל, "
                             f"ושמות יצרן שהוחלפו במרשם לאותן משפחות דגמים אוחדו (קואנג יאנג עם קימקו, "
                             f"אס ווי אם עם סאן יאנג)."),
             "brands_aria": f"תרשים עמודות: {TOP_BRANDS} היצרנים המובילים.",
-            "bmix_note": (f"חלקם של {MIX_BRANDS} היצרנים הגדולים מכלי כל שנת ייצור, {start_year}–{y1}. "
+            "bmix_note": (f"חלקם של {MIX_BRANDS} היצרנים הגדולים מכלי כל שנת ייצור, \u2066{start_year}–{y1}\u2069. "
                           f"לחיצה על שם יצרן במקרא מסתירה אותו."),
             "bmix_aria": f"תרשים קו: חלקם של {MIX_BRANDS} היצרנים הגדולים לפי שנת ייצור.",
             "bmix_caption": f"חלק היצרן (%) ב-{min(TABLE_YEARS, len(mix_years))} שנות הייצור האחרונות.",

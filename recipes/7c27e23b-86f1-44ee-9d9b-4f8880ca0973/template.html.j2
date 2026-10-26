@@ -199,7 +199,8 @@
       tooltip: { position: "top", confine: true, extraCssText: "max-width:280px;white-space:normal;",
         formatter: function (p) {
           var i = h.info[p.dataIndex];
-          return i.range + ": " + p.data[2] + " סמלים<br>" + i.names;
+          var esc = function (t) { return String(t).replace(/[&<>]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]; }); };
+          return esc(i.range) + ": " + p.data[2] + " סמלים<br>" + esc(i.names);
         } },
       grid: { left: 8, right: 8, top: 8, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, name: "עשרת", nameLocation: "middle", nameGap: 24, axisLabel: { fontSize: 10, interval: 0 } },

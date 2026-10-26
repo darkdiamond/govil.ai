@@ -219,7 +219,7 @@ def insight_young(years, y_ref):
         return None
     lo = y_ref - YOUNG_YEARS + 1
     share = (years >= lo).mean()
-    return (f"הצי צעיר: {_pct(share)} מהכלים יוצרו בשנים {lo}–{y_ref}, "
+    return (f"הצי צעיר: {_pct(share)} מהכלים יוצרו בשנים \u2066{lo}–{y_ref}\u2069, "
             f"ושנת הייצור החציונית היא {int(years.median())}.")
 
 
@@ -270,8 +270,8 @@ def insight_china(cn_share, y_cmp):
         return None
     word = "עלה" if cur["share"] > old["share"] else "ירד"
     return (f"חלקם של האוטובוסים (כולל זעירים) מתוצרת סין {word} מ-{_pct(old['share'])} "
-            f"מכלי שנות הייצור {y_cmp - SHIFT_SPAN - w}–{y_cmp - SHIFT_SPAN} "
-            f"ל-{_pct(cur['share'])} מכלי השנים {y_cmp - w}–{y_cmp}.")
+            f"מכלי שנות הייצור \u2066{y_cmp - SHIFT_SPAN - w}–{y_cmp - SHIFT_SPAN}\u2069 "
+            f"ל-{_pct(cur['share'])} מכלי השנים \u2066{y_cmp - w}–{y_cmp}\u2069.")
 
 
 def insight_expired(exp):
@@ -371,7 +371,7 @@ def compute(frames):
     tail_years = axis_years[-TABLE_YEARS:]
     if len(axis_years) > TABLE_YEARS:
         mid = piv_main.loc[axis_years[0]:axis_years[-TABLE_YEARS - 1]].sum()
-        t_years.append({"name": f"{axis_years[0]}–{axis_years[-TABLE_YEARS - 1]}", "total": _int(mid.sum()),
+        t_years.append({"name": f"\u2066{axis_years[0]}–{axis_years[-TABLE_YEARS - 1]}\u2069", "total": _int(mid.sum()),
                         "cols": [_int(mid[s]) for s in segs]})
     for y in tail_years:
         t_years.append({"name": str(y), "total": _int(piv_main.loc[y].sum()),
@@ -542,8 +542,8 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{_int(n)} כלי רכב ציבוריים — {_int(taxi_n)} מוניות לצד אוטובוסים "
-                           f"ואוטובוסים זעירים — שנות ייצור {y0}–{y1}. "
-                           f"{_pct(young_share)} מהם יוצרו בשנים {y_cmp - YOUNG_YEARS + 1}–{y_cmp}, "
+                           f"ואוטובוסים זעירים — שנות ייצור \u2066{y0}–{y1}\u2069. "
+                           f"{_pct(young_share)} מהם יוצרו בשנים \u2066{y_cmp - YOUNG_YEARS + 1}–{y_cmp}\u2069, "
                            f"והם מציעים יחד {_int(total_seats)} מקומות ישיבה."),
             "dataset_kind": "registry",
             "related_ids": [
@@ -598,7 +598,7 @@ def compute(frames):
         "labels": {
             "lede": (f"המאגר מונה {_int(n)} כלי רכב ציבוריים הרשומים במשרד התחבורה — מוניות, "
                      f"מוניות שירות, אוטובוסים זעירים ואוטובוסים עירוניים, בין-עירוניים, להסעות ולסיורים — "
-                     f"שנות ייצור {y0}–{y1}. {_int(n_canc)} מהרשומות ({_pct(n_canc / n)}) כבר נושאות "
+                     f"שנות ייצור \u2066{y0}–{y1}\u2069. {_int(n_canc)} מהרשומות ({_pct(n_canc / n)}) כבר נושאות "
                      f"סימון ביטול, והן נכללות בספירות ומוצגות בנפרד בפרק מצב הרישום."),
             "total_kpi": "כלי רכב ציבוריים בקובץ",
             "seats_kpi": "מקומות ישיבה לנוסעים",
@@ -610,9 +610,9 @@ def compute(frames):
                            f"הגודל של רוב הכלים בסוג. מקומות הישיבה כוללים את המושבים שליד הנהג."),
             "types_aria": f"תרשים עמודות: כלי רכב ציבוריים לפי סוג, {len(t_names)} קטגוריות.",
             "years_note": (f"כל עמודה — הכלים משנת ייצור אחת, לפי קטגוריית הגודל. "
-                           f"{_pct(young_share)} מהצי יוצרו בשנים {y_cmp - YOUNG_YEARS + 1}–{y_cmp}."
+                           f"{_pct(young_share)} מהצי יוצרו בשנים \u2066{y_cmp - YOUNG_YEARS + 1}–{y_cmp}\u2069."
                            f"{partial_note}"),
-            "years_aria": f"תרשים עמודות מוערם: כלי רכב לפי שנת ייצור וקטגוריה, {y0}–{y1}.",
+            "years_aria": f"תרשים עמודות מוערם: כלי רכב לפי שנת ייצור וקטגוריה, \u2066{y0}–{y1}\u2069.",
             "years_caption": "כלי רכב לפי שנת ייצור וקטגוריית גודל.",
             "box_note": (f"שנת הייצור בכל סוג שיש בו לפחות {BOX_MIN} כלים, מהוותיק לחדש. "
                          f"התיבה — רבעון תחתון עד עליון, הקו — החציון, השפמים — אחוזון 5 עד 95."),
@@ -632,7 +632,7 @@ def compute(frames):
             "country_note": (f"ארץ המפעל של האוטובוסים והאוטובוסים הזעירים, כחלק מכלי כל שנת ייצור. "
                              f"בכלל הצי הזה {_pct(bus_cn_all)} מתוצרת סין. ארץ המפעל נגזרת מסיומת שם היצרן "
                              f"במרשם."),
-            "country_aria": f"תרשים שטח מוערם: ארץ הייצור של האוטובוסים לפי שנת ייצור, {c_years[0] if c_years else y0}–{y1}.",
+            "country_aria": f"תרשים שטח מוערם: ארץ הייצור של האוטובוסים לפי שנת ייצור, \u2066{c_years[0] if c_years else y0}–{y1}\u2069.",
             "country_caption": f"חלק כל ארץ (%) ב-{min(TABLE_YEARS, len(c_years))} שנות הייצור האחרונות.",
             "seats_note": (f"מקומות הישיבה לנוסעים בכל כלי, כולל המושבים שליד הנהג. חציון: "
                            + "; ".join(f"{SEG_NAME.get(s, s)} {_int(seg_seat_med[s])}" for s in segs)

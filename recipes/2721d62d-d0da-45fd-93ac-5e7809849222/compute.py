@@ -129,11 +129,11 @@ def insight_decade(per_year, last_full):
     va, vb = int(a.sum()), int(b.sum())
     ch = va / vb - 1
     if abs(ch) < 0.05:
-        return (f"בעשור {last_full - 9}–{last_full} נרשמו {n(va)} רישיונות רופא, בדומה לעשור "
+        return (f"בעשור \u2066{last_full - 9}–{last_full}\u2069 נרשמו {n(va)} רישיונות רופא, בדומה לעשור "
                 f"שקדם לו ({n(vb)}).")
     word = f"פי {va / vb:.1f} מאשר" if ch >= 0.5 else ("יותר מאשר" if ch > 0 else "פחות מאשר")
-    return (f"בעשור {last_full - 9}–{last_full} נרשמו {n(va)} רישיונות רופא — {word} בעשור "
-            f"{last_full - 19}–{last_full - 10} ({n(vb)}).")
+    return (f"בעשור \u2066{last_full - 9}–{last_full}\u2069 נרשמו {n(va)} רישיונות רופא — {word} בעשור "
+            f"\u2066{last_full - 19}–{last_full - 10}\u2069 ({n(vb)}).")
 
 
 def insight_waves(per_year, last_full):
@@ -173,7 +173,7 @@ def insight_young(docs, asof):
     if share < 0.25:
         return None
     return (f"המרשם צעיר: {n(recent)} מתוך {n(tot)} הרופאים במאגר ({pct(share * 100)}) קיבלו "
-            f"רישיון ב-{asof.year - 9}–{asof.year}.")
+            f"רישיון ב-\u2066{asof.year - 9}–{asof.year}\u2069.")
 
 
 def insight_leader(doc_spec, n_specialists):
@@ -210,10 +210,10 @@ def insight_pipeline(docs, first_gap, asof):
     if len(g) < 200:
         return None
     rec = docs[docs["ly"] > asof.year - 5]
-    s = (f"מבין הרופאים שקיבלו רישיון ב-{lo}–{hi}, {pct(share * 100)} רשומים כיום כבעלי התמחות, "
+    s = (f"מבין הרופאים שקיבלו רישיון ב-\u2066{lo}–{hi}\u2069, {pct(share * 100)} רשומים כיום כבעלי התמחות, "
          f"ובחציון עברו {g.median():.1f} שנים מהרישיון ועד תעודת ההתמחות הראשונה")
     if len(rec) >= 200:
-        s += (f"; בקרב מי שקיבלו רישיון ב-{asof.year - 4}–{asof.year} השיעור הוא {pct(rec['has'].mean() * 100)} "
+        s += (f"; בקרב מי שקיבלו רישיון ב-\u2066{asof.year - 4}–{asof.year}\u2069 השיעור הוא {pct(rec['has'].mean() * 100)} "
               f"בלבד — רובם עדיין בשלבי התמחות")
     return s + "."
 
@@ -338,7 +338,7 @@ def compute(frames):
             continue
         g = first[(first["ly"] >= p) & (first["ly"] < p + 5) & (first["gap"] >= 0)]["gap"]
         hi_y = min(p + 4, last)
-        cohorts.append({"name": f"{p}–{hi_y}" if hi_y > p else str(p), "count": len(c),
+        cohorts.append({"name": f"\u2066{p}–{hi_y}\u2069" if hi_y > p else str(p), "count": len(c),
                         "share": round(c["has"].mean() * 100, 1),
                         "med": round(float(g.median()), 1) if len(g) >= 20 and p + 4 <= mature_to else None})
     charts["cohorts"] = {"x": [c["name"] for c in cohorts], "count": [c["count"] for c in cohorts],
@@ -386,8 +386,8 @@ def compute(frames):
         if o >= 30:
             rise.append({"name": s, "new": int(v), "old": o, "ch": v / o - 1})
     rise.sort(key=lambda r: (-r["ch"], r["name"]))
-    w_new = f"{wn[0]}–{wn[1]}"
-    w_old = f"{wo[0]}–{wo[1]}"
+    w_new = f"\u2066{wn[0]}–{wn[1]}\u2069"
+    w_old = f"\u2066{wo[0]}–{wo[1]}\u2069"
     charts["rise"] = {"names": [r["name"] for r in rise][::-1], "old": [r["old"] for r in rise][::-1],
                       "new": [r["new"] for r in rise][::-1], "w_old": w_old, "w_new": w_new}
 
@@ -402,7 +402,7 @@ def compute(frames):
     plabels = []
     for p in mt.index:
         hi_y = min(p + 4, last)
-        lab = f"{p}–{hi_y}" if hi_y > p else str(p)
+        lab = f"\u2066{p}–{hi_y}\u2069" if hi_y > p else str(p)
         if hi_y == last and partial:
             lab += "*"
         plabels.append(lab)
@@ -480,13 +480,13 @@ def compute(frames):
         "share_kpi": "שיעור בעלי התמחות",
         "fields_kpi": "תחומי התמחות",
         "median_kpi": f"שנים בחציון מרישיון להתמחות ראשונה (רישיונות עד {mature_to})",
-        "years_note": (f"רישיונות רופא חדשים ותעודות התמחות לפי שנת רישום, {y0}–{last}"
+        "years_note": (f"רישיונות רופא חדשים ותעודות התמחות לפי שנת רישום, \u2066{y0}–{last}\u2069"
                        + (f" ({last} חלקית, עד {asof_s})" if partial else "")
                        + (f". {n(early)} רישיונות מלפני {y0} אינם מוצגים בגרף" if early else "")
                        + f". שנת השיא המלאה ברישוי: {peak_y} ({n(per_year.get(peak_y, 0))})."),
         "years_aria": (f"גרף עמודות וקו: רישיונות רופא ותעודות התמחות לפי שנה, {y0} עד {last}. "
                        f"שיא ברישוי ב-{peak_y}."),
-        "heat_note": (f"רישיונות חדשים לפי חודש רישום, {hy[0]}–{last}. החודש העמוס ביותר בתקופה: "
+        "heat_note": (f"רישיונות חדשים לפי חודש רישום, \u2066{hy[0]}–{last}\u2069. החודש העמוס ביותר בתקופה: "
                       f"{MONTHS_HE[peak_m - 1]} ({n(peak_v)} רישיונות, {pct(peak_v / max(int(mon.sum()), 1) * 100)})."),
         "heat_aria": f"מפת חום: רישיונות רופא לפי חודש ושנה, {hy[0]} עד {last}.",
         "specs_note": (f"{TOP_SPECS} תחומי ההתמחות עם מספר הרופאים הגדול ביותר, מתוך {n(n_fields)} תחומים. "

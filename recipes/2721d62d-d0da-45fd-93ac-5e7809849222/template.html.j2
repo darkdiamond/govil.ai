@@ -322,7 +322,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return g.names[i] + "<br>חציון: " + g.med[i] + " שנים<br>רבעונים: " + g.q1[i] + "–" + (Math.round((g.q1[i] + g.span[i]) * 10) / 10);
+        return ps[0].axisValue + "<br>חציון: " + g.med[i] + " שנים<br>רבעונים: \u2066" + g.q1[i] + "–" + (Math.round((g.q1[i] + g.span[i]) * 10) / 10) + "\u2069";
       } },
       grid: { left: 16, right: 24, top: 8, bottom: 32, containLabel: true },
       xAxis: { type: "value", name: "שנים", nameLocation: "middle", nameGap: 24, splitNumber: 4 },

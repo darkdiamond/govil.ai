@@ -585,10 +585,10 @@ def compute(frames):
                          + (f" עבור {prods(h_counts.get(UNSPEC, 0))} לא צוין בעל הרישום." if h_counts.get(UNSPEC, 0) else "")),
         "holders_aria": f"תרשים עמודות מוערמות של מספר התכשירים לפי בעל רישום וקהל מורשה, {n(len(hb_order))} שורות",
         "holders_caption": "תכשירים לפי בעל רישום",
-        "expiry_note": ((f"שנת פקיעת תוקף הרישום של כל תכשיר, {y0}–{y1}." if y0 is not None else "")
+        "expiry_note": ((f"שנת פקיעת תוקף הרישום של כל תכשיר, \u2066{y0}–{y1}\u2069." if y0 is not None else "")
                         + (f" עבור {prods(exp_bad)} אין תאריך תקין." if exp_bad else "")
                         + " לפני שימוש כדאי לוודא שהרישום עדיין בתוקף."),
-        "expiry_aria": (f"תרשים עמודות של מספר התכשירים לפי שנת פקיעת הרישום, {y0}–{y1}" if y0 is not None
+        "expiry_aria": (f"תרשים עמודות של מספר התכשירים לפי שנת פקיעת הרישום, \u2066{y0}–{y1}\u2069" if y0 is not None
                         else "תרשים עמודות של שנת פקיעת הרישום"),
         "expiry_caption": "תכשירים לפי שנת פקיעת הרישום",
         "products_caption": (f"{n(len(top_products))} התכשירים הרשומים נגד המספר הגדול ביותר של מזיקים."),

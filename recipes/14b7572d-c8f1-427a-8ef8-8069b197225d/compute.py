@@ -427,7 +427,7 @@ def compute(frames):
                  "label": f"מהמשתלות נמצאו נגועות לפחות פעם אחת ({n(ever)} משתלות)"},
     }
 
-    period = f"{first_year}–{last.year}"
+    period = f"\u2066{first_year}–{last.year}\u2069"
     last_he = f"{last.day} ב{MONTHS_HE[last.month - 1]} {last.year}"
     bad_note = ("" if not n_bad else " בדיקה אחת עם תאריך או תוצאה לא תקינים לא נכללה בניתוח."
                 if n_bad == 1 else f" {n(n_bad)} בדיקות עם תאריך או תוצאה לא תקינים לא נכללו בניתוח.")
