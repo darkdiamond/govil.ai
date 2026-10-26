@@ -1,0 +1,34 @@
+{
+  "contract_version": 1,
+  "dataset_id": "840827c2-7420-4687-9f2a-62aeb5602c11",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:27:14.372612+00:00",
+    "rows": { "fleet": 66292 }
+  },
+  "inputs": [
+    {
+      "name": "fleet",
+      "by_id": "cf29862d-ca25-4691-84f6-1be60dcb4a1e",
+      "required_columns": [
+        "sug_rechev_nm",
+        "shnat_yitzur",
+        "mishkal_kolel",
+        "tozeret_nm",
+        "tzeva_rechev",
+        "degem_nm",
+        "kinuy_mishari",
+        "sug_rechev_EU_cd",
+        "bitul_cd",
+        "bitul_nm",
+        "bitul_dt",
+        "tokef_dt",
+        "mispar_mekomot",
+        "mispar_mekomot_leyd_nahag"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

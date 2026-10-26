@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "aa55c19d-afdd-4ff4-8b1e-1cb0d59d2b26",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T07:03:02.760263+00:00",
+    "rows": {
+      "guides": 8509
+    }
+  },
+  "inputs": [
+    {
+      "name": "guides",
+      "by_id": "8c1775ab-ca3c-4891-85f7-43ee24c585df",
+      "required_columns": [
+        "TGLicense",
+        "TGName",
+        "TGLanguage",
+        "new_tour_guide_rechev_echkol",
+        "EmailAddress",
+        "new_tour_guide_phone_1",
+        "new_tour_guide_phone_2",
+        "new_tourguide_telephone3"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

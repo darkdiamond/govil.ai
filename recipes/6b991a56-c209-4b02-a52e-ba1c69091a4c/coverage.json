@@ -1,0 +1,12 @@
+{
+  "grades.mispar_tzama": "skip: per-machine equipment number — a lookup identifier, never shown",
+  "grades.mispar_shilda": "skip: chassis serial number — a lookup identifier, never shown",
+  "grades.shnat_yitzur": "chart-grade-year, chart-auth-year, chart-age, insight:last_polluting, insight:age",
+  "grades.sug_tzama_nm": "chart-types, insight:type",
+  "grades.power_engine_kilowalt": "chart-power, insight:power — 0 means not recorded and is excluded from the power chart (disclosed)",
+  "grades.hanaa_nm": "chart-flow, insight:last_polluting",
+  "grades.yatzran": "chart-makers, insight:maker",
+  "grades.dargat_zihum_avir": "chart-grades, chart-flow, chart-grade-year, chart-power, chart-types, chart-makers, kpi:polluting, kpi:low, insight:polluting",
+  "grades.hutkan_mesanen_helkikim": "insight:filter — only a handful of machines flagged, so a note and an insight rather than a chart",
+  "grades.murshe_peelut": "chart-flow, chart-auth-year, chart-power, chart-age, kpi:unauth, insight:unauth"
+}

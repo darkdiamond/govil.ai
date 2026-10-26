@@ -1,0 +1,290 @@
+<h1>שמאי רכב</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">שמאי רכב מורשים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים עם שמאי רשום</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.top10.tone }} mb-1" dir="ltr">{{ model.kpis.top10.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.top10_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.single.tone }} mb-1" dir="ltr">{{ model.kpis.single.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.single_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים במספר שמאי רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">שמאים</th><th scope="col">שיעור מהשמאים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מידת הריכוז בין היישובים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.curve_note }}</p>
+    <div id="chart-curve" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.curve_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.curve_caption }}</caption>
+        <thead><tr><th scope="col">היישובים המובילים</th><th scope="col">שיעור מצטבר מהשמאים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.curve %}
+          <tr><th scope="row">{{ r.k }}</th><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים לפי מספר השמאים בהם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.buckets_note }}</p>
+    <div id="chart-buckets" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.buckets_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.buckets_caption }}</caption>
+        <thead><tr><th scope="col">שמאים ביישוב</th><th scope="col">יישובים</th><th scope="col">שמאים</th><th scope="col">שיעור מהשמאים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.buckets %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.cities }}</td><td>{{ r.people }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק לפי מספרי הרישיון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cohorts_note }}</p>
+  <div id="chart-cohorts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cohorts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cohorts_caption }}</caption>
+      <thead><tr><th scope="col">טווח מספרי רישיון</th><th scope="col">במרשם</th><th scope="col">שיעור מהטווח</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cohorts %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.listed }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן הרישיונות חדשים יותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.newer_note }}</p>
+  <div id="chart-newer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.newer_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.newer_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">שמאים</th><th scope="col">רישיון חדש יחסית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.newer %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<p class="text-sm text-subtle mb-3">{{ model.labels.names_note }}</p>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות המשפחה הנפוצים</h2>
+    </div>
+    <div id="chart-surnames" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.surnames_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.surnames_caption }}</caption>
+        <thead><tr><th scope="col">שם משפחה</th><th scope="col">שמאים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.surnames %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">השמות הפרטיים הנפוצים</h2>
+    </div>
+    <div id="chart-firsts" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.firsts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.firsts_caption }}</caption>
+        <thead><tr><th scope="col">שם פרטי</th><th scope="col">שמאים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.firsts %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">שמאי רכב מורשים להערכת נזק לרכב בפיקוח ואישור משרד התחבורה. על השמאי חלה החובה לקבוע, טרם תחילת תיקון הרכב, את שיעור הנזק הגולמי שנגרם לו וכנגזר ממנו עליו לפעול.</p>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "שמאים");
+    hbar("chart-surnames", {{ model.charts.surnames | tojson }}, "שמאים");
+    hbar("chart-firsts", {{ model.charts.firsts | tojson }}, "שמאים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var k = {{ model.charts.curve | tojson }};
+    var c = echarts.init(document.getElementById("chart-curve"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        return (i + 1) + " יישובים (עד " + k.names[i] + "): " + k.y[i] + "%";
+      } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: k.x, name: "יישובים", axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור מצטבר", data: k.y, showSymbol: false,
+                 areaStyle: { opacity: 0.12 }, lineStyle: { width: 2 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var b = {{ model.charts.buckets | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-buckets"));
+    c2.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: b.names, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+      yAxis: [{ type: "value", name: "יישובים" }, { type: "value", name: "שמאים", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "יישובים", data: b.cities },
+        { type: "bar", name: "שמאים", yAxisIndex: 1, data: b.people }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.cohorts | tojson }};
+    var c = echarts.init(document.getElementById("chart-cohorts"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: h.names, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "total", name: "במרשם", data: h.listed },
+        { type: "bar", stack: "total", name: "אינם במרשם", data: h.missing }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var s = {{ model.charts.newer | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-newer"));
+    c2.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [{
+        type: "bar", name: "רישיון חדש יחסית",
+        data: s.values.map(function (v, i) {
+          return { value: v, itemStyle: { color: s.groups[i] === "high" ? "#0068f5" : "#0b3668" } };
+        }),
+        markLine: { symbol: "none", silent: true, label: { show: false },
+                    lineStyle: { type: "dashed", color: "#6c757d" }, data: [{ xAxis: 50 }] }
+      }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>

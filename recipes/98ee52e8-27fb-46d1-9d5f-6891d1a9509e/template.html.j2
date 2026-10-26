@@ -1,0 +1,335 @@
+<h1>כלי רכב שמותקנים בהם מסננים לצמצום פליטת מזהמים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.peak.tone }} mb-1" dir="ltr">{{ model.kpis.peak.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.peak_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.age.tone }} mb-1" dir="ltr">{{ model.kpis.age.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.age_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.vintage.tone }} mb-1" dir="ltr">{{ model.kpis.vintage.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.vintage_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro simple_table(rows, caption, head, val, share="שיעור (%)") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ val }}</th><th scope="col">{{ share }}</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התקנות לאורך זמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tl_note }}</p>
+  <div id="chart-timeline" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.tl_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קטגוריית הרכב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cats_note }}</p>
+    <div id="chart-cats" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cats_aria }}"></div>
+    {{ simple_table(model.tables.cats, model.labels.cats_aria, "קטגוריה", "כלי רכב") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התקנות לפי שנה וקטגוריה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yc_note }}</p>
+    <div id="chart-yearcat" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yc_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.yc_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">סך הכול</th>{% for c in model.tables.cat_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.year_cat %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.cols %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גלי ההתקנה בכל קטגוריה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wave_note }}</p>
+  <div id="chart-wave" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.wave_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שנת הייצור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.my_note }}</p>
+  <div id="chart-makeyear" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.my_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל הרכב בעת ההתקנה לפי קטגוריה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_note }}</p>
+    <div id="chart-age" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.age_aria }}</caption>
+        <thead><tr><th scope="col">קטגוריה</th><th scope="col">כלי רכב</th><th scope="col">{{ model.labels.q5_head }}</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">{{ model.labels.q95_head }}</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.box %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.q5 }}</td><td>{{ r.q1 }}</td><td>{{ r.med }}</td><td>{{ r.q3 }}</td><td>{{ r.q95 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות הגיל בעת ההתקנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.agehist_note }}</p>
+    <div id="chart-agehist" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.agehist_aria }}"></div>
+    {{ simple_table(model.tables.agehist, model.labels.agehist_caption, "גיל (שנים)", "כלי רכב") }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מהייצור ועד הרישום הראשון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_note }}</p>
+    <div id="chart-lag" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+    {{ simple_table(model.tables.lag, model.labels.lag_aria, "רישום ראשון", "כלי רכב") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יום ההתקנה בשבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wd_note }}</p>
+    <div id="chart-weekday" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wd_aria }}"></div>
+    {{ simple_table(model.tables.weekday, model.labels.wd_aria, "יום", "התקנות") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התאריכים העמוסים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.days_note }}</p>
+  <div id="chart-days" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.days_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.days_aria }}</caption>
+      <thead><tr><th scope="col">תאריך</th><th scope="col">התקנות</th><th scope="col">שיעור מכלל ההתקנות (%)</th><th scope="col">קטגוריה עיקרית</th><th scope="col">שיעורה ביום זה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.days %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.cat }}</td><td>{{ r.cat_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.timeline | tojson }};
+    var c = echarts.init(document.getElementById("chart-timeline"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 8, right: 8, top: 36, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [{ type: "value", name: "התקנות" },
+              { type: "value", max: 100, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 18 }],
+      series: [
+        { type: "bar", name: "התקנות", data: d.y },
+        { type: "line", name: "שיעור מצטבר", yAxisIndex: 1, data: d.cum, showSymbol: false,
+          lineStyle: { color: "#0b3668", width: 2 }, itemStyle: { color: "#0b3668" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cats | tojson }};
+    var c = echarts.init(document.getElementById("chart-cats"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 2, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "כלי רכב", data: d.values.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var CAT = [P[0], P[2], P[5], P[1], P[6], P[7], P[3], P[4], P[8], P[9]];
+    function stacked(id, d, zoom) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: CAT,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0, type: "scroll" },
+        grid: { left: 8, right: 8, top: 36, bottom: zoom ? 56 : 16, containLabel: true },
+        xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "value" },
+        dataZoom: zoom ? [{ type: "inside" }, { type: "slider", bottom: 8, height: 18 }] : [],
+        series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-yearcat", {{ model.charts.year_cat | tojson }}, false);
+    stacked("chart-makeyear", {{ model.charts.make_year | tojson }}, true);
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.wave | tojson }};
+    var P = window.GOVIL_PALETTE;
+    var c = echarts.init(document.getElementById("chart-wave"));
+    c.setOption(window.GovEcharts.option({
+      color: [P[0], P[2], P[5], P[1], P[6], P[7], P[3], P[4], P[8], P[9]],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 8, right: 8, top: 36, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 18 }],
+      series: d.series.map(function (s) { return { type: "line", name: s.name, data: s.data, showSymbol: false }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var b = {{ model.charts.box | tojson }};
+    var c = echarts.init(document.getElementById("chart-age"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.data.value || p.data;
+        var o = v.length > 5 ? v.slice(1) : v;
+        return b.names[p.dataIndex] + "<br>חציון: " + o[2] + " שנים<br>רבעונים: " + o[1] + " עד " + o[3] + "<br>אחוזון 5 עד 95: " + o[0] + " עד " + o[4];
+      } },
+      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: b.names },
+      yAxis: { type: "value", name: "שנים" },
+      series: [{ type: "boxplot", name: "גיל בהתקנה", data: b.data,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function bars(id, d, name, rotate) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 8, top: 16, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: rotate, fontSize: 11 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-agehist", {{ model.charts.agehist | tojson }}, "כלי רכב", 0);
+    bars("chart-weekday", {{ model.charts.weekday | tojson }}, "התקנות", 0);
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 2, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-days", {{ model.charts.days | tojson }}, "התקנות");
+    hbar("chart-lag", {{ model.charts.lag | tojson }}, "כלי רכב");
+  })();
+</script>

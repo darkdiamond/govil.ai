@@ -1,0 +1,458 @@
+<h1>עיצומים כספיים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">עיצומים במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.final.tone }} mb-1" dir="ltr">{{ model.kpis.final.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.final_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cut.tone }} mb-1" dir="ltr">{{ model.kpis.cut.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cut_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.open.tone }} mb-1" dir="ltr">{{ model.kpis.open.display }}</div>
+    <div class="text-sm text-subtle">הליכים משפטיים פתוחים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עיצומים לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">עיצומים</th><th scope="col">סכום לאחר הפחתה (₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.count }}</td><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קצב האכיפה לפי רבעון וחוק</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.q_note }}</p>
+  <div id="chart-quarters" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.q_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">לפי החוק שהופר: מספר מול סכום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.law_note }}</p>
+  <div class="grid grid-cols-1 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-sm font-semibold text-ink-deep">מספר עיצומים</h3>
+      <div id="chart-law-count" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.law_count_aria }}"></div>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-sm font-semibold text-ink-deep">סכום (מיליון ₪)</h3>
+      <div id="chart-law-amount" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.law_amt_aria }}"></div>
+    </div>
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.law_caption }}</caption>
+        <thead><tr><th scope="col">חוק</th><th scope="col">עיצומים</th><th scope="col">סכום מקורי (₪)</th><th scope="col">לאחר הפחתה (₪)</th><th scope="col">הפחתה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.law %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.orig }}</td><td>{{ r.final }}</td><td dir="ltr">{{ r.cut }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כל עיצום על ציר הזמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sc_note }}</p>
+  <div id="chart-scatter" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sc_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המפרים בסכום הגבוה ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+        <thead><tr><th scope="col">מפר</th><th scope="col">חוק</th><th scope="col">עיצומים</th><th scope="col">סכום לאחר הפחתה (₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.top %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.law }}</td><td>{{ r.count }}</td><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג עיסוק המפר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.occ_note }}</p>
+    <div id="chart-occ" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.occ_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.occ_caption }}</caption>
+        <thead><tr><th scope="col">סוג עיסוק</th><th scope="col">עיצומים</th><th scope="col">סכום (₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.occ %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מפרים חוזרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rep_note }}</p>
+    <div id="chart-repeat" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.rep_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rep_caption }}</caption>
+        <thead><tr><th scope="col">עיצומים למפר</th><th scope="col">מפרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.repeat %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור ההפחתה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ded_note }}</p>
+    <div id="chart-ded" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.ded_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ded_caption }}</caption>
+        <thead><tr><th scope="col">שיעור הפחתה</th><th scope="col">עיצומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ded %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נימוקי ההפחתה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reasons_note }}</p>
+    <div id="chart-reasons" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.reasons_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.reasons_caption }}</caption>
+        <thead><tr><th scope="col">נימוק</th><th scope="col">עיצומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.reasons %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ההפרות השכיחות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.det_note }}</p>
+  <div id="chart-details" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.det_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.det_caption }}</caption>
+        <thead><tr><th scope="col">תיאור ההפרה</th><th scope="col">חוק</th><th scope="col">עיצומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.details %}
+          <tr><th scope="row">{{ r.detail }}</th><td>{{ r.law }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סטטוס משפטי לפי חוק</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ap_note }}</p>
+    <div id="chart-appeal" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.ap_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.ap_caption }}</caption>
+          <thead><tr><th scope="col">חוק</th><th scope="col">עיצומים</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>
+{%- for r in model.tables.appeal %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.shares %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הליכים לפי בית משפט</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.court_note }}</p>
+    <div id="chart-courts" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.court_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.court_caption }}</caption>
+        <thead><tr><th scope="col">בית משפט</th><th scope="col">הליכים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.courts %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">העיצום הכספי הוא אמצעי רגולטורי בהליך המנהלי, המעניק סמכות לעובד ברשות מנהלית להטיל קנס כספי בסכומים גבוהים על מי שמפר את הוראות החוק. יתרונותיו של העיצום הכספי הם יעילות, זריזות, חיסכון במשאבים ומידתיות בין המעשה לבין העונש. יעילותו ומהירותו יכולה לשמש גורם מרתיע ולהביא לצמצום השכיחות של הפרת החוק.</p>
+</section>
+
+<script>
+  (function () {
+    function fmtM(v) { return v.toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליון ₪"; }
+
+    var y = {{ model.charts.years | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-years"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: y.x, axisLabel: { fontSize: 11 } },
+      yAxis: [{ type: "value", name: "עיצומים" },
+              { type: "value", name: "מיליון ₪", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "עיצומים", data: y.count },
+        { type: "line", name: "סכום לאחר הפחתה", yAxisIndex: 1, data: y.amount,
+          tooltip: { valueFormatter: fmtM } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var q = {{ model.charts.quarters | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-quarters"));
+    var qs = q.series.map(function (s) {
+      return { type: "bar", stack: "n", name: s.name, data: s.data };
+    });
+    qs.push({ type: "line", name: "סכום לאחר הפחתה", yAxisIndex: 1, data: q.amount,
+              itemStyle: { color: "#0c3058" }, tooltip: { valueFormatter: fmtM } });
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 56, bottom: 56, containLabel: true },
+      dataZoom: [{ type: "inside", startValue: q.zoom_from },
+                 { type: "slider", bottom: 8, height: 18, startValue: q.zoom_from }],
+      xAxis: { type: "category", data: q.x, axisLabel: { fontSize: 10 } },
+      yAxis: [{ type: "value", name: "עיצומים" },
+              { type: "value", name: "מיליון ₪", splitLine: { show: false } }],
+      series: qs
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var l = {{ model.charts.law | tojson }};
+    var lab = { width: 170, overflow: "truncate", fontSize: 11 };
+    var c1 = echarts.init(document.getElementById("chart-law-count"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: l.names, inverse: true, axisLabel: lab },
+      series: [{ type: "bar", name: "עיצומים", data: l.count }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var c2 = echarts.init(document.getElementById("chart-law-amount"));
+    c2.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v.toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליון ₪"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: l.names, inverse: true, axisLabel: lab },
+      series: [{ type: "bar", stack: "a", name: "לאחר הפחתה", data: l.final },
+               { type: "bar", stack: "a", name: "הפחתה", data: l.cut }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var s = {{ model.charts.scatter | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-scatter"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.seriesName + "<br>" + p.value[0] + ": " + Math.round(p.value[1]).toLocaleString("he-IL") + " ₪";
+      } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 18 }],
+      xAxis: { type: "time" },
+      yAxis: { type: "log", name: "₪", axisLabel: { formatter: function (v) {
+        return v >= 1e6 ? (v / 1e6) + " מ׳" : (v >= 1e3 ? (v / 1e3) + " א׳" : v);
+      } } },
+      series: s.series.map(function (x) {
+        return { type: "scatter", name: x.name, data: x.data, symbolSize: 7,
+                 itemStyle: { opacity: 0.75 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, opts) {
+      opts = opts || {};
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: opts.fmt },
+        grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: opts.w || 120, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+      return x;
+    }
+    hbar("chart-top", {{ model.charts.top | tojson }}, "סכום לאחר הפחתה",
+         { w: 140, fmt: function (v) { return v.toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליון ₪"; } });
+    hbar("chart-occ", {{ model.charts.occ | tojson }}, "עיצומים");
+    hbar("chart-reasons", {{ model.charts.reasons | tojson }}, "עיצומים", { w: 140 });
+    hbar("chart-courts", {{ model.charts.courts | tojson }}, "הליכים");
+
+    var dt = {{ model.charts.details | tojson }};
+    var cd = echarts.init(document.getElementById("chart-details"));
+    cd.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return "<div style=\"max-width:260px;white-space:normal\">" + dt.full[i] + "<br>" + dt.laws[i] +
+               ": " + p.value.toLocaleString("he-IL") + " עיצומים</div>";
+      } },
+      grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: dt.names, inverse: true,
+               axisLabel: { width: 150, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "עיצומים", data: dt.values }]
+    }));
+    window.addEventListener("resize", function () { cd.resize(); });
+
+    hbar("chart-ded", {{ model.charts.ded | tojson }}, "עיצומים");
+    hbar("chart-repeat", {{ model.charts.repeat | tojson }}, "מפרים");
+
+    var a = {{ model.charts.appeal | tojson }};
+    var ca = echarts.init(document.getElementById("chart-appeal"));
+    ca.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: a.names, inverse: true,
+               axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+      series: a.series.map(function (s) {
+        var o = { type: "bar", stack: "t", name: s.name, data: s.data };
+        if (s.color) { o.itemStyle = { color: s.color }; }
+        return o;
+      })
+    }));
+    window.addEventListener("resize", function () { ca.resize(); });
+  })();
+</script>

@@ -1,0 +1,386 @@
+<h1>בתי ספר לנהיגה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.offices.tone }} mb-1" dir="ltr">{{ model.kpis.offices.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.offices_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.car.tone }} mb-1" dir="ltr">{{ model.kpis.car.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.car_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.full.tone }} mb-1" dir="ltr">{{ model.kpis.full.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.full_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center col-span-2 md:col-span-1">
+    <div class="text-3xl font-bold text-{{ model.kpis.none.tone }} mb-1" dir="ltr">{{ model.kpis.none.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.none_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בתי ספר לפי אזור רישוי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.offices_note }}</p>
+  <div id="chart-offices" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.offices_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.offices_caption }}</caption>
+        <thead><tr><th scope="col">אזור רישוי</th><th scope="col">בתי ספר</th><th scope="col">כולל רכב פרטי</th><th scope="col">כבד בלבד</th><th scope="col">ללא סוג</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.offices %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.car }}</td><td>{{ r.heavy }}</td><td>{{ r.none }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בתי ספר לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_note }}</p>
+    <div id="chart-districts" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.districts_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th><th scope="col">בתי ספר</th><th scope="col">אזורי רישוי</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.districts %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.offices }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הרכב הנלמדים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.classes_note }}</p>
+    <div id="chart-classes" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.classes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.classes_caption }}</caption>
+        <thead><tr><th scope="col">סוג רכב</th><th scope="col">בתי ספר</th><th scope="col">שיעור מכלל בתי הספר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.classes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה סוגי רכב מלמד כל בית ספר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.breadth_note }}</p>
+    <div id="chart-breadth" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.breadth_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.breadth_caption }}</caption>
+        <thead><tr><th scope="col">סוגי רכב</th><th scope="col">בתי ספר</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.breadth %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אזורים ללא הכשרה לסוג רכב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gaps_note }}</p>
+    <div id="chart-gaps" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gaps_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.gaps_caption }}</caption>
+        <thead><tr><th scope="col">סוג רכב</th><th scope="col">אזורים ללא בית ספר</th><th scope="col">אזורים עם בית ספר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.gaps %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.missing }}</td><td>{{ r.covered }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צירופי ההכשרה הנפוצים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.combos_note }}</p>
+  <div id="chart-combos" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.combos_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.combos_caption }}</caption>
+      <thead><tr><th scope="col">צירוף סוגי רכב</th><th scope="col">בתי ספר</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.combos %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה עוד מלמדים בתי הספר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cooc_note }}</p>
+  <div id="chart-cooc" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cooc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cooc_caption }}</caption>
+        <thead><tr><th scope="col">מלמדים</th>{% for c in model.tables.cls_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cooc %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{% if model.flags.distclass %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הרכב לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.distclass_note }}</p>
+  <div id="chart-distclass" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.distclass_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.distclass_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th>{% for c in model.tables.cls_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.distclass %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.full %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בתי ספר לכל סוגי הרכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.full_note }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-full" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.full_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start py-1 pe-4">בית הספר</th><th scope="col" class="text-start py-1 pe-4">אזור רישוי</th><th scope="col" class="text-start py-1">מחוז</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.full %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-1 pe-4">{{ r.name }}</th><td class="py-1 pe-4">{{ r.office }}</td><td class="py-1">{{ r.district }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p id="mgr-note" class="m-0 mt-3 text-xs text-subtle">{{ model.labels.mgr_note }}</p>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת בתי הספר לנהיגה בפיקוח ואישור משרד התחבורה ללימוד נהיגה בישראל.</p>
+</section>
+
+<script>
+  (function () {
+    function stackedH(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: { color: s.color } };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stackedH("chart-offices", {{ model.charts.offices | tojson }});
+
+    var d = {{ model.charts.districts | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-districts"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { fontSize: 10, interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "בתי ספר" },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var k = {{ model.charts.classes | tojson }};
+    var c = echarts.init(document.getElementById("chart-classes"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (p) { var i = p[0].dataIndex;
+          return k.names[i] + ": " + k.values[i].toLocaleString("he-IL") + " (" + k.shares[i] + "%)"; } },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: k.names, axisLabel: { fontSize: 11, interval: 0 } },
+      yAxis: { type: "value", name: "בתי ספר" },
+      series: [{ type: "bar", name: "בתי ספר", data: k.values, itemStyle: { color: "#0068f5" },
+                 label: { show: true, position: "top", fontSize: 11 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var b = {{ model.charts.breadth | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-breadth"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 32, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: b.names, name: "סוגי רכב", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "value", name: "בתי ספר" },
+      series: [{ type: "bar", name: "בתי ספר", data: b.values.map(function (v, i) {
+        return i === 0 ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }), itemStyle: { color: "#0b3668" } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var g = {{ model.charts.gaps | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-gaps"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: g.total, splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: g.names, inverse: true },
+      series: [
+        { type: "bar", stack: "a", name: "ללא בית ספר", data: g.values, itemStyle: { color: "#dc3545" } },
+        { type: "bar", stack: "a", name: "עם בית ספר", data: g.covered, itemStyle: { color: "#c3cfe7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.combos | tojson }};
+    var c = echarts.init(document.getElementById("chart-combos"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: m.names, inverse: true,
+               axisLabel: { fontSize: 10, interval: 0, width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "בתי ספר", data: m.values.map(function (v, i) {
+        return i === m.values.length - 1 && m.names[i] === "צירופים אחרים" ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }), itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function heat(id, h) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { position: "top", formatter: function (p) {
+          return h.y[p.value[1]] + " ← " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + ")";
+        } },
+        grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+        xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: 10, interval: 0, rotate: 30 } },
+        yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+        visualMap: {
+          min: 0, max: 100, calculable: true, dimension: 2,
+          orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+          inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+          textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+        },
+        series: [{ type: "heatmap", data: h.cells,
+                   label: { show: true, fontSize: 10, formatter: function (p) { return String(Math.round(p.value[2])); } },
+                   emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    heat("chart-cooc", {{ model.charts.cooc | tojson }});
+    var dc = document.getElementById("chart-distclass");
+    if (dc) { heat("chart-distclass", {{ model.charts.distclass | tojson }}); }
+  })();
+</script>

@@ -1,0 +1,24 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b37b28ae-d465-482b-b47e-7cc844f45adb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:21:06.535317+00:00",
+    "rows": { "makes": 1305 }
+  },
+  "inputs": [
+    {
+      "name": "makes",
+      "by_id": "d00812f4-58c5-4ce8-b16c-ac13ae52f9d8",
+      "required_columns": [
+        "tozeret_cd",
+        "tozeret_nm",
+        "tozar",
+        "tozeret_eretz_nm"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,15 @@
+{
+  "main.mispar_mosah": "kpi:total, chart-types, chart-breadth — facility number, used only to reduce rows (one per facility × specialty) to facilities; never shown",
+  "main.shem_mosah": "chart-chains, table:station_list, insight:chains — business names (display name of a chain = its most common branch name)",
+  "main.cod_sug_mosah": "chart-types, chart-districts, chart-stations, kpi:stations, insight:type_mix — code groups facilities into authorised / licensing garage / testing station",
+  "main.sug_mosah": "chart-types, insight:type_mix",
+  "main.ktovet": "skip: street address — free text; geography is taken from the settlement",
+  "main.yishuv": "chart-settlements, chart-districts, chart-ev, chart-heat, chart-stations, kpi:places, insight:concentration, insight:ev_gap, insight:stations — settlement, mapped to district via a static CBS gazetteer",
+  "main.telephone": "skip: contact phone — not aggregated, kept off the page",
+  "main.mikud": "skip: postcode — redundant with settlement",
+  "main.cod_miktzoa": "chart-specialties, chart-families, chart-breadth, chart-cooc, chart-ev, chart-heat, kpi:specs, kpi:licences, kpi:ev, insight:ev, insight:fuel, insight:cooc, insight:breadth — code maps specialties to families and identifies EV/petrol/diesel",
+  "main.miktzoa": "chart-specialties, chart-families, chart-cooc, insight:breadth — specialty labels",
+  "main.menahel_miktzoa": "kpi:managers, insight:managers — profession managers are counted per facility, never named",
+  "main.rasham_havarot": "chart-chains, kpi:chains, insight:chains — operator registry number groups a company's branches (9-digit corporate numbers only); never shown",
+  "main.TESTIME": "skip: empty in every row"
+}

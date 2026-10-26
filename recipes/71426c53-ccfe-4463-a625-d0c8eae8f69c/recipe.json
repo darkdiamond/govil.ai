@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "71426c53-ccfe-4463-a625-d0c8eae8f69c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:20:28.095638+00:00",
+    "rows": { "main": 399 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "3f06e2f2-e2ad-41ac-9665-37d0625537f2",
+      "required_columns": [
+        "cod_ezor",
+        "ezor",
+        "cod_beit_sefer",
+        "shem_beit_sefer",
+        "menahel",
+        "prati",
+        "masa",
+        "traktor",
+        "ofnoa",
+        "otobus",
+        "grar"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

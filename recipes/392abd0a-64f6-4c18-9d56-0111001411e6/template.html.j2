@@ -1,0 +1,345 @@
+<h1>סוחרי רכב</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">סוחרי רכב רשומים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.corp.tone }} mb-1" dir="ltr">{{ model.kpis.corp.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.corp_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים עם סוחר רשום</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.top10.tone }} mb-1" dir="ltr">{{ model.kpis.top10.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.top10_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוחרים יחידים ותאגידים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.forms_note }}</p>
+    <div id="chart-forms" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.forms_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.forms_caption }}</caption>
+        <thead><tr><th scope="col">צורה משפטית</th><th scope="col">סוחרים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.forms %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איך נראית הכתובת הרשומה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.address_note }}</p>
+    <div id="chart-address" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.address_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.address_caption }}</caption>
+        <thead><tr><th scope="col">סוג כתובת</th>{% for c in model.tables.address_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.address %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים במספר סוחרי רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">סה״כ</th><th scope="col">סוחרים יחידים</th><th scope="col">תאגידים</th><th scope="col">שיעור תאגידים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.sole }}</td><td>{{ r.corp }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן התאגידים נפוצים יותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.share_note }}</p>
+  <div id="chart-share" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.share_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.share_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">סוחרים</th><th scope="col">שיעור תאגידים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.share %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מידת הריכוז בין היישובים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.curve_note }}</p>
+    <div id="chart-curve" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.curve_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.curve_caption }}</caption>
+        <thead><tr><th scope="col">היישובים המובילים</th><th scope="col">שיעור מצטבר מהסוחרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.curve %}
+          <tr><th scope="row">{{ r.k }}</th><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים לפי מספר הסוחרים בהם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.buckets_note }}</p>
+    <div id="chart-buckets" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.buckets_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.buckets_caption }}</caption>
+        <thead><tr><th scope="col">סוחרים ביישוב</th><th scope="col">יישובים</th><th scope="col">סוחרים</th><th scope="col">שיעור מהסוחרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.buckets %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.cities }}</td><td>{{ r.dealers }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פריסה לפי אזורי מיקוד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.zones_note }}</p>
+  <div id="chart-zones" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.zones_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.zones_caption }}</caption>
+        <thead><tr><th scope="col">ספרת מיקוד</th><th scope="col">יישובים מובילים</th><th scope="col">סה״כ</th><th scope="col">סוחרים יחידים</th><th scope="col">תאגידים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.zones %}
+          <tr><th scope="row">{{ r.zone }}</th><td>{{ r.lead }}</td><td>{{ r.total }}</td><td>{{ r.sole }}</td><td>{{ r.corp }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המילים בשמות התאגידים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.words_note }}</p>
+  <div id="chart-words" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.words_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.words_caption }}</caption>
+      <thead><tr><th scope="col">מילה</th><th scope="col">שמות תאגידים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.words %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">סוחרים ברכב מנועי בישראל בפיקוח ואישור משרד התחבורה.</p>
+</section>
+
+<script>
+  (function () {
+    var f = {{ model.charts.forms | tojson }};
+    var c = echarts.init(document.getElementById("chart-forms"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668", "#0dcaf0", "#198754", "#ffc107", "#6c757d", "#dc3545", "#c3cfe7"],
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", radius: ["38%", "62%"], center: ["50%", "40%"],
+        label: { show: false },
+        data: f.names.map(function (nm, i) { return { name: nm, value: f.values[i] }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var a = {{ model.charts.address | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-address"));
+    c2.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 88, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: a.groups, inverse: true },
+      series: a.series.map(function (s) {
+        return { type: "bar", stack: "total", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: d.colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [
+          { type: "bar", stack: "total", name: d.sole_name, data: d.sole },
+          { type: "bar", stack: "total", name: d.corp_name, data: d.corp }
+        ]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    stacked("chart-cities", {{ model.charts.cities | tojson }});
+    stacked("chart-zones", {{ model.charts.zones | tojson }});
+
+    var s = {{ model.charts.share | tojson }};
+    var c = echarts.init(document.getElementById("chart-share"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [{
+        type: "bar", name: "שיעור תאגידים",
+        data: s.values.map(function (v, i) {
+          return { value: v, itemStyle: { color: s.groups[i] === "high" ? "#0b3668" : "#0dcaf0" } };
+        }),
+        markLine: { symbol: "none", silent: true, label: { show: false },
+                    lineStyle: { type: "dashed", color: "#6c757d" }, data: [{ xAxis: s.overall }] }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var k = {{ model.charts.curve | tojson }};
+    var c = echarts.init(document.getElementById("chart-curve"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        return (i + 1) + " יישובים (עד " + k.names[i] + "): " + k.y[i] + "%";
+      } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: k.x, name: "יישובים", axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור מצטבר", data: k.y, showSymbol: false,
+                 areaStyle: { opacity: 0.12 }, lineStyle: { width: 2 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var b = {{ model.charts.buckets | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-buckets"));
+    c2.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: b.names, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+      yAxis: [{ type: "value", name: "יישובים" }, { type: "value", name: "סוחרים", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "יישובים", data: b.cities },
+        { type: "bar", name: "סוחרים", yAxisIndex: 1, data: b.dealers }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var w = {{ model.charts.words | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-words"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: w.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "שמות תאגידים", data: w.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>

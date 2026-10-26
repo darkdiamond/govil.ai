@@ -1,0 +1,52 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4d95a5ed-d567-4515-bbfb-517c6c0b859f",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:10.362567+00:00",
+    "rows": { "main": 110 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "cd20b024-bbcb-4a4c-a5c3-542a590fa3a0",
+      "required_columns": [
+        "commercial_name",
+        "producers_name",
+        "functional_unit",
+        "material_classification",
+        "material_subclassification",
+        "producing_site",
+        "verification_date",
+        "verification_validity",
+        "publishing_date",
+        "gwp_total_sum",
+        "GWP_A1",
+        "GWP_A2",
+        "GWP_A3",
+        "GWP_total_A1_A3",
+        "GWP_A4",
+        "GWP_A5",
+        "GWP_C1",
+        "GWP_C2",
+        "GWP_C3",
+        "GWP_C4",
+        "GWP_D",
+        "ozone_depletion_sum_A1-A3",
+        "acidification_sum_A1-A3",
+        "AC_unit_of_measure",
+        "nonrenewable_energy_resources_depletion_sum_A1-A3",
+        "marine_eutrophication_sum_A1-A3",
+        "MEU_unit_of_measure",
+        "freshwater_eutrophication_sum_A1-A3",
+        "FEU_unit_of_measure",
+        "terrestrial_eutrophication_sum_A1-A3",
+        "TEU_unit_of_measure",
+        "tropospheric_ozone_sum_A1-A3"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

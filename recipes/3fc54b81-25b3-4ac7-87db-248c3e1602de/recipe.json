@@ -1,0 +1,38 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3fc54b81-25b3-4ac7-87db-248c3e1602de",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:30:42.790180+00:00",
+    "rows": {
+      "main": 1316,
+      "snapshot": 2544
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "5c78e9fa-c2e2-4771-93ff-7f400a12f7ba",
+      "required_columns": [
+        "סמל_ישוב",
+        "שם_ישוב",
+        "שם_ישוב_לועזי",
+        "סמל_נפה",
+        "שם_נפה",
+        "סמל_לשכת_מנא",
+        "לשכה",
+        "סמל_מועצה_איזורית",
+        "שם_מועצה"
+      ]
+    },
+    {
+      "name": "snapshot",
+      "by_schema": ["טבלה", "סמל_ישוב", "שם_ישוב", "סמל_נפה"],
+      "concat": true,
+      "required_columns": ["סמל_ישוב", "שם_ישוב", "סמל_נפה"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

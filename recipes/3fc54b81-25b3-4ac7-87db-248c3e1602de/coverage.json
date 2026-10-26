@@ -1,0 +1,22 @@
+{
+  "main.סמל_ישוב": "chart-changes, table:renames, kpi:net, insight:changes, insight:renames — the unique key; matched against the earlier list to find additions, removals and renames",
+  "main.שם_ישוב": "chart-words, table:renames, insight:words, insight:renames, insight:tribes — first word of the name; the (שבט) tag marks Bedouin tribes",
+  "main.שם_ישוב_לועזי": "insight:latin — missing and shared Latin names (data quality)",
+  "main.סמל_נפה": "chart-districts, chart-tree, chart-bureaus, chart-changes, insight:cross — first digit gives the district",
+  "main.שם_נפה": "chart-nafot, chart-tree, insight:nafa, insight:tribes",
+  "main.סמל_לשכת_מנא": "skip: numeric code of the bureau; the bureau name (לשכה) is used instead",
+  "main.לשכה": "chart-bureaus, insight:cross — bureau home district = its modal district",
+  "main.סמל_מועצה_איזורית": "chart-districts, chart-nafot, kpi:council_share, insight:councils — code 0 means no regional council",
+  "main.שם_מועצה": "chart-councils, chart-tree, kpi:councils, insight:councils",
+  "snapshot.טבלה": "skip: constant label of the old file layout (טבלת ישובים); used only to select the old files",
+  "snapshot.סמל_ישוב": "chart-changes, kpi:net, insight:changes, insight:renames",
+  "snapshot.שם_ישוב": "table:renames, insight:renames",
+  "snapshot.סמל_נפה": "chart-changes — district of removed localities",
+  "snapshot.שם_ישוב_לועזי": "skip: old Latin names; the current list is the reference for Latin names",
+  "snapshot.שם_נפה": "skip: same as the code, district derived from סמל_נפה",
+  "snapshot.סמל_לשכת_מנא": "skip: old bureau assignment; the current list carries the live one",
+  "snapshot.לשכה": "skip: old bureau assignment; the current list carries the live one",
+  "snapshot.סמל_מועצה_איזורית": "skip: old council assignment; the current list carries the live one",
+  "snapshot.שם_מועצה": "skip: old council assignment; the current list carries the live one",
+  "resource:8f714b6f-c35c-4b40-a0e7-547b675eee0e": "skip: English-header twin of the updating list (identical rows)"
+}

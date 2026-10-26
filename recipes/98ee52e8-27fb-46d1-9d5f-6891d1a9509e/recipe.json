@@ -1,0 +1,24 @@
+{
+  "contract_version": 1,
+  "dataset_id": "98ee52e8-27fb-46d1-9d5f-6891d1a9509e",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:20:45.537542+00:00",
+    "rows": { "main": 6571 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "7cb2bd95-bf2e-49b6-aea1-fcb5ff6f0473",
+      "required_columns": [
+        "sug_rechev_EU_cd",
+        "shnat_yitzur",
+        "rishum_rishon_dt",
+        "taarich_hatkana"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

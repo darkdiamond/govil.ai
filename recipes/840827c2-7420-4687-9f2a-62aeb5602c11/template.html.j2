@@ -1,0 +1,353 @@
+<h1>מספרי רישוי של כלי הרכב הציבוריים הפעילים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.seats.tone }} mb-1" dir="ltr">{{ model.kpis.seats.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.seats_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.year.tone }} mb-1" dir="ltr">{{ model.kpis.year.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.year_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.expired.tone }} mb-1" dir="ltr">{{ model.kpis.expired.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.expired_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro rank_table(rows, caption, head, unit="כלי רכב") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור (%)</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+{% macro col_table(rows, cols, caption, head) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <div class="overflow-x-auto">
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th>{% for v in r.cols %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הרכב הצי לפי סוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+      <thead><tr><th scope="col">סוג</th><th scope="col">כלי רכב</th><th scope="col">שיעור (%)</th><th scope="col">מקומות ישיבה (חציון)</th><th scope="col">שנת ייצור חציונית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.seats }}</td><td>{{ r.year }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  <p class="m-0 text-sm text-subtle mt-4 mb-2">{{ model.labels.segs_caption }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-segs" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.segs_caption }}</caption>
+      <thead><tr><th scope="col" class="px-2 py-1">קטגוריה</th><th scope="col" class="px-2 py-1">כלי רכב</th><th scope="col" class="px-2 py-1">שיעור (%)</th><th scope="col" class="px-2 py-1">מקומות ישיבה</th><th scope="col" class="px-2 py-1">מקומות לכלי (חציון)</th><th scope="col" class="px-2 py-1">משקל כולל חציוני (ק״ג)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.segs %}
+        <tr><th scope="row" class="px-2 py-1">{{ r.name }}</th><td class="px-2 py-1">{{ r.count }}</td><td class="px-2 py-1">{{ r.share }}</td><td class="px-2 py-1">{{ r.seats }}</td><td class="px-2 py-1">{{ r.seat_med }}</td><td class="px-2 py-1">{{ r.weight }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שנת הייצור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  {{ col_table(model.tables.years, model.tables.seg_cols, model.labels.years_caption, "שנת ייצור") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל הצי לפי סוג הכלי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  <div id="chart-box" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_aria }}</caption>
+      <thead><tr><th scope="col">סוג</th><th scope="col">כלי רכב</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.q1 }}</td><td>{{ r.med }}</td><td>{{ r.q3 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יצרני המוניות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.taxi_brands_note }}</p>
+    <div id="chart-taxi-brands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.taxi_brands_aria }}"></div>
+    {{ rank_table(model.tables.taxi_brands, model.labels.taxi_brands_aria, "יצרן", "מוניות") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יצרני האוטובוסים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bus_brands_note }}</p>
+    <div id="chart-bus-brands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bus_brands_aria }}"></div>
+    {{ rank_table(model.tables.bus_brands, model.labels.bus_brands_aria, "יצרן", "אוטובוסים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ארץ הייצור של האוטובוסים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.country_note }}</p>
+  <div id="chart-country" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.country_aria }}"></div>
+  {{ col_table(model.tables.country, model.tables.country_cols, model.labels.country_caption, "שנת ייצור") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דגמי המוניות הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.taxi_models_note }}</p>
+    <div id="chart-taxi-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.taxi_models_aria }}"></div>
+    {{ rank_table(model.tables.taxi_models, model.labels.taxi_models_aria, "יצרן ודגם", "מוניות") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דגמי האוטובוסים הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bus_models_note }}</p>
+    <div id="chart-bus-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bus_models_aria }}"></div>
+    {{ rank_table(model.tables.bus_models, model.labels.bus_models_aria, "יצרן ודגם", "אוטובוסים") }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מקומות ישיבה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seats_note }}</p>
+    <div id="chart-seats" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.seats_aria }}"></div>
+    {{ col_table(model.tables.seats, model.tables.seg_cols, model.labels.seats_aria, "מקומות") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צבע הכלי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.colors_note }}</p>
+    <div id="chart-colors" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.colors_aria }}"></div>
+    {{ col_table(model.tables.colors, model.tables.seg_cols, model.labels.colors_aria, "צבע") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מצב הרישום: ביטולים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+  <div id="chart-status" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  {{ col_table(model.tables.status, model.tables.seg_cols, model.labels.status_aria, "סיבת הביטול") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תוקף הרישיון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tokef_note }}</p>
+  <div id="chart-tokef" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.tokef_aria }}"></div>
+  {{ col_table(model.tables.tokef, ["פג תוקף", "בתוקף"], model.labels.tokef_aria, "חודש פקיעה") }}
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var pal = window.GOVIL_PALETTE;
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true, fontSize: 10 } },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "כלי רכב", data: d.values.map(function (v, i) {
+        return { value: v, itemStyle: { color: pal[d.seg_idx[i] % pal.length] } };
+      }).reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d, horizontal) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: horizontal ? d.names.slice().reverse() : d.x,
+                  axisLabel: horizontal ? { width: 120, overflow: "truncate" } : { hideOverlap: true, fontSize: 10 } };
+      var val = { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true, fontSize: 10 } };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: horizontal ? s.data.slice().reverse() : s.data };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function hbar(id, d, name, w) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true, fontSize: 10 } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: w ? (window.innerWidth < 500 ? 120 : w) : 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-years", {{ model.charts.years | tojson }}, false);
+    stacked("chart-seats", {{ model.charts.seats | tojson }}, false);
+    stacked("chart-colors", {{ model.charts.colors | tojson }}, true);
+    stacked("chart-status", {{ model.charts.status | tojson }}, true);
+    hbar("chart-taxi-brands", {{ model.charts.taxi_brands | tojson }}, "מוניות");
+    hbar("chart-bus-brands", {{ model.charts.bus_brands | tojson }}, "אוטובוסים");
+    hbar("chart-taxi-models", {{ model.charts.taxi_models | tojson }}, "מוניות", 170);
+    hbar("chart-bus-models", {{ model.charts.bus_models | tojson }}, "אוטובוסים", 170);
+  })();
+</script>
+
+<script>
+  (function () {
+    var b = {{ model.charts.box | tojson }};
+    var c = echarts.init(document.getElementById("chart-box"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.data.value || p.data;
+        var o = v.length > 5 ? v.slice(1) : v;
+        return b.names[p.dataIndex] + "<br>חציון: " + o[2] + "<br>רבעונים: " + o[1] + "–" + o[3] + "<br>אחוזון 5–95: " + o[0] + "–" + o[4];
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", scale: true, name: "שנת ייצור", nameLocation: "middle", nameGap: 28,
+               axisLabel: { fontSize: 10, hideOverlap: true, formatter: function (v) { return String(v); } } },
+      yAxis: { type: "category", data: b.names, axisLabel: { width: 140, overflow: "truncate" } },
+      series: [{ type: "boxplot", name: "שנת ייצור", data: b.data,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.country | tojson }};
+    var c = echarts.init(document.getElementById("chart-country"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false, axisLabel: { hideOverlap: true, fontSize: 10 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) {
+        return { type: "line", stack: "t", name: s.name, data: s.data, showSymbol: false, areaStyle: {}, lineStyle: { width: 1 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.tokef | tojson }};
+    var c = echarts.init(document.getElementById("chart-tokef"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true, fontSize: 10 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "t", name: "פג תוקף", data: d.expired, itemStyle: { color: "#dc3545" } },
+        { type: "bar", stack: "t", name: "בתוקף", data: d.valid, itemStyle: { color: "#0068f5" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

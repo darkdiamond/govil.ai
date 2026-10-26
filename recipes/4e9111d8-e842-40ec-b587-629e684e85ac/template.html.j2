@@ -1,0 +1,321 @@
+{% macro op_table(rows, caption, head, ops, total_head="סך הכול") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <div class="overflow-x-auto">
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ total_head }}</th>{% for o in ops %}<th scope="col">{{ o }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+<h1>אנטנות סלולריות בהקמה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">בקשות להיתר הקמה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.sites.tone }} mb-1" dir="ltr">{{ model.kpis.sites.display }}</div>
+    <div class="text-sm text-subtle">אתרים שונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.lead.tone }} mb-1" dir="ltr">{{ model.kpis.lead.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.lead_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last.tone }} mb-1" dir="ltr">{{ model.kpis.last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת האתרים בהקמה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="מפה אינטראקטיבית של אתרי השידור הסלולריים שהוגשו עבורם בקשות להיתר הקמה. גרסה נגישה: ראו את טבלת הנתונים בהמשך העמוד."></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות לפי חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.monthly_aria }}"{% if model.tables.monthly_big %} data-fallback="explorer"{% endif %}></div>
+  {% if not model.tables.monthly_big %}{{ op_table(model.tables.monthly, model.labels.monthly_caption, "חודש", model.tables.op_names) }}{% endif %}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות ואתרים לפי חברה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.companies_note }}</p>
+    <div id="chart-companies" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.companies_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.companies_caption }}</caption>
+        <thead><tr><th scope="col">חברה</th><th scope="col">בקשות</th><th scope="col">אתרים שונים</th><th scope="col">שיעור מהבקשות (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.companies %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.apps }}</td><td>{{ r.sites }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל החברות לפי רבעון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+    <div id="chart-mix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mix_aria }}"{% if model.tables.mix_big %} data-fallback="explorer"{% endif %}></div>
+    {% if not model.tables.mix_big %}{{ op_table(model.tables.mix, model.labels.mix_caption, "רבעון", model.tables.op_names, "בקשות") }}{% endif %}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן מוצבות האנטנות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.family_note }}</p>
+    <div id="chart-family" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.family_aria }}"></div>
+    {{ op_table(model.tables.family, model.labels.family_caption, "משפחת מוקד", model.tables.op_names) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג המוקד במונחי כל חברה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"{% if model.tables.types_big %} data-fallback="explorer"{% endif %}></div>
+    {% if not model.tables.types_big %}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">חברה</th><th scope="col">סוג המוקד</th><th scope="col">בקשות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.op }}</th><td>{{ r.name }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+    {% endif %}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי השיפוט המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.juris_note }}</p>
+  <div id="chart-juris" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.juris_aria }}"></div>
+  {{ op_table(model.tables.juris, model.labels.juris_caption, "תחום שיפוט", model.tables.op_names) }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מצפון לדרום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ns_note }}</p>
+  <div id="chart-ns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ns_aria }}"></div>
+  {{ op_table(model.tables.ns, model.labels.ns_caption, "רצועה", model.tables.op_names) }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יום ההגשה בשבוע</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.weekday_note }}</p>
+  <div id="chart-weekday" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.weekday_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.weekday_caption }}</caption>
+      <thead><tr><th scope="col">יום</th><th scope="col">בקשות</th><th scope="col">שיעור (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.weekday %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "Y_ITM",
+    lngField: "X_ITM",
+    projection: "itm",
+    popupTitleField: "חברה",
+    popupFields: [
+      { field: "ישוב", label: "יישוב" },
+      { field: "כתובת + תאור", label: "כתובת ותיאור" },
+      { field: "סוג המוקד", label: "סוג המוקד" },
+      { field: "סוג  היתר", label: "סוג ההיתר" },
+      { field: "תאריך הגשת הבקשה", label: "תאריך הגשה" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.monthly | tojson }};
+    var c = echarts.init(document.getElementById("chart-monthly"));
+    var opt = {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: d.zoom ? 96 : 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "בקשות" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "m", name: s.name, data: s.data }; })
+    };
+    if (d.zoom) { opt.dataZoom = [{ type: "inside" }, { type: "slider", bottom: 32 }]; }
+    c.setOption(window.GovEcharts.option(opt));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.companies | tojson }};
+    var c = echarts.init(document.getElementById("chart-companies"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { width: 110, overflow: "truncate", interval: 0 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "בקשות", data: d.apps, label: { show: true, position: "top" } },
+        { type: "bar", name: "אתרים שונים", data: d.sites }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.mix | tojson }};
+    var c = echarts.init(document.getElementById("chart-mix"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var out = ps.length ? ps[0].axisValue : "";
+          ps.forEach(function (p) {
+            var n = d.series[p.seriesIndex].counts[p.dataIndex];
+            out += "<br>" + p.marker + p.seriesName + ": " + p.value + "% (" + n + " בקשות)";
+          });
+          return out;
+        }
+      },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 30 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "q", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hstack(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "h", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hstack("chart-family", {{ model.charts.family | tojson }});
+    hstack("chart-juris", {{ model.charts.juris | tojson }});
+    hstack("chart-ns", {{ model.charts.ns | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return p.treePathInfo.map(function (t) { return t.name; }).filter(Boolean).join(" · ") + ": " + p.value + " בקשות"; } },
+      series: [{
+        type: "sunburst", data: d, radius: ["12%", "92%"], sort: null,
+        itemStyle: { borderColor: "#fff", borderWidth: 1 },
+        levels: [{}, { label: { rotate: 0, fontSize: 11 } }, { label: { fontSize: 10, minAngle: 8 } }]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.weekday | tojson }};
+    var c = echarts.init(document.getElementById("chart-weekday"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 40, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", inverse: true, data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "בקשות" },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

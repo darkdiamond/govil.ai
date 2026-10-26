@@ -1,0 +1,15 @@
+{
+  "nurseries.GIS_ID": "skip: GIS row identifier (one duplicate value) — no analytic content",
+  "nurseries.name": "map-main — popup title only; nurseries are businesses and could be named, but the page aggregates by authority instead of ranking individual nurseries",
+  "nurseries.address": "map-main — popup only; mostly the settlement name, a finer split of municipal which carries the charts",
+  "nurseries.municipal": "chart-auth, chart-atype, insight:authority, insight:atype — authority type derived from the name prefix (regional / local council / other)",
+  "nurseries.X": "map-main — ITM easting",
+  "nurseries.Y": "map-main — ITM northing",
+  "nurseries.first_visi": "chart-yearly, chart-cohort, chart-recency, chart-gap, insight:trend, insight:gap, insight:stale",
+  "nurseries.first_resu": "chart-journey, chart-outcome, chart-yearly, chart-cohort, chart-recency, insight:ever, insight:persist, insight:trend, kpi:ever",
+  "nurseries.second_vis": "chart-yearly, chart-cohort, chart-recency, chart-gap, insight:trend, insight:gap, insight:stale",
+  "nurseries.second_res": "chart-journey, chart-outcome, chart-yearly, chart-recency, insight:ever, insight:persist, insight:trend, kpi:ever",
+  "nurseries.third_visi": "chart-yearly, chart-cohort, chart-recency, chart-gap, insight:trend, insight:gap, insight:stale — one value arrives as an Excel serial day number and is converted",
+  "nurseries.third_resu": "chart-journey, chart-outcome, chart-yearly, chart-recency, insight:ever, insight:persist, insight:trend, kpi:ever",
+  "nurseries.results_ma": "chart-status, chart-auth, chart-atype, map-main, insight:now, insight:stale, kpi:infested, kpi:stale — the ministry's current status, used as published"
+}

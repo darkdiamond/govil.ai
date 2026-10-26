@@ -1,0 +1,49 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a3cec603-dd66-49de-af14-a612754a7b9a",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:12.058931+00:00",
+    "rows": { "main": 7894 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "7f467a30-58cd-44b5-86f0-d570cc7d25ad",
+      "required_columns": [
+        "project_id",
+        "building_id",
+        "building_count",
+        "certification_status",
+        "designation_info_status",
+        "municipality_name",
+        "main_use_name",
+        "route",
+        "standard_name",
+        "floors_above_ground",
+        "residential_units",
+        "certificate_date_pre",
+        "certificate_score_pre",
+        "certificate_stars_pre",
+        "certificate_energy_pre",
+        "certificate_date_a",
+        "certificate_score_a",
+        "certificate_stars_a",
+        "certificate_energy_a",
+        "certificate_date_b",
+        "certificate_score_b",
+        "certificate_stars_b",
+        "certificate_energy_b",
+        "designation_info_last_update",
+        "building_info_last_update",
+        "project_general_last_update",
+        "X",
+        "Y",
+        "building_street"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["ת\"י 5281", "12-2020-01"]
+}
