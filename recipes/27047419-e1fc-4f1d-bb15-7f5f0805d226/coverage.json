@@ -1,0 +1,13 @@
+{
+  "main.StationId": "kpi:total, map:map-main — public stop code; counted, and shown only in the map popup",
+  "main.CityCode": "chart-cities, chart-conc, chart-sizes, kpi:locs, insight:top_city, insight:small — localities grouped by code (regional-council names carry per-stop suffixes)",
+  "main.CityName": "chart-cities, table:cities, map:map-main, insight:outside, insight:dense — display name per code (most common variant)",
+  "main.MetropolinCode": "chart-metros, kpi:metro_share, insight:metro, insight:outside — codes ≤ 0 are outside/unassigned, not metros",
+  "main.MetropolinName": "chart-metros, chart-heat, chart-ops, chart-cities, chart-bands, map:map-main, insight:modes",
+  "main.StationTypeCode": "skip: code twin of StationTypeName",
+  "main.StationTypeName": "chart-types, chart-heat, map:map-main, insight:special",
+  "main.StationOperatorTypeCode": "skip: code twin of StationOperatorTypeName",
+  "main.StationOperatorTypeName": "chart-ops, table:ops, kpi:rail, map:map-main, insight:modes",
+  "main.Lat": "chart-bands, chart-grid, map:map-main, insight:dense",
+  "main.Long": "chart-grid, map:map-main, insight:dense"
+}

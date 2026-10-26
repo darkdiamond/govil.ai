@@ -1,0 +1,9 @@
+{
+  "main.locality": "chart-localities, chart-loc-dist, chart-top-growers, kpi:localities, insight:concentration, insight:top_locality, insight:grapes — part of the grower key (name + locality)",
+  "main.manufacturer": "chart-top-growers, chart-grower-size, kpi:growers, insight:growers — commercial growers/farms; named only in the top-10 by approved variety lines",
+  "main.fruits": "chart-families, chart-varieties, chart-tree, chart-localities, chart-notes, kpi:rows, insight:family, insight:grapes, insight:top_locality — species and variety names mixed; a fixed name map groups them into crop families, unknown names stay 'לא מסווג' (share stated)",
+  "main.checked": "chart-inspectors, insight:inspectors — Rabbinate inspectors (officials), named",
+  "main.notes": "chart-notes, insight:notes — רבעי / גם רבעי / דו שנתי markers",
+  "main.validity": "chart-validity, chart-inspectors, kpi:expired, insight:expired — fixed dates or 'N חודשים מהבדיקה' (expiry computed from the inspection date)",
+  "main.date": "chart-inspections, chart-validity, kpi:expired, insight:inspections, insight:expired — inspection date, present on a minority of rows; its max is the reference date for 'expired'"
+}

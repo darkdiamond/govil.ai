@@ -1,0 +1,10 @@
+{
+  "proceedings.מספר הליך": "chart-years, chart-flow, chart-mix, chart-backlog, chart-dur, chart-dept, kpi:procs, kpi:opened, kpi:clearance, table:top, insight:trend, insight:clear, insight:backlog, insight:dur, insight:shift, insight:design, insight:dept — proceeding key (rows grouped to one record per proceeding); the opening year is parsed from its last segment and the department from its prefix when סוג תיק is empty",
+  "proceedings.סוג תיק": "chart-dept, chart-years, chart-types, chart-backlog, chart-dur, insight:dept, insight:design — department; empty on every עיצוב proceeding, where the number prefix is used instead",
+  "proceedings.סוג הליך": "chart-types, chart-mix, table:top, insight:type, insight:shift — procedure type; empty values shown as לא צוין, tail types bucketed into אחר",
+  "proceedings.שם הליך": "table:top, insight:multi — proceeding title (mark, invention or design name), only for the trademark, patent and design departments; compensation-committee and service-invention titles name individual employees and are never shown",
+  "proceedings.מספר תיק": "chart-files, table:top, insight:multi — distinct file numbers per proceeding (count only; the numbers themselves are not shown)",
+  "proceedings.הליכים קשורים": "insight:linked — whether a proceeding points to related proceedings",
+  "proceedings.סטטוס": "chart-status, chart-flow, chart-backlog, chart-dur, chart-heat, kpi:active, kpi:clearance, insight:clear, insight:backlog, insight:linked, insight:season — closed / merged / active",
+  "proceedings.תאריך סטטוס": "chart-flow, chart-dur, chart-heat, kpi:clearance, insight:clear, insight:dur, insight:season — date of the current status: closing date for closed proceedings, merge date for merged; latest date defines the partial year"
+}

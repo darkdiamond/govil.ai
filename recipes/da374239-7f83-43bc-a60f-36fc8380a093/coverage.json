@@ -1,0 +1,9 @@
+{
+  "main.court_name": "chart-monthly, chart-years, insight:court_lead, table:regions, table:places — Arabic court names mapped to Hebrew; blank → 'לא צוין', unknown → 'בית דין אחר'",
+  "main.file_number": "key:dedup — used only to count a file published more than once a single time in the per-estate views; never shown",
+  "main.request_name": "skip: sensitive personal data — applicant/heir name in a personal-status (inheritance) notice; aggregate-only page",
+  "main.deceased_name": "skip: sensitive personal data — name of the deceased; aggregate-only page",
+  "main.deaceased_address": "chart-places, map-places, kpi:places, insight:places, insight:court_lead, table:regions — settlement of the deceased, Arabic → Hebrew lookup with region; spelling variants normalised, unknown → 'יישוב אחר' bucket",
+  "main.deaceased_date": "chart-lag, chart-lag-year, chart-death, chart-season, kpi:lag, kpi:old, insight:lag, insight:winter — dd/mm/yyyy (dd.mm.yyyy accepted); unparseable and after-publication dates excluded and counted",
+  "main.published_date": "chart-monthly, chart-years, chart-weekday, chart-lag, chart-lag-year, kpi:total, kpi:ytd, kpi:ytd_change, insight:ytd, insight:weekday, insight:peak"
+}

@@ -1,0 +1,7 @@
+{
+  "ipc.סיווג": "chart-sections, chart-tree, chart-subclasses, chart-scatter, chart-depth, chart-depth-sec, chart-groups, kpi:codes, kpi:main, kpi:subclasses, insight:lead, insight:class, insight:concentration, insight:biggest, insight:residual — the code string carries section/class/subclass/main group; '/00' marks a main group",
+  "ipc.סיווג אב": "chart-depth, chart-depth-sec, chart-fan, insight:depth, insight:leaves — parent links give the tree: level below the main group, leaves and fan-out",
+  "ipc.תיאור הסיווג": "chart-depth, insight:fragments, insight:residual — English heading text; only its continuation-fragment form (lower-case start) and residual 'not provided for' headings are measured, the text itself stays in the explorer",
+  "ipc.קבוצת סיווג": "skip: duplicates the first four characters of the code (subclass), which compute derives from the code itself",
+  "ipc.תאריך גרסה": "kpi:version, insight:version — edition date of the scheme (one value per edition today)"
+}

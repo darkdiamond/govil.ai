@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9f357b63-99f6-4b52-8c9e-fa53c86e63e4",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T10:00:42.840123+00:00",
+    "rows": {
+      "branches": 1450
+    }
+  },
+  "inputs": [
+    {
+      "name": "branches",
+      "by_id": "b3f7616d-1c65-497d-afd5-d5ba972bfc1d",
+      "required_columns": [
+        "id",
+        "name",
+        "branch_code",
+        "branch_name",
+        "city",
+        "branch_type",
+        "open_date",
+        "close_date",
+        "merge_branch"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

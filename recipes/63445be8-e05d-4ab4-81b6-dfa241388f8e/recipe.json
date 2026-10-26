@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "63445be8-e05d-4ab4-81b6-dfa241388f8e",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T05:07:36.674035+00:00",
+    "rows": {
+      "experts": 135
+    }
+  },
+  "inputs": [
+    {
+      "name": "experts",
+      "by_id": "ebe7b0fa-42c8-4195-8b40-b0b0e73cc494",
+      "required_columns": [
+        "district",
+        "employer",
+        "expert",
+        "authority",
+        "profession",
+        "opinion",
+        "payment",
+        "notes",
+        "languages"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

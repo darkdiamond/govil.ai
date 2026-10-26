@@ -1,0 +1,17 @@
+{
+  "resource:815fd92c-e67d-4be0-b7d2-835eeedaa11d": "skip: English-language twin of the Hebrew resource (same codes, translated text, plus one malformed row); the page is Hebrew-only",
+  "branches.id": "skip: numeric entity (bank) code; one-to-one with name, which is shown",
+  "branches.name": "chart-banks, chart-footprint, chart-presence, chart-status, table:shared, table:closed, insight:top_banks, insight:regular_leader, insight:non_bank, insight:hub, insight:redirected, insight:closures, insight:shared, insight:openings, insight:small, kpi:banks",
+  "branches.branch_code": "insight:shared, table:shared — part of the (code, name) key that detects codes listed under two entities; otherwise an identifier",
+  "branches.branch_name": "insight:shared, table:shared, table:closed",
+  "branches.address": "skip: free-text street address with no coordinates; city is the geographic dimension (no map — the registry carries no X/Y)",
+  "branches.city": "chart-cities, chart-presence, chart-footprint, table:closed, insight:hub, kpi:cities",
+  "branches.zipcode": "skip: postal code — finer duplicate of city and address",
+  "branches.pob": "skip: PO box — 58% empty and a contact detail",
+  "branches.telephone": "skip: contact detail with no analytic dimension",
+  "branches.branch_type": "chart-banks, chart-types, chart-cities, table:closed, insight:regular_leader, insight:non_bank, insight:hub, kpi:regular",
+  "branches.merge_bank": "skip: code of the absorbing entity (set on 9 rows) in a 5-digit scheme that does not match id; redirection comes from merge_branch",
+  "branches.merge_branch": "chart-status, insight:redirected, kpi:redirected — set without a close_date = active code routed to another branch",
+  "branches.open_date": "chart-flow, insight:openings — pre-1950 placeholders and bulk-registration dates are detected and disclosed",
+  "branches.close_date": "chart-flow, chart-status, table:closed, insight:closures, kpi:closed, kpi:active"
+}

@@ -1,0 +1,8 @@
+{
+  "main.מספר זיהוי": "chart-region, chart-index, kpi:springs — spring key; its leading digits (basin code) give the region",
+  "main.שם עברית": "chart-latest, chart-major-1, chart-change, chart-top, table:dried, insight:largest, insight:records, insight:dried",
+  "main.שם אנגלית": "skip: transliteration of the Hebrew name (page is Hebrew-only)",
+  "main.שנה הידרולוגית": "chart-index, chart-network, chart-major-1, chart-region, chart-change, chart-dry, kpi:index, insight:latest, insight:drought_run, insight:dry_share, insight:wettest, insight:change",
+  "main.נפח שנתי (אלמ''ק)": "chart-index, chart-latest, chart-major-1, chart-region, chart-change, chart-dry, chart-top, kpi:index, kpi:largest, kpi:dry, insight:latest, insight:largest, insight:records, insight:region, insight:change, insight:dried",
+  "main.סוג נתון": "chart-network — calculated / estimated / taken from the multi-year yearbook"
+}

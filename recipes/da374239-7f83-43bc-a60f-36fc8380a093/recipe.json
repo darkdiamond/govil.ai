@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "da374239-7f83-43bc-a60f-36fc8380a093",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-22T21:12:13.812753+00:00",
+    "rows": { "main": 1155 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "af0bb999-3773-4c10-aa3c-b22c488f9275",
+      "required_columns": [
+        "court_name",
+        "file_number",
+        "deaceased_address",
+        "deaceased_date",
+        "published_date"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

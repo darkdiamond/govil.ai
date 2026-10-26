@@ -1,0 +1,10 @@
+{
+  "main.court_name": "chart-monthly, chart-years, chart-tree, chart-lag-court, chart-places, insight:court_lead, insight:catchment, insight:lag_courts — mapped Arabic → Hebrew; unknown courts bucketed, never printed in Arabic",
+  "main.file_number": "skip: case file identifier — never shown; notices (one per deceased) are the unit, so it is not needed for counting",
+  "main.request_name": "skip: applicant's name — personal-status data, aggregate-only",
+  "main.deceased_name": "skip: deceased's name — personal-status data, aggregate-only",
+  "main.deaceased_id": "skip: personal ID number — never read (only 29 rows are asterisk-masked, too few to report)",
+  "main.deaceased_address": "map-main, chart-places, chart-tree, kpi:places, insight:places, insight:catchment, table:regions — settlement of the deceased, spelling-normalised and mapped to Hebrew + region + coordinates; Negev tribes, abroad and unknowns bucketed",
+  "main.deaceased_date": "chart-lag, chart-lag-court, chart-death, chart-season, kpi:lag, kpi:old, insight:lag, insight:lag_courts, insight:winter — dates after the publication date are typos and dropped (disclosed)",
+  "main.published_date": "chart-monthly, chart-years, chart-heat, chart-weekday, chart-lag, kpi:total, kpi:ytd, kpi:ytd_change, insight:ytd, insight:weekday — dates breaking the weekly cadence by >31 days are typos and excluded (disclosed)"
+}

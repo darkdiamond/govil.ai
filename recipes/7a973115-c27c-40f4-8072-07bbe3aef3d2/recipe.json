@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7a973115-c27c-40f4-8072-07bbe3aef3d2",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T11:12:05.874346+00:00",
+    "rows": { "main": 191 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "54533763-9edb-4fff-bc9b-1952f1ae66d0",
+      "required_columns": [
+        "station_code",
+        "station_name",
+        "population_name",
+        "owner",
+        "availability_time",
+        "city",
+        "city_code"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
