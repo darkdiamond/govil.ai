@@ -1,0 +1,9 @@
+{
+  "doctors.שם פרטי": "skip: personal name — the page is about the profession in aggregate; names add nothing here and are in the explorer",
+  "doctors.שם משפחה": "skip: personal name — same as שם פרטי",
+  "doctors.מספר רישיון רופא": "kpi:total, chart-cohorts, chart-nspec, insight:young, insight:paths — used only inside the doctor key (licence number + licence date, since numbers were reused); never shown",
+  "doctors.מספר תעודת התמחות": "skip: individual certificate number — an identifier, kept off the page",
+  "doctors.תאריך רישום רישיון": "chart-years, chart-heat, chart-cohorts, chart-gap, kpi:total, kpi:new, kpi:median, insight:ytd, insight:decade, insight:waves, insight:young, insight:pipeline, insight:quality — DMYYYY/DDMMYYYY digit string",
+  "doctors.תאריך רישום התמחות": "chart-years, chart-gap, chart-rise, chart-mix, chart-cohorts, kpi:certs, kpi:median, insight:rising, insight:pipeline, insight:slowest, insight:newest, insight:quality, table:newest",
+  "doctors.שם התמחות": "chart-specs, chart-nspec, chart-paths, chart-gap, chart-rise, chart-mix, chart-cohorts, kpi:share, kpi:fields, insight:leader, insight:paths, insight:rising, insight:newest, table:newest — whitespace collapsed; one doctor's duplicate specialty counted once"
+}

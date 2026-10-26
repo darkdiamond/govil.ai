@@ -1,0 +1,6 @@
+{
+  "appraisers.mispar_rishayon": "chart-cohorts, chart-newer, kpi:total, insight:cohorts, insight:newer, insight:dups — aggregate only (blocks of numbers, above/below the median); no individual number and not the register's highest number reaches the page",
+  "appraisers.shem_prati": "chart-firsts, insight:names, insight:dups — name frequencies only; no appraiser named individually",
+  "appraisers.shem_mishpaha": "chart-surnames, insight:names, insight:dups — name frequencies only",
+  "appraisers.yishuv": "chart-cities, chart-curve, chart-buckets, chart-newer, kpi:cities, kpi:top10, kpi:single, insight:leader, insight:tail, insight:half, insight:newer, insight:dups — '*' markers, hyphen spacing and lost gershayim (כ ח → כ״ח) normalised"
+}

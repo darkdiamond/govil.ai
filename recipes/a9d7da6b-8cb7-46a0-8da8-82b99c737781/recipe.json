@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a9d7da6b-8cb7-46a0-8da8-82b99c737781",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:16.751829+00:00",
+    "rows": { "permits": 27263 }
+  },
+  "inputs": [
+    {
+      "name": "permits",
+      "by_id": "e9ecedbd-8f93-437e-9a2f-4ff908daf210",
+      "required_columns": [
+        "Yishuv_Name",
+        "End_Date",
+        "Start_Date",
+        "Heter_Name",
+        "MifalName",
+        "Machoz_Name",
+        "SugHeter"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

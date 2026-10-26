@@ -1,0 +1,6 @@
+{
+  "makes.tozeret_cd": "chart-bands, kpi:total, kpi:newest, insight:shift — codes are allocated in ascending order; bands of codes approximate when a make entered the list",
+  "makes.tozeret_nm": "insight:quality — full name (make + truncated plant country); used only to recover a blank country from a known suffix",
+  "makes.tozar": "chart-brands, chart-dist, kpi:brands, insight:global, insight:single, insight:quality",
+  "makes.tozeret_eretz_nm": "chart-countries, chart-regions, chart-bands, chart-brands, chart-dist, kpi:countries, kpi:newest, insight:leader, insight:shift, insight:region, insight:quality"
+}

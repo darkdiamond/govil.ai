@@ -1,0 +1,11 @@
+{
+  "guides.TGLicense": "chart-fine, chart-cband, chart-kinds, insight:fill, insight:gap, insight:contact, insight:providers — individual licence numbers never shown; grouped into fixed numeric ranges (round edges), the range holding the highest number is flagged partial",
+  "guides.TGName": "chart-firsts, chart-lasts, kpi:titled, insight:titles, insight:surname, chart-cband — aggregate first-name/surname counts and academic-title share only; no individual singled out",
+  "guides.TGLanguage": "insight:fields — empty in every row today; a language chart (chart-langs) appears automatically once at least 5% of rows are filled",
+  "guides.new_tour_guide_rechev_echkol": "insight:fields — vehicle field, empty in every row today",
+  "guides.EmailAddress": "chart-contact, chart-cband, chart-providers, chart-kinds, kpi:contact, insight:contact, insight:providers — addresses never shown; reduced to has-email and provider (only well-known public providers named; other domains pooled)",
+  "guides.new_tour_guide_phone_1": "chart-contact, chart-prefixes, chart-regions, kpi:contact, kpi:multi, insight:prefix, insight:region — numbers never shown; reduced to mobile prefix / landline area code",
+  "guides.new_tour_guide_phone_2": "chart-contact, chart-regions, kpi:multi, insight:region — second phone; landlines give the area-code region",
+  "guides.new_tourguide_telephone3": "chart-contact, kpi:multi, insight:fields — third phone, empty placeholder in every row today",
+  "resource:64adebdb-b385-4d7f-857c-02075f81ee5e": "skip: English translated twin — same 8,509 licence numbers, identical e-mails and phones, names transliterated, same empty language/vehicle fields"
+}

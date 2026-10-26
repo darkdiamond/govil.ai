@@ -1,0 +1,10 @@
+{
+  "permits.SugHeter": "chart-types, chart-dist, chart-env-dist, chart-settle, chart-env-settle, chart-years, chart-months, chart-dur, kpi:env, insight:dominance, insight:multi, insight:dated",
+  "permits.Heter_Name": "chart-types, chart-dist, kpi:temp, kpi:missing, insight:temporary, insight:missing — sub-type of business-licence approvals; equals SugHeter for the three permit kinds",
+  "permits.Machoz_Name": "chart-dist, chart-env-dist, insight:districts, insight:temporary, insight:missing — test-district rows excluded and disclosed",
+  "permits.Yishuv_Name": "chart-settle, chart-env-settle, chart-fac, kpi:settlements, insight:top_factory",
+  "permits.MifalName": "chart-fac, chart-rep, chart-kinds, kpi:factories, kpi:repeat, insight:top_factory, insight:kind, insight:multi — factories and companies are named; kinds classified by words in the name",
+  "permits.Start_Date": "chart-years, chart-months, chart-dur, kpi:dated, insight:recent, insight:duration, insight:dated — date order (DD/MM vs MM/DD) detected per permit kind",
+  "permits.End_Date": "chart-dur, insight:duration — business-licence end dates are MM/DD/YYYY, permit end dates DD/MM/YYYY",
+  "permits.Heter_Num": "skip: permit number — a lookup identifier with no analytic content"
+}

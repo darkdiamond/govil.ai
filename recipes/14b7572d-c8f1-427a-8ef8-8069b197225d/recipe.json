@@ -1,0 +1,33 @@
+{
+  "contract_version": 1,
+  "dataset_id": "14b7572d-c8f1-427a-8ef8-8069b197225d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:13.536579+00:00",
+    "rows": {
+      "nurseries": 371
+    }
+  },
+  "inputs": [
+    {
+      "name": "nurseries",
+      "by_id": "e32a5b9b-cc03-45a0-ae67-f4c3b7242140",
+      "required_columns": [
+        "name",
+        "municipal",
+        "X",
+        "Y",
+        "first_visi",
+        "first_resu",
+        "second_vis",
+        "second_res",
+        "third_visi",
+        "third_resu",
+        "results_ma"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

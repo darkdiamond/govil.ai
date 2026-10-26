@@ -1,0 +1,7 @@
+{
+  "dealers.shem": "chart-words, insight:words, insight:quality — corporate names tokenised for word counts only; no dealer named individually",
+  "dealers.yishuv": "chart-cities, chart-share, chart-curve, chart-buckets, chart-zones, chart-address, kpi:cities, kpi:top10, insight:leader, insight:bigsmall, insight:share, insight:tail — CBS '*' markers and hyphen spacing normalised",
+  "dealers.mikud": "chart-zones, insight:quality — first digit only (postal zone); full codes never shown",
+  "dealers.ktovet": "chart-address, insight:address — classified into P.O. box / street / apartment / settlement only; addresses never shown",
+  "dealers.het_pei": "chart-forms, chart-cities, chart-share, chart-zones, chart-address, kpi:corp, insight:mix, insight:public, insight:bigsmall — two-digit prefix only (legal form); the registration number itself never reaches the page"
+}

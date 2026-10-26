@@ -1,0 +1,318 @@
+{% macro rank_table(rows, caption, head, unit="רשומות") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+{% macro matrix_table(t, caption, head) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <div class="overflow-x-auto">
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th>{% for c in t.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in t.rows %}
+      <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+{% macro head(icon, title) -%}
+<div class="flex items-center gap-2 mb-3 text-brand">
+  <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+  <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+</div>
+{%- endmacro %}
+
+<h1>רישיונות עסק והיתרים מסוגים שונים למפעלים</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="mt-3 mb-0 text-sm text-subtle">המידע על רישיונות עסק מבוסס על מענה המשרד לרשות הרישוי, ואינו מעיד שלמפעל יש רישיון בתוקף. לסטטוס עדכני יש לפנות לרשות הרישוי המקומית.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "factories", "settlements", "env", "temp", "missing", "dated", "repeat"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "סוגי האישורים וההיתרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">אישורי המשרד לרישיון עסק מתחלקים לרישיון, היתר זמני ואישורים שתת-הסוג שלהם לא צוין; לצדם שלושת סוגי ההיתרים שהמשרד מנפיק בעצמו.</p>
+  <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+      <thead><tr><th scope="col">תת-סוג</th><th scope="col">קבוצה</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.group }}</td><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("map-pin", "אישורי רישיון עסק לפי מחוז") }}
+    <p class="m-0 text-sm text-subtle mb-3">בכל מחוז: רישיונות, היתרים זמניים ואישורים בלי תת-סוג.</p>
+    <div id="chart-dist" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    {{ matrix_table(model.tables.dist, model.labels.dist_caption, "מחוז") }}
+  </section>
+  <section class="card p-5">
+    {{ head("map-pin", "היתרי קרינה, רנטגן ורעלים לפי מחוז") }}
+    <p class="m-0 text-sm text-subtle mb-3">ההיתרים שהמשרד מנפיק ישירות למפעלים, לפי מחוז וסוג.</p>
+    <div id="chart-env-dist" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.env_dist_aria }}"></div>
+    {{ matrix_table(model.tables.env_dist, model.labels.env_dist_caption, "מחוז") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "היישובים המובילים") }}
+  <p class="m-0 text-sm text-subtle mb-3">היישובים עם הכי הרבה רשומות, מחולקים לאישורי רישיון עסק ולהיתרים.</p>
+  <div id="chart-settle" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.settle_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.settle_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">אישורי רישיון עסק</th><th scope="col">היתרים</th><th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.settle %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.bl }}</td><td>{{ r.env }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "היכן מוחזקים היתרי הקרינה והרעלים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.env_settle_note }}</p>
+  <div id="chart-env-settle" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.env_settle_aria }}"></div>
+  {{ matrix_table(model.tables.env_settle, model.labels.env_settle_caption, "יישוב") }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "אילו עסקים מבקשים רישיון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_note }}</p>
+  <div id="chart-kinds" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+  {{ rank_table(model.tables.kinds, model.labels.kinds_caption, "סוג העסק", "אישורים") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("database", "המפעלים עם הכי הרבה רשומות") }}
+    <p class="m-0 text-sm text-subtle mb-3">שמות המפעלים כפי שהם רשומים במאגר; מפעל עם כמה סניפים עשוי להופיע בכמה שמות.</p>
+    <div id="chart-fac" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.fac_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fac_caption }}</caption>
+        <thead><tr><th scope="col">מפעל</th><th scope="col">רשומות</th><th scope="col">יישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.fac %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.places }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("database", "כמה פעמים מופיע כל מפעל") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rep_note }}</p>
+    <div id="chart-rep" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.rep_aria }}"></div>
+    {{ rank_table(model.tables.rep, model.labels.rep_caption, "רשומות למפעל", "מפעלים") }}
+  </section>
+</div>
+
+{% if model.charts.years %}
+<section class="card p-5 mb-6">
+  {{ head("list", "רשומות לפי שנת התחילה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+{% endif %}
+
+{% if model.charts.months %}
+<section class="card p-5 mb-6">
+  {{ head("list", "היתרים לפי חודש התחילה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.months_note }}</p>
+  <div id="chart-months" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.months_aria }}"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("list", "משך ההיתרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dur_note }}</p>
+  <div id="chart-dur" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dur_aria }}"></div>
+  {{ matrix_table(model.tables.dur, model.labels.dur_caption, "משך") }}
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, w) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 48, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: w, overflow: "truncate" } },
+        series: [{ type: "bar", data: d.values.slice().reverse(),
+                   label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-types", {{ model.charts.types | tojson }}, 120);
+    hbar("chart-kinds", {{ model.charts.kinds | tojson }}, 130);
+    hbar("chart-fac", {{ model.charts.fac | tojson }}, 150);
+  })();
+</script>
+
+<script>
+  (function () {
+    function stackCol(id, names, series) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: names, axisLabel: { interval: 0, rotate: 30 } },
+        yAxis: { type: "value" },
+        series: series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: s.ci === undefined ? undefined : { color: window.GOVIL_PALETTE[s.ci] } }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var d1 = {{ model.charts.dist | tojson }};
+    stackCol("chart-dist", d1.names, d1.series);
+    var d2 = {{ model.charts.env_dist | tojson }};
+    stackCol("chart-env-dist", d2.names, d2.series);
+  })();
+</script>
+
+<script>
+  (function () {
+    function stackRow(id, names, series) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 48, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+        series: series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse(), itemStyle: s.ci === undefined ? undefined : { color: window.GOVIL_PALETTE[s.ci] } };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var s = {{ model.charts.settle | tojson }};
+    stackRow("chart-settle", s.names, [{ name: "אישורי רישיון עסק", data: s.bl }, { name: "היתרי קרינה, רנטגן ורעלים", data: s.env, ci: 1 }]);
+    var es = {{ model.charts.env_settle | tojson }};
+    stackRow("chart-env-settle", es.names, es.series);
+  })();
+</script>
+
+<script>
+  (function () {
+    var r = {{ model.charts.rep | tojson }};
+    var c = echarts.init(document.getElementById("chart-rep"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: r.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "מפעלים", data: r.values,
+                 label: { show: true, position: "top", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.charts.years %}
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 8, right: 16, top: 36, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.years },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside", start: y.zoom_start, end: 100 }, { type: "slider", bottom: 8, height: 20, start: y.zoom_start, end: 100 }],
+      series: y.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: s.ci === undefined ? undefined : { color: window.GOVIL_PALETTE[s.ci] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.charts.months %}
+<script>
+  (function () {
+    var m = {{ model.charts.months | tojson }};
+    var c = echarts.init(document.getElementById("chart-months"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 8, right: 16, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.months, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: m.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: s.ci === undefined ? undefined : { color: window.GOVIL_PALETTE[s.ci] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.dur | tojson }};
+    var c = echarts.init(document.getElementById("chart-dur"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 8, right: 16, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.bins, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value" },
+      series: d.series.map(function (s) { return { type: "bar", name: s.name, data: s.data, itemStyle: { color: window.GOVIL_PALETTE[s.ci] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

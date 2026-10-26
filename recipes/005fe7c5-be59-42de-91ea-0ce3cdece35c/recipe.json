@@ -1,0 +1,34 @@
+{
+  "contract_version": 1,
+  "dataset_id": "005fe7c5-be59-42de-91ea-0ce3cdece35c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:00:52.960147+00:00",
+    "rows": {
+      "main": 458
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "512d916e-07f0-4774-b84a-3a989e45e7eb",
+      "required_columns": [
+        "LicenseType",
+        "Name",
+        "Phone",
+        "AdditionalTelephone",
+        "Fax",
+        "Email",
+        "Address",
+        "Settlement",
+        "District",
+        "LicenseExpirationDate",
+        "DisciplinaryAspects",
+        "EmployerContractor"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6b991a56-c209-4b02-a52e-ba1c69091a4c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:18.363355+00:00",
+    "rows": {
+      "grades": 185209
+    }
+  },
+  "inputs": [
+    {
+      "name": "grades",
+      "by_id": "f2e130e8-bc94-4443-91bd-3ba3353b1494",
+      "required_columns": [
+        "shnat_yitzur",
+        "sug_tzama_nm",
+        "power_engine_kilowalt",
+        "hanaa_nm",
+        "yatzran",
+        "dargat_zihum_avir",
+        "hutkan_mesanen_helkikim",
+        "murshe_peelut"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

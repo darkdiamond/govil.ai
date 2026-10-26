@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a37765ea-d407-42e8-b757-9b70a8cf574f",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:00:43.224624+00:00",
+    "rows": { "main": 157 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "2d741cd4-9c54-492c-8607-933deddb3094",
+      "required_columns": [
+        "product",
+        "holder",
+        "formulation",
+        "expiration_date",
+        "active_ingredients",
+        "purpose",
+        "authorized",
+        "label"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

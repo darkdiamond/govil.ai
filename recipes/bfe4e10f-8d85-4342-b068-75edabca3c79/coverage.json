@@ -1,0 +1,16 @@
+{
+  "resource:d23bc751-adf5-4d1b-b2f3-5dcb98184bc0": "skip: the same table with Hebrew column headers for download — verified cell-identical to the main resource on all 428 rows (only number formatting differs: '0' vs '0%', trailing decimals, thousands separators), so it is not read twice",
+  "main.violated_law": "chart-law-count, chart-law-amount, chart-quarters, chart-scatter, chart-appeal, insight:law_mix, insight:appeals, insight:batch, chart-top",
+  "main.violation_details": "chart-details — free text, top descriptions per law, truncated on the axis with the full text in the tooltip and table",
+  "main.violator_name": "chart-top, chart-repeat, insight:concentration, insight:repeat, insight:withheld — businesses named; numeric placeholders, short-publication (non-corporate) violators and private occupations are counted but never named",
+  "main.violator_occupation": "chart-occ — also gates naming (כל אדם / מדביר are treated as private persons)",
+  "main.debt_demand_date": "chart-years, chart-quarters, chart-scatter, insight:trend, insight:ytd, insight:batch",
+  "main.original_sunction_sum": "chart-law-amount, chart-ded, kpi:cut, insight:deduction, chart-law-count — original amount; the reduction is computed from it and the final amount",
+  "main.deduction_rate": "skip: free-text rate with malformed values ('1,00%', empty); the reduction is recomputed from the original and final amounts instead",
+  "main.deduction_reason": "chart-reasons, insight:deduction — comma-separated list, split into individual reasons",
+  "main.updated_sunction_sum": "kpi:final, chart-years, chart-law-amount, chart-scatter, chart-top, chart-occ, insight:concentration, insight:trend",
+  "main.publication_end_date": "insight:withheld — publication period (end minus demand date); the short (about two-year) track also withholds the violator's name from rankings",
+  "main.appeal_status": "chart-appeal, kpi:open, insight:appeals",
+  "main.appeal_status_summary": "chart-courts — only the court name is extracted; court case numbers are never shown",
+  "main.FinancialSanctionId": "kpi:total — row key, used as a stable sort tie-break; also detects names replaced by the id"
+}

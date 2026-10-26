@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d2581732-eca4-4988-b986-df8e791a1d60",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:30:42.651172+00:00",
+    "rows": {
+      "main": 63577,
+      "snapshot": 156484
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "9ad3862c-8391-4b2f-84a4-2d4c68625f4b",
+      "required_columns": ["סמל_ישוב", "שם_ישוב", "סמל_רחוב", "שם_רחוב"]
+    },
+    {
+      "name": "snapshot",
+      "by_schema": ["טבלה", "סמל_ישוב", "שם_ישוב", "סמל_רחוב", "שם_רחוב"],
+      "concat": true,
+      "required_columns": ["סמל_ישוב", "שם_ישוב", "סמל_רחוב", "שם_רחוב"]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

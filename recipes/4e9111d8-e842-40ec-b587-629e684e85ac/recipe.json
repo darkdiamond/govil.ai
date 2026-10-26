@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4e9111d8-e842-40ec-b587-629e684e85ac",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:23.192173+00:00",
+    "rows": { "main": 305 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "ff398c7e-c522-4ee8-a53a-312b188a573d",
+      "required_columns": [
+        "תאריך הגשת הבקשה",
+        "חברה",
+        "סוג  היתר",
+        "מספר האתר",
+        "ישוב",
+        "כתובת + תאור",
+        "סוג המוקד",
+        "X_ITM",
+        "Y_ITM",
+        "תחום שיפוט"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

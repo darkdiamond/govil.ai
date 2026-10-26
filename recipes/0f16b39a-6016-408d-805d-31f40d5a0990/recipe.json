@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0f16b39a-6016-408d-805d-31f40d5a0990",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:23:15.607247+00:00",
+    "rows": { "fleet": 192695 }
+  },
+  "inputs": [
+    {
+      "name": "fleet",
+      "by_id": "bf9df4e2-d90d-4c0a-a400-19e15af8e95f",
+      "required_columns": [
+        "tozeret_nm",
+        "tozeret_eretz_nm",
+        "degem_nm",
+        "shnat_yitzur",
+        "sug_delek_nm",
+        "nefach_manoa",
+        "hespek",
+        "moed_aliya_lakvish",
+        "sug_rechev_EU_cd",
+        "sug_rechev_nm",
+        "baalut",
+        "mkoriut_nm"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}
