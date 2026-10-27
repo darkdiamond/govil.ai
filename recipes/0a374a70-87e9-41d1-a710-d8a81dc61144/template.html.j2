@@ -367,7 +367,7 @@
     var c4 = echarts.init(document.getElementById("chart-heat"));
     c4.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "%";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + h.x[p.value[0]] + ": " + p.value[2] + "%";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 96, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { rotate: 45, fontSize: 11 } },

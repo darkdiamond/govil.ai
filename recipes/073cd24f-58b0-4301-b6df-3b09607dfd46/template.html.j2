@@ -245,7 +245,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.names[i] + "<br>" + Math.round(d.pct[i]) + "% מהחציון<br>" +
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + Math.round(d.pct[i]) + "% מהחציון<br>" +
           d.vol[i].toLocaleString("he-IL") + " אלמ״ק (חציון " + d.base[i].toLocaleString("he-IL") + ")";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 32, containLabel: true },
@@ -321,7 +321,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex, v = Math.round(d.pct[i]);
-        return d.names[i] + "<br>" + sgn(v) + "%<br>" +
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + sgn(v) + "%<br>" +
           d.early[i].toLocaleString("he-IL") + " ← " + d.late[i].toLocaleString("he-IL") + " אלמ״ק";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 32, containLabel: true },

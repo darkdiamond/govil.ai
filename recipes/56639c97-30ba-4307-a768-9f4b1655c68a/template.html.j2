@@ -376,7 +376,7 @@
     var c2 = echarts.init(document.getElementById("chart-heat"));
     c2.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% ממסגרות האגף (" +
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% ממסגרות האגף (" +
           p.value[3].toLocaleString("he-IL") + ")";
       } },
       grid: { left: 16, right: 16, top: 8, bottom: 72, containLabel: true },

@@ -310,7 +310,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.name + " (" + d.fams[p.dataIndex] + "): " + Number(p.value).toLocaleString("he-IL") + " שורות";
+        return p.name + " (" + echarts.format.encodeHTML(d.fams[p.dataIndex]) + "): " + Number(p.value).toLocaleString("he-IL") + " שורות";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
@@ -399,7 +399,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.name + "<br/>" + d.fams[p.dataIndex] + ": " + Number(p.value).toLocaleString("he-IL") + " שורות זן";
+        return p.name + "<br/>" + echarts.format.encodeHTML(d.fams[p.dataIndex]) + ": " + Number(p.value).toLocaleString("he-IL") + " שורות זן";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },

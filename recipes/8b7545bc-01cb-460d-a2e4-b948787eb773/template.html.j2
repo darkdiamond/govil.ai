@@ -281,7 +281,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.value[2] + " · " + p.seriesName + "<br>" + p.value[0].toLocaleString("he-IL") + " קבוצות ראשיות, " + p.value[1] + " קבוצות-משנה לקבוצה";
+        return echarts.format.encodeHTML(p.value[2]) + " · " + p.seriesName + "<br>" + p.value[0].toLocaleString("he-IL") + " קבוצות ראשיות, " + p.value[1] + " קבוצות-משנה לקבוצה";
       } },
       legend: { bottom: 0, type: "scroll" },
       grid: { left: 16, right: 24, top: 32, bottom: 56, containLabel: true },
@@ -349,7 +349,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
-        return g.names[p[0].dataIndex] + "<br>" + g.values[p[0].dataIndex].toLocaleString("he-IL") + " קבוצות-משנה";
+        return echarts.format.encodeHTML(g.names[p[0].dataIndex]) + "<br>" + g.values[p[0].dataIndex].toLocaleString("he-IL") + " קבוצות-משנה";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },

@@ -45,6 +45,13 @@ MAP_TYPES = [
     "תעסוקה ניתמכת", "שילוב במעון יום", "מרכז שיקום", "מוקד תעסוקה", "תגבור צהרון",
     "ארוחות חמות", "מרכז רב שרותים",
 ]
+# Second classification is an allow-list too: a new sub-classification (a new
+# protected population under an allowed department/type) stays off the map
+# until a human reviews it. MAP_EXCLUDE_SECOND documents what was ruled out.
+MAP_SECOND = [
+    "1 מפגש בשבוע", 'בי"ח כרוני', "גיל רך", "גריאטרי", "טיפולי", "ישיבה מסורתית",
+    "לא משויך", "מתבגרים", "סיעודי", "פעולות בקהילה", "רב תכליתי", "שיקומי",
+]
 MAP_EXCLUDE_SECOND = {"פגיעות מיניות", "חלופת מעצר", "בעיות התנהגות", "הכלה בתנאי שטח"}
 
 DEPT_DISPLAY = {"רווחת הפרט ומש`": "רווחת הפרט והמשפחה", 'אגף מש"ה': 'מוגבלות שכלית (מש"ה)'}
@@ -406,7 +413,7 @@ def compute(frames):
     # ── map: positive allow-lists, intersected with values present
     present_dept = set(df["dept_raw"])
     present_type = set(df["type_raw"])
-    present_second = sorted(set(df["second_raw"]) - MAP_EXCLUDE_SECOND - {""})
+    present_second = sorted((set(df["second_raw"]) & set(MAP_SECOND)) - MAP_EXCLUDE_SECOND)
     m_depts = [d for d in MAP_DEPTS if d in present_dept]
     m_types = [t for t in MAP_TYPES if t in present_type]
     mapped = df["dept_raw"].isin(m_depts) & df["type_raw"].isin(m_types) & \

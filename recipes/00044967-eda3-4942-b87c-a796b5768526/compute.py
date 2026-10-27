@@ -316,16 +316,22 @@ def compute(frames):
 
     n_bad_pub = int(df["pub"].isna().sum())
     df = df[df["pub"].notna()].copy()
-    # A publication date more than MAX_GAP_DAYS past the previous one breaks the
-    # weekly cadence: a typo (e.g. a future year). Walk the sorted dates.
+    # A publication date more than MAX_GAP_DAYS away from its neighbour at either
+    # END of the sorted dates breaks the weekly cadence: a typo (e.g. a future or
+    # long-past year). Trim only from the ends — a gap mid-series (a pause in
+    # publishing) must not drop everything after it.
     days = sorted(df["pub"].unique())
-    cut = days[0]
-    for i in range(1, len(days)):
-        if (days[i] - days[i - 1]) / pd.Timedelta(days=1) > MAX_GAP_DAYS:
-            break
-        cut = days[i]
-    n_future = int((df["pub"] > cut).sum())
-    df = df[df["pub"] <= cut].copy()
+
+    def _gap(a, b):
+        return (b - a) / pd.Timedelta(days=1) > MAX_GAP_DAYS
+    lo, hi = 0, len(days) - 1
+    while hi > lo and _gap(days[hi - 1], days[hi]):
+        hi -= 1
+    while lo < hi and _gap(days[lo], days[lo + 1]):
+        lo += 1
+    in_seq = (df["pub"] >= days[lo]) & (df["pub"] <= days[hi])
+    n_future = int((~in_seq).sum())
+    df = df[in_seq].copy()
     total = len(df)
 
     last = df["pub"].max()

@@ -285,7 +285,7 @@
     var c = echarts.init(document.getElementById("chart-presence"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return pr.cities[p.value[1]] + " · " + pr.banks[p.value[0]] + ": " + p.value[2];
+        return echarts.format.encodeHTML(pr.cities[p.value[1]]) + " · " + echarts.format.encodeHTML(pr.banks[p.value[0]]) + ": " + p.value[2];
       } },
       grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: pr.banks, splitArea: { show: true },

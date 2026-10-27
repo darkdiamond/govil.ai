@@ -419,7 +419,11 @@ def compute(frames):
         tc = _sorted_counts(tw[tw["topic"] == g]["type"])
         kids = [{"name": k, "value": int(v)} for k, v in tc.head(TREE_TYPES).items() if v >= SMALL]
         rest = int(tc.sum()) - sum(c["value"] for c in kids)
-        if rest >= SMALL:
+        # The parent shows the topic total, so a dropped remainder of 1–4 would be
+        # recoverable as total − shown kids: fold the smallest kid into it instead.
+        if 0 < rest < SMALL and kids:
+            rest += kids.pop()["value"]
+        if rest > 0:
             kids.append({"name": "אחר", "value": rest})
         tree.append({"name": g, "value": int(twg[g]), "children": kids})
     tt = (tw.groupby(["type", "topic"]).size().reset_index(name="k")
@@ -510,8 +514,11 @@ def compute(frames):
         out_rows.append({"name": g, "n": tot, "shares": shares,
                          "small": {o: 0 < int(otab.get((g, o), 0)) < SMALL for o in OUTCOMES}})
     used_out = [o for o in OUTCOMES if any(r["shares"][o] for r in out_rows)]
+    # Suppressed (<5) cells are not drawn: a share next to the topic's total
+    # would give the exact count the table hides.
     outcomes_chart = {"names": [r["name"] for r in out_rows],
-                      "series": [{"name": o, "data": [r["shares"][o] for r in out_rows]} for o in used_out]}
+                      "series": [{"name": o, "data": [None if r["small"][o] else r["shares"][o]
+                                                      for r in out_rows]} for o in used_out]}
     status_rows = [(k, int(v)) for k, v in _sorted_counts(cases["status"].replace("", "לא צוין")).items()]
     closed_share = cases["status"].isin(CLOSED).mean() * 100 if total_cases else 0
 

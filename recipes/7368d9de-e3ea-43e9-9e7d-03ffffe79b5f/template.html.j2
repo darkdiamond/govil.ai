@@ -522,7 +522,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return typeof v === "number" ? v + "%" : "פחות מחמישה תיקים"; } },
       legend: { bottom: 0, type: "scroll" },
       grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
       xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },

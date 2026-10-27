@@ -359,7 +359,7 @@
     hbar("chart-orders", o.names, [{ name: "פרטי מכס", data: o.values }], {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return o.full[i] + "<br>" + Number(o.values[i]).toLocaleString("he-IL") + " פרטי מכס";
+        return echarts.format.encodeHTML(o.full[i]) + "<br>" + Number(o.values[i]).toLocaleString("he-IL") + " פרטי מכס";
       } }
     });
 
@@ -378,7 +378,7 @@
     var c = echarts.init(document.getElementById("chart-heat"));
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + "<br>" + h.xfull[p.value[0]] + "<br>" + Number(p.value[2]).toLocaleString("he-IL") + " פרטי מכס";
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(h.xfull[p.value[0]]) + "<br>" + Number(p.value[2]).toLocaleString("he-IL") + " פרטי מכס";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: "auto", hideOverlap: true, fontSize: 10 } },
@@ -407,7 +407,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        return cf.names[i] + "<br>" + cf.auth[i] + "<br>" + Number(cf.values[i]).toLocaleString("he-IL") + " פרטי מכס";
+        return echarts.format.encodeHTML(cf.names[i]) + "<br>" + echarts.format.encodeHTML(cf.auth[i]) + "<br>" + Number(cf.values[i]).toLocaleString("he-IL") + " פרטי מכס";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
       xAxis: { type: "value", splitNumber: cn ? 2 : 3, axisLabel: { hideOverlap: true } },

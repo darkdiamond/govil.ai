@@ -443,7 +443,7 @@
     var h = {{ model.charts.heat | tojson }};
     mk("chart-heat", {
       tooltip: { position: "top", formatter: function (q) {
-        return h.y[q.value[1]] + " · " + h.x[q.value[0]] + ": " + fmt(q.value[2]) + " מסלולים";
+        return echarts.format.encodeHTML(h.y[q.value[1]]) + " · " + echarts.format.encodeHTML(h.x[q.value[0]]) + ": " + fmt(q.value[2]) + " מסלולים";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0 } },

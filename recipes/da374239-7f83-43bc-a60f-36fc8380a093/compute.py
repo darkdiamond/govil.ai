@@ -599,6 +599,8 @@ def compute(frames):
                    + ". חודשי החורף מודגשים.")
 
     lead_c = named_courts[0] if named_courts else NO_COURT
+    lead_every_year = all(int(y_ct.get((y, lead_c), 0)) >= max(int(y_ct.get((y, c), 0)) for c in courts)
+                          for y in years)
     labels = {
         "lede": lede,
         "dups": dups_txt.strip(),
@@ -608,7 +610,8 @@ def compute(frames):
         "monthly_aria": (f"גרף עמודות מוערמות: הודעות ירושה לפי חודש ובית דין. "
                          f"שיא ב{MONTHS_HE[peak_p.month - 1]} {peak_p.year} עם {n(peak_v)} הודעות."),
         "years_note": years_note,
-        "years_aria": (f"גרף עמודות: הודעות לפי שנה ובית דין. {court_phrase(lead_c)} מוביל בכל השנים."),
+        "years_aria": (f"גרף עמודות: הודעות לפי שנה ובית דין. {court_phrase(lead_c)} מוביל"
+                       + (" בכל השנים." if lead_every_year else " בסך הכול.")),
         "years_caption": "הודעות לפי שנה ובית דין",
         "weekday_note": weekday_note,
         "weekday_aria": (f"גרף עמודות: הודעות לפי יום בשבוע. יום {WEEKDAYS_HE[top_wd]} מוביל עם "

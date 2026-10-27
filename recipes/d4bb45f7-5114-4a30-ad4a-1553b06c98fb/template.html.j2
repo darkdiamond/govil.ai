@@ -343,7 +343,7 @@
     var lw = Math.min(240, Math.round(el.clientWidth * 0.45));
     c.setOption(window.GovEcharts.option({
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.name + "<br>" + a.families[p.dataIndex] + "<br>" + p.value.toLocaleString("he-IL") + " עסקים";
+        return p.name + "<br>" + echarts.format.encodeHTML(a.families[p.dataIndex]) + "<br>" + p.value.toLocaleString("he-IL") + " עסקים";
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
@@ -414,7 +414,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return u.names[i] + ": " + u.values[i] + "%<br>" + u.counts[i].toLocaleString("he-IL") +
+        return echarts.format.encodeHTML(u.names[i]) + ": " + u.values[i] + "%<br>" + u.counts[i].toLocaleString("he-IL") +
           " מתוך " + u.totals[i].toLocaleString("he-IL") + " עסקי חלקים";
       } },
       grid: { left: 16, right: 24, top: 24, bottom: 24, containLabel: true },
@@ -437,7 +437,7 @@
       var c = echarts.init(el);
       c.setOption(window.GovEcharts.option({
         tooltip: { position: "top", formatter: function (p) {
-          return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" +
+          return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2] + "% (" +
             p.value[3].toLocaleString("he-IL") + " " + unit + ")";
         } },
         grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },

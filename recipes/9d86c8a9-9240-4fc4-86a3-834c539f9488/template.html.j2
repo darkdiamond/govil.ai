@@ -329,7 +329,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
           var i = p[0].dataIndex;
-          return d.names[i] + "<br>" + d.share[i] + "% · " + d.young[i].toLocaleString("he-IL") +
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.share[i] + "% · " + d.young[i].toLocaleString("he-IL") +
             " מתוך " + d.total[i].toLocaleString("he-IL");
         } },
         grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
@@ -436,7 +436,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return d.names[i] + "<br>" + d.share[i] + "% · " + d.young[i].toLocaleString("he-IL") + " צעירים";
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.share[i] + "% · " + d.young[i].toLocaleString("he-IL") + " צעירים";
       } },
       grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", min: 0, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
@@ -458,7 +458,7 @@
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
           var i = p[0].dataIndex;
-          return d.names[i] + "<br>" + d.young[i].toLocaleString("he-IL") + " צעירים · " + d.share[i] + "%";
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.young[i].toLocaleString("he-IL") + " צעירים · " + d.share[i] + "%";
         } },
         grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
         xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
@@ -507,7 +507,7 @@
     c.setOption(window.GovEcharts.option({
       color: P,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.data[2] + "<br>" + p.data[0].toLocaleString("he-IL") + " תושבים · " + p.data[1] + "% צעירים";
+        return echarts.format.encodeHTML(p.data[2]) + "<br>" + p.data[0].toLocaleString("he-IL") + " תושבים · " + p.data[1] + "% צעירים";
       } },
       legend: { top: 0, type: "scroll" },
       grid: { left: 16, right: 24, top: 40, bottom: 40, containLabel: true },
