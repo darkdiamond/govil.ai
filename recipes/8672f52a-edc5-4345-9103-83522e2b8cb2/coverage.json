@@ -1,0 +1,12 @@
+{
+  "olim.proyector_name": "kpi:total — counted only; names of individuals are not listed on the page (the explorer below carries the rows)",
+  "olim.reginal_council": "chart-places, kpi:places, insight:council",
+  "olim.city": "chart-places, kpi:places, insight:cities",
+  "olim.office_point_of_service": "chart-areas, chart-heat, kpi:areas, insight:areas",
+  "olim.language": "chart-langs, chart-combos, chart-heat, kpi:langs, insight:lang_leader, insight:multi",
+  "olim.office_phone": "chart-contact, insight:contact — presence only, numbers never shown",
+  "olim.mobile": "chart-contact, insight:contact — presence only, numbers never shown",
+  "olim.email": "chart-contact, insight:email_domain — presence and domain type only, addresses never shown",
+  "olim.additional_email": "chart-contact, insight:email_domain — presence and domain type only, addresses never shown",
+  "resource:52ddda08-3205-40ee-bc37-bf203a1cf0b2": "skip: English transliterated twin of the Hebrew table (same 170 projectors)"
+}

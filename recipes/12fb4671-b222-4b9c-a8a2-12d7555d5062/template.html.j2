@@ -1,0 +1,299 @@
+<h1>תכניות בניין עיר (תב"עות)</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["plans", "inforce", "deposit", "median_area"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% if model.has_geo %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת קטעי הגבול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תכניות לפי תבנית מספור וסטטוס</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.family_note }}</p>
+  <div id="chart-family" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.family_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.family_caption }}</caption>
+      <thead><tr><th scope="col">תבנית</th>{%- for s in model.tables.status_cols %}<th scope="col">{{ s }}</th>{%- endfor %}<th scope="col">סך הכול</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.family %}
+        <tr><th scope="row">{{ r.name }}</th>{%- for c in r.cols %}<td>{{ c }}</td>{%- endfor %}<td>{{ r.total }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות שטח התכניות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+  <div id="chart-area" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.area_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.area_caption }}</caption>
+      <thead><tr><th scope="col">שטח (מ״ר)</th><th scope="col">תכניות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.area %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% if model.has_famarea %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שטח חציוני לפי תבנית</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.famarea_note }}</p>
+  <div id="chart-famarea" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.famarea_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.famarea_caption }}</caption>
+      <thead><tr><th scope="col">תבנית</th><th scope="col">תכניות</th><th scope="col">שטח חציוני (מ״ר)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.famarea %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.median }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התכניות הגדולות ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+      <thead><tr><th scope="col">תכנית</th><th scope="col">סטטוס</th><th scope="col">שטח (ק״מ רבועים)</th><th scope="col">קטעים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.status }}</td><td>{{ r.area }}</td><td>{{ r.parts }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה קטעים בכל תכנית</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.parts_note }}</p>
+  <div id="chart-parts" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.parts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.parts_caption }}</caption>
+      <thead><tr><th scope="col">קטעי גבול</th><th scope="col">תכניות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.parts %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% if model.has_compact %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צורת קטעי הגבול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.compact_note }}</p>
+  <div id="chart-compact" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.compact_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.compact_caption }}</caption>
+      <thead><tr><th scope="col">מדד קומפקטיות</th><th scope="col">קטעים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.compact %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+{% if model.has_regno %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מספר פנימי של תכנית</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regno_note }}</p>
+  <div id="chart-regno" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.regno_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.regno_caption }}</caption>
+      <thead><tr><th scope="col">טווח מספר</th><th scope="col">בתוקף</th><th scope="col">אחרות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.regno %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.force }}</td><td>{{ r.rest }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+{% if model.has_geo %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפון ודרום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+  <div id="chart-lat" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lat_caption }}</caption>
+      <thead><tr><th scope="col">רצועה</th><th scope="col">קטעים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lat %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מערב ומזרח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lon_note }}</p>
+  <div id="chart-lon" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.lon_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lon_caption }}</caption>
+      <thead><tr><th scope="col">רצועה</th><th scope="col">קטעים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lon %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+</div>
+{% endif %}
+
+{% if model.has_geo %}
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.plans[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupTitleField: "Plan",
+    popupFields: ["status"]
+  });
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-area", {{ model.charts.area | tojson }}, "תכניות");
+    hbar("chart-famarea", {{ model.charts.famarea | tojson }}, "מ״ר");
+    hbar("chart-top", {{ model.charts.top | tojson }}, "ק״מ רבועים");
+    hbar("chart-parts", {{ model.charts.parts | tojson }}, "תכניות");
+    hbar("chart-compact", {{ model.charts.compact | tojson }}, "קטעים");
+    hbar("chart-lat", {{ model.charts.lat | tojson }}, "קטעים");
+    hbar("chart-lon", {{ model.charts.lon | tojson }}, "קטעים");
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, names, series, colors) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.values.slice().reverse() };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var f = {{ model.charts.family | tojson }};
+    stacked("chart-family", f.names, f.series, window.GOVIL_PALETTE);
+    var r = {{ model.charts.regno | tojson }};
+    stacked("chart-regno", r.names, [{ name: "בתוקף", values: r.force }, { name: "אחרות", values: r.rest }],
+      [window.GOVIL_PALETTE[0], "#ffc107"]);
+  })();
+</script>

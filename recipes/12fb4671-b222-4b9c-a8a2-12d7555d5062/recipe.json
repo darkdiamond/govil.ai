@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "12fb4671-b222-4b9c-a8a2-12d7555d5062",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:03:51.899162+00:00",
+    "rows": {
+      "plans": 4384
+    }
+  },
+  "inputs": [
+    {
+      "name": "plans",
+      "by_id": "201436f4-5699-494e-a67d-efe8acfd19fc",
+      "required_columns": [
+        "Plan",
+        "status",
+        "Taba_Numer",
+        "SHAPE_Leng",
+        "SHAPE_Area",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 5
+}

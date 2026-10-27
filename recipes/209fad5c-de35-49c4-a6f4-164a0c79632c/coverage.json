@@ -1,0 +1,14 @@
+{
+  "cameras.Id": "skip: constant 0 in every row, carries no information",
+  "cameras.X": "insight:itm, kpi:total — ITM easting; zero in a share of rows while WGS84 is valid",
+  "cameras.Y": "insight:itm, kpi:total — ITM northing; zero in a share of rows while WGS84 is valid",
+  "cameras.location": "map-main, chart-fields, chart-types, chart-sites, kpi:named, insight:names, insight:types, insight:sites",
+  "cameras.address": "map-main, chart-fields, chart-types, kpi:named, insight:names, insight:types",
+  "cameras.amount": "map-main, chart-fields, chart-lenses, kpi:lenses, insight:lenses — free text such as '3 מצל'; leading integer parsed",
+  "cameras.angle": "chart-fields, chart-angle, insight:angle",
+  "cameras.lat": "map-main, chart-grid, chart-radial, chart-nearest, kpi:nearest, insight:center, insight:grid, insight:nearest, insight:colocated",
+  "cameras.lon": "map-main, chart-grid, chart-radial, chart-nearest, kpi:nearest, insight:center, insight:grid, insight:nearest, insight:colocated",
+  "resource:3c7e0a98-312e-476a-8083-877773400137": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:e18b2e0a-f110-4fe3-bb0a-99a0a040961f": "skip: same points as the CSV, with lat/lon columns holding ITM coordinates",
+  "resource:f7ff64c2-ab87-4e22-8fdb-10b08df73ca0": "skip: XLSX twin of the ITM file"
+}

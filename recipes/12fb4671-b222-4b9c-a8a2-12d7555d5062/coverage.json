@@ -1,0 +1,13 @@
+{
+  "plans.Plan": "map-main, chart-family, chart-parts, chart-top, kpi:plans, insight:status, insight:family, insight:fragmented, insight:giant — plan number; one plan can span several boundary parts (rows)",
+  "plans.status": "map-main, chart-family, kpi:inforce, kpi:deposit, insight:status, insight:pending_family, insight:regno",
+  "plans.Taba_Numer": "chart-regno, insight:regno — internal plan serial number, used as a rough sequence",
+  "plans.OutSide_li": "skip: per-plan link into the municipal licensing system (external URL), no analytic content",
+  "plans.SHAPE_Leng": "chart-compact, insight:compact — boundary perimeter in metres",
+  "plans.SHAPE_Area": "chart-area, chart-top, chart-famarea, kpi:median_area, insight:size, insight:giant, insight:small, chart-compact",
+  "plans.lat": "map-main, chart-lat, insight:extent",
+  "plans.lon": "map-main, chart-lon, insight:extent",
+  "resource:8ad5b952-84c9-4901-9db2-b5942980024a": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:4172fd61-b12f-4a5b-8bc8-61b283a8eac1": "skip: same rows as the CSV with ITM instead of WGS84 coordinates",
+  "resource:f6947281-6cd7-41b0-9d32-0a55e5abce28": "skip: XLSX twin of the ITM CSV"
+}

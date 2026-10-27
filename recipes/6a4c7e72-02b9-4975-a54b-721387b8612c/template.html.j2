@@ -1,0 +1,201 @@
+<h1>מעונות יום בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "private", "operators", "hoods"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת מעונות היום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+{% macro simple_table(rows, first, second, third) -%}
+    <table class="mt-2 w-full text-sm">
+      <thead><tr><th scope="col">{{ first }}</th><th scope="col">{{ second }}</th><th scope="col">{{ third }}</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מעונות לפי מפעיל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.op_note }}</p>
+  <div id="chart-operator" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.op_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    {{ simple_table(model.tables.op, "מפעיל", "מעונות", "שיעור") }}
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מעונות לפי שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hood_note }}</p>
+  <div id="chart-hood" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.hood_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    {{ simple_table(model.tables.hood, "שכונה", "מעונות", "שיעור") }}
+  </details>
+</section>
+
+{% if model.has_mix %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מפעיל בכל שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+      <thead><tr><th scope="col">שכונה</th><th scope="col">מעונות</th>{% for h in model.mix_headers %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מרחק מהמרכז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.centre_note }}</p>
+  <div id="chart-centre" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.centre_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    {{ simple_table(model.tables.centre, "מרחק (ק״מ)", "מעונות", "שיעור") }}
+  </details>
+</section>
+
+{% if model.has_nearest %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה קרוב המעון הבא</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nearest_note }}</p>
+  <div id="chart-nearest" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.nearest_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    {{ simple_table(model.tables.nearest, "מרחק (מטרים)", "מעונות", "שיעור") }}
+  </details>
+</section>
+{% endif %}
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.daycares[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupTitleField: "name",
+    popupFields: [{ field: "operator", label: "מפעיל" }, { field: "neighbor", label: "שכונה" }]
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function vbar(id, names, values, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 28, containLabel: true },
+        xAxis: { type: "category", data: names, axisLabel: { rotate: 0, interval: 0, hideOverlap: true } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: unit, data: values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var o = {{ model.charts.op | tojson }};
+    hbar("chart-operator", o.names, o.values, "מעונות");
+    var h = {{ model.charts.hood | tojson }};
+    hbar("chart-hood", h.names, h.values, "מעונות");
+    var ce = {{ model.charts.centre | tojson }};
+    vbar("chart-centre", ce.names, ce.values, "מעונות");
+    var n = {{ model.charts.nearest | tojson }};
+    vbar("chart-nearest", n.names, n.values, "מעונות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.mix | tojson }};
+    var el = document.getElementById("chart-mix");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 24, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: m.names.slice().reverse() },
+      series: m.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

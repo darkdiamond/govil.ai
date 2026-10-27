@@ -1,0 +1,229 @@
+{%- macro head(title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro fallback(key, cols) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels[key ~ "_caption"] }}</caption>
+      <thead><tr>{% for c in cols %}<th scope="col">{{ c[1] }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables[key] %}
+        <tr>{% for c in cols %}{% if loop.first %}<th scope="row">{{ r[c[0]] }}</th>{% else %}<td>{{ r[c[0]] }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+<h1>איפה דפי - מיפוי דפיברילטורים חברתי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "cities", "allday", "last12"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המכשירים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("איך המאגר גדל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.year_note }}</p>
+  <div id="chart-year" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.year_aria }}"></div>
+  {{ fallback("year", [("name", "שנה"), ("count", "מכשירים"), ("share", "שיעור")]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("מספר המכשירים המצטבר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cum_note }}</p>
+  <div id="chart-cum" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cum_aria }}"></div>
+</section>
+
+{% if model.has_city %}
+<section class="card p-5 mb-6">
+  {{ head("יישובים מובילים וזמינות מסביב לשעון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  <div id="chart-city" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+  {{ fallback("city", [("name", "יישוב"), ("total", "מכשירים"), ("yes", "זמינים 24 שעות"), ("share", "שיעור מהידועים")]) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("סוגי מקומות וזמינות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cat_note }}</p>
+  <div id="chart-cat" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+  {{ fallback("cat", [("name", "סוג מקום"), ("total", "מכשירים"), ("yes", "זמינים 24 שעות"), ("share", "שיעור מהידועים")]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{% if model.has_floor %}
+<section class="card p-5">
+  {{ head("באיזו קומה המכשיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.floor_note }}</p>
+  <div id="chart-floor" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.floor_aria }}"></div>
+  {{ fallback("floor", [("name", "קומה"), ("count", "מכשירים"), ("share", "שיעור")]) }}
+</section>
+{% endif %}
+{% if model.has_ay %}
+<section class="card p-5">
+  {{ head("זמינות 24 שעות לפי שנת הוספה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ay_note }}</p>
+  <div id="chart-ay" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.ay_aria }}"></div>
+  {{ fallback("ay", [("name", "שנה"), ("known", "רשומות עם נתון"), ("share", "זמינים 24 שעות")]) }}
+</section>
+{% endif %}
+</div>
+
+{% if model.has_ud %}
+<section class="card p-5 mb-6">
+  {{ head("מתי עודכנו הרשומות לאחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ud_note }}</p>
+  <div id="chart-ud" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ud_aria }}"></div>
+  {{ fallback("ud", [("name", "שנת עדכון"), ("count", "רשומות"), ("share", "שיעור")]) }}
+</section>
+{% endif %}
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    fitBounds: false,
+    initialView: { center: [31.5, 35.0], zoom: 8 },
+    popupTitleField: "locationName",
+    popupFields: [
+      { field: "indexCity", label: "יישוב" },
+      { field: "locationFloor", label: "קומה" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mount(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var y = {{ model.charts.year | tojson }};
+    mount("chart-year", {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: y.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "מכשירים", data: y.values }]
+    });
+    var c = {{ model.charts.cum | tojson }};
+    mount("chart-cum", {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: c.x, boundaryGap: false },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [{ type: "line", name: "מצטבר", data: c.y, showSymbol: false, areaStyle: { opacity: 0.12 } }]
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var ch = echarts.init(el);
+      ch.setOption(window.GovEcharts.option({
+        color: [window.GOVIL_PALETTE[0], "#6c757d", "#c3cfe7"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: [
+          { type: "bar", stack: "t", name: "24 שעות", data: d.yes.slice().reverse() },
+          { type: "bar", stack: "t", name: "שעות מוגבלות", data: d.no.slice().reverse() },
+          { type: "bar", stack: "t", name: "ללא נתון", data: d.unknown.slice().reverse() }
+        ]
+      }));
+      window.addEventListener("resize", function () { ch.resize(); });
+    }
+    stacked("chart-city", {{ model.charts.city | tojson }});
+    stacked("chart-cat", {{ model.charts.cat | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    function mount(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var f = {{ model.charts.floor | tojson }};
+    mount("chart-floor", {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: f.names, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "מכשירים", data: f.values }]
+    });
+    var a = {{ model.charts.ay | tojson }};
+    mount("chart-ay", {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 8, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: a.names },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "זמינים 24 שעות", data: a.values }]
+    });
+    var u = {{ model.charts.ud | tojson }};
+    mount("chart-ud", {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: u.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "רשומות", data: u.values }]
+    });
+  })();
+</script>

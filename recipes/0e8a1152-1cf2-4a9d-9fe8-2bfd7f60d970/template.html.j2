@@ -1,0 +1,290 @@
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-72 md:h-96") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endmacro %}
+{%- macro map_section(mid, title, note) %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ mid }}" class="h-72 md:h-[420px]"></div>
+</section>
+{%- endmacro %}
+<h1>מבנים לשימור</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["buildings", "complexes", "fence_km", "ungraded"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{{ map_section("map-buildings", "מפת המבנים לשימור", model.labels.map_b_note) }}
+
+{{ chart_section("chart-layers", "database", "ארבע שכבות השימור", model.labels.layers_note, model.labels.layers_aria, model.labels.layers_cap, model.tables.layers, "h-64 md:h-80") }}
+
+{{ chart_section("chart-standards", "database", "מבנים לפי דרגת שימור", model.labels.standards_note, model.labels.standards_aria, model.labels.standards_cap, model.tables.standards, "h-72 md:h-96") }}
+
+{% if model.flags.eras %}
+{{ chart_section("chart-eras", "database", "מבנים לפי תקופה", model.labels.eras_note, model.labels.eras_aria, model.labels.eras_cap, model.tables.eras, "h-64 md:h-80") }}
+{% endif %}
+
+{% if model.flags.std_era %}
+{{ chart_section("chart-std-era", "database", "דרגות השימור בכל תקופה", model.labels.std_era_note, model.labels.std_era_aria, model.labels.std_era_cap, model.tables.std_era, "h-72 md:h-96") }}
+{% endif %}
+
+{{ chart_section("chart-areas", "building-2", "שטח המבנים", model.labels.areas_note, model.labels.areas_aria, model.labels.areas_cap, model.tables.areas, "h-72 md:h-96") }}
+
+{{ chart_section("chart-dist", "map-pin", "ריכוז סביב המרכז", model.labels.dist_note, model.labels.dist_aria, model.labels.dist_cap, model.tables.dist, "h-72 md:h-96") }}
+
+{% if model.flags.cards %}
+{{ chart_section("chart-cards", "list", "כיסוי כרטיסי סקר לפי דרגה", model.labels.cards_note, model.labels.cards_aria, model.labels.cards_cap, model.tables.cards, "h-64 md:h-80") }}
+{% endif %}
+
+{% if model.flags.top_cards %}
+{{ chart_section("chart-top-cards", "list", "כרטיסי הסקר הגדולים", model.labels.top_cards_note, model.labels.top_cards_aria, model.labels.top_cards_cap, model.tables.top_cards, "h-72 md:h-96") }}
+{% endif %}
+
+{% if model.flags.cx %}
+{{ map_section("map-complexes", "מפת מתחמי השימור", model.labels.map_c_note) }}
+{{ chart_section("chart-cx-top", "building-2", "המתחמים הגדולים ביותר", model.labels.cx_top_note, model.labels.cx_top_aria, model.labels.cx_top_cap, model.tables.cx_top, "h-72 md:h-96") }}
+{{ chart_section("chart-cx-std", "building-2", "מתחמים לפי דרגה", model.labels.cx_std_note, model.labels.cx_std_aria, model.labels.cx_std_cap, model.tables.cx_std, "h-64 md:h-80") }}
+{% endif %}
+
+{% if model.flags.fe %}
+{{ map_section("map-fences", "מפת הגדרות לשימור", model.labels.map_f_note) }}
+{{ chart_section("chart-fe-std", "database", "אורך הגדרות לפי דרגה", model.labels.fe_std_note, model.labels.fe_std_aria, model.labels.fe_std_cap, model.tables.fe_std, "h-64 md:h-80") }}
+{{ chart_section("chart-fe-len", "database", "אורכי קטעי הגדר", model.labels.fe_len_note, model.labels.fe_len_aria, model.labels.fe_len_cap, model.tables.fe_len, "h-72 md:h-96") }}
+{% endif %}
+
+{% if model.flags.el %}
+{{ map_section("map-elements", "מפת אלמנטי השימור", model.labels.map_e_note) }}
+{{ chart_section("chart-el-std", "database", "אלמנטי שימור לפי דרגה", model.labels.el_std_note, model.labels.el_std_aria, model.labels.el_std_cap, model.tables.el_std, "h-64 md:h-80") }}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת האלמנטים</h2>
+  </div>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">רשימת אלמנטי השימור</caption>
+    <thead><tr>{% for h_ in model.tables.el_list.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in model.tables.el_list.rows %}
+      <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+<script>
+  GovMap.create({
+    container: "#map-buildings",
+    resourceId: {{ inputs.buildings[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupFields: [
+      { field: "standard", label: "דרגה" },
+      { field: "year", label: "תקופה" },
+      { field: "cartis", label: "כרטיס סקר" }
+    ]
+  });
+{%- if model.flags.cx %}
+  GovMap.create({
+    container: "#map-complexes",
+    resourceId: {{ inputs.complexes[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: false,
+    popupTitleField: "Taba",
+    popupFields: [{ field: "shimur", label: "דרגה" }]
+  });
+{%- endif %}
+{%- if model.flags.fe %}
+  GovMap.create({
+    container: "#map-fences",
+    resourceId: {{ inputs.fences[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupFields: [{ field: "standard", label: "דרגה" }]
+  });
+{%- endif %}
+{%- if model.flags.el %}
+  GovMap.create({
+    container: "#map-elements",
+    resourceId: {{ inputs.elements[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: false,
+    popupTitleField: "Taba",
+    popupFields: [{ field: "standard", label: "דרגה" }, { field: "Hakama", label: "הערה" }]
+  });
+{%- endif %}
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__mk = mk;
+    window.__hbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values.slice().reverse() }]
+      }));
+    };
+    window.__vbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+    };
+    window.__stack = function (id, cats, names, series, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: cats, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+        yAxis: { type: "value" },
+        series: names.map(function (n, i) { return { type: "bar", stack: "t", name: n, data: series[i] }; })
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var L1 = {{ model.charts.layers | tojson }};
+    window.__hbar("chart-layers", L1, "פריטים");
+    var S = {{ model.charts.standards | tojson }};
+    window.__vbar("chart-standards", S, "מבנים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var E = {{ model.charts.eras | tojson }};
+    window.__vbar("chart-eras", E, "מבנים");
+    var SE = {{ model.charts.std_era | tojson }};
+    window.__stack("chart-std-era", SE.eras, SE.names, SE.series);
+  })();
+</script>
+
+<script>
+  (function () {
+    var A = {{ model.charts.areas | tojson }};
+    window.__stack("chart-areas", A.bands, A.names, A.series);
+    var D = {{ model.charts.dist | tojson }};
+    window.__stack("chart-dist", D.bands, D.names, D.series);
+  })();
+</script>
+
+<script>
+  (function () {
+    var C = {{ model.charts.cards | tojson }};
+    window.__vbar("chart-cards", C, "אחוז מהמבנים");
+    var T = {{ model.charts.top_cards | tojson }};
+    window.__hbar("chart-top-cards", T, "מבנים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var X = {{ model.charts.cx_top | tojson }};
+    window.__hbar("chart-cx-top", X, "דונם");
+    var Y = {{ model.charts.cx_std | tojson }};
+    var c = window.__mk("chart-cx-std");
+    if (c) {
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 8, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: Y.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+        yAxis: [{ type: "value", name: "מתחמים" }, { type: "value", name: "דונם", splitLine: { show: false } }],
+        series: [
+          { type: "bar", name: "מתחמים", data: Y.counts },
+          { type: "bar", name: "שטח (דונם)", yAxisIndex: 1, data: Y.areas }
+        ]
+      }));
+    }
+  })();
+</script>
+
+<script>
+  (function () {
+    var F = {{ model.charts.fe_std | tojson }};
+    window.__vbar("chart-fe-std", { names: F.names, values: F.km }, "ק״מ");
+    var G = {{ model.charts.fe_len | tojson }};
+    window.__stack("chart-fe-len", G.bands, G.names, G.series);
+    var H = {{ model.charts.el_std | tojson }};
+    window.__vbar("chart-el-std", H, "אלמנטים");
+  })();
+</script>

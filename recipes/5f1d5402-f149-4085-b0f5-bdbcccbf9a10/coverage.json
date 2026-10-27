@@ -1,0 +1,22 @@
+{
+  "main.id": "insight:source — only the letter prefix of the identifier is read",
+  "main.createdAt": "chart-year, chart-cum, chart-ay, kpi:last12, insight:peak, insight:pace",
+  "main.updatedAt": "chart-ud, insight:updated",
+  "main.indexCity": "chart-city, kpi:cities, insight:city, insight:allday_city, map:map-main — reverse-geocoded city, hyphen variants merged",
+  "main.locationName": "chart-cat, insight:category, insight:allday_cat, map:map-main — venue type by keywords",
+  "main.locationFloor": "chart-floor, insight:floor, map:map-main",
+  "main.locationOpenAllDay": "chart-city, chart-cat, chart-ay, kpi:allday, insight:allday, insight:allday_city, insight:allday_cat",
+  "main.imageURL": "insight:photo — only whether a photo link exists; the link is never shown",
+  "main.lat": "map:map-main — also the validity filter",
+  "main.lon": "map:map-main — also the validity filter",
+  "main.contactName": "skip: private contact details (volunteer / owner names)",
+  "main.contactPhone": "skip: private contact details (phone numbers)",
+  "main.locationCity": "skip: free-text, 15% empty; the reverse-geocoded indexCity is used instead",
+  "main.locationDescription": "skip: free text, often addresses of private homes",
+  "main.locationNumber": "skip: free-text house number",
+  "main.locationOpenHours": "skip: free text, 72% empty, multi-line fragments",
+  "main.locationStreet": "skip: free-text street address",
+  "main.origin": "skip: constant licence boilerplate text",
+  "main.itm-x": "skip: same point as lat/lon in ITM",
+  "main.itm-y": "skip: same point as lat/lon in ITM"
+}

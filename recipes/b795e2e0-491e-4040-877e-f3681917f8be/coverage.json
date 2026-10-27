@@ -1,0 +1,8 @@
+{
+  "sites.MainFeatur": "map-main, chart-cat, chart-species, chart-lat, chart-lon, chart-patch, kpi:total, kpi:cats, kpi:species, insight:leader, insight:flora, insight:species, insight:concentration, insight:patch, insight:shift, insight:repeat — free-text site description: classified by keywords, species counted, size parsed",
+  "sites.lat": "map-main, chart-lat, chart-lon, chart-grid, kpi:extent, insight:shift, insight:hot",
+  "sites.lon": "map-main, chart-lat, chart-lon, chart-grid, kpi:extent, insight:shift, insight:hot",
+  "resource:a9643d00-4cd2-4f36-9fa8-fb15a99693fb": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:005f9f7f-51a4-434c-aa01-40e86d8d3b82": "skip: same points as the CSV, in ITM coordinates",
+  "resource:b34a13f0-bd47-4b99-8331-f3fde6cca999": "skip: XLSX twin of the ITM CSV"
+}

@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "727e865d-25b1-43ce-9dcb-af297851f87b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:01:40.089440+00:00",
+    "rows": {
+      "main": 29558
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "66755b06-bf71-4e4e-989b-e6ee98cffb68",
+      "required_columns": [
+        "StreetCode",
+        "HouseNuber",
+        "streetName",
+        "letter",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,13 @@
+{
+  "main.מספר רישיון": "skip: licence identifier (used only to count each licence once, never shown)",
+  "main.שם עסק": "chart-businesses, insight:concentration, kpi:businesses",
+  "main.תאריך תוקף": "chart-expiry, insight:expiry, kpi:soon",
+  "main.תאור סטטוס": "chart-status, chart-expiry, chart-months, chart-sector-status, insight:status, insight:temp_sector, kpi:renewing",
+  "main.תאור רישיון": "chart-sectors, chart-types, chart-heat, chart-sector-status, insight:sector, insight:food — free text grouped by keywords; vehicle descriptions carry plate numbers and are kept out of the type ranking",
+  "main.תאריך שינוי מצב": "chart-months, insight:months",
+  "main.טלפון בעסק": "skip: contact detail, not shown",
+  "main.שם רחוב": "chart-streets, chart-heat, insight:streets",
+  "main.בית": "skip: house number, address detail with no aggregate meaning",
+  "main.מייל בעסק": "skip: contact detail, not shown",
+  "resource:06259dee-7208-4647-9b70-30a3048cfda2": "skip: XLSX twin of the CSV resource (identical 3,108 rows)"
+}

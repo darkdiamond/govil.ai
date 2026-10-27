@@ -1,0 +1,15 @@
+{
+  "clinics.X": "map-main, chart-nearest, kpi:nearest, insight:nearest, insight:cluster — longitude (WGS84)",
+  "clinics.Y": "map-main, chart-nearest, kpi:nearest, insight:nearest, insight:cluster — latitude (WGS84)",
+  "clinics.Z": "skip: constant 0 elevation column",
+  "clinics.ID": "skip: running serial of the point inside the file (and a type code in the sibling table); not a meaningful dimension",
+  "clinics.Name": "map-main, kpi:milk, insight:milk — names are cut at 8 characters in the source, used only to spot milk stations and as map popup title",
+  "clinics.address": "map-main — street, often truncated; popup text only",
+  "clinics.neighborho": "chart-neigh, insight:neigh, insight:mix — neighbourhood code as written (abbreviated)",
+  "clinics.HMOname": "map-main, chart-op, chart-neigh, kpi:total, kpi:clalit, insight:leader, insight:mix",
+  "resource:48774cd1-c518-4cec-9678-eeb55d2f3e13": "skip: XLSX twin of the CSV (same 112 rows)",
+  "resource:9a293111-a517-4961-9bb4-3666497b6539": "skip: a separate 59-row snapshot of the same layer with different, partly overlapping rows and a type code in ID; not reconciled with the main table",
+  "resource:24778f6f-4745-419d-8172-95ee12883cc4": "skip: XLSX twin of the 59-row snapshot",
+  "resource:1f4a1633-e53b-4a40-bf1a-aa57ffafb106": "skip: the 59-row snapshot in ITM coordinates",
+  "resource:cb3fa690-c479-4b47-93bf-e030d54cd457": "skip: XLSX twin of the ITM snapshot"
+}

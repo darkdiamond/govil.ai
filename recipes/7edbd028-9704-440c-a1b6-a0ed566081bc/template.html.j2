@@ -1,0 +1,308 @@
+<h1>עמודי תאורה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+{%- for key in ["total", "led-share", "pending", "boards", "streets"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת עמודי התאורה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סטטוס המעבר ל-LED</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+  <div id="chart-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+      <thead><tr><th scope="col">סטטוס</th><th scope="col">עמודים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.status %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.has_boards %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מצב ה-LED במרכזיות הגדולות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.boards_note }}</p>
+  <div id="chart-boards" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.boards_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.boards_caption }}</caption>
+      <thead><tr><th scope="col">מרכזייה</th><th scope="col">עמודים</th><th scope="col">עם LED</th><th scope="col">ממתינים</th><th scope="col">שיעור LED</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.boards %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.done }}</td><td>{{ r.pend }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מצב ה-LED מצפון לדרום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+  <div id="chart-lat" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lat_caption }}</caption>
+      <thead><tr><th scope="col">רצועת קו רוחב</th><th scope="col">עמודים</th><th scope="col">עם LED</th><th scope="col">שיעור LED</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lat %}
+        <tr><th scope="row"><bdi dir="ltr">{{ r.name }}</bdi></th><td>{{ r.n }}</td><td>{{ r.done }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.has_density %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפיפות העמודים בעיר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.density_note }}</p>
+  <div id="chart-density" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.density_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+{% if model.has_streets %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הרחובות עם הכי הרבה עמודים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.streets_note }}</p>
+  <div id="chart-streets" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.streets_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.streets_caption }}</caption>
+      <thead><tr><th scope="col">רחוב</th><th scope="col">עמודים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.streets %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.has_size %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה עמודים בכל מרכזייה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  <div id="chart-size" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.size_caption }}</caption>
+      <thead><tr><th scope="col">עמודים במרכזייה</th><th scope="col">מרכזיות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.size %}
+        <tr><th scope="row"><bdi dir="ltr">{{ r.name }}</bdi></th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פערים במאגר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+  <div id="chart-quality" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.quality_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.quality_caption }}</caption>
+      <thead><tr><th scope="col">סוג הפער</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.quality %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.poles[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupTitleField: "Lampost",
+    popupFields: [
+      { field: "centerligh", label: "מרכזייה" },
+      { field: "LED", label: "סטטוס" },
+      { field: "NearAddres", label: "כתובת קרובה" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    var s = {{ model.charts.status | tojson }};
+    var c1 = mk("chart-status");
+    if (c1) {
+      c1.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: s.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: "עמודים", data: s.values.map(function (v, i) {
+          return { value: v, itemStyle: { color: s.colors[i] } };
+        }).reverse() }]
+      }));
+    }
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d, bottom) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: ["#198754", "#9a6700", "#c3cfe7"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: bottom, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.names.slice().reverse() },
+        series: [
+          { type: "bar", stack: "t", name: "LED קיים", data: d.done.slice().reverse() },
+          { type: "bar", stack: "t", name: "ממתין להחלפה", data: d.pend.slice().reverse() },
+          { type: "bar", stack: "t", name: "אחר או ללא סטטוס", data: d.other.slice().reverse() }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-boards", {{ model.charts.boards | tojson }}, 40);
+    stacked("chart-lat", {{ model.charts.lat | tojson }}, 40);
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.density | tojson }};
+    var el = document.getElementById("chart-density");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { formatter: function (p) {
+        return "קו אורך " + echarts.format.encodeHTML(d.x[p.value[0]]) + ", קו רוחב " + echarts.format.encodeHTML(d.y[p.value[1]]) + ": " + p.value[2];
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: false }, axisLabel: { interval: 3 } },
+      yAxis: { type: "category", data: d.y, axisLabel: { interval: 3 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal",
+        left: "center", bottom: 0, inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", name: "עמודים", data: d.cells, itemStyle: { borderColor: "#fff", borderWidth: 1 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, unit, w) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: w, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var st = {{ model.charts.streets | tojson }};
+    hbar("chart-streets", st.names, st.values, "עמודים", 130);
+    var q = {{ model.charts.quality | tojson }};
+    hbar("chart-quality", q.names, q.values, "רשומות", 150);
+    var z = {{ model.charts.size | tojson }};
+    var el = document.getElementById("chart-size");
+    if (el) {
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: z.names },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: "מרכזיות", data: z.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+  })();
+</script>

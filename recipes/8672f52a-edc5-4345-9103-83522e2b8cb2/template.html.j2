@@ -1,0 +1,237 @@
+<h1>פרוייקטורים - מלווי עולים ברשויות המקומיות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.places.tone }} mb-1" dir="ltr">{{ model.kpis.places.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.places_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.areas.tone }} mb-1" dir="ltr">{{ model.kpis.areas.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.areas_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.langs.tone }} mb-1" dir="ltr">{{ model.kpis.langs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.langs_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שפות השירות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.langs_note }}</p>
+  <div id="chart-langs" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.langs_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.langs_caption }}</caption>
+      <thead><tr><th scope="col">שפה</th><th scope="col">מלווים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.langs %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צירופי שפות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.combos_note }}</p>
+  <div id="chart-combos" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.combos_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.combos_caption }}</caption>
+      <thead><tr><th scope="col">צירוף שפות</th><th scope="col">מלווים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.combos %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מרחבי שירות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.areas_note }}</p>
+  <div id="chart-areas" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.areas_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.areas_caption }}</caption>
+      <thead><tr><th scope="col">מרחב</th><th scope="col">מלווים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.areas %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים ורשויות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.places_note }}</p>
+  <div id="chart-places" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.places_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.places_caption }}</caption>
+      <thead><tr><th scope="col">יישוב או רשות</th><th scope="col">מלווים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.places %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שפות לפי מרחב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ערוצי קשר זמינים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_note }}</p>
+  <div id="chart-contact" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.contact_caption }}</caption>
+      <thead><tr><th scope="col">ערוץ</th><th scope="col">מלווים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.contact %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var langs = {{ model.charts.langs | tojson }};
+    var c_langs = echarts.init(document.getElementById("chart-langs"));
+    c_langs.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: langs.x, axisLabel: { interval: 0, rotate: 30 } }, yAxis: { type: "value", name: "מלווים" },
+      series: [{ type: "bar", name: "מלווים", data: langs.y, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c_langs.resize(); });
+
+    var combos = {{ model.charts.combos | tojson }};
+    var c_combos = echarts.init(document.getElementById("chart-combos"));
+    c_combos.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "מלווים" }, yAxis: { type: "category", data: combos.x, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מלווים", data: combos.y, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c_combos.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var areas = {{ model.charts.areas | tojson }};
+    var c_areas = echarts.init(document.getElementById("chart-areas"));
+    c_areas.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "מלווים" }, yAxis: { type: "category", data: areas.x, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מלווים", data: areas.y, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c_areas.resize(); });
+
+    var places = {{ model.charts.places | tojson }};
+    var c_places = echarts.init(document.getElementById("chart-places"));
+    c_places.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "מלווים" }, yAxis: { type: "category", data: places.x, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מלווים", data: places.y, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c_places.resize(); });
+
+    var contact = {{ model.charts.contact | tojson }};
+    var c_contact = echarts.init(document.getElementById("chart-contact"));
+    c_contact.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: contact.x, axisLabel: { interval: 0, rotate: 30 } }, yAxis: { type: "value", name: "מלווים" },
+      series: [{ type: "bar", name: "מלווים", data: contact.y, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c_contact.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2];
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "category", data: h.y, inverse: true, axisLabel: { width: 100, overflow: "truncate" } },
+      visualMap: { min: 0, max: h.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 4,
+                   inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", data: h.data, label: { show: true } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

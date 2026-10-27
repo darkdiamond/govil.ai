@@ -1,0 +1,11 @@
+{
+  "daycares.name": "map-main, kpi:total — daycare name; shown only in the map popup",
+  "daycares.operator": "map-main, chart-operator, chart-mix, kpi:private, kpi:operators, insight:private_share, insight:org_leader, insight:org_concentration, insight:hood_private, insight:reach — operator as written in the source (truncated to 8 characters there)",
+  "daycares.neighbor": "map-main, chart-hood, chart-mix, kpi:hoods, insight:hood_lead, insight:hood_private, insight:reach — neighbourhood label, letter-only variants merged",
+  "daycares.lat": "map-main, chart-centre, chart-nearest, insight:centre, insight:nearest, insight:extent",
+  "daycares.lon": "map-main, chart-centre, chart-nearest, insight:centre, insight:nearest, insight:extent",
+  "daycares.address": "skip: street name truncated to 8 characters in the source and may be a private home; not shown",
+  "resource:00fce96a-5f53-4777-9846-dd3c161221ba": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:4fd905ca-5ea0-45f6-a060-546b42194474": "skip: same points as the CSV, in ITM coordinates",
+  "resource:03207c70-2fb1-4b79-996a-b7b1659c6dfa": "skip: XLSX twin of the ITM CSV"
+}
