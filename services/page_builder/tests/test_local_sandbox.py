@@ -7,6 +7,7 @@ image's check.py. Off-root (local dev, CI) nothing may change.
 """
 import os
 import subprocess
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -237,3 +238,14 @@ def test_host_check_uses_image_copy(tmp_path, monkeypatch):
     assert seen["argv"][2] == str(agent_contract.CHECK_SCRIPT_PATH)
     assert str(agent_contract.CHECK_SCRIPT_PATH).endswith("agent/skills/check.py")
     assert (tmp_path / "validated-content.html").read_text() == "<p>x</p>"
+
+
+def test_grpc_fork_support_disabled_by_package_import():
+    """Sandbox spawns fork the host; gRPC's atfork handlers abort children."""
+    env = {k: v for k, v in os.environ.items() if k != "GRPC_ENABLE_FORK_SUPPORT"}
+    out = subprocess.run(
+        [sys.executable, "-c",
+         "import os, services.page_builder; print(os.environ['GRPC_ENABLE_FORK_SUPPORT'])"],
+        env=env, capture_output=True, text=True, check=True,
+    )
+    assert out.stdout.strip() == "0"

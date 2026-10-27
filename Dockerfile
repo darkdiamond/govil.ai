@@ -10,6 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONPATH=/app \
+    GRPC_ENABLE_FORK_SUPPORT=0 \
     PORT=8080
 
 # The agent's bash tool investigates CKAN with curl (slim lacks it).

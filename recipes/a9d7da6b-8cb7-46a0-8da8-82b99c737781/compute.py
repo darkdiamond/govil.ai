@@ -94,7 +94,11 @@ def _parse_dates(s):
     f1, f2 = ("%m/%d/%Y", "%d/%m/%Y") if mmdd else ("%d/%m/%Y", "%m/%d/%Y")
     d1 = pd.to_datetime(s, format=f1, errors="coerce")
     d2 = pd.to_datetime(s, format=f2, errors="coerce")
-    return d1.fillna(d2)
+    d = d1.fillna(d2)
+    # Sentinel dates (e.g. 2999-12-31) overflow datetime64[ns]. pandas 2
+    # coerced them to NaT; pandas 3 keeps them at us resolution, so null
+    # them here to behave the same on both.
+    return d.where(d.dt.year < 2262)
 
 
 def _kind(name):
@@ -120,13 +124,15 @@ def _prepare(df):
     # Sub-type: the licence sub-type for business-licence rows, the permit kind otherwise.
     out["sub"] = out["Heter_Name"].where(out["is_bl"], out["kind_type"])
     out["sub"] = out["sub"].replace({"": UNSET, MISSING_SUB: "ללא תת-סוג"})
-    out["start"] = pd.NaT
-    out["end"] = pd.NaT
+    # Date order is detected per kind. Assemble via concat+reindex rather than
+    # .loc assignment: pandas 3 parses to a different datetime resolution than
+    # a NaT-initialised column and refuses the setitem (OutOfBoundsDatetime).
+    starts, ends = [], []
     for k, idx in out.groupby("kind_type").groups.items():
-        out.loc[idx, "start"] = _parse_dates(out.loc[idx, "Start_Date"])
-        out.loc[idx, "end"] = _parse_dates(out.loc[idx, "End_Date"])
-    out["start"] = pd.to_datetime(out["start"])
-    out["end"] = pd.to_datetime(out["end"])
+        starts.append(_parse_dates(out.loc[idx, "Start_Date"]))
+        ends.append(_parse_dates(out.loc[idx, "End_Date"]))
+    out["start"] = pd.concat(starts).reindex(out.index).astype("datetime64[ns]")
+    out["end"] = pd.concat(ends).reindex(out.index).astype("datetime64[ns]")
     out["dur"] = (out["end"] - out["start"]).dt.days
     out["kind"] = [None if not bl else _kind(n) for n, bl in zip(out["factory"], out["is_bl"])]
     return out.reset_index(drop=True), n_test
