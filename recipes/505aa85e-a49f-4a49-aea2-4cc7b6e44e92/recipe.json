@@ -1,0 +1,44 @@
+{
+  "contract_version": 1,
+  "dataset_id": "505aa85e-a49f-4a49-aea2-4cc7b6e44e92",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-19T04:08:22.770638+00:00",
+    "rows": { "in_il": 143, "abroad": 104 }
+  },
+  "inputs": [
+    {
+      "name": "in_il",
+      "by_id": "06bd9490-bcdd-402a-8eaa-2c67b25b69ed",
+      "required_columns": [
+        "country",
+        "name",
+        "honorary_consul_title",
+        "address",
+        "area",
+        "email",
+        "phone_number",
+        "mobile_phone",
+        "appointment_date"
+      ]
+    },
+    {
+      "name": "abroad",
+      "by_id": "9209e586-2b5c-4783-9837-e61ba6642132",
+      "required_columns": [
+        "country",
+        "name",
+        "honorary_consul_title",
+        "address",
+        "area",
+        "email",
+        "phone_number",
+        "mobile_phone",
+        "appointment_date"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

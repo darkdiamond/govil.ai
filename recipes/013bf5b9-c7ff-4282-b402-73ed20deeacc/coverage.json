@@ -1,0 +1,11 @@
+{
+  "main.point_name": "chart-chains, chart-chain-price, chart-assort, kpi:points, kpi:chains, insight:chain_mixed, insight:both — retail chain derived from the point name (known prefixes + cleaned-name fallback); part of the point-of-sale key",
+  "main.city": "chart-cities, chart-cheap, kpi:cities, insight:cities, insight:city_cheap — spelling variants merged; part of the point-of-sale key",
+  "main.address": "kpi:points — part of the point-of-sale key only; street addresses are not shown on the page (they are in the explorer)",
+  "main.product": "chart-prices, chart-importers, chart-chains, chart-cities, chart-assort, table:matrix, insight:spread, insight:both",
+  "main.max_price": "chart-prices, chart-chain-price, chart-cheap, table:matrix, kpi:range, insight:spread, insight:chain_mixed, insight:city_cheap, insight:update — normalised to ₪ per 100 g with weight",
+  "main.weight": "chart-prices, kpi:range — used to normalise price per 100 g (constant 100 today)",
+  "main.importer": "chart-importers, chart-updates, table:matrix, insight:importer, insight:spread",
+  "main.pic": "skip: constant product image tag (same picture on every row)",
+  "main.last_update": "chart-updates, insight:update"
+}

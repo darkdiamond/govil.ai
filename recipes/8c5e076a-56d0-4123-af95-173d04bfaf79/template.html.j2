@@ -1,0 +1,513 @@
+<h1>פרטי קופות לצורך העברת כספים בין גופים מוסדיים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="mt-2 mb-0 text-sm text-subtle">{{ model.labels.scope_note }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.tracks.tone }} mb-1" dir="ltr">{{ model.kpis.tracks.display }}</div>
+    <div class="text-sm text-subtle">מסלולי השקעה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.funds.tone }} mb-1" dir="ltr">{{ model.kpis.funds.display }}</div>
+    <div class="text-sm text-subtle">קופות וקרנות (גמל ופנסיה)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.companies.tone }} mb-1" dir="ltr">{{ model.kpis.companies.display }}</div>
+    <div class="text-sm text-subtle">חברות מנהלות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.accounts.tone }} mb-1" dir="ltr">{{ model.kpis.accounts.display }}</div>
+    <div class="text-sm text-subtle">חשבונות בנק להעברות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.fresh.tone }} mb-1" dir="ltr">{{ model.kpis.fresh.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.fresh_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שלושה תחומים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.domain_note }}</p>
+    <div id="chart-domains" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.domain_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.domain_caption }}</caption>
+        <thead><tr><th scope="col">תחום</th><th scope="col">חברות</th><th scope="col">קופות וקרנות</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.domains %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.companies }}</td><td>{{ r.funds }}</td><td>{{ r.tracks }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי מסלולי השקעה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_note }}</p>
+    <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.type_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.type_caption }}</caption>
+        <thead><tr><th scope="col">סוג מסלול</th><th scope="col">תחום</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.domain }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">החברות המנהלות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_note }}</p>
+  <div id="chart-companies" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.comp_caption }}</caption>
+      <thead><tr><th scope="col">חברה מנהלת</th><th scope="col">מסלולים</th><th scope="col">קופות וקרנות</th><th scope="col">תחומים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.companies %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.tracks }}</td><td>{{ r.funds }}</td><td>{{ r.domains }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התמחות ראשית של המסלולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spec_note }}</p>
+    <div id="chart-spec" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.spec_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.spec_caption }}</caption>
+        <thead><tr><th scope="col">התמחות</th>{% for d in model.tables.dom_names %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.spec %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התמחות ראשית ומשנית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+    <div id="chart-tree" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">ההתמחויות המשניות הנפוצות ומספר המסלולים בכל אחת.</caption>
+        <thead><tr><th scope="col">התמחות משנית</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.spec2 %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הבנקים של חשבונות ההעברה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bank_note }}</p>
+    <div id="chart-banks" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bank_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bank_caption }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">מסלולים</th><th scope="col">שיעור</th><th scope="col">חשבונות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.banks %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.tracks }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.accounts }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חשבונות משותפים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pool_note }}</p>
+    <div id="chart-pool" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pool_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pool_caption }}</caption>
+        <thead><tr><th scope="col">החשבון משרת</th><th scope="col">חשבונות</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pool %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.accounts }}</td><td>{{ r.tracks }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות מנהלות ובנקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+      <thead><tr><th scope="col">חברה מנהלת</th>{% for b in model.charts.heat.x %}<th scope="col">{{ b }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מתפעל את המסלולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mode_note }}</p>
+    <div id="chart-modes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mode_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mode_caption }}</caption>
+        <thead><tr><th scope="col">תחום</th>{% for m in model.tables.mode_names %}<th scope="col">{{ m }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.modes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.m0 }}</td><td>{{ r.m1 }}</td><td>{{ r.m2 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">החברות המתפעלות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.op_note }}</p>
+    <div id="chart-operators" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.op_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.op_caption }}</caption>
+        <thead><tr><th scope="col">חברה מתפעלת</th><th scope="col">מסלולים</th><th scope="col">חברות מנהלות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.operators %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.tracks }}</td><td>{{ r.clients }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">העברות נכנסות ויוצאות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.struct_note }}</p>
+    <div id="chart-structure" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.struct_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.struct_caption }}</caption>
+        <thead><tr><th scope="col">תחום</th>{% for s in model.tables.struct_names %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.structure %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מועד העדכון האחרון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.up_note }}</p>
+    <div id="chart-updated" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.up_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.up_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.updated %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן יושבות מחלקות ההעברות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+    <div id="chart-city" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.city_caption }}</caption>
+        <thead><tr><th scope="col">עיר</th><th scope="col">חברות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הקופות עם הכי הרבה מסלולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.funds_note }}</p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.funds_caption }}</caption>
+        <thead><tr><th scope="col">קופה / קרן</th><th scope="col">חברה מנהלת</th><th scope="col">מסלולים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.funds %}
+          <tr><th scope="row">{{ r.fund }}</th><td>{{ r.company }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      opt.color = opt.color || window.GOVIL_PALETTE;
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var P = window.GOVIL_PALETTE, DOM_COLORS = [P[0], P[1], P[2]];
+    var NARROW = window.innerWidth < 640, LW = NARROW ? 110 : 160;
+
+    var d = {{ model.charts.domains | tojson }};
+    mk("chart-domains", {
+      color: [P[2], P[1], P[0]],
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "חברות", data: d.companies },
+        { type: "bar", name: "קופות וקרנות", data: d.funds },
+        { type: "bar", name: "מסלולים", data: d.tracks }
+      ]
+    });
+
+    function stackedH(id, src, unit, lw) {
+      mk(id, {
+        color: DOM_COLORS,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmt(v) + " " + unit; } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: src.names, inverse: true,
+                 axisLabel: { width: lw || LW, overflow: "truncate" } },
+        series: src.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      });
+    }
+    stackedH("chart-types", {{ model.charts.types | tojson }}, "מסלולים");
+    stackedH("chart-companies", {{ model.charts.companies | tojson }}, "מסלולים", NARROW ? 120 : 240);
+    stackedH("chart-spec", {{ model.charts.spec | tojson }}, "מסלולים");
+  })();
+</script>
+
+<script>
+  (function () {
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      opt.color = opt.color || window.GOVIL_PALETTE;
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var P = window.GOVIL_PALETTE, DOM_COLORS = [P[0], P[1], P[2]];
+    var NARROW = window.innerWidth < 640, LW = NARROW ? 110 : 160;
+
+    var tr = {{ model.charts.tree | tojson }};
+    mk("chart-tree", {
+      tooltip: { formatter: function (p) { return p.name + ": " + fmt(p.value) + " מסלולים"; } },
+      series: [{
+        type: "treemap", data: tr, roam: false, nodeClick: "zoomToNode", leafDepth: 1,
+        top: 8, left: 4, right: 4, bottom: 32,
+        breadcrumb: { bottom: 0, itemStyle: { color: "#0068f5" } },
+        label: { show: true, fontFamily: "Rubik", formatter: "{b}" },
+        upperLabel: { show: true, height: 22, fontFamily: "Rubik", color: "#fff" },
+        levels: [
+          { itemStyle: { borderColor: "#fff", borderWidth: 2, gapWidth: 2 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { gapWidth: 1, borderColorSaturation: 0.6 } }
+        ]
+      }]
+    });
+
+    var b = {{ model.charts.banks | tojson }};
+    mk("chart-banks", {
+      color: DOM_COLORS,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmt(v) + " מסלולים"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: b.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "מסלולים" },
+      series: b.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    });
+
+    var p = {{ model.charts.pool | tojson }};
+    mk("chart-pool", {
+      color: [P[1], P[2]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: p.names, axisLabel: { interval: 0, width: 80, overflow: "break" } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "חשבונות", data: p.accounts },
+        { type: "bar", name: "מסלולים", data: p.tracks }
+      ]
+    });
+
+    var h = {{ model.charts.heat | tojson }};
+    mk("chart-heat", {
+      tooltip: { position: "top", formatter: function (q) {
+        return echarts.format.encodeHTML(h.y[q.value[1]]) + " · " + echarts.format.encodeHTML(h.x[q.value[0]]) + ": " + fmt(q.value[2]) + " מסלולים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { width: LW, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik",
+                 formatter: function (q) { return q.value[2] ? fmt(q.value[2]) : ""; } } }]
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      opt.color = opt.color || window.GOVIL_PALETTE;
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var P = window.GOVIL_PALETTE, DOM_COLORS = [P[0], P[1], P[2]];
+    var NARROW = window.innerWidth < 640, LW = NARROW ? 110 : 160;
+    function pct100(id, src) {
+      mk(id, {
+        color: [P[0], P[1], P[6], P[9]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 8, bottom: 64, containLabel: true },
+        xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: src.names, inverse: true },
+        series: src.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      });
+    }
+    pct100("chart-modes", {{ model.charts.modes | tojson }});
+    pct100("chart-structure", {{ model.charts.structure | tojson }});
+
+    function hbar(id, src, unit) {
+      mk(id, {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmt(v) + " " + unit; } },
+        grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: src.names, inverse: true,
+                 axisLabel: { width: LW, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: src.values }]
+      });
+    }
+    hbar("chart-operators", {{ model.charts.operators | tojson }}, "מסלולים");
+    hbar("chart-city", {{ model.charts.cities | tojson }}, "חברות");
+
+    var u = {{ model.charts.updated | tojson }};
+    mk("chart-updated", {
+      color: DOM_COLORS,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmt(v) + " מסלולים"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: u.x },
+      yAxis: { type: "value", name: "מסלולים" },
+      series: u.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    });
+  })();
+</script>

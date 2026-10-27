@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "013bf5b9-c7ff-4282-b402-73ed20deeacc",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T10:44:46.569837+00:00",
+    "rows": {
+      "main": 1148
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "ef2bc38d-321a-4162-a4d2-ce806cf3f298",
+      "required_columns": [
+        "point_name",
+        "city",
+        "address",
+        "product",
+        "max_price",
+        "weight",
+        "importer",
+        "last_update"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["100"]
+}

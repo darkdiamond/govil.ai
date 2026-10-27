@@ -1,0 +1,35 @@
+{
+  "contract_version": 1,
+  "dataset_id": "56639c97-30ba-4307-a768-9f4b1655c68a",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-04T05:30:50.211139+00:00",
+    "rows": {
+      "main": 9187
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "de069ddf-bcbc-4754-bda0-84873a353f7b",
+      "required_columns": [
+        "Type_Descr",
+        "Head_Department",
+        "Second_Classific",
+        "Owner_Code_Descr",
+        "Organization",
+        "Registered_Business_Id",
+        "Authoritys",
+        "Region_Descr",
+        "Actual_Capacity",
+        "Gender_Descr",
+        "STARTD",
+        "GisX",
+        "GisY"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

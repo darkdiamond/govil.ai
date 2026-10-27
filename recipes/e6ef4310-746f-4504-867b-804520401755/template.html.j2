@@ -1,0 +1,499 @@
+<h1>רשימת חקלאים ללא חשש פרי ערלה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.growers.tone }} mb-1" dir="ltr">{{ model.kpis.growers.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.growers_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.localities.tone }} mb-1" dir="ltr">{{ model.kpis.localities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.localities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rows.tone }} mb-1" dir="ltr">{{ model.kpis.rows.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rows_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.expired.tone }} mb-1" dir="ltr">{{ model.kpis.expired.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.expired_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצות גידול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.families_note }}</p>
+    <div id="chart-families" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.families_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.families_caption }}</caption>
+          <thead><tr><th scope="col">קבוצה</th><th scope="col">שורות זן</th><th scope="col">שיעור</th><th scope="col">מגדלים</th><th scope="col">שמות זן</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.families %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.rows }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.growers }}</td><td>{{ r.varieties }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הפירות והזנים הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.varieties_note }}</p>
+    <div id="chart-varieties" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.varieties_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.varieties_caption }}</caption>
+        <thead><tr><th scope="col">פרי או זן</th><th scope="col">קבוצה</th><th scope="col">שורות</th><th scope="col">מגדלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.varieties %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.fam }}</td><td>{{ r.rows }}</td><td>{{ r.growers }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.tree %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הזנים בתוך כל קבוצה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+  <div id="chart-tree" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.localities_note }}</p>
+  <div id="chart-localities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.localities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.localities_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">שורות זן</th><th scope="col">מגדלים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.localities %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.rows }}</td><td>{{ r.growers }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל היישובים ברשימה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.loc_dist_note }}</p>
+    <div id="chart-loc-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.loc_dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.loc_dist_caption }}</caption>
+        <thead><tr><th scope="col">שורות זן ביישוב</th><th scope="col">יישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.loc_dist %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המגדלים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grower_size_note }}</p>
+    <div id="chart-grower-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.grower_size_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.grower_size_caption }}</caption>
+        <thead><tr><th scope="col">שורות זן למגדל</th><th scope="col">מגדלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.grower_size %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.growers %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המגדלים המגוונים ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_growers_note }}</p>
+    <div id="chart-top-growers" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.top_growers_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.top_growers_caption }}</caption>
+        <thead><tr><th scope="col">מגדל (יישוב)</th><th scope="col">קבוצה עיקרית</th><th scope="col">שורות זן</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.top_growers %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.fam }}</td><td>{{ r.rows }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תוקף האישורים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.validity_note }}</p>
+    <div id="chart-validity" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.validity_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.validity_caption }}</caption>
+        <thead><tr><th scope="col">תוקף</th><th scope="col">בתוקף עד</th><th scope="col">שורות זן</th><th scope="col">פג תוקף</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.validity %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.until }}</td><td>{{ r.rows }}</td><td>{{ r.expired }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בודקי הרבנות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inspectors_note }}</p>
+  <div id="chart-inspectors" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.inspectors_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.inspectors_caption }}</caption>
+        <thead><tr><th scope="col">בודק</th>{% for c in model.tables.validity_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.inspectors %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.notes %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פרי רבעי והערות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.notes_note }}</p>
+    <div id="chart-notes" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.notes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.notes_caption }}</caption>
+        <thead><tr><th scope="col">הערה</th><th scope="col">שורות זן</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.notes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.rows }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.inspections %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בדיקות לפי חודש</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inspections_note }}</p>
+    <div id="chart-inspections" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.inspections_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.inspections_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">שורות שנבדקו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.inspections %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת חקלאים ללא חשש פרי ערלה המאושרים ע"י הרבנות הראשית לישראל</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.families | tojson }};
+    var c = echarts.init(document.getElementById("chart-families"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, interval: 0, width: 120, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "שורות זן", data: d.rows, itemStyle: { color: "#0068f5" } },
+        { type: "bar", name: "מגדלים", data: d.growers, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.varieties | tojson }};
+    var c = echarts.init(document.getElementById("chart-varieties"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + " (" + echarts.format.encodeHTML(d.fams[p.dataIndex]) + "): " + Number(p.value).toLocaleString("he-IL") + " שורות";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, interval: 0, width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שורות", data: d.values.map(function (v, i) {
+        return { value: v, itemStyle: { color: d.colors[i] } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.tree %}
+<script>
+  (function () {
+    var t = {{ model.charts.tree | tojson }};
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { show: false },
+      tooltip: { formatter: function (p) { return p.name + ": " + Number(p.value).toLocaleString("he-IL") + " שורות"; } },
+      series: [{
+        type: "treemap", name: "כל הקבוצות", data: t, leafDepth: 1, roam: false,
+        top: 8, left: 8, right: 8, bottom: 40,
+        breadcrumb: { bottom: 4, itemStyle: { color: "#0068f5" } },
+        label: { fontFamily: "Rubik", overflow: "truncate" },
+        upperLabel: { show: false },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 2, gapWidth: 2 },
+            upperLabel: { show: true, height: 22, fontFamily: "Rubik" } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.localities | tojson }};
+    var c = echarts.init(document.getElementById("chart-localities"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, interval: 0, width: 100, overflow: "truncate" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, color) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 40, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [{ type: "bar", name: unit, data: d.values, itemStyle: { color: color },
+                   label: { show: true, position: "right", fontSize: 11 } }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    hbar("chart-loc-dist", {{ model.charts.loc_dist | tojson }}, "יישובים", "#0068f5");
+    hbar("chart-grower-size", {{ model.charts.grower_size | tojson }}, "מגדלים", "#0b3668");
+  })();
+</script>
+
+{% if model.flags.growers %}
+<script>
+  (function () {
+    var d = {{ model.charts.top_growers | tojson }};
+    var c = echarts.init(document.getElementById("chart-top-growers"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + "<br/>" + echarts.format.encodeHTML(d.fams[p.dataIndex]) + ": " + Number(p.value).toLocaleString("he-IL") + " שורות זן";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, interval: 0, width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שורות זן", data: d.values.map(function (v, i) {
+        return { value: v, itemStyle: { color: d.colors[i] } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.validity | tojson }};
+    var c = echarts.init(document.getElementById("chart-validity"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { fontSize: 11, interval: 0, width: 80, overflow: "break" } },
+      yAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+      series: [
+        { type: "bar", stack: "v", name: "בתוקף", data: d.values.map(function (v, i) { return v - d.expired[i]; }),
+          itemStyle: { color: "#0068f5" } },
+        { type: "bar", stack: "v", name: "פג תוקף", data: d.expired, itemStyle: { color: "#dc3545" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.inspectors | tojson }};
+    var c = echarts.init(document.getElementById("chart-inspectors"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, interval: 0, width: 100, overflow: "truncate" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.notes %}
+<script>
+  (function () {
+    var d = {{ model.charts.notes | tojson }};
+    var c = echarts.init(document.getElementById("chart-notes"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, interval: 0, width: 90, overflow: "truncate" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.inspections %}
+<script>
+  (function () {
+    var d = {{ model.charts.inspections | tojson }};
+    var c = echarts.init(document.getElementById("chart-inspections"));
+    var last = d.y.length - 1;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { fontSize: 11, hideOverlap: true } },
+      yAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+      series: [{ type: "bar", name: "שורות שנבדקו", data: d.y.map(function (v, i) {
+        return (d.partial && i === last) ? { value: v, itemStyle: { color: "#b7d2f7" } } : v;
+      }), itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

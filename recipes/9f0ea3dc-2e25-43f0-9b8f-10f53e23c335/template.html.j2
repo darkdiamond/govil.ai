@@ -1,0 +1,364 @@
+<h1>רשימת בעלי הכשרות בבריאות הסביבה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.holders.tone }} mb-1" dir="ltr">{{ model.kpis.holders.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.holders_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.new.tone }} mb-1" dir="ltr">{{ model.kpis.new.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.new_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.window.tone }} mb-1" dir="ltr">{{ model.kpis.window.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.window_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הכשרות לפי סוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+      <thead><tr><th scope="col">קוד</th><th scope="col">קידומת תעודה</th><th scope="col">הכשרות</th><th scope="col">שיעור</th><th scope="col">בעלי הכשרה</th><th scope="col">שנת קבלה מוקדמת</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.code }}</th><td dir="ltr">{{ r.prefix }}</td><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.holders }}</td><td>{{ r.first }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הכשרות לפי שנת קבלה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחזורי הסמכה לפי חודש ושנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פקיעת תוקף לפי שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.expiry_note }}</p>
+    <div id="chart-expiry" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.expiry_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.expiry_caption }}</caption>
+        <thead><tr><th scope="col">שנת פקיעה</th><th scope="col">הכשרות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.expiry %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.has_window %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גל החידושים הקרוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.window_note }}</p>
+    <div id="chart-window" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.window_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.window_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">הכשרות שפגות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.window %}
+          <tr><th scope="row">{{ r.month }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק ההכשרה לפי סוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seniority_note }}</p>
+  <div id="chart-seniority" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.seniority_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.seniority_caption }}</caption>
+      <thead><tr><th scope="col">סוג</th><th scope="col">הכשרות</th>{% for c in model.tables.sen_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">חציון ותק (שנים)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.seniority %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}<td>{{ r.median }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה הכשרות לכל בעל הכשרה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.multi_note }}</p>
+    <div id="chart-multi" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.multi_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.multi_caption }}</caption>
+        <thead><tr><th scope="col">סוגי הכשרה</th><th scope="col">בעלי הכשרה</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.multi %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.has_pairs %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הכשרות שנלמדות יחד</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pairs_note }}</p>
+    <div id="chart-pairs" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.pairs_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pairs_caption }}</caption>
+        <thead><tr><th scope="col">הכשרה</th><th scope="col">יחד עם</th><th scope="col">בעלי הכשרה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pairs %}
+          <tr><th scope="row">{{ r.a }}</th><td>{{ r.b }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת בעלי הכשרות בבריאות הסביבה</p>
+</section>
+
+<script>
+  (function () {
+    var t = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: t.names, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [{ type: "bar", name: "הכשרות", data: t.values, itemStyle: { color: "#0068f5" },
+                 label: { show: true, position: "right", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 48, containLabel: true },
+      dataZoom: [{ type: "inside", startValue: y.zoom_from }, { type: "slider", bottom: 8, height: 18, startValue: y.zoom_from }],
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "הכשרות" },
+      series: y.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { position: "top", formatter: function (p) {
+        return h.x[p.value[0]] + " " + h.y[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: h.y, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", name: "הכשרות", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var e = {{ model.charts.expiry | tojson }};
+    var c = echarts.init(document.getElementById("chart-expiry"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: e.x, axisLabel: { fontSize: 10, hideOverlap: true } },
+      yAxis: { type: "value", name: "הכשרות" },
+      series: [{ type: "bar", name: "הכשרות", data: e.values.map(function (v, i) {
+        return e.as_of_idx.indexOf(i) >= 0 ? { value: v, itemStyle: { color: "#9a6700" } } : v;
+      }), itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_window %}
+<script>
+  (function () {
+    var w = {{ model.charts.window | tojson }};
+    var c = echarts.init(document.getElementById("chart-window"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: w.x, axisLabel: { fontSize: 10, rotate: 45 } },
+      yAxis: { type: "value", name: "הכשרות" },
+      series: w.series.map(function (s) {
+        return { type: "bar", stack: "w", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var s = {{ model.charts.seniority | tojson }};
+    var c = echarts.init(document.getElementById("chart-seniority"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: s.series.map(function (x, i) {
+        var ramp = ["#a9c9f8", "#5b9bf8", "#0068f5", "#0b3668"];
+        return { type: "bar", stack: "s", name: x.name, data: x.data, itemStyle: { color: ramp[i % ramp.length] } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.multi | tojson }};
+    var c = echarts.init(document.getElementById("chart-multi"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 32, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: m.names, name: "סוגים", axisLabel: { interval: 0 } },
+      yAxis: { type: "log", name: "בעלי הכשרה", min: 1 },
+      series: [{ type: "bar", name: "בעלי הכשרה", data: m.values, itemStyle: { color: "#0b3668" },
+                 label: { show: true, position: "top", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_pairs %}
+<script>
+  (function () {
+    var p = {{ model.charts.pairs | tojson }};
+    var c = echarts.init(document.getElementById("chart-pairs"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { position: "top", formatter: function (q) {
+        return echarts.format.encodeHTML(p.names[q.value[0]]) + " + " + echarts.format.encodeHTML(p.names[q.value[1]]) + ": " + q.value[2].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: p.names, splitArea: { show: true }, axisLabel: { fontSize: 9, interval: 0, rotate: 60 } },
+      yAxis: { type: "category", data: p.names, splitArea: { show: true }, axisLabel: { fontSize: 9, interval: 0 } },
+      visualMap: {
+        min: 0, max: p.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", name: "בעלי הכשרה", data: p.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

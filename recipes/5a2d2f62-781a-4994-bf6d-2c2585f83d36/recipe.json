@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5a2d2f62-781a-4994-bf6d-2c2585f83d36",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T17:13:53.333019+00:00",
+    "rows": {
+      "proceedings": 9673
+    }
+  },
+  "inputs": [
+    {
+      "name": "proceedings",
+      "by_id": "df6abde0-8746-48c4-b09a-d9b20a7c6f9c",
+      "required_columns": [
+        "מספר הליך",
+        "סוג תיק",
+        "סוג הליך",
+        "שם הליך",
+        "מספר תיק",
+        "הליכים קשורים",
+        "סטטוס",
+        "תאריך סטטוס"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

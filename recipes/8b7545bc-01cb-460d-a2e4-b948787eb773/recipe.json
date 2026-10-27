@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "8b7545bc-01cb-460d-a2e4-b948787eb773",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T09:09:56.449905+00:00",
+    "rows": {
+      "ipc": 79350
+    }
+  },
+  "inputs": [
+    {
+      "name": "ipc",
+      "by_id": "78c52e4e-8e49-4531-b2f2-edc766cbbd64",
+      "required_columns": ["סיווג", "תיאור הסיווג", "סיווג אב", "תאריך גרסה"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

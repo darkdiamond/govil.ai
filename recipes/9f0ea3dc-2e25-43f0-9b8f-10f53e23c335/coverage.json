@@ -1,0 +1,8 @@
+{
+  "main.training_name": "chart-types, chart-years, chart-window, chart-seniority, chart-pairs, insight:leader, insight:seniority, insight:no_validity, insight:multi — numeric type code; published without a name, labelled with its dominant certificate prefix",
+  "main.family_name": "chart-multi, chart-pairs, kpi:holders, insight:multi — only to group one person's certifications (with first_name); no one is named on the page",
+  "main.first_name": "chart-multi, chart-pairs, kpi:holders, insight:multi — grouping key only; namesakes merge, disclosed",
+  "main.certified_number": "chart-types — only the letter prefix is used, to label each training code; the individual certificate number never reaches the page",
+  "main.received_date": "chart-years, chart-heat, chart-seniority, kpi:new, insight:trend, insight:batches, insight:seniority, insight:quality — receipts before 1990 or after the reference date excluded from date views and disclosed; also sets the reference date",
+  "main.validity_date": "chart-expiry, chart-window, kpi:window, insight:window, insight:expiry_peak, insight:no_validity — earliest expiry bounds the reference date"
+}

@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9f0ea3dc-2e25-43f0-9b8f-10f53e23c335",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-12T11:45:56.809687+00:00",
+    "rows": {
+      "main": 13989
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "6bf142d3-3fcc-45e9-8637-abcf3fc52c1a",
+      "required_columns": [
+        "training_name",
+        "family_name",
+        "first_name",
+        "certified_number",
+        "received_date",
+        "validity_date"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

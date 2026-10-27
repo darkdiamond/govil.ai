@@ -1,0 +1,414 @@
+<h1>תחנות התחסנות כנגד חצבת</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ops.tone }} mb-1" dir="ltr">{{ model.kpis.ops.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ops_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_h.tone }} mb-1" dir="ltr">{{ model.kpis.median_h.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_h_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.evening.tone }} mb-1" dir="ltr">{{ model.kpis.evening.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.evening_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.friday.tone }} mb-1" dir="ltr">{{ model.kpis.friday.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.friday_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מפעיל את התחנות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owner_note }}</p>
+  <div id="chart-owner" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.owner_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.owner_caption }}</caption>
+      <thead><tr><th scope="col">גוף מפעיל</th><th scope="col">תחנות</th><th scope="col">חלק</th><th scope="col">יישובים</th><th scope="col">זוהו לפי שם התחנה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.owner %}
+        <tr><th scope="row">{{ r.op }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.cities }}</td><td>{{ r.inferred }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות לפי יישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  <div id="chart-city" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.city_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">תחנות</th><th scope="col">חלק</th><th scope="col">הגוף המפעיל העיקרי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.city %}
+        <tr><th scope="row">{{ r.city }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.op }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת היישובים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" data-fallback="explorer" class="h-80 md:h-[460px] rounded-gov" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  <div id="chart-district" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.district_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.district_caption }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">תחנות</th><th scope="col">חלק</th><th scope="col">יישובים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.district %}
+        <tr><th scope="row">{{ r.district }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.cities }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תחנות פתוחות בכל יום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.week_note }}</p>
+    <div id="chart-week" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.week_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.week_caption }}</caption>
+        <thead><tr><th scope="col">יום</th><th scope="col">תחנות פתוחות</th><th scope="col">חלק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.week %}
+          <tr><th scope="row">{{ r.day }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ימי פעילות בשבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.days_note }}</p>
+    <div id="chart-days" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.days_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.days_caption }}</caption>
+        <thead><tr><th scope="col">ימים בשבוע</th><th scope="col">תחנות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.days %}
+          <tr><th scope="row">{{ r.days }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי אפשר להגיע: יום ושעה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+      <thead><tr><th scope="col">שעה</th>{% for d in model.tables.heat_days %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat %}
+        <tr><th scope="row" dir="ltr">{{ r.hour }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שעות פתיחה בשבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hours_note }}</p>
+    <div id="chart-hours" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.hours_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.hours_caption }}</caption>
+        <thead><tr><th scope="col">שעות בשבוע</th><th scope="col">תחנות</th><th scope="col">חלק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.hours %}
+          <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">זמינות לפי גוף מפעיל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.profile_note }}</p>
+    <div id="chart-profile" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.profile_caption }}</caption>
+        <thead><tr><th scope="col">גוף מפעיל</th><th scope="col">תחנות</th><th scope="col">חציון שעות בשבוע</th><th scope="col">פתוחות בערב</th><th scope="col">פתוחות בשישי</th><th scope="col">חמישה ימים ומעלה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.profile %}
+          <tr><th scope="row">{{ r.op }}</th><td>{{ r.k }}</td><td>{{ r.median_h }}</td><td>{{ r.evening }}</td><td>{{ r.friday }}</td><td>{{ r.five }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var d = {{ model.charts.owner | tojson }};
+    var c = echarts.init(document.getElementById("chart-owner"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.y, inverse: true },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.city | tojson }};
+    var P = window.GOVIL_PALETTE;
+    var c = echarts.init(document.getElementById("chart-city"));
+    c.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[6], P[5], P[9]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { interval: 0 } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.map %}
+<script>
+  (function () {
+    var d = {{ model.charts.map | tojson }};
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var map = L.map(el, { center: [31.9, 35.0], zoom: 7, zoomSnap: 0.25, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: "© OpenStreetMap"
+    }).addTo(map);
+    var bounds = [];
+    d.points.forEach(function (p) {
+      var mk = L.circleMarker([p[0], p[1]], {
+        radius: 4 + 2.2 * Math.sqrt(p[2]), color: "#0053c4", weight: 1,
+        fillColor: "#0068f5", fillOpacity: 0.45
+      }).addTo(map);
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = p[3];
+      box.appendChild(t);
+      [["תחנות", p[2].toLocaleString("he-IL")], ["מחוז", p[4]], ["הגוף המפעיל העיקרי", p[5]]].forEach(function (row) {
+        var line = document.createElement("div");
+        line.textContent = row[0] + ": " + row[1];
+        box.appendChild(line);
+      });
+      mk.bindPopup(box);
+      bounds.push([p[0], p[1]]);
+    });
+    if (bounds.length) { map.fitBounds(bounds, { padding: [16, 16] }); }
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var P = window.GOVIL_PALETTE;
+    var c = echarts.init(document.getElementById("chart-district"));
+    c.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[6], P[5], P[9]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.y, inverse: true, axisLabel: { interval: 0 } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.week | tojson }};
+    var P = window.GOVIL_PALETTE;
+    var c = echarts.init(document.getElementById("chart-week"));
+    c.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[6], P[5], P[9]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "תחנות" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.days | tojson }};
+    var c = echarts.init(document.getElementById("chart-days"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "ימים" },
+      yAxis: { type: "value", name: "תחנות" },
+      series: [{ type: "bar", name: "תחנות", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " תחנות פתוחות";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: false },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.hours | tojson }};
+    var c = echarts.init(document.getElementById("chart-hours"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "תחנות", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.profile | tojson }};
+    var c = echarts.init(document.getElementById("chart-profile"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.y, inverse: true },
+      series: d.series.map(function (s) { return { type: "bar", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

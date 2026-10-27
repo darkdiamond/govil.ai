@@ -1,0 +1,308 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart, fmt="int") -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th></tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td>{% if fmt == "int" %}{{ chart["values"][loop.index0] | fmt_int }}{% else %}{{ chart["values"][loop.index0] | fmt_num }}{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+{%- macro kpi(k, label) -%}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro -%}
+<h1>רשות התאגידים - רשם ההקדשות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+  {{ kpi(model.kpis.total, "הקדשות רשומים במרשם") }}
+  {{ kpi(model.kpis.balance, "סך היתרות שדווחו בשקלים (מיליארד ₪)") }}
+  {{ kpi(model.kpis.median, "יתרה חציונית להקדש (₪)") }}
+  {{ kpi(model.kpis.properties, "נכסי מקרקעין של הקדשות") }}
+  {{ kpi(model.kpis.note_share, "נכסים עם הערת הקדש במרשם המקרקעין") }}
+  {{ kpi(model.kpis.current, "הקדשות עם דיווח יתרה מ-" ~ model.labels.current_from ~ " ואילך") }}
+  {{ kpi(model.kpis.new_full, "הקדשות חדשים שנרשמו ב-" ~ model.labels.full_year) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("איך שלושת הקבצים מתחברים", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.coverage_note }}</p>
+  <div id="chart-coverage" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.coverage_aria }}"></div>
+  {{ table(model.labels.coverage_aria, "קבוצת תיקים", "תיקים", model.charts.coverage) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("רישום הקדשות לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("שיטת המימון", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.funding_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div id="chart-funding" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.funding_aria }}"></div>
+    <div id="chart-funding-re" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.funding_re_aria }}"></div>
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.funding_aria }}</caption>
+        <thead><tr><th scope="col">שיטת מימון</th><th scope="col">הקדשות</th><th scope="col">מהמרשם (%)</th><th scope="col">מחזיקים מקרקעין (%)</th><th scope="col">יתרה חציונית (₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.charts.funding.rows %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.n | fmt_int }}</td><td>{{ r.share | fmt_num }}</td><td>{{ r.re | fmt_num }}</td><td>{{ r.median | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("למה מיועדים ההקדשות", "tag") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.themes_note }}</p>
+    <div id="chart-themes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+    {{ table(model.labels.themes_aria, "ייעוד", "הקדשות", model.charts.themes) }}
+  </section>
+{%- if model.flags.institutions %}
+  <section class="card p-5">
+    {{ head("מוסדות אקדמיים במטרות", "building-2") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.institutions_note }}</p>
+    <div id="chart-institutions" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.institutions_aria }}"></div>
+    {{ table(model.labels.institutions_aria, "מוסד", "הקדשות", model.charts.institutions) }}
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("גודל היתרות", "database") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bal_note }}</p>
+  <div id="chart-bal-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bal_aria }}"></div>
+  {{ table(model.labels.bal_aria, "יתרה בשקלים", "הקדשות", model.charts.bal_dist) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("ההקדשות עם היתרה הגדולה ביותר", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.top_aria }}</caption>
+        <thead><tr><th scope="col">הקדש</th><th scope="col">יתרה (₪)</th><th scope="col">מסך היתרות (%)</th><th scope="col">שנת הדיווח</th></tr></thead>
+        <tbody>
+{%- for name in model.charts.top.names %}
+          <tr><th scope="row">{{ name }}</th><td>{{ model.charts.top["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.top.share[loop.index0] | fmt_num }}</td><td>{{ model.charts.top.year[loop.index0] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("ריכוזיות היתרות", "triangle-alert") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.conc_note }}</p>
+  <div id="chart-concentration" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.conc_aria }}"></div>
+  {{ table(model.labels.conc_aria, "קבוצה", "מסך היתרות (%)", model.charts.concentration, "num") }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("עדכניות הדיווח על היתרות", "circle-check") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reports_note }}</p>
+  <div id="chart-reports" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.reports_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.reports_aria }}</caption>
+      <thead><tr><th scope="col">שנת הדיווח</th><th scope="col">במרשם</th><th scope="col">לא במרשם</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.reports.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ model.charts.reports.reg[loop.index0] | fmt_int }}</td><td>{{ model.charts.reports.other[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.currencies %}
+<section class="card p-5 mb-6">
+  {{ head("יתרות במטבעות אחרים", "database") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cur_note }}</p>
+  <div id="chart-currencies" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cur_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cur_aria }}</caption>
+      <thead><tr><th scope="col">מטבע</th><th scope="col">שורות יתרה</th><th scope="col">תיקים</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.currencies.rows %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.lines | fmt_int }}</td><td>{{ r.tiks | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.realestate %}
+<section class="card p-5 mb-6">
+  {{ head("נכסי המקרקעין של ההקדשות", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.re_types_note }}</p>
+  <div id="chart-re-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.re_types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.re_types_aria }}</caption>
+      <thead><tr><th scope="col">סוג נכס</th><th scope="col">נכסים</th><th scope="col">עם הערה במרשם</th><th scope="col">עם הערה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.re_types.rows %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.n | fmt_int }}</td><td>{{ r.note | fmt_int }}</td><td>{{ r.share | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("ההקדשות עם הכי הרבה נכסים", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.re_top_note }}</p>
+  <div id="chart-re-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.re_top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.re_top_aria }}</caption>
+      <thead><tr><th scope="col">הקדש</th><th scope="col">נכסים</th><th scope="col">עם הערה במרשם</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.re_top.rows %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.n | fmt_int }}</td><td>{{ r.note | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("תיאור מקורי", "list") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר מידע זה מכיל שלושה קבצים אודות הקדשות ציבוריים: האחד כולל מידע כללי על הקדשות ציבוריים הרשומים פנקס ההקדשות הציבוריים, הקובץ השני כולל מידע אודות יתרת הנכסים של הקדשות ציבוריים, הקובץ השלישי כולל מידע אודות מקרקעין השייכים להקדשות ציבוריים.</p>
+</section>
+
+<script>
+  (function () {
+    function bars(id, d, opts) {
+      opts = opts || {};
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      var unit = opts.unit || "";
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: opts.width || 130, overflow: "truncate" } };
+      var val = { type: "value", splitNumber: 3, axisLabel: unit ? { formatter: "{value}" + unit } : {} };
+      if (opts.max) val.max = opts.max;
+      c.setOption(window.GovEcharts.option({
+        color: [opts.color || window.GOVIL_PALETTE[0]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + unit; } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: val,
+        yAxis: Object.assign({ inverse: true }, cat),
+        series: [{ type: "bar", name: opts.name, data: opts.values || d["values"] }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var fd = {{ model.charts.funding | tojson }};
+    bars("chart-coverage", {{ model.charts.coverage | tojson }}, { name: "תיקים", width: 160 });
+    bars("chart-funding", fd, { name: "הקדשות" });
+    bars("chart-funding-re", fd, { name: "מחזיקים מקרקעין", unit: "%", values: fd.re, max: 100, color: window.GOVIL_PALETTE[2] });
+    bars("chart-themes", {{ model.charts.themes | tojson }}, { name: "הקדשות", width: 140 });
+{%- if model.flags.institutions %}
+    bars("chart-institutions", {{ model.charts.institutions | tojson }}, { name: "הקדשות", width: 140 });
+{%- endif %}
+    bars("chart-bal-dist", {{ model.charts.bal_dist | tojson }}, { name: "הקדשות", width: 140 });
+    var tp = {{ model.charts.top | tojson }};
+    bars("chart-top", tp, { name: "יתרה (מיליוני ₪)", values: tp.mil, width: 170 });
+    bars("chart-concentration", {{ model.charts.concentration | tojson }}, { name: "מסך היתרות", unit: "%", max: 100, width: 170, color: window.GOVIL_PALETTE[1] });
+{%- if model.flags.currencies %}
+    bars("chart-currencies", {{ model.charts.currencies | tojson }}, { name: "שורות יתרה" });
+{%- endif %}
+{%- if model.flags.realestate %}
+    bars("chart-re-top", {{ model.charts.re_top | tojson }}, { name: "נכסים", width: 170 });
+{%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-years"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 14, bottom: 12 }],
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "הקדשות", data: y.y }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var r = {{ model.charts.reports | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-reports"));
+    c2.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: r.names, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", stack: "all", name: "במרשם", data: r.reg },
+               { type: "bar", stack: "all", name: "לא במרשם", data: r.other }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+{%- if model.flags.realestate %}
+
+    var t = {{ model.charts.re_types | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-re-types"));
+    c3.setOption(window.GovEcharts.option({
+      color: ["#198754", "#9a6700"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", inverse: true, data: t.names, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", stack: "all", name: "עם הערה במרשם", data: t.note },
+               { type: "bar", stack: "all", name: "ללא הערה", data: t.nonote }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+{%- endif %}
+  })();
+</script>

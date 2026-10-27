@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d4bb45f7-5114-4a30-ad4a-1553b06c98fb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:20:26.179119+00:00",
+    "rows": { "main": 11036 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "42e73a60-7acc-4c5d-b4ec-b0e468a73c51",
+      "required_columns": [
+        "mispar_esek",
+        "shem_esek",
+        "sug_esek",
+        "yishuv",
+        "cod_isuk",
+        "isuk"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

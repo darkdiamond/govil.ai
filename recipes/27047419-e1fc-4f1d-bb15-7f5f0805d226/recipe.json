@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "27047419-e1fc-4f1d-bb15-7f5f0805d226",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T03:10:08.947012+00:00",
+    "rows": { "main": 34235 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e873e6a2-66c1-494f-a677-f5e77348edb0",
+      "required_columns": [
+        "StationId",
+        "CityCode",
+        "CityName",
+        "MetropolinCode",
+        "MetropolinName",
+        "StationTypeName",
+        "StationOperatorTypeName",
+        "Lat",
+        "Long"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["WGS84"]
+}

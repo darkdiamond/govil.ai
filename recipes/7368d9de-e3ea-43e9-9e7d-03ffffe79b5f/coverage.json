@@ -1,0 +1,16 @@
+{
+  "cases.מספר תיק": "skip: identifier — case number (per court and year); the case table has no duplicates, so it is not read at all",
+  "cases.בית דין": "chart-mix, chart-courts, chart-appeals-year, chart-appeals-out, chart-outcomes, insight:judges, insight:appeals, table:deciders — appeals court split out; regional courts compared",
+  "cases.נושא תיק": "chart-cases-year, chart-tree, chart-mix, chart-divorce, chart-md, chart-outcomes, kpi:inherit, insight:inherit, insight:divorce — 2 system test files excluded and disclosed; topics under 50 cases merged into 'אחר'",
+  "cases.סוג תיק": "chart-tree, chart-divorce, kpi:consent, insight:new_type, insight:consent, table:types — consent vs contested divorce split by type name",
+  "cases.תאריך פתיחת תיק": "chart-cases-year, chart-courts, chart-divorce, chart-md, chart-deciders, chart-appeals-year, kpi:ytd, kpi:ytd_change, insight:ytd — first (2013) and current year detected as partial",
+  "cases.סטטוס תיק": "chart-outcomes, table:status — closed share in the outcomes note",
+  "cases.החלטה": "chart-outcomes, chart-appeals-out, insight:appeals — grouped by keyword into accepted / ruling / compromise / struck / rejected / other",
+  "cases.נותן החלטה": "chart-deciders, insight:admin, insight:judges, table:deciders — qadis named in their public capacity; one spelling variant merged; secretary decisions shown as 'החלטה מנהלתית'",
+  "contracts.בית דין": "chart-courts",
+  "contracts.מספר חוזה": "key:dedup — exact duplicates dropped only among numbered contracts (number-less back-entered rows are distinct contracts); never shown",
+  "contracts.תאריך עריכת חוזה": "chart-con-year, chart-season, chart-weekday, chart-con-heat, chart-md, chart-lead, kpi:contracts, insight:season, insight:weekday, insight:divorce, insight:lead, insight:backfill — 438 undated rows excluded and disclosed",
+  "contracts.תאריך יצירת תיק": "chart-con-year, chart-lead, kpi:lead, insight:lead, insight:backfill — file date vs contract date separates real-time entries from retroactive back-entry and gives the lead time",
+  "contracts.מספר פינקס": "skip: ledger (register book) number — an internal filing identifier with no aggregate meaning",
+  "contracts.רשם נישואין": "chart-registrars, kpi:registrars — count of active registrars and top-10 share only; registrars are not named or ranked"
+}

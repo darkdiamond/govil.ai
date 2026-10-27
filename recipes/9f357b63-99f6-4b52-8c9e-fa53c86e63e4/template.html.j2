@@ -1,0 +1,327 @@
+{% macro matrix_table(t, caption, head, summary="הצג כטבלה") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">{{ summary }}</summary>
+  <div class="overflow-x-auto">
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th>{% for c in t.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in t.rows %}
+      <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+<h1>סניפים לסליקה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in ["active", "banks", "cities", "regular", "redirected", "closed"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קודי סליקה לפי גוף וסוג סניף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.banks_note }}</p>
+  <div id="chart-banks" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.banks_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (כל הגופים)</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.banks_caption }}</caption>
+      <thead><tr><th scope="col">גוף</th><th scope="col">קודים פעילים</th><th scope="col">שיעור</th><th scope="col">יישובים</th><th scope="col">סוג נפוץ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.banks %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.cities }}</td><td>{{ r.main }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הסניפים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">סניף רגיל משרת לקוחות; יחידת ביצוע וסניף מיוחד הם יחידות תפעול, עסקים או מטה; חוץ בנקאי — גוף פיננסי שאינו בנק.</p>
+    <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">קודים פעילים</th><th scope="col">שיעור</th><th scope="col">גופים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.banks }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פריסה: בכמה יישובים כל גוף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.footprint_note }}</p>
+    <div id="chart-footprint" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.footprint_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.footprint_caption }}</caption>
+        <thead><tr><th scope="col">גוף</th><th scope="col">יישובים</th><th scope="col">קודים</th><th scope="col">קודים ליישוב</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.footprint %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.cities }}</td><td>{{ r.codes }}</td><td>{{ r.per_city }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+    <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">קודים פעילים</th><th scope="col">שיעור</th><th scope="col">מתוכם רגילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.regular }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה גוף נוכח באיזה יישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.presence_note }}</p>
+    <div id="chart-presence" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.presence_aria }}"></div>
+    {{ matrix_table(model.tables.presence, model.labels.presence_caption, "יישוב") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פתיחות וסגירות לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.flow_note }}</p>
+  <div id="chart-flow" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.flow_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.flow_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">נפתחו</th><th scope="col">רישום מרוכז</th><th scope="col">נסגרו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.flow %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.opened }}</td><td>{{ r.bulk }}</td><td>{{ r.closed }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.flags.status %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קודים מופנים וסגורים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">גוף</th><th scope="col">מופנים</th><th scope="col">נסגרו</th><th scope="col">פעילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.redirected }}</td><td>{{ r.closed }}</td><td>{{ r.active }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סגירות אחרונות</h2>
+    </div>
+{%- if model.flags.closed %}
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.closed_caption }}</caption>
+      <thead><tr><th scope="col">תאריך סגירה</th><th scope="col">גוף</th><th scope="col">סניף</th><th scope="col">יישוב</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.closed %}
+        <tr><th scope="row">{{ r.date }}</th><td>{{ r.bank }}</td><td>{{ r.branch }}</td><td>{{ r.city }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+{%- else %}
+    <p class="m-0 text-sm text-subtle">אין במאגר קודים עם תאריך סגירה.</p>
+{%- endif %}
+  </section>
+</div>
+{% endif %}
+
+{% if model.flags.shared %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קודים הרשומים תחת שני גופים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shared_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.shared_caption }}</caption>
+    <thead><tr><th scope="col">גוף א</th><th scope="col">גוף ב</th><th scope="col">קודים משותפים</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.shared %}
+      <tr><th scope="row">{{ r.a }}</th><td>{{ r.b }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+<script>
+  (function () {
+    function stackedH(id, d, opts) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0, show: d.series.length > 1 },
+        grid: { left: 8, right: 24, top: 8, bottom: d.series.length > 1 ? 56 : 8, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse() };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stackedH("chart-banks", {{ model.charts.banks | tojson }});
+    stackedH("chart-cities", {{ model.charts.cities | tojson }});
+    stackedH("chart-status", {{ model.charts.status | tojson }});
+
+    var fp = {{ model.charts.footprint | tojson }};
+    stackedH("chart-footprint", { names: fp.names, series: [{ name: "יישובים", data: fp.cities }] });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", radius: ["40%", "68%"], center: ["50%", "44%"],
+        label: { position: "inside", color: "#ffffff", fontFamily: "Rubik",
+                 formatter: function (p) { return p.percent >= 5 ? Math.round(p.percent) + "%" : ""; } },
+        data: t
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var pr = {{ model.charts.presence | tojson }};
+    var c = echarts.init(document.getElementById("chart-presence"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(pr.cities[p.value[1]]) + " · " + echarts.format.encodeHTML(pr.banks[p.value[0]]) + ": " + p.value[2];
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: pr.banks, splitArea: { show: true },
+               axisLabel: { interval: 0, rotate: 30, width: 90, overflow: "truncate" } },
+      yAxis: { type: "category", data: pr.cities, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: pr.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: pr.cells, label: { show: true, fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var f = {{ model.charts.flow | tojson }};
+    var c = echarts.init(document.getElementById("chart-flow"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 24, bottom: 88, containLabel: true },
+      dataZoom: [{ type: "inside", start: f.zoom_start, end: 100 },
+                 { type: "slider", start: f.zoom_start, end: 100, bottom: 32, height: 18 }],
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "o", name: "נפתחו", data: f.opened },
+        { type: "bar", stack: "o", name: "רישום מרוכז", data: f.bulk, itemStyle: { color: "#c3cfe7" } },
+        { type: "bar", name: "נסגרו", data: f.closed, itemStyle: { color: "#dc3545" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

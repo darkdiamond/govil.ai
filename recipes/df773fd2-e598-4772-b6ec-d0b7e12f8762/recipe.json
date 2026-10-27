@@ -1,0 +1,36 @@
+{
+  "contract_version": 1,
+  "dataset_id": "df773fd2-e598-4772-b6ec-d0b7e12f8762",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:20:43.744886+00:00",
+    "rows": { "main": 192750 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "cd3acc5c-03c3-4c89-9c54-d40f93c0d790",
+      "required_columns": [
+        "kvutzat_sug_rechev",
+        "tkina_EU",
+        "shnat_yitzur",
+        "tozeret_nm",
+        "tozeret_eretz_nm",
+        "sug_delek_nm",
+        "mishkal_kolel",
+        "mishkal_azmi",
+        "mishkal_mitan_harama",
+        "nefach_manoa",
+        "hanaa_nm",
+        "moed_aliya_lakvish",
+        "mispar_mekomot",
+        "grira_nm",
+        "degem_nm",
+        "degem_manoa"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}
