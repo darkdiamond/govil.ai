@@ -197,7 +197,7 @@
     if (c) {
       c.setOption(window.GovEcharts.option({
         tooltip: { formatter: function (p) {
-          return "קו אורך " + d.x[p.value[0]] + ", קו רוחב " + d.y[p.value[1]] + ": " + p.value[2];
+          return "קו אורך " + echarts.format.encodeHTML(d.x[p.value[0]]) + ", קו רוחב " + echarts.format.encodeHTML(d.y[p.value[1]]) + ": " + p.value[2];
         } },
         grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
         xAxis: { type: "category", data: d.x, splitArea: { show: false }, axisLabel: { interval: 3 } },

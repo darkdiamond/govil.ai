@@ -339,7 +339,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.data[2] + "<br>רשמיים: " + p.data[0].toLocaleString("he-IL") +
+        return echarts.format.encodeHTML(p.data[2]) + "<br>רשמיים: " + p.data[0].toLocaleString("he-IL") +
           "<br>חלופיים: " + p.data[1].toLocaleString("he-IL");
       } },
       grid: { left: 16, right: 24, top: 24, bottom: 40, containLabel: true },

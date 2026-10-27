@@ -307,7 +307,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
         var i = ps[0].dataIndex;
-        var s = "מחלקה " + d.names[i] + (d.main[i] ? " · " + d.main[i] : "");
+        var s = "מחלקה " + echarts.format.encodeHTML(d.names[i]) + (d.main[i] ? " · " + echarts.format.encodeHTML(d.main[i]) : "");
         ps.forEach(function (p) { s += "<br/>" + p.seriesName + ": " + p.value.toLocaleString("he-IL") + " מ׳ ₪"; });
         return s;
       } },
@@ -326,7 +326,7 @@
     var ch = echarts.init(document.getElementById("chart-heat"));
     ch.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return "מחלקה " + h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " מ׳ ₪";
+        return "מחלקה " + echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " מ׳ ₪";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true } },

@@ -338,7 +338,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "item", formatter: function (p) { return p.data[2] + "<br>" + p.data[1] + " בתים, " + p.data[0] + " ק״מ"; } },
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.data[2]) + "<br>" + p.data[1] + " בתים, " + p.data[0] + " ק״מ"; } },
       grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
       xAxis: { type: "value", name: "אורך הפריסה (ק״מ)", nameLocation: "middle", nameGap: 26 },
       yAxis: { type: "value", name: "בתים" },

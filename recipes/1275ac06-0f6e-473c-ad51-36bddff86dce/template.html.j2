@@ -222,7 +222,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return h.y[p.value[1]] + " / " + h.x[p.value[0]] + ": " + p.value[2]; } },
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " / " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2]; } },
       grid: { left: 8, right: 16, top: 8, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { rotate: 45, fontSize: 10 } },
       yAxis: { type: "category", data: h.y, splitArea: { show: true }, axisLabel: { fontSize: 10 } },

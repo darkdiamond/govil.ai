@@ -159,7 +159,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
         var d = new Date(p.value[0]);
-        return p.value[1] + "<br/>" + d.toLocaleDateString("he-IL", { timeZone: "UTC" });
+        return echarts.format.encodeHTML(p.value[1]) + "<br/>" + d.toLocaleDateString("he-IL", { timeZone: "UTC" });
       } },
       grid: { left: 8, right: 24, top: 16, bottom: 64, containLabel: true },
       xAxis: { type: "time" },
