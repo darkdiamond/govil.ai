@@ -1,0 +1,8 @@
+{
+  "main.שם מכרז": "chart-units, chart-roles, chart-mix, chart-titles, kpi:titles, insight:unit, insight:repeat, insight:mgmt, insight:special, table:latest — unit and role are classified from the title text",
+  "main.מספר מכרז": "insight:special — only the literal value 'וועדת קבלה' is read (committee ads); the sequential tender number itself is an identifier",
+  "main.תאריך אחרון להגשה": "chart-wb, chart-wmed, chart-wd, kpi:window, insight:window, insight:open, table:latest",
+  "main.תאריך עדכון": "chart-year, chart-heat, chart-mix, chart-wd, kpi:total, kpi:span, insight:peak, insight:pace, insight:season, table:latest",
+  "main.URL": "table:latest — link to the municipality's own ad page (the ID in it is an identifier)",
+  "resource:5351ddc4-ca10-4aec-b2d5-e01262083fe8": "skip: XLSX twin of the CSV (same 1,156 rows; only the date text format differs)"
+}

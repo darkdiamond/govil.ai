@@ -1,0 +1,250 @@
+<h1>מקלטים בעיר באר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "prefixes", "nearest", "completeness"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המקלטים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מקלטים לפי קידומת קוד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prefix_note }}</p>
+  <div id="chart-prefix" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.prefix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.prefix_caption }}</caption>
+      <thead><tr><th scope="col">קידומת</th><th scope="col">מקלטים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.prefix %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.has_numbering %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שלמות הרצף בכל קידומת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.numbering_note }}</p>
+  <div id="chart-numbering" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.numbering_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.numbering_caption }}</caption>
+      <thead><tr><th scope="col">קידומת</th><th scope="col">קיימים</th><th scope="col">המספר הגבוה</th><th scope="col">חסרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.numbering %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.present }}</td><td>{{ r.span }}</td><td>{{ r.missing }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.has_nearest %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה קרוב המקלט הבא</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nearest_note }}</p>
+  <div id="chart-nearest" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.nearest_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nearest_caption }}</caption>
+      <thead><tr><th scope="col">מרחק (מטרים)</th><th scope="col">מקלטים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nearest %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.has_spread %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה מרוכזת כל קידומת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spread_note }}</p>
+  <div id="chart-spread" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.spread_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.spread_caption }}</caption>
+      <thead><tr><th scope="col">קידומת</th><th scope="col">מקלטים</th><th scope="col">רדיוס פיזור (מטרים)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.spread %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.radius }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפון ודרום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+  <div id="chart-lat" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lat_caption }}</caption>
+      <thead><tr><th scope="col">רצועה</th><th scope="col">מקלטים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lat %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מערב ומזרח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lon_note }}</p>
+  <div id="chart-lon" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.lon_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lon_caption }}</caption>
+      <thead><tr><th scope="col">רצועה</th><th scope="col">מקלטים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lon %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+</div>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.shelters[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupTitleField: "name",
+    popupFields: []
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var p = {{ model.charts.prefix | tojson }};
+    hbar("chart-prefix", p.names, p.values, "מקלטים");
+    var s = {{ model.charts.spread | tojson }};
+    hbar("chart-spread", s.names, s.values, "מטרים");
+    var la = {{ model.charts.lat | tojson }};
+    hbar("chart-lat", la.names, la.values, "מקלטים");
+    var lo = {{ model.charts.lon | tojson }};
+    hbar("chart-lon", lo.names, lo.values, "מקלטים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var n = {{ model.charts.numbering | tojson }};
+    var el = document.getElementById("chart-numbering");
+    if (el) {
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: [window.GOVIL_PALETTE[0], "#c3cfe7"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: n.names.slice().reverse() },
+        series: [
+          { type: "bar", stack: "t", name: "קיימים", data: n.present.slice().reverse() },
+          { type: "bar", stack: "t", name: "חסרים", data: n.missing.slice().reverse() }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var h = {{ model.charts.nearest | tojson }};
+    var el2 = document.getElementById("chart-nearest");
+    if (el2) {
+      var c2 = echarts.init(el2);
+      c2.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: h.names.slice().reverse() },
+        series: [{ type: "bar", name: "מקלטים", data: h.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c2.resize(); });
+    }
+  })();
+</script>

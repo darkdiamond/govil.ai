@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "8f2becb2-b6d2-477f-a703-c7c8ab113b67",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:05:32.538959+00:00",
+    "rows": {
+      "hydrants": 3162
+    }
+  },
+  "inputs": [
+    {
+      "name": "hydrants",
+      "by_id": "0a3c2907-f093-4821-876c-6e8034eb53e4",
+      "required_columns": [
+        "HouseNum",
+        "InstallDat",
+        "last_edite",
+        "WorkPressu",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

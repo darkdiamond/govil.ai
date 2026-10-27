@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1275ac06-0f6e-473c-ad51-36bddff86dce",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:04:54.540326+00:00",
+    "rows": {
+      "buildings": 518
+    }
+  },
+  "inputs": [
+    {
+      "name": "buildings",
+      "by_id": "97eaf0c4-fd2e-4d9c-bb6d-6e34a83049d0",
+      "required_columns": [
+        "Institutio",
+        "type",
+        "ADDRESS",
+        "oldName",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

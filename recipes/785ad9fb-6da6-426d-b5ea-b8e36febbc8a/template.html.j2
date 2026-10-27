@@ -1,0 +1,356 @@
+<h1>רשימת רחובות בישראל - קובץ עם סינונימיים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.names.tone }} mb-1" dir="ltr">{{ model.kpis.names.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.names_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.locs.tone }} mb-1" dir="ltr">{{ model.kpis.locs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.locs_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.official.tone }} mb-1" dir="ltr">{{ model.kpis.official.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.official_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.synonyms.tone }} mb-1" dir="ltr">{{ model.kpis.synonyms.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.synonyms_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.with_syn.tone }} mb-1" dir="ltr">{{ model.kpis.with_syn.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.with_syn_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ratio.tone }} mb-1" dir="ltr">{{ model.kpis.ratio.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ratio_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הישובים עם הכי הרבה שמות רחובות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-[560px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+      <thead><tr><th scope="col">ישוב</th><th scope="col">רחובות רשמיים</th><th scope="col">שמות חלופיים</th><th scope="col">חלופיים לרשמי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.off | fmt_int }}</td><td>{{ r.syn | fmt_int }}</td><td dir="ltr">{{ r.ratio }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה שמות חלופיים יש לרחוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+  <div id="chart-dist" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dist_caption }}</caption>
+      <thead><tr><th scope="col">שמות חלופיים</th><th scope="col">רחובות רשמיים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dist %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- if model.flags.kinds %}
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">במה השם החלופי שונה מהרשמי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_note }}</p>
+  <div id="chart-kinds" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kinds_caption }}</caption>
+      <thead><tr><th scope="col">סוג ההבדל</th><th scope="col">שמות חלופיים</th><th scope="col">שיעור</th><th scope="col">דוגמה (חלופי ← רשמי)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kinds %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.example }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הרחובות עם הכי הרבה שמות חלופיים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.streets_note }}</p>
+  <div id="chart-streets" class="h-[560px]" role="img" aria-label="{{ model.labels.streets_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.streets_caption }}</caption>
+      <thead><tr><th scope="col">רחוב</th><th scope="col">ישוב</th><th scope="col">שמות חלופיים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.streets %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.loc }}</td><td>{{ r.count | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- if model.flags.ratio %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יחס שמות חלופיים לרחובות רשמיים לפי ישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ratio_note }}</p>
+  <div id="chart-ratio" class="h-[560px]" role="img" aria-label="{{ model.labels.ratio_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ratio_caption }}</caption>
+      <thead><tr><th scope="col">ישוב</th><th scope="col">רחובות רשמיים</th><th scope="col">שמות חלופיים</th><th scope="col">יחס</th><th scope="col">קבוצה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ratio %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.off | fmt_int }}</td><td>{{ r.syn | fmt_int }}</td><td dir="ltr">{{ r.ratio }}</td><td>{{ r.group }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+{%- if model.flags.scatter %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רחובות רשמיים מול שמות חלופיים בכל ישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.scatter_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אזורי הרישום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.region_note }}</p>
+  <div id="chart-region" class="h-[560px]" role="img" aria-label="{{ model.labels.region_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.region_caption }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">ישובים</th><th scope="col">רחובות רשמיים</th><th scope="col">שמות חלופיים</th><th scope="col">יחס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.region %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.locs | fmt_int }}</td><td>{{ r.off | fmt_int }}</td><td>{{ r.syn | fmt_int }}</td><td dir="ltr">{{ r.ratio }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- if model.flags.rratio %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יחס השמות החלופיים לפי אזור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rratio_note }}</p>
+  <div id="chart-rratio" class="h-[560px]" role="img" aria-label="{{ model.labels.rratio_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rratio_caption }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">יחס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.rratio %}
+        <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.ratio }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+{%- if model.flags.alt %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות חלופיים לשמות הישובים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.alt_note }}</p>
+  <div id="chart-alt" class="h-[560px]" role="img" aria-label="{{ model.labels.alt_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.alt_caption }}</caption>
+      <thead><tr><th scope="col">ישוב</th><th scope="col">שמות חלופיים לישוב</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.alt %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשות האוכלוסין וההגירה מפרסמת מידי תקופה רשימת רחובות לשימוש חופשי של הציבור. קובץ הסינונימיים מכיל שמות לא רשמיים לרחובות. לכל רשומה מוצמד קוד הרחוב הרשמי לאותה עיר.</p>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, color, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v.toLocaleString("he-IL"); } },
+        grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [{ type: "bar", name: name, data: d.values, itemStyle: { color: color },
+                   label: { show: true, position: "right", fontSize: 10 } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-kinds", {{ model.charts.kinds | tojson }}, "#0b3668", "שמות חלופיים");
+    var s = {{ model.charts.streets | tojson }};
+    hbar("chart-streets", { names: s.labels, values: s.values }, "#0068f5", "שמות חלופיים");
+    {%- if model.flags.alt %}
+    hbar("chart-alt", {{ model.charts.alt | tojson }}, "#0068f5", "שמות חלופיים");
+    {%- endif %}
+    {%- if model.flags.rratio %}
+    hbar("chart-rratio", {{ model.charts.rratio | tojson }}, "#0068f5", "חלופיים לרשמי");
+    {%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d, a, b, an, bn) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v.toLocaleString("he-IL"); } },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [
+          { type: "bar", stack: "t", name: an, data: d[a], itemStyle: { color: "#0068f5" } },
+          { type: "bar", stack: "t", name: bn, data: d[b], itemStyle: { color: "#ffc107" } }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-top", {{ model.charts.top | tojson }}, "official", "synonym", "רחובות רשמיים", "שמות חלופיים");
+    stacked("chart-region", {{ model.charts.region | tojson }}, "official", "synonym", "רחובות רשמיים", "שמות חלופיים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var c = echarts.init(document.getElementById("chart-dist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "שמות חלופיים לרחוב", nameLocation: "middle", nameGap: 36,
+               axisLabel: { fontSize: 10, interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "רחובות" },
+      series: [{ type: "bar", name: "רחובות רשמיים", data: d.values, itemStyle: { color: "#0068f5" },
+                 label: { show: true, position: "top", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- if model.flags.ratio %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.ratio | tojson }};
+    var c = echarts.init(document.getElementById("chart-ratio"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + "<br>יחס: " + p.value + "<br>רשמיים: " + d.off[p.dataIndex].toLocaleString("he-IL") +
+          " · חלופיים: " + d.syn[p.dataIndex].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [{ type: "bar", name: "יחס", label: { show: true, position: "right", fontSize: 10 },
+                 data: d.values.map(function (v, i) {
+                   return { value: v, itemStyle: { color: d.group[i] === "high" ? "#0068f5" : "#6c757d" } };
+                 }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.scatter %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.scatter | tojson }};
+    var c = echarts.init(document.getElementById("chart-scatter"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.data[2] + "<br>רשמיים: " + p.data[0].toLocaleString("he-IL") +
+          "<br>חלופיים: " + p.data[1].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 24, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "log", min: 1, name: "רחובות רשמיים", nameLocation: "middle", nameGap: 28,
+               axisLabel: { hideOverlap: true } },
+      yAxis: { type: "log", min: 1, name: "שמות חלופיים", axisLabel: { hideOverlap: true } },
+      series: [{ type: "scatter", name: "ישובים", symbolSize: 7, data: d.points.map(function (p) {
+        return [Math.max(p[0], 1), Math.max(p[1], 1), p[2]];
+      }), itemStyle: { color: "#0068f5", opacity: 0.6 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

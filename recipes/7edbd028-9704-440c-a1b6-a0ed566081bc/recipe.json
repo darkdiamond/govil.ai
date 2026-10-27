@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7edbd028-9704-440c-a1b6-a0ed566081bc",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:13:12.234779+00:00",
+    "rows": {
+      "poles": 29856
+    }
+  },
+  "inputs": [
+    {
+      "name": "poles",
+      "by_id": "e40306c7-ee78-4c93-82e8-65d747e80865",
+      "required_columns": [
+        "Lampost",
+        "centerligh",
+        "LED",
+        "NearAddres",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

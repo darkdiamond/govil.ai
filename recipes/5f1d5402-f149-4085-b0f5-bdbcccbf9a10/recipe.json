@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5f1d5402-f149-4085-b0f5-bdbcccbf9a10",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:04:16.904573+00:00",
+    "rows": {
+      "main": 10234
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "3f60d2fa-ca4c-49b7-84b2-34ddf1cf9206",
+      "required_columns": [
+        "id",
+        "createdAt",
+        "updatedAt",
+        "indexCity",
+        "locationName",
+        "locationFloor",
+        "locationOpenAllDay",
+        "imageURL",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 5
+}

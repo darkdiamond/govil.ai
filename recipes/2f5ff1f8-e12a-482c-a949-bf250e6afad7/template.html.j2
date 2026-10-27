@@ -1,0 +1,193 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+<h1>תורנות בתי מרקחת</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.weeks.tone }} mb-1" dir="ltr">{{ model.kpis.weeks.display }}</div>
+    <div class="text-sm text-subtle">שבועות תורנות ברשימה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.branches.tone }} mb-1" dir="ltr">{{ model.kpis.branches.display }}</div>
+    <div class="text-sm text-subtle">בתי מרקחת</div>
+  </div>
+  {%- if model.flags.has_cycle %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cycle.tone }} mb-1" dir="ltr">{{ model.kpis.cycle.display }}</div>
+    <div class="text-sm text-subtle">שבועות בין תורנויות של אותו סניף</div>
+  </div>
+  {%- endif %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.gaps.tone }} mb-1" dir="ltr">{{ model.kpis.gaps.display }}</div>
+    <div class="text-sm text-subtle">שבועות חסרים ברצף</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.span_label }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("מחזור התורנות לאורך הזמן", "calendar") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.timeline_note }}</p>
+  <div id="chart-timeline" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.timeline_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("תורנויות לפי בית מרקחת", "chart-bar") }}
+    <div id="chart-by-branch" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.by_branch_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.by_branch_aria }}</caption>
+        <thead><tr><th scope="col">בית מרקחת</th><th scope="col">תורנויות</th></tr></thead>
+        <tbody>
+{%- for name in model.charts.by_branch.full %}
+          <tr><th scope="row">{{ name }}</th><td>{{ model.charts.by_branch["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("עומס מצטבר", "trending-up") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cumulative_note }}</p>
+    <div id="chart-cumulative" class="h-80 md:h-[420px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.cumulative_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תורנויות לפי שנה ובית מרקחת", "calendar") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+      <thead><tr><th scope="col">בית מרקחת</th>{% for y in model.tables.heat.x %}<th scope="col">{{ y }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat.rows %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r["values"] %}<td>{{ v | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("בתי המרקחת ברשימה", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">כתובת וטלפון כפי שנרשמו בשורה הראשונה של כל בית מרקחת.</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">בתי המרקחת התורנים, כתובתם, מספר התורנויות ותקופת התורנות</caption>
+      <thead><tr><th scope="col">בית מרקחת</th><th scope="col">כתובת</th><th scope="col">טלפון</th><th scope="col">תורנויות</th><th scope="col" class="hidden md:table-cell">תורנות ראשונה</th><th scope="col" class="hidden md:table-cell">תורנות אחרונה</th></tr></thead>
+      <tbody>
+{%- for b in model.tables.branches %}
+        <tr><th scope="row">{{ b.name }}</th><td>{{ b.address }}</td><td dir="ltr" class="whitespace-nowrap">{{ b.phone }}</td><td>{{ b.duties | fmt_int }}</td><td dir="ltr" class="hidden md:table-cell">{{ b.first }}</td><td dir="ltr" class="hidden md:table-cell">{{ b.last }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.by_branch | tojson }};
+    var c = echarts.init(document.getElementById("chart-by-branch"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { interval: 0, width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "תורנויות", data: d.values, label: { show: true, position: "insideRight", color: "#fff" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top" },
+      grid: { left: 8, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0 } },
+      yAxis: { type: "category", inverse: true, data: h.y, splitArea: { show: true }, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", name: "תורנויות", data: h.cells,
+        label: { show: true, fontFamily: "Rubik", formatter: "{@[2]}" },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.timeline | tojson }};
+    var c = echarts.init(document.getElementById("chart-timeline"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var d = new Date(p.value[0]);
+        return p.value[1] + "<br/>" + d.toLocaleDateString("he-IL", { timeZone: "UTC" });
+      } },
+      grid: { left: 8, right: 24, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "category", inverse: true, data: t.y, axisLabel: { interval: 0, width: 110, overflow: "truncate" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 20, bottom: 8 }],
+      series: t.series.map(function (s) {
+        return { type: "scatter", name: s.name, data: s.data, symbol: "roundRect", symbolSize: [3, 14] };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var u = {{ model.charts.cumulative | tojson }};
+    var c = echarts.init(document.getElementById("chart-cumulative"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "value", name: "תורנויות", nameLocation: "end" },
+      series: u.series.map(function (s) {
+        return { type: "line", name: s.name, data: s.data, showSymbol: false };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

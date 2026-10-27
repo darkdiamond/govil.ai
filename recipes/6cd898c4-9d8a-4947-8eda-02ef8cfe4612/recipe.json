@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6cd898c4-9d8a-4947-8eda-02ef8cfe4612",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:06:28.047192+00:00",
+    "rows": {
+      "main": 447
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "289eb9f6-93c9-4add-b96f-99ffa88c5a55",
+      "required_columns": ["LightNumbe", "lat", "lon"]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b72acc9a-6512-4849-9529-3ce73370bff2",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-26T07:42:40.876335+00:00",
+    "rows": {
+      "main": 376
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0e526e20-ca57-4ca8-ad6f-2bc5b520824b",
+      "required_columns": [
+        "lastname",
+        "firstname",
+        "city",
+        "certificationexpiresengdate"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

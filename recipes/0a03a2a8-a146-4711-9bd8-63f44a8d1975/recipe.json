@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0a03a2a8-a146-4711-9bd8-63f44a8d1975",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:06:15.598247+00:00",
+    "rows": { "main": 1156 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "1afa2973-2d77-480b-855f-7703f94a783c",
+      "required_columns": [
+        "שם מכרז",
+        "מספר מכרז",
+        "תאריך אחרון להגשה",
+        "תאריך עדכון",
+        "URL"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

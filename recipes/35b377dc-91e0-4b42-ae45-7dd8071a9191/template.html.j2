@@ -1,0 +1,381 @@
+<h1>תקציב עיריית באר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for k in model.kpi_keys %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels['kpi_' ~ k] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציב מול ביצוע: סך ההוצאות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.budget_note }}</p>
+  <div id="chart-budget" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.budget_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.budget_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">מקורי</th><th scope="col">מעודכן</th><th scope="col">ביצוע</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.budget %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.orig }}</td><td>{{ r.upd }}</td><td>{{ r.act }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+
+{% if model.flags.has_net and model.flags.has_exec %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עודף וגירעון בפועל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.net_note }}</p>
+    <div id="chart-net" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.net_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.net_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">הכנסות</th><th scope="col">הוצאות</th><th scope="col">הפרש</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.net %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.inc }}</td><td>{{ r.exp }}</td><td dir="ltr">{{ r.net }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עדכון התקציב וניצולו</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.exec_note }}</p>
+    <div id="chart-exec" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.exec_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.exec_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">מעודכן מול מקורי</th><th scope="col">ביצוע מול תקציב</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.exec %}
+          <tr><th scope="row">{{ r.year }}</th><td dir="ltr">{{ r.rev }}</td><td dir="ltr">{{ r.exe }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{% endif %}
+
+{% if model.flags.has_pay %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שכר ונלוות מול שאר ההוצאות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pay_note }}</p>
+  <div id="chart-pay" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.pay_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.pay_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">שכר ונלוות</th><th scope="col">שאר ההוצאות</th><th scope="col">שיעור השכר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.pay %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.pay }}</td><td>{{ r.other }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% endif %}
+
+{% if model.flags.has_depts %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המחלקות הגדולות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dept_note }}</p>
+  <div id="chart-depts" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.dept_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dept_caption }}</caption>
+      <thead><tr><th scope="col">מחלקה</th><th scope="col">הסעיף הגדול</th><th scope="col">בשנה הראשונה</th><th scope="col">בשנה האחרונה</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.depts %}
+        <tr><th scope="row" dir="ltr">{{ r.dept }}</th><td>{{ r.main }}</td><td>{{ r.first }}</td><td>{{ r.last }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחלקות לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סעיפי ההוצאה הגדולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.items_note }}</p>
+    <div id="chart-items" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.items_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.items_caption }}</caption>
+        <thead><tr><th scope="col">סעיף</th><th scope="col">מיליוני ₪</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lines %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.val }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מקורות ההכנסה הגדולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.income_note }}</p>
+    <div id="chart-income" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.income_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.income_caption }}</caption>
+        <thead><tr><th scope="col">מקור</th><th scope="col">מיליוני ₪</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.income %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.val }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל הסעיפים וריכוז התקציב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  <div id="chart-size" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.size_caption }}</caption>
+      <thead><tr><th scope="col">טווח גודל</th><th scope="col">סעיפים</th><th scope="col">שיעור מהתקציב</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.size %}
+        <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+
+<script>
+  (function () {
+    var b = {{ model.charts.budget | tojson }};
+    var cb = echarts.init(document.getElementById("chart-budget"));
+    cb.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מ׳ ₪"; } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: b.x },
+      yAxis: { type: "value", name: "מיליוני ₪" },
+      series: [
+        { type: "line", name: "מקורי", data: b.orig, showSymbol: true },
+        { type: "line", name: "מעודכן", data: b.upd, showSymbol: true },
+        { type: "line", name: "ביצוע בפועל", data: b.act, showSymbol: true }
+      ]
+    }));
+    window.addEventListener("resize", function () { cb.resize(); });
+  })();
+</script>
+
+{% if model.flags.has_net and model.flags.has_exec %}
+<script>
+  (function () {
+    var n = {{ model.charts.net | tojson }};
+    var cn = echarts.init(document.getElementById("chart-net"));
+    cn.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מ׳ ₪"; } },
+      grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: n.x },
+      yAxis: { type: "value", name: "מיליוני ₪" },
+      series: [{ type: "bar", name: "הפרש", data: n.y.map(function (v, i) {
+        return { value: v, itemStyle: { color: n.pos[i] ? "#198754" : "#dc3545" } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { cn.resize(); });
+
+    var e = {{ model.charts.exec | tojson }};
+    var ce = echarts.init(document.getElementById("chart-exec"));
+    ce.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#198754"],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 40, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: e.x },
+      yAxis: [{ type: "value", name: "שינוי %" }, { type: "value", name: "ביצוע %", scale: true, splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מעודכן מול מקורי (שינוי %)", data: e.rev },
+        { type: "line", name: "ביצוע מול תקציב (%)", yAxisIndex: 1, data: e.exe, showSymbol: true }
+      ]
+    }));
+    window.addEventListener("resize", function () { ce.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.has_pay %}
+<script>
+  (function () {
+    var p = {{ model.charts.pay | tojson }};
+    var cp = echarts.init(document.getElementById("chart-pay"));
+    cp.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 40, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: p.x },
+      yAxis: [{ type: "value", name: "מיליוני ₪" }, { type: "value", name: "%", splitLine: { show: false } }],
+      series: [
+        { type: "bar", stack: "t", name: "שכר ונלוות", data: p.pay },
+        { type: "bar", stack: "t", name: "שאר ההוצאות", data: p.other },
+        { type: "line", name: "שיעור השכר (%)", yAxisIndex: 1, data: p.share, showSymbol: true }
+      ]
+    }));
+    window.addEventListener("resize", function () { cp.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.has_depts %}
+<script>
+  (function () {
+    var d = {{ model.charts.depts | tojson }};
+    var cd = echarts.init(document.getElementById("chart-depts"));
+    cd.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = "מחלקה " + d.names[i] + (d.main[i] ? " · " + d.main[i] : "");
+        ps.forEach(function (p) { s += "<br/>" + p.seriesName + ": " + p.value.toLocaleString("he-IL") + " מ׳ ₪"; });
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "מיליוני ₪", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", name: d.first_year, data: d.first },
+        { type: "bar", name: d.last_year, data: d.last }
+      ]
+    }));
+    window.addEventListener("resize", function () { cd.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var ch = echarts.init(document.getElementById("chart-heat"));
+    ch.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return "מחלקה " + h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " מ׳ ₪";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { ch.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    function hbar(id, d, color) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: [color],
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מ׳ ₪"; } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", name: "מיליוני ₪", splitNumber: 3 },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: "מיליוני ₪", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-items", {{ model.charts.lines | tojson }}, "#0068f5");
+    hbar("chart-income", {{ model.charts.income | tojson }}, "#198754");
+
+    var s = {{ model.charts.size | tojson }};
+    var cs = echarts.init(document.getElementById("chart-size"));
+    cs.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 40, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: s.names, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: [{ type: "value", name: "סעיפים" }, { type: "value", name: "%", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מספר סעיפים", data: s.count },
+        { type: "line", name: "שיעור מהתקציב (%)", yAxisIndex: 1, data: s.share, showSymbol: true }
+      ]
+    }));
+    window.addEventListener("resize", function () { cs.resize(); });
+  })();
+</script>

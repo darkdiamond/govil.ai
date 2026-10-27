@@ -1,0 +1,209 @@
+<h1>מרכזי בריאות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "milk", "clalit", "nearest"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת מרכזי הבריאות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-legend" class="flex flex-wrap gap-2 mb-3 text-sm"></div>
+  <div id="map-main" class="h-72 md:h-[420px]" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נקודות לפי מפעיל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.op_note }}</p>
+  <div id="chart-op" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.op_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.op_caption }}</caption>
+      <thead><tr><th scope="col">מפעיל</th><th scope="col">נקודות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.op %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קודי שכונה ומפעילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.neigh_note }}</p>
+  <div id="chart-neigh" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.neigh_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.neigh_caption }}</caption>
+      <thead><tr><th scope="col">קוד שכונה</th><th scope="col">נקודות</th><th scope="col">לפי מפעיל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.neigh %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.by_op }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.has_nearest %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה קרובה הנקודה הבאה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nearest_note }}</p>
+  <div id="chart-nearest" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.nearest_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nearest_caption }}</caption>
+      <thead><tr><th scope="col">מרחק (מטרים)</th><th scope="col">נקודות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nearest %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.map | tojson }};
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var pal = window.GOVIL_PALETTE;
+    var colors = [pal[0], pal[1], pal[2], pal[3], pal[6], pal[5], pal[7]];
+    var map = L.map(el, { center: [31.25, 34.79], zoom: 13, zoomSnap: 0.25, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: "© OpenStreetMap"
+    }).addTo(map);
+    d.points.forEach(function (p) {
+      var col = colors[p[2] % colors.length];
+      var mk = L.circleMarker([p[0], p[1]], {
+        radius: 7, color: "#0c3058", weight: 1, fillColor: col, fillOpacity: 0.85
+      }).addTo(map);
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = p[3] || "ללא שם";
+      box.appendChild(t);
+      [["מפעיל", p[6]], ["כתובת", p[4]], ["שכונה", p[5]]].forEach(function (row) {
+        if (!row[1]) { return; }
+        var line = document.createElement("div");
+        line.textContent = row[0] + ": " + row[1];
+        box.appendChild(line);
+      });
+      mk.bindPopup(box);
+    });
+    if (d.bounds) { map.fitBounds(d.bounds, { padding: [16, 16] }); }
+    var lg = document.getElementById("map-legend");
+    if (lg) {
+      d.ops.forEach(function (name, i) {
+        var chip = document.createElement("span");
+        chip.className = "badge inline-flex items-center gap-1";
+        var dot = document.createElement("span");
+        dot.style.cssText = "display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid #0c3058;background:" + colors[i % colors.length];
+        chip.appendChild(dot);
+        chip.appendChild(document.createTextNode(name));
+        lg.appendChild(chip);
+      });
+    }
+  })();
+</script>
+
+<script>
+  (function () {
+    var pal = window.GOVIL_PALETTE;
+    var colors = [pal[0], pal[1], pal[2], pal[3], pal[6], pal[5], pal[7]];
+    var o = {{ model.charts.op | tojson }};
+    var el = document.getElementById("chart-op");
+    if (el) {
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: o.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: "נקודות", data: o.values.map(function (v, i) {
+          return { value: v, itemStyle: { color: colors[i % colors.length] } };
+        }).reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var n = {{ model.charts.neigh | tojson }};
+    var el2 = document.getElementById("chart-neigh");
+    if (el2) {
+      var c2 = echarts.init(el2);
+      c2.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 56, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: n.names.slice().reverse() },
+        series: n.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.values.slice().reverse() };
+        })
+      }));
+      window.addEventListener("resize", function () { c2.resize(); });
+    }
+  })();
+</script>
+
+{% if model.has_nearest %}
+<script>
+  (function () {
+    var h = {{ model.charts.nearest | tojson }};
+    var el = document.getElementById("chart-nearest");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: h.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "נקודות", data: h.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

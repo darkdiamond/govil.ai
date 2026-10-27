@@ -1,0 +1,9 @@
+{
+  "bins.Type": "map-main, chart-type, chart-mix, chart-spread, kpi:total, kpi:leader, kpi:known, insight:type_leader, insight:hood_type, insight:uniform, insight:spread, insight:unknown — container make (supplier) of the bin",
+  "bins.neighborho": "map-main, chart-hood, chart-mix, kpi:hoods, kpi:known, insight:hood_lead, insight:hood_type, insight:uniform, insight:unknown — neighbourhood label, variant spellings merged",
+  "bins.lat": "map-main, chart-nearest, chart-sites, chart-spread, insight:nearest, insight:sites, insight:spread, insight:extent",
+  "bins.lon": "map-main, chart-nearest, chart-sites, chart-spread, insight:nearest, insight:sites, insight:spread, insight:extent",
+  "resource:31e99f5c-0f75-4fe8-8884-5b7e79b6d38e": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:b0d14ba8-f475-41e2-a50f-0b9d35e6ab09": "skip: same points as the CSV, in ITM coordinates",
+  "resource:35f4cd27-0707-4f43-bb4d-bef61b4ea4e7": "skip: XLSX twin of the ITM CSV"
+}

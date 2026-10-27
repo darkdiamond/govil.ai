@@ -1,0 +1,294 @@
+{%- macro tbl(caption, heads, rows) %}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for h in heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+{%- endmacro %}
+<h1>דרושים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">מודעות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">שנות פרסום</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.window.tone }} mb-1" dir="ltr">{{ model.kpis.window.display }}</div>
+    <div class="text-sm text-subtle">חציון ימים להגשת מועמדות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.titles.tone }} mb-1" dir="ltr">{{ model.kpis.titles.display }}</div>
+    <div class="text-sm text-subtle">כותרות תפקיד שונות</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מודעות דרושים לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.year_note }}</p>
+  <div id="chart-year" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.year_aria }}"></div>
+  {{ tbl("מספר מודעות לפי שנה", ["שנה", "מודעות"], model.tables.year) }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לאילו תחומים מגייסים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">התחום נגזר מנוסח שם התפקיד (למשל &quot;באגף הרווחה&quot;).</p>
+    <div id="chart-units" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.units_aria }}"></div>
+    {{ tbl("מספר מודעות לפי תחום", ["תחום", "מודעות"], model.tables.units) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי התפקידים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">קבוצות תפקיד לפי המילה הראשונה בכותרת המודעה.</p>
+    <div id="chart-roles" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.roles_aria }}"></div>
+    {{ tbl("מספר מודעות לפי סוג תפקיד", ["סוג תפקיד", "מודעות"], model.tables.roles) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל התחומים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">חמשת התחומים הגדולים בכל שנה; יתר המודעות מקובצות תחת &quot;אחר&quot;.</p>
+  <div id="chart-mix" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  {{ tbl("מודעות לפי תחום בכל שנה", ["שנה"] + model.tables.mix_heads, model.tables.mix) }}
+</section>
+
+{% if model.has_window %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן להגיש מועמדות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הימים מתאריך העדכון של המודעה עד המועד האחרון להגשה.</p>
+    <div id="chart-wb" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wb_aria }}"></div>
+    {{ tbl("התפלגות חלון ההגשה", ["חלון", "מודעות"], model.tables.wb) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חלון ההגשה לאורך השנים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">החציון, ורבעון המודעות עם החלון הארוך ביותר, בכל שנה.</p>
+    <div id="chart-wmed" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wmed_aria }}"></div>
+    {{ tbl("חציון חלון ההגשה בימים בכל שנה", ["שנה", "חציון (ימים)", "אחוזון 75 (ימים)"], model.tables.wmed) }}
+  </section>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  {% if model.has_repeat %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התפקידים שחוזרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כותרות התפקיד שפורסמו הכי הרבה פעמים.</p>
+    <div id="chart-titles" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.titles_aria }}"></div>
+    {{ tbl("התפקידים שפורסמו הכי הרבה פעמים", ["תפקיד", "פעמים", "שנים"], model.tables.titles) }}
+  </section>
+  {% endif %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">באיזה יום בשבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">היום בשבוע של עדכון המודעה ושל המועד האחרון להגשה.</p>
+    <div id="chart-wd" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wd_aria }}"></div>
+    {{ tbl("מודעות לפי יום בשבוע", ["יום", "יום העדכון", "יום ההגשה האחרון"], model.tables.wd) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המודעות האחרונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המודעות שעודכנו לאחרונה, עם קישור לדף המודעה באתר העירייה.</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">המודעות האחרונות במאגר</caption>
+    <thead><tr><th scope="col">תפקיד</th><th scope="col">עודכן</th><th scope="col">להגשה עד</th></tr></thead>
+    <tbody>
+{%- for r in model.latest %}
+      <tr><th scope="row">{% if r.url %}<a href="{{ r.url }}" rel="noopener" class="text-brand">{{ r.title }}</a>{% else %}{{ r.title }}{% endif %}</th><td dir="ltr">{{ r.upd }}</td><td dir="ltr">{{ r.due }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-units", {{ model.charts.units | tojson }}, "מודעות");
+    hbar("chart-roles", {{ model.charts.roles | tojson }}, "מודעות");
+    if (document.getElementById("chart-titles")) {
+      hbar("chart-titles", {{ model.charts.titles | tojson }}, "פעמים");
+    }
+  })();
+</script>
+
+<script>
+  (function () {
+    var y = {{ model.charts.by_year | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-year"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: y.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "מודעות" },
+      series: [{ type: "bar", name: "מודעות", data: y.y }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var m = {{ model.charts.mix | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-mix"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 96, containLabel: true },
+      xAxis: { type: "category", data: m.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "מודעות" },
+      series: m.series.map(function (s) { return { type: "bar", stack: "total", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-heat"));
+    c3.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] }
+      },
+      series: [{ type: "heatmap", name: "מודעות", data: h.cells, label: { show: false } }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var wd = {{ model.charts.wd | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-wd"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: wd.x, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "מודעות" },
+      series: [
+        { type: "bar", name: "יום העדכון", data: wd.upd },
+        { type: "bar", name: "יום ההגשה האחרון", data: wd.due }
+      ]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+{% if model.has_window %}
+<script>
+  (function () {
+    var b = {{ model.charts.wbuckets | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-wb"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: b.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "מודעות" },
+      series: [{ type: "bar", name: "מודעות", data: b.values }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var w = {{ model.charts.wmed | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-wmed"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " ימים"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: w.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "ימים" },
+      series: [
+        { type: "line", name: "חציון", data: w.med, showSymbol: true },
+        { type: "line", name: "אחוזון 75", data: w.p75, showSymbol: true }
+      ]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+  })();
+</script>
+{% endif %}

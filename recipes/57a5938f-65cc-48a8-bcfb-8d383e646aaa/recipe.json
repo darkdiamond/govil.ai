@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "57a5938f-65cc-48a8-bcfb-8d383e646aaa",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:07:16.359836+00:00",
+    "rows": {
+      "bins": 1239
+    }
+  },
+  "inputs": [
+    {
+      "name": "bins",
+      "by_id": "53271cdd-4efb-4554-91b3-a3fa54fbc25f",
+      "required_columns": ["Type", "neighborho", "lat", "lon"]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

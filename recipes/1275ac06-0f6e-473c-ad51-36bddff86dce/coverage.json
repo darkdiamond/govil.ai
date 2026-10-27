@@ -1,0 +1,11 @@
+{
+  "buildings.Institutio": "map-main, chart-names, kpi:total, insight:names, insight:isolated — institution name",
+  "buildings.type": "map-main, chart-type, chart-rings, chart-bands, chart-near, chart-fields, kpi:total, kpi:gardens, kpi:schools, kpi:nearest, kpi:renamed, insight:leader, insight:ratio, insight:center, insight:nearest",
+  "buildings.ADDRESS": "chart-fields, insight:address — only whether an address is filled in (free text, inconsistent formats)",
+  "buildings.oldName": "chart-fields, kpi:renamed, insight:renamed — only whether a former name exists",
+  "buildings.lat": "map-main, chart-heat, chart-rings, chart-bands, chart-near, insight:center, insight:nearest, insight:isolated, insight:dense, insight:extent",
+  "buildings.lon": "map-main, chart-heat, chart-rings, chart-near, insight:center, insight:nearest, insight:isolated, insight:dense, insight:extent",
+  "resource:2d707912-fb2f-4539-97cf-f4fe67a7b007": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:0a97e459-657c-4e72-9448-9d9b0d6dbe8f": "skip: same points as the CSV, in ITM coordinates",
+  "resource:9b05f4b7-a094-4191-a1ef-757784dbc2a0": "skip: XLSX twin of the ITM file"
+}

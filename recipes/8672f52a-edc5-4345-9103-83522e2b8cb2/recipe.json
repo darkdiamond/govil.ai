@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "8672f52a-edc5-4345-9103-83522e2b8cb2",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-26T09:52:48.141334+00:00",
+    "rows": {
+      "olim": 170
+    }
+  },
+  "inputs": [
+    {
+      "name": "olim",
+      "by_id": "ad4534da-09db-41d7-94e2-b56ce1ec3dc3",
+      "required_columns": [
+        "proyector_name",
+        "reginal_council",
+        "city",
+        "office_point_of_service",
+        "language",
+        "office_phone",
+        "mobile",
+        "email",
+        "additional_email"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

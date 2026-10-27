@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "209fad5c-de35-49c4-a6f4-164a0c79632c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:03:20.946792+00:00",
+    "rows": {
+      "cameras": 1038
+    }
+  },
+  "inputs": [
+    {
+      "name": "cameras",
+      "by_id": "992f1b92-9f27-4e77-ac0e-6fb4070fcbc0",
+      "required_columns": [
+        "X",
+        "Y",
+        "location",
+        "address",
+        "amount",
+        "angle",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

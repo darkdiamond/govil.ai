@@ -1,0 +1,239 @@
+<h1>אתרי טבע עירוני</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "cats", "species", "extent"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת אתרי הטבע</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אתרים לפי סוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cat_note }}</p>
+  <div id="chart-cat" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cat_caption }}</caption>
+      <thead><tr><th scope="col">סוג אתר</th><th scope="col">אתרים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cat %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% if model.has_species %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המינים המוזכרים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.species_note }}</p>
+  <div id="chart-species" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.species_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.species_caption }}</caption>
+      <thead><tr><th scope="col">מין</th><th scope="col">אתרים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.species %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5 min-w-0">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפון ודרום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+  <div id="chart-lat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto"><table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lat_caption }}</caption>
+      <thead><tr><th scope="col">רצועה</th><th scope="col">סה״כ</th>{%- for c in model.cat_cols %}<th scope="col">{{ c.name }}</th>{%- endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.lat %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.total }}</td>{%- for c in model.cat_cols %}<td>{{ r["c" ~ c.i] }}</td>{%- endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table></div>
+  </details>
+</section>
+
+<section class="card p-5 min-w-0">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מערב ומזרח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lon_note }}</p>
+  <div id="chart-lon" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.lon_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto"><table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lon_caption }}</caption>
+      <thead><tr><th scope="col">רצועה</th><th scope="col">סה״כ</th>{%- for c in model.cat_cols %}<th scope="col">{{ c.name }}</th>{%- endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.lon %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.total }}</td>{%- for c in model.cat_cols %}<td>{{ r["c" ~ c.i] }}</td>{%- endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table></div>
+  </details>
+</section>
+
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפיפות האתרים ברשת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grid_note }}</p>
+  <div id="chart-grid" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.grid_aria }}" data-fallback="explorer"></div>
+</section>
+
+{% if model.has_patch %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">האתרים הגדולים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.patch_note }}</p>
+  <div id="chart-patch" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.patch_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.patch_caption }}</caption>
+      <thead><tr><th scope="col">אתר</th><th scope="col">מידות (מטרים)</th><th scope="col">שטח (מ״ר)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.patch %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.size }}</td><td>{{ r.area }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.sites[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupTitleField: "MainFeatur",
+    popupFields: []
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var a = {{ model.charts.cat | tojson }};
+    hbar("chart-cat", a.names, a.values, "אתרים");
+    var s = {{ model.charts.species | tojson }};
+    hbar("chart-species", s.names, s.values, "אתרים");
+    var p = {{ model.charts.patch | tojson }};
+    hbar("chart-patch", p.names, p.values, "מ״ר");
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0, type: "scroll" },
+        grid: { left: 8, right: 16, top: 8, bottom: 56, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse() },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse() };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-lat", {{ model.charts.lat | tojson }});
+    stacked("chart-lon", {{ model.charts.lon | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var g = {{ model.charts.grid | tojson }};
+    var el = document.getElementById("chart-grid");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top" },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: g.x, splitArea: { show: true }, name: "קו אורך", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "category", data: g.y, splitArea: { show: true } },
+      visualMap: { min: 0, max: g.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", name: "אתרים", data: g.data, label: { show: true } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

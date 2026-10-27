@@ -1,0 +1,20 @@
+{
+  "contract_version": 1,
+  "dataset_id": "023b7883-3599-4cb7-adef-1a76ea051cf0",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:08:58.937666+00:00",
+    "rows": {
+      "shelters": 260
+    }
+  },
+  "inputs": [
+    {
+      "name": "shelters",
+      "by_id": "e191d913-11e4-4d87-a4b2-91587aab6611",
+      "required_columns": ["name", "lat", "lon"]
+    }
+  ],
+  "min_insights": 4
+}
