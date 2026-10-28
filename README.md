@@ -60,7 +60,7 @@ services/
     model_harness.py             shared PydanticAI agent loop (OpenRouter routing)
     agent_contract.py            user-message builder + CKAN prefetch + output sanitizer
     local_sandbox.py             prod tool sandbox (subprocess, private workdir)
-    podman_sandbox.py            local-test tool sandbox (rootless Podman)
+    podman_sandbox.py            shared sandbox result types (no longer a runtime sandbox)
     selector.py                  which sources to analyze (incl. failed-retry)
     publish.py                   Firestore → data.json/agent_data.json/manifest.json
     related.py / embeddings.py   related-dataset scoring (Voyage optional)
@@ -128,15 +128,15 @@ staging bucket `govdata-il-staging`, region `me-west1`, publish target
 your own instance, override them via environment variables. Copy
 [`.env.example`](.env.example) to `.env` and set the ones you need:
 
-| Variable | Purpose |
-|----------|---------|
-| `OPENROUTER_API_KEY` | Drives the agent (required to build pages) |
-| `OPENROUTER_MODEL` | Model id, e.g. `minimax/minimax-m3` |
-| `FIRESTORE_PROJECT_ID` | Firestore project (or use `FIRESTORE_EMULATOR_HOST` locally) |
-| `GCS_STAGING_BUCKET` | Bucket the agent's `content.html` lands in |
-| `FIREBASE_PROJECT` | Firebase Hosting / GCP project for deploys |
-| `PUBLISH_GITHUB_REPO` | `owner/repo` the builder dispatches the publish workflow to |
-| `VOYAGE_API_KEY` / `VOYAGE_ENABLED` | Optional embedding-driven relatedness |
+| Variable                            | Purpose                                                      |
+| ----------------------------------- | ------------------------------------------------------------ |
+| `OPENROUTER_API_KEY`                | Drives the agent (required to build pages)                   |
+| `OPENROUTER_MODEL`                  | Model id, e.g. `minimax/minimax-m3`                          |
+| `FIRESTORE_PROJECT_ID`              | Firestore project (or use `FIRESTORE_EMULATOR_HOST` locally) |
+| `GCS_STAGING_BUCKET`                | Bucket the agent's `content.html` lands in                   |
+| `FIREBASE_PROJECT`                  | Firebase Hosting / GCP project for deploys                   |
+| `PUBLISH_GITHUB_REPO`               | `owner/repo` the builder dispatches the publish workflow to  |
+| `VOYAGE_API_KEY` / `VOYAGE_ENABLED` | Optional embedding-driven relatedness                        |
 
 `.env` is gitignored — never commit secrets. See
 [`infra/DEPLOY.md`](infra/DEPLOY.md) for the full provisioning runbook.
@@ -175,7 +175,7 @@ output from GCS → rebuild `manifest.json` from Firestore → `nuxt generate`
   a Cloud Build fallback exists in `cloudbuild-publish.yaml`.
 - **Local** — `./infra/publish-local.sh` runs the same four steps from
   your machine. Useful when you want to push a fix without waiting on the
-  trigger, or to preview the *exact* static output before it goes live.
+  trigger, or to preview the _exact_ static output before it goes live.
 
 ```sh
 ./infra/publish-local.sh --serve   # build, then serve at http://localhost:3000
@@ -200,9 +200,12 @@ live pipeline. Models route through **OpenRouter** — one
 https://openrouter.ai/models (`minimax/minimax-m3`,
 `moonshotai/kimi-k2.6`, `x-ai/grok-4.3`, `anthropic/claude-sonnet-4-6`,
 …). `--model anthropic:claude-…` bypasses OpenRouter for native-Anthropic
-calibration runs. The agent runs through PydanticAI's agent loop in a
-rootless Podman+`llm-sandbox` container — same agent loop as production,
-stronger isolation, zero prod side effects.
+calibration runs. A benchmark run is production's own session path
+(`agent_runner.run_validated_session`: prefetch, `LocalSandbox`, the
+`SESSION_ATTEMPTS` retry loop, all four validation gates), executed inside
+the production image under rootless Podman with the live job's env and
+CPU/memory limits. Only persistence differs: results go to `tmp/model_test/`,
+nothing to GCS or Firestore.
 
 ### Install (local-only)
 
@@ -212,7 +215,7 @@ only `COPY services/page_builder/requirements.txt`. So the live images stay
 byte-identical whether or not this harness is used.
 
 ```sh
-sudo apt install podman                              # rootless sandbox runtime
+sudo apt install podman                              # runs the production image
 pip install -r services/page_builder/requirements.txt \
             -r services/page_builder/requirements-test.txt
 ```
@@ -227,10 +230,15 @@ small static `PRICE_TABLE` in `services/page_builder/model_harness.py`.
 ### Run
 
 ```sh
-# build one dataset (or --batch <id1> <id2> ... / --auto-trio); the system
-# prompt is agent/system-prompt.md — same file production uses
-python -m services.page_builder.cli.model_test --source <dataset_id> \
-    --model minimax/minimax-m3
+# build one dataset (or --batch <id1> <id2> ...). Builds the production image,
+# reads the job's live env via gcloud (or BENCH_ENV_FILE), runs the session in
+# the container. Your Google credentials never enter it: Firestore is read on
+# the host into a snapshot file.
+infra/benchmark.sh --source <dataset_id> --model minimax/minimax-m3
+
+# The CLI refuses to run agent tools directly on your machine (they are plain
+# subprocesses, as in production). ALLOW_HOST_SANDBOX=1 overrides that; then
+# model-written shell runs as you, with your credentials in reach.
 
 # outputs land in tmp/model_test/<id>/
 #   content.html       agent body

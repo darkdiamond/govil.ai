@@ -6,9 +6,10 @@ pluggable sandbox backend:
 
 - production (`agent_runner.py`): `LocalSandbox` — subprocesses with a
   private per-session workdir inside the builder container.
-- local testing (`run_test_session` + `cli/model_test.py`):
-  `PodmanSandbox` — a rootless Podman container (needs the extra deps
-  in requirements-test.txt).
+- local benchmark (`run_test_session` + `cli/model_test.py`): the SAME
+  `agent_runner.run_validated_session` and `LocalSandbox`; isolation comes
+  from running the whole CLI inside the production image under Podman
+  (`infra/benchmark.sh`), not from a different sandbox.
 
 Single implementation per concern (per `feedback_one_path_default` memory):
 
@@ -36,7 +37,7 @@ The `model` parameter accepts two forms:
 
 `run_agent_session` returns RAW outputs — validation/persistence belong
 to the caller (`agent_runner` in prod; `run_test_session` writes local
-artifacts and touches neither Firestore nor GCS).
+artifacts and touches neither Firestore nor GCS nor the status fields).
 """
 from __future__ import annotations
 
@@ -57,26 +58,18 @@ from .agent_contract import (
     CHECK_SCRIPT_PATH,
     PrefetchedResource,
     build_user_message,
-    fetch_resource_preview,
-    prefetch_dataset,
-    run_host_check,
-    sanitize_content_html,
 )
-from .schema import AgentData
 
 log = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SYSTEM_PROMPT_PATH = REPO_ROOT / "agent" / "system-prompt.md"
-# Fixed paths used by the Podman test harness (one session per container,
-# so they never collide). Production (LocalSandbox) passes per-session
-# paths instead.
+# Default check.py target for `_provision_check_script`. Callers
+# (LocalSandbox, prod and benchmark) pass per-session paths instead.
 CHECK_SCRIPT_IN_SANDBOX = "/tmp/session/uploads/check.py"
-DATA_DIR_IN_SANDBOX = "/tmp/session/data"
 
 CONTENT_FILENAME = "content.html"
 AGENT_DATA_FILENAME = "agent_data.json"
-OUTPUTS_DIR_IN_SANDBOX = "/tmp/session/outputs"
 
 # Browser UA the data.gov.il WAF requires (data_gov_il_api_quirks memory).
 BROWSER_UA = (
@@ -351,9 +344,12 @@ class TestSessionResult:
     elapsed_seconds: float
     usage: dict[str, int]
     cost_usd: dict[str, float]
-    sandbox_files: list[str] = field(default_factory=list)
     host_check: str = "passed"
     providers: list[str] = field(default_factory=list)
+    attempts: int = 1
+    attempts_cost_usd: Optional[float] = None
+    # Prefetch + every attempt; `elapsed_seconds` is the validated attempt only.
+    wall_seconds: Optional[float] = None
 
 
 # Base64 chunk size per bash command when provisioning files into the
@@ -550,6 +546,16 @@ MODEL_ROUTING: dict[str, dict[str, Any]] = {
         # bf16 (GMICloud) is HIGHER precision than fp8 — a filter would
         # only exclude it (see the deepseek row for the inverse case).
         "provider": {"order": ["Tencent", "Novita"], "allow_fallbacks": True},
+    },
+    "z-ai/glm-5.3-flash": {
+        # Behaviour pin, not precision (2026-08-29 eval; 30+ endpoints, fp4 to
+        # fp8). Price-first routing lands on cheap endpoints that misbehave:
+        # DeepInfra treats effort=max as an unbounded thinking budget (3,958
+        # reasoning tokens / 157 s vs Z.AI's 9 / 2.7 s), Relace hangs, Reka
+        # returns null content. Z.AI is first-party and fp8. Fallbacks are
+        # off because every other endpoint is one of those, and this model
+        # is not in the daily batch, so an outage costs a benchmark rerun.
+        "provider": {"order": ["Z.AI"], "allow_fallbacks": False},
     },
     "deepseek/deepseek-v4-flash": {
         "quantizations": ["fp8"],
@@ -1098,8 +1104,8 @@ def run_agent_session(
 ) -> AgentSessionOutput:
     """Drive one agent session on an already-created sandbox.
 
-    Shared by production (`agent_runner`, LocalSandbox) and the local
-    test harness (`run_test_session`, PodmanSandbox). Provisions
+    Called only by `agent_runner.run_validated_session` (LocalSandbox),
+    which both production and the local benchmark go through. Provisions
     check.py at `check_script` and every prefetched data file under
     `data_dir`, runs the PydanticAI loop, and returns the RAW outputs +
     telemetry — validation, sanitizing, and persistence are the caller's
@@ -1236,99 +1242,72 @@ def run_test_session(
     primary_resource_id: Optional[str],
     out_dir: Path,
     model: str,
+    store: Any,
     resources: Optional[list] = None,
-    related_candidates: Sequence[dict] = (),
-    max_iters: int = 30,  # noqa: ARG001 - PydanticAI controls retries; kept for caller parity
+    organization: Optional[dict] = None,
     reasoning_effort: Optional[str] = None,
     quantizations: Optional[list[str]] = None,
 ) -> TestSessionResult:
-    """Local test run: Podman sandbox, artifacts written to `out_dir`.
+    """Benchmark run: production's session path, local artifacts instead of GCS/Firestore.
 
-    Manual-run only — never imported by production code.
+    Calls `agent_runner.run_validated_session` — the exact function the
+    daily job uses — so prefetch, related candidates, LocalSandbox, the
+    SESSION_ATTEMPTS retry loop, 429 backoff, the account-limit abort and
+    all four validation gates are the same code. Only persistence differs:
+    nothing touches GCS or Firestore (the store is used read-only for the
+    related-candidates lookup); artifacts land in `out_dir`.
+
+    Run it inside the production image (`infra/benchmark.sh`) for an
+    identical environment. A dataset that fails all attempts raises, like
+    production; `error.json` is written to `out_dir` first.
     """
+    from . import agent_runner
+
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    # Resolve up front so the log line and cost.json record what was actually
-    # requested, not the caller's (possibly empty) argument.
-    reasoning_effort = resolve_reasoning_effort(model, reasoning_effort)
-
-    from .podman_sandbox import PodmanSandbox
-
-    # Same host-side schema + data prefetch as run_production_session — the
-    # user message must be identical for an apples-to-apples model comparison.
-    pre_fetched_schema: Optional[dict] = None
-    prefetched: list[PrefetchedResource] = []
-    if resources:
-        prefetched = prefetch_dataset(resources, out_dir / "prefetch")
-        log.info(
-            "test[%s]: prefetched %d resource(s): %s",
-            dataset_id[:8],
-            len(prefetched),
-            ", ".join(f"{p.sandbox_filename or p.resource_id[:8]}({p.mode})"
-                      for p in prefetched) or "-",
-        )
-    elif primary_resource_id:
-        # Legacy caller without the full resource list — schema-only.
-        pre_fetched_schema = fetch_resource_preview(primary_resource_id)
-
-    log.info(
-        "test[%s]: starting Podman sandbox + model=%s%s",
-        dataset_id[:8], model,
-        f" (reasoning_effort={reasoning_effort})" if reasoning_effort else "",
-    )
-    sandbox = PodmanSandbox.create()
+    # The folder holds the LATEST run only: a leftover error.json next to a
+    # fresh success (or last run's content.html next to a fresh failure)
+    # would misreport this run.
+    for name in (CONTENT_FILENAME, AGENT_DATA_FILENAME, "transcript.json",
+                 "cost.json", "error.json"):
+        (out_dir / name).unlink(missing_ok=True)
+    log.info("test[%s]: production session path, model=%s", dataset_id[:8], model)
+    started = time.monotonic()
     try:
-        out = run_agent_session(
-            sandbox=sandbox,
-            model=model,
+        v = agent_runner.run_validated_session(
             dataset_id=dataset_id,
             title=title,
             notes=notes,
             org_title=org_title,
+            resources=resources,
+            organization=organization,
             primary_resource_id=primary_resource_id,
-            outputs_dir=OUTPUTS_DIR_IN_SANDBOX,
-            check_script=CHECK_SCRIPT_IN_SANDBOX,
-            pre_fetched_schema=pre_fetched_schema,
-            prefetched=prefetched,
-            data_dir=DATA_DIR_IN_SANDBOX,
-            related_candidates=related_candidates,
+            store=store,
+            model=model,
             reasoning_effort=reasoning_effort,
             quantizations=quantizations,
         )
-        sandbox_files: list[str] = []
-        try:
-            for entry in sandbox.files.list(OUTPUTS_DIR_IN_SANDBOX):
-                sandbox_files.append(getattr(entry, "name", str(entry)))
-        except Exception:
-            pass
-    finally:
-        try:
-            sandbox.kill()
-        except Exception as e:
-            log.warning("test[%s]: sandbox.kill failed: %s", dataset_id[:8], e)
-
-    content_html = sanitize_content_html(out.content_html_raw, dataset_id=dataset_id)
-    agent_data = AgentData.model_validate_json(out.agent_data_raw)
-
-    # Same authoritative gate as production (agent_runner). Single attempt
-    # here — a failure is reported, not retried, so eval runs surface it.
-    try:
-        run_host_check(
-            content_html, agent_data.model_dump_json(exclude_none=True), out_dir
-        )
-        host_check = "passed"
     except Exception as e:
-        host_check = str(e)
-        log.warning("test[%s]: %s", dataset_id[:8], host_check[:300])
+        (out_dir / "error.json").write_text(
+            json.dumps(
+                {"dataset_id": dataset_id, "model": model, "error": str(e)[:2000]},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        raise
+    wall_seconds = round(time.monotonic() - started, 2)
 
+    out = v.out
     content_html_path = out_dir / CONTENT_FILENAME
     agent_data_path = out_dir / AGENT_DATA_FILENAME
     transcript_path = out_dir / "transcript.json"
     cost_path = out_dir / "cost.json"
 
-    content_html_path.write_text(content_html, encoding="utf-8")
+    content_html_path.write_text(v.content_html, encoding="utf-8")
     agent_data_path.write_text(
-        json.dumps(agent_data.model_dump(), ensure_ascii=False, indent=2),
+        json.dumps(v.agent_data.model_dump(), ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     transcript_path.write_text(
@@ -1338,15 +1317,18 @@ def run_test_session(
     cost_path.write_text(
         json.dumps(
             {
-                "model": model,
-                "reasoning_effort": reasoning_effort,
+                "model": v.model,
+                "reasoning_effort": v.reasoning_effort,
                 "providers": out.providers,
                 "elapsed_seconds": out.elapsed_seconds,
+                "wall_seconds": wall_seconds,
                 "usage": out.usage,
                 "cost_usd": out.cost,
+                "attempts": v.attempts,
+                "attempts_cost_usd": round(v.attempts_cost, 6),
                 "tool_calls": out.tool_calls,
-                "sandbox_files": sandbox_files,
-                "host_check": host_check,
+                "prefetch": v.prefetch_stats,
+                "host_check": "passed",
             },
             ensure_ascii=False,
             indent=2,
@@ -1356,7 +1338,7 @@ def run_test_session(
 
     return TestSessionResult(
         dataset_id=dataset_id,
-        model=model,
+        model=v.model,
         out_dir=out_dir,
         content_html_path=content_html_path,
         agent_data_path=agent_data_path,
@@ -1366,7 +1348,9 @@ def run_test_session(
         elapsed_seconds=out.elapsed_seconds,
         usage=out.usage,
         cost_usd=out.cost,
-        sandbox_files=sandbox_files,
-        host_check=host_check,
+        host_check="passed",
         providers=out.providers,
+        attempts=v.attempts,
+        attempts_cost_usd=round(v.attempts_cost, 6),
+        wall_seconds=wall_seconds,
     )

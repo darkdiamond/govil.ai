@@ -343,8 +343,10 @@ analyzed_metadata_modified`) AND the new version is more than
   host-side `check.py`). They CAN still reach the network, including the
   GCP metadata server, i.e. the builder SA token. Keep that SA
   minimal (Firestore + staging bucket + publish-trigger only) and never
-  widen its roles for convenience. The local test harness keeps the
-  stronger Podman isolation.
+  widen its roles for convenience. The local benchmark
+  (`infra/benchmark.sh`) runs the same `LocalSandbox` path inside the
+  production image under rootless Podman, so the container is the isolation
+  boundary; it gets no Google credentials (Firestore is read on the host).
 
 ## Gotchas + open issues
 

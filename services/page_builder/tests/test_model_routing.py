@@ -153,3 +153,9 @@ def test_provider_capture_tolerates_missing_details():
 
 def test_no_providers_is_empty_not_error():
     assert mh._collect_providers([]) == []
+
+
+def test_glm_flash_is_pinned_to_zai_without_fallback():
+    s = _settings("z-ai/glm-5.3-flash", "medium")
+    assert s["openrouter_provider"] == {"order": ["Z.AI"], "allow_fallbacks": False}
+    assert s["openrouter_reasoning"] == {"effort": "medium"}
