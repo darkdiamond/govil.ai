@@ -30,7 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
-from services.page_builder.cli.model_test import _load_source, _run_one
+from services.page_builder.cli.model_test import _load_source, _require_isolation, _run_one, _spend
 from services.shared.firestore import FirestoreStateStore
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -90,8 +90,7 @@ def build_compare_page(out_dir: Path, model: str, results: list, dataset_ids: li
     total_cost = 0.0
     all_priced = True
     for res in results:
-        cost = res.cost_usd or {}
-        c = cost.get("total_usd")
+        c = _spend(res)
         if c is not None:
             total_cost += c
         else:
@@ -106,7 +105,7 @@ def build_compare_page(out_dir: Path, model: str, results: list, dataset_ids: li
         rows.append(f"""
   <section>
     <h2>{title} <code>{res.dataset_id[:12]}…</code></h2>
-    <p class=meta>${c:.4f} · {res.elapsed_seconds:.0f}s · in {res.usage['input_tokens']:,} / out {res.usage['output_tokens']:,} · host-check {check} ·
+    <p class=meta>{f"${c:.4f}" if c is not None else "$?"} · {res.elapsed_seconds:.0f}s · in {res.usage['input_tokens']:,} / out {res.usage['output_tokens']:,} · host-check {check} ·
        <a href="{prev_rel}" target="_blank">candidate alone</a> ·
        <a href="{live_url}" target="_blank">live alone</a></p>
     <div class="panes">
@@ -153,6 +152,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--project", default="govdata-il")
     p.add_argument("--no-open", action="store_true", help="don't open the browser")
     args = p.parse_args(argv)
+    # _run_one refuses bare host runs (agent tools are plain subprocesses);
+    # fail before picking datasets / probing govil.ai rather than after.
+    _require_isolation()
 
     store = FirestoreStateStore(project_id=args.project)
 
@@ -199,7 +201,7 @@ def main(argv: list[str] | None = None) -> int:
 
     compare = build_compare_page(out_dir, args.model, results, ids)
     print(f"\ncompare page: {compare}")
-    priced = [(r, (r.cost_usd or {}).get("total_usd")) for r in results]
+    priced = [(r, _spend(r)) for r in results]
     total = sum(c for _, c in priced if c is not None)
     print(f"total billed: ${total:.4f}" + ("" if all(c is not None for _, c in priced) else " (partial)"))
     if not args.no_open:

@@ -1,13 +1,12 @@
 """CLI: run any model (via OpenRouter) against one or more CKAN datasets.
 
-Local-only harness. Production Cloud Run / Cloud Build images do not install
-the deps this module needs. To run it:
+Local-only benchmark. It runs production's session path
+(`agent_runner.run_validated_session`), whose agent tools are plain
+subprocesses, so run it inside the production image via:
 
-    pip install -r services/page_builder/requirements.txt \\
-                -r services/page_builder/requirements-test.txt
-    export OPENROUTER_API_KEY=...
-    python -m services.page_builder.cli.model_test \\
-        --source <dataset_id> --model minimax/minimax-m3
+    infra/benchmark.sh --source <dataset_id> --model minimax/minimax-m3
+
+A direct `python -m` run refuses to start unless ALLOW_HOST_SANDBOX=1.
 
 Model ids are OpenRouter ids (`<vendor>/<model>` — browse
 https://openrouter.ai/models), or `anthropic:claude-…` for the native
@@ -25,9 +24,8 @@ to the live prod page on govil.ai — use:
 Read-only on prod Firestore. Writes nothing to GCS or Firestore.
 
 Examples:
-    python -m services.page_builder.cli.model_test --source <id> --model minimax/minimax-m3
-    python -m services.page_builder.cli.model_test --batch <id1> <id2> --model moonshotai/kimi-k2.6
-    python -m services.page_builder.cli.model_test --auto-trio --model anthropic:claude-sonnet-4-6
+    infra/benchmark.sh --source <id> --model minimax/minimax-m3
+    infra/benchmark.sh --batch <id1> <id2> --model moonshotai/kimi-k2.6
 """
 from __future__ import annotations
 
@@ -38,8 +36,10 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Optional
 
+from services.page_builder.agent_runner import AccountLimitError, related_candidates_for
 from services.page_builder.model_harness import TestSessionResult, run_test_session
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
@@ -56,6 +56,55 @@ def _load_source(store: FirestoreStateStore, dataset_id: str) -> SourceRecord:
     if src is None:
         raise SystemExit(f"source not found in Firestore: {dataset_id}")
     return src
+
+
+class SnapshotStore:
+    """Read-only stand-in for FirestoreStateStore, backed by a JSON file.
+
+    `infra/benchmark.sh` runs this CLI inside the production image, where
+    agent-driven subprocesses can read any file the container can. Mounting
+    the developer's Google credentials there would hand them to model-written
+    code, so the host dumps the two things a session needs from Firestore
+    (the source doc and the same-ministry candidates) with `--snapshot-out`,
+    and the container reads that file instead.
+    """
+
+    def __init__(self, path: str):
+        self._d = json.loads(Path(path).read_text(encoding="utf-8"))
+
+    def get_source(self, dataset_id: str):
+        row = self._d.get(dataset_id)
+        if row is None:
+            return None
+        return SimpleNamespace(id=dataset_id, **row["source"])
+
+    def list_org_sources(self, org_name: str, exclude_id: str = "", limit: int = 15):
+        # Keyed by dataset: the snapshot already holds exactly what
+        # FirestoreStateStore.list_org_sources(org, exclude_id=<it>) returned.
+        rows = (self._d.get(exclude_id) or {}).get("org_sources") or []
+        return [SimpleNamespace(**r) for r in rows]
+
+
+def write_snapshot(store: FirestoreStateStore, ids: list[str], path: str) -> None:
+    out: dict[str, dict] = {}
+    for did in ids:
+        src = _load_source(store, did)
+        org = src.organization if isinstance(src.organization, dict) else None
+        # The exact lookup run_validated_session does, so the container's
+        # SnapshotStore replays the same candidates.
+        org_sources = related_candidates_for(store, org, did)
+        out[did] = {
+            "source": {
+                "title": src.title,
+                "notes": src.notes,
+                "organization": src.organization,
+                "resources": src.resources,
+            },
+            "org_sources": org_sources,
+        }
+    Path(path).write_text(
+        json.dumps(out, ensure_ascii=False, default=str), encoding="utf-8"
+    )
 
 
 def _pick_auto_trio() -> list[str]:
@@ -102,6 +151,10 @@ def _print_summary(res) -> None:
             "openrouter+estimate": "billed + partial table estimate",
         }.get(source, "table estimate")
         cost_line = f"  $: {cost['total_usd']:.4f} ({tag})"
+        if (res.attempts or 1) > 1 and res.attempts_cost_usd is not None:
+            cost_line += (
+                f"; all {res.attempts} attempts: {res.attempts_cost_usd:.4f}"
+            )
     else:
         cost_line = f"  $: unknown ({cost.get('note', '')})"
     providers = getattr(res, "providers", None) or []
@@ -117,7 +170,9 @@ def _print_summary(res) -> None:
     print(
         f"\n=== {res.dataset_id} (model={res.model}) ===\n"
         f"  out: {res.out_dir}\n"
-        f"  iterations: {res.iterations}, elapsed: {res.elapsed_seconds:.1f}s\n"
+        f"  attempts: {res.attempts}, iterations: {res.iterations}, "
+        f"elapsed: {res.elapsed_seconds:.1f}s"
+        f"{f' (wall {res.wall_seconds:.1f}s)' if res.wall_seconds else ''}\n"
         f"  tokens: in={usage['input_tokens']:,} out={usage['output_tokens']:,} "
         f"cached={usage['cache_read_tokens']:,} total={usage['total_tokens']:,}\n"
         f"{provider_line}"
@@ -128,7 +183,39 @@ def _print_summary(res) -> None:
     )
 
 
+def _spend(r) -> Optional[float]:
+    """Spend across every attempt, not just the validated one — a model that
+    needs retries must not look cheaper than it billed.
+
+    attempts_cost_usd sums `total_usd or 0.0`, so it reads 0.0 (not None)
+    for an unpriced run; gate on the validated attempt's price, or an
+    unpriced model would show up as a priced $0.
+    """
+    validated = (r.cost_usd or {}).get("total_usd")
+    if validated is None:
+        return None
+    return r.attempts_cost_usd if r.attempts_cost_usd is not None else validated
+
+
+def _in_container() -> bool:
+    return Path("/.dockerenv").exists() or Path("/run/.containerenv").exists()
+
+
+def _require_isolation() -> None:
+    """Agent tools are subprocesses of this process (LocalSandbox), as in
+    production, so the container is the only thing between model-written
+    shell and the developer's home directory. Refuse to run bare."""
+    if _in_container() or os.environ.get("ALLOW_HOST_SANDBOX") == "1":
+        return
+    raise SystemExit(
+        "refusing to run agent tools on the host: use infra/benchmark.sh "
+        "(runs this CLI in the production image under Podman), or set "
+        "ALLOW_HOST_SANDBOX=1 to accept that model-written shell runs as you"
+    )
+
+
 def _run_one(*, dataset_id: str, args, store: FirestoreStateStore):
+    _require_isolation()
     src = _load_source(store, dataset_id)
     out_dir = Path(args.out) / dataset_id
     # Same selection as prod: pick_primary_resource_id + prefetch_dataset
@@ -139,18 +226,6 @@ def _run_one(*, dataset_id: str, args, store: FirestoreStateStore):
     if isinstance(src.organization, dict):
         org_title = src.organization.get("title") or src.organization.get("name") or ""
 
-    # Same related-candidates block as prod (read-only Firestore query).
-    related_candidates: list[dict] = []
-    org_name = (src.organization or {}).get("name") or ""
-    if org_name:
-        try:
-            related_candidates = [
-                {"id": s.id, "title": s.title, "tags": s.tags}
-                for s in store.list_org_sources(org_name, exclude_id=dataset_id)
-            ]
-        except Exception:
-            log.warning("related-candidates lookup failed for %s", dataset_id[:8])
-
     print(f"\n--- running {args.model} on {dataset_id} ({src.title!r}) ---")
     try:
         res = run_test_session(
@@ -160,16 +235,20 @@ def _run_one(*, dataset_id: str, args, store: FirestoreStateStore):
             org_title=org_title,
             primary_resource_id=primary_resource_id,
             resources=src.resources,
-            related_candidates=related_candidates,
+            organization=src.organization if isinstance(src.organization, dict) else None,
+            store=store,
             out_dir=out_dir,
             model=args.model,
-            max_iters=args.max_iters,
             reasoning_effort=args.reasoning_effort,
             quantizations=(
                 [q.strip() for q in args.quantizations.split(",") if q.strip()]
                 if args.quantizations else None
             ),
         )
+    except AccountLimitError:
+        # Dead key / exhausted credits: every remaining dataset would hit the
+        # same rejection, so stop the batch here, as production does.
+        raise
     except Exception as e:
         log.exception("test[%s]: run_test_session failed: %s", dataset_id[:8], e)
         return None
@@ -182,7 +261,10 @@ def _run_one(*, dataset_id: str, args, store: FirestoreStateStore):
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    p = argparse.ArgumentParser(description="Page-builder test harness (any model, Podman sandbox)")
+    p = argparse.ArgumentParser(
+        description="Page-builder benchmark (any model, production session path; "
+                    "run via infra/benchmark.sh)"
+    )
     g = p.add_mutually_exclusive_group(required=True)
     g.add_argument("--source", help="single dataset id")
     g.add_argument("--batch", nargs="+", help="multiple dataset ids")
@@ -197,15 +279,23 @@ def main(argv: Optional[list[str]] = None) -> int:
     p.add_argument("--reasoning-effort",
                    choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
                    help="OpenRouter reasoning.effort override (OpenRouter "
-                        "models only); omit for the model default, which is "
-                        "what production uses")
+                        "models only); omit to use OPENROUTER_REASONING_EFFORT "
+                        "(under infra/benchmark.sh: the live job's value), else "
+                        "the model's MODEL_ROUTING default")
     p.add_argument("--quantizations",
                    help="comma-separated OpenRouter quantization filter "
                         "(e.g. 'fp8'), overriding the model's own floor in "
                         "model_harness.MODEL_ROUTING. Use to A/B precision — "
                         "deepseek-v4-flash already defaults to fp8 because its "
                         "provider pool contains fp4 endpoints")
-    p.add_argument("--max-iters", type=int, default=30)
+    p.add_argument("--max-iters", type=int, default=30,
+                   help="ignored; kept so old command lines still parse")
+    p.add_argument("--snapshot-out", metavar="FILE",
+                   help="read the datasets from Firestore, write FILE, and exit "
+                        "(host side of infra/benchmark.sh)")
+    p.add_argument("--snapshot", metavar="FILE",
+                   help="use a --snapshot-out file instead of Firestore "
+                        "(container side of infra/benchmark.sh)")
     p.add_argument("--project", default=os.environ.get("FIREBASE_PROJECT") or "govdata-il")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
@@ -226,7 +316,16 @@ def main(argv: Optional[list[str]] = None) -> int:
     else:
         ids = list(args.batch or [])
 
-    store = FirestoreStateStore(project_id=args.project)
+    if args.snapshot_out:
+        write_snapshot(FirestoreStateStore(project_id=args.project), ids, args.snapshot_out)
+        print(f"snapshot of {len(ids)} dataset(s) → {args.snapshot_out}")
+        return 0
+    _require_isolation()  # before any Firestore client is built
+    store = (
+        SnapshotStore(args.snapshot)
+        if args.snapshot
+        else FirestoreStateStore(project_id=args.project)
+    )
     results: list[TestSessionResult] = []
     for did in ids:
         res = _run_one(dataset_id=did, args=args, store=store)
@@ -234,8 +333,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             results.append(res)
 
     if results:
-        priced = [r for r in results if (r.cost_usd or {}).get("total_usd") is not None]
-        total = sum(r.cost_usd["total_usd"] for r in priced)
+        priced = [r for r in results if _spend(r) is not None]
+        total = sum(_spend(r) for r in priced)
         suffix = (
             f" + {len(results) - len(priced)} unpriced"
             if len(priced) < len(results) else ""

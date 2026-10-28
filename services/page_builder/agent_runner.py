@@ -44,9 +44,9 @@ from .agent_contract import (
 )
 from .local_sandbox import LocalSandbox
 from .model_harness import (
-    AGENT_DATA_FILENAME,
     CONTENT_FILENAME,
     AgentSessionOutput,
+    resolve_reasoning_effort,
     run_agent_session,
 )
 from .schema import AgentData
@@ -183,7 +183,49 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     return f"gs://{bucket}/{relpath}"
 
 
-def run_production_session(
+@dataclass
+class ValidatedSession:
+    """A session that passed every gate, not yet persisted anywhere.
+
+    The seam between "build a page" (identical for prod and the local
+    benchmark) and "where it goes" (GCS + Firestore in prod, a local
+    folder in `model_harness.run_test_session`).
+    """
+
+    out: AgentSessionOutput
+    content_html: str
+    agent_data: AgentData
+    attempts: int
+    attempts_cost: float
+    prefetch_stats: dict
+    model: str
+    reasoning_effort: Optional[str]
+
+
+def related_candidates_for(
+    store, organization: Optional[dict], dataset_id: str
+) -> list[dict]:
+    """Same-ministry related candidates from our own index.
+
+    The agent picks related_ids from this list instead of 3-5 CKAN discovery
+    calls (each of which replays the whole transcript as input tokens).
+    Best-effort: an empty list just re-enables the agent's package_search
+    fallback. Shared with the benchmark's host-side snapshot.
+    """
+    try:
+        org_name = (organization or {}).get("name") or ""
+        if not org_name:
+            return []
+        return [
+            {"id": s.id, "title": s.title, "tags": s.tags}
+            for s in store.list_org_sources(org_name, exclude_id=dataset_id)
+        ]
+    except Exception:
+        log.exception("related-candidates lookup failed for %s", dataset_id)
+        return []
+
+
+def run_validated_session(
     *,
     dataset_id: str,
     title: str,
@@ -192,25 +234,35 @@ def run_production_session(
     resources: Optional[list] = None,
     organization: Optional[dict] = None,
     primary_resource_id: Optional[str] = None,
-    gcs_bucket: str,
-    store: Optional[FirestoreStateStore] = None,
+    store: FirestoreStateStore,
     model: Optional[str] = None,
-) -> ProdSessionResult:
-    if not gcs_bucket:
-        raise ValueError("gcs_bucket is required")
+    reasoning_effort: Optional[str] = None,
+    quantizations: Optional[list[str]] = None,
+) -> ValidatedSession:
+    """Prefetch → up to SESSION_ATTEMPTS validated attempts. No persistence.
+
+    Everything production does to turn a source into a validated page,
+    including retries, rate-limit backoff and the account-limit abort.
+    `run_production_session` and the benchmark both call this, so the two
+    cannot drift.
+    """
     model = model or os.environ.get("OPENROUTER_MODEL", DEFAULT_MODEL)
     attempts_max = int(os.environ.get("SESSION_ATTEMPTS", "3"))
     retry_feedback = (
         (os.environ.get("RETRY_FEEDBACK") or "").strip().lower()
         in ("1", "true", "yes", "on")
     )
-    reasoning_effort = (
-        (os.environ.get("OPENROUTER_REASONING_EFFORT") or "").strip() or None
+    # Explicit args exist only for the benchmark CLI's flags; production
+    # passes neither and reads env, as it always did. Resolved through the
+    # same helper run_agent_session uses, so the recorded effort includes a
+    # MODEL_ROUTING per-model default (e.g. deepseek-v4-flash → max).
+    reasoning_effort = resolve_reasoning_effort(
+        model,
+        reasoning_effort
+        or (os.environ.get("OPENROUTER_REASONING_EFFORT") or "").strip()
+        or None,
     )
     rate_limit_backoff_s = int(os.environ.get("RATE_LIMIT_BACKOFF_S", "60"))
-    store = store or FirestoreStateStore()
-    session_id = f"or-{uuid.uuid4().hex[:12]}"
-    started = time.monotonic()
 
     if resources and not primary_resource_id:
         primary_resource_id = pick_primary_resource_id(resources)
@@ -251,20 +303,7 @@ def run_production_session(
             ),
             f"{sum(p.host_path.stat().st_size for p in prefetched if p.host_path):,}",
         )
-    # Same-ministry related candidates from our own index — the agent picks
-    # related_ids from this list instead of 3-5 CKAN discovery calls (each
-    # of which replays the whole transcript as input tokens). Best-effort:
-    # an empty list just re-enables the agent's package_search fallback.
-    related_candidates: list[dict] = []
-    try:
-        org_name = (organization or {}).get("name") or ""
-        if org_name:
-            related_candidates = [
-                {"id": s.id, "title": s.title, "tags": s.tags}
-                for s in store.list_org_sources(org_name, exclude_id=dataset_id)
-            ]
-    except Exception:
-        log.exception("related-candidates lookup failed for %s", dataset_id)
+    related_candidates = related_candidates_for(store, organization, dataset_id)
 
     prefetch_stats = {
         "files": sum(1 for p in prefetched if p.host_path),
@@ -312,6 +351,7 @@ def run_production_session(
                     previous_failure=failure_hint,
                     related_candidates=related_candidates,
                     reasoning_effort=reasoning_effort,
+                    quantizations=quantizations,
                 )
                 attempts_cost += out.cost.get("total_usd") or 0.0
                 agent_data = AgentData.model_validate_json(out.agent_data_raw)
@@ -382,6 +422,50 @@ def run_production_session(
         shutil.rmtree(prefetch_dir, ignore_errors=True)
 
     assert out is not None and content_html is not None and agent_data is not None
+    return ValidatedSession(
+        out=out,
+        content_html=content_html,
+        agent_data=agent_data,
+        attempts=attempts,
+        attempts_cost=attempts_cost,
+        prefetch_stats=prefetch_stats,
+        model=model,
+        reasoning_effort=reasoning_effort,
+    )
+
+
+def run_production_session(
+    *,
+    dataset_id: str,
+    title: str,
+    notes: str,
+    org_title: str,
+    resources: Optional[list] = None,
+    organization: Optional[dict] = None,
+    primary_resource_id: Optional[str] = None,
+    gcs_bucket: str,
+    store: Optional[FirestoreStateStore] = None,
+    model: Optional[str] = None,
+) -> ProdSessionResult:
+    if not gcs_bucket:
+        raise ValueError("gcs_bucket is required")
+    store = store or FirestoreStateStore()
+    session_id = f"or-{uuid.uuid4().hex[:12]}"
+    started = time.monotonic()
+
+    v = run_validated_session(
+        dataset_id=dataset_id,
+        title=title,
+        notes=notes,
+        org_title=org_title,
+        resources=resources,
+        organization=organization,
+        primary_resource_id=primary_resource_id,
+        store=store,
+        model=model,
+    )
+    out, content_html, agent_data = v.out, v.content_html, v.agent_data
+    model, attempts = v.model, v.attempts
 
     written = [
         _write_gcs(
@@ -401,13 +485,13 @@ def run_production_session(
             usage={
                 **out.usage,
                 "actual_cost_usd": out.cost.get("total_usd"),
-                "attempts_cost_usd": round(attempts_cost, 6),
+                "attempts_cost_usd": round(v.attempts_cost, 6),
                 "cost_source": out.cost.get("cost_source"),
                 "cost_breakdown": out.cost.get("breakdown"),
                 "model": model,
-                "reasoning_effort": reasoning_effort,
+                "reasoning_effort": v.reasoning_effort,
                 "attempts": attempts,
-                "prefetch": prefetch_stats,
+                "prefetch": v.prefetch_stats,
             },
             model_requests=out.iterations,
             elapsed_s=elapsed,
