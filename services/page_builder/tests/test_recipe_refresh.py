@@ -82,18 +82,21 @@ class FakeStore:
 
     def mark_refreshed(self, dataset_id, *, metadata_modified, recipe_version,
                        agent_data, page_path, snapshot=None, input_fingerprint=None,
-                       inputs_hash=None, content_hash=None, preview=False):
+                       inputs_hash=None, content_hash=None, file_fingerprint=None,
+                       preview=False):
         self._upd(dataset_id, preview, agent_data=agent_data,
                   recipe_version=recipe_version,
                   refreshed_metadata_modified=metadata_modified,
                   refresh_status="succeeded", refresh_failed_version=None,
                   last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
-                  content_hash=content_hash)
+                  content_hash=content_hash, file_fingerprint=file_fingerprint)
 
     def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
-                               inputs_hash=None, reason, advance_version, preview=False):
-        kw = {"input_fingerprint": input_fingerprint, "unchanged_reason": reason}
+                               inputs_hash=None, file_fingerprint=None, reason,
+                               advance_version, preview=False):
+        kw = {"input_fingerprint": input_fingerprint, "unchanged_reason": reason,
+              "file_fingerprint": file_fingerprint}
         if inputs_hash is not None:
             kw["inputs_hash"] = inputs_hash
         if advance_version:
@@ -118,7 +121,8 @@ def _src(mm="2026-10-01"):
         id=DS, title="אירועים", organization={"title": "משרד"},
         metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=timezone.utc),
         analysis_status="succeeded",
-        resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True}],
+        resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True,
+                    "hash": "md5-v1", "size": 1000}],
     )
 
 
@@ -593,6 +597,7 @@ def test_precheck_observe_reports_agreement_and_never_skips(env, monkeypatch):
     assert o["status"] == "refreshed" and ckan.fetches == 2
     assert o["precheck"] == {
         "mode": "observe", "fp_same": True, "inputs_same": True, "content_same": True,
+        "fp2_same": True,
     }
 
 
@@ -602,8 +607,10 @@ def test_precheck_first_run_has_nothing_to_compare(env, monkeypatch):
     s = _run(env, store, FakeCkan(_rows([2024, 2025])), preview=False)
     pc = _first(s)["precheck"]
     assert pc["fp_same"] is None and pc["inputs_same"] is None and pc["content_same"] is None
+    assert pc["fp2_same"] is None
     st = store.states[(DS, False)]
     assert st["input_fingerprint"] and st["inputs_hash"] and st["content_hash"]
+    assert st["file_fingerprint"]
 
 
 def test_precheck_inputs_skips_after_fetch_and_before_compute(env, monkeypatch):
@@ -674,9 +681,90 @@ def test_precheck_inputs_mode_catches_what_the_fingerprint_misses(env, monkeypat
     assert o["precheck"]["content_same"] is False
 
 
+def _reupload(store, md5):
+    """A new file upload: CKAN recomputes the resource's md5."""
+    store.src.resources = [dict(r, hash=md5) for r in store.src.resources]
+
+
+def test_precheck_file_fingerprint_catches_what_the_fingerprint_misses(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    _reupload(store, "md5-v2")
+    o = _first(_run(env, store, FakeCkan(_deep_edit(ckan.rows)), preview=False))
+    assert o["status"] == "refreshed"
+    assert o["precheck"]["fp_same"] is True       # A is fooled…
+    assert o["precheck"]["fp2_same"] is False     # …A′ sees the new file
+    assert o["precheck"]["content_same"] is False
+
+
+def test_precheck_file_fingerprint_survives_identical_reupload(env, monkeypatch):
+    """A byte-identical re-upload bumps metadata_modified but not the md5."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    pc = _first(_run(env, store, ckan, preview=False))["precheck"]
+    assert pc["fp2_same"] is True and pc["content_same"] is True
+
+
+def test_precheck_file_fingerprint_reports_datastore_only_edit(env, monkeypatch, caplog):
+    """The datastore changed without a new file (API push, failed reload): A′
+    is blind to it, and observe must say so — the rollout gate for A′."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    with caplog.at_level("WARNING", logger=rf.log.name):
+        o = _first(_run(env, store, FakeCkan(_deep_edit(ckan.rows)), preview=False))
+    assert o["precheck"]["fp2_same"] is True and o["precheck"]["content_same"] is False
+    assert "FALSE-SKIP candidate — fp_same ∧ fp2_same" in caplog.text
+
+
+def test_precheck_fingerprint_alone_is_not_a_false_skip(env, monkeypatch, caplog):
+    """A fooled but A′ not: no mode skips on that, so the gate stays quiet."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    _reupload(store, "md5-v2")
+    with caplog.at_level("WARNING", logger=rf.log.name):
+        o = _first(_run(env, store, FakeCkan(_deep_edit(ckan.rows)), preview=False))
+    assert o["precheck"]["fp_same"] is True and o["precheck"]["content_same"] is False
+    assert "FALSE-SKIP" not in caplog.text
+
+
+def test_precheck_inputs_skip_seeds_the_file_fingerprint(env, monkeypatch):
+    """A source rendered before A′ existed: the first exact skip stores A′, so
+    the next bump under `full` skips without fetching."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
+    store.states[(DS, False)]["file_fingerprint"] = None
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "inputs_hash"
+    assert store.states[(DS, False)]["file_fingerprint"]
+    _with_mode(monkeypatch, "full")
+    _bump(store, "2026-10-03")
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "fingerprint"
+    assert ckan.fetches == 2
+
+
+def test_precheck_file_fingerprint_needs_every_hash(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    _reupload(store, None)
+    o = _first(_run(env, store, ckan, preview=False))
+    assert o["status"] == "refreshed" and o["precheck"]["fp2_same"] is None
+    assert store.states[(DS, False)]["file_fingerprint"] is None
+
+
+def test_precheck_full_fetches_when_only_the_file_hash_changed(env, monkeypatch):
+    """The ~5/night A false skips: same count, same first rows, new file."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    _reupload(store, "md5-v2")
+    edited = FakeCkan(_deep_edit(ckan.rows))
+    o = _first(_run(env, store, edited, preview=False))
+    assert o["status"] == "refreshed" and edited.fetches == 1
+    assert o["precheck"]["fp_same"] is True and o["precheck"]["fp2_same"] is False
+
+
+def test_precheck_full_without_file_hash_falls_back_to_inputs_hash(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    _reupload(store, None)
+    o = _first(_run(env, store, ckan, preview=False))
+    assert (o["status"], o["reason"]) == ("unchanged", "inputs_hash")
+    assert ckan.fetches == 2          # no hash → no fingerprint skip; B decided
+
+
 def test_precheck_full_documents_the_fingerprint_blind_spot(env, monkeypatch):
-    """`full` trusts A: a same-count edit deeper than the sampled rows is
-    skipped until the max-age safety net forces a re-render."""
+    """`full` trusts A ∧ A′: a datastore-only same-count edit (file md5
+    unchanged) is skipped until the max-age safety net forces a re-render."""
     store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
     edited = FakeCkan(_deep_edit(ckan.rows))
     assert _first(_run(env, store, edited, preview=False))["reason"] == "fingerprint"

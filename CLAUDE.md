@@ -93,7 +93,10 @@ landing pages. Four layers:
    that changed nothing — CKAN bumps `metadata_modified` on byte-identical
    re-uploads: check A = datastore fingerprint (no extra calls; blind to
    same-count edits), check B = sha256 of the exported CSVs (exact), both
-   folded with a hash of the recipe files. `observe` only logs
+   folded with a hash of the recipe files. Check A′ (`fp2_same`) = CKAN's
+   per-resource file md5 (`hash`, kept by the scanner) + size/total/columns;
+   blind to datastore-only edits, None when any input lacks a hash. `full`
+   skips the export only on A ∧ A′ (A alone false-skipped ~5/night). `observe` only logs
    `refresh precheck …` lines (`FALSE-SKIP candidate` = a "same" check but a
    changed page — the gate for promoting a mode); `unchanged` outcomes never
    stage and never trigger a publish. Only check B advances the version

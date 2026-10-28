@@ -76,9 +76,12 @@ REFRESH_ENABLED=${REFRESH_ENABLED:-true}
 AUTHORING_MODE=${AUTHORING_MODE:-cloud}
 # No-op precheck for recipe refresh — skips CKAN version bumps that changed
 # nothing (services/page_builder/refresh.py). off | observe | inputs | full;
-# `observe` only logs would-skip agreement, never skips. Page older than
+# `observe` only logs would-skip agreement, never skips. `inputs` skips on the
+# exact CSV hash (0 false skips over the 10-26/27 observe nights). `full` also
+# skips the CSV export when the preview AND CKAN's file md5 both match (the
+# preview alone false-skipped 5/night). Page older than
 # REFRESH_PRECHECK_MAX_AGE_DAYS always re-renders.
-REFRESH_PRECHECK=${REFRESH_PRECHECK:-observe}
+REFRESH_PRECHECK=${REFRESH_PRECHECK:-full}
 REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS:-14}
 
 cd "$(dirname "$0")/.."

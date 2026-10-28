@@ -102,10 +102,17 @@ def _env_int(name: str, default: int) -> int:
 #      (row total, columns, first rows) + the recipe's own files. Costs no
 #      extra CKAN call; blind to same-count edits deeper in the table.
 #   B  inputs hash — sha256 of the exported CSVs + recipe files. Exact.
+#   A′ file fingerprint — CKAN's md5 of each input's uploaded file (`hash`
+#      from package_show, already on the source doc) + the preview's total and
+#      columns. No extra call; catches same-count edits A can't. Blind to
+#      datastore-only edits (A still sees those that move the total or the
+#      first rows).
 # off      today's behaviour
-# observe  compute A/B and report agreement with the rendered output; never skip
-# inputs   skip on B (A observed)
-# full     skip on A, else fetch and skip on B
+# observe  compute A/A′/B and report agreement with the rendered output; never skip
+# inputs   skip on B (A/A′ observed)
+# full     skip on A ∧ A′ without fetching, else fetch and skip on B. A alone
+#          false-skipped ~5/night in observe, so it never skips by itself; an
+#          input with no CKAN hash makes A′ None and forces the fetch.
 PRECHECK_MODES = ("off", "observe", "inputs", "full")
 _DEFAULT_PRECHECK_MAX_AGE_DAYS = 14
 
@@ -326,6 +333,17 @@ def recipe_identity(recipe: Recipe) -> str:
     return h.hexdigest()
 
 
+def _preview_shape(p: dict) -> list:
+    return [p.get("total"), [[f.get("id"), f.get("type")] for f in p.get("fields") or []]]
+
+
+def _digest(parts: list, identity: str) -> str:
+    h = hashlib.sha256()
+    h.update(json.dumps(parts, ensure_ascii=False, sort_keys=True, default=str).encode())
+    h.update(identity.encode())
+    return h.hexdigest()
+
+
 def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     """Check A: what the datastore preview says about every input — row total,
     columns, first rows (`_id` dropped) — plus `recipe_identity`."""
@@ -337,18 +355,31 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
                 [
                     inp.name,
                     res["id"],
-                    p.get("total"),
-                    [[f.get("id"), f.get("type")] for f in p.get("fields") or []],
+                    *_preview_shape(p),
                     [
                         {k: v for k, v in row.items() if k != "_id"}
                         for row in p.get("sample_rows") or []
                     ],
                 ]
             )
-    h = hashlib.sha256()
-    h.update(json.dumps(parts, ensure_ascii=False, sort_keys=True, default=str).encode())
-    h.update(identity.encode())
-    return h.hexdigest()
+    return _digest(parts, identity)
+
+
+def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> Optional[str]:
+    """Check A′: CKAN's md5 + size of every input's uploaded file, the
+    preview's row total and columns, plus `recipe_identity`. None when any
+    input has no CKAN hash (API-pushed resource, or a source doc scanned before
+    the scanner kept it) — it never vouches for an input it can't see."""
+    parts = []
+    for inp in recipe.manifest.inputs:
+        for res in probe.resolved[inp.name]:
+            if not res.get("hash"):
+                return None
+            p = probe.preview(res["id"]) or {}
+            parts.append(
+                [inp.name, res["id"], res["hash"], res.get("size"), *_preview_shape(p)]
+            )
+    return _digest(parts, identity)
 
 
 def inputs_hash(
@@ -731,7 +762,7 @@ def refresh_one(
     state = previous_state or {}
     may_skip = mode != "off" and _precheck_may_skip(trigger, state)
     pc: dict = {"mode": mode} if mode != "off" else {}
-    hashes: dict[str, str] = {}  # stored on success; names match mark_refreshed kwargs
+    hashes: dict[str, Optional[str]] = {}  # stored on success; names match mark_refreshed kwargs
     try:
         probe = None
         after_fetch = None
@@ -742,7 +773,9 @@ def refresh_one(
             )
             fp = hashes["input_fingerprint"] = input_fingerprint(recipe, probe, identity)
             pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
-            if may_skip and mode == "full" and pc["fp_same"]:
+            ff = hashes["file_fingerprint"] = file_fingerprint(recipe, probe, identity)
+            pc["fp2_same"] = _same(ff, state.get("file_fingerprint")) if ff else None
+            if may_skip and mode == "full" and pc["fp_same"] and pc["fp2_same"]:
                 raise _Unchanged("fingerprint")
 
             def after_fetch(inputs):
@@ -768,6 +801,7 @@ def refresh_one(
             metadata_modified=src.metadata_modified,
             input_fingerprint=hashes["input_fingerprint"],
             inputs_hash=hashes.get("inputs_hash"),
+            file_fingerprint=hashes.get("file_fingerprint"),
             reason=u.reason,
             advance_version=u.reason == "inputs_hash",
             preview=preview,
@@ -858,16 +892,23 @@ def refresh_one(
 
 def _log_precheck(dataset_id: str, pc: dict) -> None:
     """One line per refreshed source: did the cheap checks agree with the
-    rendered output? A "same" check with changed content is a false skip
-    (`full`/`inputs` would have kept a stale page) — the rollout gate."""
+    rendered output? A skip predicate that held with changed content is a
+    false skip (`inputs`/`full` would have kept a stale page) — the rollout
+    gate. Only the predicates a mode skips on are flagged: A or A′ alone
+    never skips."""
     log.info(
-        "refresh precheck %s: mode=%s fp_same=%s inputs_same=%s content_same=%s",
+        "refresh precheck %s: mode=%s fp_same=%s inputs_same=%s content_same=%s"
+        " fp2_same=%s",
         dataset_id[:8], pc.get("mode"), pc.get("fp_same"),
-        pc.get("inputs_same"), pc.get("content_same"),
+        pc.get("inputs_same"), pc.get("content_same"), pc.get("fp2_same"),
     )
     if pc.get("content_same") is False:
-        for check in ("fp_same", "inputs_same"):
-            if pc.get(check):
+        would_skip = {
+            "inputs_same": pc.get("inputs_same"),               # inputs, full
+            "fp_same ∧ fp2_same": pc.get("fp_same") and pc.get("fp2_same"),  # full
+        }
+        for check, held in would_skip.items():
+            if held:
                 log.warning(
                     "refresh precheck %s: FALSE-SKIP candidate — %s but the page changed",
                     dataset_id[:8], check,

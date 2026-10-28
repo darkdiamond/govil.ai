@@ -183,6 +183,7 @@ class FirestoreStateStore:
                 "last_modified": r.last_modified,
                 "description": r.description,
                 "datastore_active": getattr(r, "datastore_active", False),
+                "hash": getattr(r, "hash", None),
             }
             for r in dataset.resources
         ]
@@ -744,6 +745,7 @@ class FirestoreStateStore:
         input_fingerprint: Optional[str] = None,
         inputs_hash: Optional[str] = None,
         content_hash: Optional[str] = None,
+        file_fingerprint: Optional[str] = None,
         preview: bool = False,
     ) -> None:
         """Record a successful recipe refresh.
@@ -751,7 +753,7 @@ class FirestoreStateStore:
         `snapshot` (row counts, KPI displays, insight sentences) is what the
         next refresh diffs against to report what moved.
 
-        The three hashes (REFRESH_PRECHECK) describe the render just staged.
+        The four hashes (REFRESH_PRECHECK) describe the render just staged.
         Always written — None when the precheck was off — so a stale hash from
         an earlier render can never vouch for a page it didn't produce.
 
@@ -774,6 +776,7 @@ class FirestoreStateStore:
             "input_fingerprint": input_fingerprint,
             "inputs_hash": inputs_hash,
             "content_hash": content_hash,
+            "file_fingerprint": file_fingerprint,
         }
         if not preview:
             payload.update(
@@ -796,6 +799,7 @@ class FirestoreStateStore:
         metadata_modified: Optional[datetime],
         input_fingerprint: str,
         inputs_hash: Optional[str] = None,
+        file_fingerprint: Optional[str] = None,
         reason: str,
         advance_version: bool,
         preview: bool = False,
@@ -820,6 +824,7 @@ class FirestoreStateStore:
             "last_unchanged_at": datetime.now(timezone.utc),
             "unchanged_reason": reason,
             "input_fingerprint": input_fingerprint,
+            "file_fingerprint": file_fingerprint,
         }
         if inputs_hash is not None:
             payload["inputs_hash"] = inputs_hash
