@@ -67,17 +67,18 @@ RECONCILE_ENABLED=${RECONCILE_ENABLED:-true}
 # reap_stale_pending). Keep it above the slowest expected session so a
 # manual run overlapping the scheduled one can't reap its live sessions.
 PENDING_REAP_MINUTES=${PENDING_REAP_MINUTES:-120}
-# Recipe refresh (services/page_builder/refresh.py). Both stay at today's
-# behaviour until the preview soak (infra/refresh-preview.deploy.sh) passes:
+# Recipe refresh (services/page_builder/refresh.py). Defaults mirror prod —
+# a plain redeploy must not revert them (--set-env-vars replaces the set):
 #   REFRESH_ENABLED=true  → re-render recipe'd pages on every CKAN update
 #   AUTHORING_MODE=local  → no cloud agent sessions; queue + GitHub issue
-REFRESH_ENABLED=${REFRESH_ENABLED:-false}
+#                           (stays cloud until local authoring replaces it)
+REFRESH_ENABLED=${REFRESH_ENABLED:-true}
 AUTHORING_MODE=${AUTHORING_MODE:-cloud}
 # No-op precheck for recipe refresh — skips CKAN version bumps that changed
 # nothing (services/page_builder/refresh.py). off | observe | inputs | full;
 # `observe` only logs would-skip agreement, never skips. Page older than
 # REFRESH_PRECHECK_MAX_AGE_DAYS always re-renders.
-REFRESH_PRECHECK=${REFRESH_PRECHECK:-off}
+REFRESH_PRECHECK=${REFRESH_PRECHECK:-observe}
 REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS:-14}
 
 cd "$(dirname "$0")/.."
