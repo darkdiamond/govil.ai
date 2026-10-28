@@ -710,7 +710,30 @@ def test_precheck_file_fingerprint_reports_datastore_only_edit(env, monkeypatch,
     with caplog.at_level("WARNING", logger=rf.log.name):
         o = _first(_run(env, store, FakeCkan(_deep_edit(ckan.rows)), preview=False))
     assert o["precheck"]["fp2_same"] is True and o["precheck"]["content_same"] is False
-    assert "FALSE-SKIP candidate — fp2_same" in caplog.text
+    assert "FALSE-SKIP candidate — fp_same ∧ fp2_same" in caplog.text
+
+
+def test_precheck_fingerprint_alone_is_not_a_false_skip(env, monkeypatch, caplog):
+    """A fooled but A′ not: no mode skips on that, so the gate stays quiet."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    _reupload(store, "md5-v2")
+    with caplog.at_level("WARNING", logger=rf.log.name):
+        o = _first(_run(env, store, FakeCkan(_deep_edit(ckan.rows)), preview=False))
+    assert o["precheck"]["fp_same"] is True and o["precheck"]["content_same"] is False
+    assert "FALSE-SKIP" not in caplog.text
+
+
+def test_precheck_inputs_skip_seeds_the_file_fingerprint(env, monkeypatch):
+    """A source rendered before A′ existed: the first exact skip stores A′, so
+    the next bump under `full` skips without fetching."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
+    store.states[(DS, False)]["file_fingerprint"] = None
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "inputs_hash"
+    assert store.states[(DS, False)]["file_fingerprint"]
+    _with_mode(monkeypatch, "full")
+    _bump(store, "2026-10-03")
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "fingerprint"
+    assert ckan.fetches == 2
 
 
 def test_precheck_file_fingerprint_needs_every_hash(env, monkeypatch):

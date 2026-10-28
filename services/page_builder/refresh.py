@@ -333,6 +333,17 @@ def recipe_identity(recipe: Recipe) -> str:
     return h.hexdigest()
 
 
+def _preview_shape(p: dict) -> list:
+    return [p.get("total"), [[f.get("id"), f.get("type")] for f in p.get("fields") or []]]
+
+
+def _digest(parts: list, identity: str) -> str:
+    h = hashlib.sha256()
+    h.update(json.dumps(parts, ensure_ascii=False, sort_keys=True, default=str).encode())
+    h.update(identity.encode())
+    return h.hexdigest()
+
+
 def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     """Check A: what the datastore preview says about every input — row total,
     columns, first rows (`_id` dropped) — plus `recipe_identity`."""
@@ -344,18 +355,14 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
                 [
                     inp.name,
                     res["id"],
-                    p.get("total"),
-                    [[f.get("id"), f.get("type")] for f in p.get("fields") or []],
+                    *_preview_shape(p),
                     [
                         {k: v for k, v in row.items() if k != "_id"}
                         for row in p.get("sample_rows") or []
                     ],
                 ]
             )
-    h = hashlib.sha256()
-    h.update(json.dumps(parts, ensure_ascii=False, sort_keys=True, default=str).encode())
-    h.update(identity.encode())
-    return h.hexdigest()
+    return _digest(parts, identity)
 
 
 def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> Optional[str]:
@@ -370,19 +377,9 @@ def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> Option
                 return None
             p = probe.preview(res["id"]) or {}
             parts.append(
-                [
-                    inp.name,
-                    res["id"],
-                    res["hash"],
-                    res.get("size"),
-                    p.get("total"),
-                    [[f.get("id"), f.get("type")] for f in p.get("fields") or []],
-                ]
+                [inp.name, res["id"], res["hash"], res.get("size"), *_preview_shape(p)]
             )
-    h = hashlib.sha256()
-    h.update(json.dumps(parts, ensure_ascii=False, sort_keys=True, default=str).encode())
-    h.update(identity.encode())
-    return h.hexdigest()
+    return _digest(parts, identity)
 
 
 def inputs_hash(
@@ -895,8 +892,10 @@ def refresh_one(
 
 def _log_precheck(dataset_id: str, pc: dict) -> None:
     """One line per refreshed source: did the cheap checks agree with the
-    rendered output? A "same" check with changed content is a false skip
-    (`full`/`inputs` would have kept a stale page) — the rollout gate."""
+    rendered output? A skip predicate that held with changed content is a
+    false skip (`inputs`/`full` would have kept a stale page) — the rollout
+    gate. Only the predicates a mode skips on are flagged: A or A′ alone
+    never skips."""
     log.info(
         "refresh precheck %s: mode=%s fp_same=%s inputs_same=%s content_same=%s"
         " fp2_same=%s",
@@ -904,8 +903,12 @@ def _log_precheck(dataset_id: str, pc: dict) -> None:
         pc.get("inputs_same"), pc.get("content_same"), pc.get("fp2_same"),
     )
     if pc.get("content_same") is False:
-        for check in ("fp_same", "inputs_same", "fp2_same"):
-            if pc.get(check):
+        would_skip = {
+            "inputs_same": pc.get("inputs_same"),               # inputs, full
+            "fp_same ∧ fp2_same": pc.get("fp_same") and pc.get("fp2_same"),  # full
+        }
+        for check, held in would_skip.items():
+            if held:
                 log.warning(
                     "refresh precheck %s: FALSE-SKIP candidate — %s but the page changed",
                     dataset_id[:8], check,
