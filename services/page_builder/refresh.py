@@ -73,6 +73,11 @@ _DEFAULT_WALL_BUDGET_S = 900.0
 _DEFAULT_PAGE_SIZE = 25_000
 _PAGE_TIMEOUT_S = 60.0
 _COMPUTE_TIMEOUT_S = 300
+# Sandbox-spawn flake (gRPC atfork handlers abort the forked child, SIGABRT
+# + an `ev_epoll1_linux` line on stderr): not the recipe's fault, so retry
+# in a fresh sandbox instead of opening an authoring issue.
+_COMPUTE_SPAWN_ATTEMPTS = 2
+_COMPUTE_SPAWN_BACKOFF_S = 1.0
 
 # Failure reasons a human must act on → open an authoring issue. Anything
 # else (`fetch_failed`) is transient and simply retried next run.
@@ -449,7 +454,42 @@ def fetch_inputs(
 # ── compute + render ─────────────────────────────────────────────────────
 
 
+class _SpawnFlake(RecipeError):
+    """compute() died to the known fork/gRPC abort, not to recipe code."""
+
+
+def _is_spawn_flake(error_value: str, stderr: str) -> bool:
+    return error_value == "exit code -6" and "ev_epoll1_linux" in stderr
+
+
 def run_compute(
+    recipe: Recipe,
+    inputs: dict[str, list[FetchedInput]],
+    work_root: Path,
+    *,
+    timeout: int = _COMPUTE_TIMEOUT_S,
+) -> dict:
+    """`_run_compute_once`, retried on the known sandbox-spawn flake only.
+
+    Every other failure (recipe exceptions, timeouts, a bare SIGABRT
+    without the gRPC signature) surfaces immediately.
+    """
+    for attempt in range(1, _COMPUTE_SPAWN_ATTEMPTS):
+        try:
+            return _run_compute_once(recipe, inputs, work_root, timeout=timeout)
+        except _SpawnFlake as e:
+            log.warning(
+                "compute() spawn flake for %s (attempt %d/%d), retrying: %s",
+                recipe.dataset_id,
+                attempt,
+                _COMPUTE_SPAWN_ATTEMPTS,
+                str(e)[:200],
+            )
+            time.sleep(_COMPUTE_SPAWN_BACKOFF_S)
+    return _run_compute_once(recipe, inputs, work_root, timeout=timeout)
+
+
+def _run_compute_once(
     recipe: Recipe,
     inputs: dict[str, list[FetchedInput]],
     work_root: Path,
@@ -498,7 +538,12 @@ def run_compute(
         )
         if execution.error is not None:
             stderr = (execution.logs.stderr or "").strip()
-            raise RecipeError(
+            exc = (
+                _SpawnFlake
+                if _is_spawn_flake(execution.error.value, stderr)
+                else RecipeError
+            )
+            raise exc(
                 f"compute() failed ({execution.error.name}: {execution.error.value}): "
                 f"{stderr[-1500:]}"
             )
