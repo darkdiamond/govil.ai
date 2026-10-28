@@ -281,6 +281,54 @@ def test_compute_crash_is_a_recipe_failure(env, tmp_path):
     assert "boom" in s["outcomes"][0]["error"]
 
 
+def _flaky_sandbox(monkeypatch, stderr, fail_times):
+    """Make the first `fail_times` sandbox runs exit -6 with `stderr`."""
+    from services.page_builder import local_sandbox as ls
+
+    real = ls.LocalSandbox.run_code
+    calls = {"n": 0}
+
+    def run_code(self, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] <= fail_times:
+            return ls._Execution(
+                logs=ls._Logs(stdout="", stderr=stderr),
+                error=ls._Error(name="NonZeroExit", value="exit code -6"),
+            )
+        return real(self, *a, **kw)
+
+    monkeypatch.setattr(ls.LocalSandbox, "run_code", run_code)
+    monkeypatch.setattr("services.page_builder.refresh._COMPUTE_SPAWN_BACKOFF_S", 0)
+    return calls
+
+
+GRPC_ABORT = "E1027 ev_epoll1_linux.cc:373] epoll_wait error: Bad file descriptor"
+
+
+def test_compute_spawn_flake_is_retried(env, monkeypatch):
+    calls = _flaky_sandbox(monkeypatch, GRPC_ABORT, fail_times=1)
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["failed"] == [] and env.issues == []
+    assert calls["n"] == 2
+
+
+def test_compute_spawn_flake_gives_up_after_retry(env, monkeypatch):
+    calls = _flaky_sandbox(monkeypatch, GRPC_ABORT, fail_times=99)
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "recipe_failed"
+    assert calls["n"] == 2
+
+
+def test_bare_sigabrt_is_not_retried(env, monkeypatch):
+    calls = _flaky_sandbox(monkeypatch, "Aborted", fail_times=99)
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "recipe_failed"
+    assert calls["n"] == 1
+
+
 def test_over_cap_is_too_large(env, monkeypatch):
     monkeypatch.setenv("REFRESH_MAX_RECORDS", "10")
     store = FakeStore(_src())
