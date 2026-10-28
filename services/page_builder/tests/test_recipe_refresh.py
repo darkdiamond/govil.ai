@@ -721,9 +721,27 @@ def test_precheck_file_fingerprint_needs_every_hash(env, monkeypatch):
     assert store.states[(DS, False)]["file_fingerprint"] is None
 
 
+def test_precheck_full_fetches_when_only_the_file_hash_changed(env, monkeypatch):
+    """The ~5/night A false skips: same count, same first rows, new file."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    _reupload(store, "md5-v2")
+    edited = FakeCkan(_deep_edit(ckan.rows))
+    o = _first(_run(env, store, edited, preview=False))
+    assert o["status"] == "refreshed" and edited.fetches == 1
+    assert o["precheck"]["fp_same"] is True and o["precheck"]["fp2_same"] is False
+
+
+def test_precheck_full_without_file_hash_falls_back_to_inputs_hash(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    _reupload(store, None)
+    o = _first(_run(env, store, ckan, preview=False))
+    assert (o["status"], o["reason"]) == ("unchanged", "inputs_hash")
+    assert ckan.fetches == 2          # no hash → no fingerprint skip; B decided
+
+
 def test_precheck_full_documents_the_fingerprint_blind_spot(env, monkeypatch):
-    """`full` trusts A: a same-count edit deeper than the sampled rows is
-    skipped until the max-age safety net forces a re-render."""
+    """`full` trusts A ∧ A′: a datastore-only same-count edit (file md5
+    unchanged) is skipped until the max-age safety net forces a re-render."""
     store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
     edited = FakeCkan(_deep_edit(ckan.rows))
     assert _first(_run(env, store, edited, preview=False))["reason"] == "fingerprint"

@@ -105,12 +105,14 @@ def _env_int(name: str, default: int) -> int:
 #   A′ file fingerprint — CKAN's md5 of each input's uploaded file (`hash`
 #      from package_show, already on the source doc) + the preview's total and
 #      columns. No extra call; catches same-count edits A can't. Blind to
-#      datastore-only edits. Observed only, never skips: it's on trial against
-#      B as A's replacement.
+#      datastore-only edits (A still sees those that move the total or the
+#      first rows).
 # off      today's behaviour
 # observe  compute A/A′/B and report agreement with the rendered output; never skip
-# inputs   skip on B (A observed)
-# full     skip on A, else fetch and skip on B
+# inputs   skip on B (A/A′ observed)
+# full     skip on A ∧ A′ without fetching, else fetch and skip on B. A alone
+#          false-skipped ~5/night in observe, so it never skips by itself; an
+#          input with no CKAN hash makes A′ None and forces the fetch.
 PRECHECK_MODES = ("off", "observe", "inputs", "full")
 _DEFAULT_PRECHECK_MAX_AGE_DAYS = 14
 
@@ -776,7 +778,7 @@ def refresh_one(
             pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
             ff = hashes["file_fingerprint"] = file_fingerprint(recipe, probe, identity)
             pc["fp2_same"] = _same(ff, state.get("file_fingerprint")) if ff else None
-            if may_skip and mode == "full" and pc["fp_same"]:
+            if may_skip and mode == "full" and pc["fp_same"] and pc["fp2_same"]:
                 raise _Unchanged("fingerprint")
 
             def after_fetch(inputs):
