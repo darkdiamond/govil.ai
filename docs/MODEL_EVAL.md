@@ -17,7 +17,7 @@ Choose 3–5 datasets that stress different page shapes:
 
 - a mid-sized **timeseries** (body density + chart quality),
 - a large **map** dataset (GovMap/Leaflet + categorical charts),
-- a thin **registry** (restraint test — a good model does *not* pad),
+- a thin **registry** (restraint test — a good model does _not_ pad),
 - a wide dataset with many plausible charts (depth + prioritization).
 
 Include at least one dataset the production model already published so
@@ -29,8 +29,9 @@ you can diff against a known-good page.
 source .venv/bin/activate
 export OPENROUTER_API_KEY=...
 
-# 1. run the model through the harness (any OpenRouter <vendor>/<model> id)
-python -m services.page_builder.cli.model_test --source <dataset_id> --model <model>
+# 1. run the model through production's session path, inside the production
+#    image under Podman (any OpenRouter <vendor>/<model> id)
+infra/benchmark.sh --source <dataset_id> --model <model>
 
 # 2. render the offline preview
 python -m services.page_builder.cli.preview render <dataset_id>

@@ -328,7 +328,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     results: list[TestSessionResult] = []
     for did in ids:
-        res = _run_one(dataset_id=did, args=args, store=store)
+        try:
+            res = _run_one(dataset_id=did, args=args, store=store)
+        except AccountLimitError as e:
+            # Keep what finished: report it below instead of a bare traceback.
+            print(f"\naborting batch: {e}", file=sys.stderr)
+            break
         if res is not None:
             results.append(res)
 
