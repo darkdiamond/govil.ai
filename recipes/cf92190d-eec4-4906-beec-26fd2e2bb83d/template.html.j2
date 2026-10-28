@@ -1,0 +1,227 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th></tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ chart["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+<h1>מאגר החלטות בית הדין לעררים</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.decisions.tone }} mb-1" dir="ltr">{{ model.kpis.decisions.display }}</div>
+    <div class="text-sm text-subtle">החלטות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cases.tone }} mb-1" dir="ltr">{{ model.kpis.cases.display }}</div>
+    <div class="text-sm text-subtle">תיקים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_year.tone }} mb-1" dir="ltr">{{ model.kpis.last_year.display }}</div>
+    <div class="text-sm text-subtle">החלטות ב-{{ model.labels.full_year }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.judges.tone }} mb-1" dir="ltr">{{ model.kpis.judges.display }}</div>
+    <div class="text-sm text-subtle">דיינים פעילים בשנה האחרונה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("החלטות לפי שנה ובית דין") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for s in model.charts.yearly.series %}<th scope="col">{{ s.name }}</th>{% endfor %}<th scope="col">סה"כ</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.yearly.x %}
+{%- set i = loop.index0 %}
+        <tr><th scope="row">{{ x }}</th>{% for s in model.charts.yearly.series %}<td>{{ s.data[i] | fmt_int }}</td>{% endfor %}<td>{{ model.charts.yearly.total[i] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("נושאי ההחלטות") }}
+    <div id="chart-topics" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.topics_aria }}"></div>
+    {{ table(model.labels.topics_aria, "נושא", "החלטות", model.charts.topics) }}
+  </section>
+  <section class="card p-5">
+    {{ head("סוגי הבקשות") }}
+    <div id="chart-rtypes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.rtypes_aria }}"></div>
+    {{ table(model.labels.rtypes_aria, "סוג בקשה", "החלטות", model.charts.rtypes) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("שינוי תמהיל הנושאים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">חלקו של כל נושא מסך ההחלטות שניתנו באותה שנה.</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("נושאים לפי בית דין") }}
+  <p class="m-0 text-sm text-subtle mb-3">חלקו של כל נושא מסך ההחלטות של כל בית דין.</p>
+  <div id="chart-court-topic" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.court_topic_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.court_topic_aria }}</caption>
+      <thead><tr><th scope="col">נושא (%)</th>{% for c in model.charts.court_topic.courts %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for t in model.charts.court_topic.topics %}
+{%- set j = loop.index0 %}
+        <tr><th scope="row">{{ t }}</th>{% for row in model.charts.court_topic.rows %}<td>{{ row[j] | fmt_num }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("הדיינים בשנה האחרונה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.judges_note }}</p>
+    <div id="chart-judges-recent" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.judges_recent_aria }}"></div>
+    {{ table(model.labels.judges_recent_aria, "דיין", "החלטות", model.charts.judges_recent) }}
+  </section>
+  <section class="card p-5">
+    {{ head("הדיינים בכל התקופה") }}
+    <p class="m-0 text-sm text-subtle mb-3">מספר ההחלטות של כל דיין מאז תחילת המאגר.</p>
+    <div id="chart-judges" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.judges_aria }}"></div>
+    {{ table(model.labels.judges_aria, "דיין", "החלטות", model.charts.judges) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("החלטות לפי חודש") }}
+    <p class="m-0 text-sm text-subtle mb-3">החודש האחרון חלקי.</p>
+    <div id="chart-monthly" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.monthly_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    {{ head("מספר ההחלטות בתיק") }}
+    <p class="m-0 text-sm text-subtle mb-3">כמה החלטות ניתנו בכל תיק — בערר עצמו ובבקשות שהוגשו במהלכו.</p>
+    <div id="chart-cases" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cases_aria }}"></div>
+    {{ table(model.labels.cases_aria, "החלטות בתיק", "תיקים", model.charts.cases) }}
+  </section>
+</div>
+
+<script>
+  (function () {
+    function bars(id, d, horizontal, name) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: 150, overflow: "truncate" } };
+      var val = { type: "value" };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-topics", {{ model.charts.topics | tojson }}, true, "החלטות");
+    bars("chart-rtypes", {{ model.charts.rtypes | tojson }}, true, "החלטות");
+    bars("chart-judges-recent", {{ model.charts.judges_recent | tojson }}, true, "החלטות");
+    bars("chart-judges", {{ model.charts.judges | tojson }}, true, "החלטות");
+    bars("chart-cases", {{ model.charts.cases | tojson }}, false, "תיקים");
+
+    var m = {{ model.charts.monthly | tojson }};
+    var cm = echarts.init(document.getElementById("chart-monthly"));
+    cm.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "החלטות", data: m.y }]
+    }));
+    window.addEventListener("resize", function () { cm.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var y = {{ model.charts.yearly | tojson }};
+    var cy = echarts.init(document.getElementById("chart-yearly"));
+    cy.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value" },
+      series: y.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { cy.resize(); });
+
+    var ct = {{ model.charts.court_topic | tojson }};
+    var cc = echarts.init(document.getElementById("chart-court-topic"));
+    cc.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", max: 100 },
+      yAxis: { type: "category", data: ct.courts, axisLabel: { width: 130, overflow: "truncate" } },
+      series: ct.topics.map(function (t, j) {
+        return { type: "bar", stack: "all", name: t, data: ct.rows.map(function (r) { return r[j]; }) };
+      })
+    }));
+    window.addEventListener("resize", function () { cc.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var ch = echarts.init(document.getElementById("chart-heat"));
+    ch.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3] + ")";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: h.x },
+      yAxis: { type: "category", data: h.y, axisLabel: { width: 140, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells }]
+    }));
+    window.addEventListener("resize", function () { ch.resize(); });
+  })();
+</script>

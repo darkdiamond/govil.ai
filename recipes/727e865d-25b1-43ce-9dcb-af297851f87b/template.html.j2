@@ -1,0 +1,349 @@
+<h1>מספרי בתים ושמות הרחובות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "streets", "median", "repeat"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת הבתים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הרחובות הגדולים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+      <thead><tr><th scope="col">דירוג</th><th scope="col">רחוב</th><th scope="col">בתים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.rank }}</th><td>{{ r.name }}</td><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל הרחובות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  <div id="chart-size" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.size_caption }}</caption>
+      <thead><tr><th scope="col">בתים ברחוב</th><th scope="col">רחובות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.size %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מספור הבתים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.num_note }}</p>
+  <div id="chart-num" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.num_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.num_caption }}</caption>
+      <thead><tr><th scope="col">טווח מספרים</th><th scope="col">אי-זוגיים</th><th scope="col">זוגיים</th><th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.num %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.odd }}</td><td>{{ r.even }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% if model.has_suf %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אותיות ומספרי משנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.suf_note }}</p>
+  <div id="chart-suf" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.suf_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.suf_caption }}</caption>
+      <thead><tr><th scope="col">סיומת</th><th scope="col">בתים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.suf %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+{% if model.has_word %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המילה הראשונה בשם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.word_note }}</p>
+  <div id="chart-word" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.word_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.word_caption }}</caption>
+      <thead><tr><th scope="col">מילה</th><th scope="col">רחובות</th><th scope="col">בתים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.word %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.streets }}</td><td>{{ r.houses }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפיפות לפי אזור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grid_note }}</p>
+  <div id="chart-grid" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.grid_aria }}" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מרחק מהמרכז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ring_note }}</p>
+  <div id="chart-ring" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.ring_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ring_caption }}</caption>
+      <thead><tr><th scope="col">מרחק (ק״מ)</th><th scope="col">בתים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ring %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% if model.has_orient %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כיוון הרחובות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orient_note }}</p>
+  <div id="chart-orient" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.orient_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.orient_caption }}</caption>
+      <thead><tr><th scope="col">כיוון</th><th scope="col">רחובות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.orient %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך הרחוב מול מספר הבתים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איכות הרישום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.qual_note }}</p>
+  <div id="chart-qual" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.qual_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.qual_caption }}</caption>
+      <thead><tr><th scope="col">בדיקה</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.qual %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupFields: [
+      { field: "streetName", label: "רחוב" },
+      { field: "HouseNuber", label: "מספר בית" },
+      { field: "letter", label: "סיומת" },
+      { field: "StreetCode", label: "קוד רחוב" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function hbar(id, d, unit, lw) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: lw, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values.slice().reverse() }]
+      }));
+    }
+    function col(id, d, unit) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, hideOverlap: true } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+    }
+    hbar("chart-top", {{ model.charts.top | tojson }}, "בתים", 120);
+    hbar("chart-word", {{ model.charts.word | tojson }}, "רחובות", 100);
+    hbar("chart-suf", {{ model.charts.suf | tojson }}, "בתים", 120);
+    hbar("chart-qual", {{ model.charts.qual | tojson }}, "רשומות", 150);
+    col("chart-size", {{ model.charts.size | tojson }}, "רחובות");
+    col("chart-ring", {{ model.charts.ring | tojson }}, "בתים");
+    col("chart-orient", {{ model.charts.orient | tojson }}, "רחובות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.num | tojson }};
+    var el = document.getElementById("chart-num");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, hideOverlap: true } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "n", name: "אי-זוגיים", data: d.odd },
+        { type: "bar", stack: "n", name: "זוגיים", data: d.even }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var g = {{ model.charts.grid | tojson }};
+    var el = document.getElementById("chart-grid");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top" },
+      grid: { left: 8, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: g.x, splitArea: { show: true }, name: "ק״מ ממערב", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "category", data: g.y, splitArea: { show: true }, name: "ק״מ מדרום" },
+      visualMap: { min: 0, max: g.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+                   inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", name: "בתים", data: g.data, label: { show: false } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.scatter | tojson }};
+    var el = document.getElementById("chart-scatter");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.data[2]) + "<br>" + p.data[1] + " בתים, " + p.data[0] + " ק״מ"; } },
+      grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
+      xAxis: { type: "value", name: "אורך הפריסה (ק״מ)", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "value", name: "בתים" },
+      series: [{ type: "scatter", name: "רחובות", symbolSize: 6, data: s.data }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

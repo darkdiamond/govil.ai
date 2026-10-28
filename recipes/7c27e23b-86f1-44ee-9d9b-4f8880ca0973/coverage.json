@@ -1,0 +1,9 @@
+{
+  "main.סמל_ארץ": "chart-blocks, chart-codes, kpi:total, kpi:net, insight:blocks, insight:codes, insight:changes, table:historical — the unique key; its range gives the regional block",
+  "main.שם_ארץ": "chart-blocks, kpi:countries, insight:general, insight:islands, insight:former, table:general, table:changed — general codes are detected from the name",
+  "main.ארץ_באנגלית": "kpi:historical, insight:historical, insight:eng, table:historical, table:changed — historical entities are tagged only while the English name still matches",
+  "snapshot.טבלה": "skip: constant label of the old file layout (טבלת ארצות); used only to select the old files",
+  "snapshot.סמל_ארץ": "kpi:net, insight:changes, table:added, table:removed",
+  "snapshot.שם_ארץ": "table:changed — Hebrew renames since the earlier file",
+  "snapshot.ארץ_באנגלית": "table:changed — English-name changes since the earlier file"
+}

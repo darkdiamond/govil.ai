@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2f5ff1f8-e12a-482c-a949-bf250e6afad7",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:07:13.029021+00:00",
+    "rows": {
+      "roster": 225
+    }
+  },
+  "inputs": [
+    {
+      "name": "roster",
+      "by_id": "edf3a5f6-713c-4166-ad75-427f47496e39",
+      "required_columns": [
+        "location",
+        "address",
+        "phone",
+        "shift-start-date",
+        "shift-end-date"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

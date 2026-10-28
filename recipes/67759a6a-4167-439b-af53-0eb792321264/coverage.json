@@ -1,0 +1,21 @@
+{
+  "atms.Bank_Code": "key: with Atm_Num identifies an ATM (dedup of ATMs listed under two branches)",
+  "atms.Bank_Name": "chart-banks, chart-location, chart-svc-heat, chart-commission, map-main, kpi:banks, insight:banks, insight:commission, insight:forex, insight:offbranch",
+  "atms.Branch_Code": "skip: internal branch number; the branch relation is captured by ATM_Location",
+  "atms.Sub_Branch_Code": "skip: 99% zero; no analytic content",
+  "atms.Atm_Num": "key: ATM identity within a bank, kpi:atms",
+  "atms.ATM_Address": "map-main — popup only; street addresses don't aggregate",
+  "atms.ATM_Address_Extra": "skip: free-text address supplement, 59% empty and 10% the literal ללא",
+  "atms.City": "chart-cities, chart-city-full, map-main, kpi:cities, insight:cities",
+  "atms.Commission": "chart-commission, map-main, insight:commission",
+  "atms.Casd_Withdrawal": "chart-services, chart-svc-heat, chart-city-full, insight:deposit",
+  "atms.Cash_Deposit": "chart-services, chart-svc-heat, chart-city-full, map-main, kpi:deposit, insight:deposit",
+  "atms.Cheque_Deposit": "chart-services, chart-svc-heat, chart-city-full, insight:deposit",
+  "atms.Envelope_Deposit": "chart-services, chart-svc-heat",
+  "atms.Forex_Transaction": "chart-services, chart-svc-heat, map-main, insight:forex",
+  "atms.Additional_Transactions": "chart-services, chart-svc-heat",
+  "atms.ATM_Location": "chart-location, map-main, insight:offbranch",
+  "atms.Handicap_Access": "chart-commission, map-main, insight:access",
+  "atms.X_Coordinate": "map-main — latitude (axes swapped in the source); mis-coded rows disclosed in the map note",
+  "atms.Y_Coordinate": "map-main — longitude"
+}

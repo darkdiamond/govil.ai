@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "246d949c-a253-4811-8a11-41a137d3d613",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T19:15:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T01:14:00+00:00",
+    "rows": {
+      "companies": 732595
+    }
+  },
+  "inputs": [
+    {
+      "name": "companies",
+      "by_id": "f004176c-b85f-4542-8901-7b3176f9a054",
+      "required_columns": [
+        "סוג תאגיד",
+        "סטטוס חברה",
+        "תת סטטוס",
+        "תאריך התאגדות",
+        "חברה ממשלתית",
+        "מפרה",
+        "שנה אחרונה של דוח שנתי (שהוגש)",
+        "שם עיר"
+      ]
+    }
+  ],
+  "min_insights": 5
+}

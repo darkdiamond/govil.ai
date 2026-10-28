@@ -41,9 +41,11 @@ artifacts and touches neither Firestore nor GCS nor the status fields).
 """
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import os
+import socket
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -78,6 +80,101 @@ BROWSER_UA = (
 
 STDOUT_CAP_BYTES = 100_000
 WEB_FETCH_CAP_BYTES = 200_000
+
+# web_fetch SSRF guard. The URL comes from the model, which reads untrusted
+# text (CKAN cells, fetched pages, search results) — a prompt injection
+# must not be able to point the HOST's HTTP client at the metadata server,
+# localhost services or the VPC. Every hop (incl. each redirect, followed
+# manually) must be http(s) and resolve only to public addresses.
+# Residual: DNS rebinding between our resolve and httpx's own connect; the
+# GCE metadata server additionally requires a `Metadata-Flavor` header,
+# which web_fetch never sends.
+WEB_FETCH_MAX_REDIRECTS = 5
+_BLOCKED_FETCH_HOSTS = {"metadata.google.internal", "metadata", "localhost"}
+_CGNAT_NET = ipaddress.ip_network("100.64.0.0/10")
+
+
+def _is_blocked_ip(ip: "ipaddress.IPv4Address | ipaddress.IPv6Address") -> bool:
+    if isinstance(ip, ipaddress.IPv6Address):
+        mapped = ip.ipv4_mapped or ip.sixtofour or (ip.teredo[1] if ip.teredo else None)
+        if mapped is not None and _is_blocked_ip(mapped):
+            return True
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+        or (ip.version == 4 and ip in _CGNAT_NET)
+        or not ip.is_global
+    )
+
+
+def _validate_fetch_url(url: str) -> Optional[str]:
+    """None if `url` may be fetched, else a tool-facing error string."""
+    try:
+        u = httpx.URL(url)
+    except Exception as e:  # httpx.InvalidURL and friends
+        return f"blocked: invalid URL ({e})"
+    if u.scheme not in ("http", "https"):
+        return f"blocked: only http(s) URLs can be fetched, got {u.scheme or 'no'} scheme"
+    host = (u.host or "").rstrip(".").lower()
+    if not host:
+        return "blocked: URL has no host"
+    if (
+        host in _BLOCKED_FETCH_HOSTS
+        or host.endswith(".internal")
+        or host.endswith(".localhost")
+    ):
+        return f"blocked: {host} is an internal host — fetch public URLs only"
+    try:
+        literal = ipaddress.ip_address(host.strip("[]").split("%", 1)[0])
+    except ValueError:
+        literal = None
+    if literal is not None:
+        if _is_blocked_ip(literal):
+            return (
+                f"blocked: {literal} is a non-public address — web_fetch only "
+                "reaches public internet hosts"
+            )
+        return None
+    port = u.port or (443 if u.scheme == "https" else 80)
+    try:
+        infos = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except (socket.gaierror, UnicodeError, OSError) as e:
+        return f"DNS lookup failed for {host}: {e}"
+    if not infos:
+        return f"DNS lookup failed for {host}: no addresses"
+    for info in infos:
+        addr = str(info[4][0]).split("%", 1)[0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            return f"blocked: {host} resolved to an unparseable address {addr!r}"
+        if _is_blocked_ip(ip):
+            return (
+                f"blocked: {host} resolves to non-public address {ip} — "
+                "web_fetch only reaches public internet hosts"
+            )
+    return None
+
+
+def _guarded_fetch(
+    client: httpx.Client, url: str, *, headers: dict, timeout: float
+) -> "httpx.Response | str":
+    """GET `url`, re-validating every redirect hop; error string on block."""
+    for _ in range(WEB_FETCH_MAX_REDIRECTS + 1):
+        err = _validate_fetch_url(url)
+        if err:
+            return err
+        r = client.get(url, headers=headers, timeout=timeout, follow_redirects=False)
+        location = r.headers.get("location")
+        if r.is_redirect and location:
+            url = str(r.url.join(location))
+            continue
+        return r
+    return f"blocked: more than {WEB_FETCH_MAX_REDIRECTS} redirects"
 SEARCH_SNIPPET_CAP = 2_000
 
 # Fallback prices ($/1M tokens). Cost is assembled per response, most
@@ -261,6 +358,15 @@ class TestSessionResult:
 _PROVISION_CHUNK_B64_CHARS = 60_000
 
 
+def _adopt(sandbox, path: Path) -> None:
+    """Hand a host-written file to a privilege-separated LocalSandbox's
+    user (no-op for other backends, and before the sandbox's first command
+    — its handover covers everything provisioned up to then)."""
+    adopt = getattr(sandbox, "adopt", None)
+    if adopt is not None:
+        adopt(path)
+
+
 def _provision_file(sandbox, data: bytes, target: str) -> None:
     """Write `data` to `target` inside the sandbox.
 
@@ -280,6 +386,7 @@ def _provision_file(sandbox, data: bytes, target: str) -> None:
             if t.is_relative_to(wd):
                 t.parent.mkdir(parents=True, exist_ok=True)
                 t.write_bytes(data)
+                _adopt(sandbox, t)
                 return
         except OSError as e:
             log.warning(
@@ -345,6 +452,7 @@ def _provision_path(sandbox, src: Path, target: str) -> None:
                     import shutil
 
                     shutil.copyfile(src, t)
+                _adopt(sandbox, t)
                 return
         except OSError as e:
             log.warning(
@@ -674,11 +782,11 @@ def _build_agent(
         log.info("test[%s]: fetch#%d %s", ds, n, _summarize_arg(url, cap=120))
         t0 = time.monotonic()
         try:
-            r = ctx.deps.httpx_client.get(
+            r = _guarded_fetch(
+                ctx.deps.httpx_client,
                 url,
                 headers={"User-Agent": BROWSER_UA, "Accept": "*/*"},
                 timeout=30.0,
-                follow_redirects=True,
             )
         except httpx.HTTPError as e:
             log.info(
@@ -686,6 +794,9 @@ def _build_agent(
                 ds, n, time.monotonic() - t0, type(e).__name__,
             )
             return {"status": 0, "error": f"{type(e).__name__}: {e}", "text": ""}
+        if isinstance(r, str):
+            log.warning("test[%s]: fetch#%d %s", ds, n, r[:200])
+            return {"status": 0, "error": r, "text": ""}
         body = _truncate(r.text, WEB_FETCH_CAP_BYTES)
         log.info(
             "test[%s]: fetch#%d done in %.1fs — status=%d body=%dB",
@@ -1022,7 +1133,10 @@ def run_agent_session(
     deps = Deps(sandbox=sandbox, httpx_client=httpx_client, dataset_id=dataset_id)
     started = time.monotonic()
     try:
-        _provision_check_script(sandbox, check_script)
+        # Data files first: every host-side write into a LocalSandbox
+        # workdir should land before the first sandbox command (the
+        # check.py parse probe below), which is when the workdir is handed
+        # to the unprivileged sandbox user.
         for p in data_files:
             target = f"{data_dir.rstrip('/')}/{p.sandbox_filename}"
             _provision_path(sandbox, p.host_path, target)
@@ -1030,6 +1144,7 @@ def run_agent_session(
                 "session[%s]: provisioned %s (%s, %d rows) at %s",
                 dataset_id[:8], p.sandbox_filename, p.mode, p.rows, target,
             )
+        _provision_check_script(sandbox, check_script)
         # Single choke point for both prod (agent_runner) and the test CLI:
         # an explicit effort wins, else env, else the model's own floor.
         py_model, model_settings = _build_pydantic_model(

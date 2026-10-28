@@ -1,0 +1,21 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2fe07949-9538-4891-9de7-50a352bcbd80",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T21:15:14.403406+00:00",
+    "rows": {
+      "closures": 790
+    }
+  },
+  "inputs": [
+    {
+      "name": "closures",
+      "by_id": "b9257d8f-f93a-4c7d-84dd-e4b0838eadaa",
+      "required_columns": ["workName", "executorName", "fromDate"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -110,8 +110,10 @@ graphify-out/
 frontend/dist
 frontend/3000/
 
-# Local Claude Code settings
-.claude/
+# Local Claude Code settings + worktrees. Project skills are shared:
+# /author-dataset is how recipes get written (services/page_builder/recipe.py).
+.claude/*
+!.claude/skills/
 
 # Firebase local artifacts
 firebase-debug.log

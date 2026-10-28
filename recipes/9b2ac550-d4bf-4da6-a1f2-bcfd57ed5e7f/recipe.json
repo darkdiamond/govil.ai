@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9b2ac550-d4bf-4da6-a1f2-bcfd57ed5e7f",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T18:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T02:30:21.862020+00:00",
+    "rows": { "vehicles": 27447 }
+  },
+  "inputs": [
+    {
+      "name": "vehicles",
+      "by_id": "03adc637-b6fe-402b-9937-7c3d3afc9140",
+      "required_columns": [
+        "tozeret_nm",
+        "sug_rechev_nm",
+        "tozeret_eretz_nm",
+        "sug_delek_nm",
+        "sug_yevu",
+        "shnat_yitzur",
+        "nefach_manoa",
+        "mivchan_acharon_dt",
+        "tokef_dt"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

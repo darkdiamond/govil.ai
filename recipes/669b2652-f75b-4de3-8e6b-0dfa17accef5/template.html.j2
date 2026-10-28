@@ -1,0 +1,457 @@
+<h1>מאגר שמאי מקרקעין</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.register.tone }} mb-1" dir="ltr">{{ model.kpis.register.display }}</div>
+    <div class="text-sm text-subtle">שמאים בעלי רישיון במרשם</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.attempts.tone }} mb-1" dir="ltr">{{ model.kpis.attempts.display }}</div>
+    <div class="text-sm text-subtle">ניגשויות לבחינות הרישוי</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rate.tone }} mb-1" dir="ltr">{{ model.kpis.rate.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rate_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.exempt.tone }} mb-1" dir="ltr">{{ model.kpis.exempt.display }}</div>
+    <div class="text-sm text-subtle">פטורים מבחינה בזכות לימודים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ניגשויות לבחינות לפי שנה ותוצאה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">ניגשויות</th><th scope="col">עברו</th><th scope="col">נכשלו</th><th scope="col">ללא ציון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.years %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td><td>{{ r.passed }}</td><td>{{ r.failed }}</td><td>{{ r.none }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור המעבר והציון הממוצע לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rate_note }}</p>
+  <div id="chart-rate" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rate_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rate_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">שיעור מעבר</th><th scope="col">ציון ממוצע</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.rate %}
+        <tr><th scope="row">{{ r.year }}</th><td dir="ltr">{{ r.rate }}</td><td>{{ r.mean }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות הציונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+  <div id="chart-dist" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור המעבר לפי בחינה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.subj_note }}</p>
+  <div id="chart-subjects" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.subj_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.subj_caption }}</caption>
+        <thead><tr><th scope="col">בחינה</th><th scope="col">שנים</th><th scope="col">ניגשויות</th><th scope="col">שיעור מעבר</th><th scope="col">ציון ממוצע</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.subjects %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.years }}</td><td>{{ r.n }}</td><td dir="ltr">{{ r.rate }}</td><td>{{ r.mean }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תוכנית הבחינות לאורך הזמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונות הבחינה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.months_note }}</p>
+    <div id="chart-months" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.months_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.months_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">ניגשויות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.months %}
+          <tr><th scope="row">{{ r.month }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פטורים מבחינה לפי שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.e_years_note }}</p>
+    <div id="chart-eyears" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.e_years_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.e_years_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">פטורים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.e_years %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מוסדות הלימוד של הנבחנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inst_note }}</p>
+  <div id="chart-inst" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.inst_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.inst_caption }}</caption>
+      <thead><tr><th scope="col">מוסד</th><th scope="col">ניגשויות</th><th scope="col">שיעור מעבר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.inst %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פטורים לעומת ניגשויות לפי בחינה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.e_subj_note }}</p>
+  <div id="chart-esubj" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.e_subj_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.e_subj_caption }}</caption>
+      <thead><tr><th scope="col">בחינה</th><th scope="col">פטורים</th><th scope="col">ניגשויות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.e_subj %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.exempt }}</td><td>{{ r.att }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פטורים לפי מוסד לימודים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.e_inst_note }}</p>
+    <div id="chart-einst" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.e_inst_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.e_inst_caption }}</caption>
+        <thead><tr><th scope="col">מוסד</th><th scope="col">פטורים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.e_inst %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות המשפחה הנפוצים במרשם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.surnames_note }}</p>
+    <div id="chart-surnames" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.surnames_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.surnames_caption }}</caption>
+        <thead><tr><th scope="col">שם משפחה</th><th scope="col">שמאים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.surnames %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר מידע זה מכיל שלושה קבצי מידע אודות שמאים: רשימת שמאים בעלי רישיון, רשימת בחינות שמאים לפי מועד וציון, רשימת מבחנים שהתקבל פטור עבורם בגין לימודים אקדמאיים.</p>
+</section>
+
+<script>
+  (function () {
+    function cut(s, k) { return s.length > k ? s.slice(0, k - 1) + "…" : s; }
+    function lab() { return window.innerWidth < 640 ? 16 : 34; }
+
+    var y = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 60, bottom: 48, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 18 }],
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "ניגשויות" },
+      series: y.series.map(function (s) {
+        return { type: "bar", stack: "total", name: s.name, data: s.data, itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var r = {{ model.charts.rate | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-rate"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: [
+        { type: "value", name: "שיעור מעבר", scale: true, axisLabel: { formatter: "{value}%" } },
+        { type: "value", name: "ציון ממוצע", scale: true, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "line", name: "שיעור מעבר (%)", data: r.rate, connectNulls: false, itemStyle: { color: "#0068f5" }, lineStyle: { width: 3 } },
+        { type: "line", name: "ציון ממוצע", yAxisIndex: 1, data: r.mean, itemStyle: { color: "#0b3668" }, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var d = {{ model.charts.dist | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-dist"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        return "ציון " + p[0].name + ": " + p[0].value.toLocaleString("he-IL") + " ניגשויות";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 9 } },
+      yAxis: { type: "value", name: "ניגשויות" },
+      series: [{ type: "bar", name: "ניגשויות", barCategoryGap: "10%",
+        data: d.y.map(function (v, i) {
+          return { value: v, itemStyle: { color: i >= d.pass ? d.c_pass : "#9fb4d3" } };
+        }) }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function cut(s, k) { return s.length > k ? s.slice(0, k - 1) + "…" : s; }
+    function lab() { return window.innerWidth < 640 ? 16 : 34; }
+
+    var s = {{ model.charts.subjects | tojson }};
+    var c = echarts.init(document.getElementById("chart-subjects"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return s.names[i] + "<br>שיעור מעבר: " + s.rate[i] + "%<br>ניגשויות: " + s.n[i].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.names, inverse: true,
+               axisLabel: { fontSize: 11, formatter: function (v) { return cut(v, lab()); } } },
+      series: [{ type: "bar", name: "שיעור מעבר",
+        data: s.rate.map(function (v, i) { return { value: v, itemStyle: { color: s.colors[i] } }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-heat"));
+    c2.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + "<br>" + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " ניגשויות";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { fontSize: 10 } },
+      yAxis: { type: "category", data: h.y, splitArea: { show: true },
+               axisLabel: { fontSize: 10, formatter: function (v) { return cut(v, lab()); } } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function cut(s, k) { return s.length > k ? s.slice(0, k - 1) + "…" : s; }
+    function lab() { return window.innerWidth < 640 ? 16 : 34; }
+
+    var m = {{ model.charts.months | tojson }};
+    var c = echarts.init(document.getElementById("chart-months"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.x, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },
+      yAxis: { type: "value", name: "ניגשויות" },
+      series: [{ type: "bar", name: "ניגשויות", data: m.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var e = {{ model.charts.e_years | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-eyears"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: e.x, axisLabel: { fontSize: 10 } },
+      yAxis: { type: "value", name: "פטורים" },
+      series: [{ type: "bar", name: "פטורים", data: e.y, itemStyle: { color: "#0b3668" } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var t = {{ model.charts.inst | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-inst"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 40, containLabel: true },
+      xAxis: [
+        { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        { type: "value", max: 100, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      yAxis: { type: "category", data: t.names, inverse: true,
+               axisLabel: { fontSize: 11, formatter: function (v) { return cut(v, lab()); } } },
+      series: [
+        { type: "bar", name: "ניגשויות", data: t.n },
+        { type: "scatter", name: "שיעור מעבר (%)", xAxisIndex: 1, data: t.rate, symbolSize: 12,
+          itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function cut(s, k) { return s.length > k ? s.slice(0, k - 1) + "…" : s; }
+    function lab() { return window.innerWidth < 640 ? 16 : 34; }
+
+    var x = {{ model.charts.e_subj | tojson }};
+    var c = echarts.init(document.getElementById("chart-esubj"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: x.names, inverse: true,
+               axisLabel: { fontSize: 11, formatter: function (v) { return cut(v, lab()); } } },
+      series: [
+        { type: "bar", name: "פטורים", data: x.exempt, itemStyle: { color: "#0b3668" } },
+        { type: "bar", name: "ניגשויות", data: x.att, itemStyle: { color: "#9fb4d3" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    function hbar(id, d, unit) {
+      var k = echarts.init(document.getElementById(id));
+      k.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { fontSize: 11, formatter: function (v) { return cut(v, lab()); } } },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { k.resize(); });
+    }
+    hbar("chart-einst", {{ model.charts.e_inst | tojson }}, "פטורים");
+    hbar("chart-surnames", {{ model.charts.surnames | tojson }}, "שמאים");
+  })();
+</script>

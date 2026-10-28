@@ -1,0 +1,415 @@
+<h1>מינהל יהלומים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">רישיונות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">רישיונות פעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.share.tone }} mb-1" dir="ltr">{{ model.kpis.share.display }}</div>
+    <div class="text-sm text-subtle">שיעור הפעילים מכלל המאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.pending.tone }} mb-1" dir="ltr">{{ model.kpis.pending.display }}</div>
+    <div class="text-sm text-subtle">בהליך רישום</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סטטוס הרישיונות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">סטטוס</th><th scope="col">רישיונות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור הפעילים לפי סוג רישיון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rate_note }}</p>
+    <div id="chart-rate" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.rate_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rate_caption }}</caption>
+        <thead><tr><th scope="col">סוג רישיון</th><th scope="col">רישיונות</th><th scope="col">שיעור פעילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rate %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישיונות לפי סוג וסטטוס</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_note }}</p>
+  <div id="chart-type" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.type_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.type_caption }}</caption>
+        <thead><tr><th scope="col">סוג רישיון</th><th scope="col">סה״כ</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.type %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי נשאר פעיל: הרכב סוגי הרישיון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+      <thead><tr><th scope="col">סוג רישיון</th><th scope="col">כלל המאגר</th><th scope="col">פעילים</th><th scope="col">לא פעילים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.all }}</td><td dir="ltr">{{ r.act }}</td><td dir="ltr">{{ r.inact }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות, שותפויות ויחידים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.form_note }}</p>
+  <div id="chart-form" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.form_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.form_caption }}</caption>
+        <thead><tr><th scope="col">צורה משפטית</th><th scope="col">רישיונות</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.form %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.shares %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הצורה המשפטית בכל סוג רישיון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.formtype_note }}</p>
+  <div id="chart-formtype" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.formtype_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.formtype_caption }}</caption>
+        <thead><tr><th scope="col">סוג רישיון</th>{% for c in model.tables.form_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.formtype %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.shares %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{% if model.flags.words %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה כתוב בשם: מילים נפוצות בשמות העסקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.words_note }}</p>
+  <div id="chart-words" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.words_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.words_caption }}</caption>
+        <thead><tr><th scope="col">מילה בשם</th><th scope="col">בעלי רישיון</th><th scope="col">פעילים</th><th scope="col">שיעור פעילים</th><th scope="col">סוג רישיון נפוץ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.words %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.active }}</td><td dir="ltr">{{ r.rate }}</td><td>{{ r.lead }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.years %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השנה שבשם החברה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">עשור</th><th scope="col">חברות ושותפויות</th><th scope="col">פעילות</th><th scope="col">שיעור פעילים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.active }}</td><td dir="ltr">{{ r.rate }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.pending %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עסקים בהליך רישום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pending_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.pending_caption }}</caption>
+      <thead><tr><th scope="col">שם</th><th scope="col">סוג רישיון</th><th scope="col">צורה משפטית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.pending %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.type }}</td><td>{{ r.form }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">יהלומנים</p>
+</section>
+
+<script>
+  (function () {
+    function stackBars(id, d, opts) {
+      var c = echarts.init(document.getElementById(id));
+      var pctMode = opts && opts.pct;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return pctMode ? v + "%" : Number(v).toLocaleString("he-IL"); } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 64, containLabel: true },
+        xAxis: { type: "value", max: pctMode ? 100 : null, splitNumber: 4,
+                 axisLabel: { hideOverlap: true, formatter: pctMode ? "{value}%" : null } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 110, overflow: "break" } },
+        series: d.series.map(function (s) {
+          var o = { type: "bar", stack: "total", name: s.name, data: s.data };
+          if (s.color) { o.itemStyle = { color: s.color }; }
+          return o;
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+
+    var s = {{ model.charts.status | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-status"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", radius: ["42%", "68%"], center: ["50%", "44%"],
+        label: { show: false },
+        data: s.names.map(function (nm, i) {
+          var o = { name: nm, value: s.values[i] };
+          if (s.colors[i]) { o.itemStyle = { color: s.colors[i] }; }
+          return o;
+        })
+      }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var r = {{ model.charts.rate | tojson }};
+    var lowest = Math.min.apply(null, r.values);
+    var c2 = echarts.init(document.getElementById("chart-rate"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 48, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: r.names },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [{
+        type: "bar", name: "שיעור פעילים", barMaxWidth: 56,
+        label: { show: true, position: "top", formatter: "{c}%" },
+        data: r.values.map(function (v) {
+          return v === lowest ? { value: v, itemStyle: { color: "#9a6700" } } : v;
+        }),
+        markLine: { symbol: "none", silent: true, data: [{ yAxis: r.overall }],
+                    lineStyle: { type: "dashed", color: "#0b3668" },
+                    label: { formatter: "{c}%", position: "end" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    stackBars("chart-type", {{ model.charts.type | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.mix | tojson }};
+    var c = echarts.init(document.getElementById("chart-mix"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#198754", "#6c757d"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: m.names },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: m.series.map(function (s) {
+        return { type: "bar", name: s.name, data: s.data, barMaxWidth: 32 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    function pctStack(id, d, colors) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+        xAxis: { type: "value", max: 100, interval: 25, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 110, overflow: "break" } },
+        series: d.series.map(function (s) {
+          var o = { type: "bar", stack: "total", name: s.name, data: s.data };
+          if (s.color) { o.itemStyle = { color: s.color }; }
+          return o;
+        })
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    pctStack("chart-form", {{ model.charts.form | tojson }});
+    pctStack("chart-formtype", {{ model.charts.formtype | tojson }});
+  })();
+</script>
+
+{% if model.flags.words %}
+<script>
+  (function () {
+    var w = {{ model.charts.words | tojson }};
+    var c = echarts.init(document.getElementById("chart-words"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return Number(v).toLocaleString("he-IL"); } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: w.names, inverse: true,
+               axisLabel: { width: 120, overflow: "break" } },
+      series: w.series.map(function (s) {
+        return { type: "bar", stack: "total", name: s.name, data: s.data,
+                 itemStyle: { color: s.color } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.years %}
+<script>
+  (function () {
+    var y = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    var series = y.series.map(function (s) {
+      var o = { type: "bar", stack: "total", name: s.name, data: s.data };
+      if (s.color) { o.itemStyle = { color: s.color }; }
+      return o;
+    });
+    series.push({ type: "line", name: "שיעור פעילים", yAxisIndex: 1, data: y.rate,
+                  itemStyle: { color: "#0b3668" }, lineStyle: { width: 2 },
+                  tooltip: { valueFormatter: function (v) { return v + "%"; } } });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x, axisLabel: { interval: 0, fontSize: 10, hideOverlap: true } },
+      yAxis: [{ type: "value", name: "חברות" },
+              { type: "value", name: "פעילים", max: 100, axisLabel: { formatter: "{value}%" },
+                splitLine: { show: false } }],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

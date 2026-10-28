@@ -1,0 +1,11 @@
+{
+  "main.סמל_ישוב": "chart-top, chart-dist, chart-growth, kpi:locs, insight:concentration, insight:no_streets — the locality key; streets are counted per locality code",
+  "main.שם_ישוב": "chart-top, chart-numbered, chart-growth, table:renames, insight:concentration, insight:numbered, insight:growth — display name of each locality",
+  "main.סמל_רחוב": "chart-dist, chart-growth, kpi:streets, kpi:no_streets, kpi:added, table:renames, insight:no_streets, insight:growth, insight:renames — code 9000 is the locality-name placeholder, excluded from street counts; (locality, street code) is matched against the earlier files",
+  "main.שם_רחוב": "chart-types, chart-names, chart-themes, chart-people, chart-numbered, table:renames, insight:top_names, insight:themes, insight:people, insight:numbered, insight:unique, insight:renames — type word, theme and person word lists, numbered names, renames",
+  "snapshot.טבלה": "skip: constant label of the old file layout (טבלת רחובות); used only to select the old files",
+  "snapshot.סמל_ישוב": "chart-growth, kpi:added, insight:growth — old street count per locality",
+  "snapshot.סמל_רחוב": "chart-growth, kpi:added, insight:growth, insight:renames, table:renames — added/removed keys",
+  "snapshot.שם_רחוב": "table:renames, insight:renames — earlier street names",
+  "snapshot.שם_ישוב": "skip: old locality names; the current list is the reference for names"
+}

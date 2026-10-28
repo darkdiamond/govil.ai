@@ -1,0 +1,11 @@
+{
+  "main.confirmationnumber": "skip: individual registration number — a per-person identifier, kept off the page by policy",
+  "main.lastname": "chart-surnames — aggregate counts only, no individual named",
+  "main.firstname": "chart-firsts — first given name, aggregate counts only",
+  "main.city": "chart-cities, chart-citysize, kpi:cities, kpi:top_city, insight:cities, insight:single, insight:merged — spelling variants folded",
+  "main.cellphone": "skip: private contact detail — never shown on the page (available in the explorer)",
+  "main.phone": "skip: private contact detail — never shown on the page (available in the explorer)",
+  "main.street": "skip: home/business street address of an individual — kept off the page",
+  "main.certificationexpireshebdate": "skip: Hebrew-calendar rendering of the same expiry month as the Gregorian date column (and contains spelling typos)",
+  "main.certificationexpiresengdate": "chart-year, chart-month, chart-valid, chart-heat, kpi:peak, insight:peak, insight:month, insight:median"
+}

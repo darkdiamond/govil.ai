@@ -1,0 +1,18 @@
+{
+  "contract_version": 1,
+  "dataset_id": "11369651-1c70-4d8f-8090-ee49354a7c52",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T18:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T22:35:32.559385+00:00",
+    "rows": { "tags": 654299 }
+  },
+  "inputs": [
+    {
+      "name": "tags",
+      "by_id": "c8b9f9c8-4612-4068-934f-d4acd2e3c06e",
+      "required_columns": ["MISPAR RECHEV", "TAARICH HAFAKAT TAG", "SUG TAV"]
+    }
+  ],
+  "min_insights": 4
+}

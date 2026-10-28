@@ -1,0 +1,16 @@
+{
+  "main.station_code": "kpi:total — unique per row; used only as the station count",
+  "main.station_name": "chart-owner, insight:inferred, table:owner — never listed; its first word fills the operator when owner is empty",
+  "main.population_type": "skip: numeric code duplicating population_name",
+  "main.population_name": "chart-owner, insight:adults",
+  "main.vaccination_type": "skip: constant (single vaccine code)",
+  "main.vaccination_type_name": "skip: constant (חצבת for every row)",
+  "main.owner_code": "skip: numeric code duplicating owner",
+  "main.owner": "chart-owner, chart-city, chart-district, chart-week, chart-profile, kpi:ops, insight:operator, insight:evening, insight:inferred, map-main — empty values inferred from station_name",
+  "main.availability_time": "chart-week, chart-heat, chart-hours, chart-days, chart-profile, kpi:median_h, kpi:evening, kpi:friday, insight:friday, insight:evening, insight:peak — free text parsed into a weekly schedule; one-off dated entries excluded (disclosed)",
+  "main.city": "chart-city, chart-district, map-main, kpi:cities, insight:cities, insight:district",
+  "main.city_code": "map-main, chart-district, insight:district — keys the fixed city table (district + approximate centre)",
+  "main.address": "skip: street address of a public clinic — available in the explorer; city level is enough for the page",
+  "main.in_institute_code": "skip: empty in every row",
+  "main.in_institute": "skip: empty in every row"
+}

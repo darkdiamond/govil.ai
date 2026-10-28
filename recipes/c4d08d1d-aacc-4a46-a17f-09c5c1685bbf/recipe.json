@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "c4d08d1d-aacc-4a46-a17f-09c5c1685bbf",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T01:22:45.294305+00:00",
+    "rows": { "main": 9317 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0fd312bb-68c9-4647-b186-60c3e7b4f6f7",
+      "required_columns": [
+        "מספר התאגיד",
+        "שם התאגיד",
+        "שם התאגיד באנגלית",
+        "סוג תאגיד",
+        "סטטוס התאגיד",
+        "תת סטטוס התאגיד",
+        "מועד פרסום סטטוס ~מיועדת למחיקה~",
+        "מועד המחיקה הצפוי אם לא תוגש התנגד"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

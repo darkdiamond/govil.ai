@@ -1,0 +1,221 @@
+<h1>כלי רכב עם תג חניה לנכה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.vehicles.tone }} mb-1" dir="ltr">{{ model.kpis.vehicles.display }}</div>
+    <div class="text-sm text-subtle">כלי רכב עם תג</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.tags.tone }} mb-1" dir="ltr">{{ model.kpis.tags.display }}</div>
+    <div class="text-sm text-subtle">תגים תקפים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_30.tone }} mb-1" dir="ltr">{{ model.kpis.last_30.display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis.last_30.label }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-{{ model.kpis.as_of.tone }} mb-1" dir="ltr">{{ model.kpis.as_of.display }}</div>
+    <div class="text-sm text-subtle">ההנפקה האחרונה במאגר</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro rank_table(rows, caption, head) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">מספר</th><th scope="col">שיעור (%)</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תגים לפי חודש הנפקה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תגים לפי שנת הנפקה וסוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המאגר מסמן את סוג התג בקוד בלבד, ללא פירוש.</p>
+  <div id="chart-yearly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנת הנפקה</th><th scope="col">סך הכול</th>
+{%- for t in model.tables.types %}<th scope="col">{{ t }}</th>{% endfor -%}
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הנפקות יומיות בשלושת החודשים האחרונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר התגים שהונפקו בכל יום. בימי שישי ושבת ההנפקה מצומצמת.</p>
+  <div id="chart-daily" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.daily_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יום ההנפקה בשבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כל התגים במאגר, לפי היום בשבוע שבו הונפקו.</p>
+    <div id="chart-weekday" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.weekday_aria }}"></div>
+    {{ rank_table(model.tables.weekday, model.labels.weekday_aria, "יום") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק התגים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הזמן שחלף מהנפקת התג הנוכחי ועד ההנפקה האחרונה במאגר.</p>
+    <div id="chart-age" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+    {{ rank_table(model.tables.age, model.labels.age_aria, "ותק") }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך מספר הרישוי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.plates_note }}</p>
+    <div id="chart-plates" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.plates_aria }}"></div>
+    {{ rank_table(model.tables.plates, model.labels.plates_aria, "מספר רישוי") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חודש מול שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר התגים שהונפקו בכל חודש. גוון כהה יותר = יותר הנפקות.</p>
+    <div id="chart-heat" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var m = {{ model.charts.monthly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-monthly"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [{ type: "line", name: "תגים", showSymbol: false, data: m.y.map(function (v, i) {
+        return i === m.partial_index ? { value: v, itemStyle: { opacity: 0.5 } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var y = {{ model.charts.yearly | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-yearly"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value" },
+      series: y.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var d = {{ model.charts.daily | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-daily"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "תגים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function vbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.names },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    vbar("chart-weekday", {{ model.charts.weekday | tojson }});
+    vbar("chart-age", {{ model.charts.age | tojson }});
+    vbar("chart-plates", {{ model.charts.plates | tojson }});
+
+    var h = {{ model.charts.heat | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-heat"));
+    c4.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.months[p.value[1]] + " " + h.years[p.value[0]] + ": " + p.value[2];
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.months, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>

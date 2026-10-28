@@ -1,0 +1,87 @@
+{
+  "contract_version": 1,
+  "dataset_id": "45e317cf-7bb1-4535-b8cf-be5e79ea341f",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T03:21:31.067134+00:00",
+    "rows": {
+      "specs": 102140,
+      "counts": 102140
+    }
+  },
+  "inputs": [
+    {
+      "name": "specs",
+      "by_id": "142afde2-6228-49f9-8a29-9b6c3a0cbe40",
+      "required_columns": [
+        "sug_degem",
+        "tozeret_cd",
+        "degem_cd",
+        "shnat_yitzur",
+        "tozar",
+        "tozeret_eretz_nm",
+        "kinuy_mishari",
+        "delek_nm",
+        "technologiat_hanaa_nm",
+        "merkav",
+        "hanaa_nm",
+        "kvuzat_agra_cd",
+        "koah_sus",
+        "nefah_manoa",
+        "mishkal_kolel",
+        "mispar_kariot_avir",
+        "automatic_ind",
+        "halon_bagg_ind",
+        "galgaley_sagsoget_kala_ind",
+        "ramat_eivzur_betihuty",
+        "kvutzat_zihum",
+        "madad_yarok",
+        "CO2_WLTP",
+        "kamut_CO2",
+        "NOX_WLTP",
+        "bakarat_yatzivut_ind",
+        "maarechet_ezer_labalam_ind",
+        "hayshaney_lahatz_avir_batzmigim_ind",
+        "hayshaney_hagorot_ind",
+        "teura_automatit_benesiya_kadima_ind",
+        "nitur_merhak_milfanim_ind",
+        "bakarat_stiya_menativ_ind",
+        "zihuy_holchey_regel_ind",
+        "zihuy_matzav_hitkarvut_mesukenet_ind",
+        "matzlemat_reverse_ind",
+        "zihuy_rechev_do_galgali",
+        "zihuy_tamrurey_tnua_ind",
+        "shlita_automatit_beorot_gvohim_ind",
+        "bakarat_shyut_adaptivit_ind",
+        "zihuy_beshetah_nistar_ind",
+        "bakarat_stiya_activ_s",
+        "blimat_hirum_lifnei_holhei_regel_ofanaim",
+        "blima_otomatit_nesia_leahor",
+        "bakarat_mehirut_isa",
+        "hitnagshut_cad_shetah_met",
+        "alco_lock",
+        "bakarat_stiya_menativ_makor_hatkana",
+        "nitur_merhak_milfanim_makor_hatkana",
+        "zihuy_holchey_regel_makor_hatkana",
+        "zihuy_tamrurey_tnua_makor_hatkana",
+        "shlita_automatit_beorot_gvohim_makor_hatkana",
+        "tozeret_nm"
+      ]
+    },
+    {
+      "name": "counts",
+      "by_id": "5e87a7a1-2f6f-41c1-8aec-7216d52a6cf6",
+      "required_columns": [
+        "sug_degem",
+        "tozeret_cd",
+        "degem_cd",
+        "shnat_yitzur",
+        "mispar_rechavim_pailim",
+        "mispar_rechavim_le_pailim"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["4X4"]
+}

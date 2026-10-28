@@ -1,0 +1,33 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9db8e799-d2db-4136-bb9c-df255740c810",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T02:29:00+00:00",
+    "rows": {
+      "prices": 102116
+    },
+    "note": "CKAN datastore_search reports total=130,885 but serves 102,116 records (_id 1..102116)"
+  },
+  "inputs": [
+    {
+      "name": "prices",
+      "by_id": "39f455bf-6db0-4926-859d-017f34eacbcb",
+      "required_columns": [
+        "semel_yevuan",
+        "shem_yevuan",
+        "sug_degem",
+        "tozeret_cd",
+        "tozeret_nm",
+        "degem_cd",
+        "degem_nm",
+        "shnat_yitzur",
+        "mehir",
+        "kinuy_mishari"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

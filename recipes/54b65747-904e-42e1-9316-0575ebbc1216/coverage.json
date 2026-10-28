@@ -1,0 +1,9 @@
+{
+  "main.location_lat": "map-main, chart-grid, chart-ring, kpi:center, insight:center, insight:grid, insight:mix, insight:quality, chart-fields",
+  "main.location_lng": "map-main, chart-grid, chart-ring, kpi:center, insight:center, insight:grid, insight:mix, insight:quality, chart-fields",
+  "main.business_name": "chart-names, chart-sign-types, insight:names, map-main — sole traders and businesses may be named; phone-number names are excluded from rankings",
+  "main.full_address": "chart-streets, chart-fields, insight:street, insight:grid — street = address without house number",
+  "main.business_kind": "chart-cats, chart-kinds, chart-ring, chart-mean, kpi:typed, insight:kinds, insight:untyped, insight:mix, insight:heavy, map-main",
+  "main.signs": "chart-signs, chart-sign-types, chart-mean, chart-fields, kpi:signs, insight:signs, insight:concentration, insight:rotating, insight:heavy — JSON list; only the text of each sign is read, photo URLs are skipped",
+  "resource:5f4f8927-b890-42ed-bb25-58d48b5f180f": "skip: CSV twin of the XLSX; its signs JSON is mangled by CSV quoting and some rows are shifted"
+}

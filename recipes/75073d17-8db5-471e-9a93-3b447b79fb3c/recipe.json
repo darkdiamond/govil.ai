@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "75073d17-8db5-471e-9a93-3b447b79fb3c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:06:05.711027+00:00",
+    "rows": {
+      "clinics": 112
+    }
+  },
+  "inputs": [
+    {
+      "name": "clinics",
+      "by_id": "e9195086-fea3-4be4-ad50-026b9d48e1be",
+      "required_columns": [
+        "X",
+        "Y",
+        "ID",
+        "Name",
+        "address",
+        "neighborho",
+        "HMOname"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,270 @@
+<h1>בטיחות ברכבת</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last.tone }} mb-1" dir="ltr">{{ model.kpis.last.display }}</div>
+    <div class="text-sm text-subtle">אירועים בטיחותיים ב-{{ model.labels.y1 }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.change.tone }} mb-1" dir="ltr">{{ model.kpis.change.display }}</div>
+    <div class="text-sm text-subtle">שינוי לעומת {{ model.labels.prev_year }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">סך האירועים, {{ model.labels.span }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cats.tone }} mb-1" dir="ltr">{{ model.kpis.cats.display }}</div>
+    <div class="text-sm text-subtle">סיווגים ראשיים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אירועים בכל שנה — ומה מסתתר מאחורי הירידה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הסיווגים „לא ידוע” ו„פריקורסר” מוצגים בנפרד משאר הסיווגים. {{ model.labels.decomp_lede }}</p>
+  <div id="chart-decomp" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.decomp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.decomp_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">לא ידוע</th><th scope="col">פריקורסר</th><th scope="col">שאר הסיווגים</th><th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.decomp %}
+        <tr><th scope="row">{{ r.y }}</th><td>{{ r.unknown }}</td><td>{{ r.precursor }}</td><td>{{ r.rest }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סיווגים ראשיים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cats_lede }}</p>
+    <div id="chart-cats" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cats_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cats_aria }}</caption>
+        <thead><tr><th scope="col">סיווג ראשי</th><th scope="col">אירועים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cats %}
+          <tr><th scope="row">{{ r.c }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הסיווגים הגדולים לאורך השנים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר האירועים בשנה בכל אחד מהסיווגים הגדולים (ללא „לא ידוע”). לחיצה על מקרא מסתירה או מציגה סדרה.</p>
+    <div id="chart-trend" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.trend_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.trend_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for h in model.tables.trend_head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.trend %}
+          <tr><th scope="row">{{ r.y }}</th>{% for v in r.v %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.dumbbell %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השנים האחרונות מול השנים שקדמו להן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ממוצע אירועים בשנה לפי סיווג (ללא „לא ידוע”): {{ model.labels.win_rec }} מול {{ model.labels.win_prev }}. ממוצעים מחליקים את התנודות של שנה בודדת, שבסיווגים הקטנים הן גדולות יחסית.</p>
+  <div id="chart-dumb" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.dumb_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dumb_aria }}</caption>
+      <thead><tr><th scope="col">סיווג ראשי</th><th scope="col">{{ model.labels.win_prev }}</th><th scope="col">{{ model.labels.win_rec }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dumb %}
+        <tr><th scope="row">{{ r.c }}</th><td>{{ r.before }}</td><td>{{ r.after }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.share %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חלקו של כל סיווג מהאירועים המסווגים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">אחוז מהאירועים המסווגים בשנה (ללא „לא ידוע”). עלייה בחלק יכולה לנבוע גם מירידה בסיווגים האחרים, לא רק מעלייה במספר המקרים.</p>
+  <div id="chart-share" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.share_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.share_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for h in model.tables.share_head %}<th scope="col">{{ h }} (%)</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.share %}
+        <tr><th scope="row">{{ r.y }}</th>{% for v in r.v %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: שנה מול סיווג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר האירועים בכל שנה ובכל סיווג. גוון כהה = יותר אירועים; תא ריק = אפס.{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<p class="text-sm text-subtle mb-6">אם אתם או מישהו קרוב אליכם במצוקה — ער״ן, עזרה ראשונה נפשית, זמין בטלפון 1201 בכל שעות היממה.</p>
+
+<script>
+  (function () {
+    var NARROW = window.innerWidth < 640, LW = NARROW ? 110 : 220;
+    var d = {{ model.charts.decomp | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-decomp"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "אירועים" },
+      series: [
+        { type: "bar", name: "שאר הסיווגים", data: d.rest, stack: "s", itemStyle: { color: "#0b3668" } },
+        { type: "bar", name: "פריקורסר", data: d.precursor, stack: "s", itemStyle: { color: "#0068f5" } },
+        { type: "bar", name: "לא ידוע", data: d.unknown, stack: "s", itemStyle: { color: "#a9c4ec" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var k = {{ model.charts.cats | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-cats"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: k.x, inverse: true, axisLabel: { width: LW, overflow: "truncate" } },
+      series: [{ type: "bar", name: "אירועים", data: k.y, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var t = {{ model.charts.trend | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-trend"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: t.x },
+      yAxis: { type: "value", name: "אירועים" },
+      series: t.series.map(function (s) { return { type: "line", name: s.name, data: s.data, symbolSize: 6 }; })
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var NARROW = window.innerWidth < 640, LW = NARROW ? 110 : 220;
+    var dbEl = document.getElementById("chart-dumb");
+    if (dbEl) {
+      var b = {{ model.charts.dumbbell | tojson }};
+      var wp = {{ model.labels.win_prev | tojson }}, wr = {{ model.labels.win_rec | tojson }};
+      var c4 = echarts.init(dbEl);
+      c4.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: b.x, inverse: true, axisLabel: { width: LW, overflow: "truncate" } },
+        series: [
+          { type: "bar", name: wp, data: b.before, itemStyle: { color: "#a9c4ec" } },
+          { type: "bar", name: wr, data: b.after, itemStyle: { color: "#0068f5" } }
+        ]
+      }));
+      window.addEventListener("resize", function () { c4.resize(); });
+    }
+
+    var shEl = document.getElementById("chart-share");
+    if (shEl) {
+      var sh = {{ model.charts.share | tojson }};
+      var c5 = echarts.init(shEl);
+      c5.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return (typeof v === "number") ? v.toFixed(1) + "%" : "—"; } },
+        legend: { bottom: 0, type: "scroll" },
+        grid: { left: 16, right: 16, top: 24, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: sh.x },
+        yAxis: { type: "value", name: "%" },
+        series: sh.series.map(function (s) { return { type: "line", name: s.name, data: s.data, symbolSize: 6 }; })
+      }));
+      window.addEventListener("resize", function () { c5.resize(); });
+    }
+
+    var hm = {{ model.charts.heat | tojson }};
+    var cells = hm.cells.map(function (c) { return [c[0], c[1], c[2] === 0 ? "-" : c[2]]; });
+    var c6 = echarts.init(document.getElementById("chart-heat"));
+    c6.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        var v = p.value[2] === "-" ? 0 : p.value[2];
+        return hm.cats[p.value[1]] + ", " + hm.years[p.value[0]] + ": " + v;
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+      yAxis: { type: "category", data: hm.cats, inverse: true, splitArea: { show: true }, axisLabel: { width: LW, overflow: "truncate", fontSize: NARROW ? 10 : 12 } },
+      visualMap: {
+        min: 0, max: hm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: cells, label: { show: true, fontFamily: "Rubik", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+  })();
+</script>

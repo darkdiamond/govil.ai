@@ -1,0 +1,343 @@
+<h1>יבואנים ומחירוני רכב חדש</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="mt-2 mb-0 text-sm text-subtle">{{ model.labels.entries_note }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.entries.tone }} mb-1" dir="ltr">{{ model.kpis.entries.display }}</div>
+    <div class="text-sm text-subtle">רשומות במחירון</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.current.tone }} mb-1" dir="ltr">{{ model.kpis.current.display }}</div>
+    <div class="text-sm text-subtle">רשומות בשנת הדגם {{ model.kpis.last_year.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.importers.tone }} mb-1" dir="ltr">{{ model.kpis.importers.display }}</div>
+    <div class="text-sm text-subtle">יבואנים בשנת הדגם האחרונה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_private.tone }} mb-1" dir="ltr">{{ model.kpis.median_private.display }}</div>
+    <div class="text-sm text-subtle">מחיר חציוני, רכב פרטי (אלף ₪)</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחיר חציוני לפי שנת דגם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">חציון מחירי המחירון בכל שנת דגם, לרכב פרטי ולרכב מסחרי. {{ model.labels.partial_note }}</p>
+    <div id="chart-median" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.median_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.median_aria }}</caption>
+        <thead><tr><th scope="col">שנת דגם</th>{% for k in model.tables.kinds %}<th scope="col">חציון — {{ k }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.years %}
+          <tr><th scope="row">{{ r.year }}</th>{% for k in model.tables.kinds %}<td>{{ r['med_' ~ loop.index0] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף המחירון לפי שנת דגם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר הגרסאות שהיבואנים פרסמו בכל שנת דגם.</p>
+    <div id="chart-counts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.counts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.counts_aria }}</caption>
+        <thead><tr><th scope="col">שנת דגם</th>{% for k in model.tables.kinds %}<th scope="col">רשומות — {{ k }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.years %}
+          <tr><th scope="row">{{ r.year }}</th>{% for k in model.tables.kinds %}<td>{{ r['n_' ~ loop.index0] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אותה גרסה, שנה אחרי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">החציון שלמעלה מושפע מתמהיל הגרסאות במחירון. כאן — רק גרסאות שמופיעות אצל אותו יבואן בשתי שנות דגם עוקבות: כמה מהן התייקרו, נשארו באותו מחיר או הוזלו, וממוצע שינוי המחיר.</p>
+  <div id="chart-l4l" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.l4l_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.l4l_aria }}</caption>
+      <thead><tr><th scope="col">שנות דגם</th><th scope="col">גרסאות תואמות</th><th scope="col">התייקרו (%)</th><th scope="col">ללא שינוי (%)</th><th scope="col">הוזלו (%)</th><th scope="col">שינוי ממוצע (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.l4l %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.matched }}</td><td>{{ r.up }}</td><td>{{ r.same }}</td><td>{{ r.down }}</td><td>{{ r.mean }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ארץ הייצור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">חלוקת רשומות המחירון לפי ארץ הייצור בכל שנת דגם, באחוזים. ארץ הייצור נגזרת משם היצרן במחירון.</p>
+  <div id="chart-country" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.country_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.country_aria }}</caption>
+      <thead><tr><th scope="col">שנת דגם</th>{% for c in model.tables.country_cols %}<th scope="col">{{ c }} (%)</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.country %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מותגים: מחיר חציוני</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">המותגים עם הרשומות הרבות ביותר בשנת הדגם {{ model.labels.last_year }}, באלפי ₪.</p>
+    <div id="chart-brands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.brands_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.brands_aria }}</caption>
+        <thead><tr><th scope="col">מותג</th><th scope="col">רשומות</th><th scope="col">מחיר חציוני</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.brands %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.median }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היבואנים עם המחירון הרחב ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר הרשומות של כל יבואן בשנת הדגם {{ model.labels.last_year }}.</p>
+    <div id="chart-importers" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.importers_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.importers_aria }}</caption>
+        <thead><tr><th scope="col">יבואן</th><th scope="col">רשומות</th><th scope="col">מותגים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.importers %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.brands }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">טווחי מחיר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">רשומות רכב פרטי בשנת הדגם {{ model.labels.last_year }} לפי טווח מחיר.</p>
+    <div id="chart-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bands_aria }}</caption>
+        <thead><tr><th scope="col">טווח</th><th scope="col">רשומות</th><th scope="col">חלק (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.bands %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דגמים מתוצרת סין</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">רשומות לפי מותג, שנת הדגם {{ model.labels.last_year }}.</p>
+    <div id="chart-china" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.china_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.china_aria }}</caption>
+        <thead><tr><th scope="col">מותג</th><th scope="col">רשומות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.china %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחירי דגמים מוכרים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מחיר חציוני (באלפי ₪) לפי שנת דגם, לכינויים המסחריים שמופיעים ברוב השנים האחרונות. כל כינוי כולל את כל גרסאותיו במחירון.</p>
+  <div id="chart-models" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.models_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.models_aria }}</caption>
+      <thead><tr><th scope="col">שנת דגם</th>{% for n in model.tables.model_names %}<th scope="col">{{ n }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.models %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    function nisFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " ₪"; }
+    var m = {{ model.charts.median | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-median"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: nisFmt },
+      legend: { bottom: 0 },
+      grid: { left: 64, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value", name: "₪" },
+      series: m.series.map(function (s) { return { type: "line", name: s.name, data: s.data, connectNulls: true }; })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var n = {{ model.charts.counts | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-counts"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: n.x },
+      yAxis: { type: "value", name: "רשומות" },
+      series: n.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var c = {{ model.charts.country | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-country"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: c.x },
+      yAxis: { type: "value", name: "%", max: 100 },
+      series: c.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var l = {{ model.charts.l4l | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-l4l"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 48, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: l.x },
+      yAxis: [{ type: "value", name: "% מהגרסאות", max: 100 }, { type: "value", name: "שינוי ממוצע %", scale: true }],
+      series: [
+        { type: "bar", stack: "t", name: "התייקרו", data: l.up },
+        { type: "bar", stack: "t", name: "ללא שינוי", data: l.same },
+        { type: "bar", stack: "t", name: "הוזלו", data: l.down },
+        { type: "line", yAxisIndex: 1, name: "שינוי ממוצע", data: l.mean, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + unit; } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: names, inverse: true },
+        series: [{ type: "bar", data: values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var b = {{ model.charts.brands | tojson }};
+    hbar("chart-brands", b.names, b.median, " אלף ₪");
+    var im = {{ model.charts.importers | tojson }};
+    hbar("chart-importers", im.names, im.values, " רשומות");
+    var ch = {{ model.charts.china | tojson }};
+    hbar("chart-china", ch.names, ch.values, " רשומות");
+
+    var bd = {{ model.charts.bands | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-bands"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: bd.names },
+      yAxis: { type: "value", name: "רשומות" },
+      series: [{ type: "bar", name: "רשומות", data: bd.values }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var md = {{ model.charts.models | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-models"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + " אלף ₪"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: md.x },
+      yAxis: { type: "value", name: "אלף ₪", scale: true },
+      series: md.series.map(function (s) { return { type: "line", name: s.name, data: s.data, connectNulls: true }; })
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>

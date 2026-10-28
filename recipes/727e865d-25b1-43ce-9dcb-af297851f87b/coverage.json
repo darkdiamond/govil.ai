@@ -1,0 +1,12 @@
+{
+  "main.StreetCode": "chart-top, chart-size, chart-scatter, chart-qual, kpi:streets, insight:top, insight:quality — street identity key; code 0 means no code",
+  "main.HouseNuber": "chart-num, chart-qual, kpi:total, insight:parity, insight:outlier",
+  "main.cityCode": "skip: constant 9000 (Be'er Sheva) in every row",
+  "main.streetName": "chart-top, chart-word, chart-size, chart-scatter, chart-qual, insight:top, insight:long, insight:outlier",
+  "main.letter": "chart-suf, chart-qual, insight:letters",
+  "main.lat": "map-main, chart-grid, chart-ring, chart-orient, chart-scatter, insight:center, insight:orient, insight:long",
+  "main.lon": "map-main, chart-grid, chart-ring, chart-orient, chart-scatter, insight:center, insight:orient, insight:long",
+  "resource:f8bf1520-9fd7-462e-abdc-c39d9923b5e0": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:4cff55d6-4bc7-4aec-bf75-73e8c08c4e98": "skip: same rows with lat/lon holding ITM coordinates",
+  "resource:5930f8f8-cc12-4e65-87dd-72b0b4727360": "skip: XLSX twin of the ITM file"
+}

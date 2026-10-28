@@ -1,0 +1,22 @@
+{
+  "fleet.mispar_rechev": "skip: licence plate — a per-vehicle lookup identifier, never shown",
+  "fleet.sug_rechev_cd": "skip: numeric code, one-to-one with sug_rechev_nm which is shown",
+  "fleet.sug_rechev_nm": "chart-types, chart-box, insight:age_gap — service type; stray trailing gershayim cleaned",
+  "fleet.shnat_yitzur": "chart-years, chart-box, chart-country, kpi:year, insight:young, insight:china, insight:age_gap",
+  "fleet.mishkal_kolel": "table-segs — median gross weight per size class",
+  "fleet.tozeret_cd": "skip: numeric maker+plant code, one-to-one with tozeret_nm which is shown",
+  "fleet.tozeret_nm": "chart-taxi-brands, chart-bus-brands, chart-country, chart-taxi-models, chart-bus-models, insight:taxi_leader, insight:bus_leader, insight:china — plant-country suffix parsed off: brand merged across plants, country shown on its own",
+  "fleet.tzeva_cd": "skip: numeric code, one-to-one with tzeva_rechev which is shown",
+  "fleet.tzeva_rechev": "chart-colors, insight:color",
+  "fleet.degem_cd": "skip: internal model code, 56% empty; degem_nm is shown",
+  "fleet.degem_nm": "chart-bus-models — manufacturer model code with brand",
+  "fleet.kinuy_mishari": "chart-taxi-models — model family (first word of the commercial name); empty for buses",
+  "fleet.sug_rechev_EU_cd": "chart-years, chart-seats, chart-colors, chart-status, chart-types, table-segs, insight:segments — M1/M2/M3 size class",
+  "fleet.sug_rechev_EU_nm": "skip: constant empty",
+  "fleet.bitul_cd": "chart-status, chart-tokef, kpi:expired, insight:cancelled, insight:expired — 0 = not cancelled",
+  "fleet.bitul_nm": "chart-status, insight:cancelled",
+  "fleet.bitul_dt": "kpi:expired, insight:expired — latest cancellation date is the export's as-of reference date",
+  "fleet.tokef_dt": "chart-tokef, kpi:expired, insight:expired",
+  "fleet.mispar_mekomot": "chart-seats, kpi:seats, table-segs, insight:seats",
+  "fleet.mispar_mekomot_leyd_nahag": "chart-seats, kpi:seats, table-segs, insight:seats — seats beside the driver, added to passenger seats"
+}

@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "073cd24f-58b0-4301-b6df-3b09607dfd46",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:44:37.554522+00:00",
+    "rows": { "main": 25563 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "09e057c4-d7dc-485a-bfcf-aeed674f7a36",
+      "required_columns": [
+        "מספר זיהוי",
+        "שם עברית",
+        "שנה הידרולוגית",
+        "נפח שנתי (אלמ''ק)",
+        "סוג נתון"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

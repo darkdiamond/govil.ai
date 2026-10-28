@@ -1,0 +1,16 @@
+{
+  "main.cod_ezor": "chart-offices — licensing-region code, used only to order regions on ties; the region name is shown",
+  "main.ezor": "chart-offices, chart-districts, chart-gaps, chart-distclass, kpi:offices, insight:leader, insight:gap, insight:district — licensing region, mapped to district via a static gazetteer of office towns",
+  "main.cod_beit_sefer": "kpi:total — school code; not unique across regions (same code, different schools), so every row counts as one school listing; never shown",
+  "main.shem_beit_sefer": "table:full, insight:full, kpi:total — school names (businesses); rows named as placeholders (פיקטיבי) are excluded and disclosed",
+  "main.cod_hiter": "skip: permit number — identifier, with placeholder values (0, 1111, 9999); not shown",
+  "main.menahel": "mgr-note — school managers are counted, never named",
+  "main.ktovet": "skip: street address — free text, may be a private address; geography comes from the licensing region",
+  "main.telefon": "skip: contact phone — may be a private mobile; kept off the page",
+  "main.prati": "chart-classes, chart-offices, chart-districts, chart-breadth, chart-combos, chart-cooc, chart-distclass, chart-gaps, kpi:car, kpi:full, kpi:none, insight:car, insight:truck",
+  "main.masa": "chart-classes, chart-breadth, chart-combos, chart-cooc, chart-distclass, chart-gaps, kpi:full, insight:truck",
+  "main.traktor": "chart-classes, chart-breadth, chart-combos, chart-cooc, chart-distclass, chart-gaps, kpi:full, insight:gap",
+  "main.ofnoa": "chart-classes, chart-breadth, chart-combos, chart-cooc, chart-distclass, chart-gaps, kpi:full, insight:district",
+  "main.otobus": "chart-classes, chart-breadth, chart-combos, chart-cooc, chart-distclass, chart-gaps, kpi:full",
+  "main.grar": "chart-classes, chart-breadth, chart-combos, chart-cooc, chart-distclass, chart-gaps, kpi:full, insight:gap"
+}

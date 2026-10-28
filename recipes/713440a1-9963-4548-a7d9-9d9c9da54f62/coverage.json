@@ -1,0 +1,8 @@
+{
+  "cpa.מספר רישיון": "skip: individual licence number — a per-person identifier, kept off the page by policy",
+  "cpa.תאריך קבלת רישיון": "chart-years, chart-cohort, chart-seniority, chart-heat, chart-cumulative, chart-firsts, kpi:new, insight:peak, insight:ytd, insight:cohort, insight:seniority, insight:missing",
+  "cpa.שם פרטי": "chart-firsts — aggregate counts only, no individual named",
+  "cpa.שם משפחה": "chart-surnames, insight:surname — aggregate counts only",
+  "cpa.ישוב": "chart-cities, kpi:cities, insight:cities — spelling variants folded on a normalized key",
+  "cpa.סטטוס": "chart-status, chart-years, chart-cohort, chart-cities, chart-seniority, kpi:active, insight:status, insight:cohort, insight:missing"
+}

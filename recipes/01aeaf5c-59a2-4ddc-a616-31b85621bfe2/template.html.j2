@@ -1,0 +1,343 @@
+<h1>חברות בפרוק מרצון בהליך מזורז</h1>
+
+<style>
+  .liq-table th, .liq-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .liq-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last30.tone }} mb-1" dir="ltr">{{ model.kpis.last30.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ref_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.soon.tone }} mb-1" dir="ltr">{{ model.kpis.soon.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.soon_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.violators.tone }} mb-1" dir="ltr">{{ model.kpis.violators.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.viol_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קצב אישור הבקשות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tl_note }}</p>
+  <div id="chart-timeline" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.tl_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tl_caption }}</caption>
+      <thead><tr><th scope="col">{{ model.labels.tl_col }}</th><th scope="col">בקשות שאושרו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.timeline %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הבאות בתור לחיסול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.next_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="liq-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.next_caption }}</caption>
+      <thead><tr><th scope="col">חברה (מספר)</th><th scope="col">עיר</th><th scope="col">מועד החיסול הצפוי</th><th scope="col">מפרה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.next %}
+        <tr><th scope="row">{{ r.name }}<div class="text-xs text-subtle font-normal" dir="ltr">{{ r.num }}</div></th><td>{{ r.city }}</td><td class="whitespace-nowrap" dir="ltr">{{ r.expected }}</td><td>{{ r.violator }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אישורים לפי יום בשבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dow_note }}</p>
+    <div id="chart-dow" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dow_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dow_caption }}</caption>
+        <thead><tr><th scope="col">יום</th><th scope="col">בקשות שאושרו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dow %}
+          <tr><th scope="row">{{ r.day }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.heat %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ימי האישור, שבוע אחר שבוע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כל משבצת היא יום אחד; כהה יותר = יותר בקשות שאושרו באותו יום. שבועות ריקים הם שבועות ללא אישורים.</p>
+    <div id="chart-heat" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+          <thead><tr><th scope="col">שבוע מ-</th>{% for x in model.charts.heat.x %}<th scope="col">{{ x }}</th>{% endfor %}</tr></thead>
+          <tbody>
+{%- for r in model.tables.heat %}
+            <tr><th scope="row" dir="ltr">{{ r.week }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הערים המובילות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+    <div id="chart-cities" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+        <thead><tr><th scope="col">עיר</th><th scope="col">חברות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מעמד החברות במרשם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">מעמד</th><th scope="col">חברות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק החברות ושיעור המפרות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספרי חברה מוקצים ברצף, כך שסדרה גבוהה יותר (שלוש הספרות הראשונות) מציינת חברה שנרשמה מאוחר יותר. עמודות: מספר החברות בכל סדרה; קו: שיעור המסומנות ״מפרה״ בה.</p>
+    <div id="chart-series" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.series_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.series_caption }}</caption>
+        <thead><tr><th scope="col">סדרת מספר</th><th scope="col">חברות</th><th scope="col">מסומנות ״מפרה״</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.series %}
+          <tr><th scope="row" dir="ltr">{{ r.series }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מאפייני הרישום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור החברות ברשימה שבפרטי הרישום שלהן מופיע כל מאפיין. ״מפרה״ הוא סימון של רשם החברות; כתובת ״אצל״ היא כתובת למשלוח דואר אצל צד שלישי, כגון רואה חשבון או עורך דין.</p>
+    <div id="chart-profile" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.profile_caption }}</caption>
+        <thead><tr><th scope="col">מאפיין</th><th scope="col">חברות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.profile %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{%- if model.flags.stragglers %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות שמועד החיסול שלהן חלף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.strag_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="liq-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.strag_caption }}</caption>
+      <thead><tr><th scope="col">חברה (מספר, מעמד)</th><th scope="col">אישור הבקשה</th><th scope="col">מועד החיסול הצפוי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.stragglers %}
+        <tr><th scope="row">{{ r.name }}<div class="text-xs text-subtle font-normal"><span dir="ltr">{{ r.num }}</span> · {{ r.status }}</div><div class="text-xs text-subtle font-normal">{{ r.flags }}</div></th><td class="whitespace-nowrap" dir="ltr">{{ r.approved }}</td><td class="whitespace-nowrap" dir="ltr">{{ r.expected }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    var t = {{ model.charts.timeline | tojson }};
+    var data = t.y.map(function (v, i) {
+      if (i === t.peak) { return { value: v, itemStyle: { color: "#0b3668" } }; }
+      if (i === t.partial) { return { value: v, itemStyle: { color: "#9fc3f8" } }; }
+      return v;
+    });
+    var c = echarts.init(document.getElementById("chart-timeline"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        var tag = i === t.peak ? " (שיא)" : (i === t.partial ? " (חלקי)" : "");
+        return p[0].name + tag + ": " + p[0].value.toLocaleString("he-IL") + " בקשות";
+      } },
+      grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: t.x },
+      yAxis: { type: "value", name: "בקשות" },
+      series: [{ type: "bar", name: "בקשות", data: data }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dow | tojson }};
+    var c = echarts.init(document.getElementById("chart-dow"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", name: "בקשות" },
+      series: [{ type: "bar", name: "בקשות", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    if (el) {
+      var c2 = echarts.init(el);
+      c2.setOption(window.GovEcharts.option({
+        tooltip: { position: "top", formatter: function (p) {
+          return "שבוע " + h.y[p.value[1]] + " · יום " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL");
+        } },
+        grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+        xAxis: { type: "category", data: h.x, splitArea: { show: true } },
+        yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true } },
+        visualMap: {
+          min: 0, max: h.max, calculable: true, dimension: 2,
+          orient: "horizontal", left: "center", bottom: 8,
+          inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+          textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+        },
+        series: [{ type: "heatmap", data: h.cells,
+                   emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      }));
+      window.addEventListener("resize", function () { c2.resize(); });
+    }
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, fmt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: fmt },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "חברות");
+    hbar("chart-status", {{ model.charts.status | tojson }}, "חברות");
+    hbar("chart-profile", {{ model.charts.profile | tojson }}, "%", function (v) { return v + "%"; });
+
+    var s = {{ model.charts.series | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-series"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 8, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: [
+        { type: "value", name: "חברות" },
+        { type: "value", name: "% מפרות", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "חברות", data: s.count },
+        { type: "line", name: "% מפרות", yAxisIndex: 1, data: s.share,
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>

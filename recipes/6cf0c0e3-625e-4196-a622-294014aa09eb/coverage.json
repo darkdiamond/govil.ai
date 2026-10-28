@@ -1,0 +1,9 @@
+{
+  "courses.institution": "chart-inst, chart-size, chart-lorenz, chart-district, chart-cities, chart-domains, chart-courses, chart-supply, kpi:institutions, insight:concentration — institutions named in a commercial capacity",
+  "courses.city": "chart-cities, chart-sunburst, chart-district, kpi:cities, insight:cities",
+  "courses.address": "kpi:dups, insight:dups — part of the offering key (branch identity) only; street addresses not shown",
+  "courses.course": "chart-courses, chart-domains, chart-mix, chart-reach, chart-supply, kpi:courses, kpi:all_reach, insight:domain, insight:special, insight:breadth, insight:reach — fields assigned by keyword rules on the course name",
+  "courses.district": "chart-district, chart-sunburst, chart-mix, chart-reach, insight:district, insight:special, insight:breadth, insight:reach",
+  "courses.telephone": "skip: contact detail — kept off the page (explorer only)",
+  "courses.email": "skip: contact detail, often a named staff member's address — kept off the page (explorer only)"
+}

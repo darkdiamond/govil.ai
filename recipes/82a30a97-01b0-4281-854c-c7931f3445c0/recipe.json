@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "82a30a97-01b0-4281-854c-c7931f3445c0",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:12:30.893765+00:00",
+    "rows": { "streets": 1218 }
+  },
+  "inputs": [
+    {
+      "name": "streets",
+      "by_id": "84fb7cca-7643-4438-bcc2-d4144ad7f95f",
+      "required_columns": [
+        "שם ראשי",
+        "תואר",
+        "שם מישני",
+        "קבוצה",
+        "קבוצה נוספת",
+        "סוג",
+        "קוד",
+        "שכונה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

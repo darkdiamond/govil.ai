@@ -1,0 +1,8 @@
+{
+  "parties.שם מפלגה": "chart-complete, chart-names, table:edges, insight:leader — names appear only in the lowest/highest-number tables",
+  "parties.מספר מפלגה": "chart-bands, chart-complete, kpi:total, kpi:top, kpi:absent, table:edges, insight:numbering — serial parsed from 59-900NNN-C",
+  "parties.מטרות": "chart-themes, chart-theme-per, chart-length, chart-complete, insight:themes, insight:aims — keyword themes and word counts only; text not reproduced",
+  "parties.כתובת": "chart-towns, chart-arrangement, chart-complete, insight:town, insight:office — town extracted from free text; full addresses (often private homes, one includes a phone number) never reach the page",
+  "parties.דואר אלקטרוני": "chart-email, chart-complete, kpi:email, insight:email — domain type only; addresses never shown",
+  "parties.תאריך רישום": "chart-complete, kpi:regdate, insight:regdate — 94% empty; year extracted where present"
+}

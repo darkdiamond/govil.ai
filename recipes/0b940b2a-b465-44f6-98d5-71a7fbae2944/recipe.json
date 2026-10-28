@@ -1,0 +1,54 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0b940b2a-b465-44f6-98d5-71a7fbae2944",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T21:12:12.493969+00:00",
+    "rows": {
+      "batches": 1412,
+      "tradenames": 137,
+      "manufacturers": 36,
+      "vaccines": 61
+    }
+  },
+  "inputs": [
+    {
+      "name": "batches",
+      "by_id": "2d4cec2c-d153-4bf9-95c6-256860d7857e",
+      "required_columns": [
+        "vaccinationCode",
+        "vaccinationDesc",
+        "manufacturerCode",
+        "manufacturerDesc",
+        "tradeNameCode",
+        "tradeNameDesc",
+        "batchNumber"
+      ]
+    },
+    {
+      "name": "tradenames",
+      "by_id": "eb7c30c5-54cb-411a-b3f6-80a2a39b7641",
+      "required_columns": [
+        "vaccinationCode",
+        "vaccinationDesc",
+        "manufacturerCode",
+        "manufacturerDesc",
+        "tradeNameCode",
+        "tradeNameDesc"
+      ]
+    },
+    {
+      "name": "manufacturers",
+      "by_id": "11b14510-5927-45ef-9846-54192478a737",
+      "required_columns": ["manufacturerCode", "manufacturerDesc"]
+    },
+    {
+      "name": "vaccines",
+      "by_id": "e232e4f4-dda7-4a8a-83fb-313fe9c4a7c2",
+      "required_columns": ["vaccinationCode", "vaccinationDesc"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

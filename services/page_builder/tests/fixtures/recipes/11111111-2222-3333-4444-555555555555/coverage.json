@@ -1,0 +1,6 @@
+{
+  "events.שנה": "chart-yearly, insight:trend, kpi:years",
+  "events.חודש": "insight:peak_month",
+  "events.מחוז": "chart-districts, insight:top_district, kpi:districts",
+  "events.מספר אירועים": "chart-yearly, chart-districts, kpi:total"
+}

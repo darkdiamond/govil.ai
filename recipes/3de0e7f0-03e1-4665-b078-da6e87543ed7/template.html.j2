@@ -1,0 +1,533 @@
+<h1>ספר סיווג טובין ביבוא</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.lines.tone }} mb-1" dir="ltr">{{ model.kpis.lines.display }}</div>
+    <div class="text-sm text-subtle">שורות סיווג בספר המכס</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.chapters.tone }} mb-1" dir="ltr">{{ model.kpis.chapters.display }}</div>
+    <div class="text-sm text-subtle">פרקי סיווג</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.exempt.tone }} mb-1" dir="ltr">{{ model.kpis.exempt.display }}</div>
+    <div class="text-sm text-subtle">משורות התעריף פטורות ממכס</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.dutiable.tone }} mb-1" dir="ltr">{{ model.kpis.dutiable.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.dut_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.max_rate.tone }} mb-1" dir="ltr">{{ model.kpis.max_rate.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.max_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ptax.tone }} mb-1" dir="ltr">{{ model.kpis.ptax.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ptax_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cond.tone }} mb-1" dir="ltr">{{ model.kpis.cond.display }}</div>
+    <div class="text-sm text-subtle">סיווגים מותנים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.auto.tone }} mb-1" dir="ltr">{{ model.kpis.auto.display }}</div>
+    <div class="text-sm text-subtle">שורות בספר האוטונומיה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מבנה הספר: חלקים ופרקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+  <div id="chart-tree" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tree_caption }}</caption>
+      <thead><tr><th scope="col">חלק</th><th scope="col">שורות</th><th scope="col">פרקים</th><th scope="col">עם שיעור מכס</th><th scope="col">חייבות במכס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sections %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.lines }}</td><td>{{ r.chapters }}</td><td>{{ r.rated }}</td><td>{{ r.dut }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רמות הסיווג</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.levels_note }}</p>
+    <div id="chart-levels" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.levels_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.levels_caption }}</caption>
+        <thead><tr><th scope="col">רמה</th><th scope="col">שורות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.levels %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צורת שיעור המכס</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regime_note }}</p>
+    <div id="chart-regime" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.regime_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.regime_caption }}</caption>
+        <thead><tr><th scope="col">צורת השיעור</th><th scope="col">שורות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.regime %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה יש מכס: שיעור השורות החייבות לפי חלק</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sections_note }}</p>
+  <div id="chart-sections" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.sections_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sections_caption }}</caption>
+      <thead><tr><th scope="col">חלק</th><th scope="col">חייבות במכס</th><th scope="col">מתוך שורות התעריף</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sections %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.dut }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הפרקים עם הכי הרבה שורות חייבות במכס</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chapters_note }}</p>
+  <div id="chart-chapters" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.chapters_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.chapters_caption }}</caption>
+      <thead><tr><th scope="col">פרק</th><th scope="col">חייבות במכס</th><th scope="col">שורות תעריף בפרק</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.chapters %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.dut }}</td><td>{{ r.rated }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גובה שיעורי המכס באחוזים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rates_note }}</p>
+    <div id="chart-rates" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rates_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rates_caption }}</caption>
+        <thead><tr><th scope="col">טווח שיעור</th><th scope="col">שורות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rates %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">השיעורים הגבוהים ביותר</h2>
+    </div>
+    <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_rates_caption }}</caption>
+      <thead><tr><th scope="col">פרט</th><th scope="col">תיאור</th><th scope="col" class="px-2">שיעור מרבי</th><th scope="col" class="px-2">שורות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top_rates %}
+        <tr><th scope="row" dir="ltr">{{ r.code }}</th><td>{{ r.desc }}</td><td dir="ltr" class="px-2 whitespace-nowrap">{{ r.max }}</td><td class="px-2">{{ r.cnt }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+</div>
+
+{% if model.flags.cross %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מכס ומס קנייה יחד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cross_note }}</p>
+  <div id="chart-cross" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.cross_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cross_caption }}</caption>
+      <thead><tr><th scope="col">מס קנייה \ מכס</th>{% for x in model.tables.cross_x %}<th scope="col">{{ x }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.cross %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מס קנייה לפי פרק</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ptax_note }}</p>
+  <div id="chart-ptax" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ptax_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ptax_caption }}</caption>
+      <thead><tr><th scope="col">פרק</th><th scope="col">שורות חייבות במס קנייה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ptax %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יחידות מידה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.units_note }}</p>
+    <div id="chart-units" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.units_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.units_caption }}</caption>
+        <thead><tr><th scope="col">יחידה</th><th scope="col">שורות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.units %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{% if model.flags.end %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מועדי סיום תוקף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.end_note }}</p>
+    <div id="chart-end" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.end_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.end_caption }}</caption>
+        <thead><tr><th scope="col">מועד</th><th scope="col">שיעור מכס</th><th scope="col">מס קנייה</th><th scope="col">סיווג</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.end %}
+          <tr><th scope="row" dir="ltr">{{ r.date }}</th><td>{{ r.duty }}</td><td>{{ r.ptax }}</td><td>{{ r.item }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{% endif %}
+</div>
+
+{% if model.flags.auto %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ספר האוטונומיה מול ספר המכס</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auto_ch_note }}</p>
+  <div id="chart-auto-ch" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.auto_ch_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.auto_ch_caption }}</caption>
+      <thead><tr><th scope="col">פרק</th><th scope="col">שורות עם שיעור</th><th scope="col">מתוכן בשיעור גבוה יותר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.auto_ch %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.higher }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעורי המכס בשני הספרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auto_rates_note }}</p>
+  <div id="chart-auto-rates" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.auto_rates_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.auto_rates_caption }}</caption>
+      <thead><tr><th scope="col">שיעור</th><th scope="col">ספר האוטונומיה</th><th scope="col">ספר המכס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.auto_rates %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.auto }}</td><td>{{ r.main }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<script>
+  (function () {
+    var t = {{ model.charts.tree | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-tree"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { show: false },
+      tooltip: { formatter: function (p) { return p.name + ": " + Number(p.value).toLocaleString("he-IL") + " שורות"; } },
+      series: [{
+        type: "treemap", name: "כל הספר", data: t, leafDepth: 1, roam: false,
+        top: 8, left: 8, right: 8, bottom: 40,
+        breadcrumb: { bottom: 4, itemStyle: { color: "#0068f5" } },
+        label: { fontFamily: "Rubik", overflow: "truncate" },
+        upperLabel: { show: true, height: 22, fontFamily: "Rubik", color: "#ffffff" },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 2, gapWidth: 2 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var l = {{ model.charts.levels | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-levels"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: l.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שורות", data: l.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var r = {{ model.charts.regime | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-regime"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return p.name + ": " + Number(p.value).toLocaleString("he-IL") + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "44%"], data: r,
+                 label: { show: false }, avoidLabelOverlap: true }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.sections | tojson }};
+    var c = echarts.init(document.getElementById("chart-sections"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return s.names[i] + "<br>" + s.share[i] + "% · " + Number(s.dut[i]).toLocaleString("he-IL") + " שורות";
+      } },
+      grid: { left: 16, right: 32, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { interval: 0, width: 140, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "חייבות במכס", data: s.share }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    function stacked(id, d) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0, type: "scroll" },
+        grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 140, overflow: "truncate", fontSize: 11 } },
+        series: d.series.map(function (q) { return { type: "bar", stack: "t", name: q.name, data: q.data }; })
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    stacked("chart-chapters", {{ model.charts.chapters | tojson }});
+    stacked("chart-ptax", {{ model.charts.ptax | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var r = {{ model.charts.rates | tojson }};
+    var c = echarts.init(document.getElementById("chart-rates"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: r.names, inverse: true },
+      series: [{ type: "bar", name: "שורות", data: r.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var u = {{ model.charts.units | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-units"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "log", splitNumber: 3 },
+      yAxis: { type: "category", data: u.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שורות", data: u.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+{% if model.flags.cross %}
+<script>
+  (function () {
+    var h = {{ model.charts.cross | tojson }};
+    var c = echarts.init(document.getElementById("chart-cross"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return "מכס: " + h.x[p.value[0]] + "<br>מס קנייה: " + h.y[p.value[1]] + "<br>" + Number(p.value[2]).toLocaleString("he-IL") + " שורות";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, width: 80, overflow: "break", fontSize: 10 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true }, axisLabel: { width: 100, overflow: "truncate", fontSize: 11 } },
+      visualMap: {
+        type: "piecewise", dimension: 2, orient: "horizontal", left: "center", bottom: 4,
+        pieces: [{ min: 1, max: 9 }, { min: 10, max: 99 }, { min: 100, max: 999 }, { min: 1000 }],
+        inRange: { color: ["#dbe8fb", "#7fb0f5", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik", fontSize: 10 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.end %}
+<script>
+  (function () {
+    var e = {{ model.charts.end | tojson }};
+    var c = echarts.init(document.getElementById("chart-end"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: e.x, axisLabel: { fontSize: 11 } },
+      yAxis: { type: "log", name: "שורות" },
+      series: [
+        { type: "bar", name: "שיעור מכס", data: e.duty.map(function (v) { return v || null; }) },
+        { type: "bar", name: "מס קנייה", data: e.ptax.map(function (v) { return v || null; }) },
+        { type: "bar", name: "סיווג", data: e.item.map(function (v) { return v || null; }) }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.auto %}
+<script>
+  (function () {
+    var a = {{ model.charts.auto_ch | tojson }};
+    var c = echarts.init(document.getElementById("chart-auto-ch"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: a.names, inverse: true, axisLabel: { width: 140, overflow: "truncate", fontSize: 11 } },
+      series: a.series.map(function (q) { return { type: "bar", stack: "t", name: q.name, data: q.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var r = {{ model.charts.auto_rates | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-auto-rates"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: r.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "log", name: "שורות" },
+      series: [
+        { type: "bar", name: "ספר האוטונומיה", data: r.auto.map(function (v) { return v || null; }) },
+        { type: "bar", name: "ספר המכס", data: r.main.map(function (v) { return v || null; }) }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+{% endif %}

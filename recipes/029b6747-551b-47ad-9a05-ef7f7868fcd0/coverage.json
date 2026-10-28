@@ -1,0 +1,13 @@
+{
+  "applications.מספר בקשה": "key: one application per number (status history collapsed to the latest stage), kpi:applications",
+  "applications.תאריך הבקשה": "skip: international/priority date; all timing uses the Israeli filing date, which is what the office's workload and the 20-year term follow",
+  "applications.תאריך הגשה": "chart-filings, chart-lag, chart-lag-trend, chart-fate, chart-heat, insight:filings, insight:fate",
+  "applications.שם האמצאה בעברית": "filter: drops test entries named טסט — otherwise free-text invention titles; 1% are a placeholder",
+  "applications.שם האמצאה באנגלית": "skip: free-text invention title (English); no controlled vocabulary to aggregate on",
+  "applications.מספר בקשה בינלאומי": "chart-filings, chart-origin, insight:origin, insight:filings — PCT route and receiving office from its prefix",
+  "applications.מספר פרסום בינלאומי": "skip: present exactly when the international application number is; adds no new dimension",
+  "applications.תאריך פרסום ראשון": "skip: publication milestone between filing and grant; filing-to-grant already shows the timeline, and 17% are empty",
+  "applications.תאריך פרסום שני": "skip: 5,073 rows carry a 1900-01-01 placeholder and 17% are empty; not reliable as a timeline",
+  "applications.תאריך מתן פטנט": "chart-grants, chart-lag, chart-lag-trend, chart-inforce, kpi:grants_last, kpi:lag_last, insight:grants, insight:ytd, insight:lag, insight:inforce",
+  "applications.סטטוס בקשה/פטנט": "chart-status, chart-fate, chart-inforce, kpi:in_force, insight:fate, insight:inforce"
+}

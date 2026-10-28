@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ed98fd7a-0e62-4691-b733-1960a6ea2c73",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:59:12.628402+00:00",
+    "rows": { "main": 7220 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "cad6bb66-5560-4cf4-a39c-92518f3f18ef",
+      "required_columns": [
+        "TownId",
+        "TownName",
+        "StreetName",
+        "Building",
+        "zip",
+        "phone",
+        "StatusDesc",
+        "RegistrationDate",
+        "StatusDate",
+        "PrimaryType",
+        "SecondaryTypes"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

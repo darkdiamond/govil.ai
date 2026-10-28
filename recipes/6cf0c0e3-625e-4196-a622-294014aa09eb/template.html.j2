@@ -1,0 +1,441 @@
+<h1>איתור קורסים מאושרים למוסדות - חיילים משוחררים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.offerings.tone }} mb-1" dir="ltr">{{ model.kpis.offerings.display }}</div>
+    <div class="text-sm text-subtle">הצעות קורס (מוסד × קורס)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.courses.tone }} mb-1" dir="ltr">{{ model.kpis.courses.display }}</div>
+    <div class="text-sm text-subtle">קורסים שונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.institutions.tone }} mb-1" dir="ltr">{{ model.kpis.institutions.display }}</div>
+    <div class="text-sm text-subtle">מוסדות מכשירים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">ישובים עם קורס מאושר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.all_reach.tone }} mb-1" dir="ltr">{{ model.kpis.all_reach.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.all_reach_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.dups.tone }} mb-1" dir="ltr">{{ model.kpis.dups.display }}</div>
+    <div class="text-sm text-subtle">רשומות כפולות במקור (נספרו פעם אחת)</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היצע הקורסים לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+    <div id="chart-district" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.district_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.district_caption }}</caption>
+          <thead><tr><th scope="col">מחוז</th><th scope="col">הצעות</th><th scope="col">שיעור</th><th scope="col">מוסדות</th><th scope="col">קורסים שונים</th><th scope="col">ישובים</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.district %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.inst }}</td><td>{{ r.courses }}</td><td>{{ r.cities }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחוזות וישובים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treemap_note }}</p>
+    <div id="chart-sunburst" data-fallback="explorer" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.treemap_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הישובים המובילים בהיצע</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+      <thead><tr><th scope="col">ישוב</th><th scope="col">מחוז</th><th scope="col">הצעות</th><th scope="col">מוסדות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.district }}</td><td>{{ r.count }}</td><td>{{ r.inst }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי ההכשרה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.domains_note }}</p>
+  <div id="chart-domains" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.domains_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.domains_caption }}</caption>
+        <thead><tr><th scope="col">תחום</th><th scope="col">הצעות</th><th scope="col">שיעור</th><th scope="col">קורסים שונים</th><th scope="col">מוסדות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.domains %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.courses }}</td><td>{{ r.inst }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל התחומים בכל מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+        <thead><tr><th scope="col">תחום</th>{% for d in model.charts.mix.x %}<th scope="col">{{ d }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקורסים הנפוצים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.courses_note }}</p>
+  <div id="chart-courses" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.courses_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.courses_caption }}</caption>
+        <thead><tr><th scope="col">קורס</th><th scope="col">תחום</th><th scope="col">מוסדות</th><th scope="col">מחוזות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.courses %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.domain }}</td><td>{{ r.inst }}</td><td>{{ r.reach }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">זמינות גאוגרפית של כל קורס</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reach_note }}</p>
+    <div id="chart-reach" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.reach_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.reach_caption }}</caption>
+        <thead><tr><th scope="col">מספר מחוזות</th><th scope="col">קורסים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.reach %}
+          <tr><th scope="row">{{ r.k }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בכמה מוסדות מוצע כל קורס</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.supply_note }}</p>
+    <div id="chart-supply" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.supply_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.supply_caption }}</caption>
+        <thead><tr><th scope="col">מספר מוסדות</th><th scope="col">קורסים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.supply %}
+          <tr><th scope="row">{{ r.k }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המוסדות המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inst_note }}</p>
+  <div id="chart-inst" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.inst_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.inst_caption }}</caption>
+        <thead><tr><th scope="col">מוסד</th><th scope="col">ישוב</th><th scope="col">קורסים</th><th scope="col">תחומים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.inst %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.city }}</td><td>{{ r.count }}</td><td>{{ r.domains }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המוסדות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+    <div id="chart-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.size_caption }}</caption>
+        <thead><tr><th scope="col">קורסים מאושרים</th><th scope="col">מוסדות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.size %}
+          <tr><th scope="row">{{ r.k }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ריכוזיות ההיצע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lorenz_note }}</p>
+    <div id="chart-lorenz" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lorenz_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lorenz_caption }}</caption>
+        <thead><tr><th scope="col">המוסדות הגדולים</th><th scope="col">שיעור מהמוסדות</th><th scope="col">שיעור מההצעות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lorenz %}
+          <tr><th scope="row">{{ r.k }}</th><td dir="ltr">{{ r.inst_share }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">איתור קורסים מאושרים למוסדות - חיילים משוחררים</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var c = echarts.init(document.getElementById("chart-district"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.names[i] + "<br>הצעות: " + d.values[i].toLocaleString("he-IL") +
+          "<br>מוסדות: " + d.inst[i].toLocaleString("he-IL") +
+          "<br>קורסים שונים: " + d.courses[i].toLocaleString("he-IL") +
+          "<br>ישובים: " + d.cities[i].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "הצעות קורס", data: d.values, barMaxWidth: 40 }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var t = {{ model.charts.treemap | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-sunburst"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (x) { return x.name; }).join(" › ");
+        return (path || p.name) + ": " + p.value.toLocaleString("he-IL") + " הצעות";
+      } },
+      series: [{
+        type: "sunburst", data: t, radius: [0, "92%"], center: ["50%", "50%"],
+        sort: null, nodeClick: false,
+        itemStyle: { borderColor: "#ffffff", borderWidth: 1 },
+        levels: [
+          {},
+          { r0: "0%", r: "42%", label: { rotate: "radial", fontFamily: "Rubik", fontSize: 10, color: "#ffffff",
+                                         width: 70, overflow: "break" } },
+          { r0: "42%", r: "92%", label: { fontFamily: "Rubik", fontSize: 10, minAngle: 9, color: "#0c3058",
+                                          align: "center" },
+            itemStyle: { opacity: 0.75 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, extra) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          var s = d.names[i] + "<br>" + unit + ": " + d.values[i].toLocaleString("he-IL");
+          return extra ? s + extra(i) : s;
+        } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: window.innerWidth < 640 ? 130 : 230, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    var ci = {{ model.charts.cities | tojson }};
+    hbar("chart-cities", ci, "הצעות", function (i) {
+      return "<br>" + ci.district[i] + "<br>מוסדות: " + ci.inst[i].toLocaleString("he-IL");
+    });
+    var dm = {{ model.charts.domains | tojson }};
+    hbar("chart-domains", dm, "הצעות", function (i) {
+      return "<br>קורסים שונים: " + dm.courses[i].toLocaleString("he-IL") +
+        "<br>מוסדות: " + dm.inst[i].toLocaleString("he-IL");
+    });
+    var co = {{ model.charts.courses | tojson }};
+    hbar("chart-courses", co, "מוסדות", function (i) {
+      return "<br>מחוזות: " + co.reach[i].toLocaleString("he-IL");
+    });
+    var ins = {{ model.charts.inst | tojson }};
+    hbar("chart-inst", ins, "קורסים", function (i) { return "<br>" + ins.city[i]; });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.mix | tojson }};
+    var c = echarts.init(document.getElementById("chart-mix"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + "<br>" + h.x[p.value[0]] + ": " + p.value[2] + "% (" +
+          p.value[3].toLocaleString("he-IL") + " הצעות)";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: { fontSize: 10, interval: 0, width: window.innerWidth < 640 ? 44 : 100, overflow: "break" } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { fontSize: 10, width: 120, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 label: { show: true, fontSize: 10, color: "#0c3058", textBorderColor: "#ffffff", textBorderWidth: 2,
+                          formatter: function (p) { return p.value[2] + "%"; } },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function vbar(id, d, xname, yname) {
+      var x = echarts.init(document.getElementById(id));
+      x.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 40, right: 16, top: 32, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.names, name: xname, nameLocation: "middle", nameGap: 36,
+                 axisLabel: { interval: 0, fontSize: 10, width: window.innerWidth < 640 ? 32 : 80, overflow: "break" } },
+        yAxis: { type: "value", name: yname, min: 0 },
+        series: [{ type: "bar", name: yname, data: d.values, barMaxWidth: 48 }]
+      }));
+      window.addEventListener("resize", function () { x.resize(); });
+    }
+    vbar("chart-reach", {{ model.charts.reach | tojson }}, "מספר מחוזות", "קורסים");
+    vbar("chart-supply", {{ model.charts.supply | tojson }}, "מספר מוסדות", "קורסים");
+    vbar("chart-size", {{ model.charts.size | tojson }}, "קורסים מאושרים", "מוסדות");
+
+    var l = {{ model.charts.lorenz | tojson }};
+    var c = echarts.init(document.getElementById("chart-lorenz"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var p = ps[0].value;
+        return p[0] + "% מהמוסדות הגדולים<br>" + p[1] + "% מההצעות";
+      } },
+      grid: { left: 40, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "value", min: 0, max: 100, name: "% מהמוסדות", nameLocation: "middle", nameGap: 28,
+               axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "value", min: 0, max: 100, name: "% מההצעות", axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "line", name: "ריכוזיות", data: l.points, showSymbol: false, areaStyle: { opacity: 0.15 } },
+        { type: "line", name: "חלוקה שווה", data: [[0, 0], [100, 100]], showSymbol: false,
+          lineStyle: { type: "dashed", color: "#6c757d", width: 1 }, itemStyle: { color: "#6c757d" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

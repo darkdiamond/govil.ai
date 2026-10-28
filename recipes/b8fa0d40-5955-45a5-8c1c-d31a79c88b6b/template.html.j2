@@ -1,0 +1,506 @@
+<h1>וועדת העזבונות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.requests.tone }} mb-1" dir="ltr">{{ model.kpis.requests.display }}</div>
+    <div class="text-sm text-subtle">בקשות לוועדה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.institutions.tone }} mb-1" dir="ltr">{{ model.kpis.institutions.display }}</div>
+    <div class="text-sm text-subtle">מוסדות מבקשים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rate.tone }} mb-1" dir="ltr">{{ model.kpis.rate.display }}</div>
+    <div class="text-sm text-subtle">מהבקשות שהוכרעו אושרו</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_rate.tone }} mb-1" dir="ltr">{{ model.kpis.last_rate.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_rate_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.approved.tone }} mb-1" dir="ltr">{{ model.kpis.approved.display }}</div>
+    <div class="text-sm text-subtle">אושרו לתשלום (מיליון ₪)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.requested.tone }} mb-1" dir="ltr">{{ model.kpis.requested.display }}</div>
+    <div class="text-sm text-subtle">הסכום השנתי שהתבקש (מיליון ₪)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.granted.tone }} mb-1" dir="ltr">{{ model.kpis.granted.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.granted_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_grant.tone }} mb-1" dir="ltr">{{ model.kpis.median_grant.display }}</div>
+    <div class="text-sm text-subtle">המענק החציוני שאושר (₪)</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות ואישורים לפי שנת תמיכה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.year_note }}</p>
+  <div id="chart-year" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.year_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.year_caption }}</caption>
+        <thead><tr><th scope="col">שנת תמיכה</th><th scope="col">בקשות</th><th scope="col">אושרו</th><th scope="col">נדחו</th><th scope="col">שיעור אישור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.year %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td><td>{{ r.ok }}</td><td>{{ r.rej }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה התבקש וכמה אושר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.money_note }}</p>
+  <div id="chart-money" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.money_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.money_caption }}</caption>
+        <thead><tr><th scope="col">שנת תמיכה</th><th scope="col">התבקש (מיליוני ₪)</th><th scope="col">אושר (מיליוני ₪)</th><th scope="col">שיעור מאושר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.money %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.req }}</td><td>{{ r.appr }}</td><td>{{ r.granted }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המענקים שאושרו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grants_note }}</p>
+  <div id="chart-grants" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.grants_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.grants_caption }}</caption>
+        <thead><tr><th scope="col">טווח</th><th scope="col">מענקים</th><th scope="col">שיעור מהמענקים</th><th scope="col">שיעור מהכסף</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.grants %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.count }}</td><td>{{ r.count_share }}</td><td>{{ r.sum_share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">האם בקשה גדולה נדחית יותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ask_note }}</p>
+  <div id="chart-ask" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.ask_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ask_caption }}</caption>
+        <thead><tr><th scope="col">סכום מבוקש לשנה</th><th scope="col">הוכרעו</th><th scope="col">אושרו</th><th scope="col">שיעור אישור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ask %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.done }}</td><td>{{ r.ok }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מבקש ומי מקבל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג גוף</th><th scope="col">בקשות</th><th scope="col">שיעור אישור</th><th scope="col">אושר (מיליוני ₪)</th><th scope="col">שיעור מהכסף</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.rate }}</td><td>{{ r.appr }}</td><td>{{ r.appr_share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המוסדות שקיבלו הכי הרבה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recipients_note }}</p>
+  <div id="chart-recipients" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.recipients_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.recipients_caption }}</caption>
+        <thead><tr><th scope="col">מוסד</th><th scope="col">אושר (מיליוני ₪)</th><th scope="col">בקשות שאושרו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.recipients %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.appr }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המבקשים הקבועים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.applicants_note }}</p>
+  <div id="chart-applicants" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.applicants_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.applicants_caption }}</caption>
+        <thead><tr><th scope="col">מוסד</th><th scope="col">בקשות</th><th scope="col">אושרו</th><th scope="col">נדחו</th><th scope="col">שנות תמיכה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.applicants %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.ok }}</td><td>{{ r.rej }}</td><td>{{ r.years }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מבקשים חדשים מול חוזרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.returning_note }}</p>
+  <div id="chart-returning" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.returning_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.returning_caption }}</caption>
+        <thead><tr><th scope="col">שנת תמיכה</th><th scope="col">חדשים</th><th scope="col">חוזרים</th><th scope="col">אישור לחדשים</th><th scope="col">אישור לחוזרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.returning %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.first }}</td><td>{{ r.ret }}</td><td>{{ r.first_rate }}</td><td>{{ r.ret_rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הפרויקט: מספר המשתתפים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.parts_note }}</p>
+  <div id="chart-parts" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.parts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.parts_caption }}</caption>
+        <thead><tr><th scope="col">משתתפים</th><th scope="col">הוכרעו</th><th scope="col">שיעור אישור</th><th scope="col">אושר (מיליוני ₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.parts %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.done }}</td><td>{{ r.rate }}</td><td>{{ r.appr }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מאפייני הפרויקט ושיעור האישור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.features_note }}</p>
+  <div id="chart-features" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.features_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.features_caption }}</caption>
+        <thead><tr><th scope="col">מאפיין</th><th scope="col">הוכרעו</th><th scope="col">שיעור אישור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.features %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.done }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן מחכים להחלטה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_note }}</p>
+  <div id="chart-lag" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lag_caption }}</caption>
+        <thead><tr><th scope="col">שנת תמיכה</th><th scope="col">רבעון תחתון (ימים)</th><th scope="col">חציון (ימים)</th><th scope="col">רבעון עליון (ימים)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lag %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.p25 }}</td><td>{{ r.p50 }}</td><td>{{ r.p75 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+</section>
+
+<script>
+  (function () {
+    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var P = function (v) { return v === null || v === undefined ? "—" : v + "%"; };
+    var y = {{ model.charts.year | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-year"));
+    var ys = [
+      { type: "bar", stack: "s", name: "אושרו", data: y.ok },
+      { type: "bar", stack: "s", name: "נדחו", data: y.rej, color: "#c3cfe7" }
+    ];
+    if (y.has_other) { ys.push({ type: "bar", stack: "s", name: "ללא החלטה סופית", data: y.other, color: "#9a6700" }); }
+    ys.push({ type: "line", name: "שיעור אישור", yAxisIndex: 1, data: y.rate, color: "#0b3668",
+              tooltip: { valueFormatter: P } });
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: [{ type: "value", name: "בקשות" },
+              { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false } }],
+      series: ys
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var m = {{ model.charts.money | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-money"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: [{ type: "value", name: "מיליוני ₪" },
+              { type: "value", name: "%", min: 0, splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "התבקש", data: m.req, color: "#c3cfe7", tooltip: { valueFormatter: M } },
+        { type: "bar", name: "אושר", data: m.appr, tooltip: { valueFormatter: M } },
+        { type: "line", name: "שיעור מאושר", yAxisIndex: 1, data: m.granted, color: "#0b3668",
+          tooltip: { valueFormatter: P } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = function (v) { return v === null || v === undefined ? "—" : v + "%"; };
+    var g = {{ model.charts.grants | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-grants"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: P },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "%", splitNumber: 3 },
+      yAxis: { type: "category", data: g.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "שיעור מהמענקים", data: g.count },
+        { type: "bar", name: "שיעור מהכסף", data: g.sum, color: "#0b3668" }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    function combo(id, d, barName) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 35, fontSize: 11 } },
+        yAxis: [{ type: "value", name: "בקשות" },
+                { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false } }],
+        series: [
+          { type: "bar", name: barName, data: d.done, color: "#c3cfe7" },
+          { type: "line", name: "שיעור אישור", yAxisIndex: 1, data: d.rate, color: "#0068f5",
+            tooltip: { valueFormatter: P } }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    combo("chart-ask", {{ model.charts.ask | tojson }}, "בקשות שהוכרעו");
+    combo("chart-parts", {{ model.charts.parts | tojson }}, "בקשות שהוכרעו");
+
+    var f = {{ model.charts.features | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-features"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: P },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "%", min: 0, max: 100, interval: 25 },
+      yAxis: { type: "category", data: f.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שיעור אישור", data: f.rate }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var P = function (v) { return v === null || v === undefined ? "—" : v + "%"; };
+    var t = {{ model.charts.types | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-types"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: P },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "%", splitNumber: 3 },
+      yAxis: { type: "category", data: t.names, inverse: true, axisLabel: { width: 130, overflow: "break" } },
+      series: [
+        { type: "bar", name: "שיעור מהבקשות", data: t.n_share, color: "#c3cfe7" },
+        { type: "bar", name: "שיעור מהכסף שאושר", data: t.appr_share }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var r = {{ model.charts.recipients | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-recipients"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: M },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: r.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מיליוני ₪", data: r.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var a = {{ model.charts.applicants | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-applicants"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1 },
+      yAxis: { type: "category", data: a.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "a", name: "אושרו", data: a.ok },
+        { type: "bar", stack: "a", name: "נדחו", data: a.rej, color: "#c3cfe7" }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var q = {{ model.charts.returning | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-returning"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: q.x },
+      yAxis: [{ type: "value", name: "בקשות" },
+              { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false } }],
+      series: [
+        { type: "bar", stack: "q", name: "מבקשים חדשים", data: q.first, color: "#c3cfe7" },
+        { type: "bar", stack: "q", name: "מבקשים חוזרים", data: q.ret, color: "#0068f5" },
+        { type: "line", name: "אישור לחדשים", yAxisIndex: 1, data: q.first_rate, color: "#9a6700",
+          tooltip: { valueFormatter: P } },
+        { type: "line", name: "אישור לחוזרים", yAxisIndex: 1, data: q.ret_rate, color: "#0b3668",
+          tooltip: { valueFormatter: P } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var D = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " ימים"; };
+    var l = {{ model.charts.lag | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-lag"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return l.x[i] + "<br>חציון: " + D(l.p50[i]) + "<br>רבעונים: " + D(l.p25[i]) + " עד " + D(l.p25[i] + l.band[i]);
+      } },
+      legend: { bottom: 0, data: ["חציון", "טווח בין הרבעונים"] },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: l.x, boundaryGap: false },
+      yAxis: { type: "value", name: "ימים", min: 0 },
+      series: [
+        { type: "line", stack: "b", name: "בסיס", data: l.p25, symbol: "none",
+          lineStyle: { opacity: 0 }, silent: true },
+        { type: "line", stack: "b", name: "טווח בין הרבעונים", data: l.band, symbol: "none",
+          lineStyle: { opacity: 0 }, areaStyle: { color: "rgba(0,104,245,0.18)" }, color: "#9fc3fb" },
+        { type: "line", name: "חציון", data: l.p50, color: "#0b3668", symbolSize: 6 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+  })();
+</script>

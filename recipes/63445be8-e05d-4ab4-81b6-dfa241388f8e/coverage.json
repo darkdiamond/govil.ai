@@ -1,0 +1,14 @@
+{
+  "experts.district": "chart-districts, kpi:national, insight:national, insight:thin — multi-valued; 'ארצי' (national) shown as its own column",
+  "experts.employer": "chart-inst, insight:inst — institutes/centres are organisations; a value that is a language name (a shifted row) is ignored",
+  "experts.expert": "kpi:experts — used only to drop broken continuation rows and to count an expert listed at several addresses once; no individual is named on the page",
+  "experts.adress": "skip: street address — private contact detail, kept off the page by policy",
+  "experts.authority": "chart-cities, insight:cities — multi-valued; spelling variants of the same city merged",
+  "experts.phone": "skip: phone number — private contact detail",
+  "experts.cell_phone": "skip: mobile phone number — private contact detail",
+  "experts.profession": "chart-prof, chart-districts, chart-cities, chart-topics, chart-rates, chart-opinion, insight:prof, insight:rates, insight:op_prof — typos mapped; two professions count under the first",
+  "experts.opinion": "kpi:experts — near-constant 'כן'; the share marked as giving opinions is stated in the lede",
+  "experts.payment": "chart-rates, chart-opinion, kpi:rate, kpi:opinion, insight:rates, insight:opinion, insight:op_prof — free text parsed into an hourly/session rate and an opinion fee (rule stated on the chart)",
+  "experts.notes": "chart-topics, insight:topics — keyword tagging only; the free text itself (which carries private e-mails) never reaches the page",
+  "experts.languages": "chart-langs, insight:langs — multi-valued; only tokens that are language names are counted"
+}

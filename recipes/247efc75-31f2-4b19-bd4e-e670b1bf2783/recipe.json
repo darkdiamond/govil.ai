@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "247efc75-31f2-4b19-bd4e-e670b1bf2783",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T20:12:33.045401+00:00",
+    "rows": {
+      "inventors": 158441
+    }
+  },
+  "inputs": [
+    {
+      "name": "inventors",
+      "by_id": "abd0e8c3-0b0d-4581-9166-923a3b21bdda",
+      "required_columns": [
+        "מספר בקשה",
+        "שם האמצאה בעברית",
+        "שם האמצאה באנגלית",
+        "שם ממציא בעברית",
+        "שם ממציא באנגלית",
+        "כתובת ממציא באנגלית",
+        "כתובת ממציא בעברית"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

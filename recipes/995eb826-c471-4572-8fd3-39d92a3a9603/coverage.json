@@ -1,0 +1,22 @@
+{
+  "sites.ID": "skip: internal row identifier",
+  "sites.חברה": "chart-operators, chart-gens, chart-types, map:popup-title, insight:operators, insight:g5",
+  "sites.מס' אתר": "skip: operator's internal site code, unique per row",
+  "sites.עיר": "map:popup — the jurisdiction column is used for rankings (461 clean values vs 1,137 free-form city spellings)",
+  "sites.כתובת האתר": "map:popup — antenna site location as published",
+  "sites.רשות מקומית": "skip: inconsistent spellings of the same authority (e.g. 'עירית תל אביב' / 'תל אביב -יפו'); תחום שיפוט carries the same place cleanly",
+  "sites.תחום שיפוט": "chart-juris, insight:juris",
+  "sites.X_ITM": "map-main",
+  "sites.Y_ITM": "map-main",
+  "sites.סוג אתר": "chart-types, chart-rad-type, map:popup",
+  "sites.תאריך היתר הקמה": "chart-permits",
+  "sites.תאריך היתר הפעלה": "chart-permits",
+  "sites.בדיקה תקופתית אחרונה": "chart-inspect, insight:inspected",
+  "sites.היתר קרינה": "insight:no_permit",
+  "sites.עוצמה מרבית תיאורטית בµW לסמר": "skip: the same maximum in absolute µW/cm² units; the % of the health threshold is the comparable measure and is charted",
+  "sites.תוצאה מירבית ב% ביחס לסף הבריאות": "chart-rad, chart-rad-type, kpi:median_rad, kpi:at_threshold, insight:radiation, insight:zero",
+  "sites.תאור נקודה בה התקבלה תוצאה מירבית": "skip: free-text description of the measurement point (5,069 distinct phrasings)",
+  "sites.קובץ הקמה": "skip: per-site link to the construction-permit PDF",
+  "sites.קובץ הפעלה": "skip: per-site link to the operating-permit PDF",
+  "sites.טכנולוגיית שידור": "chart-gens, kpi:g5, insight:g5, map:popup"
+}

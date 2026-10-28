@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "72662d34-ce69-4990-8504-ee0860529e7d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T18:07:56.398884+00:00",
+    "rows": {
+      "vets": 3754
+    }
+  },
+  "inputs": [
+    {
+      "name": "vets",
+      "by_id": "14339de6-278c-49ed-a6c1-307044aaee3f",
+      "required_columns": [
+        "סוג_רשיון",
+        "שם_משפחה",
+        "שם_פרטי",
+        "תאריך_רשיון",
+        "מומחיות_1",
+        "שנת_מומחיות_1",
+        "מומחיות_2",
+        "שנת_מומחיות_2",
+        "מומחיות_3",
+        "שנת_מומחיות_3"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

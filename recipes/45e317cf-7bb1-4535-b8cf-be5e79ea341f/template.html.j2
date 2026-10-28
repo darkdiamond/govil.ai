@@ -1,0 +1,502 @@
+<h1>תוצרים ודגמים של כלי רכב פרטי ומסחרי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.active_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.combos.tone }} mb-1" dir="ltr">{{ model.kpis.combos.display }}</div>
+    <div class="text-sm text-subtle">צירופי דגם ושנת ייצור בקטלוג</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.makes.tone }} mb-1" dir="ltr">{{ model.kpis.makes.display }}</div>
+    <div class="text-sm text-subtle">תוצרים עם כלי רכב פעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.elec_ref.tone }} mb-1" dir="ltr">{{ model.kpis.elec_ref.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.elec_ref_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ev_fleet.tone }} mb-1" dir="ltr">{{ model.kpis.ev_fleet.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ev_fleet_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.china_ref.tone }} mb-1" dir="ltr">{{ model.kpis.china_ref.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.china_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הצי הפעיל לפי שנת ייצור וסוג הנעה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fleet_note }}</p>
+  <div id="chart-fleet" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.fleet_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המעבר לחשמל: תמהיל ההנעה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ארץ הייצור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.origin_note }}</p>
+  <div id="chart-origin" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.origin_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התוצרים הנפוצים בצי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.makes_note }}</p>
+  <div id="chart-makes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.makes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.makes_caption }}</caption>
+      <thead><tr><th scope="col">תוצר</th><th scope="col">כלי רכב פעילים</th><th scope="col">מחושמלים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.makes %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.elec }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הדגמים הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.models_note }}</p>
+    <div id="chart-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.models_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.models_caption }}</caption>
+        <thead><tr><th scope="col">דגם</th><th scope="col">תוצר</th><th scope="col">כלי רכב פעילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.models %}
+          <tr><th scope="row" dir="ltr">{{ r.model }}</th><td>{{ r.make }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רכב חשמלי מלא לפי תוצר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ev_note }}</p>
+    <div id="chart-ev" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ev_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ev_caption }}</caption>
+        <thead><tr><th scope="col">תוצר</th><th scope="col">רכב חשמלי פעיל</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ev %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה מכל שנת ייצור עדיין על הכביש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.survival_note }}</p>
+  <div id="chart-survival" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.survival_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מערכות בטיחות לפי שנת ייצור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-[640px] md:h-[680px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+{% if model.flags.local %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התקנה מקומית מול התקנת יצרן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.local_note }}</p>
+  <div id="chart-local" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.local_aria }}"></div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.safety %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רמת האבזור הבטיחותי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.safety_note }}</p>
+    <div id="chart-safety" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.safety_aria }}"></div>
+  </section>
+{%- endif %}
+{%- if model.flags.zihum %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצת הזיהום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.zihum_note }}</p>
+    <div id="chart-zihum" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.zihum_aria }}"></div>
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פליטת CO₂</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.co2_note }}</p>
+    <div id="chart-co2" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.co2_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תחמוצות חנקן: בנזין מול דיזל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nox_note }}</p>
+    <div id="chart-nox" {% if not model.flags.nox_table %}data-fallback="explorer" {% endif %}class="h-72 md:h-96" role="img" aria-label="{{ model.labels.nox_aria }}"></div>
+{%- if model.flags.nox_table %}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.nox_caption }}</caption>
+        <thead><tr><th scope="col">שנת ייצור</th><th scope="col">בנזין</th><th scope="col">דיזל</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.nox %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.p }}</td><td>{{ r.d }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+{%- endif %}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גדולים, חזקים וכבדים יותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.specs_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">כוח סוס</h3>
+      <div id="chart-spec-hp" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.spec_hp_aria }}"></div>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">משקל כולל (ק״ג)</h3>
+      <div id="chart-spec-weight" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.spec_weight_aria }}"></div>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">נפח מנוע (סמ״ק)</h3>
+      <div id="chart-spec-cc" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.spec_cc_aria }}"></div>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">כריות אוויר</h3>
+      <div id="chart-spec-airbags" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.spec_airbags_aria }}"></div>
+    </div>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג המרכב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.body_note }}</p>
+    <div id="chart-body" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.body_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.body_caption }}</caption>
+        <thead><tr><th scope="col">מרכב</th><th scope="col">כלי רכב פעילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.body %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עליית רכבי הפנאי-שטח</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור רכבי הפנאי-שטח ושיעור ההנעה 4X4 מבין כלי הרכב הפעילים מכל שנת ייצור.</p>
+    <div id="chart-body-trend" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.body_trend_aria }}"></div>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אבזור נוחות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comfort_note }}</p>
+    <div id="chart-comfort" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.comfort_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצת האגרה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.agra_note }}</p>
+    <div id="chart-agra" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.agra_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.agra_caption }}</caption>
+        <thead><tr><th scope="col">קבוצה</th><th scope="col">כלל הצי</th><th scope="col">{{ model.labels.agra_ref }}</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.agra %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.all }}</td><td dir="ltr">{{ r.ref }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var f = {{ model.charts.fleet_year | tojson }};
+    var c = echarts.init(document.getElementById("chart-fleet"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL"); } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value", name: "כלי רכב" },
+      series: f.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stack100(id, d, kind) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 40, right: 16, top: 24, bottom: 96, containLabel: true },
+        xAxis: { type: "category", data: d.x, boundaryGap: kind === "bar" },
+        yAxis: { type: "value", max: 100, name: "%" },
+        series: d.series.map(function (s) {
+          var o = { type: kind, stack: "t", name: s.name, data: s.data, showSymbol: false };
+          if (kind === "line") { o.areaStyle = {}; o.lineStyle = { width: 1 }; }
+          return o;
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stack100("chart-mix", {{ model.charts.mix | tojson }}, "line");
+    stack100("chart-origin", {{ model.charts.origin | tojson }}, "bar");
+{%- if model.flags.safety %}
+    stack100("chart-safety", {{ model.charts.safety | tojson }}, "bar");
+{%- endif %}
+{%- if model.flags.zihum %}
+    stack100("chart-zihum", {{ model.charts.zihum | tojson }}, "bar");
+{%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.makes | tojson }};
+    var c = echarts.init(document.getElementById("chart-makes"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL"); } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: m.names, inverse: true, axisLabel: { interval: 0 } },
+      series: m.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    function hbar(id, d) {
+      var h = echarts.init(document.getElementById(id));
+      h.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL"); } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+        series: [{ type: "bar", name: "כלי רכב פעילים", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { h.resize(); });
+    }
+    hbar("chart-models", {{ model.charts.models | tojson }});
+    hbar("chart-ev", {{ model.charts.ev | tojson }});
+    hbar("chart-body", {{ model.charts.body | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.survival | tojson }};
+    var c = echarts.init(document.getElementById("chart-survival"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 48, top: 32, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: s.x },
+      yAxis: [
+        { type: "value", name: "% פעילים", max: 100 },
+        { type: "value", name: "לא פעילים", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "כלי רכב שאינם פעילים", yAxisIndex: 1, data: s.inactive, itemStyle: { color: "#c3cfe7" },
+          tooltip: { valueFormatter: function (v) { return v.toLocaleString("he-IL"); } } },
+        { type: "line", name: "% עדיין פעילים", data: s.share, showSymbol: false, lineStyle: { width: 3 },
+          tooltip: { valueFormatter: function (v) { return v === null ? "—" : v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "%";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { width: 150, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: 100, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#f0f4fa", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function lines(id, d, unit, yname, scale) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + unit; } },
+        legend: { bottom: 0 },
+        grid: { left: 40, right: 16, top: 32, bottom: 88, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", name: yname, scale: scale },
+        series: d.series.map(function (s) { return { type: "line", name: s.name, data: s.data, showSymbol: false, connectNulls: false }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+{%- if model.flags.local %}
+    lines("chart-local", {{ model.charts.local | tojson }}, "%", "% מקומי", false);
+{%- endif %}
+    lines("chart-co2", {{ model.charts.co2 | tojson }}, "", "גרם לק״מ", true);
+    var n = {{ model.charts.nox | tojson }};
+    lines("chart-nox", { x: n.x, series: [{ name: "בנזין", data: n.p }, { name: "דיזל", data: n.d }] }, "", "מ״ג לק״מ", false);
+    lines("chart-comfort", {{ model.charts.comfort | tojson }}, "%", "%", false);
+    var b = {{ model.charts.body_trend | tojson }};
+    lines("chart-body-trend", { x: b.x, series: [{ name: "פנאי-שטח", data: b.suv }, { name: "הנעה 4X4", data: b.awd }] }, "%", "%", false);
+    var sp = {{ model.charts.specs | tojson }};
+    sp.series.forEach(function (s) {
+      var c = echarts.init(document.getElementById("chart-spec-" + s.key));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v.toLocaleString("he-IL"); } },
+        grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+        xAxis: { type: "category", data: sp.x },
+        yAxis: { type: "value", scale: true },
+        series: [{ type: "line", name: s.name, data: s.data, showSymbol: false, lineStyle: { width: 3 } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var a = {{ model.charts.agra | tojson }};
+    var c = echarts.init(document.getElementById("chart-agra"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: a.names },
+      yAxis: { type: "value", name: "%" },
+      series: [
+        { type: "bar", name: "כלל הצי", data: a.all },
+        { type: "bar", name: {{ model.labels.agra_ref | tojson }}, data: a.ref }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

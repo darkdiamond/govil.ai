@@ -1,0 +1,389 @@
+<h1>נתוני החוב הממשלתי המקומי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="mt-2 mb-0 text-sm text-subtle">{{ model.labels.units_note }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.issuance_ytd.tone }} mb-1" dir="ltr">{{ model.kpis.issuance_ytd.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.issuance_ytd_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_auction.tone }} mb-1" dir="ltr">{{ model.kpis.last_auction.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_auction_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.next12.tone }} mb-1" dir="ltr">{{ model.kpis.next12.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.next12_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.trading12.tone }} mb-1" dir="ltr">{{ model.kpis.trading12.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.trading12_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גיוס במכרזי אג״ח סחירות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">סך המימון שגויס בכל שנה לפי סוג האג״ח, במיליארדי ₪.</p>
+  <div id="chart-issuance" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.issuance_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.issuance_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in model.tables.issuance_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.issuance %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לכמה זמן לווים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הגיוס לפי התקופה המקורית עד לפדיון, במיליארדי ₪.</p>
+    <div id="chart-term" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.term_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.term_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for c in model.tables.term_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.term %}
+          <tr><th scope="row">{{ r.year }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הביקוש במכרזים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">יחס הכיסוי: היקף ההצעות שהוגשו חלקי הכמות שהוצעה, לפי חודש.</p>
+    <div id="chart-cover" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cover_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">יחס כיסוי שנתי במכרזי ההנפקה.</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">יחס כיסוי</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cover %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.ratio }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התשואה במכרזים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">תשואה ברוטו ממוצעת, משוקללת לפי הכמות שנמכרה, בכל חודש ולפי סוג אג״ח. באג״ח הצמודות — תשואה ריאלית.</p>
+  <div id="chart-yields" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yields_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פדיונות לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">קרן שנפרעה או שצפויה להיפרע, במיליארדי ₪. {{ model.labels.forecast_note }}</p>
+  <div id="chart-redemptions" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.redemptions_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מה צפוי להיפרע</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">פדיונות התחזית לפי סדרת אג״ח, במיליארדי ₪.</p>
+    <div id="chart-upcoming" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.upcoming_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.upcoming_aria }}</caption>
+        <thead><tr><th scope="col">סדרה</th><th scope="col">פדיונות צפויים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.upcoming %}
+          <tr><th scope="row">{{ r.bond }}</th><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פדיונות לפי הצמדה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">השנים האחרונות ושנות התחזית, במיליארדי ₪.</p>
+    <div id="chart-linkage" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.linkage_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.linkage_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for c in model.tables.linkage_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.linkage %}
+          <tr><th scope="row">{{ r.year }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מכרזי החלף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הממשלה רוכשת אג״ח קיימות (בדרך כלל קצרות) ומנפיקה במקומן אחרות. מיליארדי ₪ לפי שנה.</p>
+    <div id="chart-switch" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.switch_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.switch_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">נרכשו</th><th scope="col">הונפקו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.switch %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.bought }}</td><td>{{ r.issued }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רכישות חוזרות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">אג״ח שהממשלה רכשה בחזרה במכרזים הפוכים, במיליארדי ₪ לפי שנה.</p>
+    <div id="chart-buyback" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.buyback_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.buyback_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">היקף</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.buyback %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המסחר לפי זירה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מחזור המסחר השנתי באג״ח ממשלתיות, במיליארדי ₪. {{ model.labels.venue_note }}</p>
+    <div id="chart-venue" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.venue_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.venue_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">בורסה</th><th scope="col">מחוץ לבורסה</th><th scope="col">MTS</th><th scope="col">ממוצע יומי</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.venue %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.tase }}</td><td>{{ r.otc }}</td><td>{{ r.mts }}</td><td>{{ r.avg }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המסחר לפי סוג אג״ח</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">חלקו של כל סוג אג״ח במחזור השנתי, כולל הסדרות הוותיקות (שחר, גליל, גילון, גלבוע).</p>
+    <div id="chart-trade-type" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.trade_type_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.trade_type_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for c in model.tables.trade_type_cols %}<th scope="col">{{ c }} (%)</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.trade_type %}
+          <tr><th scope="row">{{ r.year }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אג״ח לא סחירות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nontradable_note }} מיליארדי ₪ לפי שנה.</p>
+  <div id="chart-nontradable" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.nontradable_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nontradable_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">היקף</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nontradable %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    function stacked(id, d, extra) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: bnFmt },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", name: "מיליארד ₪" },
+        series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      }, extra || {})));
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    stacked("chart-issuance", {{ model.charts.issuance | tojson }});
+    stacked("chart-term", {{ model.charts.term | tojson }});
+    stacked("chart-linkage", {{ model.charts.linkage | tojson }});
+    stacked("chart-venue", {{ model.charts.venue | tojson }});
+
+    var rd = {{ model.charts.redemptions | tojson }};
+    stacked("chart-redemptions", rd, {
+      dataZoom: [{ type: "inside" }],
+      series: rd.series.map(function (s, k) {
+        var ser = { type: "bar", stack: "t", name: s.name, data: s.data };
+        if (k === 0 && rd.forecast_from !== null) {
+          ser.markArea = { silent: true, itemStyle: { color: "rgba(108,117,125,0.08)" },
+            data: [[{ xAxis: String(rd.forecast_from + 1) }, { xAxis: rd.x[rd.x.length - 1] }]] };
+        }
+        return ser;
+      })
+    });
+
+    var tt = {{ model.charts.trade_type | tojson }};
+    stacked("chart-trade-type", tt, {
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      yAxis: { type: "value", name: "%", max: 100 }
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    var y = {{ model.charts.yields | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-yields"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "%", scale: true },
+      series: y.series.map(function (s) { return { type: "line", name: s.name, data: s.data, connectNulls: true }; })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var cv = {{ model.charts.cover | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-cover"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: cv.x },
+      yAxis: { type: "value", scale: true },
+      series: [{ type: "line", name: "יחס כיסוי", data: cv.y,
+                 markLine: { silent: true, symbol: "none", data: [{ yAxis: 1 }], lineStyle: { color: "#6c757d" } } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    function hbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: bnFmt },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", name: "מיליארד ₪" },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-upcoming", {{ model.charts.upcoming | tojson }});
+
+    var sw = {{ model.charts.switch | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-switch"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: bnFmt },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: sw.x },
+      yAxis: { type: "value", name: "מיליארד ₪" },
+      series: [{ type: "bar", name: "נרכשו", data: sw.bought }, { type: "bar", name: "הונפקו", data: sw.issued }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    function bars(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: bnFmt },
+        grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", name: "מיליארד ₪" },
+        series: [{ type: "bar", name: name, data: d.y }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-buyback", {{ model.charts.buyback | tojson }}, "רכישות חוזרות");
+    bars("chart-nontradable", {{ model.charts.nontradable | tojson }}, "הנפקות לא סחירות");
+  })();
+</script>

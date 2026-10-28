@@ -1,0 +1,11 @@
+{
+  "hydrants.lat": "map-main, chart-density, chart-lat, chart-nn, chart-pmap, kpi:total, kpi:cells, insight:density, insight:concentration, insight:band, insight:spacing, insight:pressure-geo",
+  "hydrants.lon": "map-main, chart-density, chart-lon, chart-nn, chart-pmap, kpi:total, insight:density, insight:concentration, insight:spacing, insight:pressure-geo",
+  "hydrants.WorkPressu": "chart-pressure, chart-pmap, chart-quality, kpi:pressure-share, insight:pressure, insight:pressure-geo — 0 means not recorded; units are not stated in the dataset",
+  "hydrants.HouseNum": "chart-quality, insight:gaps — 0 means no house number",
+  "hydrants.InstallDat": "chart-quality, insight:gaps — empty in every row today",
+  "hydrants.last_edite": "chart-quality, insight:gaps — empty in every row today",
+  "resource:502b2542-21bb-414f-92b1-53eeb8257477": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:555e6cbf-f0ae-4a73-8d57-671a609d1ad6": "skip: the same hydrants in ITM coordinates (projection twin)",
+  "resource:029308f8-c893-4fce-a51e-226cfe0b39c4": "skip: XLSX twin of the ITM file"
+}

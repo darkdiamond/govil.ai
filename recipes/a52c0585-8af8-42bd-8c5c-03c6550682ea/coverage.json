@@ -1,0 +1,20 @@
+{
+  "general.מספר תיק": "chart-coverage, chart-funding, chart-funding-re, chart-top, chart-reports, insight:orphans, insight:re_link, insight:stale — the join key across the three files; the number itself is never printed",
+  "general.תאריך רישום": "chart-years, kpi:new_full, insight:peaks, insight:trend — also defines 'now' (latest registration)",
+  "general.שם הקדש": "chart-top, chart-re-top, chart-themes, insight:memorial, insight:concentration — endowments are registered entities and are named",
+  "general.מטרות": "chart-themes, chart-institutions, insight:themes — keyword classification of the free text",
+  "general.שיטת מימון": "chart-funding, chart-funding-re, insight:funding, insight:re_link",
+  "general.סטטווס תיק": "chart-coverage — constant 'פעיל' today; the coverage note quotes the split so a new status would surface",
+  "realestate.מספר תיק": "chart-coverage, chart-re-top, chart-funding-re, insight:re_link, insight:orphans",
+  "realestate.שם הקדש": "chart-re-top — fallback name for files not in the register",
+  "realestate.תאור הנכס": "chart-re-types, insight:registry_note",
+  "realestate.גוש": "chart-re-types — completeness only (block+parcel present); parcel numbers are never printed",
+  "realestate.חלקה": "chart-re-types — completeness only",
+  "realestate.תת חלקה": "chart-re-types — completeness only",
+  "realestate.הערה במרשם המקרקעין": "chart-re-types, chart-re-top, kpi:note_share, insight:registry_note",
+  "balances.מספר תיק": "chart-coverage, chart-reports, chart-bal-dist, insight:orphans, insight:stale",
+  "balances.שם הקדש": "skip: duplicates general.שם הקדש for files in the register; balance-only files are not named",
+  "balances.תאור מטבע": "chart-currencies, chart-bal-dist — only ש״ח lines are summed",
+  "balances.סכום": "chart-bal-dist, chart-top, chart-concentration, kpi:balance, kpi:median, insight:concentration, insight:median",
+  "balances.נכון לתאריך": "chart-reports, chart-top, kpi:current, insight:stale, insight:orphans — dates after the latest registration are treated as invalid"
+}

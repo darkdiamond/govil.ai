@@ -1,0 +1,393 @@
+<h1>אזורי עדיפות לאומית ואזורי פיתוח</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["localities", "class_a", "nap", "gaza", "upgraded", "downgraded", "split", "history"] %}
+{%- if key in model.kpis %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["k_" ~ key] }}</div>
+  </div>
+{%- endif %}
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% if model.flags.history %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת אזורי הפיתוח לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }}</p>
+  <div id="chart-history" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.history_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.history_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in model.labels.class_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.history %}
+        <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.waves %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גלי ההחלטות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.waves_note }}</p>
+    <div id="chart-waves" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.waves_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.waves_caption }}</caption>
+        <thead><tr><th scope="col">מועד</th>{% for c in model.labels.class_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סך הכול</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.waves %}
+          <tr><th scope="row">{{ r.date }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.decree %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מעברי דרגה במפה הנוכחית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trans_note }}</p>
+    <div id="chart-trans" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.trans_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.trans_caption }}</caption>
+        <thead><tr><th scope="col">קודם \ היום</th>{% for c in model.tables.trans_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.trans %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צירופי דרגות ליישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.profile_note }}</p>
+    <div id="chart-profile" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.profile_caption }}</caption>
+        <thead><tr><th scope="col">צירוף</th><th scope="col">יישובים ואזורים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.profile %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דרגה לפי סוג תוכנית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">דרגה</th>{% for c in model.tables.status_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אזורי הפיתוח לפי נפה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sub_note }}</p>
+  <div id="chart-sub" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.sub_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sub_caption }}</caption>
+      <thead><tr><th scope="col">נפה</th>{% for c in model.labels.class_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sub %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.flags.nap %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עדיפות לאומית לפי נפה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nap_sub_note }}</p>
+    <div id="chart-nap-sub" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.nap_sub_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.nap_sub_caption }}</caption>
+        <thead><tr><th scope="col">נפה</th><th scope="col">יישובים ואזורים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.nap_sub %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כניסה למפת העדיפות הלאומית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nap_dates_note }}</p>
+    <div id="chart-nap-dates" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.nap_dates_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.nap_dates_caption }}</caption>
+        <thead><tr><th scope="col">מועד</th><th scope="col">רשומות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.nap_dates %}
+          <tr><th scope="row">{{ r.date }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עדיפות לאומית מול אזורי פיתוח</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.overlap_note }}</p>
+    <div id="chart-overlap" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.overlap_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.overlap_caption }}</caption>
+        <thead><tr><th scope="col">דרגה במפת אזורי הפיתוח</th><th scope="col">יישובים ואזורים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.overlap %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מכל דרגה בעדיפות לאומית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rev_note }}</p>
+    <div id="chart-rev" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rev_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rev_caption }}</caption>
+        <thead><tr><th scope="col">דרגה</th><th scope="col">גם בעדיפות לאומית</th><th scope="col">לא בעדיפות לאומית</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rev %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.inn }}</td><td>{{ r.out }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים ואזורי תעשייה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_note }}</p>
+  <div id="chart-kinds" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kinds_caption }}</caption>
+      <thead><tr><th scope="col">מסגרת</th><th scope="col">יישובים</th><th scope="col">אזורי תעשייה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kinds %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.loc }}</td><td>{{ r.ind }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      opt.color = window.GOVIL_PALETTE;
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var h = {{ model.charts.history | tojson }};
+    mk("chart-history", {
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: h.x, boundaryGap: false },
+      yAxis: { type: "value", name: "יישובים ואזורים" },
+      dataZoom: [{ type: "inside" }],
+      series: h.series.map(function (s) {
+        return { type: "line", stack: "all", name: s.name, data: s.data, areaStyle: {}, showSymbol: false };
+      })
+    });
+    var w = {{ model.charts.waves | tojson }};
+    var we = document.getElementById("chart-waves");
+    var narrow = we && we.clientWidth < 520;
+    mk("chart-waves", {
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: w.x, axisLabel: { interval: 0, rotate: narrow ? 45 : 0 } },
+      yAxis: { type: "value", name: "סיווגים" },
+      series: w.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.trans | tojson }};
+    var el = document.getElementById("chart-trans");
+    if (!t || !el) return;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return "קודם: " + t.labels[p.value[1]] + " · היום: " + t.labels[p.value[0]] + " — " + p.value[2].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 32, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: t.labels, position: "top", splitArea: { show: true } },
+      yAxis: { type: "category", data: t.labels, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: t.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: t.cells, label: { show: true, fontFamily: "Rubik" },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      opt.color = window.GOVIL_PALETTE;
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function hbar(id, d, unit) {
+      mk(id, {
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 32, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 170, overflow: "break" } },
+        series: [{ type: "bar", name: unit, data: d.values, label: { show: true, position: "right" } }]
+      });
+    }
+    function hstack(id, d) {
+      mk(id, {
+        tooltip: { trigger: "axis" },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4 },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+      });
+    }
+    hbar("chart-profile", {{ model.charts.profile | tojson }}, "יישובים ואזורים");
+    var s = {{ model.charts.status | tojson }};
+    mk("chart-status", {
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: s.x },
+      yAxis: { type: "value", name: "סיווגים" },
+      series: s.series.map(function (x) { return { type: "bar", stack: "all", name: x.name, data: x.data }; })
+    });
+    hstack("chart-sub", {{ model.charts.sub | tojson }});
+    hbar("chart-nap-sub", {{ model.charts.nap_sub | tojson }}, "יישובים ואזורים");
+    var nd = {{ model.charts.nap_dates | tojson }};
+    mk("chart-nap-dates", {
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: nd.names },
+      yAxis: { type: "value", name: "רשומות" },
+      series: [{ type: "bar", name: "רשומות", data: nd.values, label: { show: true, position: "top" } }]
+    });
+    hbar("chart-overlap", {{ model.charts.overlap | tojson }}, "יישובים ואזורים");
+    hstack("chart-rev", {{ model.charts.rev | tojson }});
+    hstack("chart-kinds", {{ model.charts.kinds | tojson }});
+  })();
+</script>

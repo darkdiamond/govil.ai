@@ -1,0 +1,8 @@
+{
+  "main.LightNumbe": "chart-radial, chart-sizes, chart-numbers, chart-span, kpi:numbered, kpi:heads, insight:numbered, insight:heads, insight:distance, insight:gaps, insight:mixed — junction number printed on the signal; blank for about a quarter of rows",
+  "main.lat": "map-main, chart-grid, chart-radial, chart-sizes, chart-spacing, chart-span, kpi:junctions, kpi:spacing, insight:spacing, insight:grid, insight:distance, insight:footprint",
+  "main.lon": "map-main, chart-grid, chart-radial, chart-sizes, chart-spacing, chart-span, kpi:junctions, kpi:spacing, insight:spacing, insight:grid, insight:distance, insight:footprint",
+  "resource:dd326864-d2c1-430b-a7a0-b1d87d928ff8": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:7b3b5fb3-3677-4bf8-91be-0c18197cf35a": "skip: same points as the CSV, with lat/lon columns holding ITM coordinates",
+  "resource:700e9bca-2790-4399-8d22-a5781542d34b": "skip: XLSX twin of the ITM file"
+}

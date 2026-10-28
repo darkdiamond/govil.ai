@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "01aeaf5c-59a2-4ddc-a616-31b85621bfe2",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T20:12:28.701835+00:00",
+    "rows": { "main": 1115 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "6f3f0df3-5968-4135-81c5-8dd76bf89410",
+      "required_columns": [
+        "מספר חברה",
+        "שם חברה",
+        "שם באנגלית",
+        "סטטוס חברה",
+        "תת סטטוס",
+        "אישור בקשת הפירוק",
+        "מועד החיסול הצפוי",
+        "מפרה",
+        "שם עיר",
+        "שם רחוב",
+        "אצל"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

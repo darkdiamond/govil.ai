@@ -1,0 +1,7 @@
+{
+  "register.שם-משפחה": "chart-surnames, insight:surname — aggregate counts only, no individual named",
+  "register.שם-פרטי": "chart-firsts — aggregate counts only, no individual named",
+  "register.מספר רישום": "insight:numbers — only the highest number vs. row count; individual registration numbers never shown",
+  "register.תאריך רישום": "chart-years, chart-cumulative, chart-season, chart-heat, chart-dow, chart-seniority, chart-cityshift, kpi:new, kpi:median, insight:peak, insight:growth, insight:ytd, insight:season, insight:dow, insight:seniority, insight:busiest, insight:shift",
+  "register.ישוב מגורים": "chart-cities, chart-cityshift, kpi:cities, insight:cities, insight:shift, insight:unknown — spelling variants folded on a normalized key"
+}

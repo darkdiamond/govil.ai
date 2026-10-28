@@ -1,0 +1,13 @@
+{
+  "main.מחוז": "chart-district, chart-sw, chart-heat, chart-hist, chart-scatter, insight:district — districts flow through unchanged; ordered by size",
+  "main.רשות": "chart-auth-top, chart-auth-low, chart-hist, chart-scatter, chart-types, kpi:authorities, insight:concentration, insight:low_auth, insight:biggest, insight:types — authority type derived from the name prefix (ע. / מ.מ / מ.א)",
+  "main.סיווג מקצועי": "skip: numeric code of the standard type; 1:1 with שם תקן, which the page uses",
+  "main.שם תקן": "chart-roles, chart-role-low, chart-heat, kpi:roles, insight:role_gaps",
+  "main.מספר תקנים": "chart-district, chart-types, chart-roles, chart-auth-top, chart-scatter, chart-status, kpi:total, insight:overall",
+  "main.תקן מאויש": "chart-district, chart-roles, chart-role-low, chart-auth-low, chart-hist, chart-scatter, chart-status, kpi:filled, kpi:rate, insight:district",
+  "main.פנוי": "chart-district, chart-roles, chart-auth-top, kpi:vacant, insight:concentration",
+  "main.אחוז  מאוישים": "skip: derived per-row ratio (מאויש / תקנים, rounded to two decimals); every rate on the page is recomputed from the summed FTEs instead",
+  "main.מתוכם עוס": "chart-sw, kpi:sw_share, insight:sw",
+  "main.עוסים מתוך המאויישים": "chart-sw, kpi:sw_rate, insight:sw",
+  "main.תקני עוסים מאוייש באחוזים": "skip: derived per-row ratio (עו\"ס מאוישים / תקני עו\"ס); recomputed from the summed FTEs"
+}

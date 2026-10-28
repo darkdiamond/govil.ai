@@ -1,0 +1,301 @@
+<h1>מכשירים אוטומטיים – כספומטים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.atms.tone }} mb-1" dir="ltr">{{ model.kpis.atms.display }}</div>
+    <div class="text-sm text-subtle">כספומטים במרשם</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.banks.tone }} mb-1" dir="ltr">{{ model.kpis.banks.display }}</div>
+    <div class="text-sm text-subtle">בנקים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.deposit.tone }} mb-1" dir="ltr">{{ model.kpis.deposit.display }}</div>
+    <div class="text-sm text-subtle">מאפשרים הפקדת מזומן</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת הכספומטים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כספומטים לפי בנק</h2>
+    </div>
+    <div id="chart-banks" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.banks_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.banks_aria }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">מכשירים</th><th scope="col">יישובים</th><th scope="col">לא צמודים לסניף (%)</th><th scope="col">גובים עמלה (%)</th><th scope="col">לא נגישים (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.banks %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.cities }}</td><td>{{ r.off }}</td><td>{{ r.comm }}</td><td>{{ r.acc_no }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים עם הכי הרבה כספומטים</h2>
+    </div>
+    <div id="chart-cities" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_aria }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">מכשירים</th><th scope="col">שירות מלא (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.full }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אילו שירותים מציעים המכשירים</h2>
+    </div>
+    <div id="chart-services" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.services_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.services_aria }}</caption>
+        <thead><tr><th scope="col">שירות</th><th scope="col">מכשירים</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.services %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן ממוקם המכשיר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מיקום המכשיר ביחס לסניף הבנק, בכל בנק.</p>
+    <div id="chart-location" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.location_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.location_aria }}</caption>
+        <thead><tr><th scope="col">מיקום</th><th scope="col">מכשירים</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.location %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שירותים לפי בנק</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור המכשירים של כל בנק שמציעים כל שירות. גוון כהה יותר = שיעור גבוה יותר.</p>
+  <div id="chart-svc-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עמלה ונגישות לפי בנק</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור המכשירים שגובים עמלה ושיעור המכשירים שאינם מסומנים כנגישים. הנתונים בטבלת הבנקים למעלה.</p>
+    <div id="chart-commission" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.commission_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.commission_aria }}</caption>
+        <thead><tr><th scope="col">בנק</th><th scope="col">גובים עמלה (%)</th><th scope="col">לא נגישים (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.banks %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.comm }}</td><td>{{ r.acc_no }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שירות מלא בערים הגדולות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור המכשירים שמאפשרים גם משיכה, גם הפקדת מזומן וגם הפקדת שיקים.</p>
+    <div id="chart-city-full" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.city_full_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.city_full_aria }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">שירות מלא (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.full }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.atms[0].id | tojson }},
+    latField: "X_Coordinate",
+    lngField: "Y_Coordinate",
+    projection: "wgs84",
+    popupTitleField: "Bank_Name",
+    popupFields: [
+      { field: "ATM_Address", label: "כתובת" },
+      { field: "City", label: "יישוב" },
+      { field: "ATM_Location", label: "מיקום" },
+      { field: "Cash_Deposit", label: "הפקדת מזומן" },
+      { field: "Forex_Transaction", label: "מט״ח" },
+      { field: "Commission", label: "עמלה" },
+      { field: "Handicap_Access", label: "נגיש" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-banks", {{ model.charts.banks | tojson }}, "מכשירים");
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "מכשירים");
+
+    var s = {{ model.charts.services | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-services"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 40, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: s.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", max: 100, name: "%" },
+      series: [{ type: "bar", name: "שיעור המכשירים", data: s.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var l = {{ model.charts.location | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-location"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100 },
+      yAxis: { type: "category", data: l.banks.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+      series: l.series.map(function (s) {
+        return { type: "bar", stack: "loc", name: s.name, data: s.data.slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var h = {{ model.charts.svc_heat | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-svc-heat"));
+    c5.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.banks[p.value[1]] + " · " + h.services[p.value[0]] + ": " + p.value[2] + "% מתוך " + p.value[3] + " מכשירים";
+      } },
+      grid: { left: 110, right: 24, top: 16, bottom: 80, containLabel: true },
+      xAxis: { type: "category", data: h.services, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "category", data: h.banks, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: 100, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik", formatter: function (p) { return Math.round(p.value[2]); } } }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var cm = {{ model.charts.commission | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-commission"));
+    c6.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#9a6700"],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: cm.banks.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "גובים עמלה", data: cm.comm.slice().reverse() },
+        { type: "bar", name: "לא נגישים", data: cm.acc_no.slice().reverse() }
+      ]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var cf = {{ model.charts.city_full | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-city-full"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100 },
+      yAxis: { type: "category", data: cf.names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שירות מלא", data: cf.values.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+  })();
+</script>

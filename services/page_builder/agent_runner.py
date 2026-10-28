@@ -358,11 +358,16 @@ def run_validated_session(
                 content_html = sanitize_content_html(
                     out.content_html_raw, dataset_id=dataset_id
                 )
-                run_host_check(
-                    content_html,
-                    agent_data.model_dump_json(exclude_none=True),
-                    workdir,
-                )
+                # Host-owned scratch dir (root 0700 via mkdtemp), NOT the
+                # sandbox workdir — see run_host_check's trust note.
+                with tempfile.TemporaryDirectory(
+                    prefix=f"{dataset_id[:8]}-check-", dir=SESSIONS_ROOT
+                ) as check_dir:
+                    run_host_check(
+                        content_html,
+                        agent_data.model_dump_json(exclude_none=True),
+                        Path(check_dir),
+                    )
                 log.info(
                     "session[%s]: attempt %d/%d validated (iters=%d, $%.4f %s)",
                     dataset_id[:8], attempt, attempts_max, out.iterations,

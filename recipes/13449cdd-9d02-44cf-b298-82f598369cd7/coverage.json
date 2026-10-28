@@ -1,0 +1,7 @@
+{
+  "decisions.מספר מוחזק או אסיר": "chart-yearly, chart-pp, chart-gap, chart-repeat, chart-cohort, kpi:persons, kpi:multi, insight:repeat, insight:gap, insight:country_repeat — used ONLY to aggregate per held person (decisions per person, gaps between successive reviews); the number identifies a person in custody and is never shown; holder number 0 (missing) excluded, disclosed",
+  "decisions.תאריך החלטה": "chart-yearly, chart-monthly, chart-mix, chart-cheat, chart-jheat, chart-gap, chart-cohort, chart-judges-recent, kpi:last_year, insight:volume, insight:peak, insight:judges, insight:gap",
+  "decisions.מדינה": "chart-mix, chart-countries, chart-cheat, chart-repeat, insight:countries, insight:country_repeat — duplicate spellings of the same country merged",
+  "decisions.שם דיין": "chart-judges, chart-judges-recent, chart-jheat, insight:judges — tribunal members named as public decision-makers",
+  "decisions.קישור למסמך החלטה": "skip: per-decision document URL — the documents name the detained person; the explorer under the page already carries the links"
+}

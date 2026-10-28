@@ -1,0 +1,222 @@
+<h1>רשימת ארצות מוכרות ע"י מדינת ישראל</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.countries_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.historical.tone }} mb-1" dir="ltr">{{ model.kpis.historical.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.historical_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.net.tone }} mb-1" dir="ltr">{{ model.kpis.net.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.net_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סמלים לפי גוש אזורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.blocks_note }}</p>
+  <div id="chart-blocks" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.blocks_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.blocks_caption }}</caption>
+      <thead><tr><th scope="col">גוש</th><th scope="col">טווח סמלים</th><th scope="col">סמלים</th><th scope="col">ארצות פעילות</th><th scope="col">היסטוריות</th><th scope="col">כלליים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.blocks %}
+        <tr><th scope="row">{{ r.block }}</th><td>{{ r.range }}</td><td>{{ r.total }}</td><td>{{ r.country }}</td><td>{{ r.historical }}</td><td>{{ r.general }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המספור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.codes_note }}</p>
+  <div id="chart-codes" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.codes_aria }}"></div>
+</section>
+
+{%- if model.flags.historical %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ישויות היסטוריות ברשימה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.hist_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start pe-3">ישות</th><th scope="col" class="text-start pe-3">סמל</th><th scope="col" class="text-start pe-3">מה קרה</th><th scope="col" class="text-start">באו במקומה ברשימה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.historical %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.code }}</td><td class="py-1 pe-3">{{ r.kind }}</td><td class="py-1">{{ r.succ }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.changes %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שינויים לעומת הקובץ הקודם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.changes_note }}</p>
+{%- if model.tables.added %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm mb-4">
+      <caption class="text-start text-sm font-semibold text-ink-deep mb-2">{{ model.labels.added_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start pe-3">ארץ</th><th scope="col" class="text-start pe-3">שם באנגלית</th><th scope="col" class="text-start pe-3">סמל</th><th scope="col" class="text-start">גוש</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.added %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.eng }}</td><td class="py-1 pe-3">{{ r.code }}</td><td class="py-1">{{ r.block }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+{%- if model.tables.removed %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm mb-4">
+      <caption class="text-start text-sm font-semibold text-ink-deep mb-2">{{ model.labels.removed_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start pe-3">ארץ</th><th scope="col" class="text-start pe-3">שם באנגלית</th><th scope="col" class="text-start">סמל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.removed %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.eng }}</td><td class="py-1">{{ r.code }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+{%- if model.tables.changed %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="text-start text-sm font-semibold text-ink-deep mb-2">{{ model.labels.eng_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start pe-3">סמל</th><th scope="col" class="text-start pe-3">שדה</th><th scope="col" class="text-start pe-3">שם קודם</th><th scope="col" class="text-start">שם נוכחי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.changed %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-1 pe-3">{{ r.code }}</th><td class="py-1 pe-3">{{ r.field }}</td><td class="py-1 pe-3">{{ r.old }}</td><td class="py-1">{{ r.new }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.general %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/search.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קודים כלליים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.general_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.general_caption }}</caption>
+      <thead><tr><th scope="col" class="text-start pe-3">שם</th><th scope="col" class="text-start pe-3">שם באנגלית</th><th scope="col" class="text-start pe-3">סמל</th><th scope="col" class="text-start">גוש</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.general %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.eng }}</td><td class="py-1 pe-3">{{ r.code }}</td><td class="py-1">{{ r.block }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשות האוכלוסין וההגירה מפרסמת מידי תקופה רשימת ארצות לשימוש חופשי של הציבור.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.blocks | tojson }};
+    var c = echarts.init(document.getElementById("chart-blocks"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 56, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [
+        { type: "bar", stack: "t", name: "ארצות פעילות", data: d.country, itemStyle: { color: "#0068f5" } },
+        { type: "bar", stack: "t", name: "ישויות היסטוריות", data: d.historical, itemStyle: { color: "#0b3668" } },
+        { type: "bar", stack: "t", name: "קודים כלליים", data: d.general, itemStyle: { color: "#6c757d" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.codes | tojson }};
+    var c = echarts.init(document.getElementById("chart-codes"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", confine: true, extraCssText: "max-width:280px;white-space:normal;",
+        formatter: function (p) {
+          var i = h.info[p.dataIndex];
+          var esc = function (t) { return String(t).replace(/[&<>]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]; }); };
+          return esc(i.range) + ": " + p.data[2] + " סמלים<br>" + esc(i.names);
+        } },
+      grid: { left: 8, right: 8, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, name: "עשרת", nameLocation: "middle", nameGap: 24, axisLabel: { fontSize: 10, interval: 0 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", name: "סמלים", data: h.cells,
+        label: { show: true, fontFamily: "Rubik", fontSize: 10 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

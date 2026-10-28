@@ -1,0 +1,527 @@
+<h1>תושבים צעירים בישראל לפי ישובים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.young.tone }} mb-1" dir="ltr">{{ model.kpis.young.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.young_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.share.tone }} mb-1" dir="ltr">{{ model.kpis.share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.share_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.localities.tone }} mb-1" dir="ltr">{{ model.kpis.localities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.localities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median.tone }} mb-1" dir="ltr">{{ model.kpis.median.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הישובים עם הכי הרבה צעירים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+      <thead><tr><th scope="col">ישוב</th><th scope="col">בני 18 עד 34</th><th scope="col">כלל התושבים</th><th scope="col">שיעור הצעירים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ "{:,}".format(r.young) }}</td><td>{{ "{:,}".format(r.total) }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.extremes %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור הצעירים הגבוה ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.high_note }}</p>
+    <div id="chart-high" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.high_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.high_caption }}</caption>
+        <thead><tr><th scope="col">ישוב</th><th scope="col">שיעור הצעירים</th><th scope="col">בני 18 עד 34</th><th scope="col">כלל התושבים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.high %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.share }}</td><td>{{ "{:,}".format(r.young) }}</td><td>{{ "{:,}".format(r.total) }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור הצעירים הנמוך ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.low_note }}</p>
+    <div id="chart-low" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.low_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.low_caption }}</caption>
+        <thead><tr><th scope="col">ישוב</th><th scope="col">שיעור הצעירים</th><th scope="col">בני 18 עד 34</th><th scope="col">כלל התושבים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.low %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.share }}</td><td>{{ "{:,}".format(r.young) }}</td><td>{{ "{:,}".format(r.total) }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות שיעור הצעירים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+    <div id="chart-hist" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.hist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.hist_caption }}</caption>
+        <thead><tr><th scope="col">שיעור צעירים</th><th scope="col">ישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.hist %}
+          <tr><th scope="row" dir="ltr">{{ r.label }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לפי גודל הישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+    <div id="chart-size" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.size_caption }}</caption>
+        <thead><tr><th scope="col">תושבים בישוב</th><th scope="col">ישובים</th><th scope="col">שיעור הצעירים</th><th scope="col">חלק מכלל התושבים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.size %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td><td dir="ltr">{{ r.pop_share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צעירים לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_note }}</p>
+  <div id="chart-districts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.districts_caption }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">ישובים</th><th scope="col">בני 18 עד 34</th><th scope="col">כלל התושבים</th><th scope="col">שיעור הצעירים</th><th scope="col">חלק מהצעירים ברשימה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.districts %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ "{:,}".format(r.young) }}</td><td>{{ "{:,}".format(r.total) }}</td><td dir="ltr">{{ r.share }}</td><td dir="ltr">{{ r.young_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הפיזור בין הישובים בכל מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  <div id="chart-box" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_caption }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">ישובים</th><th scope="col">מינימום</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">מקסימום</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td>{% for v in r.q_disp %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור הצעירים לפי נפה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nafot_note }}</p>
+  <div id="chart-nafot" class="h-[640px]" role="img" aria-label="{{ model.labels.nafot_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nafot_caption }}</caption>
+      <thead><tr><th scope="col">נפה</th><th scope="col">מחוז</th><th scope="col">ישובים</th><th scope="col">בני 18 עד 34</th><th scope="col">שיעור הצעירים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nafot %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.district }}</td><td>{{ r.count }}</td><td>{{ "{:,}".format(r.young) }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.councils %}
+  <section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מועצות אזוריות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.councils_note }}</p>
+    <div id="chart-councils" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.councils_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.councils_caption }}</caption>
+        <thead><tr><th scope="col">מועצה אזורית</th><th scope="col">ישובים</th><th scope="col">בני 18 עד 34</th><th scope="col">שיעור הצעירים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.councils %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ "{:,}".format(r.young) }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לשכות רשות האוכלוסין</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bureaus_note }}</p>
+    <div id="chart-bureaus" class="h-[640px]" role="img" aria-label="{{ model.labels.bureaus_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bureaus_caption }}</caption>
+        <thead><tr><th scope="col">לשכה</th><th scope="col">ישובים</th><th scope="col">בני 18 עד 34</th><th scope="col">שיעור הצעירים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.bureaus %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ "{:,}".format(r.young) }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ריכוז הצעירים בישובים הגדולים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.conc_note }}</p>
+  <div id="chart-conc" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.conc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.conc_caption }}</caption>
+      <thead><tr><th scope="col">הישובים הגדולים</th><th scope="col">חלק מהצעירים</th><th scope="col">חלק מכלל התושבים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.conc %}
+        <tr><th scope="row">{{ r.k }}</th><td dir="ltr">{{ r.young }}</td><td dir="ltr">{{ r.pop_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.scatter %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל הישוב מול שיעור הצעירים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">תושבים צעירים בישראל לפי ישובים</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var c = echarts.init(document.getElementById("chart-top"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 36, bottom: 24, containLabel: true },
+      xAxis: [
+        { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        { type: "value", position: "top", min: 0, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [
+        { type: "bar", name: "בני 18 עד 34", data: d.young, itemStyle: { color: "#0068f5" } },
+        { type: "line", name: "שיעור הצעירים", xAxisIndex: 1, data: d.share, symbolSize: 7,
+          lineStyle: { width: 0 }, itemStyle: { color: "#0b3668" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.extremes %}
+<script>
+  (function () {
+    var nat = {{ model.charts.nat | tojson }};
+    function draw(id, d, color) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.share[i] + "% · " + d.young[i].toLocaleString("he-IL") +
+            " מתוך " + d.total[i].toLocaleString("he-IL");
+        } },
+        grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", min: 0, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [{ type: "bar", name: "שיעור הצעירים", data: d.share, itemStyle: { color: color },
+                   label: { show: true, position: "right", fontSize: 10, formatter: "{c}%" },
+                   markLine: { symbol: "none", silent: true, data: [{ xAxis: nat }],
+                               lineStyle: { type: "dashed", color: "#6c757d" }, label: { show: false } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    draw("chart-high", {{ model.charts.high | tojson }}, "#0068f5");
+    draw("chart-low", {{ model.charts.low | tojson }}, "#6c757d");
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var h = {{ model.charts.hist | tojson }};
+    var c = echarts.init(document.getElementById("chart-hist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: h.labels, axisLabel: { fontSize: 10, rotate: 30, interval: 0 } },
+      yAxis: { type: "value", name: "ישובים" },
+      series: [{ type: "bar", name: "ישובים", data: h.counts.map(function (v, i) {
+        return i === h.nat_bin ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      }), itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var s = {{ model.charts.size | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-size"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: s.labels, axisLabel: { fontSize: 10, rotate: 30, interval: 0 } },
+      yAxis: [
+        { type: "value", name: "שיעור הצעירים", min: 0, axisLabel: { formatter: "{value}%" } },
+        { type: "value", name: "ישובים", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "שיעור הצעירים", data: s.share, itemStyle: { color: "#0068f5" },
+          label: { show: true, position: "top", fontSize: 10, formatter: "{c}%" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } },
+        { type: "line", name: "ישובים", yAxisIndex: 1, data: s.count, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.districts | tojson }};
+    var c = echarts.init(document.getElementById("chart-districts"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { fontSize: 10, interval: 0, rotate: 30 } },
+      yAxis: [
+        { type: "value", name: "תושבים (מיליונים)", axisLabel: { formatter: function (v) { return v / 1000000; } } },
+        { type: "value", name: "שיעור", min: 0, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", stack: "t", name: "בני 18 עד 34", data: d.young, itemStyle: { color: "#0068f5" } },
+        { type: "bar", stack: "t", name: "שאר התושבים", data: d.old, itemStyle: { color: "#c3cfe7" } },
+        { type: "line", name: "שיעור הצעירים", yAxisIndex: 1, data: d.share, itemStyle: { color: "#0b3668" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var b = {{ model.charts.box | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-box"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.data.slice(-5);
+        return p.name + "<br>חציון " + v[2] + "%<br>רבעונים " + v[1] + "% · " + v[3] + "%<br>טווח " + v[0] + "% · " + v[4] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: b.names, axisLabel: { fontSize: 10, interval: 0, rotate: 30 } },
+      yAxis: { type: "value", min: 0, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "boxplot", name: "שיעור הצעירים", data: b.data,
+                 itemStyle: { color: "#f1f7ff", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.nafot | tojson }};
+    var c = echarts.init(document.getElementById("chart-nafot"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.share[i] + "% · " + d.young[i].toLocaleString("he-IL") + " צעירים";
+      } },
+      grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", min: 0, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+      series: [{ type: "bar", name: "שיעור הצעירים", data: d.share, itemStyle: { color: "#0068f5" },
+                 label: { show: true, position: "right", fontSize: 10, formatter: "{c}%" },
+                 markLine: { symbol: "none", silent: true, data: [{ xAxis: d.nat }],
+                             lineStyle: { type: "dashed", color: "#6c757d" }, label: { show: false } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function draw(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.young[i].toLocaleString("he-IL") + " צעירים · " + d.share[i] + "%";
+        } },
+        grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, interval: 0 } },
+        series: [{ type: "bar", name: "בני 18 עד 34", data: d.young, itemStyle: { color: "#0068f5" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+{%- if model.flags.councils %}
+    draw("chart-councils", {{ model.charts.councils | tojson }});
+{%- endif %}
+    draw("chart-bureaus", {{ model.charts.bureaus | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.conc | tojson }};
+    var c = echarts.init(document.getElementById("chart-conc"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "log", name: "מספר הישובים הגדולים", nameLocation: "middle", nameGap: 28, min: 1,
+               max: function (v) { return v.max; }, logBase: 10 },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "line", name: "חלק מהצעירים", showSymbol: false, itemStyle: { color: "#0068f5" },
+          data: d.x.map(function (k, i) { return [k, d.y[i]]; }) },
+        { type: "line", name: "חלק מכלל התושבים", showSymbol: false, itemStyle: { color: "#6c757d" },
+          lineStyle: { type: "dashed" }, data: d.x.map(function (k, i) { return [k, d.pop[i]]; }) }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.scatter %}
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var SYM = ["circle", "rect", "triangle", "diamond"];
+    var s = {{ model.charts.scatter | tojson }};
+    var c = echarts.init(document.getElementById("chart-scatter"));
+    c.setOption(window.GovEcharts.option({
+      color: P,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.data[2]) + "<br>" + p.data[0].toLocaleString("he-IL") + " תושבים · " + p.data[1] + "% צעירים";
+      } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 40, bottom: 40, containLabel: true },
+      xAxis: { type: "log", name: "תושבים בישוב", nameLocation: "middle", nameGap: 28,
+               min: function (v) { return Math.pow(10, Math.floor(Math.log10(v.min))); },
+               max: function (v) { return Math.round(v.max * 1.5); },
+               axisLabel: { showMaxLabel: false, formatter: function (v) { return v >= 1000000 ? (v / 1000000) + "M" : v >= 1000 ? (v / 1000) + "K" : v; } } },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value}%" } },
+      series: s.map(function (g) {
+        return { type: "scatter", name: g.name, data: g.data, symbolSize: 7, symbol: SYM[g.ci % SYM.length],
+                 itemStyle: { color: P[g.ci % P.length], opacity: 0.8 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

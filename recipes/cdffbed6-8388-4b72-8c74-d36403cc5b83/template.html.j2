@@ -1,0 +1,272 @@
+<h1>רכבת ישראל — דיוק בתחנות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.on_last.tone }} mb-1" dir="ltr">{{ model.kpis.on_last.display }}</div>
+    <div class="text-sm text-subtle">עצירות בזמן · {{ model.kpis.month_last.display }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.on12.tone }} mb-1" dir="ltr">{{ model.kpis.on12.display }}</div>
+    <div class="text-sm text-subtle">בזמן ב-12 החודשים האחרונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.stops12.tone }} mb-1" dir="ltr">{{ model.kpis.stops12.display }}</div>
+    <div class="text-sm text-subtle">עצירות ב-12 החודשים האחרונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.stations.tone }} mb-1" dir="ltr">{{ model.kpis.stations.display }}</div>
+    <div class="text-sm text-subtle">תחנות</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">דיוק בכל חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">אחוז העצירות בזמן, באיחור ובהקדמה ביציאה. חודשים חסרים מוצגים כרווח.</p>
+  <div id="chart-monthly" data-fallback="explorer" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שנה אחר שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">התפלגות העצירות לפי סטטוס, חודשים מלאים בלבד.</p>
+    <div id="chart-yearly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">בזמן (%)</th><th scope="col">איחור (%)</th><th scope="col">הקדמה (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.yearly %}
+          <tr><th scope="row">{{ r.y }}</th><td>{{ r.on }}</td><td>{{ r.late }}</td><td>{{ r.early }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור האיחורים לפי חודש בשנה, כל השנים במאגר יחד.</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_aria }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">איחור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.m }}</th><td>{{ r.late }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות עם הכי הרבה איחורים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stations_note }}</p>
+    <div id="chart-stations" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.stations_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.stations_aria }}</caption>
+        <thead><tr><th scope="col">תחנה</th><th scope="col">איחור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.stations %}
+          <tr><th scope="row">{{ r.s }}</th><td>{{ r.late }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות הדייקניות ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stations_note }}</p>
+    <div id="chart-best" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.best_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.best_aria }}</caption>
+        <thead><tr><th scope="col">תחנה</th><th scope="col">איחור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.best %}
+          <tr><th scope="row">{{ r.s }}</th><td>{{ r.late }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי השתפר ומי הידרדר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור האיחורים ב-12 החודשים האחרונים מול 12 החודשים שקדמו להם, בתחנות שהשתנו הכי הרבה לשני הכיוונים.</p>
+  <div id="chart-movers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.movers_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.movers_aria }}</caption>
+      <thead><tr><th scope="col">תחנה</th><th scope="col">שנה קודמת (%)</th><th scope="col">השנה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.movers %}
+        <tr><th scope="row">{{ r.s }}</th><td>{{ r.before }}</td><td>{{ r.after }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: תחנה מול חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור האיחורים בתחנות העמוסות ביותר בכל אחד מ-12 החודשים האחרונים. גוון כהה = יותר איחורים.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    var mo = {{ model.charts.monthly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-monthly"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 32 },
+      grid: { left: 48, right: 16, top: 24, bottom: 96, containLabel: true },
+      xAxis: { type: "category", data: mo.x },
+      yAxis: { type: "value", max: 100, name: "%" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4 }],
+      series: [
+        { type: "line", name: "בזמן", data: mo.on, showSymbol: false, areaStyle: {}, stack: "s" },
+        { type: "line", name: "איחור", data: mo.late, showSymbol: false, areaStyle: {}, stack: "s", itemStyle: { color: "#dc3545" } },
+        { type: "line", name: "הקדמה ביציאה", data: mo.early, showSymbol: false, areaStyle: {}, stack: "s", itemStyle: { color: "#9a6700" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var y = {{ model.charts.yearly | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-yearly"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", max: 100, name: "%" },
+      series: [
+        { type: "bar", name: "בזמן", data: y.on, stack: "s" },
+        { type: "bar", name: "איחור", data: y.late, stack: "s", itemStyle: { color: "#dc3545" } },
+        { type: "bar", name: "הקדמה ביציאה", data: y.early, stack: "s", itemStyle: { color: "#9a6700" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    function hbar(id, data, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: pct },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", name: "%" },
+        yAxis: { type: "category", data: data.x, inverse: true },
+        series: [{ type: "bar", name: name, data: data.late }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var s = {{ model.charts.season | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-season"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "%" },
+      series: [{ type: "bar", name: "איחור", data: s.late }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    hbar("chart-stations", {{ model.charts.stations | tojson }}, "איחור");
+    hbar("chart-best", {{ model.charts.best | tojson }}, "איחור");
+
+    var mv = {{ model.charts.movers | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-movers"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "%" },
+      yAxis: { type: "category", data: mv.x, inverse: true },
+      series: [
+        { type: "bar", name: "שנה קודמת", data: mv.before, itemStyle: { opacity: 0.45 } },
+        { type: "bar", name: "השנה", data: mv.after }
+      ]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-heat"));
+    c5.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.stations[p.value[1]] + ", " + hm.months[p.value[0]] + ": " + p.value[2].toFixed(1) + "%";
+      } },
+      grid: { left: 110, right: 24, top: 16, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: hm.months, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+      yAxis: { type: "category", data: hm.stations, splitArea: { show: true } },
+      visualMap: {
+        min: hm.min, max: hm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>

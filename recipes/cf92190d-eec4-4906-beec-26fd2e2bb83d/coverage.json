@@ -1,0 +1,9 @@
+{
+  "decisions.מספר בקשה": "skip: request number — identifies an individual's request; never shown",
+  "decisions.מספר תיק": "chart-cases, insight:cases, kpi:cases — used only to count decisions per case; the number itself identifies an individual's case and is never shown",
+  "decisions.בית דין": "chart-yearly, chart-court-topic, insight:court",
+  "decisions.שם דיין": "chart-judges, chart-judges-recent, insight:judge, kpi:judges — judges named as decision-makers",
+  "decisions.תאריך החלטה": "chart-yearly, chart-heat, chart-monthly, insight:volume, kpi:last_year",
+  "decisions.סוג בקשה": "chart-rtypes, insight:request_mix",
+  "decisions.נושא": "chart-topics, chart-heat, chart-court-topic, insight:topic, insight:topic_now"
+}

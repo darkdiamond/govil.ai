@@ -1,0 +1,394 @@
+<h1>סיווגי CPC</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.codes.tone }} mb-1" dir="ltr">{{ model.kpis.codes.display }}</div>
+    <div class="text-sm text-subtle">קודי סיווג</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.main.tone }} mb-1" dir="ltr">{{ model.kpis.main.display }}</div>
+    <div class="text-sm text-subtle">קבוצות ראשיות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.subclasses.tone }} mb-1" dir="ltr">{{ model.kpis.subclasses.display }}</div>
+    <div class="text-sm text-subtle">תתי-סעיפים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.none.tone }} mb-1" dir="ltr">{{ model.kpis.none.display }}</div>
+    <div class="text-sm text-subtle">מהקודים ללא מקביל IPC</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הסעיפים והיחס לסיווג הבינלאומי IPC</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sections_note }}</p>
+  <div id="chart-sections" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sections_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sections_caption }}</caption>
+      <thead><tr><th scope="col">סעיף</th><th scope="col">קודים</th>{% for h in model.tables.rel_names %}<th scope="col">{{ h }}</th>{% endfor %}<th scope="col">שיעור ללא מקביל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sections %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td dir="ltr">{{ r.none_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מבנה השיטה: סעיפים ומחלקות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+  <div id="chart-tree" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.classes_caption }}</caption>
+      <thead><tr><th scope="col">מחלקה</th><th scope="col">תחום</th><th scope="col">סעיף</th><th scope="col">קודים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.classes %}
+        <tr><th scope="row" dir="ltr">{{ r.code }}</th><td>{{ r.name }}</td><td>{{ r.section }}</td><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תתי-הסעיפים הגדולים וקודי המפתוח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sub_note }}</p>
+  <div id="chart-subclasses" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sub_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sub_caption }}</caption>
+      <thead><tr><th scope="col">תת-סעיף</th><th scope="col">קודים</th><th scope="col">מתוכם מפתוח</th><th scope="col">מכלל הקודים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.subclasses %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.index }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה CPC חורג מ-IPC</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עומק העץ</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.depth_note }}</p>
+    <div id="chart-depth" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.depth_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.depth_caption }}</caption>
+        <thead><tr><th scope="col">רמה</th><th scope="col">קודים</th><th scope="col">שיעור עלים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.depth %}
+          <tr><th scope="row" dir="ltr">{{ r.level }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.leaf }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה ענפים לכל קוד אב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fan_note }}</p>
+    <div id="chart-fan" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.fan_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fan_caption }}</caption>
+        <thead><tr><th scope="col">קודי-משנה ישירים</th><th scope="col">קודי אב</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.fan %}
+          <tr><th scope="row" dir="ltr">{{ r.bucket }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עומק הסיווג לפי סעיף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.depth_sec_note }}</p>
+  <div id="chart-depth-sec" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.depth_sec_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.depth_sec_caption }}</caption>
+      <thead><tr><th scope="col">סעיף</th><th scope="col">עומק ממוצע</th>{% for h in model.tables.depth_sec_names %}<th scope="col" dir="ltr">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.depth_sec %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.mean }}</td>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הקבוצות הראשיות הגדולות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+    <div id="chart-groups" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.groups_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+        <thead><tr><th scope="col">קבוצה ראשית</th><th scope="col">תת-סעיף</th><th scope="col">קבוצות-משנה</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.groups %}
+          <tr><th scope="row" dir="ltr">{{ r.code }}</th><td>{{ r.name }}</td><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+</section>
+{%- if model.flags.has_y %}
+<section class="card p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סעיף Y: תיוג שקיים רק ב-CPC</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.y_note }}</p>
+    <div id="chart-y" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.y_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.y_caption }}</caption>
+        <thead><tr><th scope="col">תת-סעיף</th><th scope="col">קודים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.y %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">סיווגים בינלאומיים מורחבים (Cooperative Patent Classifications), המיועדים לסווג את בקשות הפטנט לסוגים ותתי סוגים.</p>
+</section>
+
+<script>
+  (function () {
+    var s = {{ model.charts.sections | tojson }};
+    var el = document.getElementById("chart-sections");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0b3668", "#0068f5", "#6c757d", "#ffc107"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { width: Math.min(160, el.clientWidth * 0.4), overflow: "truncate" } },
+      series: s.series.map(function (x) { return { type: "bar", stack: "rel", name: x.name, data: x.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.tree | tojson }};
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) { return p.name + ": " + p.value.toLocaleString("he-IL") + " קודים"; } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: false,
+                 breadcrumb: { show: false }, width: "100%", height: "100%",
+                 upperLabel: { show: true, height: 22, color: "#fff", fontFamily: "Rubik", overflow: "truncate" },
+                 label: { show: true, formatter: "{b}", overflow: "truncate", fontFamily: "Rubik" },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.subclasses | tojson }};
+    var el = document.getElementById("chart-subclasses");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(180, el.clientWidth * 0.45), overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "s", name: "קבוצות סיווג", data: d.regular },
+        { type: "bar", stack: "s", name: "קודי מפתוח", data: d.index }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.scatter | tojson }};
+    var c = echarts.init(document.getElementById("chart-scatter"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.value[2] + " · " + p.seriesName + "<br>" + p.value[0].toLocaleString("he-IL") + " קודים, " + p.value[1] + "% ללא מקביל IPC";
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "log", name: "קודים", nameLocation: "middle", nameGap: 26, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", min: 0, max: 100, name: "ללא מקביל IPC", axisLabel: { formatter: "{value}%" } },
+      series: s.map(function (x, i) {
+        var pal = window.GOVIL_PALETTE;
+        return { type: "scatter", name: x.name, data: x.data, symbolSize: 8,
+                 symbol: ["circle", "rect", "triangle", "diamond"][i % 4],
+                 itemStyle: { opacity: 0.8, color: pal[(i * 3) % pal.length] } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.depth | tojson }};
+    var c = echarts.init(document.getElementById("chart-depth"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "רמה", nameLocation: "middle", nameGap: 24 },
+      yAxis: [
+        { type: "value", name: "קודים", splitNumber: 4 },
+        { type: "value", name: "עלים", min: 0, max: 100, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "קודים", data: d.values },
+        { type: "line", name: "שיעור עלים", yAxisIndex: 1, data: d.leaf, itemStyle: { color: "#0b3668" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var f = {{ model.charts.fan | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-fan"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 32, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: f.names, name: "קודי-משנה ישירים", nameLocation: "middle", nameGap: 28, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "value", name: "קודי אב" },
+      series: [{ type: "bar", name: "קודי אב", data: f.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.depth_sec | tojson }};
+    var el = document.getElementById("chart-depth-sec");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#c3dafd", "#7fb0f9", "#3d8af7", "#0068f5", "#0053c4", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(160, el.clientWidth * 0.4), overflow: "truncate" } },
+      series: d.series.map(function (x) { return { type: "bar", stack: "d", name: x.name, data: x.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, name, log) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          return d.names[p[0].dataIndex] + "<br>" + d.values[p[0].dataIndex].toLocaleString("he-IL") + " " + name;
+        } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: log ? "log" : "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(340, el.clientWidth * 0.6), overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-groups", {{ model.charts.groups | tojson }}, "קבוצות-משנה", false);
+{%- if model.flags.has_y %}
+    hbar("chart-y", {{ model.charts.y | tojson }}, "קודים", true);
+{%- endif %}
+  })();
+</script>

@@ -1,0 +1,12 @@
+{
+  "main.סמל_ישוב": "chart-top, chart-high, chart-low, insight:placeholder — unique key; code 0 is the ״לא רשום״ placeholder row (excluded, disclosed); also the stable tie-break",
+  "main.שם_ישוב": "chart-top, chart-high, chart-low, chart-scatter, insight:leader, insight:high, insight:low — the (שבט) tag marks Bedouin tribes",
+  "main.סמל_נפה": "chart-districts, chart-box, chart-scatter, insight:district — first digit gives the district",
+  "main.נפה": "chart-nafot",
+  "main.קוד_לשכת_מנא": "skip: numeric code of the bureau; the bureau name is used instead",
+  "main.לשכת_מנא": "chart-bureaus",
+  "main.קוד_מועצה_אזורית": "chart-councils, insight:council, insight:low — code 0 means no regional council",
+  "main.מועצה_אזורית": "chart-councils, insight:council",
+  "main.סהכ": "kpi:share, kpi:median, chart-top, chart-high, chart-low, chart-hist, chart-size, chart-districts, chart-box, chart-nafot, chart-conc, chart-scatter, insight:conc, insight:size — total registered residents; denominator of every share and the size bands",
+  "main.גיל 18_34": "kpi:young, kpi:share, kpi:median, chart-top, chart-high, chart-low, chart-hist, chart-size, chart-districts, chart-box, chart-nafot, chart-councils, chart-bureaus, chart-conc, chart-scatter, insight:leader, insight:conc, insight:district, insight:high, insight:low, insight:size, insight:council, insight:placeholder — residents aged 18 to 34; no suppression markers in the current file (every value parses)"
+}

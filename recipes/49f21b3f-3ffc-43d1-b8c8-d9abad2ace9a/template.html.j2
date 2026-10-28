@@ -1,0 +1,304 @@
+<h1>תיקי פיקוח חדשים עם תוצאה תקינה - נציבות שוויון זכויות לאנשים עם מוגבלות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.files.tone }} mb-1" dir="ltr">{{ model.kpis.files.display }}</div>
+    <div class="text-sm text-subtle">פיקוחים עם תוצאה תקינה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.complaints.tone }} mb-1" dir="ltr">{{ model.kpis.complaints.display }}</div>
+    <div class="text-sm text-subtle">בעקבות פניית ציבור</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-{{ model.kpis.latest.tone }} mb-1" dir="ltr">{{ model.kpis.latest.display }}</div>
+    <div class="text-sm text-subtle">הפיקוח האחרון במאגר</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro share_table(rows, aria, head, unit) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ aria }}</caption>
+      <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור (%)</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פיקוחים לפי שנה ומסלול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">פיקוחים</th><th scope="col">מפניות ציבור</th><th scope="col">שיעור פניות (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td><td>{{ r.c }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.flags.map %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המקומות שנבדקו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה מקום נבדק</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.family_note }}</p>
+    <div id="chart-family" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.family_aria }}"></div>
+    {{ share_table(model.tables.family, model.labels.family_aria, "קבוצה", "פיקוחים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מבנה קיים או חדש</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.building_note }}</p>
+    <div id="chart-building" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.building_aria }}"></div>
+    {{ share_table(model.tables.building, model.labels.building_aria, "מבנה", "פיקוחים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה נבדק בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for h in model.tables.mix_head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי המקומות הנפוצים</h2>
+  </div>
+  <div id="chart-etype" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.etype_aria }}"></div>
+  {{ share_table(model.tables.etype, model.labels.etype_aria, "סוג מקום", "פיקוחים") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פיקוחים לפי יישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+    <div id="chart-city" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+    {{ share_table(model.tables.city, model.labels.city_aria, "יישוב", "פיקוחים") }}
+  </section>
+{%- if model.flags.complaints %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מה נבדק בעקבות פניות ציבור</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.complaint_note }}</p>
+    <div id="chart-complaints" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.complaint_aria }}"></div>
+    {{ share_table(model.tables.complaint_types, model.labels.complaint_aria, "סוג מקום", "פיקוחים") }}
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">לוח הפיקוחים לפי חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">באיזה יום בשבוע</h2>
+  </div>
+  <div id="chart-weekday" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.weekday_aria }}"></div>
+  {{ share_table(model.tables.weekday, model.labels.weekday_aria, "יום", "פיקוחים") }}
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var y = {{ model.charts.yearly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-yearly"));
+    var ys = y.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; });
+    ys.push({ type: "line", name: "שיעור פניות ציבור (%)", yAxisIndex: 1, data: y.share, connectNulls: true });
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 40, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: [{ type: "value", name: "פיקוחים" }, { type: "value", name: "%", max: 100 }],
+      series: ys
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    hbar("chart-family", {{ model.charts.family | tojson }}, "פיקוחים");
+    hbar("chart-etype", {{ model.charts.etype | tojson }}, "פיקוחים");
+    hbar("chart-city", {{ model.charts.city | tojson }}, "פיקוחים");
+    hbar("chart-complaints", {{ model.charts.complaint_types | tojson }}, "פיקוחים");
+
+    var b = {{ model.charts.building | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-building"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], label: { position: "inside", color: "#ffffff", fontWeight: 600,
+                          formatter: function (p) { return p.percent >= 5 ? Math.round(p.percent) + "%" : ""; } },
+                 data: b.names.map(function (n, i) { return { name: n, value: b.values[i] }; }) }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var w = {{ model.charts.weekday | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-weekday"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: w.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "פיקוחים", data: w.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var m = {{ model.charts.mix | tojson }};
+    var c = echarts.init(document.getElementById("chart-mix"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0 },
+      grid: { left: 40, right: 16, top: window.innerWidth < 640 ? 170 : 64, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: m.series.map(function (s) { return { type: "bar", stack: "mix", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.months[p.value[0]] + " " + h.years[p.value[1]] + ": " + p.value[2];
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: h.years, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: Math.max.apply(null, h.cells.map(function (x) { return x[2]; }).concat([1])),
+        calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.map %}
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.files[0].id | tojson }},
+    latField: "קואורדינטות  רוחב 1",
+    lngField: "קואורדינטות אורך 1",
+    projection: "itm",
+    fitBounds: false,
+    initialView: { center: {{ model.charts.map_center | tojson }}, zoom: 7 },
+    popupTitleField: "סוג הישות המפוקחת",
+    popupFields: [
+      { field: "ישוב", label: "יישוב" },
+      { field: "תאריך ושעת פיקוח", label: "תאריך פיקוח" },
+      { field: "מסלול פיקוח", label: "מסלול" }
+    ]
+  });
+</script>
+{% endif %}

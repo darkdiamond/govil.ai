@@ -1,0 +1,12 @@
+{
+  "vets.סמל_ישוב": "chart-load, chart-conc, chart-top, chart-btype, chart-types, chart-auth, kpi:places, insight:concentration — settlement key; one code (מגדל) appears under two authorities and is counted once",
+  "vets.ישוב": "kpi:places — fallback key when a settlement code is blank; settlement names are not listed (1,449 names, one row each — the explorer has them)",
+  "vets.אזור": "chart-types, chart-auth, chart-multi, chart-btype, kpi:auths, insight:multi, insight:types, insight:leader — authority type derived from the name prefix",
+  "vets.רופא": "chart-load, chart-top, chart-conc, chart-multi, kpi:vets, kpi:top10, kpi:gaps, insight:leader, insight:single, insight:concentration, insight:gaps — licensed municipal officials, named",
+  "vets.מספר_רשיון_רופא": "skip: individual licence number — an identifier; also inconsistent upstream (several names share one number)",
+  "vets.אימייל": "skip: office contact detail — not shown on the page",
+  "vets.טלפון": "skip: office contact detail — not shown on the page",
+  "vets.פקס": "skip: 100% empty",
+  "vets.לשכה": "chart-btype, kpi:bureaus, kpi:gaps, insight:bureau, insight:gaps",
+  "vets.URL": "skip: constant per bureau (bureau page on the old moag.gov.il site)"
+}

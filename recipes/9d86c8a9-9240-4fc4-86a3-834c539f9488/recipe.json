@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9d86c8a9-9240-4fc4-86a3-834c539f9488",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-12T00:30:13.214379+00:00",
+    "rows": {
+      "main": 1296
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "b8112650-a2f8-41f2-9c05-a9b9483fb4c0",
+      "required_columns": [
+        "סמל_ישוב",
+        "שם_ישוב",
+        "סמל_נפה",
+        "נפה",
+        "לשכת_מנא",
+        "קוד_מועצה_אזורית",
+        "מועצה_אזורית",
+        "סהכ",
+        "גיל 18_34"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["18", "34"]
+}

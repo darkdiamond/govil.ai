@@ -1,0 +1,235 @@
+<h1>תוצרים של כלי הרכב הפעילים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">קודי תוצר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.brands.tone }} mb-1" dir="ltr">{{ model.kpis.brands.display }}</div>
+    <div class="text-sm text-subtle">מותגים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">ארצות ייצור</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.newest.tone }} mb-1" dir="ltr">{{ model.kpis.newest.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.newest_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ארצות הייצור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.countries_note }}</p>
+  <div id="chart-countries" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.countries_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.countries_caption }}</caption>
+      <thead><tr><th scope="col">ארץ ייצור</th><th scope="col">קודי תוצר</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.countries %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי נוסף לרשימה לאורך הזמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
+  <div id="chart-bands" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bands_caption }}</caption>
+        <thead><tr><th scope="col">טווח קודים</th><th scope="col">תוצרים</th>{% for c in model.tables.band_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.bands %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חלוקה לאזורים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regions_note }}</p>
+    <div id="chart-regions" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.regions_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.regions_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th><th scope="col">קודי תוצר</th><th scope="col">שיעור</th><th scope="col">ארצות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.regions %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.countries }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מותג אחד, כמה ארצות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    <div id="chart-dist" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_caption }}</caption>
+        <thead><tr><th scope="col">ארצות ייצור</th><th scope="col">מותגים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dist %}
+          <tr><th scope="row" dir="ltr">{{ r.k }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המותגים הגלובליים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.brands_note }}</p>
+  <div id="chart-brands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.brands_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.brands_caption }}</caption>
+      <thead><tr><th scope="col">מותג</th><th scope="col">ארצות</th><th scope="col">קודים</th><th scope="col">ארצות הייצור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.brands %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.countries }}</td><td>{{ r.codes }}</td><td>{{ r.list }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על המאגר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle">המאגר מציג נתונים אודות התוצרים של כל סוגי כלי הרכב הפעילים: קוד תוצר, שם תוצר, שם תוצר ללא מדינת תוצר, מדינת תוצר.</p>
+  <p class="mt-2 mb-0 text-sm text-subtle">בעיבוד לעמוד זה אוחדו איותים חלופיים של שמות מדינות, וכשארץ הייצור חסרה היא הושלמה מסיומת שם התוצר כשהסיומת מזוהה. ספירת המותגים נעשית לפי השם ללא מדינה, כפי שנרשם.</p>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, extra) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", formatter: function (ps) {
+          var p = ps[0], s = p.name + ": " + p.value.toLocaleString("he-IL") + " " + unit;
+          if (extra) { s += " · " + extra[p.dataIndex].toLocaleString("he-IL") + " קודים"; }
+          return s;
+        } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-countries", {{ model.charts.countries | tojson }}, "תוצרים", null);
+    var b = {{ model.charts.brands | tojson }};
+    hbar("chart-brands", b, "ארצות", b.codes);
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.bands | tojson }};
+    var P = window.GOVIL_PALETTE;
+    var c = echarts.init(document.getElementById("chart-bands"));
+    c.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[8]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var s = ps[0].name;
+        ps.forEach(function (p) {
+          var n = d.series[p.seriesIndex].counts[p.dataIndex];
+          s += "<br>" + p.marker + p.seriesName + ": " + p.value + "% (" + n.toLocaleString("he-IL") + ")";
+        });
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: window.innerWidth < 640 ? 64 : 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: window.innerWidth < 640 ? "" : "קוד תוצר", nameLocation: "middle", nameGap: 64,
+               axisLabel: { interval: 0, rotate: window.innerWidth < 640 ? 60 : 30, fontSize: 10 } },
+      yAxis: { type: "value", name: "%", max: 100 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var r = {{ model.charts.regions | tojson }};
+    var c = echarts.init(document.getElementById("chart-regions"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return p.name + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["38%", "62%"], center: ["50%", "40%"], label: { show: false }, data: r }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var d = {{ model.charts.dist | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-dist"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "ארצות ייצור", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "מותגים", minInterval: 1 },
+      series: [{ type: "bar", name: "מותגים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>

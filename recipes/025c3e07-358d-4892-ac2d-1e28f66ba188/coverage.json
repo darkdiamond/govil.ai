@@ -1,0 +1,10 @@
+{
+  "terms.מספר מונח": "kpi:terms, chart-classes, chart-src, chart-lang, chart-var, insight:top_class, insight:variants, insight:multi_class, table:latest — the term number is the unit counted as a 'מונח'; highest numbers listed as the newest additions",
+  "terms.תיאור": "chart-box, chart-words, insight:lead_word, table:latest, table:appellations — wording length in words, leading Hebrew word, and the wording shown for listed terms",
+  "terms.מקור המונח": "chart-src, chart-rs, chart-box, insight:local, insight:reject_source, table:latest",
+  "terms.שפה": "kpi:bilingual, chart-lang, chart-rs, chart-box, insight:bilingual",
+  "terms.סיווג ניצה עברית": "chart-classes, chart-src, chart-rej, chart-lang, insight:top_class, insight:goods_services, insight:reject_class, insight:multi_class",
+  "terms.סיווג ניצה אנגלית": "skip: English twin of the Hebrew Nice class label (1:1 per class number)",
+  "terms.קבילות המונח": "kpi:accept, chart-rej, chart-rs, insight:reject_source, insight:reject_class, table:appellations",
+  "terms.האם כינוי מקור": "insight:appellation, table:appellations"
+}

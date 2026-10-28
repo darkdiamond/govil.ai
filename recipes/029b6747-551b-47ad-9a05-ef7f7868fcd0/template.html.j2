@@ -1,0 +1,310 @@
+<h1>בקשות לפטנטים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.applications.tone }} mb-1" dir="ltr">{{ model.kpis.applications.display }}</div>
+    <div class="text-sm text-subtle">בקשות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.in_force.tone }} mb-1" dir="ltr">{{ model.kpis.in_force.display }}</div>
+    <div class="text-sm text-subtle">פטנטים בתוקף כיום</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.grants_last.tone }} mb-1" dir="ltr">{{ model.kpis.grants_last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.grants_last_label }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.lag_last.tone }} mb-1" dir="ltr">{{ model.kpis.lag_last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.lag_last_label }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות לפי שנה ומסלול הגשה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.filings_note }}</p>
+  <div id="chart-filings" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.filings_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.filings_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">בקשות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.filings_recent %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פטנטים שניתנו בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grants_note }}</p>
+  <div id="chart-grants" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.grants_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.grants_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">פטנטים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.grants_recent %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מצב הבקשות היום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כל בקשה לפי הסטטוס העדכני שלה במרשם.</p>
+    <div id="chart-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_aria }}</caption>
+        <thead><tr><th scope="col">מצב</th><th scope="col">בקשות</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מאיפה מגיעות בקשות PCT</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.origin_note }}</p>
+    <div id="chart-origin" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.origin_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.origin_aria }}</caption>
+        <thead><tr><th scope="col">משרד קבלה</th><th scope="col">בקשות</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.origin %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן לוקח לקבל פטנט</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_note }}</p>
+    <div id="chart-lag" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lag_aria }}</caption>
+        <thead><tr><th scope="col">משך</th><th scope="col">פטנטים</th><th scope="col">שיעור (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lag %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חציון זמן הטיפול לאורך השנים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">חציון השנים מההגשה בישראל ועד מתן הפטנט, לפי שנת המתן.</p>
+    <div id="chart-lag-trend" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_trend_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה עלה בגורל הבקשות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fate_note }}</p>
+  <div id="chart-fate" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.fate_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פטנטים שנשארו בתוקף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inforce_note }}</p>
+  <div id="chart-inforce" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.inforce_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר הבקשות שהוגשו בכל חודש. גוון כהה יותר = יותר בקשות.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    var f = {{ model.charts.filings | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-filings"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }],
+      series: [
+        { type: "bar", stack: "f", name: "במסלול PCT", data: f.pct },
+        { type: "bar", stack: "f", name: "הגשה ישירה", data: f.direct }
+      ]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var g = {{ model.charts.grants | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-grants"));
+    var last = g.y.length - 1;
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: g.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "פטנטים", data: g.y.map(function (v, i) {
+        return i === last ? { value: v, itemStyle: { color: "#9fc3f7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-status", {{ model.charts.status | tojson }}, "בקשות");
+    hbar("chart-origin", {{ model.charts.origin | tojson }}, "בקשות");
+
+    var l = {{ model.charts.lag | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-lag"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: l.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "פטנטים", data: l.values }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var lt = {{ model.charts.lag_trend | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-lag-trend"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toFixed(1) + " שנים"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: lt.x },
+      yAxis: { type: "value", scale: true, name: "שנים" },
+      series: [{ type: "line", name: "חציון", data: lt.y, showSymbol: false }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var fa = {{ model.charts.fate | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-fate"));
+    c5.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#9fc3f7", "#6c757d", "#dc3545"],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: fa.x },
+      yAxis: { type: "value", max: 100, name: "%" },
+      series: fa.series.map(function (s) { return { type: "bar", stack: "f", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var inf = {{ model.charts.inforce | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-inforce"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: inf.x },
+      yAxis: { type: "value", max: 100, name: "%" },
+      series: [{ type: "line", name: "בתוקף", data: inf.y, showSymbol: false, areaStyle: { opacity: 0.15 } }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-heat"));
+    c7.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2];
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: hm.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+  })();
+</script>

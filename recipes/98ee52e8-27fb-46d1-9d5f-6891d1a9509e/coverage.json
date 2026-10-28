@@ -1,0 +1,7 @@
+{
+  "main.mispar_rechev": "skip: licence plate — a lookup identifier, never read or shown",
+  "main.sug_rechev_EU_cd": "chart-cats, chart-yearcat, chart-wave, chart-makeyear, chart-age, chart-days, kpi:total, insight:leader, insight:wave — EU vehicle category (M/N/O), not the Euro emission standard despite the CKAN description",
+  "main.shnat_yitzur": "chart-makeyear, chart-lag, kpi:vintage, insight:vintage, insight:lag",
+  "main.rishum_rishon_dt": "chart-age, chart-agehist, chart-lag, kpi:age, insight:age, insight:lag",
+  "main.taarich_hatkana": "chart-timeline, chart-yearcat, chart-wave, chart-age, chart-agehist, chart-weekday, chart-days, kpi:peak, kpi:age, insight:peak, insight:tail, insight:wave, insight:age, insight:bulk"
+}

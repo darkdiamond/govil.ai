@@ -1,0 +1,15 @@
+{
+  "branches.store": "chart-chains, chart-heat, chart-box, chart-city-chains, chart-isolated, map-main, kpi:chains, insight:leader, insight:regional, insight:single — chain; sub-brand variants folded into the shorter root name",
+  "branches.branch": "map-main — branch name shown in the map popup; 488 distinct free-text names, 50 empty, no aggregate view",
+  "branches.city": "chart-cities, chart-city-size, chart-city-chains, chart-heat, chart-bands, kpi:cities, kpi:single_city, insight:cities, insight:single — yod-doubling spelling variants merged",
+  "branches.address": "map-main, insight:dupes — popup line; also used to detect repeated (chain, address) rows",
+  "branches.X": "map-main, chart-nn, chart-isolated, kpi:median_nn, kpi:far, insight:isolated, insight:dense — ITM easting",
+  "branches.Y": "map-main, chart-bands, chart-box, chart-nn, chart-isolated, insight:regional — ITM northing; latitude approximated linearly for the north–south views",
+  "branches.report_date": "kpi:branches — the list's as-of date (single value per snapshot)",
+  "branches.PRIVATE_COMPANY": "skip: operating company registration number — an identifier; chains are grouped by name, and the same chain appears under several company numbers (incl. a 555555555 placeholder)",
+  "branches.SETTL_CODE": "skip: CBS settlement code; the city name is used instead (one code covers two different towns in this file)",
+  "branches.STREET_CODE": "skip: street code, an identifier",
+  "branches.N_HOME": "skip: house number — part of the address",
+  "branches.ADDRESS_CONC": "skip: street + number, duplicated in address",
+  "branches.street": "skip: street name, duplicated in address"
+}

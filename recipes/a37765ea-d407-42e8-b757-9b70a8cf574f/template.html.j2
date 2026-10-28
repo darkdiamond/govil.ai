@@ -1,0 +1,448 @@
+<h1>תכשירי הדברה מורשים לשימוש</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for k in ["products", "public", "pros", "ai", "holders", "label"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי רשאי להשתמש בתכשיר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.audience_note }}</p>
+    <div id="chart-audience" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.audience_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.audience_caption }}</caption>
+        <thead><tr><th scope="col">קהל מורשה</th><th scope="col">תכשירים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.audience %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חומר יחיד או תערובת</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+    <div id="chart-mix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+        <thead><tr><th scope="col">חומרים פעילים</th>{% for a in model.tables.auds %}<th scope="col">{{ a }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נגד אילו מזיקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pests_note }}</p>
+  <div id="chart-pests" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.pests_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.pests_caption }}</caption>
+      <thead><tr><th scope="col">מזיק</th>{% for a in model.tables.auds %}<th scope="col">{{ a }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.pests %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">משפחות כימיות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.class_note }}</p>
+    <div id="chart-class" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.class_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.class_caption }}</caption>
+        <thead><tr><th scope="col">משפחה</th>{% for a in model.tables.auds %}<th scope="col">{{ a }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.classes %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">החומרים הפעילים הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ai_note }}</p>
+    <div id="chart-ai" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ai_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ai_caption }}</caption>
+        <thead><tr><th scope="col">חומר פעיל</th><th scope="col">משפחה</th><th scope="col">תכשירים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ai %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.cls }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מזיקים מול משפחות כימיות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+      <thead><tr><th scope="col">מזיק</th>{% for c in model.charts.heat.x %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{% if model.flags.conc %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אותו חומר, ריכוז אחר: ציבור מול מדבירים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.conc_note }}</p>
+  <div id="chart-conc" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.conc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.conc_caption }}</caption>
+      <thead><tr><th scope="col">חומר פעיל</th><th scope="col">ריכוז מרבי לקהל הרחב</th><th scope="col">ריכוז מרבי למדבירים בלבד</th><th scope="col">יחס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.conc %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td dir="ltr">{{ r.pub }}</td><td dir="ltr">{{ r.pro }}</td><td dir="ltr">×{{ r.ratio }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תוארית התכשיר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.forms_note }}</p>
+    <div id="chart-forms" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.forms_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.forms_caption }}</caption>
+        <thead><tr><th scope="col">קבוצה</th><th scope="col">תואריות נפוצות</th><th scope="col">תכשירים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.forms %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.ex }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">בעלי הרישום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.holders_note }}</p>
+    <div id="chart-holders" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.holders_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.holders_caption }}</caption>
+        <thead><tr><th scope="col">בעל רישום</th>{% for a in model.tables.auds %}<th scope="col">{{ a }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.holders %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.expiry %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תוקף הרישום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.expiry_note }}</p>
+  <div id="chart-expiry" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.expiry_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.expiry_caption }}</caption>
+      <thead><tr><th scope="col">שנת פקיעה</th><th scope="col">תכשירים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.expiry %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.products %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התכשירים בעלי הייעוד הרחב ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.products_caption }}</p>
+  <div class="overflow-x-auto">
+  <table id="table-products" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.products_caption }}</caption>
+    <thead><tr><th scope="col" class="text-start pe-3 py-1">תכשיר</th><th scope="col" class="text-start pe-3 py-1 hidden md:table-cell">בעל רישום</th><th scope="col" class="text-start pe-3 py-1">קהל מורשה</th><th scope="col" class="text-start pe-3 py-1">מזיקים</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.products %}
+      <tr class="border-t border-rule"><th scope="row" class="text-start pe-3 py-1">{{ r.name }}</th><td class="pe-3 py-1 hidden md:table-cell">{{ r.holder }}</td><td class="pe-3 py-1">{{ r.aud }}</td><td class="pe-3 py-1"><span class="font-semibold">{{ r.npest }}</span><span class="text-subtle hidden md:inline"> · {{ r.pests }}</span></td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">תכשירים להדברת מזיקים לאדם בישראל נרשמים על ידי המשרד להגנת הסביבה. במערכת זו ניתן למצוא מידע עדכני על תכשירים אלו.
+ניתן לבצע חיפוש לפי: שם התכשיר, תוארית התכשיר (פורמולציה), החומרים הפעילים, ייעוד התכשיר (כנגד איזה מזיקים נרשם התכשיר), ומי רשאי להשתמש בתכשיר (הקהל הרחב או מדבירים בלבד).
+שימו לב: לפני השימוש בתכשיר הדברה יש לקרוא היטב את הוראות התווית, ולפעול על פיהן.
+שימוש לא נכון בתכשירי הדברה עלול לפגוע בבני אדם ובסביבה.</p>
+</section>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var AP = {{ model.charts.aud_pal | tojson }};
+    var AC = AP.map(function (i) { return P[i % P.length]; });
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+
+    function stacked(id, d, opts) {
+      opts = opts || {};
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      var narrow = el.clientWidth < 500;
+      var lw = Math.min(opts.lw || 130, Math.round(el.clientWidth * 0.4));
+      c.setOption(window.GovEcharts.option({
+        color: AC,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var s = ps[0].axisValue, t = 0;
+          ps.forEach(function (p) { t += p.value; s += "<br>" + p.marker + p.seriesName + ": " + fmt(p.value); });
+          return s + "<br>סה״כ: " + fmt(t) + " תכשירים";
+        } },
+        legend: { bottom: 0, itemGap: narrow ? 8 : 16, textStyle: { fontSize: narrow ? 11 : 12 } },
+        grid: { left: 16, right: 24, top: 16, bottom: narrow ? 64 : 44, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { fontSize: narrow ? 10 : 12 } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: lw, overflow: "truncate", fontSize: narrow ? 10 : 12, interval: 0 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "a", name: s.name, data: s.data, barMaxWidth: 28 }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-pests", {{ model.charts.pests | tojson }});
+    stacked("chart-class", {{ model.charts.classes | tojson }}, { lw: 170 });
+    stacked("chart-ai", {{ model.charts.ai | tojson }}, { lw: 140 });
+    stacked("chart-forms", {{ model.charts.forms | tojson }}, { lw: 160 });
+    stacked("chart-holders", {{ model.charts.holders | tojson }}, { lw: 170 });
+
+    var m = {{ model.charts.mix | tojson }};
+    var mel = document.getElementById("chart-mix");
+    var mc = echarts.init(mel);
+    var mn = mel.clientWidth < 500;
+    mc.setOption(window.GovEcharts.option({
+      color: AC,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, itemGap: mn ? 8 : 16, textStyle: { fontSize: mn ? 11 : 12 } },
+      grid: { left: 16, right: 16, top: 24, bottom: mn ? 64 : 44, containLabel: true },
+      xAxis: { type: "category", data: m.names, axisLabel: { interval: 0, width: mn ? 60 : 90, overflow: "break", fontSize: mn ? 10 : 12 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: m.series.map(function (s) { return { type: "bar", stack: "a", name: s.name, data: s.data, barMaxWidth: 48 }; })
+    }));
+    window.addEventListener("resize", function () { mc.resize(); });
+
+    var a = {{ model.charts.audience | tojson }};
+    var ael = document.getElementById("chart-audience");
+    var an = ael.clientWidth < 500;
+    var ac = echarts.init(ael);
+    ac.setOption(window.GovEcharts.option({
+      color: AC,
+      tooltip: { trigger: "item", formatter: function (p) { return p.name + ": " + fmt(p.value) + " תכשירים (" + p.percent + "%)"; } },
+      legend: { bottom: 0, itemGap: an ? 8 : 16, textStyle: { fontSize: an ? 11 : 12 } },
+      series: [{ type: "pie", radius: ["40%", "66%"], center: ["50%", an ? "42%" : "45%"], avoidLabelOverlap: true,
+                 label: { formatter: "{c}", fontFamily: "Rubik", color: "#0c3058" },
+                 data: a.names.map(function (nm, i) { return { name: nm, value: a.values[i] }; }) }]
+    }));
+    window.addEventListener("resize", function () { ac.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var narrow = el.clientWidth < 600;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + Number(p.value[2]).toLocaleString("he-IL") + " תכשירים";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: narrow ? { interval: 0, rotate: 55, width: 80, overflow: "truncate", fontSize: 9 }
+                                 : { interval: 0, width: 80, overflow: "break", fontSize: 11 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { interval: 0, fontSize: narrow ? 10 : 12, width: narrow ? 80 : 120, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 4, itemHeight: 120,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik", fontSize: narrow ? 8 : 11 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.conc %}
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var AP = {{ model.charts.aud_pal | tojson }};
+    var d = {{ model.charts.conc | tojson }};
+    var el = document.getElementById("chart-conc");
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: [P[0], P[1]],
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return d.names[i] + "<br>לקהל הרחב: עד " + d.pub[i] + "%<br>למדבירים בלבד: עד " + d.pro[i] + "%<br>יחס: ×" + d.ratio[i];
+      } },
+      legend: { bottom: 0, data: ["לקהל הרחב", "למדבירים בלבד"] },
+      grid: { left: 16, right: 24, top: 16, bottom: 44, containLabel: true },
+      xAxis: { type: "log", logBase: 10, name: "%", axisLabel: { fontSize: narrow ? 10 : 12, formatter: function (v) { return v + "%"; } } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { interval: 0, width: narrow ? 90 : 140, overflow: "truncate", fontSize: narrow ? 10 : 12 } },
+      series: [
+        { type: "custom", silent: true, z: 1,
+          data: d.names.map(function (nm, i) { return [d.pub[i], d.pro[i], i]; }),
+          encode: { x: [0, 1], y: 2 },
+          renderItem: function (params, api) {
+            var y = api.value(2), a = api.coord([api.value(0), y]), b = api.coord([api.value(1), y]);
+            return { type: "line", shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] },
+                     style: { stroke: "#c3cfe7", lineWidth: 4 } };
+          } },
+        { type: "scatter", name: "לקהל הרחב", data: d.pub.map(function (v, i) { return [v, d.names[i]]; }), symbolSize: 12, z: 3, itemStyle: { color: P[0] } },
+        { type: "scatter", name: "למדבירים בלבד", data: d.pro.map(function (v, i) { return [v, d.names[i]]; }), symbolSize: 12, z: 3, itemStyle: { color: P[1] } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.expiry %}
+<script>
+  (function () {
+    var e = {{ model.charts.expiry | tojson }};
+    var c = echarts.init(document.getElementById("chart-expiry"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: e.x },
+      yAxis: { type: "value", minInterval: 1, name: "תכשירים" },
+      series: [{ type: "bar", name: "תכשירים", data: e.y, barMaxWidth: 48,
+                 label: { show: true, position: "top", color: "#0c3058", fontSize: 11 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

@@ -1,0 +1,7 @@
+{
+  "cpc.סיווג": "chart-sections, chart-tree, chart-subclasses, chart-scatter, chart-depth, chart-depth-sec, chart-groups, chart-y, kpi:codes, kpi:subclasses, insight:lead, insight:indexing, insight:concentration, insight:y — the code string carries section/class/subclass/group; 2000-series groups = indexing codes",
+  "cpc.סיווג אב": "chart-depth, chart-depth-sec, chart-groups, chart-fan, kpi:main, insight:biggest, insight:depth, insight:leaves — parent links give the tree: level, main-group root, leaves and fan-out",
+  "cpc.מקביל IPC סיווג": "chart-sections, chart-scatter, kpi:none, insight:ipc, insight:indexing, insight:y — classified as identical / ancestor (CPC subdivision) / other IPC group / none",
+  "cpc.תיאור": "insight:fragments — English heading text; only its continuation-fragment form (lower-case start) is measured, the text itself stays in the explorer",
+  "cpc.קבוצה": "skip: duplicates the first four characters of the code (subclass), which compute derives from the code itself"
+}

@@ -1,0 +1,326 @@
+{%- macro two_col(rows, caption, head1, head2) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th><th scope="col">{{ head2 }}</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+{%- macro wide(t, caption, head1) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th>{% for c in t.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in t.rows %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro -%}
+<h1>רשימת צווי בטיחות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "recent", "sites", "cities"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צווים לפי חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.year_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">צווים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צווים לפי שנה וענף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">חלוקת הצווים בכל שנה לפי ענף המשק. השנה האחרונה חלקית.</p>
+  <div id="chart-cat" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+  {{ wide(model.tables.cat_year, model.labels.cat_aria, "שנה") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על מה ניתנים הצווים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הצווים לפי נושא ההפרה — בכל התקופה ובשנה האחרונה. הנושא נקבע לפי מילות מפתח בתיאור ההפרה; תיאור שאינו מתאים לאף נושא מסווג "אחר".</p>
+  <div id="chart-themes" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.themes_aria }}</caption>
+      <thead><tr><th scope="col">נושא</th><th scope="col">כל התקופה (%)</th><th scope="col">השנה האחרונה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.themes %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.all }}</td><td>{{ r.recent }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך משתנים נושאי הצווים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">חלקו של כל אחד מנושאי ההפרה הנפוצים מכלל הצווים בכל שנה. השנה האחרונה חלקית.</p>
+  <div id="chart-theme-year" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.theme_year_aria }}"></div>
+  {{ wide(model.tables.theme_year, model.labels.theme_year_aria, "שנה") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נושאי הצווים בכל ענף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">כל שורה היא ענף; כל תא הוא חלקו של נושא ההפרה מכלל צווי הענף. גוון כהה יותר = חלק גדול יותר.</p>
+  <div id="chart-sec-theme" data-fallback="explorer" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.sec_theme_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">על איזה חיקוק נשענים הצווים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.laws_note }}</p>
+    <div id="chart-laws" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.laws_aria }}"></div>
+    {{ two_col(model.tables.laws, model.labels.laws_aria, "חיקוק", "צווים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה צווים קיבל כל אתר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר אתרי העבודה לפי כמות הצווים שקיבלו לאורך כל התקופה.</p>
+    <div id="chart-sites" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.sites_aria }}"></div>
+    {{ two_col(model.tables.site_buckets, model.labels.sites_aria, "צווים לאתר", "אתרים") }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים מובילים בשנה האחרונה</h2>
+    </div>
+    <div id="chart-cities" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    {{ two_col(model.tables.cities, model.labels.cities_aria, "יישוב", "צווים") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חברות שקיבלו הכי הרבה צווים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.exec_note }}</p>
+    <div id="chart-exec" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.exec_aria }}"></div>
+    {{ two_col(model.tables.executors, model.labels.exec_aria, "חברה", "צווים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר הצווים בכל חודש. גוון כהה יותר = יותר צווים.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    var m = {{ model.charts.monthly | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-monthly"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [{ type: "line", name: "צווים", data: m.y, showSymbol: false, areaStyle: { opacity: 0.15 } }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var cy = {{ model.charts.cat_year | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-cat"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: cy.years },
+      yAxis: { type: "value" },
+      series: cy.series.map(function (s) {
+        return { type: "bar", stack: "all", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pct(v) { return v + "%"; }
+    var t = {{ model.charts.themes | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-themes"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { bottom: 0, data: ["כל התקופה", "השנה האחרונה"] },
+      grid: { left: 16, right: 40, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: t.names, inverse: true },
+      series: [
+        { type: "bar", name: "כל התקופה", data: t.all },
+        { type: "bar", name: "השנה האחרונה", data: t.recent }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values,
+                   label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "צווים");
+    hbar("chart-exec", {{ model.charts.executors | tojson }}, "צווים");
+    hbar("chart-laws", {{ model.charts.laws | tojson }}, "צווים");
+
+    var sb = {{ model.charts.sites | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-sites"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: sb.names, name: "צווים" },
+      yAxis: { type: "value", name: "אתרים" },
+      series: [{ type: "bar", name: "אתרים", data: sb.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var hm = {{ model.charts.heat | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-heat"));
+    c5.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + p.value[2];
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: hm.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pct(v) { return v + "%"; }
+    var ty = {{ model.charts.theme_year | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-theme-year"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: ty.years },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: ty.series.map(function (s) {
+        return { type: "line", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+
+    var st = {{ model.charts.sec_theme | tojson }};
+    var c8 = echarts.init(document.getElementById("chart-sec-theme"));
+    c8.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return st.sectors[p.value[1]] + " · " + st.themes[p.value[0]] + ": " +
+               p.value[2] + "% (" + p.value[3] + ")";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: st.themes, splitArea: { show: true },
+               axisLabel: { rotate: 45, width: 110, overflow: "truncate" } },
+      yAxis: { type: "category", data: st.sectors, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: 100, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: st.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c8.resize(); });
+  })();
+</script>

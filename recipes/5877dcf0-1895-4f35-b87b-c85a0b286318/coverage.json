@@ -1,0 +1,5 @@
+{
+  "main.mispar_rechev": "chart-plate, insight:plate — digit count only (plate format / registration series); the plate numbers themselves are lookup identifiers and never shown",
+  "main.sug_rechev_EU_cd": "chart-cats, chart-share, chart-bands, chart-fine, chart-common, chart-box, chart-plate, kpi:trailers, insight:leader, insight:weight_share, insight:heavy",
+  "main.mishkal_kolel": "chart-share, chart-bands, chart-fine, chart-common, chart-box, kpi:median, kpi:heavy, insight:heavy, insight:round, insight:near, insight:pounds, insight:weight_share — 99,999 kg is the register's unknown-weight placeholder (14 rows), excluded from weight views and disclosed"
+}

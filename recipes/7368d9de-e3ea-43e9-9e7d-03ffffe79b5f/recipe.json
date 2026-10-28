@@ -1,0 +1,41 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7368d9de-e3ea-43e9-9e7d-03ffffe79b5f",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T18:17:07.760425+00:00",
+    "rows": {
+      "cases": 17226,
+      "contracts": 44704
+    }
+  },
+  "inputs": [
+    {
+      "name": "cases",
+      "by_id": "a5c62922-0f26-4104-9445-da6d8ce47aa5",
+      "required_columns": [
+        "בית דין",
+        "נושא תיק",
+        "סוג תיק",
+        "תאריך פתיחת תיק",
+        "סטטוס תיק",
+        "החלטה",
+        "נותן החלטה"
+      ]
+    },
+    {
+      "name": "contracts",
+      "by_id": "b8bdb0b0-b016-484e-b39f-395c93f50a3a",
+      "required_columns": [
+        "בית דין",
+        "מספר חוזה",
+        "תאריך עריכת חוזה",
+        "תאריך יצירת תיק",
+        "רשם נישואין"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

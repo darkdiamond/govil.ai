@@ -1,0 +1,42 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3de0e7f0-03e1-4665-b078-da6e87543ed7",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T02:02:39.518490+00:00",
+    "rows": { "tariff": 13173, "autonomy": 1662 }
+  },
+  "inputs": [
+    {
+      "name": "tariff",
+      "by_id": "5536eaa1-2e51-406b-aff6-b9ca02801b7c",
+      "required_columns": [
+        "CustomsItem_2_Digits",
+        "CustomsItem_4_Digits",
+        "CustomsItem_6_Digits",
+        "CustomsItemFullClassification",
+        "HierarchicLocation",
+        "GoodsDescription",
+        "MeasurementUnitDescription",
+        "CustomsItemEndDate",
+        "CustomsTariff",
+        "CustomsTariffEndDate",
+        "PurchaseTaxTariff",
+        "PurchaseTaxTariffEndDate",
+        "CustomsItemCategoryID"
+      ]
+    },
+    {
+      "name": "autonomy",
+      "by_id": "9ef558bb-08e4-47d6-995d-495db2475cdf",
+      "required_columns": [
+        "CustomsItem_2_Digits",
+        "CustomsItemFullClassification",
+        "CustomsTariff"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

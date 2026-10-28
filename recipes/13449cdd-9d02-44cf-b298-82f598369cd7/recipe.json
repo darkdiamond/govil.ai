@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "13449cdd-9d02-44cf-b298-82f598369cd7",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T10:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:14:42.477481+00:00",
+    "rows": {
+      "decisions": 181903
+    }
+  },
+  "inputs": [
+    {
+      "name": "decisions",
+      "by_id": "ee9cc077-763f-44da-aea6-235ffaf72d3a",
+      "required_columns": [
+        "מספר מוחזק או אסיר",
+        "תאריך החלטה",
+        "מדינה",
+        "שם דיין"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

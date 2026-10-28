@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ebec1eda-e114-4f2e-b5fb-9766d10b890d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T09:08:27.092020+00:00",
+    "rows": {
+      "parties": 170
+    }
+  },
+  "inputs": [
+    {
+      "name": "parties",
+      "by_id": "1dbfc053-e92f-4354-92d6-1b99aadb20d7",
+      "required_columns": [
+        "שם מפלגה",
+        "מספר מפלגה",
+        "מטרות",
+        "כתובת",
+        "דואר אלקטרוני",
+        "תאריך רישום"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "63b7bf0b-69eb-4a73-9b98-b9fd2b8a4b5b",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T19:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T10:35:10.014773+00:00",
+    "rows": {
+      "trips": 127358
+    }
+  },
+  "inputs": [
+    {
+      "name": "trips",
+      "by_id": "6cf35ec2-c0eb-4ef0-a904-f093dab0abfd",
+      "required_columns": [
+        "shana",
+        "hodesh",
+        "train_trip_cd",
+        "first_train_station_nm",
+        "last_train_station_nm",
+        "rishui_all",
+        "rishui_only",
+        "bitzua_only"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["12 החודשים", "ב-12"]
+}

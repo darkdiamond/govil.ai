@@ -1,0 +1,78 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d3c80c46-9d99-41a9-8b62-50b590011a60",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T04:00:00+00:00",
+    "rows": {
+      "issuance": 1942,
+      "nontradable": 55,
+      "redemptions": 1963,
+      "linkage": 1730,
+      "switch": 1786,
+      "buyback": 301,
+      "trading": 175151
+    }
+  },
+  "inputs": [
+    {
+      "name": "issuance",
+      "by_id": "c92fdda2-0939-4110-8ebc-edfcf35e8723",
+      "required_columns": [
+        "ISSUANCEDATE",
+        "BONDS",
+        "ORIGINALTERMTOMATURITY",
+        "OFFEREDQUANTITY",
+        "PURCHASEDQUANTITY",
+        "TOTALFUNDING",
+        "DEMANDEDAMOUNT",
+        "COVERRATIO",
+        "GROSSAVGYIELD"
+      ]
+    },
+    {
+      "name": "nontradable",
+      "by_id": "76abc04f-8fc9-48aa-b86e-e993c9235ee1",
+      "required_columns": [
+        "ISSUANCEDATE",
+        "BONDS",
+        "PURCHASEDQUANTITY",
+        "COUPON"
+      ]
+    },
+    {
+      "name": "redemptions",
+      "by_id": "a772f69d-cc72-4cd7-a903-8c2a291bfbc9",
+      "required_columns": [
+        "TRADABLEORNONTRADABLE",
+        "BONDS",
+        "REDEMPTIONDATE",
+        "PRNCIPAL",
+        "DATATYPE"
+      ]
+    },
+    {
+      "name": "linkage",
+      "by_id": "c06847ee-a033-46ba-b99a-2a3d4a759b79",
+      "required_columns": ["LINKAGETYPES", "REDEMPTIONDATE", "PRNCIPAL"]
+    },
+    {
+      "name": "switch",
+      "by_id": "85ff63ea-7331-445c-8e53-4ef23b053059",
+      "required_columns": ["AUCTIONSDATE", "PURCHASEDAMOUNT", "ISSUEDAMOUNT"]
+    },
+    {
+      "name": "buyback",
+      "by_id": "0c3cd5bb-a7cd-44aa-bfee-5dfbddaa08ef",
+      "required_columns": ["BUYBACKDATE", "PURCHASEDQUANTITY"]
+    },
+    {
+      "name": "trading",
+      "by_schema": ["TRADINGDATE", "BONDNAME", "TASE", "MTS", "OTC", "TOTAL"],
+      "concat": true
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": ["20 שנה"]
+}

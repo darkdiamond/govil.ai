@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1c8e79c5-0ddb-461f-84ea-5bdcbaefaef4",
+  "recipe_version": 3,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T02:36:04.774612+00:00",
+    "rows": {
+      "recalls": 3650
+    }
+  },
+  "inputs": [
+    {
+      "name": "recalls",
+      "by_id": "2c33523f-87aa-44ec-a736-edbb0a82975e",
+      "required_columns": [
+        "SHNAT_RECALL",
+        "TOZAR_TEUR",
+        "SUG_RECALL",
+        "SUG_TAKALA",
+        "OFEN_TIKUN",
+        "YEVUAN_TEUR",
+        "TKINA_EU",
+        "BUILD_BEGIN_A",
+        "BUILD_END_A"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["M1"]
+}

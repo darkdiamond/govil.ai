@@ -1,0 +1,17 @@
+{
+  "recalls.RECALL_ID": "skip: internal campaign identifier — one per row, carries no information beyond the row count",
+  "recalls.TOZAR_CD": "skip: numeric code for the manufacturer; one-to-one with TOZAR_TEUR, which is shown",
+  "recalls.TOZAR_TEUR": "chart-makers, chart-models, insight:top_maker, insight:top_model, kpi:makers",
+  "recalls.DEGEM": "chart-models, insight:top_model",
+  "recalls.SHNAT_RECALL": "chart-years, chart-heat, chart-fix, insight:trend, insight:so_far, insight:software, kpi:last_full",
+  "recalls.BUILD_BEGIN_A": "chart-span, chart-vintage, insight:span, insight:vintage",
+  "recalls.BUILD_END_A": "chart-span, chart-vintage, insight:span, insight:vintage",
+  "recalls.SUG_RECALL": "chart-years, table:types, kpi:safety",
+  "recalls.SUG_TAKALA": "chart-faults, chart-heat, insight:top_fault",
+  "recalls.TEUR_TAKALA": "skip: short free-text fault description (~70 chars); its category is SUG_TAKALA, and the full text is in the shell's data explorer",
+  "recalls.OFEN_TIKUN": "chart-fix, table:fix, insight:software",
+  "recalls.TKINA_EU": "table:cats — 95% of recalls are M1 passenger cars so a chart would be a single bar",
+  "recalls.YEVUAN_TEUR": "chart-importers, insight:importers",
+  "recalls.TELEPHONE": "skip: importer contact phone — contact detail, not an analytic dimension (available in the data explorer)",
+  "recalls.WEBSITE": "skip: importer website link — contact detail, not an analytic dimension"
+}

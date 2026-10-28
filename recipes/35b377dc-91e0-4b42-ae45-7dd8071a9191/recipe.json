@@ -1,0 +1,37 @@
+{
+  "contract_version": 1,
+  "dataset_id": "35b377dc-91e0-4b42-ae45-7dd8071a9191",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:01:53.615758+00:00",
+    "rows": {
+      "budget": 87742
+    }
+  },
+  "inputs": [
+    {
+      "name": "budget",
+      "by_schema": [
+        "שנה",
+        "חשבון",
+        "שם חשבון",
+        "מחלקה",
+        "מקורי",
+        "מעודכן",
+        "ביצוע"
+      ],
+      "concat": true,
+      "required_columns": [
+        "שנה",
+        "חשבון",
+        "שם חשבון",
+        "מחלקה",
+        "מקורי",
+        "מעודכן",
+        "ביצוע"
+      ]
+    }
+  ],
+  "min_insights": 5
+}

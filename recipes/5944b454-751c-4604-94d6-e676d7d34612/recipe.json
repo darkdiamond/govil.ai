@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5944b454-751c-4604-94d6-e676d7d34612",
+  "recipe_version": 1,
+  "authored_at": "2026-10-27T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:15:27.525084+00:00",
+    "rows": { "trees": 59571 }
+  },
+  "inputs": [
+    {
+      "name": "trees",
+      "by_id": "b7bfe395-a977-452a-8429-e258b71c5b10",
+      "required_columns": [
+        "plate_num",
+        "tree_speci",
+        "street_nam",
+        "neighborho",
+        "itm_x",
+        "itm_y",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

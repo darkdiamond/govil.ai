@@ -1,0 +1,5 @@
+{
+  "dealers.diamond_dealer_name": "chart-form, chart-formtype, chart-words, chart-years, table:pending, insight:form, insight:words, insight:years — legal form, trade vocabulary and embedded year derived from the name text; only businesses in registration are named, individuals never",
+  "dealers.status": "chart-status, chart-type, chart-rate, chart-mix, chart-form, chart-words, chart-years, kpi:total, kpi:active, kpi:share, kpi:pending, insight:status, insight:rate_gap, insight:mix, insight:form, insight:years, insight:pending",
+  "dealers.license_type": "chart-type, chart-rate, chart-mix, chart-formtype, table:pending, insight:type_lead, insight:rate_gap, insight:mix, insight:pending"
+}

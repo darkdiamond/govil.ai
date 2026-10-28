@@ -1,0 +1,9 @@
+{
+  "brokers.מס רשיון": "skip: licence number — an identifier; the numbering mixes several ranges and carries no issue-date meaning",
+  "brokers.שם המתווך": "skip: brokers are private individuals — never read or shown; the page aggregates by city only",
+  "brokers.עיר מגורים": "chart-cities, insight:brokers, kpi:cities, kpi:brokers",
+  "exams.תיאור הבחינה": "skip: constant — every row is the same exam (דיני מתווכים במקרקעין)",
+  "exams.תאריך הבחינה": "chart-volume, chart-scores, chart-sittings, chart-months, chart-bands, insight:volume, insight:upcoming, kpi:examinees",
+  "exams.מוסד לימודי": "chart-institutions, insight:institution",
+  "exams.ציון": "chart-scores, chart-dist, chart-bands, insight:scores, insight:long_trend, kpi:ge_last"
+}

@@ -1,0 +1,539 @@
+<h1>גמל-נט</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="mt-2 mb-0 text-sm text-subtle">{{ model.labels.scope_note }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.assets.tone }} mb-1" dir="ltr">{{ model.kpis.assets.display }}</div>
+    <div class="text-sm text-subtle">סך נכסים (מיליארד ₪) · {{ model.labels.period }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.tracks.tone }} mb-1" dir="ltr">{{ model.kpis.tracks.display }}</div>
+    <div class="text-sm text-subtle">מסלולים מדווחים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.managers.tone }} mb-1" dir="ltr">{{ model.kpis.managers.display }}</div>
+    <div class="text-sm text-subtle">גופים מנהלים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.month_yield.tone }} mb-1" dir="ltr">{{ model.kpis.month_yield.display }}</div>
+    <div class="text-sm text-subtle">תשואה משוקללת בחודש האחרון</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.liquid.tone }} mb-1" dir="ltr">{{ model.kpis.liquid.display }}</div>
+    <div class="text-sm text-subtle">נכסים נזילים (משוקלל)</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הנכסים לפי סוג קופה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">סך הנכסים בכל חודש, במיליארדי ₪.</p>
+  <div id="chart-assets" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.assets_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נתח שוק לפי גוף מנהל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">נכסים במיליארדי ₪ בחודש הדיווח האחרון.</p>
+    <div id="chart-managers" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.managers_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.managers_caption }}</caption>
+        <thead><tr><th scope="col">גוף מנהל</th><th scope="col">נכסים</th><th scope="col">נתח (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.managers %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.assets }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">לאן זורם הכסף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הפקדות נטו (הפקדות פחות משיכות, בתוספת העברות) ב-12 החודשים האחרונים, לפי סוג קופה.</p>
+    <div id="chart-net12" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.net12_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.net12_caption }}</caption>
+        <thead><tr><th scope="col">סוג קופה</th><th scope="col">הפקדות נטו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.net12 %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.net }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נכסים לפי התמחות המסלול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">תמונת מצב לחודש האחרון, במיליארדי ₪. סיווג ההתמחויות הוחלף ב-2024, ולכן מוצג המצב הנוכחי בלבד.</p>
+    <div id="chart-spec" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.spec_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.spec_caption }}</caption>
+        <thead><tr><th scope="col">התמחות</th><th scope="col">נכסים</th><th scope="col">נתח (%)</th><th scope="col">מתחילת השנה (%)</th><th scope="col">חמש שנים (% לשנה)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.spec %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.assets }}</td><td>{{ r.share }}</td><td>{{ r.ytd }}</td><td>{{ r.y5 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תשואה לפי התמחות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">תשואה מתחילת השנה ({{ model.labels.ytd_label }}) ותשואה שנתית ממוצעת לחמש שנים, משוקללות לפי נכסים.</p>
+    <div id="chart-spec-yield" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.spec_yield_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.spec_caption }}</caption>
+        <thead><tr><th scope="col">התמחות</th><th scope="col">מתחילת השנה (%)</th><th scope="col">חמש שנים (% לשנה)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.spec %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.ytd }}</td><td>{{ r.y5 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מסלולי ברירת המחדל לפי גיל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">במסלולים התלויים בגיל ("מדרגות") רמת הסיכון אמורה לרדת ככל שהחוסך מתבגר. שיעור החשיפה למניות והתשואה מתחילת השנה, משוקללים לפי נכסים.</p>
+  <div id="chart-age" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.age_caption }}</caption>
+      <thead><tr><th scope="col">מסלול</th><th scope="col">מסלולים</th><th scope="col">נכסים</th><th scope="col">חשיפה למניות (%)</th><th scope="col">מתחילת השנה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.age %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.tracks }}</td><td>{{ r.assets }}</td><td>{{ r.equity }}</td><td>{{ r.ytd }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תשואה חודשית משוקללת</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">ממוצע תשואות המסלולים, משוקלל לפי נכסים. חודשים שליליים באדום.</p>
+    <div id="chart-yields" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yields_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תשואה ל-12 חודשים מתגלגלים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">התשואה המצטברת בשנה שהסתיימה בכל חודש.</p>
+    <div id="chart-rolling" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rolling_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המסלולים הגדולים: תשואה מתחילת השנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המסלולים בעלי הנכסים הרבים ביותר בחודש האחרון.</p>
+  <div id="chart-tracks" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.tracks_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tracks_caption }}</caption>
+      <thead><tr><th scope="col">מסלול</th><th scope="col">תשואה מתחילת השנה (%)</th><th scope="col">נכסים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.tracks %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.ytd }}</td><td>{{ r.assets }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דמי ניהול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fees_note }}</p>
+    <div id="chart-fees" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fees_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fees_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">מצבירה (%)</th><th scope="col">מהפקדה (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.fees %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.mgmt }}</td><td>{{ r.dep }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הפקדות, משיכות והעברות לפי שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">במיליארדי ₪. משיכות מוצגות כערך שלילי; העברות = העברות נטו בין קופות.</p>
+    <div id="chart-flows" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.flows_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.flows_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">הפקדות</th><th scope="col">משיכות</th><th scope="col">העברות</th><th scope="col">נטו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.flows %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.dep }}</td><td>{{ r.wd }}</td><td>{{ r.tr }}</td><td>{{ r.net }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חשיפה למניות, לחו״ל ולמט״ח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.exposure_note }}</p>
+  <div id="chart-exposure" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.exposure_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.exposure_caption }}</caption>
+      <thead><tr><th scope="col">תקופה</th>{% for l in model.tables.exposure_labels %}<th scope="col">{{ l }} (%)</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.exposure %}
+        <tr><th scope="row">{{ r.period }}</th>{% for l in model.tables.exposure_labels %}<td>{{ r[l] }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סיכון מול תשואה (חמש שנים)</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.risk_note }}</p>
+    <div id="chart-risk" data-fallback="explorer" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.risk_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">תשואה שנתית ממוצעת לפי גוף מנהל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">ממוצע שנתי לשלוש ולחמש שנים, משוקלל לפי נכסי המסלולים של כל גוף (הגופים הגדולים).</p>
+    <div id="chart-mgr-yield" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.mgr_yield_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mgr_yield_caption }}</caption>
+        <thead><tr><th scope="col">גוף מנהל</th><th scope="col">שלוש שנים (% לשנה)</th><th scope="col">חמש שנים (% לשנה)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.mgr_yield %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.y3 }}</td><td>{{ r.y5 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קופות ענפיות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">חלק מהקופות מיועדות רק לעובדי סקטור, מפעל או גוף מסוים.</p>
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.target_caption }}</caption>
+    <thead><tr><th scope="col">אוכלוסיית יעד</th><th scope="col">נכסים</th><th scope="col">נתח (%)</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.target %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.assets }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+
+<script>
+  (function () {
+    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    var a = {{ model.charts.assets | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-assets"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: bnFmt },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 56, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: a.x },
+      yAxis: { type: "value", name: "מיליארד ₪" },
+      series: a.series.map(function (s) {
+        return { type: "line", name: s.name, stack: "total", areaStyle: {}, showSymbol: false, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var m = {{ model.charts.managers | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-managers"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: bnFmt },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "מיליארד ₪" },
+      yAxis: { type: "category", data: m.names, inverse: true },
+      series: [{ type: "bar", data: m.values }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+
+    var n = {{ model.charts.net12 | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-net12"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: bnFmt },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "מיליארד ₪" },
+      yAxis: { type: "category", data: n.names, inverse: true },
+      series: [{ type: "bar", name: "הפקדות נטו", data: n.values.map(function (v) {
+        return v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pctFmt(v) { return v === null ? "—" : v + "%"; }
+    var s = {{ model.charts.spec | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-spec"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מיליארד ₪"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "מיליארד ₪" },
+      yAxis: { type: "category", data: s.names, inverse: true },
+      series: [{ type: "bar", data: s.values }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+
+    var sy = {{ model.charts.spec_yield | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-spec-yield"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", name: "%" },
+      yAxis: { type: "category", data: sy.names, inverse: true },
+      series: [
+        { type: "bar", name: "מתחילת השנה", data: sy.ytd },
+        { type: "bar", name: "5 שנים (לשנה)", data: sy.y5 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var g = {{ model.charts.age | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-age"));
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: g.names },
+      yAxis: { type: "value", name: "%" },
+      series: [
+        { type: "bar", name: "חשיפה למניות", data: g.equity },
+        { type: "bar", name: "תשואה מתחילת השנה", data: g.ytd }
+      ]
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+
+    var y = {{ model.charts.yields | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-yields"));
+    c7.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "%" },
+      series: [{ type: "bar", name: "תשואה חודשית", data: y.y.map(function (v) {
+        return v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+
+    var r = {{ model.charts.rolling | tojson }};
+    var c8 = echarts.init(document.getElementById("chart-rolling"));
+    c8.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", name: "%" },
+      series: [{ type: "line", name: "תשואה ל-12 חודשים", data: r.y, showSymbol: false,
+                 markLine: { silent: true, symbol: "none", data: [{ yAxis: 0 }], lineStyle: { color: "#6c757d" } } }]
+    }));
+    window.addEventListener("resize", function () { c8.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function pctFmt(v) { return v === null ? "—" : v + "%"; }
+    var t = {{ model.charts.tracks | tojson }};
+    var c9 = echarts.init(document.getElementById("chart-tracks"));
+    c9.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "%" },
+      yAxis: { type: "category", data: t.names, inverse: true },
+      series: [{ type: "bar", name: "תשואה מתחילת השנה", data: t.values.map(function (v) {
+        return v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c9.resize(); });
+
+    var f = {{ model.charts.fees | tojson }};
+    var c10 = echarts.init(document.getElementById("chart-fees"));
+    c10.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value", scale: true, name: "%" },
+      series: [
+        { type: "line", name: "מצבירה", data: f.mgmt },
+        { type: "line", name: "מהפקדה", data: f.deposit }
+      ]
+    }));
+    window.addEventListener("resize", function () { c10.resize(); });
+
+    var fl = {{ model.charts.flows | tojson }};
+    var c11 = echarts.init(document.getElementById("chart-flows"));
+    c11.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " מיליארד ₪"; } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: fl.x },
+      yAxis: { type: "value", name: "מיליארד ₪" },
+      series: [
+        { type: "bar", name: "הפקדות", stack: "f", data: fl.dep },
+        { type: "bar", name: "משיכות", stack: "f", data: fl.wd },
+        { type: "bar", name: "העברות", stack: "f", data: fl.tr }
+      ]
+    }));
+    window.addEventListener("resize", function () { c11.resize(); });
+
+    var e = {{ model.charts.exposure | tojson }};
+    var c12 = echarts.init(document.getElementById("chart-exposure"));
+    c12.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: e.x },
+      yAxis: { type: "value", name: "%" },
+      series: e.series.map(function (s) { return { type: "line", name: s.name, data: s.data, showSymbol: false }; })
+    }));
+    window.addEventListener("resize", function () { c12.resize(); });
+
+    var g = {{ model.charts.mgr_yield | tojson }};
+    var c13 = echarts.init(document.getElementById("chart-mgr-yield"));
+    c13.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: pctFmt },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", name: "% לשנה" },
+      yAxis: { type: "category", data: g.names, inverse: true },
+      series: [
+        { type: "bar", name: "3 שנים", data: g.y3 },
+        { type: "bar", name: "5 שנים", data: g.y5 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c13.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var r = {{ model.charts.risk | tojson }};
+    var c14 = echarts.init(document.getElementById("chart-risk"));
+    c14.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var d = p.data;
+        return echarts.format.encodeHTML(d[3]) + "<br>סטיית תקן: " + d[0] + "<br>תשואה שנתית: " + d[1] + "%<br>נכסים: " + d[2] + " מיליארד ₪";
+      } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 24, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "value", name: "סטיית תקן", scale: true },
+      yAxis: { type: "value", name: "% לשנה", scale: true },
+      series: r.classes.map(function (c) {
+        return { type: "scatter", name: c, data: r.points.filter(function (p) { return p[4] === c; }),
+                 symbolSize: function (d) { return Math.max(4, Math.sqrt(d[2]) * 4); } };
+      })
+    }));
+    window.addEventListener("resize", function () { c14.resize(); });
+  })();
+</script>

@@ -1,0 +1,44 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a52c0585-8af8-42bd-8c5c-03c6550682ea",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-20T16:13:08.468377+00:00",
+    "rows": { "general": 3214, "realestate": 2092, "balances": 3993 }
+  },
+  "inputs": [
+    {
+      "name": "general",
+      "by_id": "f70898aa-9d47-47b2-b1bc-ec736b76bfe2",
+      "required_columns": [
+        "מספר תיק",
+        "תאריך רישום",
+        "שם הקדש",
+        "מטרות",
+        "שיטת מימון",
+        "סטטווס תיק"
+      ]
+    },
+    {
+      "name": "realestate",
+      "by_id": "fa63c259-c5f5-4ab1-a375-b75923074c57",
+      "required_columns": [
+        "מספר תיק",
+        "שם הקדש",
+        "תאור הנכס",
+        "גוש",
+        "חלקה",
+        "תת חלקה",
+        "הערה במרשם המקרקעין"
+      ]
+    },
+    {
+      "name": "balances",
+      "by_id": "1e4263cc-6fd5-4687-8b36-8db04877eff6",
+      "required_columns": ["מספר תיק", "תאור מטבע", "סכום", "נכון לתאריך"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,340 @@
+<h1>נקודות מכירה ומחירים מרביים של מוצרי מזון מיובאים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.points.tone }} mb-1" dir="ltr">{{ model.kpis.points.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.points_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.chains.tone }} mb-1" dir="ltr">{{ model.kpis.chains.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.chains_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.range.tone }} mb-1" dir="ltr">{{ model.kpis.range.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.range_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המחיר המרבי: כמה נקודות בכל רמת מחיר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prices_note }}</p>
+  <div id="chart-prices" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.prices_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">נקודות מכירה לפי מחיר מרבי ומוצר</caption>
+      <thead><tr><th scope="col">מחיר מרבי (₪ ל־100 גרם)</th>{% for p in model.tables.product_names %}<th scope="col">{{ p }}</th>{% endfor %}<th scope="col">יבואנים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.prices %}
+        <tr><th scope="row" dir="ltr">{{ r.price }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.who }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המחיר המרבי של כל יבואן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.matrix_note }}</p>
+  <div class="overflow-x-auto">
+  <table id="table-matrix" class="w-full text-sm">
+    <caption class="sr-only">מחיר מרבי לפי יבואן ומוצר</caption>
+    <thead><tr><th scope="col">יבואן</th><th scope="col">מוצר</th><th scope="col">נקודות מכירה</th><th scope="col">מחיר מרבי (₪)</th><th scope="col">ממוצע (₪)</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.matrix %}
+      <tr><th scope="row">{{ r.importer }}</th><td>{{ r.product }}</td><td>{{ r.points }}</td><td dir="ltr" class="whitespace-nowrap">{{ r.range }}</td><td dir="ltr">{{ r.mean }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נקודות מכירה לפי יבואן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.importers_note }}</p>
+    <div id="chart-importers" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.importers_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">נקודות מכירה לפי יבואן ומוצר</caption>
+        <thead><tr><th scope="col">יבואן</th>{% for p in model.tables.product_names %}<th scope="col">{{ p }}</th>{% endfor %}<th scope="col">נקודות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.importers %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סל המוצרים בנקודת המכירה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.assort_note }}</p>
+    <div id="chart-assort" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.assort_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">נקודות מכירה לפי סל מוצרים</caption>
+        <thead><tr><th scope="col">מוצרים</th><th scope="col">נקודות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.assort %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הרשתות עם הכי הרבה נקודות מכירה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chains_note }}</p>
+  <div id="chart-chains" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.chains_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">נקודות מכירה לפי רשת ומוצר</caption>
+      <thead><tr><th scope="col">רשת</th>{% for p in model.tables.product_names %}<th scope="col">{{ p }}</th>{% endfor %}<th scope="col">נקודות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.chains %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המחיר המרבי בסניפי כל רשת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chain_price_note }}</p>
+  <div id="chart-chain-price" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.chain_price_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">שיעור הסניפים בכל רמת מחיר מרבי לפי רשת</caption>
+      <thead><tr><th scope="col">רשת</th>{% for l in model.tables.chain_levels %}<th scope="col" dir="ltr">{{ l }} ₪</th>{% endfor %}<th scope="col">ממוצע (₪)</th><th scope="col">סניפים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.chain_price %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}<td dir="ltr">{{ r.mean }}</td><td>{{ r.points }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">נקודות מכירה לפי יישוב ומוצר</caption>
+      <thead><tr><th scope="col">יישוב</th>{% for p in model.tables.product_names %}<th scope="col">{{ p }}</th>{% endfor %}<th scope="col">נקודות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המחיר הנמוך ביותר הזמין ביישוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cheap_note }}</p>
+    <div id="chart-cheap" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cheap_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">יישובים לפי המחיר המרבי הנמוך ביותר הזמין בהם</caption>
+        <thead><tr><th scope="col">מחיר מרבי נמוך ביותר (₪ ל־100 גרם)</th><th scope="col">יישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cheap %}
+          <tr><th scope="row" dir="ltr">{{ r.price }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי עודכנו הרשומות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.updates_note }}</p>
+    <div id="chart-updates" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.updates_aria }}" data-fallback="explorer"></div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({ color: [P[0], P[2], P[6], P[1]].concat(P.slice(3, 6), P.slice(7)) }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    var p = {{ model.charts.prices | tojson }};
+    mk("chart-prices", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: p.x, name: "₪ ל־100 גרם", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "נקודות מכירה" },
+      series: p.series.map(function (s) {
+        return { type: "bar", stack: "p", name: s.name, data: s.data, barMaxWidth: 56,
+                 label: { show: true, position: "inside", color: "#fff", formatter: function (q) { return q.value ? fmt(q.value) : ""; } } };
+      })
+    });
+    function stackH(id, d) {
+      mk(id, {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      });
+    }
+    stackH("chart-importers", {{ model.charts.importers | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(Object.assign({ color: [P[0], P[2], P[6], P[1]].concat(P.slice(3, 6), P.slice(7)) }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function stackH(id, d) {
+      mk(id, {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      });
+    }
+    stackH("chart-chains", {{ model.charts.chains | tojson }});
+    stackH("chart-cities", {{ model.charts.cities | tojson }});
+    var a = {{ model.charts.assort | tojson }};
+    mk("chart-assort", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+      grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: a.names, inverse: true, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", name: "נקודות", data: a.values, colorBy: "data",
+                 label: { show: true, position: "right", formatter: function (q) { return fmt(q.value); }, color: "#0c3058" } }]
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    function mk(id, opt) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option(opt));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    var cp = {{ model.charts.chain_price | tojson }};
+    var ramp = ["#9cc3fb", "#4d94f8", "#0068f5", "#0b3668"].concat(P);
+    mk("chart-chain-price", {
+      color: cp.series.length <= 4 ? ramp.slice(4 - cp.series.length) : P,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: cp.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: cp.series.map(function (s) { return { type: "bar", stack: "t", name: s.name + " ₪", data: s.data }; })
+    });
+    var ch = {{ model.charts.cheap | tojson }};
+    var last = ch.x.length - 1;
+    mk("chart-cheap", {
+      color: [P[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+      grid: { left: 16, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: ch.x, name: "₪ ל־100 גרם", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "יישובים" },
+      series: [{ type: "bar", name: "יישובים", barMaxWidth: 56,
+                 data: ch.y.map(function (v, i) { return ch.hl && i === last ? { value: v, itemStyle: { color: "#9a6700" } } : v; }),
+                 label: { show: true, position: "top", color: "#0c3058", formatter: function (q) { return fmt(q.value); } } }]
+    });
+    var u = {{ model.charts.updates | tojson }};
+    mk("chart-updates", {
+      color: [P[0], P[2], P[6], P[1]].concat(P.slice(3, 6), P.slice(7)),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: u.x, axisLabel: { rotate: 45, hideOverlap: true } },
+      yAxis: { type: "value", name: "רשומות" },
+      series: u.series.map(function (s) { return { type: "bar", stack: "u", name: s.name, data: s.data }; })
+    });
+  })();
+</script>

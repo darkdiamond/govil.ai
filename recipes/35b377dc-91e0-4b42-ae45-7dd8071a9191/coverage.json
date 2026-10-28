@@ -1,0 +1,13 @@
+{
+  "budget.שנה": "chart-budget, chart-net, chart-exec, chart-pay, chart-heat, kpi:total, insight:growth",
+  "budget.חשבון": "chart-size, kpi:items, insight:concentration — first two digits split income (11-15) from expense (16-19) by sign; the number itself is an identifier",
+  "budget.שם חשבון": "chart-items, chart-income, chart-pay, table:depts, insight:item, insight:income, insight:payroll",
+  "budget.מחלקה": "chart-depts, chart-heat, table:depts, insight:dept, insight:dept_growth — code only, no name in the data; blank in 2009 and some rows",
+  "budget.מקורי": "chart-budget, chart-pay, chart-depts, chart-heat, chart-items, chart-income, chart-size, kpi:total, kpi:growth, insight:growth",
+  "budget.מעודכן": "chart-budget, chart-exec, insight:revision, insight:execution",
+  "budget.ביצוע": "chart-budget, chart-net, chart-exec, kpi:exec, kpi:net, insight:net, insight:execution",
+  "resource:56f0140c-73cc-494a-8b5c-4b66294d793b": "skip: per-year 2017 extract with year-specific column names; a column-shifted subset of the all-years file, which the recipe reads",
+  "resource:90c364c9-7a55-4602-8bce-780efd7dd153": "skip: per-year 2016 extract with year-specific column names; a column-shifted subset of the all-years file, which the recipe reads",
+  "resource:4164fef3-9d1b-4cc9-a77b-d8e4161d166c": "skip: per-year 2015 extract with year-specific column names; a column-shifted subset of the all-years file, which the recipe reads",
+  "resource:8d49afc8-5f33-4e88-b5ec-063f94ea6140": "skip: per-year 2014 extract with year-specific column names; a column-shifted subset of the all-years file, which the recipe reads"
+}

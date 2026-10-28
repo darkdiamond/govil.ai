@@ -1,0 +1,8 @@
+{
+  "shelters.name": "map-main, chart-prefix, chart-numbering, chart-spread, kpi:total, kpi:prefixes, kpi:completeness, insight:leader, insight:concentration, insight:gaps, insight:compact — shelter code: prefix before the slash, running number after it",
+  "shelters.lat": "map-main, chart-nearest, chart-lat, chart-lon, chart-spread, kpi:nearest, insight:nearest, insight:close, insight:isolated, insight:extent",
+  "shelters.lon": "map-main, chart-nearest, chart-lat, chart-lon, chart-spread, kpi:nearest, insight:nearest, insight:close, insight:isolated, insight:extent",
+  "resource:6ab1c602-873c-4c1f-b046-60505af1bacd": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:02126f0d-b498-4608-b001-1d5c6c0ade34": "skip: same points as the CSV, in ITM coordinates",
+  "resource:6d3e5ce0-b057-4205-92c3-130b05fe69fc": "skip: same points as the CSV, in ITM coordinates"
+}

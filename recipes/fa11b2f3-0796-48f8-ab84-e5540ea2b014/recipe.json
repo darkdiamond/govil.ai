@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "fa11b2f3-0796-48f8-ab84-e5540ea2b014",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-04T03:30:47.484310+00:00",
+    "rows": {
+      "main": 6761
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e3bfbd23-ca72-4359-a095-4e40757eea65",
+      "required_columns": [
+        "מחוז",
+        "רשות",
+        "שם תקן",
+        "מספר תקנים",
+        "תקן מאויש",
+        "פנוי",
+        "מתוכם עוס",
+        "עוסים מתוך המאויישים"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

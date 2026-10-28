@@ -1,0 +1,16 @@
+{
+  "main.LicenseType": "chart-types, chart-districts, chart-expiry, chart-disc-rate, chart-contact, kpi:total, kpi:contractors, insight:types, insight:disc_rate — split into role (קבלן/עובד אחראי/סוקר/מפקח) and material (צמנט/פריך); unknown types flow through",
+  "main.LicenseNumber": "skip: per-licence identifier — kept off the page by policy",
+  "main.Name": "chart-crew, insight:sole, insight:multi, insight:employers — used only for matching (holders with several licences, contractors who are also their own responsible worker, employer↔contractor); individuals are not listed",
+  "main.Phone": "chart-contact — completeness share only, values never shown",
+  "main.AdditionalTelephone": "chart-contact — completeness share only, values never shown",
+  "main.Fax": "chart-contact — completeness share only, values never shown",
+  "main.Email": "chart-contact — completeness share only, values never shown",
+  "main.Address": "chart-contact — completeness share only; street addresses never shown (settlement/district come from their own columns)",
+  "main.Settlement": "chart-settlements, insight:settlements — top 15 + others",
+  "main.District": "chart-districts, insight:district, insight:friable_geo — blank shown as לא צוין and disclosed",
+  "main.LicenseExpirationDate": "chart-expiry, kpi:expiring, insight:expiry — register lists only valid licences, so the earliest expiry is the nearest one; no wall clock",
+  "main.DisciplinaryAspects": "chart-disc-rate, chart-disc-years, chart-susp, kpi:disc, insight:disc_rate, insight:disc_trend, insight:suspension, insight:unparsed — parsed into dated events (deduped across a holder's rows); aggregate only, nobody named",
+  "main.EmployerContractor": "chart-employers, chart-crew, insight:employers — employers are businesses (incl. sole traders) and are named",
+  "main.AdditionalTerms": "skip: empty in every row"
+}

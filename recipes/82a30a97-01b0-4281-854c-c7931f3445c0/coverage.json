@@ -1,0 +1,11 @@
+{
+  "streets.שם ראשי": "kpi:total, kpi:unique, insight:duplicates, insight:secondary — row key; no per-name list on the page",
+  "streets.תואר": "chart-titles, chart-title-group, insight:titles, insight:title_group",
+  "streets.שם מישני": "insight:secondary — share of names with a given name",
+  "streets.קבוצה": "chart-groups, chart-hood-mix, chart-title-group, kpi:groups, insight:group_leader, insight:hood_mix",
+  "streets.קבוצה נוספת": "chart-extra, insight:awards, insight:dual",
+  "streets.סוג": "chart-types, insight:type_leader, insight:nocode",
+  "streets.קוד": "kpi:nocode, insight:nocode — numeric street code, only presence is used",
+  "streets.שכונה": "chart-hoods, chart-hood-mix, kpi:hoods, insight:hood_leader, insight:hood_mix",
+  "resource:1bf2a00a-d370-46a3-a78c-1a338574adec": "skip: XLSX twin of the CSV resource (identical 1,218 rows)"
+}

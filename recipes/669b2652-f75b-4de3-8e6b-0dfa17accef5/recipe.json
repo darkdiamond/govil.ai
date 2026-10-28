@@ -1,0 +1,38 @@
+{
+  "contract_version": 1,
+  "dataset_id": "669b2652-f75b-4de3-8e6b-0dfa17accef5",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T20:12:19.938598+00:00",
+    "rows": {
+      "register": 3182,
+      "exams": 93728,
+      "exempt": 4901
+    }
+  },
+  "inputs": [
+    {
+      "name": "register",
+      "by_id": "8540534a-eccd-4568-a677-652d589ed172",
+      "required_columns": ["שם שמאי", "עיר"]
+    },
+    {
+      "name": "exams",
+      "by_id": "8b7f49b2-8281-460f-bcd1-71c5b367db47",
+      "required_columns": [
+        "תיאור הבחינה",
+        "תאריך הבחינה",
+        "מוסד לימודי",
+        "ציון"
+      ]
+    },
+    {
+      "name": "exempt",
+      "by_id": "fdb6434a-e046-428f-b8f5-e753f54ffebc",
+      "required_columns": ["תיאור הבחינה", "תאריך הבחינה", "מוסד לימודי"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,367 @@
+<h1>מאגר החברות המיועדות למחיקה</h1>
+
+<style>
+  .del-table th, .del-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .del-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.active_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.past.tone }} mb-1" dir="ltr">{{ model.kpis.past.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.past_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.recent.tone }} mb-1" dir="ltr">{{ model.kpis.recent.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גלי הפרסום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.waves_note }}</p>
+  <div id="chart-waves" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.waves_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.waves_caption }}</caption>
+      <thead><tr><th scope="col">{{ model.labels.waves_col }}</th><th scope="col">חברות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.waves %}
+        <tr><th scope="row" dir="ltr">{{ r.label }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חלונות ההתנגדות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gantt_note }}</p>
+  <div id="chart-gantt" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.gantt_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.waves_caption }}</caption>
+      <thead><tr><th scope="col">{{ model.labels.waves_col }}</th><th scope="col">חברות</th><th scope="col">מועד המחיקה הצפוי</th><th scope="col">חלון ההתנגדות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.waves %}
+        <tr><th scope="row" dir="ltr">{{ r.label }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.exp }}</td><td>{{ r.state }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מעמד החברות במרשם</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_caption }}</caption>
+        <thead><tr><th scope="col">מעמד</th><th scope="col">חברות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.flags %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הליכים נוספים לצד המחיקה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.flags_note }}</p>
+    <div id="chart-flags" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.flags_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.flags_caption }}</caption>
+        <thead><tr><th scope="col">סימון</th><th scope="col">חברות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.flags %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ותק החברות ושם לועזי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.series_note }}</p>
+    <div id="chart-series" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.series_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.series_caption }}</caption>
+        <thead><tr><th scope="col">סדרת מספר</th><th scope="col">חברות</th><th scope="col">עם שם לועזי</th><th scope="col">״גוש/חלקה״</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.series %}
+          <tr><th scope="row" dir="ltr">{{ r.series }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.en }}</td><td>{{ r.land }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/search.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המילים הנפוצות בשמות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.words_note }}</p>
+    <div id="chart-words" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.words_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.words_caption }}</caption>
+        <thead><tr><th scope="col">מילה</th><th scope="col">שמות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.words %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{%- if model.flags.years %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השנה שבשם החברה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">שנים</th><th scope="col">חברות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row" dir="ltr">{{ r.label }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+{%- if model.flags.recent %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פורסמו לאחרונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="del-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.recent_caption }}</caption>
+      <thead><tr><th scope="col">חברה (מספר)</th><th scope="col">פרסום</th><th scope="col">מחיקה צפויה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.recent %}
+        <tr><th scope="row">{{ r.name }}<div class="text-xs text-subtle font-normal"><span dir="ltr">{{ r.num }}</span> · {{ r.status }}</div></th><td class="whitespace-nowrap" dir="ltr">{{ r.pub }}</td><td class="whitespace-nowrap" dir="ltr">{{ r.exp }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+{%- if model.flags.revival %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות להחייאה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.revival_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="del-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.revival_caption }}</caption>
+      <thead><tr><th scope="col">חברה (מספר, מעמד)</th><th scope="col">סימונים</th><th scope="col">פרסום</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.revival %}
+        <tr><th scope="row">{{ r.name }}<div class="text-xs text-subtle font-normal"><span dir="ltr">{{ r.num }}</span> · {{ r.status }}</div></th><td>{{ r.flags }}</td><td class="whitespace-nowrap" dir="ltr">{{ r.pub }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.waves | tojson }};
+    var c = echarts.init(document.getElementById("chart-waves"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        return p[0].name + ": " + p[0].value.toLocaleString("he-IL") + " חברות";
+      } },
+      grid: { left: 40, right: 16, top: 28, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: "log", name: "חברות", min: 1, logBase: 10 },
+      series: [{ type: "bar", name: "חברות", data: d.y,
+                 label: { show: true, position: "top", fontSize: 10,
+                          formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var g = {{ model.charts.gantt | tojson }};
+    var data = g.labels.map(function (lab, i) {
+      return { value: [i, g.start[i], g.end[i] || g.start[i], g.count[i]],
+               itemStyle: { color: g.open[i] ? "#0068f5" : "#0b3668" } };
+    });
+    var c = echarts.init(document.getElementById("chart-gantt"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { formatter: function (p) {
+        var i = p.value[0];
+        return "פרסום " + g.labels[i] + "<br>" + g.count[i].toLocaleString("he-IL") + " חברות<br>" +
+               "מחיקה צפויה: " + (g.end[i] || "—") + (g.open[i] ? " (חלון פתוח)" : " (החלון הסתיים)");
+      } },
+      grid: { left: 16, right: 24, top: 36, bottom: 32, containLabel: true },
+      xAxis: { type: "time", splitNumber: 3, axisLabel: { fontSize: 10, hideOverlap: true,
+               formatter: function (v) { var d = new Date(v); return (d.getMonth() + 1) + "." + String(d.getFullYear()).slice(2); } } },
+      yAxis: { type: "category", data: g.labels, inverse: true, axisLabel: { fontSize: 10 } },
+      series: [{
+        type: "custom",
+        encode: { x: [1, 2], y: 0 },
+        renderItem: function (params, api) {
+          var y = api.value(0);
+          var a = api.coord([api.value(1), y]);
+          var b = api.coord([api.value(2), y]);
+          var h = api.size([0, 1])[1] * 0.55;
+          return { type: "rect",
+                   shape: { x: Math.min(a[0], b[0]), y: a[1] - h / 2,
+                            width: Math.max(Math.abs(b[0] - a[0]), 2), height: h },
+                   style: api.style() };
+        },
+        data: data,
+        markLine: { symbol: "none", silent: true,
+                    lineStyle: { color: "#dc3545", type: "dashed", width: 2 },
+                    label: { formatter: "פרסום אחרון", position: "start", color: "#dc3545", fontFamily: "Rubik" },
+                    data: [{ xAxis: g.ref }] }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11 } },
+        series: [{ type: "bar", name: unit, data: d.values,
+                   label: { show: true, position: "right", fontSize: 10,
+                            formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-status", {{ model.charts.status | tojson }}, "חברות");
+    hbar("chart-flags", {{ model.charts.flags | tojson }}, "חברות");
+    hbar("chart-words", {{ model.charts.words | tojson }}, "שמות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.series | tojson }};
+    var c = echarts.init(document.getElementById("chart-series"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 8, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: [
+        { type: "value", name: "חברות" },
+        { type: "value", name: "% שם לועזי", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "חברות", data: s.count },
+        { type: "line", name: "% שם לועזי", yAxisIndex: 1, data: s.en,
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var el = document.getElementById("chart-years");
+    if (el) {
+      var y = {{ model.charts.years | tojson }};
+      var c2 = echarts.init(el);
+      c2.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", formatter: function (p) {
+          return y.tips[p[0].dataIndex] + ": " + p[0].value.toLocaleString("he-IL") + " חברות";
+        } },
+        grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
+        xAxis: { type: "category", data: y.labels, axisLabel: { fontSize: 10 } },
+        yAxis: { type: "value", name: "חברות" },
+        series: [{ type: "bar", name: "חברות", data: y.y }]
+      }));
+      window.addEventListener("resize", function () { c2.resize(); });
+    }
+  })();
+</script>

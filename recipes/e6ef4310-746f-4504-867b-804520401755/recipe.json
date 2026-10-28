@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "e6ef4310-746f-4504-867b-804520401755",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T11:47:14.710082+00:00",
+    "rows": {
+      "main": 7643
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "fff644c8-82de-4642-b343-7802cfb174d9",
+      "required_columns": [
+        "locality",
+        "manufacturer",
+        "fruits",
+        "checked",
+        "notes",
+        "validity",
+        "date"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

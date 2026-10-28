@@ -46,3 +46,36 @@ def test_public_resource_url_rewrites_gated_hosts_and_locale_prefix():
     # Non-CKAN hosts keep their locale segments.
     assert f("https://www.gov.il/he/Departments/x") == "https://www.gov.il/he/Departments/x"
     assert f("") == ""
+
+
+def test_public_resource_url_drops_non_http_schemes():
+    from services.scanner.models import _public_resource_url as f
+
+    for bad in (
+        "javascript:alert(1)",
+        "JavaScript:alert(1)",
+        " javascript:alert(1)",
+        "java\tscript:alert(1)",
+        "\x01javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
+        "file:///etc/passwd",
+        "ftp://data.gov.il/x.csv",
+        "//evil.example/x.csv",
+        "/dataset/x/resource/y",
+        "https://",
+        None,
+    ):
+        assert f(bad) == "", bad
+    # http(s) survives (and is still normalized), surrounding space trimmed.
+    assert f(" https://e.data.gov.il/dataset/x/a.csv\n") == "https://data.gov.il/dataset/x/a.csv"
+    assert f("HTTP://example.org/a.csv") == "HTTP://example.org/a.csv"
+
+
+def test_dataset_with_script_resource_url_is_blanked():
+    from services.scanner.models import Dataset
+
+    ds = Dataset.from_ckan_response(_ckan_package([
+        {"id": "rid-1", "name": "x", "format": "csv", "url": "javascript:alert(document.domain)"},
+    ]))
+    assert ds.resources[0].url == ""

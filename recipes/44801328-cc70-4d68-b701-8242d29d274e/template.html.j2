@@ -1,0 +1,300 @@
+<h1>תלונות חופש המידע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">תלונות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_full.tone }} mb-1" dir="ltr">{{ model.kpis.last_full.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_full_label }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.justified.tone }} mb-1" dir="ltr">{{ model.kpis.justified.display }}</div>
+    <div class="text-sm text-subtle">מההכרעות: התלונה מוצדקת</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_days.tone }} mb-1" dir="ltr">{{ model.kpis.median_days.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_label }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro simple_table(rows, aria, head) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ aria }}</caption>
+      <thead><tr><th scope="col">{{ head }}</th><th scope="col">תלונות</th><th scope="col">שיעור (%)</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תלונות לאורך זמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.volume_note }}</p>
+  <div id="chart-volume" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.volume_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">תלונות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נגד מי מתלוננים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bodies_note }}</p>
+    <div id="chart-bodies" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bodies_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bodies_aria }}</caption>
+        <thead><tr><th scope="col">גוף</th><th scope="col">תלונות</th><th scope="col">מוצדקות (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.bodies %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור התלונות המוצדקות לפי גוף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.just_note }}</p>
+    <div id="chart-just-body" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.just_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.just_aria }}</caption>
+        <thead><tr><th scope="col">גוף</th><th scope="col">מוצדקות (%)</th><th scope="col">הכרעות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.just_body %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.rate }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך הוכרעו התלונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.decisions_note }}</p>
+  <div id="chart-decisions" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.decisions_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (אחוזים)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.decisions_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for d in model.tables.decision_names %}<th scope="col">{{ d }} (%)</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.decisions %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.d0 }}</td><td>{{ r.d1 }}</td><td>{{ r.d2 }}</td><td>{{ r.d3 }}</td><td>{{ r.d4 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">על מה מתלוננים</h2>
+    </div>
+    <div id="chart-topics" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.topics_aria }}"></div>
+    {{ simple_table(model.tables.topics, model.labels.topics_aria, "נושא") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מתלונן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ctype_note }}</p>
+    <div id="chart-ctype" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ctype_aria }}"></div>
+    {{ simple_table(model.tables.ctype, model.labels.ctype_aria, "מתלונן") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הארגונים שמתלוננים הכי הרבה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orgs_note }}</p>
+  <div id="chart-orgs" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.orgs_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.orgs_aria }}</caption>
+      <thead><tr><th scope="col">ארגון</th><th scope="col">תלונות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.orgs %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן לוקח הטיפול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.handling_note }}</p>
+    <div id="chart-handling" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.handling_aria }}"></div>
+    {{ simple_table(model.tables.handling, model.labels.handling_aria, "משך") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">משך הטיפול לאורך השנים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">חציון הימים מקבלת התלונה ועד סיום הטיפול, לפי שנת הקבלה.</p>
+    <div id="chart-handling-year" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.handling_year_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.handling_year_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">חציון ימים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.handling_year %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן מחכים לפני שמתלוננים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wait_note }}</p>
+  <div id="chart-wait" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wait_aria }}"></div>
+  {{ simple_table(model.tables.wait, model.labels.wait_aria, "המתנה") }}
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, name, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v + (unit || ""); } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function vbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 40, right: 16, top: 24, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 25 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var v = {{ model.charts.volume | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-volume"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: v.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "תלונות", data: v.y }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    hbar("chart-bodies", {{ model.charts.bodies | tojson }}, "תלונות");
+    hbar("chart-just-body", {{ model.charts.just_body | tojson }}, "מוצדקות", "%");
+    hbar("chart-topics", {{ model.charts.topics | tojson }}, "תלונות");
+    vbar("chart-ctype", {{ model.charts.ctype | tojson }}, "תלונות");
+    hbar("chart-orgs", {{ model.charts.orgs | tojson }}, "תלונות");
+    vbar("chart-handling", {{ model.charts.handling | tojson }}, "תלונות");
+    vbar("chart-wait", {{ model.charts.wait | tojson }}, "תלונות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.decisions | tojson }};
+    var c = echarts.init(document.getElementById("chart-decisions"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#9fc3f7", "#6c757d", "#c3cfe7", "#e9ecef"],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", max: 100, name: "%" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "d", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var h = {{ model.charts.handling_year | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-handling-year"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " ימים"; } },
+      grid: { left: 40, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: h.x },
+      yAxis: { type: "value", name: "ימים" },
+      series: [{ type: "line", name: "חציון", data: h.y }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>

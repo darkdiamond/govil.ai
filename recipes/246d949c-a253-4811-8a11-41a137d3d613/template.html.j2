@@ -1,0 +1,186 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart, fmt="int") -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th></tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td>{% if fmt == "int" %}{{ chart["values"][loop.index0] | fmt_int }}{% else %}{{ chart["values"][loop.index0] | fmt_num }}{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+<h1>מאגר חברות — רשם החברות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">חברות שנרשמו אי-פעם</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">חברות פעילות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_year.tone }} mb-1" dir="ltr">{{ model.kpis.last_year.display }}</div>
+    <div class="text-sm text-subtle">חברות חדשות ב-{{ model.labels.full_year }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.public.tone }} mb-1" dir="ltr">{{ model.kpis.public.display }}</div>
+    <div class="text-sm text-subtle">חברות ציבוריות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.gov.tone }} mb-1" dir="ltr">{{ model.kpis.gov.display }}</div>
+    <div class="text-sm text-subtle">חברות ממשלתיות</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("התאגדויות לפי שנה, ומה קרה להן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.founded_note }}</p>
+  <div id="chart-founded" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.founded_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("חברות חדשות לפי חודש") }}
+    <p class="m-0 text-sm text-subtle mb-3">החודש האחרון חלקי.</p>
+    <div id="chart-monthly" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.monthly_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    {{ head("שרידות לפי שנתון התאגדות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.survival_note }}</p>
+    <div id="chart-survival" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.survival_aria }}"></div>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("סטטוס החברות ברשם") }}
+    <div id="chart-status" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    {{ table(model.labels.status_aria, "סטטוס", "חברות", model.charts.status) }}
+  </section>
+  <section class="card p-5">
+    {{ head("תת-סטטוס") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sub_note }}</p>
+    <div id="chart-sub" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.sub_aria }}"></div>
+    {{ table(model.labels.sub_aria, "תת-סטטוס", "חברות", model.charts.sub) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("סוג התאגיד", "building-2") }}
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    {{ table(model.labels.types_aria, "סוג תאגיד", "חברות", model.charts.types) }}
+  </section>
+  <section class="card p-5">
+    {{ head("הדוח השנתי האחרון שהוגש") }}
+    <p class="m-0 text-sm text-subtle mb-3">בקרב החברות הפעילות.</p>
+    <div id="chart-reports" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.reports_aria }}"></div>
+    {{ table(model.labels.reports_aria, "שנת הדוח", "חברות", model.charts.reports) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("יישובים", "map-pin") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.towns_note }}</p>
+    <div id="chart-towns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.towns_aria }}"></div>
+    {{ table(model.labels.towns_aria, "יישוב", "חברות פעילות", model.charts.towns) }}
+  </section>
+  <section class="card p-5">
+    {{ head("חברות מפרות לפי יישוב", "triangle-alert") }}
+    <p class="m-0 text-sm text-subtle mb-3">שיעור החברות הפעילות המסומנות 'מפרה' ביישובים עם מספר החברות הגבוה ביותר.</p>
+    <div id="chart-violating" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.violating_aria }}"></div>
+    {{ table(model.labels.violating_aria, "יישוב", "מפרות (%)", model.charts.violating, "num") }}
+  </section>
+</div>
+
+<script>
+  (function () {
+    function bars(id, d, horizontal, name, unit) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: 150, overflow: "truncate" } };
+      var val = { type: "value" };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v + (unit || ""); } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: [{ type: "bar", name: name, data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-status", {{ model.charts.status | tojson }}, true, "חברות");
+    bars("chart-sub", {{ model.charts.sub | tojson }}, true, "חברות");
+    bars("chart-types", {{ model.charts.types | tojson }}, true, "חברות");
+    bars("chart-reports", {{ model.charts.reports | tojson }}, false, "חברות");
+    bars("chart-towns", {{ model.charts.towns | tojson }}, true, "חברות");
+    bars("chart-violating", {{ model.charts.violating | tojson }}, true, "מפרות", "%");
+  })();
+</script>
+
+<script>
+  (function () {
+    var f = {{ model.charts.founded | tojson }};
+    var cf = echarts.init(document.getElementById("chart-founded"));
+    cf.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: f.x },
+      yAxis: { type: "value" },
+      series: f.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { cf.resize(); });
+
+    var m = {{ model.charts.monthly | tojson }};
+    var cm = echarts.init(document.getElementById("chart-monthly"));
+    cm.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: m.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "חברות חדשות", data: m.y }]
+    }));
+    window.addEventListener("resize", function () { cm.resize(); });
+
+    var s = {{ model.charts.survival | tojson }};
+    var cs = echarts.init(document.getElementById("chart-survival"));
+    cs.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: s.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "עדיין פעילות", data: s.y, showSymbol: false }]
+    }));
+    window.addEventListener("resize", function () { cs.resize(); });
+  })();
+</script>

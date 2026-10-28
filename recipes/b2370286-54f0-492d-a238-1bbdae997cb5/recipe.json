@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b2370286-54f0-492d-a238-1bbdae997cb5",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T18:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-22T19:01:08.453033+00:00",
+    "rows": { "sites": 3807 }
+  },
+  "inputs": [
+    {
+      "name": "sites",
+      "by_id": "cbb2ed28-310d-4389-a1ec-64bb538fc090",
+      "required_columns": [
+        "address",
+        "X",
+        "Y",
+        "legend",
+        "matzav",
+        "peeilut",
+        "date",
+        "sug",
+        "stat_gas",
+        "stat_zih",
+        "drisha",
+        "d_begin",
+        "d_end"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

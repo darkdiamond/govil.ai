@@ -1,0 +1,10 @@
+{
+  "main.mispar_esek": "kpi:total, chart-types, chart-breadth, table:top — business number, used only to reduce rows (one per business × activity) to businesses and to drop placeholder test registrations (99990+); never shown",
+  "main.shem_esek": "table:top — business names (businesses and sole traders, per the naming policy)",
+  "main.sug_esek": "chart-types, chart-districts, chart-settlements, kpi:trade, kpi:make, insight:type_mix, insight:make_geo, insight:top_activities",
+  "main.yishuv": "chart-districts, chart-settlements, chart-used, chart-heat, kpi:places, insight:concentration, insight:used_geo, insight:make_geo, insight:micro — settlement, mapped to district via the static CBS gazetteer shared with the garages recipe",
+  "main.ktovet": "skip: street address — free text; geography is taken from the settlement",
+  "main.telephone": "skip: contact phone — kept off the page",
+  "main.cod_isuk": "chart-activities, chart-breadth, chart-cooc, kpi:codes, kpi:licences, kpi:avg, insight:breadth, insight:cooc — activity code (licence unit); a few codes get fixed labels where the upstream label is a reversed number",
+  "main.isuk": "chart-activities, chart-families, chart-parts, chart-heat, chart-cooc, chart-used, kpi:used, insight:top_activities, insight:micro, insight:safety, insight:used_geo — activity label, shortened and classified by keyword into families, vehicle segments and part condition"
+}

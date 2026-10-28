@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6e207fff-abef-4f4d-aac7-61e669ba9ad5",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T20:15:41.743622+00:00",
+    "rows": {
+      "cpc": 765303
+    }
+  },
+  "inputs": [
+    {
+      "name": "cpc",
+      "by_id": "b2c59e21-c345-4b02-b071-2890a3d431d6",
+      "required_columns": [
+        "מספר בקשה",
+        "שם האמצאה באנגלית",
+        "לבקשה CPC סיווג",
+        "ראשי"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

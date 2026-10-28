@@ -1,0 +1,22 @@
+{
+  "complaints.מספר התלונה": "skip: running case number (n/yy); carries no information beyond the receipt date",
+  "complaints.תאריך הגשת הבקשה למידע": "chart-wait — 1900-01-01 placeholders and dates after the complaint treated as unknown",
+  "complaints.תאריך קבלת תלונה": "chart-volume, chart-decisions, chart-handling, chart-handling-year, chart-wait, kpi:total, kpi:last_full, insight:volume, insight:ytd",
+  "complaints.ערוץ קבלת תלונה": "skip: 95% online form; the online/email split is unified with the archive but too lopsided to chart",
+  "complaints.סוג המתלונן": "chart-ctype, insight:orgs",
+  "complaints.שם המתלונן": "chart-orgs, insight:orgs — filled only for organisations; citizens are anonymous in the source",
+  "complaints.נושא התלונה": "chart-topics, insight:topic",
+  "complaints.שם הנילון": "chart-bodies, chart-just-body, insight:body, insight:rate_body",
+  "complaints.נושא בקשת חופש מידע": "skip: free-text subject of the original request (1,425 distinct values); no vocabulary to group by",
+  "complaints.סטטוס": "text:lede — open (בטיפול) count; 98% are closed",
+  "complaints.החלטה": "chart-decisions, chart-just-body, kpi:justified, insight:justified, insight:rate_body",
+  "complaints.תאריך סיום טיפול": "chart-handling, chart-handling-year, kpi:median_days, insight:handling",
+  "archive.מספר תלונה": "skip: running case number (n/yy)",
+  "archive.ערוץ קבלה": "skip: online/email/fax/phone; mapped onto the same field as the live file, too lopsided to chart",
+  "archive.תאריך בקשה ראשונית ל מידע": "chart-wait",
+  "archive.נושא  התלונה": "chart-topics, insight:topic",
+  "archive.תאריך קבלת תלונה": "chart-volume, chart-decisions, chart-handling, kpi:total",
+  "archive.שם הנילון": "chart-bodies, chart-just-body, insight:body",
+  "archive.תאריך הסגירה": "chart-handling, chart-handling-year",
+  "archive.תיאור החלטה": "chart-decisions, chart-just-body, kpi:justified, insight:justified"
+}

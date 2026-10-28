@@ -10,12 +10,21 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PYTHONPATH=/app \
+    GRPC_ENABLE_FORK_SUPPORT=0 \
     PORT=8080
 
 # The agent's bash tool investigates CKAN with curl (slim lacks it).
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Unprivileged identity for the agent's tool subprocesses
+# (services/page_builder/local_sandbox.py). The builder process itself
+# stays root — it must setuid into this user per command — so tool code
+# can't read the host process's /proc/<pid>/environ (OpenRouter key etc.)
+# or rewrite anything under /app, incl. the host-side check.py gate.
+RUN useradd --system --uid 10001 --home-dir /nonexistent --no-create-home \
+        --shell /usr/sbin/nologin sandbox
 
 WORKDIR /app
 
@@ -31,6 +40,9 @@ COPY services/page_builder ./services/page_builder
 # Agent runtime assets: canonical system prompt + self-check script.
 COPY agent/system-prompt.md ./agent/system-prompt.md
 COPY agent/skills/check.py ./agent/skills/check.py
+# Belt-and-braces: COPY keeps build-context modes, so make sure nothing
+# under /app is group/world-writable for the sandbox user.
+RUN chmod -R go-w /app
 
 EXPOSE 8080
 

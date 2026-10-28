@@ -1,0 +1,13 @@
+{
+  "main.region_code": "chart-region, chart-rratio, kpi:locs, insight:region — region key; names come from region_name",
+  "main.region_name": "chart-region, chart-rratio, insight:region — registry region (named after its main city); mirrored parentheses repaired",
+  "main.city_code": "chart-top, chart-ratio, chart-scatter, chart-dist, chart-alt, kpi:locs, insight:concentration, insight:ratio_spread, insight:no_syn — locality key; a synonym is linked to its official street within the same locality",
+  "main.city_name": "chart-top, chart-ratio, chart-scatter, chart-streets, chart-alt, insight:concentration, insight:ratio_spread, insight:coverage, insight:alt_loc — locality display name",
+  "main.street_code": "chart-dist, chart-streets, kpi:official, insight:coverage — street code 9000 is the locality-name placeholder and is excluded from street counts; the code identifies a name row",
+  "main.street_name": "chart-kinds, chart-streets, kpi:names, insight:kinds, insight:coverage — official and alternative spellings compared word by word",
+  "main.street_name_status": "chart-top, chart-region, chart-dist, kpi:official, kpi:synonyms, kpi:ratio, kpi:with_syn, insight:volume — official vs synonym of <code>",
+  "main.official_code": "chart-dist, chart-kinds, chart-alt, chart-streets, insight:alt_loc, insight:coverage — links a synonym to its official street; 9000 marks an alternative name of the locality itself",
+  "resource:1b14e41c-85b3-4c21-bdce-9fe48185ffca": "skip: older monthly snapshot (2019) of the same table, padded fields; superseded by the updating resource",
+  "resource:24f23cd8-9fc5-455f-94ae-004511a034ff": "skip: older snapshot (2019) of the same table, byte-identical in size to 1b14e41c",
+  "resource:200da364-3904-43a6-be5b-dcb51adbb54f": "skip: older monthly snapshot (2020) of the same table"
+}

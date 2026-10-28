@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6cf0c0e3-625e-4196-a622-294014aa09eb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T21:15:10.070009+00:00",
+    "rows": {
+      "courses": 2052
+    }
+  },
+  "inputs": [
+    {
+      "name": "courses",
+      "by_id": "a0bdb3c2-d3ac-494f-a193-811791066f01",
+      "required_columns": [
+        "institution",
+        "city",
+        "address",
+        "course",
+        "district"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

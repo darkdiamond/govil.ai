@@ -1,0 +1,33 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3ab09979-7d64-4402-ae51-5fa320a37a56",
+  "recipe_version": 3,
+  "authored_at": "2026-10-24T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T21:15:11.212675+00:00",
+    "rows": {
+      "sanctions": 5150
+    }
+  },
+  "inputs": [
+    {
+      "name": "sanctions",
+      "by_id": "b033f289-4143-4a9d-9612-da6e8cc2f380",
+      "required_columns": [
+        "employer_name",
+        "employer_number",
+        "city",
+        "decision_date",
+        "industry",
+        "final_sanction_amount",
+        "reason_of_review",
+        "law",
+        "appeal",
+        "court_appeal",
+        "employees_general_number",
+        "financial_sanction_reduction"
+      ]
+    }
+  ],
+  "min_insights": 4
+}

@@ -1,0 +1,8 @@
+{
+  "roster.location": "chart-by-branch, chart-heat, chart-timeline, chart-cumulative, table:branches, kpi:branches, insight:chain, insight:equal, insight:changes",
+  "roster.address": "table:branches, insight:address_drift — first-listed address per branch",
+  "roster.phone": "table:branches, insight:changes — normalised; first-listed phone per branch",
+  "roster.shift-start-date": "chart-heat, chart-timeline, chart-cumulative, kpi:weeks, kpi:cycle, kpi:gaps, insight:span, insight:cycle, insight:continuity — the two date columns are swapped in half the rows, so the week is min/max of the pair",
+  "roster.shift-end-date": "chart-heat, chart-timeline, chart-cumulative, kpi:weeks, kpi:cycle, kpi:gaps, insight:span, insight:cycle, insight:continuity",
+  "resource:c0406944-21ce-4605-8620-1ab0af1fa1f7": "skip: XLSX twin of the CSV; its dates were mangled by day/month swapping"
+}

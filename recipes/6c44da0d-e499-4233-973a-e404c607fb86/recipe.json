@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6c44da0d-e499-4233-973a-e404c607fb86",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T04:00:23.420508+00:00",
+    "rows": {
+      "companies": 106,
+      "directors": 421
+    }
+  },
+  "inputs": [
+    {
+      "name": "companies",
+      "by_id": "2d5abbad-4809-4900-b74f-b2f8b40bcfb8",
+      "required_columns": [
+        "COMPANY_NAME",
+        "COMPANY_SITE",
+        "STATUS",
+        "GOVERMENT_OFFICE"
+      ]
+    },
+    {
+      "name": "directors",
+      "by_id": "256b111d-6aeb-4e5b-a8df-5ec851487c57",
+      "required_columns": ["COMPANY_NAME", "ROLE", "FIRST_NAME", "LAST_NAME"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

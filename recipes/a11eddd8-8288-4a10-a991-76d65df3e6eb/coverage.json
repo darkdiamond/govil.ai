@@ -1,0 +1,8 @@
+{
+  "main.חומר_פעיל": "kpi:ai, chart-ai, chart-heat, chart-scatter, table-high, table-recent, insight:breadth, insight:range, insight:old-vs-new — names kept as published (upper-case English), same as the registry recipe 7a6cbf55",
+  "main.גידול": "kpi:crops, chart-crops, chart-groups, chart-box, chart-status, chart-heat, table-high, table-recent, insight:crop-leader, insight:animal — crop groups mapped in compute from the crop name (registry 7a6cbf55 group labels, plus מוצרים מן החי; unknown crops fall to אחר)",
+  "main.גידול_אנגלי": "skip: English twin of the crop name (Hebrew name used); read only so a renamed column fails as schema_changed",
+  "main.MRL": "kpi:median, chart-mrl, chart-box, chart-scatter, chart-crops, chart-ai, table-high, insight:strict, insight:groups, insight:range — mg/kg; non-positive values dropped and disclosed",
+  "main.תאריך_עדכון": "chart-years, table-recent, table-high, insight:pending-shift, insight:old-vs-new, insight:latest — dd/mm/yyyy, date of last update",
+  "main.MRL_בהמתנה": "kpi:pending, kpi:cancel, chart-years, chart-status, table-high, table-recent, insight:pending-shift, insight:old-vs-new — truncated marker: (בהמתנה → בהמתנה, (יתבטל ע → מיועד לביטול"
+}

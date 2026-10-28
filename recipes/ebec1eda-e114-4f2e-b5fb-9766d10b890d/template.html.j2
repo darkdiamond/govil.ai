@@ -1,0 +1,209 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart, share=False) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th>{% if share %}<th scope="col">מתוך כלל המפלגות (%)</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ chart["values"][loop.index0] | fmt_int }}</td>{% if share %}<td>{{ chart.shares[loop.index0] | fmt_num }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+{%- macro edge_table(caption, rows) -%}
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">מספר רישום</th><th scope="col">שם המפלגה</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><td dir="ltr" class="text-end">{{ r.serial }}</td><td>{{ r.name }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+{%- endmacro -%}
+<h1>מאגר רשם המפלגות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">מפלגות רשומות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.top.tone }} mb-1" dir="ltr">{{ model.kpis.top.display }}</div>
+    <div class="text-sm text-subtle">מספר הרישום הגבוה ביותר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.absent.tone }} mb-1" dir="ltr">{{ model.kpis.absent.display }}</div>
+    <div class="text-sm text-subtle">מספרים בטווח שאינם ברשימה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.email.tone }} mb-1" dir="ltr">{{ model.kpis.email.display }}</div>
+    <div class="text-sm text-subtle">מפלגות עם כתובת דוא״ל</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.regdate.tone }} mb-1" dir="ltr">{{ model.kpis.regdate.display }}</div>
+    <div class="text-sm text-subtle">רשומות עם תאריך רישום</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("רצף מספרי הרישום", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
+  <div id="chart-bands" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.bands_aria }}</caption>
+      <thead><tr><th scope="col">טווח מספרים</th><th scope="col">ברשימה</th><th scope="col">אינם ברשימה</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.bands.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ model.charts.bands.present[loop.index0] | fmt_int }}</td><td>{{ model.charts.bands.absent[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section id="edges" class="card p-5 mb-6">
+  {{ head("הרישומים המוקדמים והמאוחרים ברשימה", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.edges_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div class="overflow-x-auto">
+      <h3 class="text-base font-semibold text-ink-deep mt-0 mb-2">מספרי הרישום הנמוכים ביותר</h3>
+      {{ edge_table("המפלגות בעלות מספרי הרישום הנמוכים ביותר ברשימה", model.tables.low) }}
+    </div>
+    <div class="overflow-x-auto">
+      <h3 class="text-base font-semibold text-ink-deep mt-0 mb-2">מספרי הרישום הגבוהים ביותר</h3>
+      {{ edge_table("המפלגות בעלות מספרי הרישום הגבוהים ביותר ברשימה", model.tables.high) }}
+    </div>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("יישוב הכתובת הרשומה", "map-pin") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.towns_note }}</p>
+    <div id="chart-towns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.towns_aria }}"></div>
+    {{ table(model.labels.towns_aria, "יישוב", "מפלגות", model.charts.towns) }}
+  </section>
+  <section class="card p-5">
+    {{ head("אופי הכתובת הרשומה", "building-2") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.arrangement_note }}</p>
+    <div id="chart-arrangement" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.arrangement_aria }}"></div>
+    {{ table(model.labels.arrangement_aria, "מאפיין", "מפלגות", model.charts.arrangement, True) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("סוג כתובת הדוא״ל", "info") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.email_note }}</p>
+    <div id="chart-email" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.email_aria }}"></div>
+    {{ table(model.labels.email_aria, "סוג", "מפלגות", model.charts.email) }}
+  </section>
+  <section class="card p-5">
+    {{ head("שלמות השדות במאגר", "circle-check") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.complete_note }}</p>
+    <div id="chart-complete" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.complete_aria }}"></div>
+    {{ table(model.labels.complete_aria, "שדה", "מפלגות שמילאו", model.charts.complete, True) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("נושאים הנזכרים במטרות המפלגות", "tag") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.themes_note }}</p>
+  <div id="chart-themes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+  {{ table(model.labels.themes_aria, "נושא", "מפלגות", model.charts.themes, True) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("כמה נושאים בכל מצע", "tag") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.theme_per_note }}</p>
+    <div id="chart-theme-per" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.theme_per_aria }}"></div>
+    {{ table(model.labels.theme_per_aria, "נושאים שזוהו", "מפלגות", model.charts.theme_per) }}
+  </section>
+  <section class="card p-5">
+    {{ head("אורך טקסט המטרות", "list") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.length_note }}</p>
+    <div id="chart-length" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.length_aria }}"></div>
+    {{ table(model.labels.length_aria, "מילים", "מפלגות", model.charts.length) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("מבנה שמות המפלגות", "tag") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.names_note }}</p>
+  <div id="chart-names" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.names_aria }}"></div>
+  {{ table(model.labels.names_aria, "מאפיין", "מפלגות", model.charts.names, True) }}
+</section>
+
+<script>
+  (function () {
+    function bars(id, d, horizontal, name) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: 140, overflow: "truncate" } };
+      var val = { type: "value", minInterval: 1 };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: [{ type: "bar", name: name, data: d.values, label: { show: true, position: horizontal ? "right" : "top" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-towns", {{ model.charts.towns | tojson }}, true, "מפלגות");
+    bars("chart-arrangement", {{ model.charts.arrangement | tojson }}, true, "מפלגות");
+    bars("chart-complete", {{ model.charts.complete | tojson }}, true, "מפלגות שמילאו");
+    bars("chart-themes", {{ model.charts.themes | tojson }}, true, "מפלגות");
+    bars("chart-theme-per", {{ model.charts.theme_per | tojson }}, false, "מפלגות");
+    bars("chart-length", {{ model.charts.length | tojson }}, true, "מפלגות");
+    bars("chart-email", {{ model.charts.email | tojson }}, true, "מפלגות");
+    bars("chart-names", {{ model.charts.names | tojson }}, true, "מפלגות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var b = {{ model.charts.bands | tojson }};
+    var cb = echarts.init(document.getElementById("chart-bands"));
+    cb.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[0], "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: b.names, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", stack: "all", name: "ברשימה", data: b.present },
+        { type: "bar", stack: "all", name: "אינם ברשימה", data: b.absent }
+      ]
+    }));
+    window.addEventListener("resize", function () { cb.resize(); });
+
+  })();
+</script>

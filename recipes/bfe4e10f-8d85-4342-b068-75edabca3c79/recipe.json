@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "bfe4e10f-8d85-4342-b068-75edabca3c79",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T20:01:19.582872+00:00",
+    "rows": { "main": 428 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "f7e02b92-4a18-4306-954a-4ea701655fd1",
+      "required_columns": [
+        "violated_law",
+        "violation_details",
+        "violator_name",
+        "violator_occupation",
+        "debt_demand_date",
+        "original_sunction_sum",
+        "deduction_reason",
+        "updated_sunction_sum",
+        "publication_end_date",
+        "appeal_status",
+        "appeal_status_summary",
+        "FinancialSanctionId"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

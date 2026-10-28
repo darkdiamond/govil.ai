@@ -1,0 +1,12 @@
+{
+  "poles.Lampost": "chart-quality, insight:quality — pole number printed on the pole; blank or repeated within a board is counted as a data gap",
+  "poles.centerligh": "chart-boards, chart-size, chart-quality, kpi:boards, insight:board-top, insight:board-done, insight:board-pending, insight:placeholder — switchboard code; 0 and 9999+ treated as placeholder",
+  "poles.LED": "map-main, chart-status, chart-boards, chart-lat, kpi:led-share, kpi:pending, insight:led-share, insight:stage, insight:board-done, insight:board-pending, insight:north-south",
+  "poles.NearAddres": "chart-streets, chart-quality, kpi:streets, insight:street-top, insight:street-share — nearest address; house number stripped to get the street",
+  "poles.lat": "map-main, chart-density, chart-lat, insight:density, insight:north-south",
+  "poles.lon": "map-main, chart-density, insight:density",
+  "resource:1dd6c4d4-fd13-40a6-94e6-2566b8fe542d": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:9247d5a2-a458-403c-9e6f-eeeaf967f1d8": "skip: same poles as the CSV, in ITM coordinates",
+  "resource:462f3feb-0079-4b05-a2eb-f0194ea75987": "skip: XLSX twin of the ITM file",
+  "resource:df049b7d-2788-46c7-a900-071474af90af": "skip: older, smaller snapshot (25,765 rows) without the LED status and address columns; the CSV supersedes it"
+}

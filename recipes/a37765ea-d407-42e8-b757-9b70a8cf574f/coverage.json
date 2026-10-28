@@ -1,0 +1,11 @@
+{
+  "main.product": "kpi:products, table-products — product name; every count on the page is distinct products (one row per product)",
+  "main.holder": "chart-holders, kpi:holders, insight:holders, table-products — spelling and branch-suffix variants merged",
+  "main.registered_number": "skip: registration-number identifier (unique per product, no analytic meaning); available in the shell's explorer",
+  "main.formulation": "chart-forms — 38 raw formulation names grouped into families by keyword",
+  "main.expiration_date": "chart-expiry, insight:expiry — registration expiry; described as a distribution, never as expired-vs-today (no clock)",
+  "main.active_ingredients": "chart-ai, chart-class, chart-heat, chart-conc, chart-mix, kpi:ai, insight:conc, insight:class, insight:mix — list of 'name conc%' parsed into ingredient, concentration and chemical class",
+  "main.purpose": "chart-pests, chart-heat, insight:pest_audience, table-products — comma list of target pests",
+  "main.authorized": "chart-audience, kpi:public, kpi:pros, insight:audience, insight:pest_audience, chart-pests, chart-class, chart-ai, chart-conc, chart-forms, chart-mix, chart-holders, table-products",
+  "main.label": "kpi:label, insight:label — only whether a label PDF link exists; the links themselves stay in the explorer"
+}

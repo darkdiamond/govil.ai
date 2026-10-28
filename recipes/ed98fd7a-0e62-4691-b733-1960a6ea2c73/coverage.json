@@ -1,0 +1,16 @@
+{
+  "main.Identity": "skip: registration number — a unique identifier",
+  "main.Name": "skip: 7,220 distinct names and no amount to rank them by; every row is in the explorer below",
+  "main.TownId": "chart-towns, chart-contact — CBS settlement code; 0 marks an unknown town",
+  "main.TownName": "chart-towns, chart-contact",
+  "main.StreetName": "chart-contact — completeness only; the street address itself is never printed",
+  "main.Building": "chart-contact — completeness only",
+  "main.zip": "chart-contact — completeness only",
+  "main.phone": "chart-contact — completeness only; phone numbers are never printed",
+  "main.address": "skip: free-text concatenation of street, building, town, zip and PO box — the parts are covered separately",
+  "main.StatusDesc": "chart-status, chart-years, chart-types, chart-closures, kpi:active, kpi:liquidation, insight:status, insight:survival, insight:liquidation",
+  "main.RegistrationDate": "chart-years, chart-decades, chart-months, chart-lifespan, kpi:new_full, insight:registrations, insight:december, insight:mix_shift, insight:lifespan",
+  "main.StatusDate": "chart-closures, chart-lifespan, kpi:closed_full, insight:liquidation, insight:lifespan",
+  "main.PrimaryType": "chart-types, chart-decades, chart-lifespan, insight:dominant, insight:survival, insight:mix_shift",
+  "main.SecondaryTypes": "chart-secondary, insight:kibbutz — comma-separated, exploded"
+}

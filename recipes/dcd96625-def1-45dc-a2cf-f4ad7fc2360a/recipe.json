@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "dcd96625-def1-45dc-a2cf-f4ad7fc2360a",
+  "recipe_version": 2,
+  "authored_at": "2026-10-24T18:45:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-23T04:00:31.848852+00:00",
+    "rows": {
+      "rates": 52605
+    }
+  },
+  "inputs": [
+    {
+      "name": "rates",
+      "by_id": "a737b311-c6d8-4084-9ac9-c40d0fd01125",
+      "required_columns": [
+        "INTERESTSDATE",
+        "AGE",
+        "BANK",
+        "SAVINGSPLAN",
+        "SAVINGSPERIOD",
+        "FIXEDWITHOUTLINKAGEVAL",
+        "FIXEDLINKEDCONSUMERPRICEINDVAL",
+        "VARIABLESPREAD"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["גיל 18", "כל 5 שנים"]
+}

@@ -1,0 +1,249 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, col_name, col_value, chart) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ col_name }}</th><th scope="col">{{ col_value }}</th></tr></thead>
+      <tbody>
+{%- for name in chart.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ chart["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+<h1>קרקעות מזוהמות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.sites.tone }} mb-1" dir="ltr">{{ model.kpis.sites.display }}</div>
+    <div class="text-sm text-subtle">אתרים במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.investigating.tone }} mb-1" dir="ltr">{{ model.kpis.investigating.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.inv_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.remediating.tone }} mb-1" dir="ltr">{{ model.kpis.remediating.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rem_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.recent.tone }} mb-1" dir="ltr">{{ model.kpis.recent.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("מפת האתרים", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">כל אתרי המאגר לפי הקואורדינטות המדווחות. לחיצה על נקודה מציגה את שם האתר, סוג הפעילות ומצב הטיפול.</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("מצב הקרקע") }}
+    <p class="m-0 text-sm text-subtle mb-3">סיווג כל אתר לפי מצב הקרקע בו — שדה נפרד מהשלב המנהלי שמוצג בהמשך.</p>
+    <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    {{ table(model.labels.status_aria, "סיווג", "אתרים", model.charts.status) }}
+  </section>
+  <section class="card p-5">
+    {{ head("סוג הפעילות באתר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.activity_note }}</p>
+    <div id="chart-activity" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.activity_aria }}"></div>
+    {{ table(model.labels.activity_aria, "סוג פעילות", "אתרים", model.charts.activity) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("השלב המנהלי בחקירה ובשיקום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stage_note }}</p>
+  <div id="chart-stage" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.stage_aria }}"></div>
+  {{ table(model.labels.stage_aria, "שלב", "אתרים", model.charts.stage) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("גזי קרקע ומי תהום") }}
+  <p class="m-0 text-sm text-subtle mb-3">מצב הזיהום בגזי הקרקע ובמי התהום, באתרים שבהם הוא מתועד.</p>
+  <div id="chart-env" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.env_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.env_aria }}</caption>
+      <thead><tr><th scope="col">מצב</th><th scope="col">גזי קרקע</th><th scope="col">מי תהום</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.env.labels %}
+        <tr><th scope="row">{{ name }}</th><td>{{ model.charts.env.gas[loop.index0] | fmt_int }}</td><td>{{ model.charts.env.water[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("שיטות טיפול") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treat_note }}</p>
+    <div id="chart-treat" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.treat_aria }}"></div>
+    {{ table(model.labels.treat_aria, "שיטה", "אתרים", model.charts.treat) }}
+  </section>
+  <section class="card p-5">
+    {{ head("דרישה לפי המאגר") }}
+    <p class="m-0 text-sm text-subtle mb-3">ערכי שדה הדרישה כפי שהם מופיעים במאגר.</p>
+    <div id="chart-drisha" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.drisha_aria }}"></div>
+    {{ table(model.labels.drisha_aria, "דרישה", "אתרים", model.charts.drisha) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("היישובים עם מספר האתרים הגבוה ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.towns_note }}</p>
+  <div id="chart-towns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.towns_aria }}"></div>
+  {{ table(model.labels.towns_aria, "יישוב", "אתרים", model.charts.towns) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("שלב מנהלי לפי סוג פעילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז האתרים בכל שלב, מתוך האתרים מכל סוג פעילות שיש להם שלב מתועד.</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("עדכוני המאגר לפי חודש") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.updates_note }}</p>
+    <div id="chart-updates" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.updates_aria }}"></div>
+  </section>
+  <section class="card p-5">
+    {{ head("תחילת טיפול וסיומו לפי שנה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+    <div id="chart-years" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.years_aria }}"></div>
+  </section>
+</div>
+
+<script>
+  (function () {
+    function bars(id, d, horizontal) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: d.names, axisLabel: { interval: 0, width: 140, overflow: "truncate" } };
+      var val = { type: "value" };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? Object.assign({ inverse: true }, cat) : val,
+        series: [{ type: "bar", name: "אתרים", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-status", {{ model.charts.status | tojson }}, true);
+    bars("chart-activity", {{ model.charts.activity | tojson }}, true);
+    bars("chart-stage", {{ model.charts.stage | tojson }}, true);
+    bars("chart-treat", {{ model.charts.treat | tojson }}, true);
+    bars("chart-drisha", {{ model.charts.drisha | tojson }}, false);
+    bars("chart-towns", {{ model.charts.towns | tojson }}, true);
+
+    var e = {{ model.charts.env | tojson }};
+    var ce = echarts.init(document.getElementById("chart-env"));
+    ce.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: e.labels, axisLabel: { interval: 0 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "גזי קרקע", data: e.gas },
+        { type: "bar", name: "מי תהום", data: e.water }
+      ]
+    }));
+    window.addEventListener("resize", function () { ce.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var u = {{ model.charts.updates | tojson }};
+    var cu = echarts.init(document.getElementById("chart-updates"));
+    cu.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: u.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "אתרים שעודכנו", data: u.y }]
+    }));
+    window.addEventListener("resize", function () { cu.resize(); });
+
+    var y = {{ model.charts.years | tojson }};
+    var cy = echarts.init(document.getElementById("chart-years"));
+    cy.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }],
+      series: [
+        { type: "bar", name: "תחילת טיפול", data: y.begin },
+        { type: "bar", name: "סיום טיפול", data: y.end }
+      ]
+    }));
+    window.addEventListener("resize", function () { cy.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var ch = echarts.init(document.getElementById("chart-heat"));
+    ch.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3] + ")";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 120, containLabel: true },
+      xAxis: { type: "category", data: h.x, axisLabel: { interval: 0, rotate: 40, width: 110, overflow: "truncate" } },
+      yAxis: { type: "category", data: h.y },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells }]
+    }));
+    window.addEventListener("resize", function () { ch.resize(); });
+
+    GovMap.create({
+      container: "#map-main",
+      resourceId: {{ inputs.sites[0].id | tojson }},
+      latField: "Y",
+      lngField: "X",
+      projection: "itm",
+      popupTitleField: "name",
+      popupFields: [
+        { field: "peeilut", label: "סוג פעילות" },
+        { field: "legend", label: "מצב הקרקע" },
+        { field: "matzav", label: "שלב מנהלי" },
+        { field: "stat_zih", label: "מי תהום" }
+      ]
+    });
+  })();
+</script>

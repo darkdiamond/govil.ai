@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7c27e23b-86f1-44ee-9d9b-4f8880ca0973",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:30:49.532966+00:00",
+    "rows": {
+      "main": 264,
+      "snapshot": 1016
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "c84082e9-7d45-4853-9a95-e7eaad7f66d5",
+      "required_columns": ["סמל_ארץ", "שם_ארץ", "ארץ_באנגלית"]
+    },
+    {
+      "name": "snapshot",
+      "by_schema": ["טבלה", "סמל_ארץ", "שם_ארץ", "ארץ_באנגלית"],
+      "concat": true,
+      "required_columns": ["סמל_ארץ", "שם_ארץ", "ארץ_באנגלית"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

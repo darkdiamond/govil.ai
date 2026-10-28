@@ -1,0 +1,274 @@
+<h1>אנטנות סלולריות פעילות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.sites.tone }} mb-1" dir="ltr">{{ model.kpis.sites.display }}</div>
+    <div class="text-sm text-subtle">אתרי שידור פעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.g5.tone }} mb-1" dir="ltr">{{ model.kpis.g5.display }}</div>
+    <div class="text-sm text-subtle">מהאתרים משדרים בדור 5</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_rad.tone }} mb-1" dir="ltr">{{ model.kpis.median_rad.display }}</div>
+    <div class="text-sm text-subtle">חציון התוצאה המרבית מסף הבריאות (באתרים שנמדדה בהם קרינה)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.at_threshold.tone }} mb-1" dir="ltr">{{ model.kpis.at_threshold.display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis.at_threshold.label }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת האתרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+{% macro rank_table(rows, caption, head) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">אתרים</th><th scope="col">שיעור (%)</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חברה מפעילה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">PHI היא חברת תשתית משותפת המשרתת את הוט ופרטנר.</p>
+    <div id="chart-operators" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.operators_aria }}"></div>
+    {{ rank_table(model.tables.operators, model.labels.operators_aria, "חברה") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דורות טכנולוגיה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">אתר יכול לשדר בכמה דורות במקביל; כל עמודה היא שיעור האתרים של החברה.</p>
+    <div id="chart-gens" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gens_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.gens_aria }}</caption>
+        <thead><tr><th scope="col">דור</th>
+{%- for o in model.tables.op_names %}<th scope="col">{{ o }} (%)</th>{% endfor -%}
+          <th scope="col">כלל האתרים (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.gens %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.all }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי אתרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">תורן קרקעי, אנטנה על גג, אתר זעיר בתוך מבנה ועוד — לפי חברה.</p>
+  <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+      <thead><tr><th scope="col">סוג אתר</th><th scope="col">סך הכול</th>
+{%- for o in model.tables.op_names %}<th scope="col">{{ o }}</th>{% endfor -%}
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי השיפוט עם הכי הרבה אתרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">לפי תחום השיפוט שבו נמצא האתר.</p>
+  <div id="chart-juris" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.juris_aria }}"></div>
+  {{ rank_table(model.tables.juris, model.labels.juris_aria, "תחום שיפוט") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קרינה ביחס לסף הבריאות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rad_note }}</p>
+    <div id="chart-rad" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rad_aria }}"></div>
+    {{ rank_table(model.tables.rad, model.labels.rad_aria, "תוצאה מרבית") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קרינה לפי סוג אתר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">חציון ומקסימום, באחוזים מסף הבריאות, באתרים שבהם נמדדה תוצאה גדולה מאפס.</p>
+    <div id="chart-rad-type" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rad_type_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rad_type_aria }}</caption>
+        <thead><tr><th scope="col">סוג אתר</th><th scope="col">חציון (%)</th><th scope="col">מקסימום (%)</th><th scope="col">אתרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rad_type %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.median }}</td><td>{{ r.max }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היתרים לפי שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.permits_note }}</p>
+    <div id="chart-permits" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.permits_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.permits_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">היתר הקמה</th><th scope="col">היתר הפעלה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.permits %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.built }}</td><td>{{ r.operating }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מועד הבדיקה התקופתית האחרונה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הזמן שחלף מהבדיקה האחרונה של כל אתר ועד העדכון האחרון במאגר.</p>
+    <div id="chart-inspect" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.inspect_aria }}"></div>
+    {{ rank_table(model.tables.inspect, model.labels.inspect_aria, "בדיקה אחרונה") }}
+  </section>
+</div>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.sites[0].id | tojson }},
+    latField: "Y_ITM",
+    lngField: "X_ITM",
+    projection: "itm",
+    popupTitleField: "חברה",
+    popupFields: [
+      { field: "סוג אתר", label: "סוג אתר" },
+      { field: "עיר", label: "עיר" },
+      { field: "כתובת האתר", label: "כתובת" },
+      { field: "טכנולוגיית שידור", label: "טכנולוגיה" },
+      { field: "תוצאה מירבית ב% ביחס לסף הבריאות", label: "תוצאה מרבית (% מהסף)" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function vbar(id, d, rotate) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { rotate: rotate || 0 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function grouped(id, d, opts) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.x || d.names, axisLabel: { rotate: opts.rotate || 0, width: 90, overflow: "truncate" } },
+        yAxis: { type: "value", name: opts.unit || "", max: opts.max },
+        series: d.series.map(function (s) { return { type: "bar", stack: opts.stack, name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    vbar("chart-operators", {{ model.charts.operators | tojson }});
+    grouped("chart-gens", {{ model.charts.gens | tojson }}, { unit: "%", max: 100 });
+    grouped("chart-types", {{ model.charts.types | tojson }}, { stack: "t", rotate: 30 });
+    grouped("chart-permits", {{ model.charts.permits | tojson }}, { rotate: 45 });
+    vbar("chart-rad", {{ model.charts.rad | tojson }});
+    vbar("chart-inspect", {{ model.charts.inspect | tojson }});
+
+    var j = {{ model.charts.juris | tojson }};
+    var cj = echarts.init(document.getElementById("chart-juris"));
+    cj.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: j.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", data: j.values.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { cj.resize(); });
+
+    var r = {{ model.charts.rad_type | tojson }};
+    var cr = echarts.init(document.getElementById("chart-rad-type"));
+    cr.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: r.names, axisLabel: { rotate: 30, width: 90, overflow: "truncate" } },
+      yAxis: { type: "value", name: "%" },
+      series: [{ type: "bar", name: "חציון", data: r.median }, { type: "bar", name: "מקסימום", data: r.max }]
+    }));
+    window.addEventListener("resize", function () { cr.resize(); });
+  })();
+</script>

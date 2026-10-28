@@ -1,0 +1,13 @@
+{
+  "vets.סוג_רשיון": "insight:types — constant today (one licence type, stated in the lede); a breakdown insight appears if a second type is published",
+  "vets.מספר_רשיון": "skip: individual licence number — a per-person identifier, kept off the page by policy",
+  "vets.שם_משפחה": "chart-surnames, insight:surname — aggregate counts only, no individual singled out",
+  "vets.שם_פרטי": "chart-firsts — aggregate counts only, no individual singled out",
+  "vets.תאריך_רשיון": "chart-years, chart-decades, chart-cumulative, chart-months, chart-heat, chart-days, chart-gap, kpi:total, kpi:new, insight:peak, insight:ytd, insight:decades, insight:season, insight:batch, insight:precision, insight:gap, insight:missing — pre-2000 dates are year-only (1 January); month/day views start at the detected precise-date year",
+  "vets.מומחיות_1": "chart-specshare, chart-specs, chart-families, chart-years, chart-decades, kpi:specialists, kpi:fields, insight:specialists, insight:shift — truncated names completed, grouped into fields",
+  "vets.שנת_מומחיות_1": "chart-families, chart-gap, insight:shift, insight:gap",
+  "vets.מומחיות_2": "chart-specshare, chart-specs, chart-families, kpi:specialists, kpi:fields, insight:specialists — pooled with מומחיות_1/3",
+  "vets.שנת_מומחיות_2": "chart-families, chart-gap, insight:gap",
+  "vets.מומחיות_3": "chart-specshare, chart-specs, chart-families, kpi:fields — pooled; only a couple of rows",
+  "vets.שנת_מומחיות_3": "chart-families, chart-gap — pooled; one row carries a placeholder year 0, ignored"
+}

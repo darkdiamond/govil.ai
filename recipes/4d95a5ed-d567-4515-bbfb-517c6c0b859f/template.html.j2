@@ -1,0 +1,337 @@
+<h1>המדרך דיווחי השפעות סביבתיות מדודות ממוצרים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.products.tone }} mb-1" dir="ltr">{{ model.kpis.products.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.products_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.skus.tone }} mb-1" dir="ltr">{{ model.kpis.skus.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.skus_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.producers.tone }} mb-1" dir="ltr">{{ model.kpis.producers.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.producers_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.classes.tone }} mb-1" dir="ltr">{{ model.kpis.classes.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.classes_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.prod_share.tone }} mb-1" dir="ltr">{{ model.kpis.prod_share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.prod_share_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.expiry.tone }} mb-1" dir="ltr">{{ model.kpis.expiry.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.expiry_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה מוצהר במאגר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cat_note }}</p>
+  <div id="chart-catalog" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cat_caption }}</caption>
+        <thead><tr><th scope="col">תת-סוג</th><th scope="col">סוג חומר</th><th scope="col">יצרן</th><th scope="col">מוצרים</th><th scope="col">פריטים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.catalog %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.cls }}</td><td>{{ r.producer }}</td><td>{{ r.products }}</td><td>{{ r.skus }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- for g in model.groups %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">טביעת רגל פחמנית לפי שלב: {{ g.title }}</h2>
+  </div>
+{%- if loop.first %}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.labels.groups_note }}</p>
+{%- endif %}
+  <p class="m-0 text-sm text-subtle mb-3">{{ g.note }}</p>
+  <div id="{{ g.id }}" class="{{ g.height }}" role="img" aria-label="{{ g.aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ g.chart.unit }} — {{ g.title }}</caption>
+        <thead><tr><th scope="col">מוצר</th><th scope="col">יצרן</th><th scope="col">פריטים</th><th scope="col">{{ model.labels.th_prod }}</th><th scope="col">{{ model.labels.th_eol }}</th><th scope="col">{{ model.labels.th_d }}</th><th scope="col">נטו</th></tr></thead>
+        <tbody>
+{%- for r in g.table %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.producer }}</td><td>{{ r.skus }}</td><td dir="ltr">{{ r.prod }}</td><td dir="ltr">{{ r.eol }}</td><td dir="ltr">{{ r.d }}</td><td dir="ltr">{{ r.net }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endfor %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה במחזור החיים נוצרות הפליטות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stages_note }}</p>
+  <div id="chart-stages" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.stages_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.stages_caption }}</caption>
+        <thead><tr><th scope="col">תת-סוג</th><th scope="col">מוצרים</th><th scope="col">{{ model.labels.th_prod }}</th><th scope="col">{{ model.labels.th_a45 }}</th><th scope="col">{{ model.labels.th_eol }}</th><th scope="col">{{ model.labels.th_d }}</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.stages %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.prod }}</td><td dir="ltr">{{ r.a45 }}</td><td dir="ltr">{{ r.eol }}</td><td dir="ltr">{{ r.d }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פחמן מול אנרגיה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.int_note }}</p>
+  <div id="chart-intensity" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.int_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.int_caption }}</caption>
+      <thead><tr><th scope="col">סוג חומר</th><th scope="col">מוצרים</th><th scope="col">חציון (גרם CO₂ שו"ע ל-MJ)</th><th scope="col">טווח</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.intensity %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.median }}</td><td dir="ltr">{{ r.range }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פרופיל ההשפעה המלא</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-[640px] md:h-[680px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היצרנים ותוקף ההצהרות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.valid_note }}</p>
+  <div id="chart-valid" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.valid_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.valid_caption }}</caption>
+        <thead><tr><th scope="col">יצרן</th><th scope="col">אתר ייצור</th><th scope="col">מוצרים</th><th scope="col">פריטים</th><th scope="col">אומת</th><th scope="col">בתוקף עד</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.declarations %}
+          <tr><th scope="row">{{ r.producer }}</th><td>{{ r.site }}</td><td>{{ r.products }}</td><td>{{ r.skus }}</td><td dir="ltr">{{ r.from }}</td><td dir="ltr">{{ r.to }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">המאגר מרכז נתונים על השפעות מדודות מחומרים ומוצרים על הסביבה, במיוחד טביעת הרגל הפחמנית שלהם. הנתונים נמדדו באמצעות ניתוח מחזור חיים, (LCA)  אומתו על ידי גורם מוסמך צד ג ודווחו על ידי היצרנים ויבואנים באופן וולונטרי. מטרות המאגר הן לעודד שקיפות ביחס להשפעות מוצרים על הסביבה, לאפשר בחירות צרכניות עדיפות סביבתית וליצר תחרות שתדרבן את המשק להפחית את ההשפעות הסביבתיות של מוצרים על הסביבה.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.catalog | tojson }};
+    var c = echarts.init(document.getElementById("chart-catalog"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, width: 140, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "פריטי קטלוג", data: d.items, itemStyle: { color: "#0068f5" } },
+        { type: "bar", name: "מוצרים", data: d.products, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- for g in model.groups %}
+
+<script>
+  (function () {
+    var d = {{ g.chart | tojson }};
+    var c = echarts.init(document.getElementById({{ g.id | tojson }}));
+    var pal = window.GOVIL_PALETTE;
+    var series = d.series.map(function (s, i) {
+      return { type: "bar", stack: "s", name: s.name, data: s.data, barMaxWidth: 22,
+               itemStyle: { color: s.credit ? "#198754" : pal[s.ci % pal.length] } };
+    });
+    series.push({ type: "scatter", name: "נטו (כפי שהוצהר)", data: d.net, symbol: "diamond", symbolSize: 11,
+                  itemStyle: { color: "#ffffff", borderColor: "#0c3058", borderWidth: 2 }, z: 5 });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return (typeof v === "number" ? v.toLocaleString("he-IL", { maximumSignificantDigits: 3 }) : v) + " " + d.unit; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: d.unit, nameLocation: "middle", nameGap: 26, splitNumber: 4,
+               axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 10, width: 130, overflow: "truncate" } },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endfor %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.stages | tojson }};
+    var c = echarts.init(document.getElementById("chart-stages"));
+    var pal = window.GOVIL_PALETTE;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", min: d.xmin, max: 100, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 10, width: 130, overflow: "truncate" } },
+      series: d.series.map(function (s, i) {
+        return { type: "bar", stack: "s", name: s.name, data: s.data, barMaxWidth: 22,
+                 itemStyle: { color: s.credit ? "#198754" : pal[s.ci % pal.length] } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.scatter | tojson }};
+    var c = echarts.init(document.getElementById("chart-intensity"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value;
+        return p.marker + v[2] + "<br>" + p.seriesName + "<br>אנרגיה: " + v[0].toLocaleString("he-IL", { maximumSignificantDigits: 3 }) +
+          " MJ<br>פחמן: " + v[1].toLocaleString("he-IL", { maximumSignificantDigits: 3 }) + " ק\"ג CO₂ שו\"ע (ל-1 " + v[3] + ")" +
+          "<br>עוצמה: " + Math.round(v[1] / v[0] * 1000) + " גרם ל-MJ";
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 32, bottom: 64, containLabel: true },
+      xAxis: { type: "log", name: "אנרגיה לא מתחדשת (MJ)", nameLocation: "middle", nameGap: 28,
+               axisLabel: { hideOverlap: true } },
+      yAxis: { type: "log", name: "ק\"ג CO₂ שו\"ע", axisLabel: { hideOverlap: true } },
+      series: d.map(function (s, i) {
+        return { type: "scatter", name: s.name, data: s.data, symbolSize: 11,
+                 itemStyle: { color: window.GOVIL_PALETTE[s.ci % window.GOVIL_PALETTE.length], opacity: 0.85 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { position: "top", formatter: function (p) {
+        var v = p.value;
+        return h.y[v[1]] + " (" + h.groups[v[1]] + ")<br>" + h.x[v[0]] + ": " + v[3] + " " + v[4] +
+          "<br>" + v[2] + "% מהגבוה בקבוצה";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 96, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: { fontSize: 10, interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true },
+               axisLabel: { fontSize: 9, width: 110, overflow: "truncate", interval: 0 } },
+      visualMap: {
+        min: 0, max: 100, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 4, itemHeight: 120,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.valid | tojson }};
+    var c = echarts.init(document.getElementById("chart-valid"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.names[i] + "<br>אומת: " + d.from[i] + "<br>בתוקף עד: " + d.to[i] + "<br>פריטים: " + d.items[i];
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", min: d.min, max: d.max, interval: 1,
+               axisLabel: { formatter: function (v) { return String(v); }, hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, width: 140, overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "v", data: d.start, itemStyle: { color: "transparent" }, silent: true,
+          tooltip: { show: false } },
+        { type: "bar", stack: "v", name: "תקופת תוקף", data: d.len, barMaxWidth: 26,
+          itemStyle: { color: "#0068f5" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

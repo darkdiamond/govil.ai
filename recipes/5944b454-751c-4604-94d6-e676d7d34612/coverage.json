@@ -1,0 +1,13 @@
+{
+  "trees.plate_num": "chart-fields — tree-tag number; only whether it is above zero is used, the number itself is never shown",
+  "trees.tree_speci": "chart-species, chart-genus, chart-mix, chart-rich, kpi:species, insight:leader, insight:concentration, insight:genus, insight:spelling, chart-fields",
+  "trees.street_nam": "chart-streets, chart-fields, insight:street",
+  "trees.neighborho": "chart-neigh, chart-mix, chart-rich, kpi:neigh, chart-fields, insight:neigh, insight:richness",
+  "trees.lat": "map-main, insight:dense, kpi:total",
+  "trees.lon": "map-main, insight:dense, kpi:total",
+  "trees.itm_x": "skip: ITM twin of lat/lon; WGS84 columns are used for the map",
+  "trees.itm_y": "skip: ITM twin of lat/lon; WGS84 columns are used for the map",
+  "resource:641b284e-1f91-4734-a05e-54ed56d762f1": "skip: same rows as the CSV, with lat/lon columns holding ITM coordinates",
+  "resource:019951ce-f886-43ce-9103-b1824c895769": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:6524dd5c-1191-4ce4-a68d-9fa4bdbfe315": "skip: XLSX twin of the ITM file"
+}

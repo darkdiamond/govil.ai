@@ -1,0 +1,14 @@
+{
+  "main.ID": "skip: internal row identifier",
+  "main.תאריך הגשת הבקשה": "chart-monthly, chart-mix, chart-weekday, kpi:last, insight:trend, insight:peak, insight:mix_shift, insight:weekday, map-main — submission date; edge months/quarters flagged partial",
+  "main.מס' סימוכין": "skip: per-application reference number, unique per row",
+  "main.חברה": "chart-monthly, chart-companies, chart-mix, chart-family, chart-types, chart-juris, chart-ns, kpi:lead, insight:leader, insight:mix_shift, insight:family, insight:cow, map-main — operators are companies and are named",
+  "main.סוג  היתר": "map-main — a single value today ('היתר הקמה'); the lede states it, or lists the split if more types appear",
+  "main.מספר האתר": "kpi:sites, chart-companies, insight:refile, insight:cow — operator site code, used only to count distinct, re-filed and mobile (COW) sites; never listed",
+  "main.ישוב": "map-main — popup only; free-form spellings ('תל אביב' / 'תל אביב-יפו' / 'תל אביב יפו'), the jurisdiction column carries the place rankings",
+  "main.כתובת + תאור": "map-main — popup only (site address/description as published)",
+  "main.סוג המוקד": "chart-family, chart-types, insight:family, map-main — raw labels in the sunburst, keyword families in the stacked bar",
+  "main.X_ITM": "map-main, chart-ns",
+  "main.Y_ITM": "map-main, chart-ns — northing bands of 25 km",
+  "main.תחום שיפוט": "chart-juris, chart-ns, insight:juris, insight:no_juris — hyphen/space-normalized"
+}

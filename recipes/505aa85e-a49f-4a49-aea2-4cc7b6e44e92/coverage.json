@@ -1,0 +1,22 @@
+{
+  "in_il.country": "map-world, chart-regions, chart-overlap, chart-top-il, kpi:in_il, kpi:il_countries, kpi:both, insight:scale, insight:both, insight:multi_person — country represented; consul unit = distinct (country, person)",
+  "in_il.name": "table:oldest-il, insight:multi_person, insight:tenure, chart-gender, insight:gender — office holders, named; honorific gives gender; name without honorific is the person key",
+  "in_il.honorary_consul_title": "chart-titles, table:oldest-il — rank; empty shown as לא צוין",
+  "in_il.address": "chart-contacts — completeness only",
+  "in_il.area": "chart-areas, kpi:nonres, chart-top-il, insight:areas, insight:nonres, chart-contacts — split into city/district tokens; נציגות ללא תושבות flag",
+  "in_il.email": "chart-contacts, insight:contacts — completeness only, never printed",
+  "in_il.phone_number": "chart-contacts — completeness only, never printed",
+  "in_il.mobile_phone": "chart-contacts — completeness only, never printed",
+  "in_il.appointment_date": "chart-years, table:oldest-il, insight:tenure — dates before 1948 treated as invalid",
+  "abroad.country": "map-world, chart-regions, chart-overlap, chart-top-ab, kpi:abroad, kpi:ab_countries, kpi:both, insight:scale, insight:both, insight:abroad_top — host country",
+  "abroad.name": "table:oldest-ab, insight:tenure, chart-gender, insight:gender — office holders, named; person key dedupes multi-district rows",
+  "abroad.honorary_consul_title": "chart-titles, table:oldest-ab — rank",
+  "abroad.address": "chart-contacts — completeness only",
+  "abroad.area": "chart-top-ab, chart-contacts — district of jurisdiction, listed per country in the table",
+  "abroad.email": "chart-contacts, insight:contacts — completeness only, never printed",
+  "abroad.phone_number": "chart-contacts — completeness only, never printed",
+  "abroad.mobile_phone": "chart-contacts — completeness only, never printed",
+  "abroad.appointment_date": "chart-years, table:oldest-ab, insight:tenure",
+  "resource:455ee10b-5b31-47a8-856a-7fb152c028c1": "skip: English translation of the in-Israel Hebrew file (same rows); the page is Hebrew",
+  "resource:c87e08c6-63b8-48b3-9188-d1eb0b8cd99d": "skip: English translation of the abroad Hebrew file (same rows); the page is Hebrew"
+}

@@ -1,0 +1,415 @@
+<h1>אירועי מחלת הכלבת בישראל</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">אירועי כלבת מאושרים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_year.tone }} mb-1" dir="ltr">{{ model.kpis.last_year.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_year_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.trend12.tone }} mb-1" dir="ltr">{{ model.kpis.trend12.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.trend12_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.locations.tone }} mb-1" dir="ltr">{{ model.kpis.locations.display }}</div>
+    <div class="text-sm text-subtle">יישובים ואתרים שבהם אושר אירוע</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אירועים לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">סה״כ</th>{% for g in model.tables.groups %}<th scope="col">{{ g }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.flags.has_map %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת מוקדי הכלבת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-80 md:h-[460px] rounded-gov" aria-label="{{ model.labels.map_aria }}"></div>
+  <div class="flex flex-wrap gap-4 mt-3 text-sm text-subtle">
+    <span class="inline-flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-gov-pill bg-danger"></span>{{ model.labels.map_recent }}</span>
+    <span class="inline-flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-gov-pill bg-brand"></span>{{ model.labels.map_older }}</span>
+  </div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מיני בעלי החיים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר האירועים לפי מין בעל החיים שבו אושרה המחלה, בכל השנים.</p>
+    <div id="chart-species" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.species_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.species_caption }}</caption>
+        <thead><tr><th scope="col">מין</th><th scope="col">אירועים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.species %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחיות בר לכלבים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+    <div id="chart-mix" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+        <thead><tr><th scope="col">תקופה</th><th scope="col">אירועים</th>{% for g in model.tables.groups %}<th scope="col">{{ g }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row" dir="ltr">{{ r.period }}</th><td>{{ r.n }}</td>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_note }}</p>
+    <div id="chart-season" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">כל השנים</th><th scope="col" dir="ltr">{{ model.labels.season_recent }}</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.month }}</th><td>{{ r.all }}</td><td>{{ r.recent }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חודש ושנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר האירועים בכל חודש לאורך השנים — גלי ההתפרצות נראים כרצועות כהות של חודשים רצופים.</p>
+    <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אזורים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">מספר האירועים בכל אזור של השירותים הווטרינריים בכל שנה — המוקד נודד בין האזורים מגל לגל.</p>
+  <div id="chart-rheat" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rheat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">חלוקה לאזורים: אז ועכשיו</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rshare_note }}</p>
+    <div id="chart-rshare" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.rshare_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rshare_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th><th scope="col">אירועים</th><th scope="col">{{ model.charts.rshare.old_name }}</th><th scope="col">{{ model.charts.rshare.new_name }}</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.regions %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td dir="ltr">{{ r.old }}</td><td dir="ltr">{{ r.new }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אזור ומין בעל החיים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר האירועים בכל אזור לפי המינים הנפוצים — באילו אזורים המחלה בחיות בר ובאילו בחיות בית ומשק.</p>
+    <div id="chart-rsp" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.rsp_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rsp_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th>{% for x in model.tables.rsp_x %}<th scope="col">{{ x }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.rsp %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.has_lineage %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שושלות הנגיף</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הסיווג הגנטי של נגיף הכלבת שבודד בכל אירוע, לפי שנה — מעקב אחר החלפת שושלות לאורך הזמן.</p>
+    <div id="chart-lineage" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.lineage_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lineage_caption }}</caption>
+        <thead><tr><th scope="col">שושלת</th><th scope="col">אירועים</th><th scope="col">שנה ראשונה</th><th scope="col">שנה אחרונה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lineage %}
+          <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.first }}</td><td>{{ r.last }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים עם הכי הרבה אירועים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">מספר האירועים שאושרו בכל יישוב או אתר, בכל השנים.</p>
+    <div id="chart-locations" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.loc_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.loc_caption }}</caption>
+        <thead><tr><th scope="col">יישוב / אתר</th><th scope="col">אזור</th><th scope="col">אירועים</th><th scope="col">שנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.locations %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.region }}</td><td>{{ r.count }}</td><td dir="ltr">{{ r.years }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var y = {{ model.charts.years | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-years"));
+    c1.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[6]],
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: "אירועים" },
+      series: y.series.map(function (s) { return { type: "bar", stack: "total", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var m = {{ model.charts.mix | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-mix"));
+    c2.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[6]],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: m.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "%", max: 100 },
+      series: m.series.map(function (s) { return { type: "bar", stack: "share", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: "אירועים", data: d.values, label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-species", {{ model.charts.species | tojson }});
+    hbar("chart-locations", {{ model.charts.locations | tojson }});
+
+    var s = {{ model.charts.season | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-season"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "אירועים" },
+      series: [
+        { type: "bar", name: "כל השנים", data: s.all },
+        { type: "bar", name: {{ model.labels.season_recent_axis | tojson }}, data: s.recent }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function heat(id, h, bottom) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        tooltip: { position: "top", formatter: function (p) {
+          return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL");
+        } },
+        grid: { left: 16, right: 16, top: 16, bottom: bottom, containLabel: true },
+        xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+        yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true } },
+        visualMap: {
+          min: 0, max: h.max, calculable: true, dimension: 2,
+          orient: "horizontal", left: "center", bottom: 4,
+          inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+          textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+        },
+        series: [{ type: "heatmap", data: h.cells,
+                   emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    heat("chart-heat", {{ model.charts.heat | tojson }}, 64);
+    heat("chart-rheat", {{ model.charts.rheat | tojson }}, 64);
+    heat("chart-rsp", {{ model.charts.rsp | tojson }}, 64);
+
+    var r = {{ model.charts.rshare | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-rshare"));
+    c4.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[6], window.GOVIL_PALETTE[0]],
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 40, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "%" },
+      yAxis: { type: "category", data: r.names, inverse: true },
+      series: [
+        { type: "bar", name: r.old_name, data: r.old },
+        { type: "bar", name: r.new_name, data: r.new }
+      ]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+{% if model.flags.has_lineage %}
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    var l = {{ model.charts.lineage | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-lineage"));
+    c5.setOption(window.GovEcharts.option({
+      color: [P[0], P[1], P[2], P[6], P[5], P[8]],
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: l.x },
+      yAxis: { type: "value", name: "אירועים" },
+      series: l.series.map(function (s) { return { type: "bar", stack: "lin", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.has_map %}
+<script>
+  (function () {
+    var d = {{ model.charts.map | tojson }};
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var map = L.map(el, { center: [32.6, 35.2], zoom: 8, zoomSnap: 0.25, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: "© OpenStreetMap"
+    }).addTo(map);
+    var bounds = [];
+    d.points.forEach(function (p) {
+      var recent = p[5] >= d.recent_from;
+      var col = recent ? "#dc3545" : "#0068f5";
+      var mk = L.circleMarker([p[0], p[1]], {
+        radius: 4 + 2.2 * Math.sqrt(p[2]), color: col, weight: 1,
+        fillColor: col, fillOpacity: recent ? 0.55 : 0.35
+      }).addTo(map);
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = p[3] || "מיקום ללא שם יישוב";
+      box.appendChild(t);
+      [["אירועים", String(p[2])],
+       ["שנים", p[4] === p[5] ? String(p[4]) : p[4] + "–" + p[5]],
+       ["מין נפוץ", p[6]]].forEach(function (row) {
+        var line = document.createElement("div");
+        line.textContent = row[0] + ": " + row[1];
+        box.appendChild(line);
+      });
+      mk.bindPopup(box);
+      bounds.push([p[0], p[1]]);
+    });
+    if (d.bounds) { map.fitBounds(d.bounds, { padding: [16, 16] }); }
+    else if (bounds.length) { map.fitBounds(bounds, { padding: [16, 16] }); }
+  })();
+</script>
+{% endif %}

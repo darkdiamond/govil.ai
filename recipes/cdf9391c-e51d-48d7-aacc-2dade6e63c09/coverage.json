@@ -1,0 +1,16 @@
+{
+  "cases.מספר תיק": "key:dedup — case number (per court and year); used only with the other columns to drop exact duplicate rows, never shown",
+  "cases.בית דין": "chart-courts, chart-court-heat, chart-appeals-year, chart-appeals-out, insight:new_court, insight:appeals, table:qadis — appeals court split out; the 9-row administration entry falls under the 0.2% court threshold",
+  "cases.נושא תיק": "chart-cases-year, chart-shift, chart-tree, chart-outcomes, chart-md, chart-courts, insight:topic_shift, insight:divorce, insight:outcomes — blank topics filled from the case type's usual topic",
+  "cases.סוג תיק": "chart-tree, table:types, table:appeal_types — also fills blank topics",
+  "cases.תאריך פתיחת תיק": "chart-cases-year, chart-court-heat, chart-md, chart-open, chart-appeals-year, kpi:ytd, kpi:ytd_change, insight:ytd — year-only (1 January) before the computerised system, detected from the data",
+  "cases.סטטוס תיק": "chart-open, kpi:open, table:open_status",
+  "cases.החלטה": "chart-outcomes, chart-appeals-out, insight:outcomes, insight:appeals — grouped by keyword into accepted / ruling / compromise / struck / rejected / other",
+  "cases.נותן החלטה": "chart-qadis, kpi:qadis — qadis named in their public capacity",
+  "contracts.בית דין": "chart-courts",
+  "contracts.מספר חוזה": "key:dedup — contract number; only used to drop exact duplicate rows, never shown",
+  "contracts.תאריך עריכת חוזה": "chart-md, chart-con-heat, chart-ramadan, chart-weekday, chart-lag, kpi:ramadan, insight:ramadan, insight:weekday, insight:divorce",
+  "contracts.תאריך יצירת חוזה": "chart-lag — system-entry date; lag from contract date, and the data vintage for the Ramadan window",
+  "contracts.מספר פינקס": "skip: ledger (register book) number — an internal filing identifier with no aggregate meaning",
+  "contracts.רשם נישואין": "chart-missing, kpi:missing, insight:registrar, table:quality — completeness and count of active registrars only; registrars are not ranked"
+}

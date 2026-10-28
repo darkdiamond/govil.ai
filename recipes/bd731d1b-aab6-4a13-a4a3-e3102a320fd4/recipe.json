@@ -1,0 +1,41 @@
+{
+  "contract_version": 1,
+  "dataset_id": "bd731d1b-aab6-4a13-a4a3-e3102a320fd4",
+  "recipe_version": 1,
+  "authored_at": "2026-10-25T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-24T17:59:14.322601+00:00",
+    "rows": { "dev": 9633, "nap": 856 }
+  },
+  "inputs": [
+    {
+      "name": "dev",
+      "by_id": "d0cfa550-51a5-438c-9336-7b117ed174f6",
+      "required_columns": [
+        "datasource_city_name",
+        "priority_class",
+        "from_date",
+        "to_date",
+        "program_status",
+        "SubDistrict",
+        "is_history",
+        "is_surrounding_Gaza",
+        "is_industrial_area"
+      ]
+    },
+    {
+      "name": "nap",
+      "by_id": "a118ea44-f5a4-4f1b-92e5-e37359983274",
+      "required_columns": [
+        "datasource_city_name",
+        "from_date",
+        "to_date",
+        "SubDistrict",
+        "is_surrounding_Gaza",
+        "is_industrial_area"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

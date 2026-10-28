@@ -1,0 +1,108 @@
+{
+  "contract_version": 1,
+  "dataset_id": "15fd7d7f-da3a-461e-94dd-1dfbbec52a22",
+  "recipe_version": 1,
+  "authored_at": "2026-10-26T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-14T02:03:34.692308+00:00",
+    "rows": {
+      "free_import": 28949,
+      "personal_import": 11847,
+      "free_export": 1701,
+      "other": 3728
+    }
+  },
+  "inputs": [
+    {
+      "name": "free_import",
+      "by_id": "a36db570-09f2-4521-8e3d-0290eb839c68",
+      "required_columns": [
+        "RegularityPublication",
+        "RegularityRequirementID",
+        "CustomsItemFullClassification",
+        "FullGoodsDescription",
+        "CustomsBookType",
+        "RegularityRequirement_CustomsItemFullClassification",
+        "InterConditionsRelationship",
+        "InceptionCode",
+        "RegularitySource",
+        "RegularityRequirement_Authority",
+        "ConfirmationType",
+        "IsCarnetIncluded",
+        "EndDate",
+        "UpdateDate",
+        "AutonomyRegularityRegionType",
+        "TrNumber"
+      ]
+    },
+    {
+      "name": "personal_import",
+      "by_id": "9411b540-6791-40ce-93f7-4cb0068c264d",
+      "required_columns": [
+        "RegularityPublication",
+        "RegularityRequirementID",
+        "CustomsItemFullClassification",
+        "FullGoodsDescription",
+        "CustomsBookType",
+        "RegularityRequirement_CustomsItemFullClassification",
+        "InterConditionsRelationship",
+        "InceptionCode",
+        "RegularitySource",
+        "RegularityRequirement_Authority",
+        "ConfirmationType",
+        "IsCarnetIncluded",
+        "EndDate",
+        "UpdateDate",
+        "AutonomyRegularityRegionType",
+        "TrNumber"
+      ]
+    },
+    {
+      "name": "free_export",
+      "by_id": "dbf19712-e570-4264-805e-c891cf4c8d1d",
+      "required_columns": [
+        "RegularityPublication",
+        "RegularityRequirementID",
+        "CustomsItemFullClassification",
+        "FullGoodsDescription",
+        "CustomsBookType",
+        "RegularityRequirement_CustomsItemFullClassification",
+        "InterConditionsRelationship",
+        "InceptionCode",
+        "RegularitySource",
+        "RegularityRequirement_Authority",
+        "ConfirmationType",
+        "IsCarnetIncluded",
+        "EndDate",
+        "UpdateDate",
+        "AutonomyRegularityRegionType",
+        "TrNumber"
+      ]
+    },
+    {
+      "name": "other",
+      "by_id": "d9750b40-c0b9-4e05-a08e-ae768a92e9ca",
+      "required_columns": [
+        "RegularityPublication",
+        "RegularityRequirementID",
+        "CustomsItemFullClassification",
+        "FullGoodsDescription",
+        "CustomsBookType",
+        "RegularityRequirement_CustomsItemFullClassification",
+        "InterConditionsRelationship",
+        "InceptionCode",
+        "RegularitySource",
+        "RegularityRequirement_Authority",
+        "ConfirmationType",
+        "IsCarnetIncluded",
+        "EndDate",
+        "UpdateDate",
+        "AutonomyRegularityRegionType",
+        "TrNumber",
+        "IsPersonalImportIncluded"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}

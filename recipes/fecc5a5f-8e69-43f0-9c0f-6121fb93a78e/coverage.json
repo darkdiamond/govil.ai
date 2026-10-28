@@ -1,0 +1,14 @@
+{
+  "main.LicenseNumber": "chart-bands, kpi:holders, insight:seniority, insight:multi — used only in aggregate (distinct count, 500-wide bands, per-family medians); no individual licence number reaches the page",
+  "main.LastName": "skip: personal name — licensed professionals may be named, but a name-level ranking adds nothing for this registry; names are in the shell's explorer",
+  "main.FirstName": "skip: personal name — see LastName; no gender inference from first names",
+  "main.settlement": "chart-cities, chart-spread, kpi:cities, kpi:single, insight:concentration, insight:city_mix — residence settlement, whitespace around hyphens normalised",
+  "main.Telephone": "skip: private contact detail (mostly personal mobile numbers); never on the page",
+  "main.LicenseType": "chart-types, chart-year, chart-cities, chart-bands, insight:types, insight:city_mix, insight:seniority, insight:multi, insight:wave — 8 raw types, grouped into families by keyword with an אחר fallback",
+  "main.Status": "kpi:in_force, insight:status",
+  "main.PermitExpirationDate": "chart-year, chart-heat, kpi:peak_year, insight:wave — described as a distribution, never relative to today; unparseable dates (year 3030/3031 typos) excluded and disclosed",
+  "main.suspension_start_date": "insight:status — currently empty for every row; counted as suspended licences",
+  "main.suspension_end_date": "skip: always empty; suspension is counted from the start date",
+  "main.Cancel_date": "insight:status — counts in-force licences that carry an earlier cancellation date",
+  "main.FinancialSanction": "insight:status — only counted; the link names the sanctioned person, which stays off the page"
+}
