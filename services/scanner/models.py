@@ -51,7 +51,11 @@ class Resource(BaseModel):
     # Whether the resource is queryable via /api/3/action/datastore_search.
     # Drives the shell's data-explorer section on the dataset page.
     datastore_active: bool = False
-    
+    # CKAN's md5 of the uploaded file (empty for API-pushed resources).
+    # Unlike last_modified it survives byte-identical re-uploads unchanged —
+    # the recipe-refresh precheck's file fingerprint (check A′) keys on it.
+    hash: Optional[str] = None
+
     # Local tracking fields (not from CKAN)
     file_hash: Optional[str] = None
     storage_path: Optional[str] = None
@@ -110,6 +114,7 @@ class Dataset(BaseModel):
                 last_modified=_parse_datetime(res_data.get("last_modified")),
                 description=res_data.get("description"),
                 datastore_active=bool(res_data.get("datastore_active")),
+                hash=res_data.get("hash") or None,
             )
             resources.append(resource)
         

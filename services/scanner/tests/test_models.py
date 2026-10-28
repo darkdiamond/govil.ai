@@ -35,6 +35,17 @@ def test_from_ckan_response_parses_datastore_active():
     assert by_id["rid-2"].datastore_active is False
 
 
+def test_from_ckan_response_keeps_file_hash():
+    ds = Dataset.from_ckan_response(_ckan_package([
+        {"id": "rid-1", "url": "https://data.gov.il/x.csv",
+         "hash": "1f02d8a3201f29b85ca9239863a0cb2f"},
+        {"id": "rid-2", "url": "https://data.gov.il/y.csv", "hash": ""},  # API-pushed
+    ]))
+    by_id = {r.id: r for r in ds.resources}
+    assert by_id["rid-1"].hash == "1f02d8a3201f29b85ca9239863a0cb2f"
+    assert by_id["rid-2"].hash is None
+
+
 def test_public_resource_url_rewrites_gated_hosts_and_locale_prefix():
     from services.scanner.models import _public_resource_url as f
 
