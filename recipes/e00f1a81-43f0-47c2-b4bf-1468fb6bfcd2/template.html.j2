@@ -1,0 +1,301 @@
+<h1>בתים מאזנים למניעת אשפוז פסיכיאטרי: רשימה ופרטי קשר</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בית מאזן לפי יישוב, מחוז, מפעיל או קופת חולים ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם הבית, יישוב, מחוז, סוג הבית, המפעיל, קופות החולים שבהסכם, טלפון, דואר אלקטרוני והערות.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">בתים מאזנים בפיקוח משרד הבריאות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובים שיש בהם בית מאזן</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.operators.tone }} mb-1" dir="ltr">{{ model.kpis.operators.display }}</div>
+    <div class="text-sm text-subtle">גופים מפעילים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.no_agreement.tone }} mb-1" dir="ltr">{{ model.kpis.no_agreement.display }}</div>
+    <div class="text-sm text-subtle">בתים ללא הסכם עם קופות החולים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section id="directory" class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת הבתים המאזנים לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.dir_note }}</p>
+{%- for g in model.directory %}
+  <h3 class="text-base font-semibold text-ink-deep mt-5 mb-3">מחוז {{ g.district }} <span class="text-sm font-normal text-subtle">({{ g.count_label }})</span></h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+{%- for h in g["items"] %}
+    <div class="rounded-gov border border-rule p-3 text-sm">
+      <div class="font-semibold text-ink-deep">{{ h.title }}</div>
+      <div class="text-subtle">{{ h.city }} · {{ h.type }}</div>
+      <div class="mt-1"><span class="text-subtle">מפעיל:</span> {{ h.operator }}</div>
+      <div><span class="text-subtle">קופות ומממנים:</span> {{ h.payers }}</div>
+{%- if h.notes %}
+      <div><span class="text-subtle">הערות:</span> {{ h.notes }}</div>
+{%- endif %}
+{%- if h.phones or h.emails %}
+      <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+{%- for p in h.phones %}
+        <a href="tel:{{ p.tel }}" dir="ltr">{{ p.display }}</a>
+{%- endfor %}
+{%- for e in h.emails %}
+        <a href="mailto:{{ e }}" dir="ltr" class="break-all">{{ e }}</a>
+{%- endfor %}
+      </div>
+{%- endif %}
+    </div>
+{%- endfor %}
+  </div>
+{%- endfor %}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בתים מאזנים לפי מחוז וסוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  <div id="chart-district" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.district_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.district_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th>{% for s in model.charts.district.series %}<th scope="col">{{ s.name }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.district.x %}
+        {%- set i = loop.index0 %}
+        <tr><th scope="row">{{ x }}</th>{% for s in model.charts.district.series %}<td>{{ s.data[i] | fmt_int }}</td>{% endfor %}<td>{{ model.charts.district.totals[i] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הבתים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_note }}</p>
+    <div id="chart-types" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.type_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.type_aria }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">בתים</th><th scope="col">אחוז</th></tr></thead>
+        <tbody>
+{%- for r in model.charts.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td><td>{{ r.share | fmt_num }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הסכמים עם קופות החולים ומשרד הביטחון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.payer_note }}</p>
+    <div id="chart-payers" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.payer_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.payer_aria }}</caption>
+        <thead><tr><th scope="col">גורם מממן</th><th scope="col">בתים</th><th scope="col">אחוז מהבתים</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.payers.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.payers["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.payers.shares[loop.index0] | fmt_num }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מפעיל את הבתים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.op_note }}</p>
+    <div id="chart-operators" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.op_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.op_aria }}</caption>
+        <thead><tr><th scope="col">מפעיל</th><th scope="col">בתים</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.operators.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.operators["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">למי מיועדים הבתים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.aud_note }}</p>
+    <div id="chart-audience" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.aud_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.aud_aria }}</caption>
+        <thead><tr><th scope="col">קהל יעד</th><th scope="col">בתים</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.audience.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.audience["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">בתים מאזנים למניעת אשפוז פסיכיאטרי בפיקוח משרד הבריאות</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var c = echarts.init(document.getElementById("chart-district"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, out = "מחוז " + echarts.format.encodeHTML(d.x[i]) + " · " + d.totals[i].toLocaleString("he-IL") + " בתים";
+        ps.forEach(function (p) { if (p.value) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"); } });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "all", itemStyle: { color: s.color }, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " בתים (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["42%", "68%"], center: ["50%", "42%"], label: { show: false },
+                 data: d.map(function (r) { return { name: r.name, value: r.value, itemStyle: { color: r.color } }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.payers | tojson }};
+    var el = document.getElementById("chart-payers");
+    var c = echarts.init(el);
+    var last = d.names.length - 1;
+    function opt() {
+      var narrow = el.clientWidth < 500;
+      return window.GovEcharts.option({
+        tooltip: { trigger: "item", formatter: function (p) {
+          var i = p.dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " בתים · " + d.shares[i] + "% מהבתים";
+        } },
+        grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", label: { show: true, position: "right", fontFamily: "Rubik" },
+                   data: d.values.map(function (v, i) {
+                     return d.noagr && i === last ? { value: v, itemStyle: { color: "#ffc107" } } : v;
+                   }) }]
+      });
+    }
+    c.setOption(opt());
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.operators | tojson }};
+    if (d.other) { d = { names: d.names.slice(0, -1), values: d.values.slice(0, -1) }; }
+    var el = document.getElementById("chart-operators");
+    var c = echarts.init(el);
+    function opt() {
+      var narrow = el.clientWidth < 500;
+      return window.GovEcharts.option({
+        tooltip: { trigger: "item", formatter: function (p) {
+          var i = p.dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " בתים";
+        } },
+        grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: narrow ? 120 : 160, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", label: { show: true, position: "right", fontFamily: "Rubik" },
+                   data: d.values }]
+      });
+    }
+    c.setOption(opt());
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.audience | tojson }};
+    var el = document.getElementById("chart-audience");
+    var c = echarts.init(el);
+    function opt() {
+      var narrow = el.clientWidth < 500;
+      return window.GovEcharts.option({
+        tooltip: { trigger: "item", formatter: function (p) {
+          var i = p.dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " בתים";
+        } },
+        grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", itemStyle: { color: "#0b3668" }, label: { show: true, position: "right", fontFamily: "Rubik" }, data: d.values }]
+      });
+    }
+    c.setOption(opt());
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>

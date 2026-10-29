@@ -1,0 +1,8 @@
+{
+  "main.case": "chart-owners, kpi:cases, insight:multi — case number groups co-owners; counted only, never shown per case",
+  "main.lastname": "skip: private individuals' names (absentee owners); searchable only through the shell's explorer via the lookup callout, never named or ranked on the page",
+  "main.firstname": "skip: private individuals' names (absentee owners); searchable only through the shell's explorer via the lookup callout, never named or ranked on the page",
+  "main.date": "chart-yearly, chart-dec-status, chart-dec-assets, kpi:span, insight:transferred, insight:shift, insight:peak, insight:quality — dd/mm/yyyy; 00/00/00 placeholders and pre-1948 dates disclosed",
+  "main.asset": "chart-assets, chart-asset-status, chart-dec-assets, kpi:money, insight:assets, insight:uniform — inner whitespace normalized, combinations shown as A + B",
+  "main.status": "chart-yearly, chart-status, chart-asset-status, chart-dec-status, kpi:pending, kpi:transferred, insight:pending, insight:transferred, insight:shift, insight:uniform"
+}

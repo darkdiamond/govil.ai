@@ -1,0 +1,6 @@
+{
+  "main.lastname": "chart-surnames, insight:surnames, insight:namesakes — family names of licensed office holders, shown only as top-N counts",
+  "main.firstname": "chart-first, insight:first, insight:namesakes — top-N first names and double first names",
+  "main.city": "chart-cities, chart-spread, chart-conc, kpi:loc, kpi:leader, kpi:abroad, insight:leader, insight:concentration, insight:singles, insight:abroad, insight:quality, abroad — spelling variants folded; abroad detected by Latin script or a foreign place keyword",
+  "main.street": "insight:quality — only whether it is filled is counted; the home address itself is never shown on the page (private contact detail)"
+}

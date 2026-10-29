@@ -1,0 +1,308 @@
+<h1>מחירי מוצרים בפיקוח: המחיר המרבי המותר לצרכן</h1>
+
+<style>
+  .pc-table th, .pc-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .pc-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .pc-table thead th { font-weight: 600; color: #0b3668; white-space: nowrap; }
+  .pc-group th { background: #f0f4fa; color: #0b3668; font-weight: 600; }
+  .pc-up { color: #9a6700; }
+  .pc-down { color: #198754; }
+  .pc-ml { display: none; }
+  .pc-hbar { height: 34rem; }
+  @media (min-width: 768px) { .pc-hbar { height: 30rem; } }
+  .pc-cur th[scope="row"] { min-width: 12rem; }
+  .pc-cur thead th { white-space: normal; }
+  .pc-cur td.pc-num { white-space: nowrap; }
+  @media (max-width: 639px) {
+    .pc-cur thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .pc-cur, .pc-cur tbody { display: block; }
+    .pc-cur tbody tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.15rem 0.9rem; padding: 0.55rem 0; }
+    .pc-cur tbody th, .pc-cur tbody td { padding: 0; }
+    .pc-cur th[scope="row"] { flex-basis: 100%; min-width: 0; font-weight: 600; color: #0b3668; }
+    .pc-cur tr.pc-group { padding: 0; }
+    .pc-cur tr.pc-group th { flex-basis: 100%; padding: 0.35rem 0.5rem; }
+    .pc-ml { display: inline; color: #6c757d; font-weight: 400; }
+  }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור המחיר המרבי של מוצר בפיקוח ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המוצר, תאריך העדכון, המחיר לצרכן כולל מע״מ, המחיר באילת והמחיר לקמעונאי ללא מע״מ.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.products.tone }} mb-1" dir="ltr">{{ model.kpis.products.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.products_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last.tone }} mb-1" dir="ltr">{{ model.kpis.last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_kpi }}</div>
+  </div>
+{%- if model.kpis.round is defined %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.round.tone }} mb-1" dir="ltr">{{ model.kpis.round.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.round_kpi }}</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.window is defined %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.window.tone }} mb-1" dir="ltr">{{ model.kpis.window.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.window_kpi }}</div>
+  </div>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6" id="table-prices">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המחיר המרבי העדכני לכל מוצר בפיקוח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.table_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="pc-table pc-cur w-full text-sm">
+      <caption class="sr-only">{{ model.labels.table_caption }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">מוצר</th>
+          <th scope="col">מחיר לצרכן כולל מע״מ (₪)</th>
+          <th scope="col">מחיר באילת (₪)</th>
+          <th scope="col">מחיר לקמעונאי ללא מע״מ (₪)</th>
+          <th scope="col">עודכן</th>
+          <th scope="col">שינוי מהעדכון הקודם</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- set ns = namespace(g="") %}
+{%- for r in model.tables.prices %}
+{%- if r.group != ns.g %}
+{%- set ns.g = r.group %}
+        <tr class="pc-group"><th scope="rowgroup" colspan="6">{{ r.group }}</th></tr>
+{%- endif %}
+        <tr>
+          <th scope="row" class="font-normal">{{ r.name }}</th>
+          <td class="pc-num font-semibold"><span class="pc-ml">לצרכן: </span><span dir="ltr">{{ r.con }}</span><span class="pc-ml"> ₪</span></td>
+          <td class="pc-num"><span class="pc-ml">אילת: </span>{% if r.eil %}<span dir="ltr">{{ r.eil }}</span>{% else %}<span class="text-subtle">לא צוין</span>{% endif %}</td>
+          <td class="pc-num"><span class="pc-ml">לקמעונאי: </span>{% if r.ret %}<span dir="ltr">{{ r.ret }}</span>{% else %}<span class="text-subtle">לא צוין</span>{% endif %}</td>
+          <td><span class="pc-ml">עודכן: </span>{{ r.date }}{% if r.stale %} <span class="badge">לא עודכן זמן רב</span>{% endif %}</td>
+          <td><span class="pc-ml">שינוי: </span>{% if r.chg %}<span dir="ltr" class="{% if r.chg_tone == 'up' %}pc-up{% elif r.chg_tone == 'down' %}pc-down{% endif %}">{{ r.chg }}</span>{% if r.chg_tone == 'up' %} <span class="text-subtle">(עלייה)</span>{% elif r.chg_tone == 'down' %} <span class="text-subtle">(ירידה)</span>{% endif %}{% else %}<span class="text-subtle">לא רלוונטי</span>{% endif %}</td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.charts.window %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה מוצר התייקר הכי הרבה בחמש השנים האחרונות?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.window_note }}</p>
+  <div id="chart-window" class="pc-hbar" role="img" aria-label="{{ model.labels.window_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="pc-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.window_caption }}</caption>
+        <thead><tr><th scope="col">מוצר</th><th scope="col">מחיר בתחילת התקופה (₪)</th><th scope="col">בתוקף מ-</th><th scope="col">מחיר עדכני (₪)</th><th scope="col">שינוי</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.window %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td dir="ltr" class="text-start">{{ r.base }}</td><td>{{ r.base_date }}</td><td dir="ltr" class="text-start">{{ r.now }}</td><td dir="ltr" class="text-start">{{ r.chg }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היסטוריית המחירים המרביים לפי קבוצת מוצרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">המחיר המרבי לצרכן כולל מע״מ בכל עדכון. כל מדרגה היא עדכון מחיר; לחיצה על שם מוצר במקרא מסתירה או מציגה אותו.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for h in model.charts.history %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ h.title }}</h3>
+      <p class="m-0 mb-2 text-xs text-subtle">{{ h.lede }}</p>
+      <div id="{{ h.id }}" class="h-72 md:h-96" role="img" aria-label="{{ h.aria }}" data-fallback="explorer"></div>
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+{%- if model.charts.years %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה פעמים עלו וירדו המחירים בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="pc-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">התייקרויות</th><th scope="col">הוזלות</th><th scope="col">ללא שינוי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.up }}</td><td>{{ r.down }}</td><td>{{ r.same }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.charts.margin %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המרווח הקמעונאי: מחיר לקמעונאי מול מחיר לצרכן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.margin_note }}</p>
+  <div id="chart-margin" class="pc-hbar" role="img" aria-label="{{ model.labels.margin_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="pc-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.margin_caption }}</caption>
+        <thead><tr><th scope="col">מוצר</th><th scope="col">מחיר לקמעונאי (₪)</th><th scope="col">מחיר לצרכן ללא מע״מ (₪)</th><th scope="col">מרווח</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.margin %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td dir="ltr" class="text-start">{{ r.ret }}</td><td dir="ltr" class="text-start">{{ r.eil }}</td><td dir="ltr" class="text-start">{{ r.margin }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מחירים מירביים של מוצרי צריכה הנמצאים בפיקוח מחירים של משרד הכלכלה ושל משרד החקלאות. המאגר כולל היסטוריה של מחירי המוצרים.</p>
+</section>
+
+{%- if model.charts.window %}
+<script>
+  (function () {
+    var d = {{ model.charts.window | tojson }};
+    var el = document.getElementById("chart-window");
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.base[i].toFixed(2) + " ← " + d.now[i].toFixed(2) + " ₪<br>שינוי: " + d.values[i].toFixed(1) + "%";
+      } },
+      grid: { left: 8, right: 48, top: 8, bottom: narrow ? 8 : 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.short, inverse: true, axisLabel: { width: narrow ? 140 : 220, overflow: "truncate", fontSize: narrow ? 11 : 12, interval: 0 } },
+      series: [{ type: "bar", name: "שינוי במחיר", data: d.values, label: { show: true, position: "right", formatter: function (p) { return p.value.toFixed(1) + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- for h in model.charts.history %}
+<script>
+  (function () {
+    var d = {{ h.series | tojson }};
+    var el = document.getElementById({{ h.id | tojson }});
+    var narrow = el.clientWidth < 500;
+    var rows = narrow ? Math.ceil(d.length / 2) : Math.ceil(d.length / 3);
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "" : v.toFixed(2) + " ₪"; } },
+      legend: { bottom: 0, type: "plain", itemGap: 8, textStyle: { fontSize: 11 } },
+      grid: { left: 16, right: 24, top: 16, bottom: 28 + rows * 22, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value} ₪" } },
+      series: d.map(function (s) {
+        return { type: "line", name: s.short, step: "end", showSymbol: false, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endfor %}
+
+{%- if model.charts.years %}
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", name: "התייקרויות", stack: "dir", data: d.up, itemStyle: { color: "#0068f5" } },
+        { type: "bar", name: "הוזלות", stack: "dir", data: d.down, itemStyle: { color: "#198754" } },
+        { type: "bar", name: "ללא שינוי", stack: "dir", data: d.same, itemStyle: { color: "#c3cfe7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.margin %}
+<script>
+  (function () {
+    var d = {{ model.charts.margin | tojson }};
+    var el = document.getElementById("chart-margin");
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>לקמעונאי: " + d.ret[i].toFixed(2) + " ₪<br>לצרכן ללא מע״מ: " + d.eil[i].toFixed(2) + " ₪<br>מרווח: " + d.values[i].toFixed(1) + "%";
+      } },
+      grid: { left: 8, right: 48, top: 8, bottom: narrow ? 8 : 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.short, inverse: true, axisLabel: { width: narrow ? 140 : 220, overflow: "truncate", fontSize: narrow ? 11 : 12, interval: 0 } },
+      series: [{ type: "bar", name: "מרווח", data: d.values, label: { show: true, position: "right", formatter: function (p) { return p.value.toFixed(1) + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

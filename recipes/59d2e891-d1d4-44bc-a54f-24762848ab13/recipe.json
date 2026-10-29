@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "59d2e891-d1d4-44bc-a54f-24762848ab13",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-08-20T10:07:52.731764+00:00",
+    "rows": { "main": 330 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "f5e57cec-4af9-488e-94b5-53f948a3cec3",
+      "required_columns": [
+        "סוג",
+        "רשתי",
+        "מספר ספרות לאחר הקידומת",
+        "קידומת חיוג (קוד גישה)",
+        "מוקצה לספק מורשה במשרד התקשורת",
+        "הערות"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

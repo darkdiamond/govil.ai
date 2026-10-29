@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "aa0ce63f-00ad-4814-8a1c-e93f03d827c1",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-01-19T08:12:13.357616+00:00",
+    "rows": { "main": 1255 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "5537a0ef-3eeb-449c-90c8-51e27564f0cb",
+      "required_columns": ["מס_מינהל_הדלק", "חברה", "שם_תחנה", "רשות_מקומית", "נ.צ. אורך", "נ.צ. רוחב"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

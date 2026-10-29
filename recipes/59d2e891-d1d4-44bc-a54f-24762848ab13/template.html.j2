@@ -1,0 +1,392 @@
+{%- macro head(icon, title, tone="text-brand") %}
+  <div class="flex items-center gap-2 mb-3 {{ tone }}">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>מספרי טלפון לשירותים ארציים: מספרי חירום, מספרים מקוצרים וקידומות שירות</h1>
+
+<style>
+  .dial-table th, .dial-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .dial-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .dial-table thead th { color: #0b3668; font-weight: 600; }
+  .dial-code { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  details > summary { cursor: pointer; }
+</style>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מספר או קידומת: למי שייך ולמה הוא משמש ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: קידומת חיוג (קוד גישה), סוג, הספק המורשה שהמספר מוקצה לו, מספר הספרות לאחר הקידומת והערות (שם המוקד או השירות).</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["total", "emergency", "codes", "providers", "cancel"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.emergency %}
+<section class="card p-5 mb-6">
+{{ head("triangle-alert", "מספרי חירום, מצוקה ורווחה") }}
+  <p class="m-0 text-sm text-subtle mb-3">המספרים המקוצרים שמשרד התקשורת הקצה למוקדי חירום, מצוקה ורווחה, כפי שהם מופיעים ברשימה. מספר שההערה שלו מציינת ביטול, אי-שימוש או מוקד עתידי מסומן בעמודת המצב.</p>
+  <div class="overflow-x-auto">
+    <table id="table-emergency" class="dial-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.em_caption }}</caption>
+      <thead><tr><th scope="col">מספר</th><th scope="col">מוקד</th><th scope="col">מצב</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.emergency %}
+        <tr><th scope="row" class="dial-code font-semibold" dir="ltr">{{ r.code }}</th><td>{{ r.name }}</td><td>{% if r.status == "פעיל" %}<span class="text-subtle">{{ r.status }}</span>{% else %}<span class="badge text-warn">{{ r.status }}</span>{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- if model.flags.short %}
+  <details class="mt-4">
+    <summary class="text-sm font-semibold text-ink-deep">מספרים מקוצרים נוספים (מודיעין, שירותי ספקים, מב״ל)</summary>
+    <div class="overflow-x-auto mt-2">
+      <table id="table-short" class="dial-table w-full text-sm">
+        <caption class="sr-only">{{ model.labels.short_caption }}</caption>
+        <thead><tr><th scope="col">מספר</th><th scope="col">שירות</th><th scope="col">ספק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.short %}
+          <tr><th scope="row" class="dial-code font-semibold" dir="ltr">{{ r.code }}</th><td>{{ r.name }}</td><td>{{ r.prov }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.codes %}
+<section class="card p-5 mb-6">
+{{ head("list", "אזורי חיוג לשירות: מה כל קידומת אומרת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.codes_lede }}</p>
+  <div id="chart-codes" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.codes_aria }}"></div>
+  <div class="overflow-x-auto mt-3">
+    <table class="dial-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.codes_caption }}</caption>
+      <thead><tr><th scope="col">קידומת</th><th scope="col">ייעוד</th><th scope="col">גושים מוקצים</th><th scope="col">ספקים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.codes %}
+        <tr><th scope="row" class="dial-code font-semibold" dir="ltr">{{ r.code }}</th><td>{{ r.purpose }}</td><td>{{ r.blocks }}</td><td>{{ r.providers }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.cap %}
+<section class="card p-5 mb-6">
+{{ head("database", "מי מחזיק בטווח המספרים של כל קידומת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cap_lede }}</p>
+  <div id="chart-cap" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cap_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="dial-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cap_caption }}</caption>
+        <thead><tr><th scope="col">קידומת</th><th scope="col">הספק עם הטווח הגדול</th><th scope="col">חלקו</th><th scope="col">מוקצה לספקים</th><th scope="col">גודל הטווח</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cap %}
+          <tr><th scope="row" class="dial-code" dir="ltr">{{ r.code }}</th><td>{{ r.leader }}</td><td>{{ r.leader_share }}</td><td>{{ r.allocated }}</td><td>{{ r.space }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.prov %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "ספקי התקשורת: כמה מספרים וקידומות מוקצים לכל ספק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prov_lede }}</p>
+  <div id="chart-prov" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.prov_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="dial-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.prov_caption }}</caption>
+        <thead><tr><th scope="col">ספק</th><th scope="col">הקצאות</th><th scope="col">קודי גישה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.prov %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr" class="text-start">{{ r.codes }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+{{ head("tag", "ספק מול קידומת: מפת ההקצאות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.flags.intl or model.flags.net %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.intl %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">קידומות חיוג בינלאומיות לפי ספק</h2>
+    <div class="overflow-x-auto">
+      <table id="table-intl" class="dial-table w-full text-sm">
+        <caption class="sr-only">{{ model.labels.intl_caption }}</caption>
+        <thead><tr><th scope="col">קידומת</th><th scope="col">ספק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.intl %}
+          <tr><th scope="row" class="dial-code font-semibold" dir="ltr">{{ r.code }}</th><td>{{ r.prov }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{%- endif %}
+{%- if model.flags.net %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">קודי כוכבית וסולמית רשתיים</h2>
+    <p class="m-0 text-sm text-subtle mb-2">קודים שמסומנים ברשימה כרשתיים, כלומר אחידים אצל כל המפעילים.</p>
+    <div class="overflow-x-auto">
+      <table id="table-net" class="dial-table w-full text-sm">
+        <caption class="sr-only">{{ model.labels.net_caption }}</caption>
+        <thead><tr><th scope="col">קוד</th><th scope="col">פעולה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.net %}
+          <tr><th scope="row" class="dial-code font-semibold" dir="ltr">{{ r.code }}</th><td>{{ r.name }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{%- endif %}
+</div>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "מה יש ברשימה: לפי סוג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+  <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="dial-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">שורות</th><th scope="col">מוקצות לספק</th><th scope="col">קודי גישה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.rows }}</td><td>{{ r.alloc }}</td><td>{{ r.codes }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("info", "על תכנית המספור") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">משרד התקשורת מנהל את תכנית המספור הלאומית (Israel Dialing Plan) ומקצה את משאבי המספור לספקי התקשורת המורשים. הרשימה מאגדת את מספרי הטלפון לשירותים ארציים: מספרים מקוצרים למוקדי חירום, מצוקה ורווחה, מספרים מקוצרים נוספים, אזורי חיוג לשירות כמו מספרי חינם, חיוב מפוצל ופרימיום, קידומות החיוג הבינלאומיות של הספקים וקודי שירות רשתיים בכוכבית ובסולמית. בכל אזור חיוג לשירות, העמודה "מספר ספרות לאחר הקידומת" מתארת את גוש המספרים שהוקצה לספק: ספרות קבועות ואחריהן X לכל ספרה פנויה.</p>
+</section>
+
+{%- if model.flags.codes %}
+<script>
+  (function () {
+    const d = {{ model.charts.codes | tojson }};
+    const el = document.getElementById("chart-codes");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, data: ["גושי מספרים", "ספקים"] },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let s = "קידומת " + echarts.format.encodeHTML(d.codes[i]);
+          if (d.purpose[i]) s += ": " + echarts.format.encodeHTML(d.purpose[i]);
+          ps.forEach(function (p) { s += "<br/>" + p.marker + p.seriesName + ": " + p.value.toLocaleString("he-IL"); });
+          return s;
+        }
+      },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.codes, axisLabel: { interval: 0, rotate: narrow ? 45 : 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { name: "גושי מספרים", type: "bar", data: d.blocks, barMaxWidth: 22 },
+        { name: "ספקים", type: "bar", data: d.providers, barMaxWidth: 22 }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.cap %}
+<script>
+  (function () {
+    const d = {{ model.charts.cap | tojson }};
+    const el = document.getElementById("chart-cap");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const pal = window.GOVIL_PALETTE;
+    const colors = [pal[0], pal[2], pal[4], pal[6], "#dbe3ef"];
+    const series = d.series.map(function (data, si) {
+      return {
+        name: d.slots[si], type: "bar", stack: "cap", data: data, barMaxWidth: 26,
+        itemStyle: { color: colors[si % colors.length] }
+      };
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: colors,
+      legend: { top: 0, type: "scroll", data: d.slots },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          let s = "קידומת " + echarts.format.encodeHTML(d.codes[ps[0].dataIndex]);
+          ps.forEach(function (p) {
+            if (!p.data || !p.data.count) return;
+            s += "<br/>" + p.marker + echarts.format.encodeHTML(p.data.name) + ": " + p.data.value.toLocaleString("he-IL") + "% (" + p.data.count.toLocaleString("he-IL") + " מספרים)";
+          });
+          return s;
+        }
+      },
+      grid: { left: 8, right: 16, top: narrow ? 56 : 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.codes, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.prov %}
+<script>
+  (function () {
+    const d = {{ model.charts.prov | tojson }};
+    const el = document.getElementById("chart-prov");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, type: "scroll", data: d.series.map(function (s) { return s.name; }) },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let s = echarts.format.encodeHTML(d.full[i]);
+          let tot = 0;
+          ps.forEach(function (p) {
+            if (!p.value) return;
+            tot += p.value;
+            s += "<br/>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL");
+          });
+          return s + "<br/>סך הכול: " + tot.toLocaleString("he-IL");
+        }
+      },
+      grid: { left: 8, right: 16, top: narrow ? 56 : 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: {
+        type: "category", data: d.labels, inverse: true,
+        axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 }
+      },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "prov", data: s.data, barMaxWidth: 22 };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const el = document.getElementById("chart-heat");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(d.full[p.data[1]]) + "<br/>קידומת " + echarts.format.encodeHTML(d.x[p.data[0]]) + ": " + p.data[2].toLocaleString("he-IL") + " גושים";
+        }
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 60 : 0, fontSize: narrow ? 9 : 11 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { width: narrow ? 90 : 180, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 9 : 11 } },
+      visualMap: {
+        min: 0, max: d.max, dimension: 2, calculable: false,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: !narrow, fontFamily: "Rubik" },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.types | tojson }};
+    const el = document.getElementById("chart-types");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[0], "#a9c3ec"],
+      legend: { top: 0, data: ["מוקצה לספק", "שירות כללי"] },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: {
+        type: "category", data: d.names, inverse: true,
+        axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 }
+      },
+      series: [
+        { name: "מוקצה לספק", type: "bar", stack: "t", data: d.alloc, barMaxWidth: 22 },
+        { name: "שירות כללי", type: "bar", stack: "t", data: d.general, barMaxWidth: 22 }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>

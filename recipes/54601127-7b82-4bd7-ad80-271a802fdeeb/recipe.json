@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "54601127-7b82-4bd7-ad80-271a802fdeeb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-06T11:52:32.872039+00:00",
+    "rows": { "main": 780 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "73df1b93-9735-4bc0-b84d-aa5f6bcbfb92",
+      "required_columns": ["Serial_num", "Name", "License"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

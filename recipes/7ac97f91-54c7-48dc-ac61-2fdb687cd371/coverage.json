@@ -1,0 +1,22 @@
+{
+  "main.year_aliya": "chart-yearly, chart-heat, chart-regions, chart-cyears, chart-profile, chart-districts, kpi:total, kpi:last, kpi:change, kpi:peak, insight:trend, insight:peak, insight:region_shift — year of aliyah; one file per year, dedup guard if a year appears in two files",
+  "main.month_aliya": "chart-heat, insight:season, kpi:change — month of aliyah; detects a partial latest year (last month before December)",
+  "main.age": "chart-pyramid, chart-profile, chart-agec, kpi:median_age, insight:age, insight:women — age on the day of aliyah, binned by 5 years",
+  "main.age_tday": "skip: age at the file's export date; drifts with every export and is named differently per file, so age at aliyah is used instead",
+  "main.gender": "chart-pyramid, chart-profile, kpi:women, insight:women",
+  "main.erez_moza": "chart-countries, chart-cyears, chart-agec, kpi:countries, insight:leader, insight:peak, insight:age — country of origin",
+  "main.subcont": "chart-regions, insight:region_shift — sub-continent of origin; top 6 + אחר",
+  "main.yeshuv_klita": "chart-cities, kpi:cities, insight:cities — settlement of first residence; top 15",
+  "main.machoz": "chart-districts — ministry district; names that start or stop mid-series are listed in the chart note",
+  "main.mikzoa": "chart-occ, chart-prof — declared occupation; non-occupational codes (pupils, students, pensioners, homemakers, unspecified) grouped, top 15 occupations among the rest",
+  "heb.שנת עלייה": "chart-yearly, chart-heat, chart-regions, chart-cyears, chart-profile, chart-districts, kpi:total, kpi:last, kpi:change, kpi:peak — Hebrew-header twin of year_aliya (the 2024 file)",
+  "heb.חודש עלייה": "chart-heat, insight:season, kpi:change — twin of month_aliya",
+  "heb.גיל ביום העלייה": "chart-pyramid, chart-profile, chart-agec, kpi:median_age, insight:age — twin of age",
+  "heb.גיל ב- 1/12/2025": "skip: age at an export date (twin of age_tday); the column name itself carries the date",
+  "heb.מגדר": "chart-pyramid, chart-profile, kpi:women, insight:women — twin of gender",
+  "heb.ארץ מוצא": "chart-countries, chart-cyears, chart-agec, kpi:countries, insight:leader — twin of erez_moza",
+  "heb.תת יבשת": "chart-regions, insight:region_shift — twin of subcont",
+  "heb.ישוב": "chart-cities, kpi:cities, insight:cities — twin of yeshuv_klita",
+  "heb.מחוז": "chart-districts — twin of machoz",
+  "heb.מקצוע": "chart-occ, chart-prof — twin of mikzoa"
+}

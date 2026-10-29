@@ -1,0 +1,467 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro fallback(caption, cols, rows, keys) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="pop-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr><th scope="row">{{ r[keys[0]] }}</th>{% for k in keys[1:] %}<td dir="ltr" class="text-start">{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>מרשם אוכלוסין באר שבע: תושבים לפי שכונה, גיל ועלייה</h1>
+
+<style>
+  .pop-table th, .pop-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; white-space: nowrap; }
+  .pop-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .pop-table tr.pop-muted { color: #6c757d; }
+  .pop-table details summary { cursor: pointer; }
+</style>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#neighbourhoods" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">כמה תושבים יש בכל שכונה בבאר שבע? ←</span>
+    <span class="block text-sm text-subtle">טבלת השכונות: מספר תושבים, שיעור ילדים ומבוגרים, שיעור עולים ומדד משפחות. נתוני כל אזור סטטיסטי (אג״ס) בהמשך העמוד ובחיפוש החי שמתחת לעמוד.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6" id="neighbourhoods">
+{{ head("map-pin", "מספר התושבים בכל שכונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.neigh_lede }}</p>
+  <div class="overflow-x-auto mb-4">
+    <table class="pop-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.neigh_caption }}</caption>
+      <thead>
+        <tr class="text-ink-deep">
+          <th scope="col">שכונה</th>
+          <th scope="col">תושבים</th>
+          <th scope="col">מהעיר</th>
+          <th scope="col">אזורים</th>
+          <th scope="col">{{ model.labels.kpi_kids }}</th>
+          <th scope="col">{{ model.labels.kpi_old }}</th>
+          <th scope="col">עולים</th>
+          <th scope="col">מדד משפחות</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- for r in model.tables.neigh %}
+        <tr{% if r.unassigned %} class="pop-muted"{% endif %}>
+          <th scope="row" class="font-semibold text-ink-deep">{{ r.name }}</th>
+          <td dir="ltr" class="text-start">{{ r.residents }}</td>
+          <td dir="ltr" class="text-start">{{ r.share }}</td>
+          <td dir="ltr" class="text-start">{{ r.areas }}</td>
+          <td dir="ltr" class="text-start">{{ r.kids }}</td>
+          <td dir="ltr" class="text-start">{{ r.old }}</td>
+          <td dir="ltr" class="text-start">{{ r.olim }}</td>
+          <td dir="ltr" class="text-start">{{ r.family }}</td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="m-0 text-xs text-subtle mb-3">מדד משפחות: גרושים, אלמנים ומשפחות שבראשן הורה עצמאי, כשיעור מתושבי השכונה. שיוך האזורים לשכונות לפי טבלת ההמרה של עיריית באר שבע.</p>
+  <div id="chart-neigh" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.neigh_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "תושבי באר שבע לפי קבוצת גיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_lede }}</p>
+  <div id="chart-age" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+{{ fallback(model.labels.age_caption, ["קבוצת גיל", "תושבים", "שיעור"], model.tables.age, ["band", "count", "share"]) }}
+</section>
+
+{%- if model.flags.mix %}
+<section class="card p-5 mb-6">
+{{ head("database", "הרכב הגילים בכל שכונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_lede }}</p>
+  <div id="chart-mix" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+{{ fallback(model.labels.mix_caption, ["שכונה"] + model.labels.broad, model.tables.mix, ["name", "kids", "young", "mid", "old"]) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+{{ head("database", "מפת גילים מפורטת לפי שכונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-[560px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="pop-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+        <thead><tr><th scope="col">שכונה</th>{% for b in model.charts.heat.x %}<th scope="col" dir="ltr">{{ b }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r["values"] %}<td dir="ltr" class="text-start">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.scatter %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "ילדים מול מבוגרים בכל אזור סטטיסטי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_lede }}</p>
+  <div id="chart-scatter" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.scatter_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "מצב משפחתי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.marital_lede }}</p>
+  <div id="chart-marital" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.marital_aria }}"></div>
+{{ fallback(model.labels.marital_caption, ["מצב משפחתי", "תושבים", "שיעור"], model.tables.marital, ["name", "count", "share"]) }}
+</section>
+
+{%- if model.flags.family %}
+<section class="card p-5 mb-6">
+{{ head("list", "גרושים, אלמנים והורים עצמאיים לפי שכונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.family_lede }}</p>
+  <div id="chart-family" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.family_aria }}"></div>
+{{ fallback(model.labels.family_caption, ["שכונה", "מדד משפחות"], model.tables.family, ["name", "value"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("tag", "עולים לפי ארץ מוצא") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.origin_lede }}</p>
+  <div id="chart-origin" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.origin_aria }}"></div>
+{{ fallback(model.labels.origin_caption, ["ארץ מוצא", "עולים"], model.tables.origin, ["name", "count"]) }}
+</section>
+
+{%- if model.flags.olim %}
+<section class="card p-5 mb-6">
+{{ head("tag", "שיעור העולים בכל שכונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.olim_lede }}</p>
+  <div id="chart-olim" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.olim_aria }}"></div>
+{{ fallback(model.labels.olim_caption, ["שכונה", "שיעור עולים"], model.tables.olim, ["name", "value"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6" id="areas">
+{{ head("building-2", "נתונים לפי אזור סטטיסטי (אג״ס)") }}
+  <p class="m-0 text-sm text-subtle mb-3">כל אזור סטטיסטי עם השכונה שאליה הוא משתייך. שיעורי העולים ומדד המשפחות כפי שפורסמו בקובצי העירייה.</p>
+  <details>
+    <summary class="text-sm text-brand cursor-pointer">{{ model.labels.area_summary }}</summary>
+    <div class="overflow-x-auto">
+      <table class="pop-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.area_caption }}</caption>
+        <thead>
+          <tr class="text-ink-deep">
+            <th scope="col">אג״ס</th>
+            <th scope="col">שכונה</th>
+            <th scope="col">תושבים</th>
+            <th scope="col">{{ model.labels.kpi_kids }}</th>
+            <th scope="col">{{ model.labels.kpi_old }}</th>
+            <th scope="col">עולים</th>
+            <th scope="col">מדד משפחות</th>
+          </tr>
+        </thead>
+        <tbody>
+{%- for r in model.tables.areas %}
+          <tr>
+            <th scope="row" dir="ltr" class="text-start">{{ r.code }}</th>
+            <td>{{ r.name }}</td>
+            <td dir="ltr" class="text-start">{{ r.residents }}</td>
+            <td dir="ltr" class="text-start">{{ r.kids }}</td>
+            <td dir="ltr" class="text-start">{{ r.old }}</td>
+            <td dir="ltr" class="text-start">{{ r.olim }}</td>
+            <td dir="ltr" class="text-start">{{ r.family }}</td>
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("info", "על הנתונים") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">עיריית באר שבע מפרסמת נתונים דמוגרפיים ממרשם האוכלוסין לפי אזור גיאוגרפי סטטיסטי (אג״ס), בשלוש טבלאות: מצב משפחתי, עולים לפי ארץ מוצא וקבוצות גיל. הנתונים מתעדכנים אחת לחודש ומחליפים את הגרסה הקודמת, כך שהעמוד מציג תמונת מצב עדכנית ולא מגמה לאורך זמן. השיוך לשכונות נעשה לפי טבלת ההמרה של העירייה בין אזורים סטטיסטיים לשכונות. מצב משפחתי נספר לכל התושבים, כולל ילדים. קטגוריות ארץ המוצא של העולים חופפות חלקית בנתוני המקור.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.neigh | tojson }};
+    const el = document.getElementById("chart-neigh");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const names = d.names.slice().reverse();
+    const vals = d.values.slice().reverse();
+    const flags = d.flag.slice().reverse();
+    const data = vals.map(function (v, i) {
+      return flags[i] ? { value: v, itemStyle: { color: "#6c757d" } } : v;
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return echarts.format.encodeHTML(names[p.dataIndex]) + "<br/>" + Number(vals[p.dataIndex]).toLocaleString("he-IL") + " תושבים";
+        }
+      },
+      grid: { left: 8, right: narrow ? 48 : 64, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return Number(v).toLocaleString("he-IL"); } } },
+      yAxis: { type: "category", data: names, axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: [{ type: "bar", data: data, barMaxWidth: 22,
+        label: { show: !narrow, position: "right", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    const d = {{ model.charts.age | tojson }};
+    const el = document.getElementById("chart-age");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let s = "גילאי " + d.labels[i] + "<br/>" + Number(d.values[i]).toLocaleString("he-IL") + " תושבים (" + d.shares[i] + "%)";
+          if (d.widths[i]) s += "<br/>ממוצע לשנתון: " + Math.round(d.values[i] / d.widths[i]).toLocaleString("he-IL");
+          return s;
+        }
+      },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: el.clientWidth < 520 ? 45 : 0 } },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return Number(v).toLocaleString("he-IL"); } } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 36 }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+{%- if model.flags.mix %}
+<script>
+  (function () {
+    const d = {{ model.charts.mix | tojson }};
+    const el = document.getElementById("chart-mix");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const names = d.names.slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#5b9bf8", "#a9c8f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      grid: { left: 8, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: function (v) { return v + "%"; } } },
+      yAxis: { type: "category", data: names, axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "mix", barMaxWidth: 22, data: s.values.slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const el = document.getElementById("chart-heat");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br/>גילאי " + d.x[p.value[0]] + ": " + p.value[2] + "%";
+        }
+      },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 60 : 0, fontSize: narrow ? 9 : 11 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { width: narrow ? 90 : 190, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 9 : 11 } },
+      visualMap: {
+        min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        formatter: function (v) { return Number(v).toFixed(0) + "%"; },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontFamily: "Rubik", fontSize: 9 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.scatter %}
+<script>
+  (function () {
+    const d = {{ model.charts.scatter | tojson }};
+    const LB = {{ {"kids": model.labels.kpi_kids, "old": model.labels.kpi_old} | tojson }};
+    const el = document.getElementById("chart-scatter");
+    if (!el) return;
+    const chart = echarts.init(el);
+    let maxPop = 1;
+    d.points.forEach(function (p) { if (p[2] > maxPop) maxPop = p[2]; });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          const v = p.value;
+          return "אג״ס " + echarts.format.encodeHTML(v[3]) + ": " + echarts.format.encodeHTML(v[4]) +
+            "<br/>" + Number(v[2]).toLocaleString("he-IL") + " תושבים" +
+            "<br/>" + LB.kids + ": " + v[0] + "%<br/>" + LB.old + ": " + v[1] + "%";
+        }
+      },
+      grid: { left: 8, right: 24, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "value", name: "ילדים (%)", nameLocation: "middle", nameGap: 26, scale: true, axisLabel: { formatter: function (v) { return v + "%"; } } },
+      yAxis: { type: "value", name: LB.old + " (%)", scale: true, axisLabel: { formatter: function (v) { return v + "%"; } } },
+      series: [{
+        type: "scatter", data: d.points,
+        symbolSize: function (v) { return 6 + 22 * Math.sqrt(v[2] / maxPop); },
+        itemStyle: { opacity: 0.75 }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.marital | tojson }};
+    const el = document.getElementById("chart-marital");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + "<br/>" + Number(p.value).toLocaleString("he-IL") + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0, textStyle: { fontFamily: "Rubik" } },
+      series: [{
+        type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"],
+        label: { fontFamily: "Rubik", formatter: "{b}\n{d}%" },
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+{%- if model.flags.family %}
+<script>
+  (function () {
+    const d = {{ model.charts.family | tojson }};
+    const el = document.getElementById("chart-family");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const names = d.names.slice().reverse();
+    const vals = d.values.slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { const p = ps[0]; return echarts.format.encodeHTML(names[p.dataIndex]) + "<br/>" + p.value + "% (ממוצע עירוני " + d.city + "%)"; } },
+      grid: { left: 8, right: narrow ? 40 : 56, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return v + "%"; } } },
+      yAxis: { type: "category", data: names, axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: [{
+        type: "bar", data: vals, barMaxWidth: 22,
+        label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return p.value + "%"; } },
+        markLine: { symbol: "none", silent: true, lineStyle: { color: "#0b3668", type: "dashed" },
+          label: { formatter: "ממוצע עירוני", fontFamily: "Rubik", color: "#0b3668" }, data: [{ xAxis: d.city }] }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    const d = {{ model.charts.origin | tojson }};
+    const el = document.getElementById("chart-origin");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { const p = ps[0]; return echarts.format.encodeHTML(d.names[p.dataIndex]) + "<br/>" + Number(p.value).toLocaleString("he-IL") + " עולים"; } },
+      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return Number(v).toLocaleString("he-IL"); } } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 48,
+        label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+{%- if model.flags.olim %}
+<script>
+  (function () {
+    const d = {{ model.charts.olim | tojson }};
+    const el = document.getElementById("chart-olim");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const names = d.names.slice().reverse();
+    const vals = d.values.slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { const p = ps[0]; return echarts.format.encodeHTML(names[p.dataIndex]) + "<br/>" + p.value + "% עולים (ממוצע עירוני " + d.city + "%)"; } },
+      grid: { left: 8, right: narrow ? 40 : 56, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return v + "%"; } } },
+      yAxis: { type: "category", data: names, axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: [{
+        type: "bar", data: vals, barMaxWidth: 22,
+        label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return p.value + "%"; } },
+        markLine: { symbol: "none", silent: true, lineStyle: { color: "#0b3668", type: "dashed" },
+          label: { formatter: "ממוצע עירוני", fontFamily: "Rubik", color: "#0b3668" }, data: [{ xAxis: d.city }] }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

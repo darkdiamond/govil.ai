@@ -1,0 +1,403 @@
+<h1>מספרי דרכים ארציות: רשימת הכבישים בישראל לפי מספר</h1>
+
+<style>
+  .road-table th, .road-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .road-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .road-table summary { cursor: pointer; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור כביש לפי מספר דרך ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל מקטעי המאגר: מספר הדרך, דרגת הדרך (מהירה, ראשית, אזורית, מקומית), סוג הקישור (דרך ממוספרת, רמפה, דרך שירות) ושם או קוד הרמפה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.roads.tone }} mb-1" dir="ltr">{{ model.kpis.roads.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.roads_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.km.tone }} mb-1" dir="ltr">{{ model.kpis.km.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.km_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ramps.tone }} mb-1" dir="ltr">{{ model.kpis.ramps.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ramps_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.changes.tone }} mb-1" dir="ltr">{{ model.kpis.changes.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.changes_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6" id="road-list">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת הכבישים הראשיים (מספר בן ספרה אחת או שתיים)</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.main_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="road-table w-full text-sm" id="table-main">
+      <caption class="sr-only">{{ model.labels.main_caption }}</caption>
+      <thead><tr><th scope="col">כביש</th><th scope="col">דרגה</th><th scope="col">אורך (ק"מ)</th><th scope="col">מקטעים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.main %}
+        <tr><th scope="row">כביש {{ r.num }}</th><td>{{ r.cls }}{% if r.mixed %} <span class="text-subtle">(דרגה משתנה)</span>{% endif %}</td><td dir="ltr" class="text-start">{{ r.km }}</td><td>{{ r.segs }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- if model.flags.regional %}
+  <details class="mt-4">
+    <summary class="text-sm font-semibold text-ink-deep cursor-pointer">{{ model.labels.reg_summary }}</summary>
+    <div class="overflow-x-auto">
+      <table class="road-table mt-2 w-full text-sm" id="table-regional">
+        <caption class="sr-only">{{ model.labels.reg_caption }}</caption>
+        <thead><tr><th scope="col">כביש</th><th scope="col">דרגה</th><th scope="col">אורך (ק"מ)</th><th scope="col">מקטעים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.regional %}
+          <tr><th scope="row">כביש {{ r.num }}</th><td>{{ r.cls }}{% if r.mixed %} <span class="text-subtle">(דרגה משתנה)</span>{% endif %}</td><td dir="ltr" class="text-start">{{ r.km }}</td><td>{{ r.segs }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endif %}
+  <p class="m-0 mt-3 text-sm text-subtle">{{ model.labels.local_note }}</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הכבישים הארוכים בישראל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <style>@media (max-width: 640px) { #chart-top { height: 540px; } }</style>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="road-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+      <thead><tr><th scope="col">כביש</th><th scope="col">דרגה</th><th scope="col">אורך (ק"מ)</th><th scope="col">מקטעים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.cls }}</td><td dir="ltr" class="text-start">{{ r.km }}</td><td>{{ r.segs }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דרגות הדרכים: מהירה, ראשית, אזורית, מקומית</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.class_note }}</p>
+    <div id="chart-class" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.class_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="road-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.class_caption }}</caption>
+        <thead><tr><th scope="col">דרגה</th><th scope="col">כבישים</th><th scope="col">ק"מ</th><th scope="col">שיעור מהאורך</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cls %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.roads }}</td><td>{{ r.km }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מה מספר הספרות אומר על הכביש</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.digit_note }}</p>
+    <div id="chart-digits" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.digit_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="road-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.digit_caption }}</caption>
+        <thead><tr><th scope="col">ספרות</th><th scope="col">כבישים</th><th scope="col">ק"מ</th><th scope="col">דרגה מובילה</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.digits %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.roads }}</td><td>{{ r.km }}</td><td>{{ r.lead }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה ארוך כביש טיפוסי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.len_note }}</p>
+    <div id="chart-len" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.len_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="road-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.len_caption }}</caption>
+        <thead><tr><th scope="col">אורך (ק"מ)</th><th scope="col">כבישים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.len %}
+          <tr><th scope="row" dir="ltr" class="text-start">{{ r.name }}</th><td>{{ r.roads }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דרכים, רמפות ודרכי שירות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.link_note }}</p>
+    <div id="chart-link" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.link_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="road-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.link_caption }}</caption>
+        <thead><tr><th scope="col">סוג קישור</th><th scope="col">מקטעים</th><th scope="col">ק"מ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.link %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.segs }}</td><td>{{ r.km }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מרחב המספרים: אילו מספרי דרך תפוסים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.space_note }}</p>
+  <div id="chart-space" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.space_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="road-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.space_caption }}</caption>
+        <thead><tr><th scope="col">ספרות</th>{% for x in model.tables.space_x %}<th scope="col">מתחיל ב-{{ x }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.space %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.changes %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שינויי מספור דרכים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.change_note }}</p>
+  <div id="chart-change" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.change_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="road-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.change_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">מקטעים</th><th scope="col">דרכים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.change %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.segs }}</td><td>{{ r.roads }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">שכבת מספרי דרכים ארציות מציגה מקטעי כביש שלהם הוקצה מספר דרך ארצית. דרכים אלה לרבות המספרים מופיעות במפת מספרי דרכים ארציות אשר נחתמה ע"י המפקח הארצי על התעבורה. מפות אלה זמינות באתר משרד התחבורה</p>
+  <p class="m-0 mt-3 text-sm text-subtle">{{ model.labels.method }}</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var el = document.getElementById("chart-top"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    var series = d.classes.map(function (k) {
+      return { type: "bar", name: k, stack: "road", barMaxWidth: 22,
+               data: d.km.map(function (v, i) { return d.cls[i] === k ? v : null; }),
+               label: { show: true, position: "right", formatter: function (p) { return p.value == null ? "" : p.value.toLocaleString("he-IL"); } } };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.cls[i]) + ": " + d.km[i].toLocaleString("he-IL") + " ק\"מ";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 48, top: 8, bottom: narrow ? 56 : 40, containLabel: true },
+      xAxis: { type: "value", name: narrow ? "" : "ק\"מ", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cls | tojson }};
+    var el = document.getElementById("chart-class"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: narrow ? { interval: 0, rotate: 30, fontSize: 10 } : { interval: 0 } },
+      yAxis: [{ type: "value", name: "ק\"מ" }, { type: "value", name: "כבישים", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "ק\"מ מקטעים", data: d.km },
+        { type: "bar", name: "כבישים", yAxisIndex: 1, data: d.roads }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.digits | tojson }};
+    var el = document.getElementById("chart-digits"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: narrow ? 32 : 24, bottom: narrow ? 64 : 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: narrow ? { interval: 0, rotate: 30, fontSize: 10 } : { interval: 0 } },
+      yAxis: { type: "value", name: "כבישים", minInterval: 1 },
+      series: d.series.map(function (s) { return { type: "bar", name: s.name, stack: "dig", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.len | tojson }};
+    var el = document.getElementById("chart-len");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(d.names[p[0].dataIndex]) + " ק\"מ: " + p[0].value.toLocaleString("he-IL") + " כבישים";
+      } },
+      grid: { left: 16, right: 24, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: el.clientWidth < 500 ? "" : "ק\"מ", axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "כבישים", minInterval: 1 },
+      series: [{ type: "bar", name: "כבישים", data: d.roads, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.link | tojson }};
+    var el = document.getElementById("chart-link"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 64 : undefined, overflow: narrow ? "break" : "none", fontSize: narrow ? 11 : 12 } },
+      yAxis: [{ type: "value", name: "מקטעים", minInterval: 1 }, { type: "value", name: "ק\"מ", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מקטעים", data: d.segs },
+        { type: "bar", name: "ק\"מ", yAxisIndex: 1, data: d.km }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.space | tojson }};
+    var c = echarts.init(document.getElementById("chart-space"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + ", מתחיל ב-" + d.x[p.value[0]] + ": " + p.value[2] + " כבישים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "ספרה ראשונה", splitArea: { show: true } },
+      yAxis: { type: "category", data: d.y, splitArea: { show: true } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 8,
+                   inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+                   textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: true, fontFamily: "Rubik", fontSize: 10 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-change");
+    if (!el) { return; }
+    var d = {{ model.charts.change | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", name: "מקטעים", data: d.segs, label: { show: true, position: "top" } },
+        { type: "bar", name: "דרכים", data: d.roads }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

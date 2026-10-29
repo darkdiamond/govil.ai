@@ -1,0 +1,215 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro table(t, caption, open) %}
+  <details class="mt-3"{% if open %} open{% endif %}>
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fuel-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for h in t.head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in t.rows %}
+          <tr><th scope="row">{{ r[0] }}</th>{% for c in r[1:] %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>מפת תחנות הדלק הציבוריות בישראל</h1>
+
+<style>
+  .fuel-table th, .fuel-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .fuel-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .fuel-table tbody th { font-weight: 500; }
+</style>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 mb-2 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">{{ model.labels.twin }} <a href="{{ model.links.twin }}" class="text-brand underline">למאגר תחנות הדלק</a></p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תחנת דלק לפי שם, חברה, כתובת או רשות ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: מספר תחנה, שם התחנה, חברת הדלק, כתובת, רשות מקומית וקואורדינטות.</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת תחנות הדלק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("map-pin", "פריסת התחנות מצפון לדרום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+  <div id="chart-lat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+{{ table(model.tables.lat, model.labels.lat_cap, false) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "צפון, מרכז ודרום לפי חברת דלק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.zone_note }}</p>
+  <div id="chart-zone" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.zone_aria }}"></div>
+{{ table(model.tables.zone, model.labels.zone_cap, false) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">כמה רחוקה התחנה הקרובה?</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nn_note }}</p>
+    <div id="chart-nn" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.nn_aria }}"></div>
+{{ table(model.tables.nn, model.labels.nn_cap, false) }}
+  </section>
+{%- if model.flags.iso %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">התחנות המבודדות ביותר</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.iso_note }}</p>
+    <div id="chart-iso" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.iso_aria }}"></div>
+{{ table(model.tables.iso, model.labels.iso_cap, false) }}
+  </section>
+{%- endif %}
+</div>
+{%- if model.flags.sus %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-warn">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מיקומים לבדיקה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sus_note }}</p>
+{{ table(model.tables.sus, model.labels.sus_cap, true) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">הקובץ כולל רשימת תחנות הדלק הציבוריות הכולל מס' תחנה, שם התחנה, חברת הדלק, כתובת התחנה ורשות המקומית בה התחנה נמצאת.
+בנוסף הרשימה כוללת מידע גאוגרפי של כל תחנה (נ.צ.) שבאמצעותו ניתן למפות את מיקום התחנה.</p>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "נ.צ. רוחב",
+    lngField: "נ.צ. אורך",
+    projection: "wgs84",
+    popupTitleField: "שם_תחנה",
+    popupFields: [
+      { field: "חברה", label: "חברה" },
+      { field: "כתובת", label: "כתובת" },
+      { field: "רשות_מקומית", label: "רשות מקומית" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.lat | tojson }};
+    var el = document.getElementById("chart-lat"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.zones[i]) + ": " + d.values[i] + " תחנות";
+      } },
+      grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11 } },
+      series: [{ type: "bar", name: "תחנות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.zone | tojson }};
+    var c = echarts.init(document.getElementById("chart-zone"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.names[i])];
+        d.series.forEach(function (s) {
+          out.push(echarts.format.encodeHTML(s.name) + ": " + s.count[i] + " (" + s.share[i] + "%)");
+        });
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "zone", name: s.name, data: s.share,
+          label: { show: true, formatter: function (x) { return x.value >= 8 ? Math.round(x.value) + "%" : ""; } } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.nn | tojson }};
+    var c = echarts.init(document.getElementById("chart-nn"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", minInterval: 1, name: "תחנות" },
+      series: [{ type: "bar", name: "תחנות", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- if model.flags.iso %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.iso | tojson }};
+    var c = echarts.init(document.getElementById("chart-iso"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i] + " ק״מ לתחנה הקרובה";
+      } },
+      grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "ק״מ" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11 } },
+      series: [{ type: "bar", name: "ק״מ לתחנה הקרובה", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,7 @@
+{
+  "main.product": "table-prices, chart-window, chart-hist-0, chart-margin, kpi:products, insight:window, insight:stale, insight:margin — product name; grouped into product families by keyword (unknown names fall into מוצרים נוספים)",
+  "main.update date": "table-prices, chart-hist-0, chart-years, chart-window, kpi:last, insight:latest_round, insight:gap, insight:declines, insight:stale — effective date of each price update",
+  "main.consumers price includes VAT": "table-prices, chart-window, chart-hist-0, chart-years, kpi:round, kpi:window, insight:latest_round, insight:window, insight:declines, insight:eilat — the maximum consumer price; drives every change figure",
+  "main.consumer price in Eilat": "table-prices, chart-margin, insight:eilat, insight:margin — consumer price without VAT (Eilat is VAT-exempt); the margin denominator side",
+  "main.retailer pricre without VAT": "table-prices, chart-margin, insight:margin — empty for about half the rows (all pre-2019 dairy/eggs/salt); used only where present"
+}

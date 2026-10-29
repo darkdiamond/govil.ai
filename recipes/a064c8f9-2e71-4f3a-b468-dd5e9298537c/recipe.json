@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a064c8f9-2e71-4f3a-b468-dd5e9298537c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-25T13:49:47.212531+00:00",
+    "rows": { "main": 1338 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d80b564a-91d1-4b4c-9fe3-c4023f754031",
+      "required_columns": ["city_name", "court_district", "מחוז"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

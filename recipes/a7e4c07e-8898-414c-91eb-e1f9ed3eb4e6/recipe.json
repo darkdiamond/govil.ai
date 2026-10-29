@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a7e4c07e-8898-414c-91eb-e1f9ed3eb4e6",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-14T09:59:00.977989+00:00",
+    "rows": { "main": 54 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "71020b9d-03d9-43c7-b4c9-dc69ac179b3a",
+      "required_columns": ["format", "branch", "address"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "aff3802e-53e8-40ad-a451-373683dbd4ad",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-03-03T10:15:27.356919+00:00",
+    "rows": { "main": 182 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "11a1072e-d441-4eed-9d3a-f80e6bdb8ca3",
+      "required_columns": ["name", "addr", "service", "office", "X", "Y"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,13 @@
+{
+  "houses.title": "directory — house name, the directory entry heading",
+  "houses.kupa": "chart-payers, kpi:no_agreement, insight:no_agreement, insight:hmos, directory — split on commas into payers; the 'אין עדיין הסכם' value is a flag",
+  "houses.city": "kpi:cities, insight:cities, directory",
+  "houses.district": "chart-district, directory — numeric code, used only to order districts",
+  "houses.district_name": "chart-district, insight:district, insight:youth, directory",
+  "houses.phone": "directory — facility phone(s), parsed out of the HTML links into tel: links",
+  "houses.email": "directory — facility email, parsed out of the HTML link into a mailto: link",
+  "houses.operator": "chart-operators, kpi:operators, insight:operators, directory",
+  "houses.comments": "chart-audience, insight:eating, directory — keyword-matched for gender, trauma, religious and Arabic-speaking audiences",
+  "houses.type": "chart-district, chart-types — numeric code, used only to order types",
+  "houses.type_name": "chart-district, chart-types, chart-audience, insight:types, insight:youth, insight:eating, directory"
+}

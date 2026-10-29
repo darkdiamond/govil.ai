@@ -1,0 +1,9 @@
+{
+  "main.station_number": "skip: station identifier (the ministry's licence number); used only as a sort tie-break, searchable in the explorer",
+  "main.station_name": "skip: station name, free text; read only to keep rows with an empty authority, searchable in the explorer",
+  "main.company": "chart-co, chart-tier, chart-auth, chart-locco, chart-ind, kpi:chains, kpi:ind, insight:leader, insight:chains, insight:road, insight:ind — spelling variants normalised",
+  "main.location": "chart-loc, chart-locco, insight:road — free-text location classified by keyword into location types",
+  "main.City": "insight:city — the locality when it differs from the authority (regional councils); filled for about 45% of rows",
+  "main.authority_name": "chart-auth, chart-dist, chart-ind, kpi:auth, insight:cities, insight:single, insight:ind, insight:city",
+  "main.telephone": "skip: contact numbers, some of them private mobiles; not put on the page (visible in the explorer)"
+}

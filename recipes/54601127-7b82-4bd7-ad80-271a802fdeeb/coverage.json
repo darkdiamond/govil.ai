@@ -1,0 +1,5 @@
+{
+  "main.Serial_num": "chart-len, chart-blocks, kpi:s1, kpi:s2, insight:series, insight:trend, insight:gaps, table:quality — letter series prefix + running number; drives the series split, the numbering blocks and the gap count; individual authorisation numbers are never printed",
+  "main.License": "chart-len, chart-blocks, kpi:lic, insight:length, insight:trend, insight:both, insight:quality, table:quality — only the digit count and repeats are used; licence numbers are identifiers and never printed",
+  "main.Name": "table:quality — used only for data-quality counts (one-word names, same licence under different names); names are searchable in the explorer, not listed on the page"
+}

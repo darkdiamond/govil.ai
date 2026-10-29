@@ -1,0 +1,7 @@
+{
+  "main.firsname": "insight:dups — first name; searchable in the explorer (lookup callout), part of the duplicate-row check; individual names are not listed on the page",
+  "main.lastname": "chart-surname, insight:surname, insight:dups — most common surnames (two or more records), distinct-surname count",
+  "main.job": "chart-job, chart-mix, kpi:total, kpi:roles, insight:leader, insight:ratio, insight:role_abroad — role (שוחט, בודק סכינים, בודק פנים, בודק חוץ, מנקר, ראש צוות)",
+  "main.phone": "chart-loc, chart-country, chart-region, chart-mix, kpi:abroad, kpi:countries, insight:abroad, insight:region, insight:contact — private contact number, never shown; only its dialing prefix is aggregated (country code / Israeli area code)",
+  "main.cellphone": "chart-loc, chart-country, chart-mix, kpi:abroad, insight:abroad, insight:contact — private contact number, never shown; only its international prefix is aggregated"
+}

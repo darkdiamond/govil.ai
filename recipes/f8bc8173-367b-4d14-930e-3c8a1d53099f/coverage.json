@@ -1,0 +1,8 @@
+{
+  "main.district": "chart-dist, kpi:dist, insight:district, insight:access, table:directory — English district code mapped to Hebrew; unknown codes pass through raw",
+  "main.City": "chart-auth, kpi:auth, insight:none_acc, insight:hotels, insight:spread, table:directory — local authority; the מוא\"ז prefix is expanded to מועצה אזורית",
+  "main.address": "table:directory, chart-venue — street address shown per station; also read for hotel and city-hall venue classification",
+  "main.location": "chart-venue, insight:venue, insight:hotels, table:directory — venue free text, classified by keyword into venue types",
+  "main.direction": "insight:directions, table:directory — optional floor/room/entrance directions; elevator mentions counted",
+  "main.access": "chart-dist, chart-auth, chart-venue, kpi:acc, insight:access, insight:none_acc, table:directory — physical accessibility yes/no"
+}

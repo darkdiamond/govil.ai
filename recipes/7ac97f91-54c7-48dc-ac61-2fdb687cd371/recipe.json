@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7ac97f91-54c7-48dc-ac61-2fdb687cd371",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-02-23T09:25:24.428137+00:00",
+    "rows": { "main": 352010, "heb": 32678 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": ["year_aliya", "month_aliya", "age", "gender", "erez_moza", "subcont", "yeshuv_klita", "machoz", "mikzoa"],
+      "concat": true,
+      "required_columns": ["year_aliya", "month_aliya", "age", "gender", "erez_moza", "subcont", "yeshuv_klita", "machoz", "mikzoa"]
+    },
+    {
+      "name": "heb",
+      "by_schema": ["שנת עלייה", "חודש עלייה", "גיל ביום העלייה", "מגדר", "ארץ מוצא", "תת יבשת", "ישוב", "מחוז", "מקצוע"],
+      "concat": true,
+      "required_columns": ["שנת עלייה", "חודש עלייה", "גיל ביום העלייה", "מגדר", "ארץ מוצא", "תת יבשת", "ישוב", "מחוז", "מקצוע"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

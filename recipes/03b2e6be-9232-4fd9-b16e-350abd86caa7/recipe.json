@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "03b2e6be-9232-4fd9-b16e-350abd86caa7",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-03-30T18:59:50.690192+00:00",
+    "rows": { "main": 198 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d7dacdf1-a16d-4272-90d0-52f152ae66b3",
+      "required_columns": [
+        "מספר מתקן",
+        "שם המטש",
+        "איכות מים",
+        "מפעיל",
+        "שנה",
+        "בעלים",
+        "סוג טיפול"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

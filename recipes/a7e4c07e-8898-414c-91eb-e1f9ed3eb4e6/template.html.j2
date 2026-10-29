@@ -1,0 +1,273 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>סניפי הסל של ישראל: רשימת הסניפים והכתובות</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור סניף של הסל של ישראל לפי עיר או כתובת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הסניף (היישוב), הכתובת ופורמט הסניף.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.show_directory %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "כתובות הסניפים לפי מחוז ויישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.directory_note }}</p>
+{%- for g in model.tables.directory %}
+  <h3 class="mt-4 mb-2 text-base font-semibold text-ink-deep">מחוז {{ g.district }} ({{ g.count | fmt_int }})</h3>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">סניפי הסל של ישראל במחוז {{ g.district }}: יישוב, פורמט וכתובת.</caption>
+      <thead>
+        <tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-2 pe-3">יישוב</th>
+          <th scope="col" class="text-start py-2 pe-3">פורמט</th>
+          <th scope="col" class="text-start py-2">כתובת</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- for c in g.cities %}
+{%- for b in c.branches %}
+        <tr class="border-b border-rule">
+          <th scope="row" class="text-start font-normal py-2 pe-3 whitespace-nowrap">{{ c.city }}</th>
+          <td class="py-2 pe-3 whitespace-nowrap">{{ b.format }}</td>
+          <td class="py-2">{{ b.address }}</td>
+        </tr>
+{%- endfor %}
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endfor %}
+</section>
+{%- else %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מספר הסניפים בכל יישוב") }}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+      <thead>
+        <tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-2 pe-3">יישוב</th>
+          <th scope="col" class="text-start py-2 pe-3">מחוז</th>
+          <th scope="col" class="text-start py-2">סניפים</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr class="border-b border-rule">
+          <th scope="row" class="text-start font-normal py-2 pe-3">{{ r.city }}</th>
+          <td class="py-2 pe-3">{{ r.district }}</td>
+          <td class="py-2">{{ r.n | fmt_int }}</td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_districts %}
+<section class="card p-5 mb-6">
+{{ head("database", "סניפים לפי מחוז ופורמט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  <div id="chart-districts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_aria }}</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="text-start">מחוז</th>
+            <th scope="col" class="text-start">סה״כ</th>
+{%- for f in model.charts.districts.formats %}
+            <th scope="col" class="text-start">{{ f }}</th>
+{%- endfor %}
+          </tr>
+        </thead>
+        <tbody>
+{%- for r in model.tables.districts %}
+          <tr>
+            <th scope="row" class="text-start font-normal">{{ r.name }}</th>
+            <td>{{ r.total | fmt_int }}</td>
+{%- for v in r.cells %}
+            <td>{{ v | fmt_int }}</td>
+{%- endfor %}
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.has_cities %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">היישובים עם הכי הרבה סניפים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+    <div id="chart-cities" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.city_aria }}</caption>
+        <thead><tr><th scope="col" class="text-start">יישוב</th><th scope="col" class="text-start">סניפים</th></tr></thead>
+        <tbody>
+{%- for c in model.charts.cities.names %}
+          <tr><th scope="row" class="text-start font-normal">{{ c }}</th><td>{{ model.charts.cities["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.has_formats %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">פורמטי הסניפים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.format_note }}</p>
+    <div id="chart-formats" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.fmt_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fmt_aria }}</caption>
+        <thead><tr><th scope="col" class="text-start">פורמט</th><th scope="col" class="text-start">סניפים</th><th scope="col" class="text-start">אחוז</th></tr></thead>
+        <tbody>
+{%- for f in model.charts.formats.names %}
+          <tr><th scope="row" class="text-start font-normal">{{ f }}</th><td>{{ model.charts.formats["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.formats.shares[loop.index0] | fmt_num }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">סניפי הסל של ישראל</p>
+</section>
+
+{%- if model.flags.has_districts %}
+<script>
+  (function () {
+    const d = {{ model.charts.districts | tojson }};
+    const el = document.getElementById("chart-districts");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const series = d.formats.map(function (f, i) {
+      return { name: f, type: "bar", stack: "all", barMaxWidth: 48, data: d.series[i] };
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let s = "מחוז " + echarts.format.encodeHTML(d.districts[i]) + ": " + d.totals[i].toLocaleString("he-IL") + " סניפים";
+          ps.forEach(function (p) {
+            if (p.value) s += "<br/>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL");
+          });
+          return s;
+        }
+      },
+      grid: { left: 8, right: 8, top: narrow ? 56 : 40, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.districts, axisLabel: { interval: 0, rotate: narrow ? 35 : 0, fontSize: narrow ? 11 : 12 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: series
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_cities %}
+<script>
+  (function () {
+    const d = {{ model.charts.cities | tojson }};
+    const el = document.getElementById("chart-cities");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const names = d.names.slice().reverse();
+    const values = d["values"].slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return echarts.format.encodeHTML(names[p.dataIndex]) + ": " + p.value.toLocaleString("he-IL") + " סניפים";
+        }
+      },
+      grid: { left: 8, right: 36, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: names, axisLabel: { width: 110, overflow: "truncate", ellipsis: "…" } },
+      series: [{ type: "bar", data: values, barMaxWidth: 22, label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_formats %}
+<script>
+  (function () {
+    const d = {{ model.charts.formats | tojson }};
+    const el = document.getElementById("chart-formats");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const data = d.names.map(function (n, i) { return { name: n, value: d["values"][i] }; });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " סניפים (" + p.percent + "%)";
+        }
+      },
+      legend: { bottom: 0, textStyle: { fontFamily: "Rubik" } },
+      series: [{
+        type: "pie",
+        radius: el.clientWidth < 500 ? ["30%", "52%"] : ["40%", "68%"],
+        center: ["50%", "45%"],
+        data: data,
+        label: { fontFamily: "Rubik", color: "#0c3058", fontSize: el.clientWidth < 500 ? 11 : 12, formatter: function (p) { return p.name + "\n" + p.value.toLocaleString("he-IL"); } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

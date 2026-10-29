@@ -1,0 +1,11 @@
+{
+  "main.מס_מינהל_הדלק": "skip: station identifier (Fuel Administration number); used only as a sort tie-break, searchable in the explorer",
+  "main.חברה": "map:map-main, chart-zone, chart-iso, insight:pairs, insight:cozone, insight:iso, table:sus — map popup and zone mix; spelling variants normalised",
+  "main.שם_תחנה": "map:map-main, chart-iso, insight:iso, insight:quality, table:sus — popup title, isolated-station and check lists",
+  "main.כתובת": "map:map-main — shown in the map popup (free text)",
+  "main.רשות_מקומית": "map:map-main, chart-lat, insight:zones, insight:quality, table:iso, table:sus — popup, band labels (leading authority), location-vs-authority check",
+  "main.X": "skip: ITM easting, duplicates the WGS84 longitude column used for the map and distances",
+  "main.Y": "skip: ITM northing, duplicates the WGS84 latitude column used for the map and distances",
+  "main.נ.צ. אורך": "map:map-main, chart-nn, chart-iso, kpi:median, kpi:mapped, insight:nn, insight:pairs — WGS84 longitude",
+  "main.נ.צ. רוחב": "map:map-main, chart-lat, chart-zone, chart-nn, kpi:south, kpi:median, kpi:mapped, insight:zones, insight:nn — WGS84 latitude; also drives the north/centre/south zones"
+}

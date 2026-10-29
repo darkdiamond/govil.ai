@@ -1,0 +1,5 @@
+{
+  "main.format": "chart-districts, chart-formats, table:directory, kpi:fmt_0, kpi:fmt_1, kpi:fmt_2, kpi:no_format, insight:formats, insight:hyper, insight:mehadrin, insight:multi — empty values shown as לא צוין",
+  "main.branch": "chart-districts, chart-cities, table:directory, kpi:cities, kpi:districts, insight:spread, insight:district, insight:multi — branch name is the city; cleaned and mapped to a CBS district",
+  "main.address": "table:directory — street address per branch, shown in the directory for lookup"
+}
