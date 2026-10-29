@@ -1,4 +1,4 @@
-<h1>כתב העת חברה ורווחה — מפתח מאמרים</h1>
+<h1>כתב העת חברה ורווחה: מפתח מאמרים</h1>
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -12,7 +12,7 @@
   <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
   <span>
     <span class="block font-semibold text-ink-deep">איתור מאמר בחברה ורווחה לפי שם, כותב או חוברת ←</span>
-    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המאמר, שמות הכותבים, החוברת, שנת הפרסום וסוג הפרסום — עם קישור לקובץ המאמר.</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המאמר, שמות הכותבים, החוברת, שנת הפרסום וסוג הפרסום, עם קישור לקובץ המאמר.</span>
   </span>
 </a>
 
@@ -234,7 +234,7 @@
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var y = p[0].axisValue, tot = 0, rows = [];
         p.forEach(function (s) { tot += s.value; if (s.value) { rows.push(s.marker + s.seriesName + ": " + s.value); } });
-        var head = y + (y === d.partial ? " (חלקית)" : "") + " — " + tot + " פריטים";
+        var head = y + (y === d.partial ? " (חלקית)" : "") + ": " + tot + " פריטים";
         return [head].concat(rows).join("<br>");
       } },
       legend: { bottom: 0, type: "scroll" },

@@ -125,7 +125,7 @@ def insight_standard(df, n, std, std_n):
         return None
     fams = df[df["fee"] == std]["family"].value_counts().sort_index().sort_values(
         ascending=False, kind="stable")
-    return (f"התעריף הנפוץ ביותר בלוח הוא {_ils(std)} — הוא חל על {_int(std_n)} "
+    return (f"התעריף הנפוץ ביותר בלוח הוא {_ils(std)}, והוא חל על {_int(std_n)} "
             f"מתוך {_int(n)} סעיפי האגרה ({_pct(share)}); התחום שבו הוא מופיע "
             f"הכי הרבה הוא {fams.index[0]} ({_int(fams.iloc[0])} סעיפים).")
 
@@ -157,7 +157,7 @@ def insight_top(df):
     ex = sorted(set(top[top["family"] == lead]["subject"]) - {""})[:3]
     tail = f", למשל {', '.join(ex)}" if ex else ""
     return (f"האגרה הגבוהה ביותר בלוח היא {_ils(mx)}, והיא חלה על "
-            f"{_int(len(top))} סעיפים — {who} בתחום {lead}{tail}.")
+            f"{_int(len(top))} סעיפים, {who} בתחום {lead}{tail}.")
 
 
 def insight_copies(df):
@@ -193,7 +193,7 @@ def insight_open_contrast(df):
     if lo <= 0 or hi / lo < 1.2:
         if hi > 0 and lo == 0:
             return (f"אגרת פתיחת תיק בתחום {hi_f} עומדת בחציון על {_ils(hi)}, "
-                    f"ואילו בתחום {lo_f} החציון הוא 0 ₪ — לפחות מחצית מסעיפי פתיחת התיק בו פטורים מאגרה.")
+                    f"ואילו בתחום {lo_f} החציון הוא 0 ₪: לפחות מחצית מסעיפי פתיחת התיק בו פטורים מאגרה.")
         return None
     return (f"אגרת פתיחת תיק משתנה לפי תחום: בתחום {hi_f} החציון הוא "
             f"{_ils(hi)}, פי {hi / lo:.1f} מהחציון בתחום {lo_f} ({_ils(lo)}) "
@@ -212,7 +212,7 @@ def insight_spread(df):
     if r["rng"] <= 0:
         return None
     return (f"בנושא \"{s}\" פער האגרות הגדול ביותר: {_int(r['size'])} סעיפים, "
-            f"מ-{_ils(r['min'])} ועד {_ils(r['max'])} — כדאי לבדוק איזו בקשה "
+            f"מ-{_ils(r['min'])} ועד {_ils(r['max'])}, ולכן כדאי לבדוק איזו בקשה "
             "בדיוק מגישים.")
 
 
@@ -400,7 +400,7 @@ def compute(frames):
             "lede": summary,
             "items_kpi": "סעיפי אגרה בלוח",
             "subjects_kpi": "נושאי תביעה",
-            "standard_kpi": f"התעריף הנפוץ (₪) — {_int(std_n)} סעיפים",
+            "standard_kpi": f"התעריף הנפוץ (₪), {_int(std_n)} סעיפים",
             "max_kpi": "האגרה הגבוהה ביותר (₪)",
             "free_kpi": f"סעיפים ללא אגרה ({_pct(n_free / n) if n else '0%'})",
             "median_kpi": "חציון האגרות בתשלום (₪)",
@@ -426,7 +426,7 @@ def compute(frames):
                          if mix_lead else "כמה מסעיפי כל תחום פטורים, זולים, שווים או יקרים מהתעריף הנפוץ."),
             "mix_aria": (f"תרשים עמודות מוערמות: חלוקת סעיפי האגרה ב-{_int(len(fams))} "
                          f"תחומים לפי רמת האגרה ביחס לתעריף הנפוץ ({_ils(std or 0)})."),
-            "kinds_note": (f"\"{OPEN_FEE}\" היא סוג האגרה הנפוץ ביותר — {_int(open_n)} "
+            "kinds_note": (f"\"{OPEN_FEE}\" היא סוג האגרה הנפוץ ביותר: {_int(open_n)} "
                            f"מתוך {_int(n)} סעיפים ({_pct(open_n / n) if n else '0%'}). "
                            + (f"מוצגים {_int(len(top_k))} סוגי האגרה הנפוצים; שאר "
                               f"{_int(n_rest_kinds)} הסוגים מקובצים ב\"אגרות אחרות\"."

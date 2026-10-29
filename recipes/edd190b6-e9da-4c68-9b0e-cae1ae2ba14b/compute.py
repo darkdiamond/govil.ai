@@ -199,7 +199,7 @@ def compute(frames):
         band_stats.append({"name": b, "n": len(sub), "inter": int((sub["type"] == "מחלף").sum()),
                            "built": len(built)})
     tbl_band = [{"name": s["name"], "count": _fmt(s["n"]), "inter": _fmt(s["inter"]),
-                 "share": _pct(s["inter"] / s["built"], 0) if s["built"] else "—"} for s in band_stats]
+                 "share": _pct(s["inter"] / s["built"], 0) if s["built"] else "–"} for s in band_stats]
 
     # ---- nearest named neighbour
     xy = geo[["x", "y"]].to_numpy()
@@ -298,7 +298,7 @@ def compute(frames):
         lo = sorted(big, key=lambda r: (sh[r], -int(road_tot[r]), int(r)))[0]
         if sh[hi] - sh[lo] < 0.3:
             return None
-        return (f"בין הכבישים עם עשרה צמתים בעלי שם או יותר, כביש {hi} מופרד מפלסית ברובו — {_pct(sh[hi], 0)} מהנקודות בו מחלפים "
+        return (f"בין הכבישים עם עשרה צמתים בעלי שם או יותר, כביש {hi} מופרד מפלסית ברובו: {_pct(sh[hi], 0)} מהנקודות בו מחלפים "
                 f"({_fmt(road_inter.get(hi, 0))} מתוך {_fmt(road_tot[hi])}), "
                 + (f"ואילו בכביש {lo} אין אף מחלף בין {_fmt(road_tot[lo])} הנקודות." if sh[lo] == 0 else
                    f"ואילו בכביש {lo} רק {_pct(sh[lo], 0)} ({_fmt(road_inter.get(lo, 0))} מתוך {_fmt(road_tot[lo])})."))
@@ -351,7 +351,7 @@ def compute(frames):
             return None
         s = f"{_fmt(len(dup_names))} שמות מופיעים ביותר מנקודה אחת"
         if dup_close:
-            s += f"; {_fmt(len(dup_close))} מהם הם זוגות במרחק של עד {NEAR_PAIR_M // 1000} ק״מ — צמתים מפוצלים או שתי זרועות של אותו מחלף"
+            s += f"; {_fmt(len(dup_close))} מהם הם זוגות במרחק של עד {NEAR_PAIR_M // 1000} ק״מ (צמתים מפוצלים או שתי זרועות של אותו מחלף)"
         if dup_far:
             names = ", ".join(n for n, _ in sorted(dup_far, key=lambda t: (-t[1], t[0]))[:3])
             if len(dup_far) == 1:
@@ -363,8 +363,8 @@ def compute(frames):
     def ins_street():
         if n_street == 0 or n_street / total < 0.05:
             return None
-        return (f"ב־{_fmt(n_street)} נקודות ({_pct(n_street / total)}) הכביש הבין־עירוני פוגש רחוב עירוני בעל שם ולא כביש ממוספר — "
-                f"בדרך כלל כניסה ליישוב.")
+        return (f"ב־{_fmt(n_street)} נקודות ({_pct(n_street / total)}) הכביש הבין־עירוני פוגש רחוב עירוני בעל שם ולא כביש ממוספר, "
+                f"בדרך כלל בכניסה ליישוב.")
 
     add("mix", ins_mix())
     add("top_road", ins_top_road())
@@ -395,7 +395,7 @@ def compute(frames):
 
     ys, ye = (years[0], years[-1]) if years else (None, None)
     top_r = roads_rank[0] if roads_rank else None
-    summary = (f"צמתים ומחלפים בישראל: איתור צומת או מחלף לפי שם או מספר כביש, על מפה — "
+    summary = (f"צמתים ומחלפים בישראל: איתור צומת או מחלף לפי שם או מספר כביש, על מפה. "
                f"{_fmt(total)} נקודות בעלות שם, מהן {_fmt(n_inter)} מחלפים, על {_fmt(n_roads)} כבישים.")
     lede = (f"רשימת {_fmt(total)} הצמתים והמחלפים בכבישים הבין־עירוניים בארץ ששמם מופיע על שלט ההכוונה המקדים, "
                f"לפי פרסום \"שמות יעדים בשילוט הדרכה\" של משרד התחבורה: {_fmt(n_plain + n_split)} צמתים במפלס, "
@@ -455,7 +455,7 @@ def compute(frames):
             "suggested_tags": ["שילוט", "צמתים", "מחלפים", "דרכים", "כבישים", "תחבורה"],
             "related_ids": ["09cbcff5-64fc-429b-96e5-881cbcab96af", "3bf88891-4cb3-4288-81ef-bad6a9f8d625",
                             "263e3397-aac1-4f8a-b1e3-caff7eabcbff"],
-            "spatial_coverage": "ארצי — דרכים בין־עירוניות",
+            "spatial_coverage": "ארצי: דרכים בין־עירוניות",
         },
         "kpis": kpis,
         "kpi_order": ["total", "inter", "future", "roads", "trilingual"],

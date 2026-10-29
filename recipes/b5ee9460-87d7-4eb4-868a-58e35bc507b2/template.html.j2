@@ -68,11 +68,11 @@
 {%- if a.rows %}
       <div class="overflow-x-auto mt-2">
         <table class="poll-table w-full text-sm">
-          <caption class="sr-only">{{ model.labels.dir_caption }} — {{ a.name }}</caption>
+          <caption class="sr-only">{{ model.labels.dir_caption }}: {{ a.name }}</caption>
           <thead><tr><th scope="col">יישוב</th><th scope="col">כתובת</th><th scope="col">מקום הקלפי</th><th scope="col">מספר קלפי</th></tr></thead>
           <tbody>
 {%- for r in a.rows %}
-            <tr><th scope="row">{{ r.locality }}</th><td>{% if r.address %}{{ r.address }}{% else %}<span class="text-subtle">—</span>{% endif %}</td><td>{{ r.venue }}</td><td dir="ltr" class="text-start">{{ r.ballot }}</td></tr>
+            <tr><th scope="row">{{ r.locality }}</th><td>{% if r.address %}{{ r.address }}{% else %}<span class="text-subtle">–</span>{% endif %}</td><td>{{ r.venue }}</td><td dir="ltr" class="text-start">{{ r.ballot }}</td></tr>
 {%- endfor %}
           </tbody>
         </table>

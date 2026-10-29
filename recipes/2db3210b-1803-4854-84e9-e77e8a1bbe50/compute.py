@@ -134,7 +134,7 @@ def insight_base(base, prev):
             s += f", ללא שינוי לעומת השיעור הקודם{when}"
         else:
             word = "עלייה" if diff > 0 else "ירידה"
-            s += (f" — {word} של {_rate(abs(diff))} נקודות אחוז לעומת "
+            s += (f", {word} של {_rate(abs(diff))} נקודות אחוז לעומת "
                   f"{_rate(prev['value'])}%{when}")
     return s + "."
 
@@ -150,7 +150,7 @@ def insight_late(base, cur):
                                              kind="stable")
     if late.empty:
         return None
-    parts = [f"{r['name']} ({_rate(r['value'])}%) — גבוהה ב-{_rate(r['gap'])} נקודות אחוז"
+    parts = [f"{r['name']} ({_rate(r['value'])}%), גבוהה ב-{_rate(r['gap'])} נקודות אחוז"
              for _, r in late.head(3).iterrows()]
     return ("ריביות הפיגורים והאיחורים גבוהות בהרבה מריבית החשב הכללי "
             f"({_rate(base['value'])}%): " + "; ".join(parts) + ".")
@@ -168,7 +168,7 @@ def insight_real_nominal(shekel, linked, infl):
         return s + "."
     if infl is not None:
         if abs(gap - infl["value"]) <= INFL_TOL:
-            s += (f" — כמעט בדיוק ממוצע ציפיות האינפלציה ({_rate(infl['value'])}%)")
+            s += (f", כמעט בדיוק ממוצע ציפיות האינפלציה ({_rate(infl['value'])}%)")
         else:
             s += f"; ממוצע ציפיות האינפלציה עומד על {_rate(infl['value'])}%"
     return s + "."
@@ -293,15 +293,15 @@ def compute(frames):
         rows.append({
             "name": r["name"],
             "rate": f"{_rate(r['value'])}%",
-            "date": _date(r["date"]) if pd.notna(r["date"]) else "—",
+            "date": _date(r["date"]) if pd.notna(r["date"]) else "–",
             "gap": (_pp(r["value"] - base_v) if base_v is not None
-                    and r["name"] != base["name"] else "—"),
+                    and r["name"] != base["name"] else "–"),
             "is_base": bool(base is not None and r["name"] == base["name"]),
         })
     for _, r in cur[cur["value"].isna()].sort_values("name", kind="stable").iterrows():
         rows.append({"name": r["name"], "rate": "לא פורסם",
-                     "date": _date(r["date"]) if pd.notna(r["date"]) else "—",
-                     "gap": "—", "is_base": False})
+                     "date": _date(r["date"]) if pd.notna(r["date"]) else "–",
+                     "gap": "–", "is_base": False})
 
     # ---- chart: published rates, ascending so the highest sits on top (horizontal bars)
     asc = pub.iloc[::-1]

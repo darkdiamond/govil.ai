@@ -240,7 +240,7 @@ def insight_gaps(gap_years):
         return None
     ys = ", ".join(str(y) for y in gap_years)
     if len(gap_years) == 1:
-        return f"במאגר אין פריטים משנת {ys} — שנה ללא חוברות ברצף ההוצאה לאור."
+        return f"במאגר אין פריטים משנת {ys}: שנה ללא חוברות ברצף ההוצאה לאור."
     return f"במאגר אין פריטים מ-{_int(len(gap_years))} שנים ברצף ההוצאה לאור: {ys}."
 
 

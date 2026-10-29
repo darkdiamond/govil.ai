@@ -165,10 +165,10 @@ def insight_ytd(t):
     ch = (cur - prev) / prev
     win = t["ytd_window"]
     if abs(ch) < STABLE:
-        return (f"בקשות לאומיות ב-{t['last_year']} ({win}): {_int(cur)} — כמעט ללא שינוי "
+        return (f"בקשות לאומיות ב-{t['last_year']} ({win}): {_int(cur)}, כמעט ללא שינוי "
                 f"לעומת אותה תקופה ב-{t['last_year'] - 1} ({_int(prev)}).")
     word = "עלייה" if ch > 0 else "ירידה"
-    return (f"בקשות לאומיות ב-{t['last_year']} ({win}): {_int(cur)} — {word} של {_pct(abs(ch))} "
+    return (f"בקשות לאומיות ב-{t['last_year']} ({win}): {_int(cur)}, {word} של {_pct(abs(ch))} "
             f"לעומת אותה תקופה ב-{t['last_year'] - 1} ({_int(prev)}). ייעודים בינלאומיים "
             f"נקלטים במאגר באיחור, ולכן אינם נכללים בהשוואה.")
 
@@ -184,7 +184,7 @@ def insight_peak(yearly, full_year):
         return f"{full_year} הייתה שנת שיא בהגשת בקשות לסימני מסחר, עם {_int(last)} בקשות."
     gap = (peak - last) / peak
     return (f"שנת השיא בהגשת בקשות הייתה {peak_y} עם {_int(peak)} בקשות; ב-{full_year}, "
-            f"השנה המלאה האחרונה, הוגשו {_int(last)} — {_pct(gap)} מתחת לשיא.")
+            f"השנה המלאה האחרונה, הוגשו {_int(last)}, {_pct(gap)} מתחת לשיא.")
 
 
 def insight_intl(route_share, intl_counts, full_year):
@@ -283,7 +283,7 @@ def insight_survival(fate, full_year):
     reg = row.get(G_REG, 0) / tot
     closed = row.get(G_CLOSED, 0) / tot
     return (f"מבין {_int(tot)} הבקשות שהוגשו ב-{y}, {_pct(reg)} עדיין רשומות ובתוקף היום, "
-            f"ו-{_pct(closed)} נסגרו — נדחו, נזנחו או לא חודשו.")
+            f"ו-{_pct(closed)} נסגרו (נדחו, נזנחו או לא חודשו).")
 
 
 def insight_expiry(exp_counts, as_of_year, registered):
@@ -303,7 +303,7 @@ def insight_special(kind_counts):
     if cert + coll < 20:
         return None
     return (f"לצד סימני המסחר והשירות הרגילים כולל המאגר {_int(cert)} סימני אישור ו-{_int(coll)} "
-            f"סימנים קיבוציים — סימנים המעידים על תקן או על חברות בארגון ולא על יצרן מסוים.")
+            f"סימנים קיבוציים: סימנים המעידים על תקן או על חברות בארגון ולא על יצרן מסוים.")
 
 
 # ── compute ──────────────────────────────────────────────────────────────
@@ -590,7 +590,7 @@ def compute(frames):
             "intl": {"value": round(intl_last * 100, 1), "display": f"{intl_last * 100:.1f}%",
                      "tone": "brand"},
             "lag": {"value": round(lag_last, 1) if lag_last is not None else None,
-                    "display": f"{lag_last:.1f}" if lag_last is not None else "—",
+                    "display": f"{lag_last:.1f}" if lag_last is not None else "–",
                     "tone": lag_tone},
             "owners": {"value": n_owners, "display": _kpi_num(n_owners), "tone": "brand"},
             "customs": {"value": n_customs, "display": _kpi_num(n_customs), "tone": "brand"},
@@ -625,7 +625,7 @@ def compute(frames):
             "yearly_aria": (f"תרשים עמודות מוערמות: בקשות לסימני מסחר לפי שנת הגשה ומסלול, "
                             f"{first_year}-{as_of_year}. שיא ב-{peak_y} עם {_int(yearly.loc[peak_y])} בקשות."),
             "status_note": (f"{_int(registered)} סימנים ({_pct(registered / n_all)}) רשומים ובתוקף; "
-                            f"{_int(int(g_counts.get(G_CLOSED, 0)))} תיקים סגורים — סימנים שפקעו, "
+                            f"{_int(int(g_counts.get(G_CLOSED, 0)))} תיקים סגורים: סימנים שפקעו, "
                             f"נדחו או נזנחו. {_int(accepted)} בקשות קובלו ומפורסמות להתנגדות."),
             "status_aria": (f"תרשים טבעת: מצב {_int(n_all)} התיקים במאגר. "
                             f"{_pct(registered / n_all)} רשומים ובתוקף."),
@@ -641,7 +641,7 @@ def compute(frames):
             "classes_aria": (f"תרשים עמודות אופקי: {len(top_cls)} סוגי ניצה הנפוצים בבקשות. "
                              f"המוביל: {classes_chart['names'][0] if top_cls.size else ''}."),
             "heat_note": (f"אחוז הבקשות בכל תקופה בת {HEAT_PERIOD} שנים שמייעדות כל אחד מ-"
-                          f"{len(heat_classes)} הסוגים הנפוצים — כך נראה השינוי בתמהיל התחומים."),
+                          f"{len(heat_classes)} הסוגים הנפוצים. כך נראה השינוי בתמהיל התחומים."),
             "heat_aria": (f"מפת חום: אחוז הבקשות לפי סוג ניצה ותקופה, {periods[0][0]}-{periods[-1][1]}."),
             "owners_note": (f"{len(top_own)} בעלי הסימנים עם מספר הבקשות הגדול ביותר בכל השנים, "
                             f"ומתוכן כמה רשומות כיום. במאגר {_int(n_owners)} בעלי סימנים שונים "
@@ -662,7 +662,7 @@ def compute(frames):
             "lag_aria": (f"תרשים קו: משך הזמן החציוני מהגשה לרישום לפי שנת רישום. "
                          f"ב-{lag_last_year}: {lag_last:.1f} חודשים." if lag_last_year else
                          "תרשים קו: משך הזמן מהגשה לרישום."),
-            "expiry_note": (f"סימנים רשומים לפי שנת תום התוקף הנוכחית — המועד שבו יש לחדש אותם. "
+            "expiry_note": (f"סימנים רשומים לפי שנת תום התוקף הנוכחית, המועד שבו יש לחדש אותם. "
                             f"{_int(reg_no_future_exp)} סימנים רשומים ללא מועד תוקף עתידי במאגר "
                             f"אינם מוצגים."),
             "expiry_aria": (f"תרשים עמודות: סימנים רשומים לפי שנת תום תוקף, "
@@ -678,7 +678,7 @@ def compute(frames):
             "vienna_aria": (f"תרשים עמודות אופקי: {len(vi_counts)} קטגוריות וינה הנפוצות ברכיבים "
                             f"הציוריים של סימנים."),
             "extras": (f"במאגר {_int(n_licensed)} סימנים עם בעל רשות (רישיון שימוש) רשום, "
-                       f"ו-{_int(n_customs)} סימנים רשומים שמונה להם מייצג לעניין אכיפה במכס — "
+                       f"ו-{_int(n_customs)} סימנים רשומים שמונה להם מייצג לעניין אכיפה במכס: "
                        f"מנגנון המאפשר לעכב בנמל יבוא של מוצרים מזויפים."),
         },
     }

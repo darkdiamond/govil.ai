@@ -139,7 +139,7 @@ def _prepare(df):
 def _row(r):
     return {
         "name": r["name"],
-        "number": r["number"] or "—",
+        "number": r["number"] or "–",
         "deadline": _date(r["deadline"]),
         "time": f"{r['deadline'].hour:02d}:{r['deadline'].minute:02d}",
         "ptype": r["ptype"],
@@ -181,10 +181,10 @@ def insight_ytd(df, ref):
     ch = (a - b) / b
     period = f"מתחילת {y} ועד {_date(ref)}"
     if abs(ch) < 0.05:
-        return (f"{period} חלף מועד ההגשה של {_int(a)} הליכים — "
+        return (f"{period} חלף מועד ההגשה של {_int(a)} הליכים, "
                 f"כמעט כמו בתקופה המקבילה ב-{y - 1} ({_int(b)}).")
     word = "יותר" if ch > 0 else "פחות"
-    return (f"{period} חלף מועד ההגשה של {_int(a)} הליכים — {_pct(abs(ch), 0)} {word} "
+    return (f"{period} חלף מועד ההגשה של {_int(a)} הליכים, {_pct(abs(ch), 0)} {word} "
             f"מאשר בתקופה המקבילה ב-{y - 1} ({_int(b)}).")
 
 
@@ -197,7 +197,7 @@ def insight_peak_year(yearly, partial_year):
     top_y = int(full.sort_index().idxmax())
     low_y = int(full.sort_index().idxmin())
     return (f"השנה העמוסה ביותר הייתה {top_y} עם {_int(full[top_y])} הליכים; "
-            f"השקטה ביותר — {low_y} עם {_int(full[low_y])} (ללא השנה הראשונה במאגר והשנה הנוכחית).")
+            f"השקטה ביותר הייתה {low_y}, עם {_int(full[low_y])} (ללא השנה הראשונה במאגר והשנה הנוכחית).")
 
 
 def insight_types(type_counts, total):
@@ -212,7 +212,7 @@ def insight_types(type_counts, total):
     if v / total < 0.05:
         return None
     return (f"לא כל רשומה היא מכרז פומבי רגיל: {_pct(reg / total, 0)} הם מכרזים והליכים רגילים, "
-            f"והסוג החריג הנפוץ ביותר הוא „{name}” — {_int(v)} רשומות ({_pct(v / total)}). "
+            f"והסוג החריג הנפוץ ביותר הוא „{name}”: {_int(v)} רשומות ({_pct(v / total)}). "
             f"(סיווג לפי מילות מפתח בשם ובמספר ההליך)")
 
 
@@ -252,7 +252,7 @@ def insight_winner(closed, ref):
         return None
     share = old["has_winner"].mean()
     return (f"זוכה מפורסם רק ב-{_pct(share, 0)} מההליכים שמועד ההגשה שלהם חלף לפני יותר מחצי שנה "
-            f"({_int(old['has_winner'].sum())} מתוך {_int(len(old))}) — בשאר שדה הזוכה ריק.")
+            f"({_int(old['has_winner'].sum())} מתוך {_int(len(old))}). בשאר ההליכים שדה הזוכה ריק.")
 
 
 def insight_top_winner(winners):
@@ -298,7 +298,7 @@ def insight_numbering(df, ref):
     if mx < n * 1.25:
         return None
     return (f"מספרי ההליכים של {y} מגיעים עד {_int(mx)}, אך במאגר מופיעים רק {_int(n)} מספרים שונים "
-            f"מאותה שנה — לא כל ההליכים הממוספרים מפורסמים ברשימה זו.")
+            f"מאותה שנה, כלומר לא כל ההליכים הממוספרים מפורסמים ברשימה זו.")
 
 
 # ── compute ──────────────────────────────────────────────────────────────
@@ -402,7 +402,7 @@ def compute(frames):
     kpis = {
         "open": {"value": n_open, "display": _int(n_open), "tone": "ok" if n_open else "warn"},
         "next": {"value": _date(next_dl) if n_open else None,
-                 "display": f"{next_dl.day}.{next_dl.month}" if n_open else "—",
+                 "display": f"{next_dl.day}.{next_dl.month}" if n_open else "–",
                  "tone": "info"},
         "total": {"value": total, "display": _int(total), "tone": "brand"},
         "ytd": {"value": ytd_cur, "display": _int(ytd_cur), "tone": "brand"},
@@ -445,7 +445,7 @@ def compute(frames):
     labels = {
         "ref": _date(ref),
         "lede": (f"מכרזים בעיר באר שבע: רשימת המכרזים, הקולות הקוראים, הודעות ההתקשרות עם ספק יחיד "
-                 f"וההליכים האחרים שמפרסמת עיריית באר שבע — {_int(total)} הליכים עם מועדי הגשה "
+                 f"וההליכים האחרים שמפרסמת עיריית באר שבע: {_int(total)} הליכים עם מועדי הגשה "
                  f"בשנים {y_min}-{y_max}. נכון לעדכון האחרון במאגר ({_date(ref)}) "
                  + (f"פתוחים להגשה {_int(n_open)} הליכים, והמועד הקרוב ביותר הוא {_date(next_dl)}."
                     if n_open else "אין הליכים פתוחים להגשה.")),
@@ -457,7 +457,7 @@ def compute(frames):
                         f"לפני {_date(ref)}, מהחדש לישן."),
         "yearly_lede": (f"מספר ההליכים לפי שנת מועד ההגשה, {y_min}-{y_max}, מפולח לפי סוג ההליך. "
                         f"השיא ב-{top_year} עם {_int(yearly[top_year])} הליכים; "
-                        f"{partial_year} חלקית — עד {_date(ref)} ובתוספת הליכים שמועדם עתידי."),
+                        f"{partial_year} חלקית (עד {_date(ref)} ובתוספת הליכים שמועדם עתידי)."),
         "yearly_aria": (f"גרף עמודות מוערמות: הליכים לפי שנת מועד ההגשה וסוג ההליך, {y_min}-{y_max}. "
                         f"השיא ב-{top_year} עם {_int(yearly[top_year])} הליכים."),
         "topics_lede": (f"סיווג ההליכים לתחומים לפי מילות מפתח בשם ההליך (הליך משויך לתחום הראשון שמתאים). "
@@ -477,7 +477,7 @@ def compute(frames):
                       f"לפני מועד ההגשה (תאריך העדכון אינו בהכרח תאריך הפרסום). החציון: {_int(lead_median)} ימים."),
         "lead_aria": f"גרף עמודות: התפלגות הזמן מעדכון ההליך ועד מועד ההגשה. החציון {_int(lead_median)} ימים.",
         "winner_lede": (f"בכמה מההליכים שנסגרו מופיע שם זוכה, לפי שנת מועד ההגשה. "
-                        f"בהליכים שנסגרו לפני יותר מחצי שנה — {_pct(win_share, 0)}."),
+                        f"בהליכים שנסגרו לפני יותר מחצי שנה: {_pct(win_share, 0)}."),
         "winner_aria": (f"גרף עמודות מוערמות: הליכים שנסגרו עם זוכה מפורסם ובלעדיו לפי שנה, {y_min}-{y_max}."),
         "winners_lede": (f"הזוכים שמופיעים ביותר מהליך אחד (שם הזוכה כפי שנרשם, ללא איחוד כתיב). "
                          f"במאגר {_int(len(wcount))} שמות זוכים שונים."),
@@ -493,7 +493,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"מכרזי עיריית באר שבע: {_int(n_open)} מכרזים פתוחים להגשה (נכון ל-{_date(ref)}), "
-                           f"מועדי הגשה, זוכים ותשלום מקוון — {_int(total)} הליכים מאז {y_min}."),
+                           f"מועדי הגשה, זוכים ותשלום מקוון. {_int(total)} הליכים מאז {y_min}."),
             "dataset_kind": "registry",
             "suggested_tags": ["מכרזים", "באר שבע", "רכש ציבורי", "רשויות מקומיות", "שקיפות"],
             "related_ids": ["54b65747-904e-42e1-9316-0575ebbc1216",

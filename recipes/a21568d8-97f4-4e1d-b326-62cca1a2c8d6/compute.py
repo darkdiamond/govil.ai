@@ -171,7 +171,7 @@ def insight_peak_decade(decades, max_year):
     total = int(decades.sum())
     partial = ""
     if max_year is not None and d == (max_year // 10) * 10:
-        partial = " — אף שהעשור טרם הסתיים"
+        partial = ", אף שהעשור טרם הסתיים"
     return (f"העשור שבו נחקקו או הותקנו הכי הרבה פריטים שבתוקף במאגר הוא שנות ה-{d} "
             f"({d}-{d + 9}): {_int(v)} פריטים, {_pct(v / total)} מהפריטים ששנתם ידועה{partial}.")
 
@@ -197,7 +197,7 @@ def insight_stale(upd_years):
     if share < 0.1:
         return None
     return (f"מתוך {_int(len(upd_years))} פריטים שיש להם תאריך עדכון אחרון, {_int(old)} "
-            f"({_pct(share)}) לא עודכנו מאז {cutoff} או קודם לכן — עשור ויותר לפני "
+            f"({_pct(share)}) לא עודכנו מאז {cutoff} או קודם לכן, עשור ויותר לפני "
             f"העדכון האחרון שנרשם במאגר ({ref}).")
 
 
@@ -399,8 +399,8 @@ def compute(frames):
     lead_off_v = off_rows[0]["total"] if off_rows else 0
     lead_tag = tag_x[0] if tag_x else ""
     lead_auth = auth_x[0] if auth_x else ""
-    span = f"{y_min}-{y_max}" if n_year else "—"
-    span_kpi = f"{y_min}–{y_max}" if n_year else "—"
+    span = f"{y_min}-{y_max}" if n_year else "–"
+    span_kpi = f"{y_min}–{y_max}" if n_year else "–"
 
     summary = (f"מאגר האסדרה האחוד מונה {_int(total)} פריטי חקיקה: {_int(n_primary)} חוקים "
                f"(חקיקה ראשית) ו-{_int(n_secondary)} פריטי חקיקה משנית מ-{_int(n_offices)} "

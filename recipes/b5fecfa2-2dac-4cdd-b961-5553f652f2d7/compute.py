@@ -172,7 +172,7 @@ def _norm(t):
 
 
 def level_label(lv):
-    return f"רמה {lv} — {LEVEL_NAME[lv]}" if lv in LEVEL_NAME else NA
+    return f"רמה {lv}: {LEVEL_NAME[lv]}" if lv in LEVEL_NAME else NA
 
 
 def compute(frames):
@@ -211,8 +211,8 @@ def compute(frames):
     level_cats = [lv for lv in LEVELS + [0] if cnt[lv] or lv != 0]
     levels_chart = {"cats": [level_label(lv) for lv in level_cats],
                     "data": [{"value": cnt[lv], "color": LEVEL_COLOR[lv]} for lv in level_cats]}
-    levels_table = [{"level": level_label(lv), "advice": LEVEL_ADVICE.get(lv, "—"), "n": n(cnt[lv]),
-                     "share": pct(cnt[lv] / n_c, 1) if n_c else "—"} for lv in level_cats]
+    levels_table = [{"level": level_label(lv), "advice": LEVEL_ADVICE.get(lv, "–"), "n": n(cnt[lv]),
+                     "share": pct(cnt[lv] / n_c, 1) if n_c else "–"} for lv in level_cats]
 
     # ---- continent x level ------------------------------------------------------
     cont_counts = pd.Series([cont_of[c] for c in countries]).value_counts()
@@ -279,7 +279,7 @@ def compute(frames):
     themes.sort(key=lambda x: (-x[1], x[0]))
     themes = [t for t in themes if t[1] > 0]
     themes_chart = {"labels": [t[0] for t in reversed(themes)], "values": [t[1] for t in reversed(themes)]}
-    themes_table = [{"label": t[0], "n": n(t[1]), "share": pct(t[1] / n_nsc_txt) if n_nsc_txt else "—"}
+    themes_table = [{"label": t[0], "n": n(t[1]), "share": pct(t[1] / n_nsc_txt) if n_nsc_txt else "–"}
                     for t in themes]
     hostile_rx = re.compile(r"עוינות|הסתה")
     hostile = [c for c, ts in nsc_text.items() if any(hostile_rx.search(t) for t in ts)]
@@ -313,7 +313,7 @@ def compute(frames):
                  "series": [{"name": lab, "data": [sum(1 for c in countries if cont_of[c] == ct and
                                                        mfa_kind.get(c, "missing") == k) for ct in conts]}
                             for k, lab in mfa_cats]}
-    mfa_table = [{"label": lab, "n": n(mfa_cnt[k]), "share": pct(mfa_cnt[k] / n_c) if n_c else "—"}
+    mfa_table = [{"label": lab, "n": n(mfa_cnt[k]), "share": pct(mfa_cnt[k] / n_c) if n_c else "–"}
                  for k, lab in mfa_cats]
     multi_mfa = mfa.groupby("country").size()
     n_multi_mfa = int((multi_mfa > 1).sum())
@@ -357,9 +357,9 @@ def compute(frames):
         lead = by_cont.index[0]
         tail = ""
         if len(by_cont) == 1 or by_cont.iloc[0] > by_cont.iloc[1]:
-            tail = f" הריכוז הגדול ביותר ב{lead} — {n(by_cont.iloc[0])} מדינות."
+            tail = f" הריכוז הגדול ביותר ב{lead}: {n(by_cont.iloc[0])} מדינות."
         return (f"{n(cnt[4])} מדינות ({pct(cnt[4] / n_rated)} מהמדינות המדורגות) נמצאות ברמת איום גבוהה (רמה 4) "
-                f"לפחות בחלק משטחן — המלצת המל\"ל היא להימנע מהגעה.{tail}")
+                f"לפחות בחלק משטחן, והמלצת המל\"ל היא להימנע מהגעה.{tail}")
 
     def ins_cont():
         rows = [r for r in cont_rows if r["cont"] != NA and r["total"] >= 5]
@@ -381,7 +381,7 @@ def compute(frames):
             return None
         best = sorted(rows, key=lambda r: (-(r.get(1, 0) / r["total"]), r["cont"]))[0]
         return (f"ל-{n(cnt[1])} מדינות ({pct(cnt[1] / n_rated)}) אין אזהרת מסע כלל (רמה 1, אמצעי זהירות רגילים); "
-                f"השיעור הגבוה ביותר ב{best['cont']} — {n(best.get(1, 0))} מתוך {n(best['total'])} מדינות.")
+                f"השיעור הגבוה ביותר ב{best['cont']}: {n(best.get(1, 0))} מתוך {n(best['total'])} מדינות.")
 
     def ins_combined():
         if len(combined) < 3:
@@ -389,14 +389,14 @@ def compute(frames):
         to4 = [c for c in combined if max_lv[c] == 4]
         ex = _join(to4[:3] if to4 else combined[:3])
         part = f"; ב-{n(len(to4))} מהן אזור מסוים מגיע לרמה 4 (למשל {ex})" if to4 else f" (למשל {ex})"
-        return (f"ב-{n(len(combined))} מדינות רמת האיום משולבת — אזור אחד מסוכן מהשאר{part}. "
+        return (f"ב-{n(len(combined))} מדינות רמת האיום משולבת: אזור אחד מסוכן מהשאר{part}. "
                 f"במפה ובגרפים מוצגת הרמה הגבוהה שבהן.")
 
     def ins_hostile():
         if not n_nsc_txt or len(hostile) / n_nsc_txt < THEME_MIN_SHARE:
             return None
         low = [c for c in hostile if 0 < max_lv[c] <= 2]
-        tail = (f" — {n(len(low))} מהן ברמת איום נמוכה (רמה 1 או 2)" if len(low) >= 3 else "")
+        tail = (f", {n(len(low))} מהן ברמת איום נמוכה (רמה 1 או 2)" if len(low) >= 3 else "")
         return (f"ב-{n(len(hostile))} מתוך {n(n_nsc_txt)} הודעות המל\"ל ({pct(len(hostile) / n_nsc_txt)}) מוזכרת "
                 f"עוינות או הסתה כלפי ישראלים ויהודים{tail}.")
 
@@ -452,10 +452,10 @@ def compute(frames):
                  f"למידע בריאותי של משרד הבריאות. {n(cnt[4])} מדינות ברמה 4 (איום גבוה), {n(cnt[3])} ברמה 3, "
                  f"{n(cnt[2])} ברמה 2 ו-{n(cnt[1])} ללא אזהרה."),
         "countries_kpi": "מדינות ושטחים במאגר",
-        "l4_kpi": "רמה 4 — איום גבוה (להימנע מהגעה)",
-        "l3_kpi": "רמה 3 — איום בינוני",
-        "l2_kpi": "רמה 2 — איום מזדמן",
-        "l1_kpi": "רמה 1 — ללא אזהרת מסע",
+        "l4_kpi": "רמה 4: איום גבוה (להימנע מהגעה)",
+        "l3_kpi": "רמה 3: איום בינוני",
+        "l2_kpi": "רמה 2: איום מזדמן",
+        "l1_kpi": "רמה 1: ללא אזהרת מסע",
         "combined_kpi": "מדינות עם רמת איום משולבת (לפי אזור)",
         "map_note": (f"כל נקודה היא מדינה, בצבע רמת האיום הגבוהה ביותר שהמל\"ל קבע בה (גם אם רק לאזור מסוים). "
                      f"מיקום הנקודה משוער (עיר הבירה). לחצו על נקודה לפרטים."
@@ -463,9 +463,9 @@ def compute(frames):
                         if off_map else "")),
         "map_aria": (f"מפה אינטראקטיבית של אזהרות המסע לפי מדינה: {n(cnt[4])} מדינות ברמה 4, {n(cnt[3])} ברמה 3, "
                      f"{n(cnt[2])} ברמה 2 ו-{n(cnt[1])} ברמה 1. גרסה נגישה: ראו רשימת המדינות לפי רמה למטה."),
-        "lists_note": ("המדינות מקובצות לפי רמת האיום הגבוהה ביותר שנקבעה בהן. מדינה עם סימון * היא בעלת רמה משולבת — "
+        "lists_note": ("המדינות מקובצות לפי רמת האיום הגבוהה ביותר שנקבעה בהן. מדינה עם סימון * היא בעלת רמה משולבת: "
                        "רק חלק משטחה ברמה זו."),
-        "levels_note": (f"מתוך {n(n_rated)} מדינות מדורגות, {n(hi)} ({pct(hi / n_rated) if n_rated else '—'}) "
+        "levels_note": (f"מתוך {n(n_rated)} מדינות מדורגות, {n(hi)} ({pct(hi / n_rated) if n_rated else '–'}) "
                         f"ברמה 3 או 4." + (f" ל-{n(cnt[0])} מדינות לא נמצאה רמה בטקסט ההמלצה." if cnt[0] else "")),
         "levels_aria": (f"גרף עמודות: מספר המדינות לפי רמת אזהרת המסע. {n(cnt[4])} ברמה 4, {n(cnt[3])} ברמה 3, "
                         f"{n(cnt[2])} ברמה 2, {n(cnt[1])} ברמה 1."),
@@ -477,10 +477,10 @@ def compute(frames):
         "cont_aria": "גרף עמודות מוערמות מנורמל: התפלגות רמות האזהרה בכל יבשה.",
         "cont_caption": "מספר המדינות בכל רמת אזהרה לפי יבשה.",
         "comb_note": ((f"מדינות שבהן המל\"ל קבע רמות שונות לאזורים שונים: הנקודה הבהירה היא הרמה בשאר המדינה, "
-                       f"הכהה — הרמה באזור המסוכן." +
+                       f"והנקודה הכהה היא הרמה באזור המסוכן." +
                        (f" מוצגות {n(len(comb_top))} מתוך {n(len(combined))}, לפי הרמה הגבוהה."
                         if len(combined) > len(comb_top) else "")) if combined else ""),
-        "comb_aria": f"תרשים משקולות: {n(len(combined))} מדינות עם רמת איום משולבת — הרמה הנמוכה והגבוהה בכל אחת.",
+        "comb_aria": f"תרשים משקולות: {n(len(combined))} מדינות עם רמת איום משולבת, הרמה הנמוכה והגבוהה בכל אחת.",
         "comb_caption": "מדינות עם רמת איום משולבת: הרמה בשאר המדינה והרמה באזור המסוכן.",
         "themes_note": (f"נושאים שמוזכרים בטקסט ההמלצה של המל\"ל, מתוך {n(n_nsc_txt)} הודעות. "
                         f"הודעה יכולה להזכיר כמה נושאים."),
