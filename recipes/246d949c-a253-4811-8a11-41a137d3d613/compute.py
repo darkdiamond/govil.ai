@@ -214,9 +214,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשם החברות: {_int(len(df))} חברות שנרשמו אי-פעם בישראל, מהן "
-                           f"{_int(n_active)} פעילות; סטטוס, שנת התאגדות, דיווח שנתי ומיקום. "
-                           f"מעודכן עד {now_he}."),
+            "summary_he": (f"רשם החברות — איתור חברה ובדיקת סטטוס לפי שם או מספר חברה (ח.פ.): {_int(len(df))} חברות "
+                           f"שנרשמו בישראל, מהן {_int(n_active)} פעילות. מעודכן עד {now_he}."),
             "dataset_kind": "registry",
             "related_ids": ["01aeaf5c-59a2-4ddc-a616-31b85621bfe2", "3111ae54-790a-4d02-9750-d51e1134b405"],
             "suggested_tags": ["רשם החברות", "חברות", "תאגידים", "עסקים"],

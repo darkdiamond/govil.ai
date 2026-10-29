@@ -412,9 +412,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"מרשם רואי החשבון של משרד המשפטים: {n(total)} רישיונות, מהם "
-                           f"{n(act_total)} פעילים — תאריך קבלת הרישיון, ישוב וסטטוס, "
-                           f"מ-{first_year} ועד {ref_year}."),
+            "summary_he": (f"מרשם רואי החשבון — איתור רואה חשבון לפי שם או מספר רישיון: {n(total)} רישיונות, מהם "
+                           f"{n(act_total)} פעילים, עם יישוב וסטטוס, מ-{first_year} ועד {ref_year}."),
             "dataset_kind": "registry",
             "related_ids": ["669b2652-f75b-4de3-8e6b-0dfa17accef5",
                             "1806c96c-9cc4-47bf-98b3-80a18f061f98",

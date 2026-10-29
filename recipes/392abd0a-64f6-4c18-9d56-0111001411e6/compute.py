@@ -460,9 +460,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"מרשם סוחרי הרכב של משרד התחבורה: {n(total)} סוחרים רשומים "
-                           f"ב-{n(n_cities)} יישובים, מהם {n(corp_n)} תאגידים "
-                           f"({p_disp(corp_pct)}); {lead} מובילה במספר הסוחרים."),
+            "summary_he": (f"רשימת סוחרי רכב מורשים של משרד התחבורה — בדיקת סוחר לפי שם, ח.פ. או יישוב: "
+                           f"{n(total)} סוחרים רשומים ב-{n(n_cities)} יישובים."),
             "dataset_kind": "registry",
             "related_ids": ["35c791ca-8db2-4657-8c6f-eb092147a6bb",
                             "273c5e33-25ab-4980-8522-a2f7ba0bb62d",

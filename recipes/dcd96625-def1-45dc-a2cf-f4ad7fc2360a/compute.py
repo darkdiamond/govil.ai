@@ -296,7 +296,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"ריביות \"חיסכון לכל ילד\" ב-{len(banks)} בנקים, עד {d_he(d1)}: "
+            "summary_he": (f"ריבית חשכ\"ל — ריביות \"חיסכון לכל ילד\" ב-{len(banks)} בנקים, עד {d_he(d1)}: "
                            f"במסלול הדגל הריבית הקבועה הלא צמודה נעה בין "
                            f"{pct(flag_now['fixed'].min())} ל-{pct(flag_now['fixed'].max())}."),
             "dataset_kind": "rankings",

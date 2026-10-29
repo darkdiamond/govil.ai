@@ -416,9 +416,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"פנקס העובדים הסוציאליים: {n(total)} עובדים סוציאליים רשומים, "
-                           f"מ-{n(cities.size)} ישובים — תאריכי רישום מ-{first_year} ועד {ref_year}, "
-                           f"עונתיות ופיזור גאוגרפי."),
+            "summary_he": (f"בדיקת רישום בפנקס העובדים הסוציאליים לפי שם או מספר רישום: {n(total)} עובדים סוציאליים "
+                           f"רשומים ב-{n(cities.size)} יישובים, מאז {first_year}."),
             "dataset_kind": "registry",
             "related_ids": ["fa11b2f3-0796-48f8-ab84-e5540ea2b014", "87d2955a-9b63-406b-8deb-aa75f6a898f0", "56639c97-30ba-4307-a768-9f4b1655c68a"],
             "suggested_tags": ["עובדים סוציאליים", "רישום מקצועי", "רווחה", "כוח אדם",

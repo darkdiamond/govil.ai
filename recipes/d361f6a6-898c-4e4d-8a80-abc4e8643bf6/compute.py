@@ -260,8 +260,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשם המתווכים: {n(total)} מתווכים מורשים ב-{n(cities.size)} יישובים, "
-                           f"ו-{n(len(done))} רישומי נבחנים בבחינות המתווכים מאז {y0}."),
+            "summary_he": (f"פנקס המתווכים — בדיקת מתווך מורשה לפי שם או מספר רישיון: {n(total)} מתווכים במקרקעין "
+                           f"ב-{n(cities.size)} יישובים, ו-{n(len(done))} רישומי נבחנים מאז {y0}."),
             "dataset_kind": "timeseries",
             "related_ids": ["669b2652-f75b-4de3-8e6b-0dfa17accef5",
                             "713440a1-9963-4548-a7d9-9d9c9da54f62",

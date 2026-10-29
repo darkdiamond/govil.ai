@@ -376,8 +376,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"{_int(len(df))} צווי בטיחות שהוטלו על אתרי עבודה בישראל "
-                           f"מ-{y0} ועד {d_he(last)} — לפי שנה, ענף, נושא ההפרה ויישוב."),
+            "summary_he": (f"צווי בטיחות של משרד העבודה: {_int(len(df))} צווים שהוטלו על אתרי עבודה מ-{y0} ועד {d_he(last)} "
+                           f"— חיפוש לפי קבלן, אתר או יישוב, עם ענף ונושא ההפרה."),
             "dataset_kind": "registry",
             "suggested_tags": ["בטיחות בעבודה", "צווי בטיחות", "אכיפה", "אתרי בנייה", "מעליות"],
             "temporal_coverage": f"{first.strftime('%Y-%m-%d')}/{last.strftime('%Y-%m-%d')}",

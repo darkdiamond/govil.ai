@@ -486,8 +486,8 @@ def compute(frames):
     flags = {"expiry": dated > 0, "bands": bool(width)}
 
     agent_data = {
-        "summary_he": (f"מרשם המדבירים המורשים של המשרד להגנת הסביבה: {n(total)} רישיונות של {n(n_holders)} מדבירים "
-                       f"ב-{n(n_cities)} יישובים, {n(in_force)} מהם בתוקף; פילוח לפי סוג רישיון, יישוב ומועד פקיעה."),
+        "summary_he": (f"רשימת מדבירים מורשים של המשרד להגנת הסביבה — בדיקת רישיון לפי שם או מספר רישיון: "
+                       f"{n(n_holders)} מדבירים ב-{n(n_cities)} יישובים, {n(in_force)} רישיונות בתוקף."),
         "dataset_kind": "registry",
         "related_ids": ["a37765ea-d407-42e8-b757-9b70a8cf574f",
                         "7a6cbf55-8178-4d40-8613-a38909c7e96f",

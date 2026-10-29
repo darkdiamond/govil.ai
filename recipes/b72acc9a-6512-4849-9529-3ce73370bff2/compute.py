@@ -270,9 +270,8 @@ def compute(frames):
     }
     return {
         "agent_data": {
-            "summary_he": (f"רשימת {n(total)} מוהלים מוסמכים שהרבנות הראשית ממליצה עליהם, "
-                           f"ב-{n(cities.size)} ישובים; תוקף ההסמכה נע מ{mon_year(first_p)} "
-                           f"עד {mon_year(last_p)}."),
+            "summary_he": (f"רשימת המוהלים המוסמכים של הרבנות הראשית — איתור מוהל לפי שם או יישוב: {n(total)} מוהלים "
+                           f"ב-{n(cities.size)} יישובים, עם תוקף ההסמכה."),
             "dataset_kind": "registry",
             "related_ids": ["6a8f3548-f991-4f8b-ab52-80240324ab4d",
                             "f312eda5-27bc-4619-8917-8072a12f14ce"],
