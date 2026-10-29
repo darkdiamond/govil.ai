@@ -545,8 +545,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"מרשם רישיונות הרופאים בישראל: {n(total)} רופאים, מהם {n(n_specialists)} בעלי "
-                           f"התמחות ב-{n(n_fields)} תחומים — קצב הרישוי מ-{y0}, מסלולי ההתמחות והזמן שהם אורכים."),
+            "summary_he": (f"איתור רופא לפי שם, מספר רישיון או התמחות במאגר רישיונות הרופאים של משרד הבריאות: "
+                           f"{n(total)} רופאים מורשים, מהם {n(n_specialists)} רופאים מומחים ב-{n(n_fields)} תחומים."),
             "dataset_kind": "registry",
             "related_ids": ["54601127-7b82-4bd7-ad80-271a802fdeeb",
                             "72662d34-ce69-4990-8504-ee0860529e7d",

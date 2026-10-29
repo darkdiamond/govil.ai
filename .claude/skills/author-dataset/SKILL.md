@@ -261,6 +261,44 @@ GovMap `resourceId`).
 - The `<h1>` is the dataset title; insights section, cards, icon headers etc.
   exactly per BODY SKELETON (check.py enforces them).
 
+### Search (SEO) — write for what people type
+
+Most organic traffic is _lookup_ intent ("איתור מספר רישיון רופא", "איתור
+שותפות", "בדיקת קבלן רשום"), and the page competes with the ministry's own
+search on the SERP. Search Console (2026-10) showed pages ranking at position
+2–7 with 1–2% CTR because neither the snippet nor the top of the page offered
+the lookup.
+
+- **`summary_he` is the meta description** (and the JSON-LD description).
+  Keep it ≤155 chars. Lead with the task the searcher has, using their words
+  ("איתור … לפי שם, מספר רישיון או יישוב"), then one or two computed numbers.
+  Don't write a stats blurb.
+- **The `<h1>` is the name people search**, which is not always the CKAN title
+  (e.g. "מאגר שומות מכריעות — הכרעות שמאי מכריע", not "מאגר נתוני שמאות
+  מכריעה"). Work the common variant (כח/כוח, בניה/בנייה, "רשם …"/"פנקס …")
+  into the lede or an H2 naturally. Never add a keyword block.
+- **Registry/list datasets get a lookup callout** right after the lede card,
+  linking to the shell's explorer (`#data-explorer`, a live full-text search
+  over every record). Name the fields the explorer can actually search, and
+  check them against the resource's columns:
+
+  ```html
+  <a
+    href="#data-explorer"
+    class="card p-4 mb-6 flex items-center gap-3 no-underline"
+  >
+    <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+    <span>
+      <span class="block font-semibold text-ink-deep"
+        >איתור רופא לפי שם או מספר רישיון ←</span
+      >
+      <span class="block text-sm text-subtle"
+        >חיפוש חי בכל רשומות המאגר: שם פרטי, שם משפחה, …</span
+      >
+    </span>
+  </a>
+  ```
+
 ## 5. Verify (loop until PASS)
 
 ```bash
