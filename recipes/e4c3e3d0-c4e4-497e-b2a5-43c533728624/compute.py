@@ -21,6 +21,7 @@ NOTES = ("כתב העת \"חברה ורווחה\" החל לצאת לאור בש�
 TOP_TYPES = 6
 TOP_AUTHORS = 15
 MAX_AUTHOR_BUCKET = 4  # 1, 2, 3, 4+ authors per article
+SOLO_MIN_ARTICLES = 20  # a decade needs this many authored articles for solo-share claims
 
 HEB_NUM = {"א": 1, "ב": 2, "ג": 3, "ד": 4, "ה": 5, "ו": 6, "ז": 7, "ח": 8,
            "ט": 9, "י": 10, "כ": 20, "ך": 20, "ל": 30, "מ": 40, "ם": 40,
@@ -155,7 +156,7 @@ def _decade_label(d, y_min, y_max):
 # ---------------------------------------------------------------- insights
 
 def insight_coauthor(dec_rows):
-    rows = [r for r in dec_rows if r["n"] >= 20]
+    rows = [r for r in dec_rows if r["n"] >= SOLO_MIN_ARTICLES]
     if len(rows) < 2:
         return None
     a, b = rows[0], rows[-1]
@@ -328,7 +329,10 @@ def compute(frames):
         n_new = int((first_dec.reindex(names) == d).sum())
         new_rows.append({"label": lab, "all": n_all, "new": n_new, "ret": n_all - n_new,
                          "share": n_new / n_all if n_all else 0.0})
-    latest_solo = dec_rows[-1]["solo"] if dec_rows else 0.0
+    # KPI decade: the latest one with enough articles (same floor as the insight).
+    solo_r = next((r for r in reversed(dec_rows) if r["n"] >= SOLO_MIN_ARTICLES),
+                  dec_rows[-1] if dec_rows else None)
+    latest_solo = solo_r["solo"] if solo_r else 0.0
 
     # --- issues: full articles per issue, by decade
     per_issue = full.groupby("issue").agg(n=("article_name", "size"), year=("year", "min"))
@@ -413,7 +417,7 @@ def compute(frames):
         "span_kpi": "שנות פרסום",
         "issues_kpi": (f"חוברות ({_int(n_vols)} כרכים)" if n_vols else "חוברות"),
         "authors_kpi": "כותבים וכותבות של מאמרים מלאים",
-        "solo_kpi": f"מאמרים בכתיבת יחיד ב-{last_r['label']}",
+        "solo_kpi": f"מאמרים בכתיבת יחיד ב-{solo_r['label'] if solo_r else last_r['label']}",
         "yearly_note": (f"מספר הפריטים בכל שנה לפי סוג הפרסום. השיא ב-{peak_y} "
                         f"({_int(year_totals.max())} פריטים).{gaps_note}{partial_note}"),
         "yearly_aria": (f"תרשים עמודות מוערמות: פריטים בכתב העת לפי שנה וסוג, {y_min} עד "

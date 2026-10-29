@@ -189,9 +189,10 @@ def insight_ytd(df, ref):
 
 
 def insight_peak_year(yearly, partial_year):
-    # The current (reference) year is in progress and the first year is the
-    # list's start-up year — both excluded, and the sentence says so.
-    full = yearly.drop(index=[partial_year, int(yearly.index.min())], errors="ignore")
+    # The current (reference) year is in progress, later years hold only
+    # future deadlines, and the first year is the list's start-up year: all
+    # excluded, and the sentence says so.
+    full = yearly[yearly.index < partial_year].drop(index=[int(yearly.index.min())], errors="ignore")
     if len(full) < 3:
         return None
     top_y = int(full.sort_index().idxmax())
@@ -329,7 +330,7 @@ def compute(frames):
     type_counts = df["ptype"].value_counts().reindex(TYPE_ORDER, fill_value=0)
     type_counts = type_counts.sort_values(ascending=False, kind="stable")
     types_present = [t for t in TYPE_ORDER if type_counts.get(t, 0) > 0]
-    year_labels = [f"{y} (חלקית)" if y == partial_year else str(y) for y in year_list]
+    year_labels = [f"{y} (חלקית)" if y >= partial_year else str(y) for y in year_list]
     chart_yearly = {
         "x": year_labels,
         "series": [{"name": t, "data": [int(yt.loc[y].get(t, 0)) if t in yt.columns else 0

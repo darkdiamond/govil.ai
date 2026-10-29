@@ -71,6 +71,7 @@ GROUP_COLOR = {G_REG: "#198754", G_CLOSED: "#6c757d", G_UNPAID: "#dc3545",
 PENDING = {G_ACCEPTED, G_EXAM}
 
 PARTIAL_CUTOFF = (12, 20)       # latest date before 20 Dec → latest year partial
+AS_OF_MIN_YEAR_ROWS = 100       # a year needs this many filings to set the reference date
 RECENT_YEARS = 30               # window of the per-year cohort charts
 AGENT_YEARS = 10                # agents ranked on the last N application years
 TOP_CLASSES = 15
@@ -321,7 +322,12 @@ def compute(frames):
     yes = lambda c: df[c].str.strip() == "כן"  # noqa: E731
 
     ok = app.notna()
-    as_of = app.max()
+    # "Now" = the latest filing in a year with real volume, so one mistyped
+    # future date (e.g. 2062) can't drag every year window along with it.
+    yc = app.dt.year.value_counts()
+    real_years = yc[yc >= AS_OF_MIN_YEAR_ROWS].index
+    as_of = app[app.dt.year.isin(real_years)].max() if len(real_years) else app.max()
+    ok = ok & (app <= as_of)
     as_of_year = int(as_of.year)
     partial = (as_of.month, as_of.day) < PARTIAL_CUTOFF
     full_year = as_of_year - 1 if partial else as_of_year

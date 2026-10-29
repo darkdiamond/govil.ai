@@ -370,8 +370,9 @@ def compute(frames):
         if (a["hi_share"] - b["hi_share"]) * 100 < LEADER_GAP_PP:
             return None
         low = rows[-1]
+        tail = f" ו-{pct(low['hi_share'])} ב{low['cont']}" if len(rows) > 2 else ""
         return (f"ב{a['cont']} {pct(a['hi_share'])} מהמדינות ברמת איום בינונית או גבוהה (רמה 3 ומעלה), "
-                f"לעומת {pct(b['hi_share'])} ב{b['cont']} ו-{pct(low['hi_share'])} ב{low['cont']}.")
+                f"לעומת {pct(b['hi_share'])} ב{b['cont']}{tail}.")
 
     def ins_none():
         if not cnt[1] or not n_rated:

@@ -148,7 +148,9 @@ def valid_lines(df):
     out = df[ok].copy()
     out["code"] = out["CustomsItemFullClassification"].str.strip()
     out = out[out["code"].str[:2] == out["CustomsItem_2_Digits"].str.strip()]
-    return out.sort_values("code", kind="mergesort").drop_duplicates("code")
+    # Full-row tie-break so which duplicate survives never depends on row order.
+    keys = ["code"] + [c for c in out.columns if c != "code"]
+    return out.sort_values(keys, kind="mergesort").drop_duplicates("code")
 
 
 def compute(frames):

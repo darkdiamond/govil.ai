@@ -48,7 +48,10 @@ fi
 BUILDER_SA="govdata-builder@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
-ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},GCS_STAGING_BUCKET=${STAGING_BUCKET},REFRESH_TARGET=preview,RECIPES_SOURCE=gs://${STAGING_BUCKET}/preview/recipes/,PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},PUBLISH_GITHUB_WORKFLOW=publish.yml,PUBLISH_BRANCH=main"
+# Per-resource refresh export cap, kept in lockstep with builder-job.deploy.sh
+# (trademarks 656f6e4c exports at ~368MB, over the 300MB code default).
+REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES:-450000000}
+ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},GCS_STAGING_BUCKET=${STAGING_BUCKET},REFRESH_TARGET=preview,RECIPES_SOURCE=gs://${STAGING_BUCKET}/preview/recipes/,PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},PUBLISH_GITHUB_WORKFLOW=publish.yml,PUBLISH_BRANCH=main,REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES}"
 # Only the GitHub token: publish dispatch + needs-authoring issues.
 SECRETS="GITHUB_DISPATCH_TOKEN=github-dispatch-token:latest"
 

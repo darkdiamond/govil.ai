@@ -248,6 +248,7 @@ def compute(frames):
     paid = df[df["fee"] > 0]["fee"]
     n_free = int((df["fee"] == 0).sum())
     mx = float(df["fee"].max())
+    mn = float(df["fee"].min())
     med_paid = float(paid.median()) if not paid.empty else 0.0
     df["band"] = [_band(f, std) for f in df["fee"]]
 
@@ -262,7 +263,7 @@ def compute(frames):
         step = 100
         b = (df["fee"] // step).astype(int)
         t2 = df.groupby(b).size().sort_index()
-        tier_x = [f"{_int(k * step)}–{_int(k * step + step - 1)}" for k in t2.index]
+        tier_x = [f"{_int(k * step)}-{_int(k * step + step - 1)}" for k in t2.index]
         tier_y = [int(c) for c in t2]
         tier_hl = [False] * len(t2)
         tier_binned = True
@@ -297,7 +298,8 @@ def compute(frames):
         kind_names.append("אגרות אחרות")
         kind_counts.append(int(len(rest)))
         kind_med.append(round(float(rest["fee"].median()), 1))
-    open_n = int((df["fee_name"] == OPEN_FEE).sum())
+    top_kind = kinds.index[0] if len(kinds) else None
+    top_kind_n = int(kinds["size"].iloc[0]) if len(kinds) else 0
     n_rest_kinds = int(rest["fee_name"].nunique())
 
     # Lookup: family -> subject -> fee rows.
@@ -347,10 +349,10 @@ def compute(frames):
             mix_lead = sorted(shares, key=lambda t: (-t[0], t[1]))[0]
 
     meta = (f"איתור אגרת בית הדין הרבני לפי סוג ההליך: {_int(n)} סעיפי אגרה "
-            f"ב-{_int(len(subjects))} נושאי תביעה, מ-0 ועד {_ils(mx)}; "
+            f"ב-{_int(len(subjects))} נושאי תביעה, מ-{_int(mn)} ועד {_ils(mx)}; "
             f"התעריף הנפוץ {_ils(std or 0)}.")
     summary = (f"לוח תעריפי האגרות של בתי הדין הרבניים: {_int(n)} סעיפי אגרה "
-               f"ב-{_int(len(subjects))} נושאי תביעה, מ-0 ₪ ועד {_ils(mx)}. "
+               f"ב-{_int(len(subjects))} נושאי תביעה, מ-{_ils(mn)} ועד {_ils(mx)}. "
                f"התעריף הנפוץ הוא {_ils(std or 0)}, ו-{_int(n_free)} סעיפים "
                "פטורים מאגרה. בעמוד טבלת איתור מהירה של האגרה לפי סוג ההליך.")
 
@@ -419,15 +421,16 @@ def compute(frames):
                               f"הוא {top_fam['family']} עם {_int(top_fam['n_items'])} סעיפים."
                               if top_fam else ""),
             "families_aria": (f"תרשים קופסה: טווח האגרות ב-{_int(len(fams))} תחומי "
-                              f"הליך, מ-0 ₪ ועד {_ils(mx)}."),
+                              f"הליך, מ-{_ils(mn)} ועד {_ils(mx)}."),
             "mix_note": ((f"כמה מסעיפי כל תחום פטורים, זולים מהתעריף הנפוץ ({_ils(std)}), "
                           f"שווים לו או יקרים ממנו. התעריף הנפוץ שולט בתחום "
                           f"{mix_lead[1]} ({_pct(mix_lead[0])} מהסעיפים).")
                          if mix_lead else "כמה מסעיפי כל תחום פטורים, זולים, שווים או יקרים מהתעריף הנפוץ."),
             "mix_aria": (f"תרשים עמודות מוערמות: חלוקת סעיפי האגרה ב-{_int(len(fams))} "
                          f"תחומים לפי רמת האגרה ביחס לתעריף הנפוץ ({_ils(std or 0)})."),
-            "kinds_note": (f"\"{OPEN_FEE}\" היא סוג האגרה הנפוץ ביותר: {_int(open_n)} "
-                           f"מתוך {_int(n)} סעיפים ({_pct(open_n / n) if n else '0%'}). "
+            "kinds_note": ((f"\"{top_kind}\" היא סוג האגרה הנפוץ ביותר: {_int(top_kind_n)} "
+                            f"מתוך {_int(n)} סעיפים ({_pct(top_kind_n / n) if n else '0%'}). "
+                            if top_kind else "")
                            + (f"מוצגים {_int(len(top_k))} סוגי האגרה הנפוצים; שאר "
                               f"{_int(n_rest_kinds)} הסוגים מקובצים ב\"אגרות אחרות\"."
                               if n_rest_kinds else "")),
