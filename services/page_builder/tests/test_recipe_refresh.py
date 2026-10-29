@@ -405,6 +405,26 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
     assert (out / "content.html").is_file() and (out / "agent_data.json").is_file()
 
 
+def test_em_dash_lint(tmp_path):
+    from services.page_builder import author
+
+    shutil.copytree(FIXTURES / DS, tmp_path / DS)
+    recipe = Recipe.load(tmp_path / DS)
+    assert author._em_dash_findings(recipe) == []
+
+    c = tmp_path / DS / "compute.py"
+    c.write_text('"""doc — ok"""\n# comment — ok\n'
+                 + c.read_text(encoding="utf-8").replace("אירועים, {word}", "אירועים — {word}"),
+                 encoding="utf-8")
+    t = tmp_path / DS / "template.html.j2"
+    t.write_text(t.read_text(encoding="utf-8")
+                 + "{# note — ok #}<script>// js — ok\n</script><p>א — ב</p>\n",
+                 encoding="utf-8")
+    findings = author._em_dash_findings(Recipe.load(tmp_path / DS))
+    assert any(f.startswith("EM-DASH: compute.py:43") for f in findings), findings
+    assert sum(f.startswith("EM-DASH: template.html.j2:") for f in findings) == 1, findings
+
+
 def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     recipes = tmp_path / "recipes"

@@ -101,7 +101,7 @@ def insight_incorporations(df, now):
     peak = int(vc.idxmax())
     tail = (" זו שנת השיא במאגר." if peak == full
             else f" שנת השיא: {peak} ({_int(vc.max())}).")
-    return f"ב-{full} נרשמו {_int(a)} חברות חדשות — {trend}.{tail}"
+    return f"ב-{full} נרשמו {_int(a)} חברות חדשות, {trend}.{tail}"
 
 
 def insight_ytd(df, now):
@@ -120,13 +120,13 @@ def insight_ytd(df, now):
     word = ("כמעט ללא שינוי" if abs(ch) < 0.03
             else f"{'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch))}")
     return (f"מתחילת {now.year} ועד {now.day}/{now.month} נרשמו {_int(a)} חברות, לעומת {_int(b)} "
-            f"באותה תקופה אשתקד — {word}.")
+            f"באותה תקופה אשתקד: {word}.")
 
 
 def insight_violating(df):
     act = df[df["group"] == "פעילה"]
     v = int(act["violating"].sum())
-    return (f"{_pct(v / len(act))} מהחברות הפעילות ({_int(v)}) מסומנות במרשם כ'חברה מפרה' — "
+    return (f"{_pct(v / len(act))} מהחברות הפעילות ({_int(v)}) מסומנות במרשם כ'חברה מפרה', כלומר "
             f"חברה שלא שילמה אגרה שנתית או לא הגישה דוח שנתי.")
 
 
@@ -214,7 +214,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשם החברות — איתור חברה ובדיקת סטטוס לפי שם או מספר חברה (ח.פ.): {_int(len(df))} חברות "
+            "summary_he": (f"רשם החברות: איתור חברה ובדיקת סטטוס לפי שם או מספר חברה (ח.פ.). {_int(len(df))} חברות "
                            f"שנרשמו בישראל, מהן {_int(n_active)} פעילות. מעודכן עד {now_he}."),
             "dataset_kind": "registry",
             "related_ids": ["01aeaf5c-59a2-4ddc-a616-31b85621bfe2", "3111ae54-790a-4d02-9750-d51e1134b405"],
@@ -248,11 +248,11 @@ def compute(frames):
                      f"ההתאגדות האחרונה במאגר: {now_he}."),
             "full_year": str(full),
             "founded_aria": f"גרף עמודות מוערמות: חברות לפי שנת התאגדות ({COHORT_FROM} ואילך) ומצבן כיום.",
-            "founded_note": f"חברות לפי שנת ההתאגדות, צבועות לפי מצבן היום. השנה האחרונה חלקית — עד {now_he}.",
+            "founded_note": f"חברות לפי שנת ההתאגדות, צבועות לפי מצבן היום. השנה האחרונה חלקית (עד {now_he}).",
             "monthly_aria": f"גרף עמודות: חברות חדשות בכל חודש, {MONTHS} החודשים האחרונים.",
             "survival_aria": "גרף קו: שיעור החברות שעדיין פעילות, לפי שנת ההתאגדות.",
             "survival_note": ("שיעור החברות מכל שנתון התאגדות שעדיין פעילות היום. שנתונים צעירים "
-                              "טבעי שיהיו גבוהים יותר — לחברות היה פחות זמן להיסגר."),
+                              "טבעי שיהיו גבוהים יותר, כי לחברות היה פחות זמן להיסגר."),
             "status_aria": f"תרשים עמודות: {_int(len(df))} החברות לפי סטטוס ברשם.",
             "types_aria": "תרשים עמודות: החברות לפי סוג התאגיד.",
             "sub_aria": f"תרשים עמודות: תתי-הסטטוס הנפוצים, {TOP_SUB} הראשונים.",

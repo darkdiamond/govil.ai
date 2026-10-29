@@ -10,7 +10,7 @@
     <div class="text-sm text-subtle">{{ label }}</div>
   </div>
 {%- endmacro -%}
-<h1>רשם השותפויות — מאגר השותפויות הרשומות</h1>
+<h1>רשם השותפויות: מאגר השותפויות הרשומות</h1>
 
 <section class="card p-5 mb-6">
   {{ head("תקציר", "info") }}
@@ -205,7 +205,7 @@
     var c = echarts.init(document.getElementById("chart-survival"));
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "—" : v + "%"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "–" : v + "%"; } },
       legend: { type: "scroll", top: 0 },
       grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
       xAxis: { type: "category", data: s.x },

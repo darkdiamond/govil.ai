@@ -106,7 +106,7 @@ def insight_ytd(docs, asof, partial):
         if prev < 100:
             return None
         ch = cur / prev - 1
-        s = (f"מתחילת {y} ועד {d_he(asof)} נרשמו {n(cur)} רישיונות רופא חדשים — "
+        s = (f"מתחילת {y} ועד {d_he(asof)} נרשמו {n(cur)} רישיונות רופא חדשים, "
              f"{_signed(ch)} לעומת התקופה המקבילה ב-{y - 1} ({n(prev)})")
         best = docs[docs["ly"] < y].groupby("ly").size()
         if not best.empty and cur > int(best.max()):
@@ -118,7 +118,7 @@ def insight_ytd(docs, asof, partial):
     prev = int((docs["ly"] == y - 1).sum())
     if prev < 100:
         return None
-    return f"ב-{y} נרשמו {n(cur)} רישיונות רופא חדשים — {_signed(cur / prev - 1)} לעומת {y - 1} ({n(prev)})."
+    return f"ב-{y} נרשמו {n(cur)} רישיונות רופא חדשים, {_signed(cur / prev - 1)} לעומת {y - 1} ({n(prev)})."
 
 
 def insight_decade(per_year, last_full):
@@ -132,7 +132,7 @@ def insight_decade(per_year, last_full):
         return (f"בעשור \u2066{last_full - 9}–{last_full}\u2069 נרשמו {n(va)} רישיונות רופא, בדומה לעשור "
                 f"שקדם לו ({n(vb)}).")
     word = f"פי {va / vb:.1f} מאשר" if ch >= 0.5 else ("יותר מאשר" if ch > 0 else "פחות מאשר")
-    return (f"בעשור \u2066{last_full - 9}–{last_full}\u2069 נרשמו {n(va)} רישיונות רופא — {word} בעשור "
+    return (f"בעשור \u2066{last_full - 9}–{last_full}\u2069 נרשמו {n(va)} רישיונות רופא, {word} בעשור "
             f"\u2066{last_full - 19}–{last_full - 10}\u2069 ({n(vb)}).")
 
 
@@ -195,8 +195,8 @@ def insight_rising(rise, w_new, w_old, tot_ch):
     if hi["ch"] - lo["ch"] < 0.3:
         return None
     return (f"תעודות ההתמחות שניתנו ב-{w_new} לעומת {w_old}: {_signed(tot_ch)} בסך הכול. "
-            f"הצמיחה המהירה ביותר מבין ההתמחויות הגדולות — {hi['name']} ({n(hi['old'])} ← {n(hi['new'])}, "
-            f"{_signed(hi['ch'])}); האיטית ביותר — {lo['name']} ({n(lo['old'])} ← {n(lo['new'])}, "
+            f"הצמיחה המהירה ביותר מבין ההתמחויות הגדולות: {hi['name']} ({n(hi['old'])} ← {n(hi['new'])}, "
+            f"{_signed(hi['ch'])}); האיטית ביותר: {lo['name']} ({n(lo['old'])} ← {n(lo['new'])}, "
             f"{_signed(lo['ch'])}).")
 
 
@@ -214,7 +214,7 @@ def insight_pipeline(docs, first_gap, asof):
          f"ובחציון עברו {g.median():.1f} שנים מהרישיון ועד תעודת ההתמחות הראשונה")
     if len(rec) >= 200:
         s += (f"; בקרב מי שקיבלו רישיון ב-\u2066{asof.year - 4}–{asof.year}\u2069 השיעור הוא {pct(rec['has'].mean() * 100)} "
-              f"בלבד — רובם עדיין בשלבי התמחות")
+              f"בלבד, רובם עדיין בשלבי התמחות")
     return s + "."
 
 
@@ -235,7 +235,7 @@ def insight_slowest(gap_tbl):
     if a["med"] - b["med"] < 2:
         return None
     return (f"הדרך להתמחות ארוכה במיוחד ב{a['name']}: חציון של {a['med']:.1f} שנים מהרישיון ועד התעודה, "
-            f"לעומת {b['med']:.1f} שנים ב{b['name']} — המהירה מבין ההתמחויות שיש בהן {n(100)} תעודות ומעלה.")
+            f"לעומת {b['med']:.1f} שנים ב{b['name']}, המהירה מבין ההתמחויות שיש בהן {n(100)} תעודות ומעלה.")
 
 
 def insight_newest(first_cert, asof):
@@ -253,7 +253,7 @@ def insight_quality(n_neg, n_certs, bad):
     if n_neg < 20 and bad == 0:
         return None
     s = (f"ב-{n(n_neg)} תעודות התמחות ({pct(n_neg / n_certs * 100, 1)}) תאריך התעודה קודם לתאריך רישום "
-         f"הרישיון — ככל הנראה הכרה בהתמחות שנרכשה לפני הרישיון הנוכחי או תיעוד חלקי; הן אינן נכללות "
+         f"הרישיון, ככל הנראה בשל הכרה בהתמחות שנרכשה לפני הרישיון הנוכחי או תיעוד חלקי; הן אינן נכללות "
          f"בחישובי משך הזמן עד להתמחות")
     if bad:
         s += f", ו-{n(bad)} רשומות ללא תאריך רישיון תקין אינן נכללות בעמוד"
@@ -491,11 +491,11 @@ def compute(frames):
         "heat_aria": f"מפת חום: רישיונות רופא לפי חודש ושנה, {hy[0]} עד {last}.",
         "specs_note": (f"{TOP_SPECS} תחומי ההתמחות עם מספר הרופאים הגדול ביותר, מתוך {n(n_fields)} תחומים. "
                        f"רופא בעל כמה התמחויות נספר בכל אחת מהן."),
-        "specs_aria": (f"תרשים עמודות אופקי: {TOP_SPECS} תחומי ההתמחות הגדולים — {doc_spec.index[0]} בראש "
+        "specs_aria": (f"תרשים עמודות אופקי: {TOP_SPECS} תחומי ההתמחות הגדולים, {doc_spec.index[0]} בראש "
                        f"עם {n(doc_spec.iloc[0])} רופאים."),
         "specs_caption": "מספר רופאים לפי תחום התמחות.",
-        "nspec_note": (f"{n(nspec_vals[0])} רופאים ({pct(nspec_vals[0] / total * 100)}) רשומים ללא התמחות — "
-                       f"בהם מתמחים, רופאים כלליים ורופאים שלא השלימו התמחות; {n(n_multi)} רשומים עם שתיים ומעלה."),
+        "nspec_note": (f"{n(nspec_vals[0])} רופאים ({pct(nspec_vals[0] / total * 100)}) רשומים ללא התמחות, "
+                       f"ובהם מתמחים, רופאים כלליים ורופאים שלא השלימו התמחות; {n(n_multi)} רשומים עם שתיים ומעלה."),
         "nspec_aria": f"תרשים טבעת: רופאים לפי מספר ההתמחויות, {n(n_specialists)} עם התמחות.",
         "nspec_caption": "רופאים לפי מספר תעודות ההתמחות.",
         "cohort_note": (f"לכל מחזור רישוי (חמש שנים): שיעור הרופאים שרשומים כיום כבעלי התמחות, וחציון השנים "
@@ -509,7 +509,7 @@ def compute(frames):
         "gap_aria": "תרשים טווחים אופקי: שנים מרישיון להתמחות לפי תחום, רבעונים וחציון.",
         "gap_caption": "שנים מרישיון לתעודת התמחות לפי תחום: חציון ורבעונים.",
         "paths_note": (f"{TOP_PATHS} המעברים הנפוצים בין התמחות אחת לבאה אחריה אצל אותו רופא (לפי סדר "
-                       f"התעודות) — רובם התמחות בסיס ואחריה תת-התמחות."),
+                       f"התעודות). רובם התמחות בסיס ואחריה תת-התמחות."),
         "paths_aria": f"תרשים עמודות אופקי: {TOP_PATHS} מסלולי ההתמחות הנפוצים.",
         "paths_caption": "מספר רופאים לפי מעבר בין התמחויות.",
         "rise_note": (f"תעודות התמחות שניתנו ב-{w_new} לעומת {w_old}, בתחומים הגדולים; סך כל התעודות: "
@@ -523,7 +523,7 @@ def compute(frames):
                         if fam_share and "רפואת המשפחה" in mix_specs else "")),
         "mix_aria": f"עמודות מוערמות 100%: תמהיל תעודות ההתמחות לפי תקופה, {plabels[0]} עד {plabels[-1]}.",
         "mix_caption": "אחוז תעודות ההתמחות לפי תחום ותקופה.",
-        "newest_note": "תחומי ההתמחות שתעודתם הראשונה במאגר היא החדשה ביותר — מסלולים שנפתחו או פוצלו לאחרונה.",
+        "newest_note": "תחומי ההתמחות שתעודתם הראשונה במאגר היא החדשה ביותר: מסלולים שנפתחו או פוצלו לאחרונה.",
         "newest_caption": "תחומי ההתמחות החדשים: תאריך התעודה הראשונה ומספר רופאים.",
     }
 
@@ -531,7 +531,7 @@ def compute(frames):
         "specs": [{"name": s, "count": n(v), "share": f"{v / n_specialists * 100:.1f}%"} for s, v in top_specs.items()],
         "nspec": [{"name": a, "count": n(b), "share": f"{b / total * 100:.1f}%"} for a, b in zip(nspec_names, nspec_vals)],
         "cohorts": [{"name": c["name"], "count": n(c["count"]), "share": f"{c['share']:.1f}%",
-                     "med": "—" if c["med"] is None else f"{c['med']:.1f}"} for c in cohorts],
+                     "med": "–" if c["med"] is None else f"{c['med']:.1f}"} for c in cohorts],
         "gap": [{"name": r["name"], "med": f"{r['med']:.1f}", "q1": f"{r['q1']:.1f}", "q3": f"{r['q3']:.1f}",
                  "count": n(r["count"])} for r in sorted(gap_tbl, key=lambda r: (r["med"], r["name"]))],
         "paths": [{"name": f"{a} ← {b}", "count": n(v)} for (a, b), v in ptop.items()],

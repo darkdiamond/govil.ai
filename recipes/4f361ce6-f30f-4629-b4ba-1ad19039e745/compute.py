@@ -110,9 +110,9 @@ def insight_peak(per_year, last_full):
     drop = 1 - lv / pv
     if abs(drop) < 0.1:
         return (f"שנת השיא ברישום הייתה {peak} ({n(pv)} נרשמים); ב-{last_full} נרשמו "
-                f"{n(lv)} — קרוב לשיא.")
+                f"{n(lv)}, קרוב לשיא.")
     return (f"שנת השיא ברישום הייתה {peak}, עם {n(pv)} נרשמים; ב-{last_full} נרשמו "
-            f"{n(lv)} — {pct(drop * 100, 0)} פחות מהשיא.")
+            f"{n(lv)}, {pct(drop * 100, 0)} פחות מהשיא.")
 
 
 def insight_ytd(df, ref, partial):
@@ -131,7 +131,7 @@ def insight_ytd(df, ref, partial):
     else:
         trend = (f"{pct(abs(chg) * 100, 0)} {'יותר' if chg > 0 else 'פחות'} מבתקופה המקבילה "
                  f"ב-{y - 1} ({n(p)})")
-    return f"מתחילת {y} ועד {d_he(ref)} נרשמו {n(c)} עובדים סוציאליים — {trend}."
+    return f"מתחילת {y} ועד {d_he(ref)} נרשמו {n(c)} עובדים סוציאליים, {trend}."
 
 
 def insight_season(month_share, y0, y1):
@@ -225,7 +225,7 @@ def insight_numbers(df):
     gap = mx - cnt
     if gap < 100:
         return None
-    return (f"מספרי הרישום מגיעים עד {n(mx)}, אך בקובץ {n(cnt)} רישומים מובחנים — "
+    return (f"מספרי הרישום מגיעים עד {n(mx)}, אך בקובץ {n(cnt)} רישומים מובחנים: "
             f"{n(gap)} מספרים בטווח אינם מופיעים בפנקס הנוכחי.")
 
 
@@ -356,7 +356,7 @@ def compute(frames):
     else:
         chg_txt = f", {'עלייה' if chg >= 0 else 'ירידה'} של {abs(chg) * 100:.0f}% לעומת {last_full - 1}"
 
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {ref_year} היא שנה חלקית, עד {d_he(ref)}." if partial else ""
     top_m = int(mshare.idxmax())
     labels = {
         "lede": (f"פנקס העובדים הסוציאליים של משרד הרווחה והביטחון החברתי: {n(total)} עובדים "
@@ -386,7 +386,7 @@ def compute(frames):
         "cities_note": (f"{TOP_CITIES} הישובים עם מספר העובדים הסוציאליים הרשומים הגדול ביותר. "
                         f"איות שמות הישובים במקור אוחד"
                         + (f"; {n(unknown_city)} רשומות ללא ישוב ידוע אינן נכללות." if unknown_city else ".")),
-        "cities_aria": (f"גרף עמודות אופקי: {TOP_CITIES} הישובים המובילים — "
+        "cities_aria": (f"גרף עמודות אופקי: {TOP_CITIES} הישובים המובילים, "
                         f"{top_c[0]} בראש עם {n(cities.iloc[0])} רשומים."),
         "cities_caption": f"רשומים לפי ישוב ({TOP_CITIES} המובילים).",
         "shift_note": (f"חלקם של {TOP_SHIFT} הישובים הגדולים מכלל הנרשמים בכל תקופת רישום (באחוזים). "
@@ -394,7 +394,7 @@ def compute(frames):
         "shift_aria": f"גרף עמודות מקובצות: חלק {TOP_SHIFT} הישובים הגדולים בין הנרשמים, לפי תקופת רישום.",
         "shift_caption": "שיעור הנרשמים בכל ישוב, לפי תקופת רישום.",
         "surnames_note": f"{TOP_NAMES} שמות המשפחה הנפוצים בפנקס.",
-        "surnames_aria": f"גרף עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים — {surnames.index[0]} בראש.",
+        "surnames_aria": f"גרף עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים, {surnames.index[0]} בראש.",
         "surnames_caption": "מספר רשומים לפי שם משפחה.",
         "firsts_note": f"{TOP_NAMES} השמות הפרטיים הנפוצים בקרב מי שנרשמו ב-{ref_year - RECENT_YEARS + 1} עד {ref_year}.",
         "firsts_aria": f"גרף עמודות אופקי: {TOP_NAMES} השמות הפרטיים הנפוצים בקרב נרשמים מ-{ref_year - RECENT_YEARS + 1} ואילך.",

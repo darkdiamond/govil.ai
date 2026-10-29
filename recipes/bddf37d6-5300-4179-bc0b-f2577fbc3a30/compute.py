@@ -101,7 +101,7 @@ def insight_cranes(df):
     if n == 0:
         return None
     top = _top(df.loc[df["cranes"], "city"].value_counts(), 1)
-    return (f"ב-{_int(n)} אתרים ({_pct(n / len(df))}) פועלים עגורנים — הכי הרבה ב{top.index[0]} "
+    return (f"ב-{_int(n)} אתרים ({_pct(n / len(df))}) פועלים עגורנים, הכי הרבה ב{top.index[0]} "
             f"({_int(top.iloc[0])} אתרים).")
 
 
@@ -270,7 +270,7 @@ def compute(frames):
                    "tone": "info"},
         # Share of active sites under a safety order: a quarter or more is a
         # bad state, a tenth or more calls for caution, below that is good.
-        "with_orders": {"value": with_orders, "display": _pct(order_share) if n else "—",
+        "with_orders": {"value": with_orders, "display": _pct(order_share) if n else "–",
                         "tone": ("danger" if order_share >= 0.25
                                  else "warn" if order_share >= 0.10 else "ok")},
     }
@@ -309,8 +309,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשימת אתרי הבנייה הפעילים של משרד העבודה: {_int(n)} אתרים — חיפוש לפי קבלן מבצע, "
-                           f"יישוב או כתובת האתר, עם עגורנים, צווי בטיחות ועיצומים כספיים."),
+            "summary_he": (f"רשימת אתרי הבנייה הפעילים של משרד העבודה: {_int(n)} אתרים, עם עגורנים, צווי בטיחות "
+                           f"ועיצומים כספיים. חיפוש לפי קבלן מבצע, יישוב או כתובת האתר."),
             "dataset_kind": "registry",
             "suggested_tags": ["אתרי בנייה", "בטיחות בעבודה", "בנייה", "עגורנים", "צווי בטיחות"],
             "spatial_coverage": "ישראל",

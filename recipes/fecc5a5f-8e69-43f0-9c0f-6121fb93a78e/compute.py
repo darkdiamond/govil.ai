@@ -97,7 +97,7 @@ def short_type(raw):
     s = re.sub(r"^רישיון\s+", "", s)
     m = re.match(r"^מדביר במבנים ובשטח פתוח מוגבל ל(.+)$", s)
     if m:
-        return f"{F_FULL} — {m.group(1)}"
+        return f"{F_FULL}, מוגבל ל{m.group(1)}"
     s = re.sub(r"\s+-\s+", ": ", s)
     return s
 
@@ -191,7 +191,7 @@ def insight_wave(months, dated, df_dated, fam_order):
         f0, k0 = fam_c.index[0], int(fam_c.iloc[0])
         fam_txt = f", רובם ({n(k0)}) רישיונות {f0}" if k0 / cnt > 0.5 else f", בעיקר רישיונות {f0} ({n(k0)})"
     ratio = cnt / c2 if c2 else None
-    rtxt = f" — פי {ratio:.1f} מהחודש השני בגודלו ({month_he(second)}, {n(c2)})" if ratio and ratio >= 1.5 else ""
+    rtxt = f", פי {ratio:.1f} מהחודש השני בגודלו ({month_he(second)}, {n(c2)})" if ratio and ratio >= 1.5 else ""
     return (f"גל פקיעה מרוכז: {n(cnt)} רישיונות ({pct(cnt / dated)} מהרישיונות עם תאריך תקין) פוקעים ב{month_he(peak)}"
             f"{fam_txt}{rtxt}. זה עומס חידוש צפוי סביב אותו חודש.")
 
@@ -205,7 +205,7 @@ def insight_concentration(city_counts, total):
         return None
     single = int((named == 1).sum())
     t3 = ", ".join(f"{c} ({n(v)})" for c, v in named.iloc[:3].items())
-    return (f"ריכוז גיאוגרפי: שלושת היישובים המובילים — {t3} — ועשרת המובילים יחד מחזיקים "
+    return (f"ריכוז גיאוגרפי: שלושת היישובים המובילים הם {t3}, ועשרת המובילים יחד מחזיקים "
             f"{pct(top10 / total)} מהרישיונות, בעוד {n(single)} מתוך {n(len(named))} יישובים מונים רישיון אחד בלבד.")
 
 
@@ -255,7 +255,7 @@ def insight_seniority(df):
     tname, tcnt = tf.index[0], int(tf.iloc[0])
     return (f"רישיונות {lo} נושאים את מספרי הרישיון הנמוכים ביותר (חציון {n(med[lo])}), ורישיונות {hi} "
             f"את הגבוהים ביותר (חציון {n(med[hi])}). ברבע העליון של מספרי הרישיון (מעל {n(q)}), "
-            f"{pct(tcnt / len(top), 0)} הם רישיונות {tname} — אם המספרים מוקצים בסדר עולה, "
+            f"{pct(tcnt / len(top), 0)} הם רישיונות {tname}. אם המספרים מוקצים בסדר עולה, "
             f"זה מסלול הכניסה העיקרי של המצטרפים החדשים.")
 
 
@@ -266,7 +266,7 @@ def insight_multi(df):
         return None
     combos = ranked(multi.map(lambda t: " + ".join(t)).value_counts())
     c0, k0 = combos.index[0], int(combos.iloc[0])
-    tail = (" — כולם באותו צירוף" if k0 == len(multi) else f"; הצירוף הנפוץ ({n(k0)}): {c0}")
+    tail = (", כולם באותו צירוף" if k0 == len(multi) else f"; הצירוף הנפוץ ({n(k0)}): {c0}")
     lead = f"{n(len(multi))} מדבירים מחזיקים יותר מסוג רישיון אחד תחת אותו מספר רישיון"
     if k0 == len(multi):
         return f"{lead}: {c0}{tail}."
@@ -439,7 +439,7 @@ def compute(frames):
         "year_aria": (f"תרשים עמודות מוערמות של מספר הרישיונות לפי שנת פקיעה, {y0}–{y1}" if dated
                       else "תרשים עמודות של שנת פקיעת הרישיון"),
         "year_caption": "רישיונות לפי שנת פקיעה ומשפחת רישיון",
-        "heat_note": (f"מספר הרישיונות שפוקעים בכל חודש — חודשים כהים הם גלי חידוש."
+        "heat_note": (f"מספר הרישיונות שפוקעים בכל חודש; חודשים כהים הם גלי חידוש."
                       + (f" החודש העמוס: {month_he(ranked(months).index[0])} "
                          f"({n(ranked(months).iloc[0])} רישיונות)." if dated else "")),
         "heat_aria": f"מפת חום של פקיעת רישיונות לפי חודש ושנה, {n(len(heat['y']))} שנים",
@@ -447,7 +447,7 @@ def compute(frames):
                         f"מתוך {n(n_cities)}; יחד {pct(top_c_share)} מהרישיונות."),
         "cities_aria": f"תרשים עמודות מוערמות של מספר הרישיונות ב-{n(len(top_c))} היישובים המובילים לפי משפחת רישיון",
         "cities_caption": "רישיונות לפי יישוב ומשפחת רישיון",
-        "spread_note": (f"כמה יישובים יש בכל גודל — לפי מספר הרישיונות של תושביהם — וכמה רישיונות הם מחזיקים יחד. "
+        "spread_note": (f"כמה יישובים יש בכל גודל (לפי מספר הרישיונות של תושביהם), וכמה רישיונות הם מחזיקים יחד. "
                         f"{n(single_cities)} יישובים מונים רישיון אחד בלבד."),
         "spread_aria": f"תרשים עמודות של מספר היישובים ומספר הרישיונות לפי גודל יישוב, {n(len(bucket_rows))} קבוצות",
         "spread_caption": "יישובים ורישיונות לפי מספר הרישיונות ביישוב",
@@ -486,8 +486,8 @@ def compute(frames):
     flags = {"expiry": dated > 0, "bands": bool(width)}
 
     agent_data = {
-        "summary_he": (f"רשימת מדבירים מורשים של המשרד להגנת הסביבה — בדיקת רישיון לפי שם או מספר רישיון: "
-                       f"{n(n_holders)} מדבירים ב-{n(n_cities)} יישובים, {n(in_force)} רישיונות בתוקף."),
+        "summary_he": (f"רשימת מדבירים מורשים של המשרד להגנת הסביבה: {n(n_holders)} מדבירים ב-{n(n_cities)} יישובים, "
+                       f"{n(in_force)} רישיונות בתוקף. בדיקת רישיון לפי שם או מספר רישיון."),
         "dataset_kind": "registry",
         "related_ids": ["a37765ea-d407-42e8-b757-9b70a8cf574f",
                         "7a6cbf55-8178-4d40-8613-a38909c7e96f",

@@ -261,6 +261,15 @@ GovMap `resourceId`).
 - The `<h1>` is the dataset title; insights section, cards, icon headers etc.
   exactly per BODY SKELETON (check.py enforces them).
 
+### No em dash in user-facing text
+
+Don't put an em dash (—) in anything a visitor reads: insights, ledes, labels,
+headings, `summary_he`, tooltips or aria-labels. Rewrite the sentence instead,
+using a colon, a comma, parentheses or a new sentence. A year range keeps its en
+dash (2016–2025). `verify` fails on an em dash in any `compute.py` string
+literal or in the template (comments and docstrings are exempt). Older recipes
+still have them, so clean the whole recipe whenever you touch one.
+
 ### Search (SEO) — write for what people type
 
 Most organic traffic is _lookup_ intent ("איתור מספר רישיון רופא", "איתור
@@ -274,7 +283,7 @@ the lookup.
   ("איתור … לפי שם, מספר רישיון או יישוב"), then one or two computed numbers.
   Don't write a stats blurb.
 - **The `<h1>` is the name people search**, which is not always the CKAN title
-  (e.g. "מאגר שומות מכריעות — הכרעות שמאי מכריע", not "מאגר נתוני שמאות
+  (e.g. "מאגר שומות מכריעות: הכרעות שמאי מכריע", not "מאגר נתוני שמאות
   מכריעה"). Work the common variant (כח/כוח, בניה/בנייה, "רשם …"/"פנקס …")
   into the lede or an H2 naturally. Never add a keyword block.
 - **Registry/list datasets get a lookup callout** right after the lede card,

@@ -147,7 +147,7 @@ def insight_concentration(df, bvc):
     if share < 0.4:
         return None
     names = ", ".join(top3.index[:2]) + " ו" + top3.index[2]
-    return (f"שלושה ענפים — {names} — מרכזים {pct(share)} מכלל הרישומים "
+    return (f"שלושה ענפים ({names}) מרכזים {pct(share)} מכלל הרישומים "
             f"({n(top3.sum())} מתוך {n(len(df))}); בפנקס {n(len(bvc))} ענפים בסך הכול.")
 
 
@@ -157,7 +157,7 @@ def insight_ladder(df, c):
     if entry < 0.5:
         return None
     return (f"{pct(entry)} מהרישומים הם בסיווגים הנמוכים (ק ו-1), המגבילים את היקף העבודה הבודדת; "
-            f"רק {n(five)} קבלנים ({pct(five / len(c))}) מחזיקים בסיווג 5 — ללא הגבלת היקף — "
+            f"רק {n(five)} קבלנים ({pct(five / len(c))}) מחזיקים בסיווג 5 (ללא הגבלת היקף) "
             f"לפחות בענף אחד.")
 
 
@@ -173,7 +173,7 @@ def insight_growth(c, now, partial):
     vc = y[y <= last].value_counts().sort_index()
     peak = int(vc.sort_values(ascending=False, kind="stable").index[0])
     tail = " זו שנת השיא בפנקס." if peak == last else f" שנת השיא: {peak} ({n(vc[peak])})."
-    return f"ב-{last} נרשמו לראשונה {n(a)} קבלנים — {trend}.{tail}"
+    return f"ב-{last} נרשמו לראשונה {n(a)} קבלנים, {trend}.{tail}"
 
 
 def _ytd(c, now):
@@ -205,7 +205,7 @@ def insight_ytd(c, now):
     word = ("כמעט ללא שינוי" if abs(ch) < 0.03
             else f"{'עלייה' if ch > 0 else 'ירידה'} של {pct(abs(ch))}")
     return (f"מתחילת {now.year} ועד {d_he(now)} נרשמו {n(a)} קבלנים חדשים, לעומת {n(b)} "
-            f"באותה תקופה אשתקד — {word}.")
+            f"באותה תקופה אשתקד: {word}.")
 
 
 def insight_recognised(df, c):
@@ -218,8 +218,8 @@ def insight_recognised(df, c):
     if s5 is not None and s1 is not None and s5 > s1:
         tail = (f" ההכרה נפוצה ככל שהסיווג גבוה: {pct(s5)} מהרישומים בסיווג 5, "
                 f"לעומת {pct(s1)} בסיווג 1.")
-    return (f"{n(k)} קבלנים ({pct(k / len(c))}) הם 'קבלנים מוכרים' — רשאים להשתתף במכרזי "
-            f"עבודות ממשלתיות — לפחות בענף אחד.{tail}")
+    return (f"{n(k)} קבלנים ({pct(k / len(c))}) הם 'קבלנים מוכרים', הרשאים להשתתף במכרזי "
+            f"עבודות ממשלתיות, לפחות בענף אחד.{tail}")
 
 
 def insight_breadth(c):
@@ -253,8 +253,8 @@ def insight_staff(df, bvc):
     if overall >= 0.5 or sh.iloc[0] - sh.iloc[-1] < 0.1:
         return None
     return (f"רוב הרישומים מבוססים על כישורי המנהל; רק {pct(overall)} נשענים על העסקת עובדים "
-            f"מקצועיים. בענף {sh.index[0]} השיעור גבוה בהרבה — {pct(sh.iloc[0])}, "
-            f"ובענף {sh.index[-1]} — {pct(sh.iloc[-1])} בלבד (ענפים עם "
+            f"מקצועיים. בענף {sh.index[0]} השיעור גבוה בהרבה: {pct(sh.iloc[0])}, "
+            f"ובענף {sh.index[-1]} {pct(sh.iloc[-1])} בלבד (ענפים עם "
             f"{n(MIN_BRANCH_ROWS)} רישומים לפחות).")
 
 
@@ -264,7 +264,7 @@ def insight_restrictions(df):
         return None
     vc = _vc(r["restr"])
     parts = ", ".join(f"{k}: {n(v)}" for k, v in vc.items())
-    return (f"{n(len(r))} רישומים ({n(r['kablan'].nunique())} קבלנים) נושאים הגבלה בפנקס — "
+    return (f"{n(len(r))} רישומים ({n(r['kablan'].nunique())} קבלנים) נושאים הגבלה בפנקס: "
             f"{parts}.")
 
 
@@ -274,7 +274,7 @@ def insight_corp(df):
         return None
     return (f"ככל שהסיווג עולה, כך גובר משקלם של התאגידים: {pct(by['5'])} מהרישומים בסיווג 5 "
             f"שייכים לחברות או שותפויות, לעומת {pct(by['1'])} בסיווג 1"
-            + (" — שם רוב הרשומים עוסקים יחידים." if by["1"] < 0.5 else "."))
+            + (", שם רוב הרשומים עוסקים יחידים." if by["1"] < 0.5 else "."))
 
 
 # ── charts ───────────────────────────────────────────────────────────────
@@ -323,7 +323,7 @@ def compute(frames):
                 continue
             h = hk.get((s, g), "")
             num = pd.to_numeric(h.replace(",", ""), errors="coerce")
-            ceiling = "ללא הגבלה" if h == "ב.מ." else (n(num) if pd.notna(num) else "—")
+            ceiling = "ללא הגבלה" if h == "ב.מ." else (n(num) if pd.notna(num) else "–")
             ladder_rows.append({"sivug": s, "group": g, "ceiling": ceiling, "count": cnt})
     ladder = {"x": [f"סיווג {s}" for s in sivugs],
               "series": [{"name": f"קבוצה {g}", "data": [int(sg.get((s, g), 0)) for s in sivugs]}
@@ -503,8 +503,8 @@ def compute(frames):
                   "seniority": len(box_names) >= 2},
         "insights": insights,
         "labels": {
-            "lede": (f"{n(len(c))} קבלנים רשומים בפנקס, ב-{n(len(df))} רישומים — רישום אחד לכל ענף "
-                     f"שבו הקבלן מורשה לעבוד, בממוצע {mean_br:.2f} ענפים לקבלן. לכל רישום סיווג "
+            "lede": (f"{n(len(c))} קבלנים רשומים בפנקס, ב-{n(len(df))} רישומים (רישום אחד לכל ענף "
+                     f"שבו הקבלן מורשה לעבוד), בממוצע {mean_br:.2f} ענפים לקבלן. לכל רישום סיווג "
                      f"(ק, 1–5) וקבוצה (א–ג) הקובעים את ההיקף הכספי המרבי לעבודה בודדת. "
                      f"העדכון האחרון בקובץ: {d_he(now)}."),
             "year": str(now.year),
@@ -518,8 +518,8 @@ def compute(frames):
             "branches_aria": f"גרף עמודות מוערמות: רישומים ב-{TOP_BRANCHES} הענפים הגדולים לפי סיווג.",
             "ladder_aria": "גרף עמודות מוערמות: רישומים לפי סיווג וקבוצה.",
             "heat_aria": f"מפת חום: התפלגות הסיווג בכל אחד מ-{HEAT_BRANCHES} הענפים הגדולים, באחוזים.",
-            "by_year_note": (f"קבלנים לפי שנת הרישום הראשון בפנקס. השנה {now.year} חלקית — עד {d_he(now)}."
-                             + (f" ב-{bulk['date']} נרשמו {bulk['count']} קבלנים ביום אחד — "
+            "by_year_note": (f"קבלנים לפי שנת הרישום הראשון בפנקס. השנה {now.year} חלקית, עד {d_he(now)}."
+                             + (f" ב-{bulk['date']} נרשמו {bulk['count']} קבלנים ביום אחד, "
                                 f"מועד רישום מרוכז." if bulk else "")),
             "by_year_aria": f"גרף עמודות: קבלנים חדשים לפי שנה, {first_year}–{now.year}.",
             "monthly_aria": f"גרף עמודות: קבלנים חדשים בכל חודש, {MONTHS} החודשים האחרונים.",
@@ -537,12 +537,12 @@ def compute(frames):
             "staff_aria": "תרשים עמודות: שיעור הרישום על סמך עובדים מקצועיים לפי ענף.",
             "breadth_aria": "תרשים עמודות: קבלנים לפי מספר הענפים שבהם הם רשומים.",
             "leaders_note": (f"{TOP_LEADERS} הקבלנים הרשומים במספר הענפים הגדול ביותר; "
-                             f"החלק הכהה — ענפים בסיווג 5."),
+                             f"החלק הכהה: ענפים בסיווג 5."),
             "leaders_aria": "גרף עמודות מוערמות: הקבלנים הרשומים במספר הענפים הגדול ביותר.",
             "corp_aria": "תרשים עמודות: שיעור הרישומים של תאגידים בכל סיווג.",
             "seniority_aria": "תרשים קופסה: ותק הקבלנים בפנקס בשנים, לפי הסיווג הגבוה שלהם.",
             "seniority_note": (f"שנים מאז הרישום הראשון בפנקס, לפי הסיווג הגבוה ביותר של הקבלן; "
-                               f"הקופסה — הרבעון התחתון עד העליון, הקווים — אחוזונים חמישי ותשעים וחמישה."),
+                               f"הקופסה: הרבעון התחתון עד העליון; הקווים: אחוזונים חמישי ותשעים וחמישה."),
             "restrictions_note": (f"הגבלות הרשומות בתיאור הענף: {n(n_restr)} רישומים "
                                   f"({pct(n_restr / len(df), 2)} מהפנקס)."),
         },

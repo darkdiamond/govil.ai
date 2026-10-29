@@ -100,10 +100,10 @@ def insight_trend(t12, p12, last):
         return None
     ch = (t12 - p12) / p12
     if abs(ch) < 0.05:
-        return (f"ב-12 החודשים שעד {d_he(last)} הוצאו {_int(t12)} צווי בטיחות — "
+        return (f"ב-12 החודשים שעד {d_he(last)} הוצאו {_int(t12)} צווי בטיחות, "
                 f"כמעט ללא שינוי לעומת 12 החודשים שלפניהם ({_int(p12)}).")
     word = "עלייה" if ch > 0 else "ירידה"
-    return (f"ב-12 החודשים שעד {d_he(last)} הוצאו {_int(t12)} צווי בטיחות — {word} של "
+    return (f"ב-12 החודשים שעד {d_he(last)} הוצאו {_int(t12)} צווי בטיחות, {word} של "
             f"{abs(ch) * 100:.0f}% לעומת 12 החודשים שלפניהם ({_int(p12)}).")
 
 
@@ -113,7 +113,7 @@ def insight_peak_year(yearly, last):
         return None
     y = int(full.idxmax())
     return (f"השנה המלאה עם מספר הצווים הגבוה ביותר היא {y} ({_int(full.max())} צווים); "
-            f"השנה הנוכחית ({last.year}) חלקית — {_int(yearly.get(last.year, 0))} צווים עד כה.")
+            f"השנה הנוכחית ({last.year}) חלקית, עם {_int(yearly.get(last.year, 0))} צווים עד כה.")
 
 
 def insight_theme(recent):
@@ -124,7 +124,7 @@ def insight_theme(recent):
     share = n / len(recent)
     if share < 0.15 or name == OTHER:
         return None
-    return (f"הנושא הנפוץ ביותר בצווים בשנה האחרונה: {name} — {_int(n)} צווים, "
+    return (f"הנושא הנפוץ ביותר בצווים בשנה האחרונה: {name}, עם {_int(n)} צווים, "
             f"{_pct(share)} מהצווים.")
 
 
@@ -357,7 +357,7 @@ def compute(frames):
                        "הגבוה ביותר בשנה האחרונה.",
         "exec_aria": f"תרשים עמודות אופקי: {len(executors['names'])} החברות שקיבלו הכי הרבה "
                      "צווי בטיחות.",
-        "exec_note": (f"חברות ותאגידים בלבד ({_int(len(corp))} צווים מתוך {_int(len(df))}) — "
+        "exec_note": (f"חברות ותאגידים בלבד ({_int(len(corp))} צווים מתוך {_int(len(df))}); "
                       "מבצעים שהם אנשים פרטיים או שלא צוינו אינם מדורגים."),
         "heat_aria": f"מפת חום: מספר הצווים לפי חודש ושנה, {y0} עד {y1}.",
         "year_caption": f"מספר צווי הבטיחות לפי שנה, {y0} עד {y1}.",
@@ -376,8 +376,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"צווי בטיחות של משרד העבודה: {_int(len(df))} צווים שהוטלו על אתרי עבודה מ-{y0} ועד {d_he(last)} "
-                           f"— חיפוש לפי קבלן, אתר או יישוב, עם ענף ונושא ההפרה."),
+            "summary_he": (f"צווי בטיחות של משרד העבודה: {_int(len(df))} צווים שהוטלו על אתרי עבודה מ-{y0} ועד {d_he(last)}, "
+                           f"לפי ענף ונושא ההפרה. חיפוש לפי קבלן, אתר או יישוב."),
             "dataset_kind": "registry",
             "suggested_tags": ["בטיחות בעבודה", "צווי בטיחות", "אכיפה", "אתרי בנייה", "מעליות"],
             "temporal_coverage": f"{first.strftime('%Y-%m-%d')}/{last.strftime('%Y-%m-%d')}",

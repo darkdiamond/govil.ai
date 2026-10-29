@@ -121,12 +121,12 @@ def insight_trend(per_year, first_full, last_full):
         return None
     chg = v1 / v0 - 1
     full = per_year[(per_year.index >= first_full) & (per_year.index <= last_full)]
-    record = " — שנת שיא" if full.idxmax() == last_full else ""
+    record = ". זו שנת השיא" if full.idxmax() == last_full else ""
     if abs(chg) < 0.03:
         s = f"ב-{last_full} ניתנו {n(v1)} הכרעות, בדומה ל-{last_full - 1} ({n(v0)}){record}."
     else:
         word = "יותר" if chg > 0 else "פחות"
-        s = (f"ב-{last_full} ניתנו {n(v1)} הכרעות — {pct(abs(chg) * 100)} {word} "
+        s = (f"ב-{last_full} ניתנו {n(v1)} הכרעות, {pct(abs(chg) * 100)} {word} "
              f"מאשר ב-{last_full - 1}{record}.")
     ratio = v1 / vf
     if ratio >= 1.5:
@@ -151,7 +151,7 @@ def insight_ytd(df, ref_pub):
     chg = cur / prev - 1
     when = f"מתחילת {y} ועד {d_he(ref_pub)}"
     if abs(chg) < 0.05:
-        return f"{when} פורסמו {n(cur)} הכרעות — בדומה לתקופה המקבילה ב-{y - 1} ({n(prev)})."
+        return f"{when} פורסמו {n(cur)} הכרעות, בדומה לתקופה המקבילה ב-{y - 1} ({n(prev)})."
     word = "עלייה" if chg > 0 else "ירידה"
     return (f"{when} פורסמו {n(cur)} הכרעות, {word} של {pct(abs(chg) * 100)} לעומת התקופה "
             f"המקבילה ב-{y - 1} ({n(prev)}).")
@@ -322,7 +322,7 @@ def compute(frames):
     per_appr = [round(float(per_year[y] / active[y]), 1) if active[y] else None for y in years]
     active_chart = {"x": ylabels, "active": [int(v) for v in active], "per": per_appr}
     active_table = [{"year": ylabels[i], "active": n(active.iloc[i]),
-                     "per": "—" if per_appr[i] is None else f"{per_appr[i]:.1f}"}
+                     "per": "–" if per_appr[i] is None else f"{per_appr[i]:.1f}"}
                     for i in range(len(years))]
 
     # 9. publication lag by decision year (negative lags = data errors, excluded)
@@ -397,7 +397,7 @@ def compute(frames):
         "last_full": {"value": lf_n, "display": n(lf_n), "tone": lf_tone},
         "active": {"value": int(active.get(last_full, 0)), "display": n(active.get(last_full, 0)),
                    "tone": "brand"},
-        "lag": {"value": med_lf, "display": "—" if med_lf is None else n(round(med_lf)),
+        "lag": {"value": med_lf, "display": "–" if med_lf is None else n(round(med_lf)),
                 "tone": lag_tone},
     }
 
@@ -414,13 +414,13 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
-    partial_note = (f" {ref_year} חלקית — ההכרעה האחרונה במאגר מ-{d_he(ref)}." if partial else "")
+    partial_note = (f" {ref_year} חלקית: ההכרעה האחרונה במאגר מ-{d_he(ref)}." if partial else "")
     lag_recent_med = int(rec.median()) if len(rec) else 0
     within90 = sum(r["share"] for r in lag_rows[:2])
     rec_lag_lf = med_lf if med_lf is not None else 0
     labels = {
         "lede": (f"הכרעות של שמאים מכריעים ושמאים מייעצים בסכסוכי שומה בין בעלי מקרקעין לוועדות "
-                 f"התכנון המקומיות — בעיקר בהיטל השבחה. המאגר כולל {n(total)} הכרעות מ-{d_he(first_dec)} "
+                 f"התכנון המקומיות, בעיקר בהיטל השבחה. המאגר כולל {n(total)} הכרעות מ-{d_he(first_dec)} "
                  f"ועד {d_he(ref)}, ב-{n(comms.size)} ועדות מקומיות ובחתימת {n(apprs.size)} שמאים. "
                  f"הפרסום האחרון במאגר: {d_he(ref_pub)}."),
         "last_full_kpi": f"הכרעות ב-{last_full}" + (f" (שנת שיא)" if is_record else f" ({n(prev_n)} ב-{last_full - 1})"),
@@ -455,8 +455,8 @@ def compute(frames):
         "appr_aria": (f"תרשים עמודות: {TOP_APPRAISERS} השמאים עם מספר ההכרעות הגבוה ביותר; "
                       f"בראש {apprs.index[0]} עם {n(apprs.iloc[0])}."),
         "appr_caption": f"{TOP_APPRAISERS} השמאים המובילים: הכרעות, שנות פעילות ומספר ועדות.",
-        "cohort_note": (f"הכרעות בכל שנה לפי המחזור של השמאי — תקופה של {COHORT_WIDTH} שנים שבה "
-                        f"ניתנה ההכרעה הראשונה שלו במאגר. רואים כך כיצד מחזורי מינוי חדשים מחליפים את הקודמים."),
+        "cohort_note": (f"הכרעות בכל שנה לפי המחזור של השמאי (תקופה של {COHORT_WIDTH} שנים שבה "
+                        f"ניתנה ההכרעה הראשונה שלו במאגר). רואים כך כיצד מחזורי מינוי חדשים מחליפים את הקודמים."),
         "cohort_aria": f"גרף עמודות מוערמות: הכרעות לפי שנה ולפי מחזור השמאים, {min_year}–{ref_year}.",
         "cohort_caption": "מחזורי שמאים: מספר שמאים ומספר הכרעות בכל מחזור.",
         "active_note": "מספר השמאים שנתנו לפחות הכרעה אחת בשנה, וממוצע ההכרעות לשמאי פעיל.",
@@ -466,7 +466,7 @@ def compute(frames):
         "lag_note": ("ימים מתאריך ההכרעה ועד פרסומה במאגר, לפי שנת ההכרעה: חציון ורבעון עליון. "
                      f"הפרסום הראשון במאגר הוא מ-{d_he(first_pub)}; הכרעות קודמות הועלו אז למפרע, "
                      f"ולכן הזמנים בשנים המוקדמות ארוכים"
-                     + (f" — הגרף מתחיל ב-{base_year} והטבלה כוללת את כל השנים. " if base_year else ". ")
+                     + (f"; הגרף מתחיל ב-{base_year} והטבלה כוללת את כל השנים. " if base_year else ". ")
                      + 
                      "בשנים האחרונות חלק מההכרעות טרם פורסמו, כך שהערכים בהן עשויים לעלות מעט."
                      + (f" {n(neg)} רשומות שבהן תאריך הפרסום קודם לתאריך ההכרעה אינן נכללות." if neg else "")),
@@ -477,13 +477,13 @@ def compute(frames):
                          f"{n(lag_recent_med)} ימים, ו-{pct(within90)} פורסמו בתוך תשעים יום."),
         "lagdist_aria": f"תרשים עמודות: הכרעות {lag_from}–{last_full} לפי זמן מהכרעה לפרסום.",
         "lagdist_caption": f"הכרעות {lag_from}–{last_full} לפי זמן מהכרעה לפרסום.",
-        "claims_note": (f"תביעות פיצויים (ירידת ערך בשל תכנית) ותיקי הפקעות — כ-{pct((total - int(types.get(TYPE_ORDER[0], 0))) / total * 100)} "
+        "claims_note": (f"תביעות פיצויים (ירידת ערך בשל תכנית) ותיקי הפקעות: כ-{pct((total - int(types.get(TYPE_ORDER[0], 0))) / total * 100)} "
                         f"מההכרעות. {n(advisory)} הכרעות ניתנו בידי שמאי מייעץ, שממונה מטעם ועדת הערר."),
         "claims_aria": f"גרף עמודות מוערמות: תביעות פיצויים ותיקי הפקעות לפי שנה, {min_year}–{ref_year}.",
         "claims_caption": "תביעות פיצויים ותיקי הפקעות לפי שנה.",
         "xtab_caption": "הכרעות לפי סוג שומה וסוג השמאי.",
         "corp_note": (f"שיעור ההכרעות שבהן שם הצד שמול הוועדה מעיד על תאגיד (בע״מ, חברה, שותפות, "
-                      f"יזמות וכדומה). זיהוי לפי מילים בכותרת ההכרעה — הערכה בלבד; הכותרת ניתנת "
+                      f"יזמות וכדומה). זיהוי לפי מילים בכותרת ההכרעה, ולכן זו הערכה בלבד; הכותרת ניתנת "
                       f"לפענוח ב-{pct(parsed_share)} מההכרעות. שנים עם פחות מחמישים הכרעות אינן מוצגות."),
         "corp_aria": "גרף קווים: שיעור ההכרעות שבהן הצד שמול הוועדה הוא תאגיד, לפי שנה.",
         "corp_caption": "שיעור ההכרעות מול תאגיד ומספר ההכרעות שנבדקו, לפי שנה.",
@@ -518,7 +518,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"מאגר שומות מכריעות: {n(total)} הכרעות שמאי מכריע ושמאי מייעץ {min_year}–{ref_year} "
-                           f"בהיטל השבחה, פיצויים והפקעות — חיפוש לפי ועדה מקומית, גוש וחלקה או שם השמאי."),
+                           f"בהיטל השבחה, פיצויים והפקעות. חיפוש לפי ועדה מקומית, גוש וחלקה או שם השמאי."),
             "dataset_kind": "timeseries",
             "related_ids": ["83372c35-23ce-4ddf-829f-1067b5ef3409", "669b2652-f75b-4de3-8e6b-0dfa17accef5"],
             "suggested_tags": ["שמאות מקרקעין", "היטל השבחה", "שמאי מכריע", "ועדות תכנון",

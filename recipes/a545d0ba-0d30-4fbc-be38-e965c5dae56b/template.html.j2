@@ -144,7 +144,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
     {{ head("קבלנים מוכרים לפי סיווג", "circle-check") }}
-    <p class="m-0 text-sm text-subtle mb-3">שיעור הרישומים של קבלנים מוכרים — הרשאים להשתתף במכרזי עבודות ממשלתיות — בכל סיווג.</p>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור הרישומים של קבלנים מוכרים (הרשאים להשתתף במכרזי עבודות ממשלתיות) בכל סיווג.</p>
     <div id="chart-recognised" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recognised_aria }}"></div>
     {{ table(model.labels.recognised_aria, "סיווג", "מוכרים (%)", model.charts.recognised, "num") }}
   </section>

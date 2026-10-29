@@ -73,7 +73,7 @@ def insight_best(flag_now):
     lead = " ו".join(ties) if len(ties) > 1 else top["bank"]
     return (f"לתינוק שנולד היום (מסלול ללא תחנות יציאה, 18 שנים) הריבית הקבועה הלא צמודה "
             f"הגבוהה ביותר היא ב{lead}: {pct(top['fixed'])}, לעומת {pct(low['fixed'])} "
-            f"ב{low['bank']} — פער של {pp(top['fixed'] - low['fixed'])} נקודות אחוז.")
+            f"ב{low['bank']}, פער של {pp(top['fixed'] - low['fixed'])} נקודות אחוז.")
 
 
 def insight_trend(flag, d0, d1):
@@ -144,7 +144,7 @@ def insight_changes(changes, days):
     still = [b for b, n in s if n == 0]
     tail = (f"; {', '.join(still)} לא שינו אותה כלל" if still else "")
     return (f"בתקופה שבמאגר ({days} ימים) שינה {top_bank} את ריבית מסלול הדגל "
-            f"{top_n} פעמים — יותר מכל בנק אחר{tail}.")
+            f"{top_n} פעמים, יותר מכל בנק אחר{tail}.")
 
 
 def insight_age(now):
@@ -158,7 +158,7 @@ def insight_age(now):
     if abs(diff) < 0.05:
         return None
     word = "גבוהה" if diff > 0 else "נמוכה"
-    return (f"ככל שהילד צעיר יותר — וההפקדה ארוכה יותר — הריבית {word} יותר: הריבית "
+    return (f"ככל שהילד צעיר יותר (וההפקדה ארוכה יותר), הריבית {word} יותר: הריבית "
             f"החציונית לגיל {young} היא {pct(med[young])}, ולגיל {old} {pct(med[old])}.")
 
 
@@ -255,10 +255,10 @@ def compute(frames):
     kpis = {
         # The best available flagship rate is the good news for savers.
         "best": {"value": None if best is None else float(best["fixed"]),
-                 "display": "—" if best is None else pct(best["fixed"]), "tone": "ok"},
+                 "display": "–" if best is None else pct(best["fixed"]), "tone": "ok"},
         "best_bank": {"value": None if best is None else best["bank"],
-                      "display": "—" if best is None else best["bank"]},
-        "median": {"value": med_now, "display": pct(med_now) if med_now is not None else "—",
+                      "display": "–" if best is None else best["bank"]},
+        "median": {"value": med_now, "display": pct(med_now) if med_now is not None else "–",
                    "tone": median_tone},
         "banks": {"value": len(banks), "display": f"{len(banks)}", "tone": "brand"},
         "as_of": {"value": d1.strftime("%Y-%m-%d"),
@@ -275,7 +275,7 @@ def compute(frames):
         "banks_aria": f"תרשים עמודות: שלוש הריביות במסלול הדגל בכל אחד מ-{len(banks)} הבנקים, נכון ל-{d_he(d1)}.",
         "trend_aria": f"גרף קווים: הריבית הקבועה הלא צמודה במסלול הדגל לפי בנק, {len(dates)} מועדי פרסום.",
         "range_aria": "גרף: הריבית הגבוהה, הממוצעת והנמוכה בין הבנקים במסלול הדגל לאורך זמן.",
-        "age_aria": f"גרף: הריבית הקבועה הלא צמודה לפי גיל הילד — נמוכה, חציונית וגבוהה בין הבנקים.",
+        "age_aria": f"גרף: הריבית הקבועה הלא צמודה לפי גיל הילד: נמוכה, חציונית וגבוהה בין הבנקים.",
         "exit_aria": "תרשים עמודות: כמה נמוכה יותר הריבית במסלול עם תחנות יציאה, לפי בנק.",
         "adult_aria": "תרשים עמודות: ריבית קבועה לא צמודה לסכום חד-פעמי מגיל 18, לפי בנק ותקופה.",
         "changes_aria": "תרשים עמודות: מספר השינויים בריבית מסלול הדגל לפי בנק בתקופה שבמאגר.",
@@ -288,7 +288,7 @@ def compute(frames):
         "age": [{"age": a_, "min": f"{mn:.2f}", "med": f"{md:.2f}", "max": f"{mx:.2f}"}
                 for a_, mn, md, mx in zip(by_age["x"], by_age["min"], by_age["median"], by_age["max"])],
         "exit": [{"bank": b_, "gap": f"{g:.2f}"} for b_, g in zip(exit_gap["x"], exit_gap["y"])],
-        "adult": [{"bank": bk, "vals": ["—" if pd.isna(adult_piv.loc[bk].get(p)) else f"{adult_piv.loc[bk].get(p):.2f}"
+        "adult": [{"bank": bk, "vals": ["–" if pd.isna(adult_piv.loc[bk].get(p)) else f"{adult_piv.loc[bk].get(p):.2f}"
                                         for p in periods]} for bk in banks],
         "adult_periods": periods,
         "changes": [{"bank": b_, "n": f"{n}"} for b_, n in ch],
@@ -296,7 +296,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"ריבית חשכ\"ל — ריביות \"חיסכון לכל ילד\" ב-{len(banks)} בנקים, עד {d_he(d1)}: "
+            "summary_he": (f"ריביות חשכ\"ל (\"חיסכון לכל ילד\") ב-{len(banks)} בנקים, עד {d_he(d1)}: "
                            f"במסלול הדגל הריבית הקבועה הלא צמודה נעה בין "
                            f"{pct(flag_now['fixed'].min())} ל-{pct(flag_now['fixed'].max())}."),
             "dataset_kind": "rankings",
