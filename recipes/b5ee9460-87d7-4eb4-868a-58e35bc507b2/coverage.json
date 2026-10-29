@@ -1,0 +1,11 @@
+{
+  "main.city": "chart-auth, chart-mix, kpi:auth, insight:coverage, insight:leader, table:directory — the local authority; drives the directory grouping and the not-covered-cities note",
+  "main.num": "table:directory — ballot number, shown per station",
+  "main.symbol": "skip: undocumented code (values 1–19 with no stated meaning); not shown",
+  "main.adress": "table:directory — street + number for urban stations; for villages it repeats the locality name and is shown as —",
+  "main.yishuv": "table:directory, kpi:loc, insight:single, chart-auth — locality (empty for an urban authority, which then stands for itself)",
+  "main.street": "skip: redundant with adress (same street without the house number)",
+  "main.location": "chart-venue, chart-mix, insight:venue, table:directory — venue free text, classified by keyword into venue types",
+  "main.district": "insight:coverage — district code mapped to Hebrew; constant in the current file",
+  "main.type": "kpi:reg, insight:types — authority type code (1 urban, 2 regional council)"
+}

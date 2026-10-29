@@ -1,0 +1,5 @@
+{
+  "rates.interestname": "chart-rates, table:rates, table:dates, kpi:base, kpi:shekel, kpi:linked, kpi:highest, insight:base_rate, insight:late_gap, insight:real_nominal, insight:shekel_mix, insight:unpublished — names are matched to find the base, shekel, linked, inflation and A/B rows",
+  "rates.ineffecfrom": "table:rates, table:dates, kpi:base, insight:base_rate, insight:effective_dates, insight:unpublished — latest date per name is the current rate if history is ever appended",
+  "rates.annual": "chart-rates, table:rates, kpi:base, kpi:shekel, kpi:linked, kpi:highest, kpi:published, insight:base_rate, insight:late_gap, insight:real_nominal, insight:shekel_mix, insight:unpublished"
+}

@@ -1,0 +1,17 @@
+{
+  "names.X": "map-main, chart-bands, chart-near, insight:near, insight:dups, insight:band — ITM easting",
+  "names.Y": "map-main, chart-bands, chart-near, insight:near, insight:dups, insight:band — ITM northing; north-south bands",
+  "names.STATUS": "chart-vaada, kpi:future, insight:upgrades",
+  "names.NUM": "skip: running serial number (identifier); used only as a sort tie-break",
+  "names.HEBREW": "map-main, chart-words, insight:dups, insight:near, kpi:total",
+  "names.ARABIC": "kpi:trilingual",
+  "names.LATIN": "kpi:trilingual",
+  "names.RAODS": "map-main, chart-roads, chart-classes, chart-legs, kpi:roads, insight:top_road, insight:road_extremes, insight:street",
+  "names.CURRENT": "map-main, chart-type, chart-flow, chart-roads, chart-classes, chart-bands, kpi:inter, insight:mix, insight:road_extremes, insight:band",
+  "names.VAADA": "chart-vaada, insight:vaada — signage-committee decision date",
+  "names.FUTURE": "chart-flow, insight:upgrades",
+  "names.YALKUTPIR": "chart-vaada — counted as published in the gazette (Yalkut HaPirsumim) when it carries a publication number",
+  "names.OID": "skip: constant (-1 on every row)",
+  "names.Num_": "skip: empty on every row",
+  "resource:77c61e91-1155-4b2e-995e-9861fbbad6c5": "skip: metadata sheet (publisher, contact, field list), not data"
+}

@@ -1,0 +1,9 @@
+{
+  "main.continent": "chart-continents, chart-mfa, chart-coverage, insight:continent, insight:none, insight:high, map-world — the country's modal continent",
+  "main.country": "map-world, table:lists, chart-combined, kpi:countries, kpi:l4, kpi:l3, kpi:l2, kpi:l1, kpi:combined, insight:duplicates, insight:coverage — unit of the page; positions are approximate capital coordinates",
+  "main.recommendations": "chart-levels, chart-themes, chart-mfa, chart-combined, kpi:l4, kpi:l3, kpi:combined, insight:high, insight:hostile, insight:mfa, insight:combined — NSC threat level parsed from free text; MFA notice type; NSC themes by keyword",
+  "main.details": "insight:duplicates — only the NSC page link is read, to find two country names sharing one page; links are never printed",
+  "main.משרד": "chart-coverage, chart-mfa, insight:coverage, insight:mfa — issuing body (מל\"ל / חוץ / בריאות)",
+  "main.logo": "skip: constant per-body logo image",
+  "main.date": "skip: empty in every row"
+}

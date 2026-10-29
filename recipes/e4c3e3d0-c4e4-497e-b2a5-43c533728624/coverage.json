@@ -1,0 +1,8 @@
+{
+  "main.article_name": "chart-themes, chart-titles, chart-issues — themes = keyword stems matched in titles; full articles deduped by title within an issue",
+  "main.magazine_name": "chart-issues, kpi:issues, insight:per_issue, insight:partial — parsed to volume (Hebrew numeral) and issue; split parts of one issue merged",
+  "main.publication_year": "chart-yearly, chart-coauthor, chart-newauthors, chart-themes, chart-titles, kpi:span, insight:peak_year, insight:gaps",
+  "main.author": "chart-coauthor, chart-authors, chart-newauthors, kpi:authors, kpi:solo, insight:coauthor, insight:top_author — full articles only; reviewer suffix and editors in parentheses dropped",
+  "main.publication_type": "chart-types, chart-yearly, kpi:full, kpi:total",
+  "main.link_to_article": "skip: per-row HTML anchor to the article PDF — row-level navigation is the shell explorer's job"
+}

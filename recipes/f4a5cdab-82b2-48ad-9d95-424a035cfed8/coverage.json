@@ -1,0 +1,11 @@
+{
+  "tenders.שם מכרז": "chart-topics, chart-yearly, insight:topic, insight:types, table:open — topic and procedure type are keyword classifications of the name; open and recently-closed lists show it",
+  "tenders.מספר מכרז": "chart-yearly, insight:types, insight:numbering, table:open — procedure type keywords, sequence/year numbering",
+  "tenders.תאריך אחרון להגשה": "chart-yearly, chart-heat, chart-weekday, chart-lead, chart-winner, chart-pay, kpi:open, kpi:next, kpi:ytd, kpi:years, insight:open, insight:ytd, insight:peak_year, insight:weekday",
+  "tenders.תאריך עדכון": "chart-lead, kpi:open, insight:open — the latest update date is the page's reference date for open/closed",
+  "tenders.זוכה במכרז": "chart-winner, chart-winners, kpi:winner, insight:winner, insight:top_winner",
+  "tenders.קבצים": "chart-pay — count of attached file links per record, quoted in the payment section note",
+  "tenders.תשלום מקוון": "chart-pay, kpi:pay, insight:payment",
+  "tenders.URL": "table:open — rewritten to https and linked from the open and recently-closed lists; list item id is a sort tie-break",
+  "resource:0e41e810-b738-4219-a2c0-f0e13a3feeb7": "skip: XLSX twin of the CSV resource (same rows; its dates are month/day-swapped)"
+}

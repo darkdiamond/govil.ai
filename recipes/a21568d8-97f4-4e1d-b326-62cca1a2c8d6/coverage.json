@@ -1,0 +1,13 @@
+{
+  "main.is_regulation": "chart-kind, kpi:reg_share, insight:regulatory — values כן/לא, stray whitespace normalised",
+  "main.office_name": "chart-offices, chart-heat, kpi:offices, insight:top_office, insight:joint, insight:unspecified — placeholder 42 = not specified; ';' splits joint items",
+  "main.legislation_type": "chart-kind, chart-offices, chart-decades, chart-yearly, kpi:primary, kpi:secondary, insight:secondary_ratio",
+  "main.legislation_name": "chart-forms, chart-decades, chart-yearly, kpi:total, kpi:span, insight:peak_decade — form from the first word, enactment year from the trailing year in the name",
+  "main.primary_authorizing_legislation": "chart-authorizing, kpi:auth_laws, insight:top_authorizing",
+  "main.publication_date": "insight:amend_gap — only ~40% filled; the name year covers ~98% and drives the time charts",
+  "main.last_update": "chart-updates, kpi:recent5, insight:stale, insight:amend_gap",
+  "main.wikiurl": "note-links — share of items linking to Wikisource",
+  "main.knesseturl": "note-links — count of laws linking to the Knesset site",
+  "main.tags": "chart-topics, chart-heat, insight:top_topic",
+  "main.primary_law_knesset_id": "skip: >99% empty (one value in 6,576 rows)"
+}

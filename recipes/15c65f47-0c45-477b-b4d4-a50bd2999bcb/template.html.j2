@@ -1,0 +1,260 @@
+<h1>אגרות בית הדין הרבני — תעריפי אגרות של בתי הדין הרבניים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">חיפוש אגרה לפי נושא התביעה או שם האגרה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל סעיפי הלוח: נושא תביעה (למשל גירושין, ירושה, מזונות) ושם האגרה (למשל אגרת פתיחת תיק).</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for k in ["items", "subjects", "standard", "max", "free", "median"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/search.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איתור אגרה לפי סוג ההליך</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lookup_note }}</p>
+  <div id="table-lookup" class="space-y-2">
+{%- for fam in model.tables.lookup %}
+    <details class="border border-rule rounded-gov">
+      <summary class="cursor-pointer px-3 py-2 bg-surface-alt rounded-gov flex flex-wrap items-center justify-between gap-2">
+        <span class="font-semibold text-ink-deep">{{ fam.family }}</span>
+        <span class="text-sm text-subtle">{{ fam.subjects | fmt_int }} נושאים · {{ fam.n_items | fmt_int }} סעיפים · <span dir="ltr">{{ fam.range }}</span> ₪</span>
+      </summary>
+      <div class="overflow-x-auto px-3 pb-3">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">אגרות בתחום {{ fam.family }}, לפי נושא תביעה</caption>
+          <thead>
+            <tr class="border-b border-rule text-start">
+              <th scope="col" class="text-start py-1 pe-3">נושא התביעה</th>
+              <th scope="col" class="text-start py-1 pe-3">האגרה</th>
+              <th scope="col" class="text-start py-1 whitespace-nowrap">תעריף (₪)</th>
+            </tr>
+          </thead>
+          <tbody>
+{%- for g in fam.groups %}
+{%- for r in g.rows %}
+            <tr class="border-b border-rule align-top">
+{%- if loop.first %}
+              <th scope="row" rowspan="{{ g.rows | length }}" class="text-start font-medium py-1 pe-3">{{ g.subject }}</th>
+{%- endif %}
+              <td class="py-1 pe-3">{{ r.name }}</td>
+              <td class="py-1 font-semibold whitespace-nowrap {{ 'text-ok' if r.free else 'text-ink-deep' }}" dir="ltr">{{ r.fee }}{% if r.free %} <span class="font-normal">(ללא אגרה)</span>{% endif %}</td>
+            </tr>
+{%- endfor %}
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+{%- endfor %}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדרגות האגרה: כמה סעיפים בכל סכום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tiers_note }}</p>
+  <div id="chart-tiers" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.tiers_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tiers_aria }}</caption>
+      <thead><tr><th scope="col" class="text-start">סכום האגרה (₪)</th><th scope="col" class="text-start">סעיפים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.tiers %}
+        <tr><th scope="row" class="text-start font-normal" dir="ltr">{{ r.x }}{% if r.std %} (הנפוץ){% endif %}</th><td>{{ r.y | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">טווח האגרות לפי תחום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.families_note }}</p>
+  <div id="chart-families" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.families_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.families_aria }}</caption>
+      <thead><tr><th scope="col" class="text-start">תחום</th><th scope="col" class="text-start">נושאים</th><th scope="col" class="text-start">סעיפים</th><th scope="col" class="text-start">מינימום (₪)</th><th scope="col" class="text-start">חציון (₪)</th><th scope="col" class="text-start">מקסימום (₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.families %}
+        <tr><th scope="row" class="text-start font-normal">{{ r.family }}</th><td>{{ r.subjects | fmt_int }}</td><td>{{ r.n_items | fmt_int }}</td><td>{{ r.min }}</td><td>{{ r.median }}</td><td>{{ r.max }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רמת האגרה בכל תחום ביחס לתעריף הנפוץ</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+      <thead><tr><th scope="col" class="text-start">תחום</th>{% for b in model.charts.mix.bands %}<th scope="col" class="text-start">{{ b }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row" class="text-start font-normal">{{ r.family }}</th>{% for c in r.cells %}<td>{{ c | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי האגרה הנפוצים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_note }}</p>
+  <div id="chart-kinds" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kinds_aria }}</caption>
+      <thead><tr><th scope="col" class="text-start">סוג האגרה</th><th scope="col" class="text-start">סעיפים</th><th scope="col" class="text-start">חציון (₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kinds %}
+        <tr><th scope="row" class="text-start font-normal">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.median }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר המכיל תעריפי אגרות של בתי דין הרבניים.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.tiers | tojson }};
+    const el = document.getElementById("chart-tiers");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", formatter: function (p) {
+        const i = p[0].dataIndex;
+        return d.x[i] + " ₪: " + d.y[i] + " סעיפים" + (d.hl[i] ? " (התעריף הנפוץ)" : "");
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "₪", axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "סעיפים", minInterval: 1 },
+      series: [{ type: "bar", data: d.y.map(function (v, i) {
+        return d.hl[i] ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      }), label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.families | tojson }};
+    const el = document.getElementById("chart-families");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const names = d.names.slice().reverse();
+    const box = d.box.slice().reverse();
+    const items = d.items.slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        const i = p.dataIndex, b = box[i];
+        return echarts.format.encodeHTML(names[i]) + " (" + items[i] + " סעיפים)<br>מינימום: " + b[0] + " ₪<br>רבעון תחתון: " + b[1] +
+          " ₪<br>חציון: " + b[2] + " ₪<br>רבעון עליון: " + b[3] + " ₪<br>מקסימום: " + b[4] + " ₪";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value", name: "₪", min: 0 },
+      yAxis: { type: "category", data: names, axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "boxplot", data: box, itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.mix | tojson }};
+    const el = document.getElementById("chart-mix");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const names = d.names.slice().reverse();
+    const colors = ["#198754", "#9cc2fa", "#0068f5", "#0b3668"];
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, data: d.bands },
+      grid: { left: 16, right: 24, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "סעיפים", minInterval: 1 },
+      yAxis: { type: "category", data: names, axisLabel: { width: 130, overflow: "break" } },
+      series: d.bands.map(function (b, k) {
+        return { name: b, type: "bar", stack: "all", itemStyle: { color: colors[k % colors.length] },
+          data: d.series[k].slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.kinds | tojson }};
+    const el = document.getElementById("chart-kinds");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const names = d.names.slice().reverse();
+    const counts = d.counts.slice().reverse();
+    const med = d.median.slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        const i = p[0].dataIndex;
+        return echarts.format.encodeHTML(names[i]) + "<br>" + counts[i] + " סעיפים · חציון " + med[i] + " ₪";
+      } },
+      grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "סעיפים", minInterval: 1 },
+      yAxis: { type: "category", data: names, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", data: counts, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>

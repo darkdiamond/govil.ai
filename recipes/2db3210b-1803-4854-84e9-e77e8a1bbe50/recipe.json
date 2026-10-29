@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2db3210b-1803-4854-84e9-e77e8a1bbe50",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-28T05:00:56.951585+00:00",
+    "rows": { "rates": 13 }
+  },
+  "inputs": [
+    {
+      "name": "rates",
+      "by_id": "d1cdadd7-f6b6-40a2-aab9-73230d5fe294",
+      "required_columns": ["interestname", "ineffecfrom", "annual"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}
