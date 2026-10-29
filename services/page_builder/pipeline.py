@@ -32,8 +32,9 @@ log = logging.getLogger("page_builder.pipeline")
 # green one. `idle` is deliberately absent — a day with nothing to refresh
 # is a normal, healthy outcome. The refresh is the only way a page changes,
 # so a refresh that couldn't run (no recipe list, crash, staging down) is a
-# dead run even if the authoring queue still went out.
-FAILED_RUN_STATUSES = ("refresh_unavailable", "refresh_failed")
+# dead run even if the authoring queue still went out. A broken authoring
+# queue is red too: nobody would learn of new datasets.
+FAILED_RUN_STATUSES = ("refresh_unavailable", "refresh_failed", "authoring_failed")
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
@@ -284,31 +285,37 @@ async def run_pipeline(
         summary["status"] = "refresh_unavailable"
         return summary
 
-    # [3] candidates: the override, or every recipe'd source CKAN moved
-    # past (run_refresh decides) + the authoring queue.
+    # [3] what to refresh: the override if it has a recipe, else everything
+    # (run_refresh decides per source).
+    only_ids: Optional[list[str]] = None
+    override_src = None
     if override_id:
-        src = await asyncio.to_thread(store.get_source, override_id)
-        if src is None:
+        override_src = await asyncio.to_thread(store.get_source, override_id)
+        if override_src is None:
             raise RuntimeError(f"override source {override_id} not found in Firestore")
         only_ids = [override_id] if override_id in recipe_ids else []
-        to_queue = []
-        if not only_ids and src.analysis_status not in ("restricted", "unavailable"):
-            to_queue = [(src, "legacy_updated" if src.page_path else "new")]
-    else:
-        only_ids = None
-        to_queue = await asyncio.to_thread(
-            selector.pick_authoring_candidates,
-            store,
-            notify_cap,
-            exclude_ids=recipe_ids,
-            **selector_gates,
-        )
-    summary["selected_for_authoring"] = [s.id for s, _ in to_queue]
+
+    async def _authoring_candidates() -> list:
+        if override_src is None:
+            return await asyncio.to_thread(
+                selector.pick_authoring_candidates,
+                store,
+                notify_cap,
+                exclude_ids=recipe_ids,
+                **selector_gates,
+            )
+        if only_ids or override_src.analysis_status in ("restricted", "unavailable"):
+            return []
+        return [(override_src, "legacy_updated" if override_src.page_path else "new")]
+
     if dry_run:
+        summary["selected_for_authoring"] = [s.id for s, _ in await _authoring_candidates()]
         summary["status"] = "dry_run"
         return summary
 
-    # [4] refresh — deterministic re-render of recipe'd sources.
+    # [4] refresh — deterministic re-render of recipe'd sources. First, and
+    # nothing between it and the publish dispatch may raise: its output is
+    # the only way a page changes.
     refresh_broken = False
     if only_ids is None or only_ids:
         try:
@@ -329,9 +336,21 @@ async def run_pipeline(
             refresh_broken = True
     refreshed_ids = list((summary["refresh"] or {}).get("refreshed") or [])
 
-    # [5] authoring queue: one issue per source, idempotent.
+    # [5] authoring queue: one issue per source, idempotent. A failure here
+    # (selector query, Firestore, GitHub) must not cost the publish below.
+    authoring_broken = False
+    try:
+        to_queue = await _authoring_candidates()
+    except Exception:
+        log.exception("authoring selector failed — no issues queued this run")
+        to_queue, authoring_broken = [], True
+    summary["selected_for_authoring"] = [s.id for s, _ in to_queue]
     for src, reason in to_queue:
-        issue = await asyncio.to_thread(_refresh.queue_authoring, store, src, reason)
+        try:
+            issue = await asyncio.to_thread(_refresh.queue_authoring, store, src, reason)
+        except Exception:
+            log.exception("queueing %s for authoring failed", src.id[:8])
+            issue, authoring_broken = None, True
         summary["authoring_queued"].append({"id": src.id, "reason": reason, "issue": issue})
 
     # [6] publish whatever re-rendered.
@@ -344,6 +363,8 @@ async def run_pipeline(
     # run is red either way.
     if refresh_broken:
         summary["status"] = "refresh_failed"
+    elif authoring_broken:
+        summary["status"] = "authoring_failed"
     else:
         summary["status"] = "ok" if refreshed_ids else "idle"
     return summary

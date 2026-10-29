@@ -56,6 +56,22 @@ def issue_body(
     )
 
 
+def _github(token: Optional[str], repo: Optional[str]) -> tuple[str, str]:
+    """Explicit args, else the job's env (the publish-dispatch PAT + repo)."""
+    return (
+        (token or os.environ.get("GITHUB_DISPATCH_TOKEN", "")).strip(),
+        repo or os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai"),
+    )
+
+
+def _headers(token: str) -> dict:
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
 def open_authoring_issue(
     *,
     dataset_id: str,
@@ -69,8 +85,7 @@ def open_authoring_issue(
 ) -> Optional[int]:
     """Open the issue; return its number, or None if it couldn't be opened
     (missing token, API error) — the caller retries on the next run."""
-    token = (token or os.environ.get("GITHUB_DISPATCH_TOKEN", "")).strip()
-    repo = repo or os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
+    token, repo = _github(token, repo)
     if not token:
         log.warning("authoring needed for %s (%s) but no GitHub token set", dataset_id, reason)
         return None
@@ -88,11 +103,7 @@ def open_authoring_issue(
                 ),
                 "labels": labels,
             },
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=_headers(token),
             timeout=30.0,
             follow_redirects=True,
         )
@@ -111,8 +122,7 @@ def issue_state(
     """`open`, `completed` (closed as done — e.g. by a recipe PR), or
     `not_planned` (closed as won't-author). None when it can't be read; the
     caller then keeps the recorded issue rather than risk a duplicate."""
-    token = (token or os.environ.get("GITHUB_DISPATCH_TOKEN", "")).strip()
-    repo = repo or os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
+    token, repo = _github(token, repo)
     if not token:
         return None
     import httpx
@@ -120,11 +130,7 @@ def issue_state(
     try:
         r = httpx.get(
             f"https://api.github.com/repos/{repo}/issues/{number}",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
+            headers=_headers(token),
             timeout=30.0,
             follow_redirects=True,
         )

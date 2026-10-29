@@ -208,3 +208,32 @@ def test_refresh_crash_fails_the_run(harness, monkeypatch):
     monkeypatch.setattr(rf, "run_refresh", _boom)
     s = _run()
     assert s["status"] == "refresh_failed" and harness.queued
+
+
+def test_queue_failure_still_publishes_and_goes_red(harness, monkeypatch):
+    """Nothing between the refresh and the publish dispatch may cost the
+    publish: refreshed pages reach the site even if the queue breaks."""
+    harness.refreshed = ["rec1"]
+
+    def _boom(store, src, reason, **kw):
+        if src.id == "new1":
+            raise RuntimeError("firestore deadline")
+        harness.queued.append((src.id, reason))
+        return 7
+
+    monkeypatch.setattr(rf, "queue_authoring", _boom)
+    s = _run()
+    assert harness.published and harness.queued == [("old1", "legacy_updated")]
+    assert s["status"] == "authoring_failed" and s["status"] in pipeline.FAILED_RUN_STATUSES
+
+
+def test_selector_failure_does_not_block_the_refresh(harness, monkeypatch):
+    harness.refreshed = ["rec1"]
+
+    def _boom(store, n, **kw):
+        raise RuntimeError("missing index")
+
+    monkeypatch.setattr(pipeline.selector, "pick_authoring_candidates", _boom)
+    s = _run()
+    assert harness.refresh_kw is not None and harness.published
+    assert s["status"] == "authoring_failed"

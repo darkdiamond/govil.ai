@@ -70,8 +70,11 @@ back an open PR.
 ## 1. Pick the batch
 
 ```bash
+# Oldest first, and large enough for the whole backlog: the default order
+# is newest first, and a capped newest-first list would hide the oldest.
 gh issue list --repo darkdiamond/govil.ai --label needs-authoring --author darkdiamond \
-  --state open --limit 200 --json number,title,body,labels,createdAt
+  --state open --search "sort:created-asc" --limit 1000 \
+  --json number,title,body,labels,createdAt
 gh pr list --repo darkdiamond/govil.ai --state open --limit 100 --json number,body,headRefName
 ```
 
@@ -84,8 +87,9 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 --json number,bo
   `schema_changed` or `too_large` (the recipe exists on main), read the
   dataset's Firestore doc (`sources/<id>` via
   `FirestoreStateStore().get_refresh_state(<id>)`). If `refresh_status` is
-  `succeeded` and `refreshed_metadata_modified` is at or after the issue's
-  `createdAt`, the recipe works again on the latest data. Close the issue as
+  `succeeded` and `last_refreshed_at` (wall clock of the last good render) or
+  `last_unchanged_at` (the precheck proved the inputs identical to the last
+  good render) is after the issue's `createdAt`, the recipe works again. Close the issue as
   completed with a one-line comment ("recovered: the daily refresh rendered
   it on <date>") instead of authoring.
 - Order oldest first; take the first **10 datasets** (or `max=` if given).

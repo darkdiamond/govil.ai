@@ -29,7 +29,9 @@ landing pages. Five layers:
    in a row stop the batch as `staging_down`; a crashed or staging-down
    refresh ends the run `status: refresh_failed`, non-zero exit, after
    still queueing and publishing whatever did refresh) →
-   `selector.pick_authoring_candidates`
+   `selector.pick_authoring_candidates` (after the refresh, and guarded: a
+   selector/queue error ends the run `status: authoring_failed`, non-zero,
+   but never costs the publish dispatch)
    → `refresh.queue_authoring` (one `needs-authoring` GitHub issue per
    source, capped by `AUTHORING_NOTIFY_CAP`=100 new issues/run — a fuse
    against a scan anomaly flooding the tracker) → publish dispatch **only

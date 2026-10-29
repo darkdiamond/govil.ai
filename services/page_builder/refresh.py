@@ -847,7 +847,7 @@ def refresh_one(
             round(time.monotonic() - started, 2),
         )
         if notify and e.reason in AUTHORING_REASONS:
-            outcome.issue = queue_authoring(
+            outcome.issue = _queue_authoring_safely(
                 store, src, e.reason, detail=str(e), preview=preview
             )
         return outcome
@@ -886,7 +886,12 @@ def refresh_one(
         # Kept so a failed Firestore mark can put it back: the staged body
         # and the doc's agent_data must describe the same render, or the
         # next publish pairs a new page with the old summary.
-        previous_html = read_gcs(staging_bucket, rel)
+        try:
+            previous_html = read_gcs(staging_bucket, rel)
+        except Exception:
+            # Only the rollback below needs it; never fail a render over it.
+            log.warning("refresh %s: reading the staged body failed — no rollback copy",
+                        src.id[:8], exc_info=True)
         write_gcs(page.content_html.encode("utf-8"), staging_bucket, rel)
         staged = True
         store.mark_refreshed(
@@ -1010,6 +1015,16 @@ def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool 
     return number
 
 
+def _queue_authoring_safely(store, src, reason: str, **kw) -> Optional[int]:
+    """queue_authoring for use mid-batch: a Firestore/GitHub error costs this
+    source its issue (retried next run), never the rest of the refresh."""
+    try:
+        return queue_authoring(store, src, reason, **kw)
+    except Exception:
+        log.exception("queueing %s for authoring failed", src.id[:8])
+        return None
+
+
 def _spends_cap(o: RefreshOutcome) -> bool:
     return o.status != "skipped" and not (
         o.status == "unchanged" and o.reason == "fingerprint"
@@ -1058,9 +1073,17 @@ def run_refresh(
                 recipe = repo.load(dataset_id, scratch)
             except Exception as e:
                 log.exception("recipe %s failed to load", dataset_id[:8])
-                outcomes.append(
-                    RefreshOutcome(dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e)))
+                outcome = RefreshOutcome(
+                    dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e))
                 )
+                # The page can't refresh until the recipe is fixed, so it
+                # needs authoring like any other broken recipe. Idempotent:
+                # the open issue is reused every night until then.
+                if notify:
+                    outcome.issue = _queue_authoring_safely(
+                        store, src, "recipe_failed", detail=str(e), preview=preview
+                    )
+                outcomes.append(outcome)
                 continue
             state = store.get_refresh_state(dataset_id, preview=preview)
             trigger = "forced" if force else needs_refresh(src, state, recipe)

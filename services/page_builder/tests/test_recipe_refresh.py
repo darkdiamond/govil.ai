@@ -961,3 +961,39 @@ def test_failed_firestore_mark_restores_the_last_good_body(env):
     s = _run(env, store, FakeCkan(_rows([2024, 2025, 2026])))
     assert s["outcomes"][0]["reason"] == rf.STAGE_FAILED
     assert env.staged[rel] == good
+
+
+def test_unloadable_recipe_queues_authoring(env, tmp_path):
+    """With recipes the only page path, a broken recipe on main must surface
+    as an issue, not freeze the page silently."""
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    (recipes / DS / "recipe.json").write_text("{not json")
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["outcomes"][0]["reason"] == "recipe_invalid"
+    assert s["outcomes"][0]["issue"] == 77 and env.issues[0]["reason"] == "recipe_failed"
+
+
+def test_queue_error_mid_batch_does_not_stop_the_refresh(env, tmp_path, monkeypatch):
+    ids = [f"{n}1111111-2222-3333-4444-555555555555" for n in range(2)]
+    store = _MultiStore(ids)
+    recipes = _many_recipes(tmp_path, ids)
+    (recipes / ids[0] / "recipe.json").write_text("{not json")
+
+    def _boom(*a, **k):
+        raise RuntimeError("github down")
+
+    monkeypatch.setattr(rf, "queue_authoring", _boom)
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["refreshed"] == [ids[1]]
+
+
+def test_unreadable_previous_body_does_not_fail_the_render(env):
+    store = FakeStore(_src())
+
+    def _boom(bucket, rel):
+        raise RuntimeError("403 get")
+
+    env.read_gcs = _boom
+    assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]

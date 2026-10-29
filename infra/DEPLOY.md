@@ -92,7 +92,9 @@ gcloud run jobs execute govdata-builder-job --region=me-west1 \
 
 A run that can't read the recipe list ends `status: refresh_unavailable`;
 one whose refresh crashed or hit 3 staging (GCS/Firestore) failures in a
-row ends `status: refresh_failed`. Both exit non-zero, so the execution
+row ends `status: refresh_failed`; one whose authoring queue broke
+(selector/Firestore/GitHub) ends `status: authoring_failed`, after
+publishing what refreshed. All three exit non-zero, so the execution
 shows FAILED; an idle day (nothing re-rendered) is a success.
 
 ## 3. Cloud Scheduler — `infra/scheduler.setup.sh`
