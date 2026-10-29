@@ -4,18 +4,19 @@
 #
 # What it deploys:
 #   - Cloud Run job govdata-refresh-preview: same image as the builder, runs
-#     `python -m services.page_builder.refresh run --target preview`. No LLM,
-#     no OpenRouter key. Reads `sources/*` (the prod scanner keeps it fresh),
+#     `python -m services.page_builder.refresh run --target preview`. No LLM.
+#     Reads `sources/*` (the prod scanner keeps it fresh),
 #     writes ONLY `preview_sources/*` + gs://<staging>/preview/datasets/.
-#   - Cloud Scheduler job govdata-refresh-preview-daily: 00:00 UTC, an hour
-#     after the prod batch has scanned CKAN.
+#   - Cloud Scheduler job govdata-refresh-preview-daily: 00:00 UTC (it reads
+#     whatever the prod job's last scan wrote; the prod job runs 06:00
+#     Asia/Jerusalem).
 #   - On ≥1 refresh it dispatches publish.yml with target=preview, which
 #     deploys the `recipes-demo` Hosting preview channel (never live).
 #
 # Recipes for the demo are NOT read from git/main: upload them with
 #   ./infra/refresh-preview.deploy.sh sync-recipes
 # (gs://<staging>/preview/recipes/), so the demo can run before any recipe
-# is merged. The prod job ignores that prefix (REFRESH_ENABLED is off there).
+# is merged. The prod job ignores that prefix (it reads recipes from git main).
 #
 # Usage:
 #   ./infra/refresh-preview.deploy.sh              # deploy job + scheduler (paused)

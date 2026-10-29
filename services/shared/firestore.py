@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterable, Iterator, Optional
+from typing import Any, Iterator, Optional
 
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -80,14 +80,21 @@ class SourceRecord:
     # clear_source_unavailable. None while the source is available.
     unavailable_since: Optional[datetime] = None
 
-    # Agent's per-dataset judgments (summary_he, dataset_kind, related_ids, …).
-    # Set by the builder after a successful Managed Agents session; consumed
-    # by the publisher to write `agent_data.json`.
+    # Per-dataset interpretive fields (summary_he, dataset_kind, related_ids, …).
+    # Written by a successful recipe refresh (legacy pages keep what the
+    # retired agent builder wrote); consumed by the publisher to write
+    # `agent_data.json`.
     agent_data: Optional[dict] = None
 
     # Voyage embedding for related-dataset scoring. Cached here so the
     # publisher doesn't recompute on every run.
     embedding: Optional[list[float]] = None
+
+    # Authoring queue (refresh state lives on the prod source doc):
+    # `notified` = a needs-authoring issue is recorded, so the nightly
+    # queue skips the source instead of re-asking every day.
+    authoring_status: Optional[str] = None
+    authoring_issue: Optional[int] = None
 
     @classmethod
     def from_doc(cls, doc) -> "SourceRecord":
@@ -119,6 +126,8 @@ class SourceRecord:
             agent_data=data.get("agent_data"),
             embedding=data.get("embedding"),
             unavailable_since=data.get("unavailable_since"),
+            authoring_status=data.get("authoring_status"),
+            authoring_issue=data.get("authoring_issue"),
         )
 
 
@@ -224,9 +233,9 @@ class FirestoreStateStore:
             payload["page_path"] = None
         elif (snap.to_dict() or {}).get("analysis_status") == "restricted":
             # The dataset is back in CKAN's public search after having been
-            # access-restricted (datastore 403 → `mark_analysis_restricted`).
-            # Re-enable it: clear the exclusion so the selector's never-track
-            # picks it up again. The scanner's change detector forces a re-save
+            # access-restricted (a datastore 403 parked it, in the retired
+            # agent builder). Re-enable it: clear the exclusion so the
+            # authoring queue sees it again. The scanner's change detector forces a re-save
             # for restricted docs (see ChangeDetector.detect_status), so this
             # branch fires even when CKAN's metadata_modified is unchanged.
             payload["analysis_status"] = "never"
@@ -315,19 +324,9 @@ class FirestoreStateStore:
             return None
         return SourceRecord.from_doc(snap)
 
-    def list_changed_sources(self, limit: int = 50) -> list[SourceRecord]:
-        """Sources with `change_status` in {new, updated}, newest CKAN changes first."""
-        query = (
-            self.client.collection(SOURCES_COLL)
-            .where(filter=FieldFilter("change_status", "in", ["new", "updated"]))
-            .order_by("metadata_modified", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-        )
-        return [SourceRecord.from_doc(d) for d in query.stream()]
-
     def iter_changed_sources(self) -> Iterator[SourceRecord]:
         """Stream changed sources (change_status in {new, updated}), newest
-        CKAN changes first. Unlike `list_changed_sources`, there is no fixed
+        CKAN changes first. There is no fixed
         limit: `stream()` pages lazily, so a caller can scan past a long run
         of ineligible recent updates (e.g. daily-appender datasets rebuilt
         within the reanalyze gap) without a small window truncating the
@@ -412,20 +411,6 @@ class FirestoreStateStore:
         for d in query.stream():
             yield SourceRecord.from_doc(d)
 
-    def mark_analysis_pending(self, dataset_id: str) -> None:
-        # `analysis_started_at` is what makes an orphaned pending recoverable:
-        # nothing clears `pending` if the container dies mid-session, and no
-        # selector track matches it, so `reap_stale_pending` needs a clock to
-        # tell a live session from one a killed run left behind.
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "analysis_status": "pending",
-                "last_error": None,
-                "analysis_started_at": datetime.now(timezone.utc),
-            },
-            merge=True,
-        )
-
     def mark_analysis_succeeded(
         self,
         dataset_id: str,
@@ -449,62 +434,13 @@ class FirestoreStateStore:
     def set_agent_data(self, dataset_id: str, agent_data: dict) -> None:
         """Persist the agent's per-dataset judgments under `sources/<id>.agent_data`.
 
-        Called by the builder after a successful Managed Agents session.
+        Used by backfill scripts (e.g. backfill_suggested_tags); recipe
+        refreshes write `agent_data` via `mark_refreshed`.
         Replaces the prior `manifest_entry` field entirely — scanner facts
         live alongside on the same doc, so there's no need to merge them.
         """
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {"agent_data": agent_data}, merge=True
-        )
-
-    def set_session_usage(
-        self,
-        dataset_id: str,
-        *,
-        usage: dict,
-        model_requests: int,
-        elapsed_s: float,
-        session_id: Optional[str] = None,
-        agent_version: Optional[int] = None,
-    ) -> None:
-        """Persist per-session usage + cost so we can compare models/prompts.
-
-        Stored under `sources/<id>.last_usage` — overwritten on every
-        successful run. `actual_cost_usd` is the billed USD of the
-        successful session; `attempts_cost_usd` adds the spend of failed
-        in-run attempts (closest to the OpenRouter dashboard figure).
-        """
-        now = datetime.now(timezone.utc)
-        cost = usage.get("actual_cost_usd")
-        attempts_cost = usage.get("attempts_cost_usd")
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "last_usage": {
-                    "input_tokens": int(usage.get("input_tokens", 0)),
-                    "output_tokens": int(usage.get("output_tokens", 0)),
-                    "cache_read_input_tokens": int(
-                        usage.get("cache_read_tokens")
-                        or usage.get("cache_read_input_tokens")
-                        or 0
-                    ),
-                    "cache_write_tokens": int(usage.get("cache_write_tokens") or 0),
-                    "model": usage.get("model"),
-                    "reasoning_effort": usage.get("reasoning_effort"),
-                    "actual_cost_usd": float(cost) if cost is not None else None,
-                    "attempts_cost_usd": (
-                        float(attempts_cost) if attempts_cost is not None else None
-                    ),
-                    "cost_source": usage.get("cost_source"),
-                    "cost_breakdown": usage.get("cost_breakdown"),
-                    "attempts": int(usage.get("attempts", 1)),
-                    "model_requests": int(model_requests),
-                    "elapsed_s": float(elapsed_s),
-                    "session_id": session_id,
-                    "agent_version": agent_version,
-                    "recorded_at": now,
-                },
-            },
-            merge=True,
         )
 
     def set_resource_datastore_flags(
@@ -535,30 +471,11 @@ class FirestoreStateStore:
             {"embedding": embedding}, merge=True
         )
 
-    def mark_analysis_restricted(self, dataset_id: str, error: str) -> None:
-        """Park a source whose primary-resource data is 403-restricted upstream.
-
-        Unlike `mark_analysis_failed`, this is a deliberate *exclusion*, not a
-        retryable failure: it does NOT bump `failed_attempts`, and the
-        `restricted` status is queried by neither the selector (never/failed/
-        changed tracks) nor the publisher (succeeded only) — so the source is
-        skipped for builds and dropped from the next publish. It self-heals
-        only when the dataset reappears in CKAN search (see `save_dataset` /
-        ChangeDetector), which resets it to `never`.
-        """
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "analysis_status": "restricted",
-                "last_error": (error or "")[:1000],
-            },
-            merge=True,
-        )
-
     def mark_source_unavailable(self, dataset_id: str, error: str) -> None:
         """Flag a *previously-succeeded* source as removed upstream.
 
-        Unlike `mark_analysis_restricted` (never-succeeded 403 → page
-        dropped), this PRESERVES the page: the publisher still emits it
+        Unlike a `restricted` source (never-succeeded 403 → no page), this
+        PRESERVES the page: the publisher still emits it
         (see `iter_publishable_sources`) with an archive banner. Stamps
         `unavailable_since` only on the first transition so the displayed
         date is the true first-detection time. Does not bump
@@ -578,9 +495,10 @@ class FirestoreStateStore:
     def clear_source_unavailable(self, dataset_id: str) -> None:
         """Self-heal: the source is reachable again. Flip back to
         `succeeded` (NOT `never` — that would drop the live page until a
-        fresh agent run) and clear `unavailable_since`. Any genuine data
-        change while it was gone is picked up by normal Track-2
-        re-analysis once CKAN's metadata_modified advances.
+        fresh build) and clear `unavailable_since`. Any genuine data
+        change while it was gone is picked up by the recipe refresh (or,
+        for a legacy page, the authoring queue) once CKAN's
+        metadata_modified advances.
         """
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {
@@ -604,39 +522,11 @@ class FirestoreStateStore:
         for d in query.stream():
             yield SourceRecord.from_doc(d)
 
-    def revert_analysis_pending(
-        self, dataset_id: str, previous_status: str = "never"
-    ) -> None:
-        """Undo `mark_analysis_pending` without recording a failure.
-
-        For aborts that have nothing to do with the source — today that
-        means a provider account-level rejection (dead key, spend cap), the
-        condition that froze the site from 2026-08-11. The source never got
-        a real attempt, so:
-
-          - `failed_attempts` is untouched: an outage must not park sources
-            that did nothing wrong.
-          - `analysis_started_at` is cleared, so `reap_stale_pending` can't
-            later convert the orphan into a failure and re-introduce the
-            same penalty through the back door.
-          - the PREVIOUS status is restored verbatim rather than reset to
-            `never`. A Track-2 re-analysis picks up sources that are already
-            `succeeded`; downgrading one to `never` would drop its live page
-            from the next publish, turning a provider outage into missing
-            pages on the site.
-        """
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "analysis_status": previous_status or "never",
-                "analysis_started_at": None,
-            },
-            merge=True,
-        )
-
     def mark_analysis_failed(self, dataset_id: str, error: str) -> None:
-        # `failed_attempts` counts whole pipeline-run failures (each one
-        # already burned SESSION_ATTEMPTS in-run retries). The selector
-        # re-picks failed sources until this reaches 3, then parks them.
+        # Legacy status from the retired agent builder; today only
+        # `reap_stale_pending` writes it. `failed_attempts` is kept for the
+        # record, but the authoring selector queues `failed` sources for a
+        # recipe regardless of the count.
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {
                 "analysis_status": "failed",
@@ -667,24 +557,14 @@ class FirestoreStateStore:
         )
 
     def reap_stale_pending(self, *, older_than_minutes: int = 120) -> list[str]:
-        """Recycle `pending` sources orphaned by a run that died mid-session.
+        """Recycle `pending` sources orphaned by the retired agent builder.
 
-        `mark_analysis_pending` is written when a session starts; only
-        succeeded/failed/restricted clear it. If the container goes away first
-        — Cloud Run request timeout, OOM, a deploy mid-run — the marker
-        stays, and since the selector matches only `never`, `failed` and
-        Track-2 `changed`, a stranded `pending` is never re-picked. It leaks
-        one dataset per interrupted session, permanently.
-
-        Recycling as `failed` (rather than back to `never`) is deliberate: it
-        puts the source on Track 1b *and* bumps `failed_attempts`, so a
-        dataset that is simply too slow to ever finish parks after 3
-        interruptions instead of burning tokens every night forever.
-
-        Only called at the start of a run, before any of this run's own
-        sessions exist. The cutoff is belt-and-braces for the case where a
-        manual CLI run overlaps the scheduled one — keep it comfortably above
-        the slowest expected session.
+        Its sessions wrote `pending` on start; a container that died
+        mid-session (request timeout, OOM, a deploy) left the marker behind.
+        Nothing writes `pending` any more, and the authoring queue matches
+        only `never`, `failed` and changed legacy pages, so this drains the
+        legacy set: recycled as `failed`, which the queue treats as `new`.
+        Called at the start of a run.
 
         Returns the ids reaped.
         """
@@ -772,6 +652,7 @@ class FirestoreStateStore:
             "refresh_failed_version": None,
             "authoring_status": "done",
             "authoring_reason": None,
+            "authoring_issue": None,
             "last_snapshot": snapshot,
             "input_fingerprint": input_fingerprint,
             "inputs_hash": inputs_hash,
@@ -837,6 +718,7 @@ class FirestoreStateStore:
                     "refresh_failed_version": None,
                     "authoring_status": "done",
                     "authoring_reason": None,
+                    "authoring_issue": None,
                 }
             )
             if not preview:

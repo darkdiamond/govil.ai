@@ -1,80 +1,46 @@
 #!/usr/bin/env bash
-# Create the Cloud Scheduler job for govdata-builder. The job is created
-# PAUSED — resume it explicitly once the manual invokes look good:
+# Create the Cloud Scheduler job that runs govdata-builder-job daily. A new
+# scheduler job is created PAUSED — resume it explicitly once a manual
+# execution looks good:
 #
 #   gcloud scheduler jobs resume govdata-pipeline-daily --location=me-west1
 #
-# SCHEDULE defaults to 23:00 UTC (01:00–02:00 Israel time depending on DST).
-# That is deliberate: OpenRouter's Tencent endpoint (hy3's cheapest provider,
-# and first in the MODEL_ROUTING order pin) gives ~37% off input+completion
-# rates during its 16:00–24:00 UTC off-peak window. Expressing the cron in
-# UTC keeps the batch inside that window year-round regardless of Israeli
-# DST. Data freshness is equivalent to the previous 07:00 IST slot — CKAN
-# metadata is ingested at scan time, not by wall clock.
+# SCHEDULE defaults to 06:00 Asia/Jerusalem (Cloud Scheduler applies DST, so
+# it stays 06:00 local year-round). The local Claude Code authoring routine
+# runs an hour later and works through the issues this run opened.
+# (Until 2026-10 it was 23:00 UTC, for an LLM provider's off-peak discount;
+# no model runs in the job any more.)
 #
-# TARGET picks what the daily tick invokes:
-#   job     (default) — the govdata-builder-job Cloud Run JOB. Use this. A
-#                       job execution has no request timeout, so the batch
-#                       runs to its own end and fires the publish dispatch.
-#   service           — the govdata-builder HTTP service. Rollback only: a
-#                       service request is capped at 3600s, which the batch
-#                       outgrew on 2026-08-01 (504 daily, publish never fired).
+# Ticks start a job execution via the Admin API's :run method.
 #
-#   TARGET=service ./infra/scheduler.setup.sh   # revert
-#
-# Requires:
-#   - infra/bootstrap.sh already run
-#   - TARGET=job     → infra/builder-job.deploy.sh already run
-#     TARGET=service → infra/builder.deploy.sh already run (URL must exist)
+# Requires: infra/bootstrap.sh and infra/builder-job.deploy.sh already run.
 
 set -euo pipefail
 
 PROJECT=${FIREBASE_PROJECT:-govdata-il}
 REGION=${REGION:-me-west1}
-SERVICE=${CLOUD_RUN_SERVICE:-govdata-builder}
 RUN_JOB=${CLOUD_RUN_JOB:-govdata-builder-job}
 JOB_NAME=${SCHEDULER_JOB:-govdata-pipeline-daily}
-SCHEDULE=${SCHEDULE:-"0 23 * * *"}
-TIMEZONE=${SCHEDULE_TZ:-"UTC"}
-TARGET=${TARGET:-job}
+SCHEDULE=${SCHEDULE:-"0 6 * * *"}
+TIMEZONE=${SCHEDULE_TZ:-"Asia/Jerusalem"}
 
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
-case "$TARGET" in
-  job)
-    if ! gcloud run jobs describe "$RUN_JOB" --region="$REGION" --project="$PROJECT" >/dev/null 2>&1; then
-      echo "Cloud Run job $RUN_JOB not found in $REGION. Run infra/builder-job.deploy.sh first." >&2
-      exit 2
-    fi
-    # Executions start via the Admin API's :run method, so the tick carries an
-    # OAuth token for googleapis.com (not an OIDC token for a Run URL). The
-    # call returns as soon as the execution is created — the scheduler is not
-    # holding the batch open, so its 180s attemptDeadline is irrelevant.
-    URL="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT}/jobs/${RUN_JOB}:run"
-    AUTH_ARGS=(
-      --oauth-service-account-email="$SCHEDULER_SA"
-      --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
-    )
-    ;;
-  service)
-    URL=$(gcloud run services describe "$SERVICE" \
-      --region="$REGION" --project="$PROJECT" --format='value(status.url)')
-    if [[ -z "$URL" ]]; then
-      echo "Cloud Run service $SERVICE not found in $REGION. Deploy it first." >&2
-      exit 2
-    fi
-    AUTH_ARGS=(
-      --oidc-service-account-email="$SCHEDULER_SA"
-      --oidc-token-audience="$URL"
-    )
-    ;;
-  *)
-    echo "TARGET must be 'job' or 'service' (got: $TARGET)" >&2
-    exit 2
-    ;;
-esac
+if ! gcloud run jobs describe "$RUN_JOB" --region="$REGION" --project="$PROJECT" >/dev/null 2>&1; then
+  echo "Cloud Run job $RUN_JOB not found in $REGION. Run infra/builder-job.deploy.sh first." >&2
+  exit 2
+fi
+# Executions start via the Admin API's :run method, so the tick carries an
+# OAuth token for googleapis.com (not an OIDC token for a Run URL). The
+# call returns as soon as the execution is created — the scheduler is not
+# holding the run open, so its 180s attemptDeadline is irrelevant.
+URL="https://${REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${PROJECT}/jobs/${RUN_JOB}:run"
+AUTH_ARGS=(
+  --oauth-service-account-email="$SCHEDULER_SA"
+  --oauth-token-scope="https://www.googleapis.com/auth/cloud-platform"
+)
 
-echo "==> target: $TARGET → $URL"
+echo "==> target: $URL"
 
 EXISTED=false
 if gcloud scheduler jobs describe "$JOB_NAME" --location="$REGION" --project="$PROJECT" >/dev/null 2>&1; then

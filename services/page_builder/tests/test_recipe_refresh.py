@@ -88,6 +88,7 @@ class FakeStore:
                   recipe_version=recipe_version,
                   refreshed_metadata_modified=metadata_modified,
                   refresh_status="succeeded", refresh_failed_version=None,
+                  authoring_status="done", authoring_reason=None, authoring_issue=None,
                   last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
                   content_hash=content_hash, file_fingerprint=file_fingerprint)
@@ -102,7 +103,7 @@ class FakeStore:
         if advance_version:
             kw.update(refreshed_metadata_modified=metadata_modified, refresh_status="succeeded",
                       refresh_failed_version=None, authoring_status="done",
-                      authoring_reason=None)
+                      authoring_reason=None, authoring_issue=None)
         self._upd(dataset_id, preview, **kw)
 
     def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version, preview=False):
@@ -139,13 +140,17 @@ def env(tmp_path, monkeypatch):
         staged[rel] = data
         return f"gs://{bucket}/{rel}"
 
-    return SimpleNamespace(tmp=tmp_path, issues=issues, staged=staged, write_gcs=write_gcs)
+    def read_gcs(bucket, rel):
+        return staged.get(rel)
+
+    return SimpleNamespace(tmp=tmp_path, issues=issues, staged=staged,
+                           write_gcs=write_gcs, read_gcs=read_gcs)
 
 
 def _run(env, store, ckan, *, preview=True, recipes=FIXTURES, **kw):
     return rf.run_refresh(
         store, rf.LocalRecipeRepo(recipes), preview=preview, staging_bucket="bkt",
-        work_root=env.tmp / "work", write_gcs=env.write_gcs,
+        work_root=env.tmp / "work", write_gcs=env.write_gcs, read_gcs=env.read_gcs,
         preview_fn=ckan.preview, fetch_fn=ckan.fetch, **kw,
     )
 
@@ -852,3 +857,143 @@ def test_unchanged_by_fingerprint_does_not_spend_the_cap():
     assert rf._spends_cap(mk("a", "refreshed"))
     assert rf._spends_cap(mk("a", "failed"))
     assert not rf._spends_cap(mk("a", "skipped"))
+
+
+# ---- queue_authoring: issue dedup -----------------------------------------
+
+
+@pytest.mark.parametrize("state,reused", [("open", True), ("not_planned", True),
+                                          (None, True), ("completed", False)])
+def test_queue_authoring_reuses_issue_unless_closed_completed(env, monkeypatch, state, reused):
+    """Completed = a recipe PR closed it, so a later need is new work and gets
+    its own issue. Open / won't-author / unreadable keep the recorded one."""
+    monkeypatch.setattr("services.page_builder.notify.issue_state", lambda n: state)
+    store = FakeStore(_src())
+    store.states[(DS, False)] = {"authoring_status": "notified", "authoring_issue": 5}
+    number = rf.queue_authoring(store, store.src, "recipe_failed")
+    st = store.states[(DS, False)]
+    assert number == (5 if reused else 77)
+    assert st["authoring_issue"] == number and st["authoring_status"] == "notified"
+    assert len(env.issues) == (0 if reused else 1)
+
+
+def test_successful_refresh_clears_the_recorded_issue(env):
+    store = FakeStore(_src())
+    store.states[(DS, True)] = {"authoring_status": "notified", "authoring_issue": 5}
+    assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
+    assert store.states[(DS, True)]["authoring_issue"] is None
+
+
+# ---- staging failures -------------------------------------------------------
+
+
+class _MultiStore(FakeStore):
+    """FakeStore over several sources (ids → the same fixture recipe)."""
+
+    def __init__(self, ids):
+        super().__init__(_src())
+        self.srcs = {i: SimpleNamespace(**{**vars(_src()), "id": i}) for i in ids}
+
+    def get_source(self, dataset_id):
+        return self.srcs.get(dataset_id)
+
+
+def _many_recipes(tmp_path, ids):
+    recipes = tmp_path / "recipes"
+    for i in ids:
+        shutil.copytree(FIXTURES / DS, recipes / i)
+        m = recipes / i / "recipe.json"
+        m.write_text(m.read_text().replace(DS, i))
+    return recipes
+
+
+def test_staging_failure_fails_one_source_and_the_batch_goes_on(env, tmp_path):
+    """An upload error used to escape run_refresh and drop every source after
+    it for the night."""
+    ids = [f"{n}1111111-2222-3333-4444-555555555555" for n in range(3)]
+    store = _MultiStore(ids)
+
+    def write_gcs(data, bucket, rel):
+        if ids[0] in rel:
+            raise RuntimeError("503 from GCS")
+        env.staged[rel] = data
+        return f"gs://{bucket}/{rel}"
+
+    env.write_gcs = write_gcs
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=_many_recipes(tmp_path, ids))
+    assert s["failed"] == [ids[0]] and s["refreshed"] == ids[1:]
+    assert s["staging_down"] is False
+    st = store.states[(ids[0], True)]
+    assert st["refresh_reason"] == rf.STAGE_FAILED and env.issues == []
+    # Not an authoring verdict: the next run retries it.
+    assert rf.needs_refresh(store.srcs[ids[0]], st, rf.LocalRecipeRepo(
+        _many_recipes(tmp_path / "again", ids[:1])).load(ids[0], tmp_path / "s")) is not None
+
+
+def test_consecutive_staging_failures_stop_the_batch(env, tmp_path):
+    ids = [f"{n}1111111-2222-3333-4444-555555555555" for n in range(5)]
+    store = _MultiStore(ids)
+
+    def write_gcs(data, bucket, rel):
+        raise RuntimeError("bucket gone")
+
+    env.write_gcs = write_gcs
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=_many_recipes(tmp_path, ids))
+    assert s["staging_down"] is True
+    assert len(s["failed"]) == rf.MAX_CONSECUTIVE_STAGE_FAILURES
+    assert [o["reason"] for o in s["outcomes"]][rf.MAX_CONSECUTIVE_STAGE_FAILURES:] == [
+        "staging_down"] * (5 - rf.MAX_CONSECUTIVE_STAGE_FAILURES)
+
+
+def test_failed_firestore_mark_restores_the_last_good_body(env):
+    """Upload landed, mark didn't: the staged body must go back to the one
+    Firestore's agent_data still describes."""
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    rel, good = next(iter(env.staged.items()))
+
+    store.src = _src("2026-11-01")
+
+    def boom(*a, **k):
+        raise RuntimeError("firestore unavailable")
+
+    store.mark_refreshed = boom
+    s = _run(env, store, FakeCkan(_rows([2024, 2025, 2026])))
+    assert s["outcomes"][0]["reason"] == rf.STAGE_FAILED
+    assert env.staged[rel] == good
+
+
+def test_unloadable_recipe_queues_authoring(env, tmp_path):
+    """With recipes the only page path, a broken recipe on main must surface
+    as an issue, not freeze the page silently."""
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    (recipes / DS / "recipe.json").write_text("{not json")
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["outcomes"][0]["reason"] == "recipe_invalid"
+    assert s["outcomes"][0]["issue"] == 77 and env.issues[0]["reason"] == "recipe_failed"
+
+
+def test_queue_error_mid_batch_does_not_stop_the_refresh(env, tmp_path, monkeypatch):
+    ids = [f"{n}1111111-2222-3333-4444-555555555555" for n in range(2)]
+    store = _MultiStore(ids)
+    recipes = _many_recipes(tmp_path, ids)
+    (recipes / ids[0] / "recipe.json").write_text("{not json")
+
+    def _boom(*a, **k):
+        raise RuntimeError("github down")
+
+    monkeypatch.setattr(rf, "queue_authoring", _boom)
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["refreshed"] == [ids[1]]
+
+
+def test_unreadable_previous_body_does_not_fail_the_render(env):
+    store = FakeStore(_src())
+
+    def _boom(bucket, rel):
+        raise RuntimeError("403 get")
+
+    env.read_gcs = _boom
+    assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]

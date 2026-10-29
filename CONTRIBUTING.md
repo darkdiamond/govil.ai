@@ -14,20 +14,21 @@ before opening a pull request.
 Before changing pipeline or agent code, skim:
 
 - [`README.md`](README.md) — what the project is and how to run it
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the four layers
-  (scanner → builder → agent runtime → publisher) and the data model
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the layers
+  (scanner → recipe refresh → local authoring → publisher) and the data
+  model
 - [`CLAUDE.md`](CLAUDE.md) — detailed repository conventions and the
   "things you'll be tempted to do but shouldn't" list
 
 ## Development setup
 
-Prerequisites: Python 3.12, Node 22, and an
-[OpenRouter API key](https://openrouter.ai/settings/keys).
+Prerequisites: Python 3.12 and Node 22. Authoring a recipe uses
+[Claude Code](https://claude.com/claude-code) (`/author-dataset <id>`);
+nothing else in the repo calls a model.
 
 ```sh
 # Python services
 python3 -m venv .venv && source .venv/bin/activate
-python -m pip install -U pip   # stock pip 24.x fails to resolve pydantic-ai's extras
 pip install -r services/page_builder/requirements.txt
 
 # Frontend
@@ -43,8 +44,8 @@ Copy [`.env.example`](.env.example) to `.env` and fill in the values you
 need. `.env` is gitignored — **never commit secrets**.
 
 See the [README quick start](README.md#quick-start) for an end-to-end
-local run, and the [model harness](README.md#manual-run-model-harness-any-model-via-openrouter)
-section for evaluating agent output without touching the live pipeline.
+local run, and [Authoring a recipe](README.md#authoring-a-recipe) for
+writing and previewing a dataset page without touching the live pipeline.
 
 ## Running tests
 
@@ -53,10 +54,10 @@ source .venv/bin/activate
 pytest services/page_builder/tests/ -q
 ```
 
-The agent self-check (`agent/skills/check.py`) runs both inside each
-agent session and host-side during production runs — if you change the
-output contract or the system prompt's hard rules, keep the check script
-in sync.
+The page gate (`agent/skills/check.py`) runs host-side on every rendered
+body, both in `author verify` and in the daily refresh — if you change the
+output contract or the hard rules in `agent/system-prompt.md`, keep the
+check script in sync.
 
 For frontend changes, confirm a clean static build:
 
@@ -84,7 +85,7 @@ This repo uses [Conventional Commits](https://www.conventionalcommits.org/):
 
 ```
 feat(frontend): add tag-cloud to home page
-fix(pipeline): retry transient OpenRouter 5xx
+fix(refresh): retry transient CKAN 5xx
 docs: clarify self-hosting env vars
 ```
 

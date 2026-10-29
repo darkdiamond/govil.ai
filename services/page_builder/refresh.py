@@ -81,6 +81,11 @@ _COMPUTE_SPAWN_BACKOFF_S = 1.0
 
 # Failure reasons a human must act on → open an authoring issue. Anything
 # else (`fetch_failed`) is transient and simply retried next run.
+# Staging (GCS upload / Firestore mark) failed after a good render. After
+# this many in a row the batch stops: the store is down, and every further
+# source would only spend a full export to fail the same way.
+STAGE_FAILED = "stage_failed"
+MAX_CONSECUTIVE_STAGE_FAILURES = 3
 AUTHORING_REASONS = ("recipe_failed", "schema_changed", "too_large")
 
 
@@ -694,6 +699,17 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     return f"gs://{bucket}/{relpath}"
 
 
+def _read_gcs(bucket: str, relpath: str) -> Optional[bytes]:
+    """The staged object's current bytes, or None if there is none."""
+    from google.api_core.exceptions import NotFound
+    from google.cloud import storage
+
+    try:
+        return storage.Client().bucket(bucket).blob(relpath).download_as_bytes()
+    except NotFound:
+        return None
+
+
 @dataclass
 class RefreshOutcome:
     id: str
@@ -754,6 +770,7 @@ def refresh_one(
     previous_state: Optional[dict] = None,
     notify: bool = True,
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
+    read_gcs: Callable[[str, str], Optional[bytes]] = _read_gcs,
     **fetch_kwargs,
 ) -> RefreshOutcome:
     started = time.monotonic()
@@ -830,7 +847,7 @@ def refresh_one(
             round(time.monotonic() - started, 2),
         )
         if notify and e.reason in AUTHORING_REASONS:
-            outcome.issue = queue_authoring(
+            outcome.issue = _queue_authoring_safely(
                 store, src, e.reason, detail=str(e), preview=preview
             )
         return outcome
@@ -862,21 +879,60 @@ def refresh_one(
         pc["content_same"] = _same(ch, state.get("content_hash"))
         _log_precheck(src.id, pc)
     prefix = "preview/datasets" if preview else "datasets"
-    write_gcs(
-        page.content_html.encode("utf-8"),
-        staging_bucket,
-        f"{prefix}/{src.id}/{CONTENT_FILENAME}",
-    )
-    store.mark_refreshed(
-        src.id,
-        metadata_modified=src.metadata_modified,
-        recipe_version=rv,
-        agent_data=page.agent_data,
-        page_path=f"datasets/{src.id}/",
-        snapshot=snapshot,
-        preview=preview,
-        **hashes,
-    )
+    rel = f"{prefix}/{src.id}/{CONTENT_FILENAME}"
+    previous_html: Optional[bytes] = None
+    staged = False
+    try:
+        # Kept so a failed Firestore mark can put it back: the staged body
+        # and the doc's agent_data must describe the same render, or the
+        # next publish pairs a new page with the old summary.
+        try:
+            previous_html = read_gcs(staging_bucket, rel)
+        except Exception:
+            # Only the rollback below needs it; never fail a render over it.
+            log.warning("refresh %s: reading the staged body failed — no rollback copy",
+                        src.id[:8], exc_info=True)
+        write_gcs(page.content_html.encode("utf-8"), staging_bucket, rel)
+        staged = True
+        store.mark_refreshed(
+            src.id,
+            metadata_modified=src.metadata_modified,
+            recipe_version=rv,
+            agent_data=page.agent_data,
+            page_path=f"datasets/{src.id}/",
+            snapshot=snapshot,
+            preview=preview,
+            **hashes,
+        )
+    except Exception as e:
+        # Staging/state infra, not the recipe: this source only. It is not
+        # an AUTHORING_REASON, so the next run retries it; run_refresh stops
+        # the batch if staging keeps failing. If the upload landed but the
+        # mark didn't, the last-good body goes back first. (A first render
+        # has none; its doc isn't publishable yet, so the orphan is inert.)
+        log.exception("refresh %s: staging failed", src.id[:8])
+        if staged and previous_html is not None:
+            try:
+                write_gcs(previous_html, staging_bucket, rel)
+            except Exception:
+                log.exception(
+                    "refresh %s: restoring the last-good body failed — staged "
+                    "page and Firestore disagree until the next refresh", src.id[:8],
+                )
+        try:
+            store.mark_refresh_failed(
+                src.id,
+                error=f"{type(e).__name__}: {e}",
+                reason=STAGE_FAILED,
+                failed_version=version_key(src.metadata_modified, rv),
+                preview=preview,
+            )
+        except Exception:
+            log.exception("refresh %s: recording the staging failure failed", src.id[:8])
+        return RefreshOutcome(
+            src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
+            round(time.monotonic() - started, 2),
+        )
     return RefreshOutcome(
         src.id,
         "refreshed",
@@ -931,13 +987,21 @@ def snapshot_diff(before: Optional[dict], after: dict) -> dict:
 
 
 def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool = False) -> Optional[int]:
-    """Flag a dataset for local authoring and open its issue (once)."""
+    """Flag a dataset for local authoring and open its issue (once).
+
+    A recorded issue is reused while it is open or was closed as not
+    planned. One closed as completed means a recipe PR landed and this is a
+    new need (e.g. the recipe later failed), so a fresh issue is opened."""
     from . import notify as _notify
 
     state = store.get_refresh_state(src.id, preview=preview)
     store.mark_authoring_needed(src.id, reason, preview=preview)
-    if state.get("authoring_issue"):
-        return int(state["authoring_issue"])
+    recorded = state.get("authoring_issue")
+    if recorded and _notify.issue_state(int(recorded)) != "completed":
+        # Back to `notified`, which mark_authoring_needed just overwrote:
+        # the daily queue skips notified sources.
+        store.set_authoring_issue(src.id, int(recorded), preview=preview)
+        return int(recorded)
     number = _notify.open_authoring_issue(
         dataset_id=src.id,
         title=src.title or src.id,
@@ -949,6 +1013,16 @@ def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool 
     if number is not None:
         store.set_authoring_issue(src.id, number, preview=preview)
     return number
+
+
+def _queue_authoring_safely(store, src, reason: str, **kw) -> Optional[int]:
+    """queue_authoring for use mid-batch: a Firestore/GitHub error costs this
+    source its issue (retried next run), never the rest of the refresh."""
+    try:
+        return queue_authoring(store, src, reason, **kw)
+    except Exception:
+        log.exception("queueing %s for authoring failed", src.id[:8])
+        return None
 
 
 def _spends_cap(o: RefreshOutcome) -> bool:
@@ -980,8 +1054,13 @@ def run_refresh(
     if only_ids is not None:
         ids = [i for i in ids if i in set(only_ids)]
     outcomes: list[RefreshOutcome] = []
+    stage_failures = 0  # consecutive
+    staging_down = False
     try:
         for dataset_id in ids:
+            if staging_down:
+                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="staging_down"))
+                continue
             # A fingerprint skip made no export, so it doesn't spend the cap.
             if len([o for o in outcomes if _spends_cap(o)]) >= cap:
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="cap"))
@@ -994,9 +1073,17 @@ def run_refresh(
                 recipe = repo.load(dataset_id, scratch)
             except Exception as e:
                 log.exception("recipe %s failed to load", dataset_id[:8])
-                outcomes.append(
-                    RefreshOutcome(dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e)))
+                outcome = RefreshOutcome(
+                    dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e))
                 )
+                # The page can't refresh until the recipe is fixed, so it
+                # needs authoring like any other broken recipe. Idempotent:
+                # the open issue is reused every night until then.
+                if notify:
+                    outcome.issue = _queue_authoring_safely(
+                        store, src, "recipe_failed", detail=str(e), preview=preview
+                    )
+                outcomes.append(outcome)
                 continue
             state = store.get_refresh_state(dataset_id, preview=preview)
             trigger = "forced" if force else needs_refresh(src, state, recipe)
@@ -1004,13 +1091,22 @@ def run_refresh(
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="up_to_date"))
                 continue
             log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
-            outcomes.append(
-                refresh_one(
-                    src, recipe, store=store, preview=preview,
-                    staging_bucket=staging_bucket, work_root=work_root,
-                    trigger=trigger, previous_state=state, notify=notify, **kwargs,
-                )
+            outcome = refresh_one(
+                src, recipe, store=store, preview=preview,
+                staging_bucket=staging_bucket, work_root=work_root,
+                trigger=trigger, previous_state=state, notify=notify, **kwargs,
             )
+            outcomes.append(outcome)
+            if outcome.reason == STAGE_FAILED:
+                stage_failures += 1
+                if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
+                    log.error(
+                        "refresh: %d staging failures in a row — stopping the batch",
+                        stage_failures,
+                    )
+                    staging_down = True
+            elif outcome.status == "refreshed":
+                stage_failures = 0
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     refreshed = [o.id for o in outcomes if o.status == "refreshed"]
@@ -1022,6 +1118,7 @@ def run_refresh(
         "refreshed": refreshed,
         "unchanged": unchanged,
         "failed": failed,
+        "staging_down": staging_down,
         "outcomes": [o.__dict__ for o in outcomes],
     }
 

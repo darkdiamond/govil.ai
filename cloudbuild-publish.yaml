@@ -1,6 +1,7 @@
 # Cloud Build pipeline — regenerate manifest, build Nuxt site, deploy to
-# Firebase Hosting. Triggered by govdata-builder after a successful agent
-# run (see services/page_builder/pipeline.py::_trigger_publish).
+# Firebase Hosting. Fallback publisher (PUBLISH_VIA=cloudbuild): triggered by
+# govdata-builder-job after a run that re-rendered ≥1 page (see
+# services/page_builder/pipeline.py::_trigger_publish).
 #
 # Uses a pre-baked image built by cloudbuild-publisher-image.yaml — it
 # carries node 22, firebase-tools, gsutil, page_builder Python deps, and
@@ -9,7 +10,7 @@
 # publish.
 #
 # Substitutions:
-#   _STAGING_BUCKET    GCS bucket the builder stages agent outputs to
+#   _STAGING_BUCKET    GCS bucket the builder stages rendered pages to
 #   _FIREBASE_PROJECT  Firebase / GCP project that owns Hosting + Firestore
 #   _PUBLISHER_IMAGE   Pre-baked image (see cloudbuild-publisher-image.yaml)
 
@@ -19,12 +20,12 @@ steps:
   #     in step [2] from Firestore — never synced from GCS. The `-x` regex
   #     excludes those filenames + index.html so even if a pre-split-era
   #     stale copy lingers in staging, rsync won't drag it into the deploy.
-  - id: 'fetch-pages'
-    name: '${_PUBLISHER_IMAGE}'
-    entrypoint: 'bash'
-    waitFor: ['-']
+  - id: "fetch-pages"
+    name: "${_PUBLISHER_IMAGE}"
+    entrypoint: "bash"
+    waitFor: ["-"]
     args:
-      - '-c'
+      - "-c"
       - |
         set -euo pipefail
         mkdir -p frontend/public/datasets
@@ -43,16 +44,16 @@ steps:
   #     compute + cache embeddings on sources that don't have one yet
   #     (services/page_builder/publish.py → embed()). Without it, related.py
   #     falls back to ministry + shared-tag scoring only.
-  - id: 'publish-artifacts'
-    name: '${_PUBLISHER_IMAGE}'
-    entrypoint: 'bash'
-    waitFor: ['fetch-pages']
+  - id: "publish-artifacts"
+    name: "${_PUBLISHER_IMAGE}"
+    entrypoint: "bash"
+    waitFor: ["fetch-pages"]
     env:
-      - 'FIRESTORE_PROJECT_ID=${_FIREBASE_PROJECT}'
-      - 'GOOGLE_CLOUD_PROJECT=${_FIREBASE_PROJECT}'
-    secretEnv: ['VOYAGE_API_KEY']
+      - "FIRESTORE_PROJECT_ID=${_FIREBASE_PROJECT}"
+      - "GOOGLE_CLOUD_PROJECT=${_FIREBASE_PROJECT}"
+    secretEnv: ["VOYAGE_API_KEY"]
     args:
-      - '-c'
+      - "-c"
       - |
         set -euo pipefail
         mkdir -p frontend/public/data frontend/public/datasets
@@ -67,11 +68,11 @@ steps:
   #     Restores frontend/node_modules/.cache from GCS keyed by
   #     md5(package-lock.json) to warm Vite/Nitro between builds; cache is
   #     best-effort so a miss or transient GCS error never breaks deploy.
-  - id: 'generate-and-deploy'
-    name: '${_PUBLISHER_IMAGE}'
-    entrypoint: 'bash'
+  - id: "generate-and-deploy"
+    name: "${_PUBLISHER_IMAGE}"
+    entrypoint: "bash"
     args:
-      - '-c'
+      - "-c"
       - |
         set -euo pipefail
         cd frontend
@@ -135,18 +136,18 @@ steps:
           --non-interactive
 
 substitutions:
-  _STAGING_BUCKET: 'govdata-il-staging'
-  _FIREBASE_PROJECT: 'govdata-il'
-  _PUBLISHER_IMAGE: 'me-west1-docker.pkg.dev/govdata-il/publisher/publisher:latest'
+  _STAGING_BUCKET: "govdata-il-staging"
+  _FIREBASE_PROJECT: "govdata-il"
+  _PUBLISHER_IMAGE: "me-west1-docker.pkg.dev/govdata-il/publisher/publisher:latest"
 
 availableSecrets:
   secretManager:
-    - versionName: 'projects/${_FIREBASE_PROJECT}/secrets/voyage-api-key/versions/latest'
-      env: 'VOYAGE_API_KEY'
+    - versionName: "projects/${_FIREBASE_PROJECT}/secrets/voyage-api-key/versions/latest"
+      env: "VOYAGE_API_KEY"
 
 options:
   logging: CLOUD_LOGGING_ONLY
   # Default machineType (e2-standard-2). Nuxt generate is single-thread
   # bound; the prior E2_HIGHCPU_8 was wasted CPU and 5x billing.
 
-timeout: '1800s'
+timeout: "1800s"

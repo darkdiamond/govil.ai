@@ -1,15 +1,18 @@
 # Deployment
 
 Three one-time setups, then the runtime flow is: Cloud Scheduler (daily
-23:00 UTC — inside OpenRouter's off-peak discount window for hy3's
-Tencent endpoint) → Cloud Run builder (scan CKAN → concurrent
-self-validating agent sessions via OpenRouter → stage to GCS +
-Firestore) → Cloud Build publisher (generate Nuxt site → deploy to
-Firebase Hosting), which fires only when ≥1 new page succeeded.
+06:00 Asia/Jerusalem) → Cloud Run **job** `govdata-builder-job` (scan
+CKAN → re-render every recipe'd page whose data moved, no LLM → open a
+`needs-authoring` GitHub issue per new/changed dataset without a recipe →
+stage to GCS + Firestore) → GitHub Actions publisher (generate Nuxt site →
+deploy to Firebase Hosting), which fires only when ≥1 page re-rendered.
+Recipes are authored locally with Claude Code (a daily routine at 07:00
+works the open issues into one PR); merging that PR is the deploy — the
+job reads `recipes/` from git `main` at run time.
 
-Container count is pinned to **one** (`--max-instances=1 --concurrency=1`).
-Per-source parallelism lives inside that container via `asyncio.gather`
-bounded by `MAX_CONCURRENT`; the per-run volume fuse is `DAILY_CAP`.
+One execution, one task (`--tasks=1 --parallelism=1 --max-retries=0`);
+recipes refresh sequentially inside it. `AUTHORING_NOTIFY_CAP` (100) is
+the per-run fuse on new issues.
 
 ## 1. Project bootstrap — `infra/bootstrap.sh`
 
@@ -34,68 +37,72 @@ Prereqs:
 
 ```sh
 bash infra/bootstrap.sh
-# populate the OpenRouter API key secret (one-time)
-gcloud secrets create openrouter-api-key --data-file=$HOME/.config/openrouter/key \
-  --project=govdata-il 2>/dev/null || \
-  gcloud secrets versions add openrouter-api-key --data-file=$HOME/.config/openrouter/key \
-    --project=govdata-il
-gcloud secrets add-iam-policy-binding openrouter-api-key \
-  --member="serviceAccount:govdata-builder@govdata-il.iam.gserviceaccount.com" \
-  --role=roles/secretmanager.secretAccessor --project=govdata-il
 ```
+
+The builder job also needs the `github-dispatch-token` secret — a
+fine-grained PAT on this repo with Actions read+write (publish dispatch)
+and Issues read+write (authoring issues); see the `infra/github-ci.setup.sh`
+header for how to store it and grant the builder SA access.
+(`bootstrap.sh` still creates an empty `openrouter-api-key` secret from
+the retired agent builder; nothing reads it.)
 
 The script prints the service account emails it created and ends with
 instructions for registering the Cloud Build trigger (needs a connected
 repo — either a GitHub 2nd-gen connection or a Cloud Source Repositories
 mirror).
 
-## 2. Cloud Run builder — `infra/builder.deploy.sh`
+## 2. Cloud Run builder job — `infra/builder-job.deploy.sh`
 
-Builds the Docker image from the repo root and deploys the service. The
-agent runtime ships inside the image: `agent/system-prompt.md` (system
-prompt), `agent/skills/check.py` (self-check), and the PydanticAI loop
-calling OpenRouter.
-
-```sh
-bash infra/builder.deploy.sh
-# model/scale knobs (defaults shown):
-#   OPENROUTER_MODEL=minimax/minimax-m3 DAILY_CAP=50 MAX_CONCURRENT=8 \
-#   SESSION_ATTEMPTS=3 bash infra/builder.deploy.sh
-```
-
-Notable flags (see script for the full list):
-
-| Flag                | Value                                    |
-| ------------------- | ---------------------------------------- |
-| `--max-instances`   | 1 (never more than one container)        |
-| `--concurrency`     | 1 (one request in flight; no queueing)   |
-| `--cpu / --memory`  | 2 / 1Gi (bump memory if `MAX_CONCURRENT > 16`) |
-| `--timeout`         | 3600 s (bounds the whole daily batch)    |
-| `--no-allow-unauthenticated` | Scheduler SA + your own ID token only |
-
-Manual smoke after deploy:
+Builds the Docker image from the repo root (`--source=.`, filtered by
+`.gcloudignore`/`.dockerignore`) and deploys the job. The image carries
+the scanner, `services/page_builder/` and the host-side page gate
+`agent/skills/check.py` — no model client, no system prompt. Recipes are
+not baked in: each run lists and loads them from git `main`
+(`RECIPES_SOURCE`, default `github:$PUBLISH_GITHUB_REPO@main`).
 
 ```sh
-URL=$(gcloud run services describe govdata-builder --region=me-west1 --format='value(status.url)')
-TOKEN=$(gcloud auth print-identity-token)
-
-# Dry run: scan + select but don't fire the agent.
-curl -X POST "$URL" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"dry_run": true}'
-
-# Full run on a specific dataset (bypass selector).
-curl -X POST "$URL" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"dataset_id": "<ckan-id>"}'
+bash infra/builder-job.deploy.sh
+# knobs (defaults shown; see the script for the full list):
+#   SCAN_LIMIT=800 MIN_MODIFIED_FLOOR=2025-01-01 MAX_AGE_DAYS=100000 \
+#   AUTHORING_NOTIFY_CAP=100 REFRESH_PRECHECK=full bash infra/builder-job.deploy.sh
 ```
+
+`--set-env-vars` **replaces** the job's whole env: a var you set by hand
+on the live job and that isn't in the script is dropped on the next
+deploy. Diff against `gcloud run jobs describe` first.
+
+| Flag                        | Value                                              |
+| --------------------------- | -------------------------------------------------- |
+| `--tasks` / `--parallelism` | 1 / 1 (one container per execution)                |
+| `--max-retries`             | 0 (a failed run is retried by the next day's tick) |
+| `--cpu / --memory`          | 2 / 4Gi (full CKAN exports are held in memory)     |
+| `--task-timeout`            | 21600 s (6 h wall-clock ceiling for one run)       |
+
+Manual runs after deploy:
+
+```sh
+# Dry run: scan + list the authoring queue; nothing refreshed, opened or published.
+gcloud run jobs execute govdata-builder-job --region=me-west1 \
+  --args=-m,services.page_builder.pipeline,--dry-run --wait
+
+# One dataset (no scan): force-render it if it has a recipe, else queue it.
+gcloud run jobs execute govdata-builder-job --region=me-west1 \
+  --args=-m,services.page_builder.pipeline,--source,<ckan-id> --wait
+```
+
+A run that can't read the recipe list ends `status: refresh_unavailable`;
+one whose refresh crashed or hit 3 staging (GCS/Firestore) failures in a
+row ends `status: refresh_failed`; one whose authoring queue broke
+(selector/Firestore/GitHub) ends `status: authoring_failed`, after
+publishing what refreshed. All three exit non-zero, so the execution
+shows FAILED; an idle day (nothing re-rendered) is a success.
 
 ## 3. Cloud Scheduler — `infra/scheduler.setup.sh`
 
-Creates the scheduler job **PAUSED**. Enable it only after the manual
-invokes have produced real pages.
+Creates the scheduler job **PAUSED** (`0 6 * * *`, Asia/Jerusalem —
+Cloud Scheduler applies DST). Each tick starts a job execution via the
+Admin API's `:run` method. Enable it only after a manual execution looks
+good.
 
 ```sh
 bash infra/scheduler.setup.sh
@@ -108,7 +115,7 @@ gcloud scheduler jobs resume govdata-pipeline-daily --location=me-west1
 Automatic via GitHub Actions (`.github/workflows/publish.yml`, $0 on
 free-tier minutes):
 
-- the builder dispatches it after any run with ≥1 successful page
+- the builder dispatches it after any run with ≥1 re-rendered page
   (`PUBLISH_VIA=github` + the `github-dispatch-token` secret); idle
   runs dispatch nothing.
 - pushing to main with changes under `frontend/**` (or the publisher
@@ -118,10 +125,11 @@ free-tier minutes):
 One-time setup: `infra/github-ci.setup.sh` (WIF + govdata-ci SA + repo
 variables) plus a fine-grained PAT (this repo, Actions read+write)
 stored as the `github-dispatch-token` secret — see the script header.
+The same PAT needs Issues read+write for the authoring queue.
 
 Fallback #1 — Cloud Build: the `govdata-publish` trigger
 (`cloudbuild-publish.yaml`) stays registered; switch with
-`PUBLISH_VIA=cloudbuild` on the builder.
+`PUBLISH_VIA=cloudbuild` on the builder job.
 
 Fallback #2 — manual, same four steps on your machine:
 
@@ -134,7 +142,7 @@ source .venv/bin/activate
 To pause auto-publishing (e.g. while reworking the frontend):
 
 ```sh
-gcloud run services update govdata-builder --region=me-west1 \
+gcloud run jobs update govdata-builder-job --region=me-west1 \
   --update-env-vars=PUBLISH_VIA=""
 ```
 
@@ -175,14 +183,15 @@ export FIRESTORE_EMULATOR_HOST=localhost:8080 FIRESTORE_PROJECT_ID=local-dev
 # Seed a few sources
 python -m services.scanner.main scan --limit 5
 
-# Dry run the pipeline against the emulator
+# Dry run the pipeline against the emulator (scan + list the authoring queue)
 python -m services.page_builder.pipeline --dry-run
 
-# Full pipeline for one source (needs OPENROUTER_API_KEY + GCS_STAGING_BUCKET)
+# One source: refresh it if it has a recipe, else queue it for authoring
+# (needs GCS_STAGING_BUCKET; queueing needs GITHUB_DISPATCH_TOKEN)
 python -m services.page_builder.pipeline --source <ckan-id> --no-trigger-publish
 ```
 
-## Archiving agent output into git
+## Archiving rendered pages into git
 
 The publisher rsyncs `gs://govdata-il-staging/datasets/` into the Cloud
 Build workspace on every deploy, so git never sees the generated
@@ -194,7 +203,7 @@ bucket contents into the working tree and commit by hand:
 ./infra/sync-datasets.sh --apply    # copies gs://.../datasets/ -> frontend/public/datasets/
 git status frontend/public/datasets/
 # review, then:
-git add frontend/public/datasets/ && git commit -m "publish: sync agent output"
+git add frontend/public/datasets/ && git commit -m "publish: sync rendered pages"
 ```
 
 The sync mirrors deletions (`gsutil rsync -d`): a page pruned from the

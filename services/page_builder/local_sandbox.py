@@ -1,12 +1,11 @@
-"""Subprocess sandbox for production agent sessions.
+"""Subprocess sandbox for recipe `compute.py` runs (services/page_builder/refresh.py).
 
 Same surface as `podman_sandbox.PodmanSandbox` (`run_code`, `files.read`,
 `files.list`, `kill`) but executes directly in the builder container via
 `subprocess` — Cloud Run can't nest containers, so the (single-tenant,
-ephemeral) container itself is the outer isolation boundary. Each session
-gets a private working directory; the agent's prompt uses relative scratch
-paths and the per-session OUTPUTS_DIR, so concurrent sessions in one
-container never share files.
+ephemeral) container itself is the outer isolation boundary. Each compute
+run gets a private working directory. (Built for the retired agent
+builder's tool sessions; "session" below means one sandbox lifetime.)
 
 Hardening within that boundary:
 - privilege separation: when the builder runs as root (the container) and
@@ -21,12 +20,13 @@ Hardening within that boundary:
   so a session can't trick the root host into reading /proc/1/environ or
   any other host file into the published page.
 - scrubbed env: PATH/HOME/LANG only — no GCP credentials vars, no
-  OPENROUTER key (HOME — and, privilege-separated, TMPDIR — point into
-  the session workdir).
+  GitHub token or other key vars (HOME — and, privilege-separated,
+  TMPDIR — point into the session workdir).
 - per-command wall-clock timeout (default 120s, SIGKILL on expiry); at
   session end, privilege-separated, stray background processes the
   session left running are killed before the workdir is removed.
-- output size is capped by the caller (model_harness truncation).
+- output size is bounded by the caller (refresh.py reads back only the
+  compute result file).
 
 When the builder is NOT root (local dev, tests) none of the privilege
 separation applies and commands run as the invoking user, as before.
