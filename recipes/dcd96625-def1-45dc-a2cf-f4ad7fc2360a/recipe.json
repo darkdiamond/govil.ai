@@ -1,7 +1,7 @@
 {
   "contract_version": 1,
   "dataset_id": "dcd96625-def1-45dc-a2cf-f4ad7fc2360a",
-  "recipe_version": 2,
+  "recipe_version": 3,
   "authored_at": "2026-10-24T18:45:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-23T04:00:31.848852+00:00",

@@ -108,7 +108,7 @@ def insight_status(st_counts, total):
     rest = [f"{n(v)} {('הצהירו על אי עיסוק במקצוע' if s == NOT_PRACTISING else ('רישיונם בוטל' if s == CANCELLED else ('מושעים' if s == SUSPENDED else 'בסטטוס ' + s)))}"
             for s, v in st_counts.items() if s != ACTIVE and v > 0]
     tail = (", ".join(rest[:-1]) + " ו-" + rest[-1]) if len(rest) > 1 else "".join(rest)
-    s = f"{pct(act / total * 100)} מהרשומים במאגר פעילים — {n(act)} רואי חשבון"
+    s = f"{pct(act / total * 100)} מהרשומים במאגר פעילים, כלומר {n(act)} רואי חשבון"
     return s + (f"; {tail}." if tail else ".")
 
 
@@ -123,9 +123,9 @@ def insight_peak(per_year, last_full):
     drop = 1 - lv / pv
     if abs(drop) < 0.1:
         return (f"שנת השיא במתן רישיונות הייתה {peak} ({n(pv)}); ב-{last_full} ניתנו "
-                f"{n(lv)} — קרוב לשיא.")
+                f"{n(lv)}, קרוב לשיא.")
     return (f"שנת השיא במתן רישיונות הייתה {peak}, עם {n(pv)} רישיונות חדשים; ב-{last_full} "
-            f"ניתנו {n(lv)} — {pct(drop * 100, 0)} פחות מהשיא.")
+            f"ניתנו {n(lv)}, {pct(drop * 100, 0)} פחות מהשיא.")
 
 
 def insight_ytd(df, ref, partial):
@@ -144,7 +144,7 @@ def insight_ytd(df, ref, partial):
     else:
         trend = (f"{pct(abs(chg) * 100, 0)} {'יותר' if chg > 0 else 'פחות'} מבתקופה המקבילה "
                  f"ב-{y - 1} ({n(p)})")
-    return f"מתחילת {y} ועד {d_he(ref)} ניתנו {n(c)} רישיונות חדשים — {trend}."
+    return f"מתחילת {y} ועד {d_he(ref)} ניתנו {n(c)} רישיונות חדשים, {trend}."
 
 
 def insight_cohort(cohort, last_full):
@@ -166,7 +166,7 @@ def insight_cohort(cohort, last_full):
         return None
     return (f"ככל שהרישיון ותיק יותר, כך קטן הסיכוי שבעליו עדיין פעיל: מבין מי שקיבלו רישיון "
             f"בשנות ה-{recent}, {pct(a1, 0)} פעילים, לעומת {pct(a0, 0)} מבין מקבלי הרישיון "
-            f"בשנות ה-{old} — שבהם {pct(sh(old, NOT_PRACTISING), 0)} הצהירו על אי עיסוק "
+            f"בשנות ה-{old}, שבהם {pct(sh(old, NOT_PRACTISING), 0)} הצהירו על אי עיסוק "
             f"ו-{pct(sh(old, CANCELLED), 0)} שרישיונם בוטל.")
 
 
@@ -199,9 +199,9 @@ def insight_missing(df):
     canc = (miss["status"] == CANCELLED).mean()
     s = f"ל-{n(len(miss))} רשומות ({pct(len(miss) / len(df) * 100)}) אין תאריך קבלת רישיון"
     if canc == 1:
-        s += " — כולן רישיונות שבוטלו"
+        s += ", וכולן רישיונות שבוטלו"
     elif canc >= 0.8:
-        s += f" — {pct(canc * 100)} מהן רישיונות שבוטלו"
+        s += f", ו-{pct(canc * 100)} מהן רישיונות שבוטלו"
     return s + "; הן אינן נכללות בגרפים לפי שנה."
 
 
@@ -346,7 +346,7 @@ def compute(frames):
     chg_txt = ("" if not lp else
                f", {'עלייה' if chg >= 0 else 'ירידה'} של {abs(chg) * 100:.0f}% לעומת {last_full - 1}")
 
-    partial_note = (f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else "")
+    partial_note = (f" {ref_year} היא שנה חלקית, עד {d_he(ref)}." if partial else "")
     pre_n = int(cohort.loc["pre"].sum()) if "pre" in cohort.index else 0
     labels = {
         "lede": (f"מרשם רישיונות ראיית החשבון של משרד המשפטים: {n(total)} רשומות, מהן "
@@ -355,7 +355,7 @@ def compute(frames):
         "active_kpi": f"רואי חשבון פעילים ({act_total / total * 100:.1f}% מהרשומים)",
         "new_kpi": f"רישיונות חדשים ב-{last_full}{chg_txt}",
         "status_note": "הסטטוס הנוכחי של כל רישיון במאגר.",
-        "status_aria": (f"תרשים טבעת: רישיונות לפי סטטוס — {n(act_total)} פעילים מתוך {n(total)}."),
+        "status_aria": (f"תרשים טבעת: רישיונות לפי סטטוס, {n(act_total)} פעילים מתוך {n(total)}."),
         "status_caption": "מספר רישיונות לפי סטטוס.",
         "years_note": (f"רישיונות שניתנו בכל שנה, לפי הסטטוס הנוכחי של בעליהם. ניתן לגלול "
                        f"ולהגדיל את טווח השנים.{partial_note}"),
@@ -379,11 +379,11 @@ def compute(frames):
         "cities_note": (f"{TOP_CITIES} הישובים עם מספר רואי החשבון הרשומים הגדול ביותר, לפי סטטוס. "
                         f"איות שמות הישובים במקור אוחד (למשל קרית/קריית)"
                         + (f"; {n(unknown_city)} רשומות ללא ישוב אינן נכללות." if unknown_city else ".")),
-        "cities_aria": (f"תרשים עמודות אופקי מוערם: {TOP_CITIES} הישובים המובילים — "
+        "cities_aria": (f"תרשים עמודות אופקי מוערם: {TOP_CITIES} הישובים המובילים; "
                         f"{top_c[0]} בראש עם {n(cities.iloc[0])} רשומים."),
         "cities_caption": f"רשומים לפי ישוב ({TOP_CITIES} המובילים) וסטטוס.",
         "surnames_note": f"{TOP_NAMES} שמות המשפחה הנפוצים בכלל הרשומים במאגר.",
-        "surnames_aria": (f"תרשים עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים — "
+        "surnames_aria": (f"תרשים עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים; "
                           f"{surnames.index[0]} בראש."),
         "surnames_caption": "מספר רשומים לפי שם משפחה.",
         "firsts_note": (f"{TOP_NAMES} השמות הפרטיים הנפוצים בקרב מי שקיבלו רישיון "
@@ -401,7 +401,7 @@ def compute(frames):
                    for d, lab in zip(cohort.index, cohort_labels)],
         "seniority": [{"bucket": k, "count": n(v)} for k, v in sen_rows],
         "cumulative": [{"month": MONTHS_SHORT[i],
-                        "vals": [("—" if s["data"][i] is None else n(s["data"][i])) for s in cum_series]}
+                        "vals": [("–" if s["data"][i] is None else n(s["data"][i])) for s in cum_series]}
                        for i in range(12)],
         "cum_cols": [s["name"] for s in cum_series],
         "cities": [{"name": c, "total": n(cities[c]),
@@ -412,9 +412,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"מרשם רואי החשבון של משרד המשפטים: {n(total)} רישיונות, מהם "
-                           f"{n(act_total)} פעילים — תאריך קבלת הרישיון, ישוב וסטטוס, "
-                           f"מ-{first_year} ועד {ref_year}."),
+            "summary_he": (f"מרשם רואי החשבון: איתור רואה חשבון לפי שם או מספר רישיון. {n(total)} רישיונות, מהם "
+                           f"{n(act_total)} פעילים, עם יישוב וסטטוס, מ-{first_year} ועד {ref_year}."),
             "dataset_kind": "registry",
             "related_ids": ["669b2652-f75b-4de3-8e6b-0dfa17accef5",
                             "1806c96c-9cc4-47bf-98b3-80a18f061f98",

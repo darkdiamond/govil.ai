@@ -489,7 +489,7 @@ def compute(frames):
             return None
         lead = "הרוב המכריע" if exempt_share >= 80 else ("רוב" if exempt_share > 50 else "מיעוט")
         return (f"{lead} של שורות התעריף בפרקי הסיווג פטורות ממכס: {n(n_exempt)} מתוך "
-                f"{n(n_rated)} ({pct(exempt_share)}). רק {n(n_dut)} שורות נושאות מכס — "
+                f"{n(n_rated)} ({pct(exempt_share)}). רק {n(n_dut)} שורות נושאות מכס, "
                 f"בשיעור באחוזים, בסכום קצוב ליחידה או בשילוב של השניים.")
 
     def ins_food():
@@ -513,7 +513,7 @@ def compute(frames):
         if share < 10 or v1 < v2 * 1.2:
             return None
         return (f"פרק {int(c1)} ({brief(c1)}) מוביל במספר השורות החייבות "
-                f"במכס: {n(v1)} שורות, {pct(share)} מכלל השורות החייבות — לפני פרק {int(c2)} "
+                f"במכס: {n(v1)} שורות, {pct(share)} מכלל השורות החייבות, לפני פרק {int(c2)} "
                 f"עם {n(v2)}.")
 
     def ins_rates():
@@ -523,7 +523,7 @@ def compute(frames):
         where = ""
         if top is not None:
             where = f" (פרט {top_rates[0]['code']}, {short(re.split(r'[,;(]', top_rates[0]['desc'])[0].strip(), 40)})"
-        return (f"השיעור הנפוץ ביותר במכס באחוזים הוא {rate_str(mode_rate)} — ב-{n(mode_n)} מתוך "
+        return (f"השיעור הנפוץ ביותר במכס באחוזים הוא {rate_str(mode_rate)}: ב-{n(mode_n)} מתוך "
                 f"{n(len(rates))} שורות; החציון {rate_str(median_rate)}, והשיעור הגבוה ביותר "
                 f"{rate_str(max_rate)}{where}.")
 
@@ -562,7 +562,7 @@ def compute(frames):
         share = n_il / len(hs) * 100
         if share < 20:
             return None
-        return (f"{pct(share)} משורות הספר ({n(n_il)}) הן סעיפים ישראליים — חלוקה לאומית מעבר "
+        return (f"{pct(share)} משורות הספר ({n(n_il)}) הן סעיפים ישראליים, כלומר חלוקה לאומית מעבר "
                 f"לרמת שש הספרות הבין־לאומית, המפצלת {n(n_h6)} פרטי משנה ו-{n(n_h4)} פרטים.")
 
     def ins_auto():
@@ -585,9 +585,9 @@ def compute(frames):
             return None
         c1, v1 = cond_ch[0]
         if v1 / n_cond < 0.25:
-            return (f"{n(n_cond)} שורות הן סיווגים מותנים — השיעור חל רק באישור גורם מוסמך "
+            return (f"{n(n_cond)} שורות הן סיווגים מותנים: השיעור חל רק באישור גורם מוסמך "
                     f"לייעוד הטובין.")
-        return (f"{n(n_cond)} שורות הן סיווגים מותנים — השיעור חל רק באישור גורם מוסמך לייעוד "
+        return (f"{n(n_cond)} שורות הן סיווגים מותנים: השיעור חל רק באישור גורם מוסמך לייעוד "
                 f"הטובין; {n(v1)} מהן בפרק {int(c1)} ({brief(c1)}).")
 
     rules = [
@@ -722,10 +722,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"ספר סיווג הטובין ביבוא ותעריף המכס ומס הקנייה: {n(total)} שורות סיווג "
-                           f"ב-{n(n_chapters)} פרקים; {pct(exempt_share)} משורות התעריף פטורות ממכס, "
-                           f"{n(n_dut)} חייבות במכס ו-{n(n_ptax)} במס קנייה. כולל את ספר האוטונומיה "
-                           f"({n(au_total)} שורות)."),
+            "summary_he": (f"ספר המכס (סיווג טובין ביבוא): {n(total)} שורות סיווג ב-{n(n_chapters)} פרקים, עם שיעור המכס "
+                           f"ומס הקנייה לכל פרט; {pct(exempt_share)} פטורות ממכס. חיפוש לפי פרט מכס או תיאור."),
             "dataset_kind": "registry",
             "suggested_tags": ["מכס", "יבוא", "תעריף המכס", "מס קנייה", "סיווג טובין", "ספר המכס"],
             "related_ids": ["3e4e79f7-643b-4be6-94c2-e47667d42916",
