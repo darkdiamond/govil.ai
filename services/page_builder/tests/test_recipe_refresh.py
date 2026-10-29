@@ -408,29 +408,31 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
 def test_em_dash_lint(tmp_path):
     from services.page_builder import author
 
+    D = "\u2014"  # em dash, spelled as an escape so this file stays free of it
+
     shutil.copytree(FIXTURES / DS, tmp_path / DS)
     recipe = Recipe.load(tmp_path / DS)
     assert author._em_dash_findings(recipe) == []
 
     c = tmp_path / DS / "compute.py"
-    src = ('"""doc — ok"""\n# comment — ok\n'
-           + c.read_text(encoding="utf-8").replace("אירועים, {word}", "אירועים — {word}"))
+    src = (f'"""doc {D} ok"""\n# comment {D} ok\n'
+           + c.read_text(encoding="utf-8").replace("אירועים, {word}", f"אירועים {D} {{word}}"))
     c.write_text(src, encoding="utf-8")
-    bad_py = next(n for n, line in enumerate(src.splitlines(), 1) if "אירועים — {word}" in line)
+    bad_py = next(n for n, line in enumerate(src.splitlines(), 1) if f"אירועים {D} {{word}}" in line)
     t = tmp_path / DS / "template.html.j2"
     base = t.read_text(encoding="utf-8").rstrip("\n")
-    tail = ("{# note — ok #}\n"
-            "<script>/* block — ok\n spans lines */\n"
-            "var ok = 1; // js — ok\n"
-            'var s = "a // b — c";\n'        # inside a JS string: flagged
+    tail = (f"{{# note {D} ok #}}\n"
+            f"<script>/* block {D} ok\n spans lines */\n"
+            f"var ok = 1; // js {D} ok\n"
+            f'var s = "a // b {D} c";\n'     # inside a JS string: flagged
             "</script>\n"
             "<p>א &mdash; ב</p>\n")         # entity: flagged
     t.write_text(base + "\n" + tail, encoding="utf-8")
     first = base.count("\n") + 2
     findings = author._em_dash_findings(Recipe.load(tmp_path / DS))
-    assert f"EM-DASH: compute.py:{bad_py} has an em dash (—) in a string literal" in findings
+    assert f"EM-DASH: compute.py:{bad_py} has an em dash (U+2014) in a string literal" in findings
     tpl = sorted(f for f in findings if f.startswith("EM-DASH: template.html.j2:"))
-    assert tpl == sorted(f"EM-DASH: template.html.j2:{first + k} has an em dash (—)"
+    assert tpl == sorted(f"EM-DASH: template.html.j2:{first + k} has an em dash (U+2014)"
                          for k in (4, 6)), findings
 
 

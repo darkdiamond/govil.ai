@@ -330,15 +330,15 @@ def _em_dash_findings(recipe: Recipe) -> list[str]:
     lines = sorted({n.lineno for n in ast.walk(tree)
                     if isinstance(n, ast.Constant) and isinstance(n.value, str)
                     and _EM_DASH_RE.search(n.value) and id(n) not in docstrings})
-    out += [f"EM-DASH: compute.py:{n} has an em dash (—) in a string literal" for n in lines]
+    out += [f"EM-DASH: compute.py:{n} has an em dash (U+2014) in a string literal" for n in lines]
 
     src = _TPL_COMMENT_RE.sub(_keep_newlines,
                               recipe.template_path.read_text(encoding="utf-8"))
     src = _SCRIPT_RE.sub(lambda m: m.group(1) + _strip_js_comments(m.group(2)) + m.group(3), src)
-    out += [f"EM-DASH: template.html.j2:{n} has an em dash (—)"
+    out += [f"EM-DASH: template.html.j2:{n} has an em dash (U+2014)"
             for n, line in enumerate(src.splitlines(), 1) if _EM_DASH_RE.search(line)]
     if out:
-        out.append("EM-DASH: user-facing text uses no em dash — rewrite with a colon, "
+        out.append("EM-DASH: user-facing text uses no em dash; rewrite with a colon, "
                    "comma, parentheses or a new sentence (a year range keeps its en dash –)")
     return out
 

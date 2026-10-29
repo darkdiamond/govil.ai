@@ -263,14 +263,14 @@ GovMap `resourceId`).
 
 ### No em dash in user-facing text
 
-Don't put an em dash (—) in anything a visitor reads: insights, ledes, labels,
+Don't put an em dash (U+2014) in anything a visitor reads: insights, ledes, labels,
 headings, `summary_he`, tooltips or aria-labels. Rewrite the sentence instead,
 using a colon, a comma, parentheses or a new sentence. A year range keeps its en
 dash (2016–2025). `verify` fails on an em dash in any `compute.py` string
 literal or in the template (comments and docstrings are exempt). Older recipes
 still have them, so clean the whole recipe whenever you touch one.
 
-### Search (SEO) — write for what people type
+### Search (SEO): write for what people type
 
 Most organic traffic is _lookup_ intent ("איתור מספר רישיון רופא", "איתור
 שותפות", "בדיקת קבלן רשום"), and the page competes with the ministry's own
