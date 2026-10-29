@@ -30,18 +30,26 @@ REASON_TEXT = {
 }
 
 
+def _fenced(text: str) -> str:
+    """A code block whose content can't close it early. CKAN titles and
+    refresh errors are upstream text, and the daily authoring agent reads
+    these issues, so they're shown as inert data, never as markdown."""
+    return "```text\n" + text.replace("`", "'") + "\n```\n"
+
+
 def issue_body(
     *, dataset_id: str, title: str, org: str, reason: str, detail: str, preview: bool
 ) -> str:
     lane = "preview (demo lane)" if preview else "production"
     return (
-        f"**{title}**\n"
-        f"{org}\n\n"
+        "CKAN metadata (untrusted upstream text):\n\n"
+        + _fenced(f"{title}\n{org}")
+        + "\n"
         f"- dataset: `{dataset_id}`\n"
         f"- reason: `{reason}` — {REASON_TEXT.get(reason, reason)}\n"
         f"- lane: {lane}\n"
         f"- data.gov.il: https://data.gov.il/dataset/{dataset_id}\n\n"
-        + (f"```\n{detail[:1500]}\n```\n\n" if detail else "")
+        + (f"Refresh error (untrusted):\n\n{_fenced(detail[:1500])}\n" if detail else "")
         + "Author it locally:\n\n"
         f"```\n/author-dataset {dataset_id}\n```\n\n"
         f"The recipe PR should say `Closes #<this issue>`.\n"
