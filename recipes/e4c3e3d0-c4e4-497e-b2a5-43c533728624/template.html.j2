@@ -1,0 +1,407 @@
+<h1>כתב העת חברה ורווחה: מפתח מאמרים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מאמר בחברה ורווחה לפי שם, כותב או חוברת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המאמר, שמות הכותבים, החוברת, שנת הפרסום וסוג הפרסום, עם קישור לקובץ המאמר.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.full.tone }} mb-1" dir="ltr">{{ model.kpis.full.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.full_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.span_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.issues.tone }} mb-1" dir="ltr">{{ model.kpis.issues.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.issues_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.authors.tone }} mb-1" dir="ltr">{{ model.kpis.authors.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.authors_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.solo.tone }} mb-1" dir="ltr">{{ model.kpis.solo.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.solo_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פרסומים לפי שנה וסוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}" data-fallback="explorer"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הפרסומים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">פריטים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מאמרים בחוברת</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.issues_note }}</p>
+    <div id="chart-issues" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.issues_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.issues_aria }}</caption>
+        <thead><tr><th scope="col">תקופה</th><th scope="col">חוברות</th><th scope="col">ממוצע מאמרים</th><th scope="col">מרבי</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.issues %}
+          <tr><th scope="row">{{ r.label }}</th><td dir="ltr">{{ r.issues }}</td><td dir="ltr">{{ r.mean }}</td><td dir="ltr">{{ r.max }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מכתיבת יחיד לכתיבה משותפת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.coauthor_note }} {{ model.labels.decade_partial }}</p>
+  <div id="chart-coauthor" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.coauthor_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.coauthor_aria }}</caption>
+      <thead><tr><th scope="col">תקופה</th><th scope="col">מאמרים</th>{% for b in model.tables.buckets %}<th scope="col">{{ b }}</th>{% endfor %}<th scope="col">ממוצע כותבים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.coauthor %}
+        <tr><th scope="row">{{ r.label }}</th><td dir="ltr">{{ r.n }}</td>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}<td dir="ltr">{{ r.mean }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הכותבים הפורים ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.authors_note }}</p>
+    <div id="chart-authors" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.authors_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.authors_aria }}</caption>
+        <thead><tr><th scope="col">שם</th><th scope="col">מאמרים מלאים</th><th scope="col">שנות פרסום</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.authors %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.count }}</td><td dir="ltr">{{ r.span }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כותבים חדשים וחוזרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.new_note }}</p>
+    <div id="chart-newauthors" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.new_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.new_aria }}</caption>
+        <thead><tr><th scope="col">תקופה</th><th scope="col">כותבים</th><th scope="col">חדשים</th><th scope="col">שיעור חדשים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.newauthors %}
+          <tr><th scope="row">{{ r.label }}</th><td dir="ltr">{{ r.all }}</td><td dir="ltr">{{ r.new }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הנושאים בכותרות המאמרים לאורך העשורים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.themes_note }}</p>
+  <div id="chart-themes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.themes_aria }}</caption>
+      <thead><tr><th scope="col">נושא</th>{% for d in model.tables.decades %}<th scope="col">{{ d }}</th>{% endfor %}<th scope="col">סך מאמרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.themes %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}<td dir="ltr">{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סגנון הכותרות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.titles_note }}</p>
+  <div id="chart-titles" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.titles_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.titles_aria }}</caption>
+      <thead><tr><th scope="col">תקופה</th><th scope="col">מאמרים</th><th scope="col">כותרות עם נקודתיים</th><th scope="col">מילים בכותרת (ממוצע)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.titles %}
+        <tr><th scope="row">{{ r.label }}</th><td dir="ltr">{{ r.n }}</td><td dir="ltr">{{ r.colon }}</td><td dir="ltr">{{ r.words }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">{{ model.labels.notes }}</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    var opt = {
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var y = p[0].axisValue, tot = 0, rows = [];
+        p.forEach(function (s) { tot += s.value; if (s.value) { rows.push(s.marker + s.seriesName + ": " + s.value); } });
+        var head = y + (y === d.partial ? " (חלקית)" : "") + ": " + tot + " פריטים";
+        return [head].concat(rows).join("<br>");
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 24, bottom: d.zoom ? 90 : 50, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "פריטים" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    };
+    if (d.zoom) { opt.dataZoom = [{ type: "inside" }, { type: "slider", bottom: 30, height: 18 }]; }
+    c.setOption(window.GovEcharts.option(opt));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var el = document.getElementById("chart-types");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(140, el.clientWidth * 0.4), overflow: "truncate" } },
+      series: [{ type: "bar", name: "פריטים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.issues | tojson }};
+    var c = echarts.init(document.getElementById("chart-issues"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return d.x[i] + "<br>" + d.mean[i] + " מאמרים מלאים לחוברת בממוצע<br>" + d.issues[i] + " חוברות";
+      } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30, fontSize: 10 } },
+      yAxis: { type: "value", name: "מאמרים לחוברת" },
+      series: [{ type: "bar", name: "ממוצע מאמרים לחוברת", data: d.mean, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.coauthor | tojson }};
+    var c = echarts.init(document.getElementById("chart-coauthor"));
+    var series = d.series.map(function (s, i) {
+      return { type: "bar", stack: "a", name: d.names[i], data: s, barMaxWidth: 56 };
+    });
+    series.push({ type: "line", name: "ממוצע כותבים למאמר", yAxisIndex: 1, data: d.mean, itemStyle: { color: "#0b3668" }, lineStyle: { width: 2 }, symbolSize: 7 });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return [p[0].axisValue].concat(p.map(function (s) {
+          return s.marker + s.seriesName + ": " + s.value + (s.seriesType === "bar" ? "%" : "");
+        })).join("<br>");
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 36, bottom: 70, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30, fontSize: 10 } },
+      yAxis: [
+        { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        { type: "value", name: "כותבים", min: 0, splitLine: { show: false } }
+      ],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.authors | tojson }};
+    var el = document.getElementById("chart-authors");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(p[0].name) + "<br>" + p[0].value + " מאמרים מלאים";
+      } },
+      grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, minInterval: 1, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: Math.min(140, el.clientWidth * 0.4), overflow: "truncate" } },
+      series: [{ type: "bar", name: "מאמרים מלאים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.newauthors | tojson }};
+    var c = echarts.init(document.getElementById("chart-newauthors"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 50, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30, fontSize: 10 } },
+      yAxis: { type: "value", name: "כותבים" },
+      series: [
+        { type: "bar", stack: "n", name: "לראשונה בכתב העת", data: d.new },
+        { type: "bar", stack: "n", name: "פרסמו גם קודם", data: d.ret }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.themes | tojson }};
+    var el = document.getElementById("chart-themes");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 600;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + d.x[p.value[0]] + ": " + p.value[2] + "% מהמאמרים";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 70, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 40 : 0, fontSize: 10 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { width: narrow ? 90 : 150, overflow: "truncate", fontSize: narrow ? 10 : 12 } },
+      visualMap: {
+        min: 0, max: d.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: narrow ? 120 : 200,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        formatter: function (v) { return Math.round(v) + "%"; },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: !narrow, fontFamily: "Rubik", fontSize: 10, formatter: function (p) { return Math.round(p.value[2]) + "%"; } },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.titles | tojson }};
+    var c = echarts.init(document.getElementById("chart-titles"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 70, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30, fontSize: 10 } },
+      yAxis: [
+        { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        { type: "value", name: "מילים", min: 0, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "כותרות עם נקודתיים (%)", data: d.colon, barMaxWidth: 56 },
+        { type: "line", name: "מילים בכותרת (ממוצע)", yAxisIndex: 1, data: d.words, itemStyle: { color: "#0b3668" }, symbolSize: 7 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

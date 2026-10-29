@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b5ee9460-87d7-4eb4-868a-58e35bc507b2",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T19:45:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-01-19T09:15:11.650114+00:00",
+    "rows": { "main": 54 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d12632aa-1c0b-4162-8584-58dd6f404a6c",
+      "required_columns": [
+        "city",
+        "num",
+        "adress",
+        "yishuv",
+        "location",
+        "district",
+        "type"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

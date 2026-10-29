@@ -1,0 +1,5 @@
+{
+  "fees.נושא תביעה": "table-lookup, chart-families, chart-mix, kpi:subjects, insight:spread, insight:free, insight:top, insight:open_contrast — subjects are mapped to procedure families by keyword (fallback bucket for new ones)",
+  "fees.אגרה": "table-lookup, chart-kinds, insight:copies, insight:unpriced, insight:open_contrast",
+  "fees.תעריף": "table-lookup, chart-tiers, chart-families, chart-mix, chart-kinds, kpi:items, kpi:standard, kpi:max, kpi:free, kpi:median, insight:standard, insight:top, insight:free"
+}

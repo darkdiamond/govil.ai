@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "15c65f47-0c45-477b-b4d4-a50bd2999bcb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-02-15T13:23:58.685782+00:00",
+    "rows": { "fees": 147 }
+  },
+  "inputs": [
+    {
+      "name": "fees",
+      "by_id": "87969ef3-ac7e-4597-8909-995c8df422bf",
+      "required_columns": ["נושא תביעה", "אגרה", "תעריף"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

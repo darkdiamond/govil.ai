@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a21568d8-97f4-4e1d-b326-62cca1a2c8d6",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-06-30T12:28:11.213211+00:00",
+    "rows": { "main": 6576 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "929b4c60-ce43-4f5b-9960-f6146ba33eed",
+      "required_columns": [
+        "is_regulation",
+        "office_name",
+        "legislation_type",
+        "legislation_name",
+        "primary_authorizing_legislation",
+        "publication_date",
+        "last_update",
+        "wikiurl",
+        "knesseturl",
+        "tags"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["37", "2021"]
+}

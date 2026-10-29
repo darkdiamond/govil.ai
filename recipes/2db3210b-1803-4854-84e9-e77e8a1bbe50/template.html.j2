@@ -1,0 +1,151 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>ריבית חשכ״ל: ריביות החשב הכללי</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "ריבית חשכ״ל וכל הריביות העדכניות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rates_lede }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rates_caption }}</caption>
+      <thead>
+        <tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-2 pe-3">ריבית</th>
+          <th scope="col" class="text-start py-2 pe-3">שיעור שנתי</th>
+          <th scope="col" class="text-start py-2 pe-3">בתוקף מ-</th>
+          <th scope="col" class="text-start py-2">פער מריבית החשב הכללי</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- for r in model.tables.rates %}
+        <tr class="border-b border-rule{% if r.is_base %} bg-surface font-semibold{% endif %}">
+          <th scope="row" class="text-start font-normal py-2 pe-3{% if r.is_base %} font-semibold{% endif %}">{{ r.name }}</th>
+          <td class="py-2 pe-3 whitespace-nowrap" dir="ltr">{{ r.rate }}</td>
+          <td class="py-2 pe-3 whitespace-nowrap" dir="ltr">{{ r.date }}</td>
+          <td class="py-2 whitespace-nowrap" dir="ltr">{{ r.gap }}</td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- if model.flags.has_chart %}
+  <h3 class="mt-5 mb-2 text-base font-semibold text-ink-deep">השוואת השיעורים</h3>
+  <div id="chart-rates" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.rates_aria }}"></div>
+{%- endif %}
+</section>
+
+{%- if model.flags.has_dates %}
+<section class="card p-5 mb-6">
+{{ head("tag", "מועדי התחולה") }}
+  <p class="m-0 text-sm text-subtle mb-3">חלק מהריביות מתעדכנות עם שינוי ריבית בנק ישראל, ואחרות פעם ברבעון. כך מתחלקים הערכים המפורסמים לפי תאריך התחולה שלהם.</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dates_caption }}</caption>
+      <thead>
+        <tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-2 pe-3">בתוקף מ-</th>
+          <th scope="col" class="text-start py-2 pe-3">מספר ערכים</th>
+          <th scope="col" class="text-start py-2">ערכים</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- for r in model.tables.dates %}
+        <tr class="border-b border-rule">
+          <th scope="row" class="text-start font-normal py-2 pe-3 whitespace-nowrap" dir="ltr">{{ r.date }}</th>
+          <td class="py-2 pe-3">{{ r.n }}</td>
+          <td class="py-2">{{ r.names }}</td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("info", "על הריביות") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">ריביות החשב הכללי מתפרסמות בהתאם למדיניות חטיבת המימון במשרד האוצר, ומשמשות לחישוב ריבית בחובות למדינה, בהלוואות ייעודיות, בהסדרי חוב ובמגוון תהליכים פיננסיים במגזר הציבורי. המאגר מציג את הריביות העדכניות כפי שמתפרסמות על-ידי החשב הכללי, כולל תאריך תחולה ושיעורי ריבית רבעוניים.</p>
+</section>
+
+{%- if model.flags.has_chart %}
+<script>
+  (function () {
+    const d = {{ model.charts.rates | tojson }};
+    const el = document.getElementById("chart-rates");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const fmt = function (v) { return Number(v).toLocaleString("he-IL", { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + "%"; };
+    const data = d.values.map(function (v, i) {
+      if (d.names[i] === d.base_name) {
+        return { value: v, itemStyle: { color: "#0b3668" } };
+      }
+      return v;
+    });
+    const series = {
+      type: "bar",
+      data: data,
+      barMaxWidth: 26,
+      label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return fmt(p.value); } }
+    };
+    if (d.base_value !== null) {
+      series.markLine = {
+        symbol: "none",
+        silent: true,
+        lineStyle: { color: "#0b3668", type: "dashed" },
+        label: { formatter: "ריבית החשב הכללי", fontFamily: "Rubik", color: "#0b3668" },
+        data: [{ xAxis: d.base_value }]
+      };
+    }
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          const full = d.names[p.dataIndex];
+          const tag = full === d.base_name ? " (ריבית הבסיס)" : "";
+          return echarts.format.encodeHTML(full) + tag + "<br/>" + fmt(p.value) + " לשנה";
+        }
+      },
+      grid: { left: 8, right: narrow ? 40 : 56, top: 28, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return v + "%"; } } },
+      yAxis: {
+        type: "category",
+        data: d.labels,
+        axisLabel: { width: narrow ? 130 : 220, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 }
+      },
+      series: [series]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

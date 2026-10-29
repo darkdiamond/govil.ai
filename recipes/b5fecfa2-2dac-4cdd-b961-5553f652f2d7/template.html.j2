@@ -1,0 +1,365 @@
+<h1>אזהרות מסע: מפת רמות האיום לפי מדינה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת אזהרת המסע למדינה מסוימת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המדינה, היבשת, הגוף המפרסם ונוסח ההמלצה המלא.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for k in ["countries", "l4", "l3", "l2", "l1", "combined"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% if model.flags.has_map %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת אזהרות המסע בעולם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <ul class="list-none m-0 ps-0 mb-3 flex flex-wrap gap-3 text-sm">
+{%- for l in model.charts.map.legend %}
+    <li class="flex items-center gap-1"><span class="inline-block w-3 h-3 rounded-gov-pill legend-dot" data-color="{{ l.color }}"></span>{{ l.label }}</li>
+{%- endfor %}
+  </ul>
+  <div id="map-world" class="h-72 md:h-[420px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת המדינות לפי רמת אזהרה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lists_note }}</p>
+{%- for g in model.tables.lists %}
+  <details class="mb-2"{% if g.open %} open{% endif %}>
+    <summary class="text-sm font-semibold text-{{ g.tone }}">{{ g.level }} · {{ g.advice }} ({{ g.n }})</summary>
+    <ul class="list-none m-0 ps-0 mt-2 flex flex-wrap gap-2">
+{%- for c in g["items"] %}
+      <li class="badge">{{ c.name }}{% if c.combined %} *{% endif %}</li>
+{%- endfor %}
+    </ul>
+  </details>
+{%- endfor %}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מדינות לפי רמת אזהרה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.levels_note }}</p>
+    <div id="chart-levels" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.levels_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.levels_caption }}</caption>
+        <thead><tr><th scope="col">רמה</th><th scope="col">המלצה</th><th scope="col">מדינות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.levels %}
+          <tr><th scope="row">{{ r.level }}</th><td>{{ r.advice }}</td><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רמות האזהרה בכל יבשה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cont_note }}</p>
+    <div id="chart-continents" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cont_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cont_caption }}</caption>
+        <thead><tr><th scope="col">יבשה</th><th scope="col">מדינות</th>{% for h in model.tables.level_heads %}<th scope="col">{{ h }}</th>{% endfor %}<th scope="col">{{ model.labels.hi_head }}</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.continents %}
+          <tr><th scope="row">{{ r.cont }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.hi }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.has_combined %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רמות איום משולבות: אזור מסוכן בתוך מדינה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comb_note }}</p>
+  <div id="chart-combined" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.comb_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.comb_caption }}</caption>
+      <thead><tr><th scope="col">מדינה</th><th scope="col">יבשה</th><th scope="col">בשאר המדינה</th><th scope="col">באזור המסוכן</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.combined %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.cont }}</td><td>{{ r.lo }}</td><td>{{ r.hi }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.has_themes %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">על מה מזהיר המל״ל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.themes_note }}</p>
+    <div id="chart-themes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.themes_caption }}</caption>
+        <thead><tr><th scope="col">נושא</th><th scope="col">הודעות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.themes %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.has_mfa %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הודעות משרד החוץ</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mfa_note }}</p>
+    <div id="chart-mfa" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mfa_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mfa_caption }}</caption>
+        <thead><tr><th scope="col">סוג הודעה</th><th scope="col">מדינות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.mfa %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כיסוי לפי גוף ממשלתי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cov_note }}</p>
+  <div id="chart-coverage" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cov_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cov_caption }}</caption>
+      <thead><tr><th scope="col">יבשה</th><th scope="col">מדינות</th>{% for b in model.tables.bodies %}<th scope="col">{{ b }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.coverage %}
+        <tr><th scope="row">{{ r.cont }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">פירוט אזהרות מסע בחו"ל לפי מדינה וגוף ממשלתי</p>
+</section>
+
+<style>
+  .legend-dot { background: var(--dot); }
+</style>
+
+<script>
+  (function () {
+    document.querySelectorAll(".legend-dot").forEach(function (el) {
+      el.style.setProperty("--dot", el.getAttribute("data-color"));
+    });
+  })();
+</script>
+
+{% if model.flags.has_map %}
+<script>
+  (function () {
+    var d = {{ model.charts.map | tojson }};
+    var el = document.getElementById("map-world");
+    if (!el || !window.L) { return; }
+    var map = L.map(el, { center: [20, 20], zoom: 1, minZoom: 1, zoomSnap: 0.25, scrollWheelZoom: false, worldCopyJump: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 8, attribution: "© OpenStreetMap"
+    }).addTo(map);
+    var bounds = [];
+    d.points.forEach(function (p) {
+      var mk = L.circleMarker([p[0], p[1]], {
+        radius: 4 + p[3] * 0.75, color: "#ffffff", weight: 1, fillColor: p[6], fillOpacity: 0.9
+      }).addTo(map);
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = p[2];
+      box.appendChild(t);
+      var line = document.createElement("div");
+      line.textContent = p[7];
+      box.appendChild(line);
+      if (p[4]) {
+        var r = document.createElement("div");
+        r.textContent = p[4];
+        box.appendChild(r);
+      }
+      var c = document.createElement("div");
+      c.textContent = p[5];
+      box.appendChild(c);
+      mk.bindPopup(box);
+      mk.bindTooltip(p[2] + " · " + p[7], { direction: "top" });
+      bounds.push([p[0], p[1]]);
+    });
+    if (bounds.length) { map.fitBounds(bounds, { padding: [8, 8] }); }
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option(Object.assign({ color: window.GOVIL_PALETTE }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var lv = {{ model.charts.levels | tojson }};
+    mk("chart-levels", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: lv.cats, axisLabel: { interval: 0, width: 70, overflow: "break", fontFamily: "Rubik" } },
+      yAxis: { type: "value", name: "מדינות" },
+      series: [{ type: "bar", barMaxWidth: 48,
+        label: { show: true, position: "top", fontFamily: "Rubik" },
+        data: lv.data.map(function (x) { return { value: x.value, itemStyle: { color: x.color } }; }) }]
+    });
+
+    var ct = {{ model.charts.continents | tojson }};
+    mk("chart-continents", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var i = ps[0].dataIndex, out = [echarts.format.encodeHTML(ct.conts[i])];
+          ct.series.forEach(function (s) { out.push(echarts.format.encodeHTML(s.name) + ": " + s.data[i] + " (" + s.pct[i] + "%)"); });
+          return out.join("<br/>");
+        } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: ct.conts, inverse: true },
+      series: ct.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "a", data: s.pct, itemStyle: { color: s.color }, barMaxWidth: 28 };
+      })
+    });
+
+    var cb = {{ model.charts.combined | tojson }};
+    mk("chart-combined", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(cb.names[i]) + "<br/>בשאר המדינה: " + echarts.format.encodeHTML(cb.lo_label[i]) + "<br/>באזור המסוכן: " + echarts.format.encodeHTML(cb.hi_label[i]);
+        } },
+      legend: { bottom: 0, data: ["בשאר המדינה", "באזור המסוכן"] },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", min: 1, max: 4, interval: 1, axisLabel: { formatter: function (v) { return cb.axis[String(v)] || ""; } } },
+      yAxis: { type: "category", data: cb.names, axisLabel: { fontFamily: "Rubik" } },
+      series: [
+        { type: "bar", stack: "r", data: cb.lo, itemStyle: { color: "transparent" }, silent: true, barWidth: 4, tooltip: { show: false } },
+        { type: "bar", stack: "r", data: cb.hi.map(function (h, i) { return h - cb.lo[i]; }), itemStyle: { color: "#c3cfe7" }, silent: true, barWidth: 4 },
+        { name: "בשאר המדינה", type: "scatter", data: cb.lo, symbolSize: 12, itemStyle: { color: "#7fb0f8" } },
+        { name: "באזור המסוכן", type: "scatter", data: cb.hi, symbolSize: 12, itemStyle: { color: "#0b3668" } }
+      ]
+    });
+
+    var th = {{ model.charts.themes | tojson }};
+    mk("chart-themes", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", name: "הודעות" },
+      yAxis: { type: "category", data: th.labels, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", data: th.values, barMaxWidth: 22, label: { show: true, position: "right", fontFamily: "Rubik" } }]
+    });
+
+    var mf = {{ model.charts.mfa | tojson }};
+    mk("chart-mfa", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", name: "מדינות" },
+      yAxis: { type: "category", data: mf.conts, inverse: true },
+      series: mf.series.map(function (s) { return { name: s.name, type: "bar", stack: "m", data: s.data, barMaxWidth: 28 }; })
+    });
+
+    var cv = {{ model.charts.coverage | tojson }};
+    mk("chart-coverage", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: cv.conts },
+      yAxis: { type: "value", name: "מדינות" },
+      series: [{ name: "מדינות במאגר", type: "bar", data: cv.totals, barMaxWidth: 28, itemStyle: { color: "#c3cfe7" } }].concat(
+        cv.series.map(function (s) { return { name: s.name, type: "bar", data: s.data, barMaxWidth: 28 }; }))
+    });
+  })();
+</script>

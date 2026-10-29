@@ -1,0 +1,427 @@
+<h1>מאגר האסדרה: חוקים, תקנות וצווים רגולטוריים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 mb-2 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="m-0 mb-2 text-sm text-subtle">המאגר האחוד מתפרסם מטעם רשות האסדרה מכוח חוק עקרונות האסדרה, וכולל חקיקה ראשית וחקיקה משנית: תקנות, צווים, אכרזות, הודעות וכללים.</p>
+  <p id="note-links" class="m-0 text-sm text-subtle">{{ model.labels.wiki_note }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור חוק, תקנה או צו לפי שם, משרד או חוק מסמיך ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם דבר החקיקה, המשרד האחראי, סוג החקיקה, החוק המסמיך ותגיות הנושא.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">פריטי חקיקה במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.reg_share.tone }} mb-1" dir="ltr">{{ model.kpis.reg_share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.reg_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.primary.tone }} mb-1" dir="ltr">{{ model.kpis.primary.display }}</div>
+    <div class="text-sm text-subtle">חוקים (חקיקה ראשית)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.secondary.tone }} mb-1" dir="ltr">{{ model.kpis.secondary.display }}</div>
+    <div class="text-sm text-subtle">פריטי חקיקה משנית</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.offices.tone }} mb-1" dir="ltr">{{ model.kpis.offices.display }}</div>
+    <div class="text-sm text-subtle">משרדים וגופים אחראים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.auth_laws.tone }} mb-1" dir="ltr">{{ model.kpis.auth_laws.display }}</div>
+    <div class="text-sm text-subtle">חוקים מסמיכים לחקיקה המשנית</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">טווח שנות החקיקה (לפי שם הפריט)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.recent5.tone }} mb-1" dir="ltr">{{ model.kpis.recent5.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent5_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חקיקה ראשית ומשנית, אסדרה ושאינה אסדרה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.kind_lede }}</p>
+  <div id="chart-kind" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.kind_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kind_aria }}</caption>
+      <thead><tr><th scope="col">סוג חקיקה</th>{% for c in model.tables.kind_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kind %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r["values"] %}<td>{{ v | fmt_int }}</td>{% endfor %}<td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פריטי אסדרה לפי משרד אחראי</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.offices_lede }}</p>
+  <div id="chart-offices" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.offices_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.offices_aria }}</caption>
+      <thead><tr><th scope="col">משרד</th><th scope="col">חקיקה ראשית</th><th scope="col">חקיקה משנית</th><th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.offices %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.primary | fmt_int }}</td><td>{{ r.secondary | fmt_int }}</td><td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צורת דבר החקיקה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.forms_lede }}</p>
+  <div id="chart-forms" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.forms_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.forms_aria }}</caption>
+      <thead><tr><th scope="col">צורה</th><th scope="col">פריטים</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.forms.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.forms.y[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פריטים לפי עשור החקיקה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.decades_lede }}</p>
+  <div id="chart-decades" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.decades_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.decades_aria }}</caption>
+      <thead><tr><th scope="col">עשור</th><th scope="col">חקיקה ראשית</th><th scope="col">חקיקה משנית</th><th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.decades %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.primary | fmt_int }}</td><td>{{ r.secondary | fmt_int }}</td><td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.yearly %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פריטים לפי שנת החקיקה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.yearly_lede }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.yearly_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.flags.authorizing %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">החוקים המסמיכים המובילים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.auth_lede }}</p>
+  <div id="chart-authorizing" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.auth_aria }}</caption>
+      <thead><tr><th scope="col">חוק מסמיך</th><th scope="col">פריטי חקיקה משנית</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.authorizing.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.authorizing.y[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נושאי האסדרה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.topics_lede }}</p>
+  <div id="chart-topics" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.topics_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.topics_aria }}</caption>
+      <thead><tr><th scope="col">נושא</th><th scope="col">פריטים</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.topics.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.topics.y[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">משרדים ונושאים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.flags.updates %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי עודכנו הפריטים לאחרונה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.updates_lede }}</p>
+  <div id="chart-updates" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.updates_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.updates_aria }}</caption>
+      <thead><tr><th scope="col">תקופת העדכון האחרון</th><th scope="col">פריטים</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.updates.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.updates.y[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">סעיף 37 לחוק עקרונות האסדרה, התשפ״ב-2021 (להלן – החוק), קובע חובה לפרסם את כל האסדרה (רגולציה) במאגר אסדרה אחוד.
+מאגר זה הוא הגרסה הראשונה למאגר האסדרה ומכיל חקיקה ראשית ותקנות רגולטוריות.
+
+המאגר יתעדכן באופן עיתי.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.kind | tojson }};
+    var c = echarts.init(document.getElementById("chart-kind"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.x, inverse: true },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.offices | tojson }};
+    var c = echarts.init(document.getElementById("chart-offices"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.x, inverse: true,
+               axisLabel: { width: 130, overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "all", name: "חקיקה משנית", data: d.secondary },
+        { type: "bar", stack: "all", name: "חקיקה ראשית", data: d.primary }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.forms | tojson }};
+    var c = echarts.init(document.getElementById("chart-forms"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value", name: "פריטים" },
+      series: [{ type: "bar", name: "פריטים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.decades | tojson }};
+    var c = echarts.init(document.getElementById("chart-decades"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "פריטים" },
+      series: [
+        { type: "bar", stack: "all", name: "חקיקה משנית", data: d.secondary },
+        { type: "bar", stack: "all", name: "חקיקה ראשית", data: d.primary }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.yearly %}
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "פריטים" },
+      dataZoom: [{ type: "inside", startValue: d.zoom_start }, { type: "slider", startValue: d.zoom_start, bottom: 32, height: 18 }],
+      series: [
+        { type: "line", name: "חקיקה משנית", data: d.secondary, showSymbol: false },
+        { type: "line", name: "חקיקה ראשית", data: d.primary, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.authorizing %}
+<script>
+  (function () {
+    var d = {{ model.charts.authorizing | tojson }};
+    var c = echarts.init(document.getElementById("chart-authorizing"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.x, inverse: true,
+               axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "פריטי חקיקה משנית", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.topics | tojson }};
+    var c = echarts.init(document.getElementById("chart-topics"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.x, inverse: true,
+               axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "פריטים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + " · " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " פריטים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45, width: 90, overflow: "truncate" } },
+      yAxis: { type: "category", data: h.y, inverse: true, splitArea: { show: true }, axisLabel: { width: 120, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: false },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.updates %}
+<script>
+  (function () {
+    var d = {{ model.charts.updates | tojson }};
+    var c = echarts.init(document.getElementById("chart-updates"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value", name: "פריטים" },
+      series: [{ type: "bar", name: "פריטים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

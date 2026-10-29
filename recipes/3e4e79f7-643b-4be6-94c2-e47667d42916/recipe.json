@@ -1,0 +1,43 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3e4e79f7-643b-4be6-94c2-e47667d42916",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-25T02:02:23.404722+00:00",
+    "rows": { "he": 27045, "en": 9464 }
+  },
+  "inputs": [
+    {
+      "name": "he",
+      "by_id": "f83f08d3-c0cd-4fa5-af22-8d884e0c0ba8",
+      "required_columns": [
+        "CustomsBookTypeID",
+        "CustomsItem_2_Digits",
+        "CustomsItem_4_Digits",
+        "CustomsItem_6_Digits",
+        "CustomsItemFullClassification",
+        "HierarchicLocation",
+        "GoodsDescription",
+        "MeasurementUnitID",
+        "MeasurementUnitDescription",
+        "MaslulMeasurementUnit"
+      ]
+    },
+    {
+      "name": "en",
+      "by_id": "aa292a26-c102-41f9-9ab2-f289298acf37",
+      "required_columns": [
+        "CustomsBookTypeID",
+        "CustomsItem_2_Digits",
+        "CustomsItem_4_Digits",
+        "CustomsItem_6_Digits",
+        "CustomsItemFullClassification",
+        "MeasurementUnitID",
+        "CustomsItemEndDate"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}
