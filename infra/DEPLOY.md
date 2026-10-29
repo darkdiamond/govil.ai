@@ -43,8 +43,6 @@ The builder job also needs the `github-dispatch-token` secret — a
 fine-grained PAT on this repo with Actions read+write (publish dispatch)
 and Issues read+write (authoring issues); see the `infra/github-ci.setup.sh`
 header for how to store it and grant the builder SA access.
-(`bootstrap.sh` still creates an empty `openrouter-api-key` secret from
-the retired agent builder; nothing reads it.)
 
 The script prints the service account emails it created and ends with
 instructions for registering the Cloud Build trigger (needs a connected
