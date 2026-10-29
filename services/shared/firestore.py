@@ -89,6 +89,12 @@ class SourceRecord:
     # publisher doesn't recompute on every run.
     embedding: Optional[list[float]] = None
 
+    # Authoring queue (refresh state lives on the prod source doc):
+    # `notified` = a needs-authoring issue is recorded, so the nightly
+    # queue skips the source instead of re-asking every day.
+    authoring_status: Optional[str] = None
+    authoring_issue: Optional[int] = None
+
     @classmethod
     def from_doc(cls, doc) -> "SourceRecord":
         data: dict[str, Any] = doc.to_dict() or {}
@@ -119,6 +125,8 @@ class SourceRecord:
             agent_data=data.get("agent_data"),
             embedding=data.get("embedding"),
             unavailable_since=data.get("unavailable_since"),
+            authoring_status=data.get("authoring_status"),
+            authoring_issue=data.get("authoring_issue"),
         )
 
 
@@ -772,6 +780,7 @@ class FirestoreStateStore:
             "refresh_failed_version": None,
             "authoring_status": "done",
             "authoring_reason": None,
+            "authoring_issue": None,
             "last_snapshot": snapshot,
             "input_fingerprint": input_fingerprint,
             "inputs_hash": inputs_hash,
@@ -837,6 +846,7 @@ class FirestoreStateStore:
                     "refresh_failed_version": None,
                     "authoring_status": "done",
                     "authoring_reason": None,
+                    "authoring_issue": None,
                 }
             )
             if not preview:

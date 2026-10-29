@@ -931,13 +931,21 @@ def snapshot_diff(before: Optional[dict], after: dict) -> dict:
 
 
 def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool = False) -> Optional[int]:
-    """Flag a dataset for local authoring and open its issue (once)."""
+    """Flag a dataset for local authoring and open its issue (once).
+
+    A recorded issue is reused while it is open or was closed as not
+    planned. One closed as completed means a recipe PR landed and this is a
+    new need (e.g. the recipe later failed), so a fresh issue is opened."""
     from . import notify as _notify
 
     state = store.get_refresh_state(src.id, preview=preview)
     store.mark_authoring_needed(src.id, reason, preview=preview)
-    if state.get("authoring_issue"):
-        return int(state["authoring_issue"])
+    recorded = state.get("authoring_issue")
+    if recorded and _notify.issue_state(int(recorded)) != "completed":
+        # Back to `notified`, which mark_authoring_needed just overwrote:
+        # the daily queue skips notified sources.
+        store.set_authoring_issue(src.id, int(recorded), preview=preview)
+        return int(recorded)
     number = _notify.open_authoring_issue(
         dataset_id=src.id,
         title=src.title or src.id,

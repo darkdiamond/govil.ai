@@ -88,6 +88,7 @@ class FakeStore:
                   recipe_version=recipe_version,
                   refreshed_metadata_modified=metadata_modified,
                   refresh_status="succeeded", refresh_failed_version=None,
+                  authoring_status="done", authoring_reason=None, authoring_issue=None,
                   last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
                   content_hash=content_hash, file_fingerprint=file_fingerprint)
@@ -102,7 +103,7 @@ class FakeStore:
         if advance_version:
             kw.update(refreshed_metadata_modified=metadata_modified, refresh_status="succeeded",
                       refresh_failed_version=None, authoring_status="done",
-                      authoring_reason=None)
+                      authoring_reason=None, authoring_issue=None)
         self._upd(dataset_id, preview, **kw)
 
     def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version, preview=False):
@@ -852,3 +853,28 @@ def test_unchanged_by_fingerprint_does_not_spend_the_cap():
     assert rf._spends_cap(mk("a", "refreshed"))
     assert rf._spends_cap(mk("a", "failed"))
     assert not rf._spends_cap(mk("a", "skipped"))
+
+
+# ---- queue_authoring: issue dedup -----------------------------------------
+
+
+@pytest.mark.parametrize("state,reused", [("open", True), ("not_planned", True),
+                                          (None, True), ("completed", False)])
+def test_queue_authoring_reuses_issue_unless_closed_completed(env, monkeypatch, state, reused):
+    """Completed = a recipe PR closed it, so a later need is new work and gets
+    its own issue. Open / won't-author / unreadable keep the recorded one."""
+    monkeypatch.setattr("services.page_builder.notify.issue_state", lambda n: state)
+    store = FakeStore(_src())
+    store.states[(DS, False)] = {"authoring_status": "notified", "authoring_issue": 5}
+    number = rf.queue_authoring(store, store.src, "recipe_failed")
+    st = store.states[(DS, False)]
+    assert number == (5 if reused else 77)
+    assert st["authoring_issue"] == number and st["authoring_status"] == "notified"
+    assert len(env.issues) == (0 if reused else 1)
+
+
+def test_successful_refresh_clears_the_recorded_issue(env):
+    store = FakeStore(_src())
+    store.states[(DS, True)] = {"authoring_status": "notified", "authoring_issue": 5}
+    assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
+    assert store.states[(DS, True)]["authoring_issue"] is None

@@ -1,16 +1,13 @@
-"""Builder pipeline — what a single Cloud Run invocation does.
+"""Builder pipeline — what one daily job execution does.
 
-Daily batch (Cloud Scheduler, 07:00 Asia/Jerusalem): scan CKAN → select
-every never-analyzed (or retryable-failed) source up to DAILY_CAP →
-run all agent sessions concurrently (asyncio.gather bounded by
-Semaphore(MAX_CONCURRENT)) → mark each source in Firestore → if ≥1 page
-succeeded, trigger the Cloud Build publisher (no new pages → no build).
+Cloud Scheduler, 06:00 Asia/Jerusalem: scan CKAN → refresh every recipe'd
+source CKAN moved past (deterministic, no LLM — services/page_builder/
+refresh.py) → queue every new or changed source that has no recipe for
+authoring (one `needs-authoring` GitHub issue each, solved by the daily
+local Claude Code routine) → if ≥1 page re-rendered, trigger the publisher.
 
-All parallelism is in-process. Cloud Run is pinned to one container
-(`--max-instances=1 --concurrency=1`), so a scheduler tick produces
-exactly one pipeline run; sessions are PydanticAI agent loops calling
-OpenRouter (OPENROUTER_MODEL), with tool execution in per-session
-subprocess sandboxes inside this same container.
+No model runs here. A recipe merged to main is picked up on the next run
+(the refresh reads recipes/ straight from git).
 """
 from __future__ import annotations
 
@@ -18,135 +15,29 @@ import argparse
 import asyncio
 import logging
 import os
-from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Optional
 
 from services.scanner.config import ScannerSettings
 from services.scanner.main import Scanner
 from services.scanner.state import StateDB
-from services.shared.firestore import FirestoreStateStore, SourceRecord
+from services.shared.firestore import FirestoreStateStore
 
+from . import refresh as _refresh
 from . import selector
-from .agent_contract import ResourceRestrictedError
-from .agent_runner import AccountLimitError, run_production_session
 
 log = logging.getLogger("page_builder.pipeline")
 
 # Run outcomes that must surface as a failed job execution rather than a
-# green one. `idle` is deliberately absent — a day with nothing new to build
+# green one. `idle` is deliberately absent — a day with nothing to refresh
 # is a normal, healthy outcome.
-FAILED_RUN_STATUSES = ("all_failed", "aborted")
+FAILED_RUN_STATUSES = ("refresh_unavailable",)
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
     """Weekly reconcile runs only when enabled AND today matches the
     configured weekday (Python Monday=0 .. Sunday=6)."""
     return enabled and now.weekday() == weekday
-
-
-async def _build_one(
-    src: SourceRecord,
-    staging_bucket: str,
-    store: FirestoreStateStore,
-    sem: asyncio.Semaphore,
-    abort: asyncio.Event,
-) -> dict:
-    """Run one self-validating agent session. Updates Firestore either way.
-
-    `abort` is shared across the batch: the first source to hit an
-    account-level provider rejection sets it, and everyone still queued on
-    the semaphore bails instead of making the same doomed call.
-    """
-    async with sem:
-        # Checked after acquiring the semaphore, not before — that is where a
-        # queued source waits, and where the news that the account is down
-        # will have arrived by.
-        if abort.is_set():
-            log.warning("skipping %s — batch aborted upstream", src.id[:8])
-            return {
-                "id": src.id,
-                "status": "skipped",
-                "error": "batch aborted: provider account-level rejection",
-            }
-        log.info("building %s — %s", src.id[:8], (src.title or "")[:60])
-        # Capture the source's metadata_modified *before* the agent runs — this
-        # is the data vintage the agent's content will be based on. Persisted on
-        # success so the dataset page can show "המידע נכון ל-X" honestly even
-        # after CKAN re-publishes a newer version.
-        analyzed_metadata_modified = src.metadata_modified
-        # A Track-2 rebuild of a live page: failures must not knock it out of
-        # the publishable statuses (succeeded/unavailable), or the next
-        # deploy deletes it from the site.
-        published = bool(src.page_path)
-        await asyncio.to_thread(store.mark_analysis_pending, src.id)
-
-        try:
-            result = await asyncio.to_thread(
-                run_production_session,
-                dataset_id=src.id,
-                title=src.title,
-                notes=src.notes or "",
-                org_title=(src.organization or {}).get("title", "") or "",
-                resources=src.resources,
-                organization=src.organization,
-                gcs_bucket=staging_bucket,
-                store=store,
-            )
-        except ResourceRestrictedError as e:
-            # The primary resource's data is 403-restricted upstream — raised
-            # by the CKAN prefetch before any agent session ran (no model
-            # cost). Park the source as `restricted` (a deliberate exclusion,
-            # not a retryable failure): it's skipped by the selector and the
-            # publisher until it reappears in CKAN search. `restricted` is
-            # neither `succeeded` nor `failed`, so it won't trigger a publish
-            # or burn the failed-retry budget.
-            log.warning("build skipped for %s — data restricted: %s", src.id, e)
-            if published:
-                await asyncio.to_thread(store.mark_source_unavailable, src.id, str(e))
-            else:
-                await asyncio.to_thread(store.mark_analysis_restricted, src.id, str(e))
-            return {"id": src.id, "status": "restricted", "error": str(e)}
-        except AccountLimitError as e:
-            # The provider rejected the ACCOUNT, not this dataset: a dead
-            # key, exhausted credits, a spend cap. Every other source in the
-            # batch would get the same answer, so stop the batch and — the
-            # part that actually matters — do NOT record a failure. Marking
-            # it failed here is what parked 29 healthy sources at
-            # `failed_attempts >= 3` during the 2026-08-11 outage, so that
-            # even restoring the key would not have brought them back.
-            log.error("build aborted for %s — account-level rejection: %s", src.id, e)
-            abort.set()
-            await asyncio.to_thread(
-                store.revert_analysis_pending, src.id, src.analysis_status
-            )
-            return {"id": src.id, "status": "aborted", "error": str(e)}
-        except Exception as e:
-            log.exception("build failed for %s", src.id)
-            if published:
-                await asyncio.to_thread(store.mark_reanalysis_failed, src.id, str(e))
-            else:
-                await asyncio.to_thread(store.mark_analysis_failed, src.id, str(e))
-            return {"id": src.id, "status": "failed", "error": str(e)}
-
-        # run_production_session already wrote `sources/<id>.agent_data`.
-        page_path = f"datasets/{src.id}/"
-        await asyncio.to_thread(
-            store.mark_analysis_succeeded,
-            src.id,
-            page_path,
-            analyzed_metadata_modified,
-        )
-        return {
-            "id": src.id,
-            "status": "succeeded",
-            "session_id": result.session_id,
-            "attempts": result.attempts,
-            "elapsed_seconds": result.elapsed_seconds,
-            "usage": result.usage,
-            "cost": result.cost,
-            "written": result.written,
-        }
 
 
 async def _trigger_publish_github(
@@ -236,13 +127,6 @@ async def _trigger_publish(
         return None
 
 
-def _env_flag(name: str, default: bool) -> bool:
-    raw = os.environ.get(name, "").strip().lower()
-    if not raw:
-        return default
-    return raw in ("true", "1", "yes", "on")
-
-
 async def _dispatch_publish(
     should: bool,
     publish_via: str,
@@ -269,46 +153,25 @@ async def run_pipeline(
     mode: str = "scheduled",
     override_id: Optional[str] = None,
     dry_run: bool = False,
-    n_per_run: Optional[int] = None,
     skip_publish: bool = False,
 ) -> dict:
-    """The one entry point the HTTP handler and the CLI both use."""
+    """The one entry point the job (CLI) uses."""
     store = FirestoreStateStore()
     db = StateDB(store=store)
     config = ScannerSettings()
 
-    # DAILY_CAP bounds "analyze everything new" — purely a cost fuse;
-    # anything past the cap stays `never` and is picked up tomorrow.
-    n = n_per_run if n_per_run is not None else int(os.environ.get("DAILY_CAP", "50"))
-    max_concurrent = int(os.environ.get("MAX_CONCURRENT", "8"))
-    # Stopgap knob: pause Track 2 re-analysis (sources CKAN re-flagged as
-    # updated) until structural-change gating lands. Track 1 still runs.
-    reanalyze = os.environ.get("REANALYZE_ENABLED", "true").lower() not in (
-        "false",
-        "0",
-        "no",
-    )
     # SCAN_LIMIT bounds how many CKAN datasets (sorted metadata_modified
-    # desc) the daily scan ingests into Firestore. The selector can only
-    # pick what's been scanned, so this must cover the eligible window:
+    # desc) the daily scan ingests into Firestore. The authoring queue can
+    # only see what's been scanned, so this must cover the eligible window:
     # 2026 (~433) + 2025 (~92) → 800 with headroom. Raise it in lockstep
     # when MIN_MODIFIED_FLOOR drops to admit an older year.
     scan_limit = int(os.environ.get("SCAN_LIMIT", "800"))
-    # Recipe refresh (services/page_builder/refresh.py): sources with a
-    # recipe are re-rendered deterministically — no LLM — whenever CKAN
-    # advances, and no agent track may pick them. Default off until the
-    # preview soak passes.
-    refresh_enabled = _env_flag("REFRESH_ENABLED", False)
-    # AUTHORING_MODE=local: no agent sessions run in the cloud at all.
-    # Sources a track selects are queued for local authoring with Claude
-    # Code (GitHub issue per dataset) instead. `cloud` = today's behaviour.
-    authoring_mode = os.environ.get("AUTHORING_MODE", "cloud").strip().lower()
+    # New issues opened per run — a fuse against a scan anomaly flooding the
+    # tracker. Already-notified sources don't count (the selector skips them).
+    notify_cap = int(os.environ.get("AUTHORING_NOTIFY_CAP", "100"))
     # Selection date gates, env-overridable so widening coverage one year
     # at a time is a `gcloud run` env change, not a redeploy. Unset →
     # selector.DEFAULT_* (floor 2026-01-01, rolling window 365d).
-    # Prod currently runs MIN_MODIFIED_FLOOR=2025-01-01 with MAX_AGE_DAYS
-    # large enough to disable the rolling window, so the floor is the sole
-    # gate while we expand coverage.
     selector_gates: dict = {}
     floor_env = os.environ.get("MIN_MODIFIED_FLOOR", "").strip()
     if floor_env:
@@ -319,16 +182,6 @@ async def run_pipeline(
     max_age_env = os.environ.get("MAX_AGE_DAYS", "").strip()
     if max_age_env:
         selector_gates["max_age_days"] = int(max_age_env)
-    # Track 2 re-analysis gap: a CKAN-updated source is rebuilt only when
-    # its update landed more than this many days after our last analysis
-    # (metadata_modified - last_analyzed_at > gap). Env-overridable
-    # (unset → selector.DEFAULT_REANALYZE_GAP_DAYS = 30). Replaces the
-    # old now-based COOLDOWN_DAYS (2026-07-15): pages whose data moved on
-    # 30+ days after we built them refresh on the next run; daily-append
-    # datasets self-limit to ~monthly.
-    gap_env = os.environ.get("REANALYZE_GAP_DAYS", "").strip()
-    if gap_env:
-        selector_gates["reanalyze_gap_days"] = int(gap_env)
     staging_bucket = os.environ.get("GCS_STAGING_BUCKET", "")
     project_id = (
         os.environ.get("FIREBASE_PROJECT")
@@ -344,7 +197,7 @@ async def run_pipeline(
     publish_branch = os.environ.get("PUBLISH_BRANCH", "main")
     publish_region = os.environ.get("PUBLISH_REGION", "me-west1")
 
-    if not dry_run and not override_id and not staging_bucket:
+    if not dry_run and not staging_bucket:
         raise RuntimeError(
             "GCS_STAGING_BUCKET must be set for a real pipeline run"
         )
@@ -379,20 +232,18 @@ async def run_pipeline(
                 reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
             log.info("reconcile: %s", reconcile_summary)
         except Exception:
-            log.exception("reconcile sweep failed — continuing with scan/build")
+            log.exception("reconcile sweep failed — continuing with scan/refresh")
 
-    # [1] scan — unless override_id is set (manual single-source invoke)
+    # [1] scan — unless override_id is set (manual single-source run)
     scan_summary = None
     if not override_id:
         scanner = Scanner(config=config, db=db)
         scan_summary = await scanner.scan(limit=scan_limit, mode=mode)
 
-    # [1.5] reap orphaned `pending` markers from a previous run that died
-    # mid-session. No selector track matches `pending`, so without this every
-    # interrupted session leaks one dataset permanently (7 had accumulated by
-    # 2026-08-05, when the run started hitting the Cloud Run request timeout
-    # daily). Recycled as `failed`, so Track 1b retries them and
-    # `failed_attempts` parks the hopeless ones after 3 tries.
+    # [1.5] reap orphaned `pending` markers left by the retired agent
+    # builder (a run that died mid-session). Recycled as `failed`, which the
+    # authoring queue treats as `new`. Nothing writes `pending` any more, so
+    # this only drains the legacy set.
     reaped: list[str] = []
     if not override_id and not dry_run:
         reap_after = int(os.environ.get("PENDING_REAP_MINUTES", "120"))
@@ -407,129 +258,79 @@ async def run_pipeline(
                     ", ".join(i[:8] for i in reaped),
                 )
         except Exception:
-            log.exception("pending reap failed — continuing with select")
-
-    # [1.7] recipe refresh — deterministic re-render of every recipe'd
-    # source CKAN moved past. Runs before select so the recipe set can be
-    # excluded from the agent tracks.
-    refresh_summary = None
-    recipe_ids: frozenset[str] = frozenset()
-    if refresh_enabled and not override_id:
-        from . import refresh as _refresh
-        repo = None
-        try:
-            repo = _refresh.recipe_repo_from_env()
-            recipe_ids = frozenset(await asyncio.to_thread(repo.list_ids))
-        except Exception:
-            # Fail closed: without the recipe list we can't tell which
-            # published pages a recipe owns, and a Track-2 agent rebuild
-            # would overwrite them. New sources (Track 1) still build.
-            log.exception("recipe list unavailable — pausing Track 2 for this run")
-            reanalyze = False
-            repo = None
-        if repo is not None and not dry_run:
-            try:
-                refresh_summary = await asyncio.to_thread(
-                    _refresh.run_refresh,
-                    store,
-                    repo,
-                    preview=False,
-                    staging_bucket=staging_bucket,
-                )
-            except Exception:
-                log.exception("recipe refresh failed — continuing with select")
-    refreshed_ids = list((refresh_summary or {}).get("refreshed") or [])
-
-    # [2] select
-    if override_id:
-        src = await asyncio.to_thread(store.get_source, override_id)
-        if src is None:
-            raise RuntimeError(f"override source {override_id} not found in Firestore")
-        to_process = [src]
-    else:
-        if authoring_mode == "local":
-            n = int(os.environ.get("AUTHORING_NOTIFY_CAP", "100"))
-        to_process = await asyncio.to_thread(
-            selector.pick_next,
-            store,
-            n,
-            reanalyze=reanalyze,
-            exclude_ids=recipe_ids,
-            **selector_gates,
-        )
+            log.exception("pending reap failed — continuing")
 
     summary: dict = {
         "mode": mode,
         "dry_run": dry_run,
-        "authoring_mode": authoring_mode,
-        "selected": [s.id for s in to_process],
         "scan": _scan_summary_dict(scan_summary) if scan_summary else None,
         "reconcile": reconcile_summary,
         "reaped_pending": reaped,
-        "refresh": refresh_summary,
+        "refresh": None,
+        "authoring_queued": [],
+        "build_id": None,
     }
 
-    # [2.5] local authoring: queue instead of build. Idempotent — a source
-    # whose issue is already open is a no-op, so re-selecting it daily
-    # costs one Firestore read.
-    if authoring_mode == "local" and not override_id and not dry_run:
-        from .refresh import queue_authoring
-
-        queued = []
-        for src in to_process:
-            reason = "legacy_updated" if src.page_path else "new"
-            issue = await asyncio.to_thread(queue_authoring, store, src, reason)
-            queued.append({"id": src.id, "reason": reason, "issue": issue})
-        summary["authoring_queued"] = queued
-        to_process = []
-
-    if dry_run or not to_process:
-        summary["processed"] = []
-        summary["build_id"] = None
-        if dry_run:
-            summary["status"] = "dry_run" if to_process else "idle"
-            return summary
-        summary["build_id"] = await _dispatch_publish(
-            bool(refreshed_ids) and not skip_publish,
-            publish_via, publish_repo, publish_workflow, publish_branch,
-            project_id, trigger_id, publish_region,
-        )
-        summary["status"] = "ok" if refreshed_ids else "idle"
+    # [2] recipe list. Without it we can't tell which sources a recipe owns,
+    # so nothing below may run: queueing would open issues for datasets
+    # that already have a recipe. A failed run, not an idle one.
+    try:
+        repo = _refresh.recipe_repo_from_env()
+        recipe_ids = frozenset(await asyncio.to_thread(repo.list_ids))
+    except Exception:
+        log.exception("recipe list unavailable — nothing refreshed or queued")
+        summary["status"] = "refresh_unavailable"
         return summary
 
-    # [3] fan-out agent sessions, bounded by MAX_CONCURRENT.
-    # `_build_one` runs the sync agent loop via `asyncio.to_thread`, which
-    # uses the event loop's default ThreadPoolExecutor. That executor's
-    # default cap is `min(32, os.cpu_count() + 4)` — on a 2-CPU Cloud Run
-    # container that's ~8, which would silently bottleneck below
-    # MAX_CONCURRENT (plus the Firestore mark calls also ride this pool).
-    # Widen it; the semaphore is the real concurrency control.
-    loop = asyncio.get_running_loop()
-    loop.set_default_executor(
-        ThreadPoolExecutor(max_workers=max(max_concurrent * 2, 16))
-    )
-    sem = asyncio.Semaphore(max_concurrent)
-    abort = asyncio.Event()
-    results = await asyncio.gather(
-        *[_build_one(src, staging_bucket, store, sem, abort) for src in to_process]
-    )
-    summary["processed"] = results
-    succeeded_ids = [r["id"] for r in results if r.get("status") == "succeeded"]
+    # [3] candidates: the override, or every recipe'd source CKAN moved
+    # past (run_refresh decides) + the authoring queue.
+    if override_id:
+        src = await asyncio.to_thread(store.get_source, override_id)
+        if src is None:
+            raise RuntimeError(f"override source {override_id} not found in Firestore")
+        only_ids = [override_id] if override_id in recipe_ids else []
+        to_queue = [] if only_ids else [(src, "legacy_updated" if src.page_path else "new")]
+    else:
+        only_ids = None
+        to_queue = await asyncio.to_thread(
+            selector.pick_authoring_candidates,
+            store,
+            notify_cap,
+            exclude_ids=recipe_ids,
+            **selector_gates,
+        )
+    summary["selected_for_authoring"] = [s.id for s, _ in to_queue]
+    if dry_run:
+        summary["status"] = "dry_run"
+        return summary
 
-    # [4] trigger publisher if any page was written (agent or refresh)
+    # [4] refresh — deterministic re-render of recipe'd sources.
+    if only_ids is None or only_ids:
+        try:
+            summary["refresh"] = await asyncio.to_thread(
+                _refresh.run_refresh,
+                store,
+                repo,
+                preview=False,
+                staging_bucket=staging_bucket,
+                only_ids=only_ids,
+            )
+        except Exception:
+            log.exception("recipe refresh failed — continuing with the authoring queue")
+    refreshed_ids = list((summary["refresh"] or {}).get("refreshed") or [])
+
+    # [5] authoring queue: one issue per source, idempotent.
+    for src, reason in to_queue:
+        issue = await asyncio.to_thread(_refresh.queue_authoring, store, src, reason)
+        summary["authoring_queued"].append({"id": src.id, "reason": reason, "issue": issue})
+
+    # [6] publish whatever re-rendered.
     summary["build_id"] = await _dispatch_publish(
-        bool(succeeded_ids or refreshed_ids) and not skip_publish,
+        bool(refreshed_ids) and not skip_publish,
         publish_via, publish_repo, publish_workflow, publish_branch,
         project_id, trigger_id, publish_region,
     )
-    # `aborted` outranks `ok`: a batch that lost the provider mid-run is a
-    # broken batch even if a few pages landed first, and it must not read as
-    # a normal day. `_cli` turns both it and `all_failed` into a non-zero
-    # exit so the job execution shows up FAILED instead of green.
-    if any(r.get("status") == "aborted" for r in results):
-        summary["status"] = "aborted"
-    else:
-        summary["status"] = "ok" if succeeded_ids or refreshed_ids else "all_failed"
+    summary["status"] = "ok" if refreshed_ids else "idle"
     return summary
 
 
@@ -544,16 +345,16 @@ def _scan_summary_dict(s) -> dict:
 
 
 def _cli() -> None:
-    p = argparse.ArgumentParser(description="Run the builder pipeline locally.")
-    p.add_argument("--source", help="Specific dataset_id to build (skip scan+select)")
-    p.add_argument("--dry-run", action="store_true", help="Scan + select but don't build")
-    p.add_argument("--n", type=int, default=None, help="Override DAILY_CAP")
+    p = argparse.ArgumentParser(description="Run the daily refresh pipeline locally.")
+    p.add_argument("--source",
+                   help="One dataset_id: refresh it if it has a recipe, else queue "
+                        "it for authoring (skips scan)")
+    p.add_argument("--dry-run", action="store_true",
+                   help="Scan + list the authoring queue; refresh and open nothing")
     p.add_argument("--no-trigger-publish", action="store_true",
-                   help="Skip Cloud Build trigger after successful builds")
-    # `--mode scheduled` is what the Cloud Run *job* passes: a job execution is
-    # the production daily batch, so its scan_runs bookkeeping must match what
-    # the HTTP service recorded, not read as a local debug run. Default stays
-    # `manual` so nothing changes for hand-run CLI invocations.
+                   help="Skip the publish trigger after a refresh")
+    # `--mode scheduled` is what the Cloud Run job passes, so its scan_runs
+    # bookkeeping reads as the production daily run, not a local debug run.
     p.add_argument("--mode", default="manual", choices=("manual", "scheduled"),
                    help="Run mode recorded on the scan_runs doc")
     args = p.parse_args()
@@ -563,19 +364,16 @@ def _cli() -> None:
             mode=args.mode,
             override_id=args.source,
             dry_run=args.dry_run,
-            n_per_run=args.n,
             skip_publish=args.no_trigger_publish,
         )
     )
     import json
     print(json.dumps(summary, indent=2, default=str))
 
-    # Exit non-zero when the run produced nothing, so a dead batch is
-    # VISIBLE. Until now `all_failed` still called exit(0): from 2026-08-11
-    # the OpenRouter key was capped and every run failed completely for 18
-    # days while the job execution stayed green and nobody was paged. An
-    # `idle` day (nothing new to build) is a legitimate success and stays 0;
-    # `--max-retries=0` on the job means a red execution won't re-bill.
+    # A run that couldn't read the recipe list refreshed nothing: exit
+    # non-zero so the job execution shows up FAILED instead of green (a
+    # silently dead batch froze the site for 18 days in 2026-08). An
+    # `idle` day is a legitimate success and stays 0.
     if summary.get("status") in FAILED_RUN_STATUSES:
         log.error(
             "pipeline finished with status=%s — exiting non-zero so the job "

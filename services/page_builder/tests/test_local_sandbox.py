@@ -14,7 +14,6 @@ import pytest
 
 from services.page_builder import agent_contract
 from services.page_builder import local_sandbox as ls
-from services.page_builder import model_harness as mh
 
 UID, GID = 10001, 10001
 
@@ -107,22 +106,6 @@ def test_adopt_after_handover_chowns_new_dirs(tmp_path, as_root):
     sb.adopt(f)
     assert [p for p, *_ in as_root.chowns] == [str(wd / "late")]
     assert f.stat().st_mode & 0o004
-
-
-def test_provision_path_adopts_into_sandbox(tmp_path):
-    adopted = []
-    sb = SimpleNamespace(workdir=tmp_path, adopt=lambda p: adopted.append(p))
-    src = tmp_path.parent / f"{tmp_path.name}-src.csv"
-    src.write_text("a\n1\n")
-    try:
-        mh._provision_path(sb, src, str(tmp_path / "data" / "data_1.csv"))
-        mh._provision_file(sb, b"print(1)", str(tmp_path / "check.py"))
-    finally:
-        src.unlink()
-    assert adopted == [
-        (tmp_path / "data" / "data_1.csv").resolve(),
-        (tmp_path / "check.py").resolve(),
-    ]
 
 
 def test_sandbox_user_env_overrides(tmp_path, as_root, monkeypatch):

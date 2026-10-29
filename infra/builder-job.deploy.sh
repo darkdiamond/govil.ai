@@ -1,29 +1,19 @@
 #!/usr/bin/env bash
-# Deploy the govdata-builder-job Cloud Run JOB — the daily agent batch.
+# Deploy the govdata-builder-job Cloud Run JOB — the daily recipe refresh.
 #
-# WHY A JOB AND NOT THE SERVICE
-# -----------------------------
-# The batch used to run inside one HTTP request on the govdata-builder
-# service. A Cloud Run *service* caps request timeout at 3600s, and from
-# 2026-08-01 the batch outgrew it: every scheduler tick returned 504 at
-# exactly 3600.000s. Because the publish dispatch is the LAST step of
-# run_pipeline (after asyncio.gather over every source), the container was
-# killed before it ever fired — so pages were built, staged to GCS and marked
-# succeeded in Firestore, but the site sat frozen for 5 days while OpenRouter
-# billed for the work. A Cloud Run job has no request semantics and takes
-# --task-timeout up to 24h, so the run reaches its own end and publishes.
+# One execution: scan CKAN → re-render every recipe'd page whose data moved
+# (no LLM; recipes are read from git main at run time, so merging a recipe PR
+# needs no redeploy) → open a needs-authoring GitHub issue for each new or
+# changed dataset with no recipe → dispatch the GitHub Actions publisher
+# (PUBLISH_VIA=github) if anything re-rendered.
 #
-# Shape: one execution invokes all the agent sessions; when they finish, the
-# run dispatches the GitHub Actions publisher itself (PUBLISH_VIA=github).
+# A job, not a service: a job execution has no request timeout, only
+# --task-timeout. (The batch once outgrew Cloud Run's 3600s request cap and
+# the publish dispatch lost the race for 5 days.)
 #
-# The govdata-builder SERVICE stays deployed on purpose:
-#   - manual single-dataset invokes ({"dataset_id": "..."}) still work
-#   - instant rollback — repoint the scheduler at the service URL
-#
-# Env + secrets below are kept byte-identical to infra/builder.deploy.sh.
-# Both use --set-env-vars, which REPLACES the whole set: a var missing here is
-# silently dropped on deploy (that is how RECONCILE_ENABLED once reverted to
-# off). When you change one script, change the other.
+# --set-env-vars REPLACES the whole set: a var missing here is silently
+# dropped on deploy (that is how RECONCILE_ENABLED once reverted to off).
+# Diff against the live job before redeploying.
 
 set -euo pipefail
 
@@ -31,11 +21,9 @@ PROJECT=${FIREBASE_PROJECT:-govdata-il}
 REGION=${REGION:-me-west1}
 JOB=${CLOUD_RUN_JOB:-govdata-builder-job}
 STAGING_BUCKET=${GCS_STAGING_BUCKET:-${PROJECT}-staging}
-# Wall-clock ceiling for the whole daily batch. 6h at DAILY_CAP=10 /
-# MAX_CONCURRENT=2 leaves generous headroom over the slowest observed session
-# (4324s on 2026-08-05). Max allowed is 24h. --max-retries=0: a partially
-# built batch must not restart from scratch and re-bill the sessions that
-# already succeeded — the next daily run picks up the remainder.
+# Wall-clock ceiling for one run. A full re-render of every recipe is
+# CKAN-export-bound; 6h is generous headroom. --max-retries=0: a failed run
+# is retried by the next day's tick, not re-run back to back.
 TASK_TIMEOUT=${TASK_TIMEOUT:-21600s}
 MAX_RETRIES=${MAX_RETRIES:-0}
 
@@ -43,37 +31,16 @@ PUBLISH_VIA=${PUBLISH_VIA:-github}
 TRIGGER_ID=${PUBLISH_TRIGGER_ID:-govdata-publish}
 PUBLISH_BRANCH=${PUBLISH_BRANCH:-main}
 PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO:-darkdiamond/govil.ai}
-OPENROUTER_MODEL=${OPENROUTER_MODEL:-tencent/hy3}
-OPENROUTER_REASONING_EFFORT=${OPENROUTER_REASONING_EFFORT:-max}
-RATE_LIMIT_BACKOFF_S=${RATE_LIMIT_BACKOFF_S:-90}
-DAILY_CAP=${DAILY_CAP:-10}
-MAX_CONCURRENT=${MAX_CONCURRENT:-2}
-SESSION_ATTEMPTS=${SESSION_ATTEMPTS:-3}
 SCAN_LIMIT=${SCAN_LIMIT:-800}
 MIN_MODIFIED_FLOOR=${MIN_MODIFIED_FLOOR:-2025-01-01}
 MAX_AGE_DAYS=${MAX_AGE_DAYS:-100000}
-REANALYZE_ENABLED=${REANALYZE_ENABLED:-true}
-REANALYZE_GAP_DAYS=${REANALYZE_GAP_DAYS:-30}
-DATA_PREFETCH_MAX_RECORDS=${DATA_PREFETCH_MAX_RECORDS:-2000000}
-DATA_PREFETCH_MAX_BYTES=${DATA_PREFETCH_MAX_BYTES:-150000000}
-DATA_PREFETCH_TOTAL_BYTES=${DATA_PREFETCH_TOTAL_BYTES:-200000000}
-DATA_PREFETCH_WALL_BUDGET_S=${DATA_PREFETCH_WALL_BUDGET_S:-300}
-DATA_PREFETCH_SAMPLE_ROWS=${DATA_PREFETCH_SAMPLE_ROWS:-150000}
-DATA_PREFETCH_MULTI=${DATA_PREFETCH_MULTI:-true}
-RETRY_FEEDBACK=${RETRY_FEEDBACK:-true}
 RECONCILE_ENABLED=${RECONCILE_ENABLED:-true}
-# Orphaned `pending` markers older than this are recycled as retryable
-# failures at the start of a run (services/shared/firestore.py::
-# reap_stale_pending). Keep it above the slowest expected session so a
-# manual run overlapping the scheduled one can't reap its live sessions.
+# Orphaned `pending` markers (left by the retired agent builder) older than
+# this are recycled as `failed`, which the authoring queue treats as new.
 PENDING_REAP_MINUTES=${PENDING_REAP_MINUTES:-120}
-# Recipe refresh (services/page_builder/refresh.py). Defaults mirror prod —
-# a plain redeploy must not revert them (--set-env-vars replaces the set):
-#   REFRESH_ENABLED=true  → re-render recipe'd pages on every CKAN update
-#   AUTHORING_MODE=local  → no cloud agent sessions; queue + GitHub issue
-#                           (stays cloud until local authoring replaces it)
-REFRESH_ENABLED=${REFRESH_ENABLED:-true}
-AUTHORING_MODE=${AUTHORING_MODE:-cloud}
+# Fuse on NEW needs-authoring issues per run (already-notified sources
+# don't count).
+AUTHORING_NOTIFY_CAP=${AUTHORING_NOTIFY_CAP:-100}
 # No-op precheck for recipe refresh — skips CKAN version bumps that changed
 # nothing (services/page_builder/refresh.py). off | observe | inputs | full;
 # `observe` only logs would-skip agreement, never skips. `inputs` skips on the
@@ -93,10 +60,10 @@ cd "$(dirname "$0")/.."
 BUILDER_SA="govdata-builder@${PROJECT}.iam.gserviceaccount.com"
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
-ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},FIREBASE_PROJECT=${PROJECT},GCS_STAGING_BUCKET=${STAGING_BUCKET},PUBLISH_VIA=${PUBLISH_VIA},PUBLISH_TRIGGER_ID=${TRIGGER_ID},PUBLISH_BRANCH=${PUBLISH_BRANCH},PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},OPENROUTER_MODEL=${OPENROUTER_MODEL},OPENROUTER_REASONING_EFFORT=${OPENROUTER_REASONING_EFFORT},RATE_LIMIT_BACKOFF_S=${RATE_LIMIT_BACKOFF_S},DAILY_CAP=${DAILY_CAP},MAX_CONCURRENT=${MAX_CONCURRENT},SESSION_ATTEMPTS=${SESSION_ATTEMPTS},SCAN_LIMIT=${SCAN_LIMIT},MIN_MODIFIED_FLOOR=${MIN_MODIFIED_FLOOR},MAX_AGE_DAYS=${MAX_AGE_DAYS},REANALYZE_ENABLED=${REANALYZE_ENABLED},REANALYZE_GAP_DAYS=${REANALYZE_GAP_DAYS},DATA_PREFETCH_MAX_RECORDS=${DATA_PREFETCH_MAX_RECORDS},DATA_PREFETCH_MAX_BYTES=${DATA_PREFETCH_MAX_BYTES},DATA_PREFETCH_TOTAL_BYTES=${DATA_PREFETCH_TOTAL_BYTES},DATA_PREFETCH_WALL_BUDGET_S=${DATA_PREFETCH_WALL_BUDGET_S},DATA_PREFETCH_SAMPLE_ROWS=${DATA_PREFETCH_SAMPLE_ROWS},DATA_PREFETCH_MULTI=${DATA_PREFETCH_MULTI},RETRY_FEEDBACK=${RETRY_FEEDBACK},RECONCILE_ENABLED=${RECONCILE_ENABLED},PENDING_REAP_MINUTES=${PENDING_REAP_MINUTES},REFRESH_ENABLED=${REFRESH_ENABLED},AUTHORING_MODE=${AUTHORING_MODE},REFRESH_PRECHECK=${REFRESH_PRECHECK},REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS},REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES}"
-SECRETS="OPENROUTER_API_KEY=openrouter-api-key:latest,GITHUB_DISPATCH_TOKEN=github-dispatch-token:latest,VOYAGE_API_KEY=voyage-api-key:latest"
-# The image CMD starts functions-framework for the HTTP service; a job must
-# instead run the pipeline once and exit. Same module the CLI uses.
+ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},FIREBASE_PROJECT=${PROJECT},GCS_STAGING_BUCKET=${STAGING_BUCKET},PUBLISH_VIA=${PUBLISH_VIA},PUBLISH_TRIGGER_ID=${TRIGGER_ID},PUBLISH_BRANCH=${PUBLISH_BRANCH},PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},SCAN_LIMIT=${SCAN_LIMIT},MIN_MODIFIED_FLOOR=${MIN_MODIFIED_FLOOR},MAX_AGE_DAYS=${MAX_AGE_DAYS},RECONCILE_ENABLED=${RECONCILE_ENABLED},PENDING_REAP_MINUTES=${PENDING_REAP_MINUTES},AUTHORING_NOTIFY_CAP=${AUTHORING_NOTIFY_CAP},REFRESH_PRECHECK=${REFRESH_PRECHECK},REFRESH_PRECHECK_MAX_AGE_DAYS=${REFRESH_PRECHECK_MAX_AGE_DAYS},REFRESH_MAX_BYTES=${REFRESH_MAX_BYTES}"
+SECRETS="GITHUB_DISPATCH_TOKEN=github-dispatch-token:latest,VOYAGE_API_KEY=voyage-api-key:latest"
+# Same as the image CMD; explicit so a manual `--args` override (dry run)
+# composes predictably.
 COMMAND="python"
 CMD_ARGS="-m,services.page_builder.pipeline,--mode,scheduled"
 
@@ -130,9 +97,9 @@ echo "==> job deployed:"
 gcloud run jobs describe "$JOB" --region="$REGION" --project="$PROJECT" \
   --format="value(name,spec.template.spec.taskCount,spec.template.spec.template.spec.timeoutSeconds)"
 echo
-echo "Manual test (dry run — scan + select, no agent sessions, no publish):"
+echo "Manual test (dry run — scan + list the authoring queue; nothing refreshed, opened or published):"
 echo "  gcloud run jobs execute $JOB --region=$REGION --project=$PROJECT \\"
 echo "    --args=-m,services.page_builder.pipeline,--dry-run --wait"
 echo
 echo "Point the daily scheduler at it:"
-echo "  ./infra/scheduler.setup.sh   # TARGET=job"
+echo "  ./infra/scheduler.setup.sh"

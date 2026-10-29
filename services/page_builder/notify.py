@@ -1,14 +1,15 @@
 """Tell the human a dataset needs (re-)authoring: one GitHub issue per dataset.
 
-Authoring happens locally with Claude Code (`/author-dataset <id>`), never in
-the cloud, so the nightly job's only job here is to make the need visible.
-An issue per dataset gets GitHub's email/mobile notifications for free and
-closes itself when the recipe PR says `Closes #N`.
+Authoring happens locally with Claude Code (`/author-dataset <id>`, or the
+daily `/solve-authoring-issues` routine that batches open issues into one
+PR), never in the cloud job, so the daily job's only job here is to make the
+need visible. An issue per dataset gets GitHub's email/mobile notifications
+for free and closes itself when the recipe PR says `Closes #N`.
 
 Idempotent by construction: the caller stores the issue number on the
-dataset's refresh state and never asks again while one is recorded.
-Needs GITHUB_DISPATCH_TOKEN with Issues:write on the repo (the same
-fine-grained PAT that fires the publish dispatch).
+dataset's refresh state and doesn't ask again while that issue is open (or
+was closed as not planned). Needs GITHUB_DISPATCH_TOKEN with Issues:write
+on the repo (the same fine-grained PAT that fires the publish dispatch).
 """
 from __future__ import annotations
 
@@ -94,3 +95,38 @@ def open_authoring_issue(
         log.error("authoring issue for %s: %s %s", dataset_id, r.status_code, r.text[:300])
         return None
     return int(r.json()["number"])
+
+
+def issue_state(
+    number: int, *, repo: Optional[str] = None, token: Optional[str] = None
+) -> Optional[str]:
+    """`open`, `completed` (closed as done — e.g. by a recipe PR), or
+    `not_planned` (closed as won't-author). None when it can't be read; the
+    caller then keeps the recorded issue rather than risk a duplicate."""
+    token = (token or os.environ.get("GITHUB_DISPATCH_TOKEN", "")).strip()
+    repo = repo or os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
+    if not token:
+        return None
+    import httpx
+
+    try:
+        r = httpx.get(
+            f"https://api.github.com/repos/{repo}/issues/{number}",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            timeout=30.0,
+            follow_redirects=True,
+        )
+    except Exception:
+        log.exception("reading issue #%s failed", number)
+        return None
+    if r.status_code != 200:
+        log.error("reading issue #%s: %s %s", number, r.status_code, r.text[:300])
+        return None
+    data = r.json()
+    if data.get("state") == "open":
+        return "open"
+    return "not_planned" if data.get("state_reason") == "not_planned" else "completed"
