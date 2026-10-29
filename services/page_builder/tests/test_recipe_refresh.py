@@ -413,16 +413,25 @@ def test_em_dash_lint(tmp_path):
     assert author._em_dash_findings(recipe) == []
 
     c = tmp_path / DS / "compute.py"
-    c.write_text('"""doc — ok"""\n# comment — ok\n'
-                 + c.read_text(encoding="utf-8").replace("אירועים, {word}", "אירועים — {word}"),
-                 encoding="utf-8")
+    src = ('"""doc — ok"""\n# comment — ok\n'
+           + c.read_text(encoding="utf-8").replace("אירועים, {word}", "אירועים — {word}"))
+    c.write_text(src, encoding="utf-8")
+    bad_py = next(n for n, line in enumerate(src.splitlines(), 1) if "אירועים — {word}" in line)
     t = tmp_path / DS / "template.html.j2"
-    t.write_text(t.read_text(encoding="utf-8")
-                 + "{# note — ok #}<script>// js — ok\n</script><p>א — ב</p>\n",
-                 encoding="utf-8")
+    base = t.read_text(encoding="utf-8").rstrip("\n")
+    tail = ("{# note — ok #}\n"
+            "<script>/* block — ok\n spans lines */\n"
+            "var ok = 1; // js — ok\n"
+            'var s = "a // b — c";\n'        # inside a JS string: flagged
+            "</script>\n"
+            "<p>א &mdash; ב</p>\n")         # entity: flagged
+    t.write_text(base + "\n" + tail, encoding="utf-8")
+    first = base.count("\n") + 2
     findings = author._em_dash_findings(Recipe.load(tmp_path / DS))
-    assert any(f.startswith("EM-DASH: compute.py:43") for f in findings), findings
-    assert sum(f.startswith("EM-DASH: template.html.j2:") for f in findings) == 1, findings
+    assert f"EM-DASH: compute.py:{bad_py} has an em dash (—) in a string literal" in findings
+    tpl = sorted(f for f in findings if f.startswith("EM-DASH: template.html.j2:"))
+    assert tpl == sorted(f"EM-DASH: template.html.j2:{first + k} has an em dash (—)"
+                         for k in (4, 6)), findings
 
 
 def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):

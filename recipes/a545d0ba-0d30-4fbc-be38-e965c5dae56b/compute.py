@@ -254,7 +254,7 @@ def insight_staff(df, bvc):
         return None
     return (f"רוב הרישומים מבוססים על כישורי המנהל; רק {pct(overall)} נשענים על העסקת עובדים "
             f"מקצועיים. בענף {sh.index[0]} השיעור גבוה בהרבה: {pct(sh.iloc[0])}, "
-            f"ובענף {sh.index[-1]} {pct(sh.iloc[-1])} בלבד (ענפים עם "
+            f"ובענף {sh.index[-1]} הוא {pct(sh.iloc[-1])} בלבד (ענפים עם "
             f"{n(MIN_BRANCH_ROWS)} רישומים לפחות).")
 
 
