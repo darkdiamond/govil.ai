@@ -265,11 +265,16 @@ GovMap `resourceId`).
 
 Don't put an em dash (U+2014) in anything a visitor reads: insights, ledes, labels,
 headings, `summary_he`, tooltips or aria-labels. Rewrite the sentence instead,
-using a colon, a comma, parentheses or a new sentence. A year range keeps its en
-dash (2016–2025). `verify` fails on an em dash in any `compute.py` string
-literal or in the template (comments and docstrings are exempt; so is an
-escaped `"\u2014"`, for code that has to match one inside the data). Older recipes
-still have them, so clean the whole recipe whenever you touch one.
+using a colon, a comma, parentheses or a new sentence. `verify` fails on an em
+dash in any `compute.py` string literal or in the template (comments and
+docstrings are exempt; so is an escaped `"\u2014"`, for code that has to match
+one inside the data). Older recipes still have them, so clean the whole recipe
+whenever you touch one.
+
+Write a numeric range in Hebrew text, tooltips and ECharts labels with an ASCII
+hyphen (2016-2025), or as "2016 עד 2025" in prose. An en dash between digits
+renders reversed in RTL ("2025–2016"). The one exception is a KPI `display`
+value: its box is `dir="ltr"`, so `2014–2026` is fine there.
 
 ### Search (SEO): write for what people type
 
