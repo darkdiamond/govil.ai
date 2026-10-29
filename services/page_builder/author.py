@@ -304,6 +304,7 @@ def _purity_findings(recipe: Recipe) -> list[str]:
 # is not flagged. Comments and docstrings are exempt; every other string
 # literal in compute.py counts, since most of them end up on the page.
 # Verify-only: legacy recipes still refresh nightly and comply when next touched.
+
 # The character itself, or an HTML entity that renders as one.
 _EM_DASH_RE = re.compile(r"\u2014|&mdash;|&#0*8212;|&#[xX]0*2014;")
 _TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--.*?-->", re.S)
@@ -324,12 +325,16 @@ def _strip_js_comments(js: str) -> str:
 
 def _em_dash_findings(recipe: Recipe) -> list[str]:
     out = []
-    tree = ast.parse(recipe.compute_path.read_text(encoding="utf-8"))
+    py = recipe.compute_path.read_text(encoding="utf-8")
+    tree = ast.parse(py)
     docstrings = {id(n.value) for n in ast.walk(tree)
                   if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)}
+    # Matched on the literal's source text, not its value: spelling it "\u2014"
+    # is the opt-out for code that must match an em dash inside the data.
     lines = sorted({n.lineno for n in ast.walk(tree)
                     if isinstance(n, ast.Constant) and isinstance(n.value, str)
-                    and _EM_DASH_RE.search(n.value) and id(n) not in docstrings})
+                    and id(n) not in docstrings
+                    and _EM_DASH_RE.search(ast.get_source_segment(py, n) or n.value)})
     out += [f"EM-DASH: compute.py:{n} has an em dash (U+2014) in a string literal" for n in lines]
 
     src = _TPL_COMMENT_RE.sub(_keep_newlines,
