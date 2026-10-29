@@ -1,7 +1,9 @@
-"""CLI: preview a model_test build inside the actual dataset-page shell.
+"""CLI: preview an authoring build inside the actual dataset-page shell.
 
-The model harness writes a body fragment + agent metadata to
-`tmp/model_test/<id>/{content.html,agent_data.json}`. Two ways to see it
+`python -m services.page_builder.author verify <id>` writes the recipe's
+rendered body + agent_data to
+`tmp/model_test/<id>/{content.html,agent_data.json}` (the directory name is
+historical). Two ways to see it
 rendered through the real shell (Tailwind, layouts/default.vue, dataset-libs
 globals, related-datasets sidebar, metadata cards):
 

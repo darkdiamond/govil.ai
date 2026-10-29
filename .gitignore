@@ -95,12 +95,13 @@ home.png
 antennas.png
 deadsea.png
 
-# model_test harness scratch dir (tmp/model_test/<id>/...)
+# Local scratch: tmp/authoring/<id>/ (raw dataset rows for recipe authoring)
+# and tmp/model_test/<id>/ (author verify / cli.preview builds).
 tmp/
 
-# Model-eval comparison snapshots — kept locally, not in the repo (agent
-# output embeds raw dataset content, incl. personal contact details from
-# registry datasets). Methodology: docs/MODEL_EVAL.md.
+# Legacy model-eval comparison snapshots from the retired agent builder —
+# kept locally, not in the repo (agent output embeds raw dataset content,
+# incl. personal contact details from registry datasets).
 services/page_builder/harness-comparison/
 
 # Code-graph tool output (local analysis artifact, not part of the project)

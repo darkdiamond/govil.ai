@@ -16,10 +16,10 @@ outers, missing icon headers, missing <ul>/<li> insights, the 50KB
 inline-data cap, percent-conflict across year contexts. Hence the
 runtime check.
 
-Copied into each session's private workdir (CHECK_SCRIPT in
-services/page_builder/agent_contract.py) so the agent can self-check
-in-session, and run again host-side on the sanitized body by
-services/page_builder/agent_runner.py before anything persists.
+Run host-side on every sanitized recipe body by
+services/page_builder/refresh.py (via agent_contract.run_host_check)
+before anything is staged — the nightly refresh and `author verify`
+share that path.
 """
 from __future__ import annotations
 

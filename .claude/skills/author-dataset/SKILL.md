@@ -70,8 +70,9 @@ under-cap page as it does.
 
 ## 3. Design the page
 
-Design rules are the cloud agent's rules — read these sections of
-`agent/system-prompt.md` and follow them: WRAPPER CONTRACT, DESIGN TOKENS,
+Design rules are the retired cloud agent's rules, kept as a design reference
+— read these sections of `agent/system-prompt.md` (no longer shipped or run;
+the repo copy is canonical) and follow them: WRAPPER CONTRACT, DESIGN TOKENS,
 CHART COLOR PALETTE, ECHARTS: RTL + Rubik preset, MOBILE-FIRST LAYOUT, LIVE MAP
 (GovMap), DATA EXPLORER (don't build one), BODY SKELETON, STRUCTURE,
 DATA-TABLE FALLBACK, COLOR AND CONTRAST, REDUCED MOTION, and HARD CONSTRAINTS.
@@ -359,12 +360,17 @@ and re-verify.
 
 ## 7. Ship
 
+- **Invoked from `/solve-authoring-issues`?** Stop after §6: that batch
+  skill owns the branch, commit, review and the single PR (one `Closes #N`
+  per dataset). Skip the rest of this section.
 - Commit only `recipes/<dataset_id>/` — the three contract files plus
   `coverage.json` (never `tmp/`).
 - PR title `recipe: <short Hebrew/English title> (<id8>)`; body: what the page
   shows, the insight rules and their thresholds, how it handles growth, the
   `verify` output. Add `Closes #N` when authoring from an issue.
-- Demo lane (before prod refresh is enabled): after merging or on request,
+- Once merged to `main`, the next daily job (`govdata-builder-job`, 06:00
+  Israel time) reads the recipe straight from git and renders the page; no
+  redeploy. Demo lane (optional, on request):
   `./infra/refresh-preview.deploy.sh sync-recipes` uploads recipes to the
   preview prefix; the next preview run renders them to the `recipes-demo`
   channel.

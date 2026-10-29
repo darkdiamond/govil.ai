@@ -80,9 +80,10 @@ class SourceRecord:
     # clear_source_unavailable. None while the source is available.
     unavailable_since: Optional[datetime] = None
 
-    # Agent's per-dataset judgments (summary_he, dataset_kind, related_ids, …).
-    # Set by the builder after a successful Managed Agents session; consumed
-    # by the publisher to write `agent_data.json`.
+    # Per-dataset interpretive fields (summary_he, dataset_kind, related_ids, …).
+    # Written by a successful recipe refresh (legacy pages keep what the
+    # retired agent builder wrote); consumed by the publisher to write
+    # `agent_data.json`.
     agent_data: Optional[dict] = None
 
     # Voyage embedding for related-dataset scoring. Cached here so the
@@ -457,7 +458,8 @@ class FirestoreStateStore:
     def set_agent_data(self, dataset_id: str, agent_data: dict) -> None:
         """Persist the agent's per-dataset judgments under `sources/<id>.agent_data`.
 
-        Called by the builder after a successful Managed Agents session.
+        Used by backfill scripts (e.g. backfill_suggested_tags); recipe
+        refreshes write `agent_data` via `mark_refreshed`.
         Replaces the prior `manifest_entry` field entirely — scanner facts
         live alongside on the same doc, so there's no need to merge them.
         """
@@ -586,9 +588,10 @@ class FirestoreStateStore:
     def clear_source_unavailable(self, dataset_id: str) -> None:
         """Self-heal: the source is reachable again. Flip back to
         `succeeded` (NOT `never` — that would drop the live page until a
-        fresh agent run) and clear `unavailable_since`. Any genuine data
-        change while it was gone is picked up by normal Track-2
-        re-analysis once CKAN's metadata_modified advances.
+        fresh build) and clear `unavailable_since`. Any genuine data
+        change while it was gone is picked up by the recipe refresh (or,
+        for a legacy page, the authoring queue) once CKAN's
+        metadata_modified advances.
         """
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {
@@ -642,9 +645,10 @@ class FirestoreStateStore:
         )
 
     def mark_analysis_failed(self, dataset_id: str, error: str) -> None:
-        # `failed_attempts` counts whole pipeline-run failures (each one
-        # already burned SESSION_ATTEMPTS in-run retries). The selector
-        # re-picks failed sources until this reaches 3, then parks them.
+        # Legacy status from the retired agent builder; today only
+        # `reap_stale_pending` writes it. `failed_attempts` is kept for the
+        # record, but the authoring selector queues `failed` sources for a
+        # recipe regardless of the count.
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {
                 "analysis_status": "failed",

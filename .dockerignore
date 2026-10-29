@@ -15,14 +15,14 @@ node_modules/
 .github/
 .claude/
 data/
-# Model-eval snapshots — local-only + gitignored (agent output embeds raw
+# Legacy model-eval snapshots — local-only + gitignored (agent output embeds raw
 # dataset content incl. personal contact details). The builder image COPYs
 # services/page_builder wholesale, so this dir has to be excluded explicitly
 # or it ships inside the container.
 services/page_builder/harness-comparison/
-# Benchmark/harness scratch (gitignored; same PII caveat). infra/benchmark.sh
-# builds this image locally on every run, so it must not ship the build
-# context hundreds of MB of earlier runs' outputs or nested node_modules.
+# Local scratch (gitignored; same PII caveat — tmp/authoring/ holds raw
+# dataset rows from recipe authoring). Keeps hundreds of MB of earlier runs'
+# outputs and nested node_modules out of the image.
 tmp/
 **/node_modules/
 *.db

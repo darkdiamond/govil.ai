@@ -141,7 +141,7 @@ if [[ "$ENABLE_CLOUDBUILD_PUBLISH" == "1" ]]; then
 fi
 
 # Scheduler: may invoke the Cloud Run builder.
-# (The run.invoker binding is attached to the service after deploy; see builder.deploy.sh.)
+# (The run.invoker binding is attached to the job after deploy; see builder-job.deploy.sh.)
 
 # ---- 5b. Artifact Registry (pre-baked publisher image) ---------------------
 if ! gcloud artifacts repositories describe "$AR_REPO" --location="$AR_LOCATION" --project "$PROJECT" >/dev/null 2>&1; then
@@ -230,7 +230,6 @@ echo "    Publisher SA:  $PUBLISHER_SA"
 echo "    Scheduler SA:  $SCHEDULER_SA"
 echo "    Staging bucket: gs://$STAGING_BUCKET"
 echo
-echo "Next: populate the anthropic-api-key + voyage-api-key secrets, then:"
-echo "  bash infra/setup-agent.sh     # create the Managed Agent + Env"
-echo "  bash infra/builder.deploy.sh  # deploy the Cloud Run builder"
-echo "  bash infra/scheduler.setup.sh # create the (paused) scheduler"
+echo "Next: store the github-dispatch-token secret (see infra/github-ci.setup.sh header), then:"
+echo "  bash infra/builder-job.deploy.sh  # deploy the Cloud Run builder job"
+echo "  bash infra/scheduler.setup.sh     # create the (paused) scheduler"

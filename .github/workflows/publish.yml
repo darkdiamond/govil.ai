@@ -2,8 +2,9 @@
 #
 # Two triggers:
 #   - push to main touching the frontend/publisher → push-to-deploy
-#   - workflow_dispatch → fired by the govdata-builder after agent runs
-#     (services/page_builder/pipeline.py::_trigger_publish, PUBLISH_VIA=github)
+#   - workflow_dispatch → fired by the govdata-builder-job after a run that
+#     re-rendered ≥1 page (services/page_builder/pipeline.py::_trigger_publish,
+#     PUBLISH_VIA=github)
 #     and available for manual runs from the Actions tab.
 #
 # Bursts collapse: the `publish` concurrency group cancels the in-flight

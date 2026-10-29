@@ -1,5 +1,5 @@
-# Build context uploaded by `gcloud run deploy/jobs deploy --source=.`
-# (infra/builder.deploy.sh, infra/builder-job.deploy.sh).
+# Build context uploaded by `gcloud run jobs deploy --source=.`
+# (infra/builder-job.deploy.sh, infra/refresh-preview.deploy.sh).
 #
 # Without this file gcloud uploads the entire working tree — 1.8GB here, which
 # stalls the deploy long before Cloud Build ever starts. Note that
@@ -8,8 +8,8 @@
 # Keep in mind these are different filters with different jobs:
 #   .gcloudignore  — what gets UPLOADED to Cloud Build
 #   .dockerignore  — what gets into the IMAGE from what was uploaded
-# Anything the Dockerfile COPYs must survive both. Today that is services/,
-# agent/system-prompt.md and agent/skills/check.py.
+# Anything the Dockerfile COPYs must survive both. Today that is services/
+# and agent/skills/check.py.
 
 .git/
 .github/
@@ -23,12 +23,14 @@ ENV/
 **/*.pyc
 .pytest_cache/
 
-# Local scanner artifacts (data/downloads, scanner.db) and scratch space.
+# Local scanner artifacts (data/downloads, scanner.db) and scratch space
+# (tmp/authoring/ holds raw dataset rows from local recipe authoring).
 data/
 tmp/
 
-# Model-eval snapshots: local-only and gitignored because agent output embeds
-# raw dataset content including personal contact details. The builder
+# Legacy model-eval snapshots (retired agent builder): local-only and
+# gitignored because agent output embeds raw dataset content including
+# personal contact details. The builder
 # Dockerfile COPYs services/page_builder wholesale, so without this line
 # (and the matching one in .dockerignore) every --source deploy would bake
 # that PII into the image.

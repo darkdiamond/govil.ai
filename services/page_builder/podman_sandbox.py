@@ -14,7 +14,9 @@ Hardened defaults:
   sandbox. (The host's network is reachable, but `cap_drop=ALL` blocks raw
   sockets, port binding, etc.)
 
-Required by `model_harness.py`:
+Surface (originally for the retired agent harness; today only its result
+types `_Execution`/`_Logs`/`_Error`/`_FileEntry` are reused, by
+`local_sandbox.py`):
 
     sb = PodmanSandbox.create()
     sb.run_code(code, language="bash"|"python", timeout=120) -> _Execution
