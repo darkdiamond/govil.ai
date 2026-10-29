@@ -41,18 +41,17 @@ def run_host_check(
 ) -> None:
     """Run agent/skills/check.py on the sanitized outputs; raise on non-zero.
 
-    The agent already self-checked in its sandbox, but the sanitizer may
-    have rewritten the body since — this is the authoritative gate. Used
-    by production (`agent_runner`) before anything reaches GCS/Firestore
-    and by the local test harness (`model_harness.run_test_session`) so
-    eval runs pass the exact same bar.
+    The sanitizer may have rewritten the body, so this runs on its output —
+    the authoritative gate. Used by the recipe refresh before anything
+    reaches GCS/Firestore and by `author verify`, so a recipe passes the
+    exact same bar locally as in production.
 
     Trust boundary: this always runs the IMAGE's check.py
-    (`CHECK_SCRIPT_PATH`, root-owned under /app) — never the per-session
-    copy the agent self-checks with, which the session can rewrite.
-    `workdir` must be a HOST-owned directory, not the sandbox workdir: the
-    sandbox user owns that tree and could pre-plant a symlink at
-    validated-content.html that this (root) process would write through.
+    (`CHECK_SCRIPT_PATH`, root-owned under /app) — never a copy inside a
+    sandbox workdir, which sandboxed code could rewrite. `workdir` must be
+    a HOST-owned directory, not the sandbox workdir: the sandbox user owns
+    that tree and could pre-plant a symlink at validated-content.html that
+    this (root) process would write through.
     `-I` keeps PYTHONPATH/user-site/cwd out of check.py's import path.
     """
     c = workdir / "validated-content.html"

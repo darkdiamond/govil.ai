@@ -878,3 +878,64 @@ def test_successful_refresh_clears_the_recorded_issue(env):
     store.states[(DS, True)] = {"authoring_status": "notified", "authoring_issue": 5}
     assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
     assert store.states[(DS, True)]["authoring_issue"] is None
+
+
+# ---- staging failures -------------------------------------------------------
+
+
+class _MultiStore(FakeStore):
+    """FakeStore over several sources (ids → the same fixture recipe)."""
+
+    def __init__(self, ids):
+        super().__init__(_src())
+        self.srcs = {i: SimpleNamespace(**{**vars(_src()), "id": i}) for i in ids}
+
+    def get_source(self, dataset_id):
+        return self.srcs.get(dataset_id)
+
+
+def _many_recipes(tmp_path, ids):
+    recipes = tmp_path / "recipes"
+    for i in ids:
+        shutil.copytree(FIXTURES / DS, recipes / i)
+        m = recipes / i / "recipe.json"
+        m.write_text(m.read_text().replace(DS, i))
+    return recipes
+
+
+def test_staging_failure_fails_one_source_and_the_batch_goes_on(env, tmp_path):
+    """An upload error used to escape run_refresh and drop every source after
+    it for the night."""
+    ids = [f"{n}1111111-2222-3333-4444-555555555555" for n in range(3)]
+    store = _MultiStore(ids)
+
+    def write_gcs(data, bucket, rel):
+        if ids[0] in rel:
+            raise RuntimeError("503 from GCS")
+        env.staged[rel] = data
+        return f"gs://{bucket}/{rel}"
+
+    env.write_gcs = write_gcs
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=_many_recipes(tmp_path, ids))
+    assert s["failed"] == [ids[0]] and s["refreshed"] == ids[1:]
+    assert s["staging_down"] is False
+    st = store.states[(ids[0], True)]
+    assert st["refresh_reason"] == rf.STAGE_FAILED and env.issues == []
+    # Not an authoring verdict: the next run retries it.
+    assert rf.needs_refresh(store.srcs[ids[0]], st, rf.LocalRecipeRepo(
+        _many_recipes(tmp_path / "again", ids[:1])).load(ids[0], tmp_path / "s")) is not None
+
+
+def test_consecutive_staging_failures_stop_the_batch(env, tmp_path):
+    ids = [f"{n}1111111-2222-3333-4444-555555555555" for n in range(5)]
+    store = _MultiStore(ids)
+
+    def write_gcs(data, bucket, rel):
+        raise RuntimeError("bucket gone")
+
+    env.write_gcs = write_gcs
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])), recipes=_many_recipes(tmp_path, ids))
+    assert s["staging_down"] is True
+    assert len(s["failed"]) == rf.MAX_CONSECUTIVE_STAGE_FAILURES
+    assert [o["reason"] for o in s["outcomes"]][rf.MAX_CONSECUTIVE_STAGE_FAILURES:] == [
+        "staging_down"] * (5 - rf.MAX_CONSECUTIVE_STAGE_FAILURES)

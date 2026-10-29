@@ -180,3 +180,24 @@ def test_unchanged_refresh_does_not_publish(harness, monkeypatch):
     )
     s = _run()
     assert s["status"] == "idle" and not harness.published
+
+
+def test_staging_down_fails_the_run_but_still_queues_and_publishes(harness, monkeypatch):
+    harness.refreshed = ["rec1"]
+    monkeypatch.setattr(
+        rf, "run_refresh",
+        lambda store, repo, **kw: {"refreshed": ["rec1"], "failed": ["x"],
+                                   "staging_down": True, "outcomes": []},
+    )
+    s = _run()
+    assert s["status"] == "refresh_failed" and s["status"] in pipeline.FAILED_RUN_STATUSES
+    assert harness.queued and harness.published
+
+
+def test_refresh_crash_fails_the_run(harness, monkeypatch):
+    def _boom(store, repo, **kw):
+        raise RuntimeError("bug")
+
+    monkeypatch.setattr(rf, "run_refresh", _boom)
+    s = _run()
+    assert s["status"] == "refresh_failed" and harness.queued

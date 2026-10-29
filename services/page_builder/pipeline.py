@@ -30,8 +30,10 @@ log = logging.getLogger("page_builder.pipeline")
 
 # Run outcomes that must surface as a failed job execution rather than a
 # green one. `idle` is deliberately absent — a day with nothing to refresh
-# is a normal, healthy outcome.
-FAILED_RUN_STATUSES = ("refresh_unavailable",)
+# is a normal, healthy outcome. The refresh is the only way a page changes,
+# so a refresh that couldn't run (no recipe list, crash, staging down) is a
+# dead run even if the authoring queue still went out.
+FAILED_RUN_STATUSES = ("refresh_unavailable", "refresh_failed")
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
@@ -305,6 +307,7 @@ async def run_pipeline(
         return summary
 
     # [4] refresh — deterministic re-render of recipe'd sources.
+    refresh_broken = False
     if only_ids is None or only_ids:
         try:
             summary["refresh"] = await asyncio.to_thread(
@@ -315,8 +318,10 @@ async def run_pipeline(
                 staging_bucket=staging_bucket,
                 only_ids=only_ids,
             )
+            refresh_broken = bool(summary["refresh"].get("staging_down"))
         except Exception:
             log.exception("recipe refresh failed — continuing with the authoring queue")
+            refresh_broken = True
     refreshed_ids = list((summary["refresh"] or {}).get("refreshed") or [])
 
     # [5] authoring queue: one issue per source, idempotent.
@@ -330,7 +335,12 @@ async def run_pipeline(
         publish_via, publish_repo, publish_workflow, publish_branch,
         project_id, trigger_id, publish_region,
     )
-    summary["status"] = "ok" if refreshed_ids else "idle"
+    # Pages that did refresh before a breakdown still publish (above); the
+    # run is red either way.
+    if refresh_broken:
+        summary["status"] = "refresh_failed"
+    else:
+        summary["status"] = "ok" if refreshed_ids else "idle"
     return summary
 
 
@@ -370,10 +380,10 @@ def _cli() -> None:
     import json
     print(json.dumps(summary, indent=2, default=str))
 
-    # A run that couldn't read the recipe list refreshed nothing: exit
-    # non-zero so the job execution shows up FAILED instead of green (a
-    # silently dead batch froze the site for 18 days in 2026-08). An
-    # `idle` day is a legitimate success and stays 0.
+    # A run whose refresh couldn't run or broke down: exit non-zero so the
+    # job execution shows up FAILED instead of green (a silently dead batch
+    # froze the site for 18 days in 2026-08). An `idle` day is a legitimate
+    # success and stays 0.
     if summary.get("status") in FAILED_RUN_STATUSES:
         log.error(
             "pipeline finished with status=%s — exiting non-zero so the job "

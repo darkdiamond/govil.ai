@@ -81,6 +81,11 @@ _COMPUTE_SPAWN_BACKOFF_S = 1.0
 
 # Failure reasons a human must act on → open an authoring issue. Anything
 # else (`fetch_failed`) is transient and simply retried next run.
+# Staging (GCS upload / Firestore mark) failed after a good render. After
+# this many in a row the batch stops: the store is down, and every further
+# source would only spend a full export to fail the same way.
+STAGE_FAILED = "stage_failed"
+MAX_CONSECUTIVE_STAGE_FAILURES = 3
 AUTHORING_REASONS = ("recipe_failed", "schema_changed", "too_large")
 
 
@@ -862,21 +867,41 @@ def refresh_one(
         pc["content_same"] = _same(ch, state.get("content_hash"))
         _log_precheck(src.id, pc)
     prefix = "preview/datasets" if preview else "datasets"
-    write_gcs(
-        page.content_html.encode("utf-8"),
-        staging_bucket,
-        f"{prefix}/{src.id}/{CONTENT_FILENAME}",
-    )
-    store.mark_refreshed(
-        src.id,
-        metadata_modified=src.metadata_modified,
-        recipe_version=rv,
-        agent_data=page.agent_data,
-        page_path=f"datasets/{src.id}/",
-        snapshot=snapshot,
-        preview=preview,
-        **hashes,
-    )
+    try:
+        write_gcs(
+            page.content_html.encode("utf-8"),
+            staging_bucket,
+            f"{prefix}/{src.id}/{CONTENT_FILENAME}",
+        )
+        store.mark_refreshed(
+            src.id,
+            metadata_modified=src.metadata_modified,
+            recipe_version=rv,
+            agent_data=page.agent_data,
+            page_path=f"datasets/{src.id}/",
+            snapshot=snapshot,
+            preview=preview,
+            **hashes,
+        )
+    except Exception as e:
+        # Staging/state infra, not the recipe: this source only. It is not
+        # an AUTHORING_REASON, so the next run retries it; run_refresh stops
+        # the batch if staging keeps failing.
+        log.exception("refresh %s: staging failed", src.id[:8])
+        try:
+            store.mark_refresh_failed(
+                src.id,
+                error=f"{type(e).__name__}: {e}",
+                reason=STAGE_FAILED,
+                failed_version=version_key(src.metadata_modified, rv),
+                preview=preview,
+            )
+        except Exception:
+            log.exception("refresh %s: recording the staging failure failed", src.id[:8])
+        return RefreshOutcome(
+            src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
+            round(time.monotonic() - started, 2),
+        )
     return RefreshOutcome(
         src.id,
         "refreshed",
@@ -988,8 +1013,13 @@ def run_refresh(
     if only_ids is not None:
         ids = [i for i in ids if i in set(only_ids)]
     outcomes: list[RefreshOutcome] = []
+    stage_failures = 0  # consecutive
+    staging_down = False
     try:
         for dataset_id in ids:
+            if staging_down:
+                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="staging_down"))
+                continue
             # A fingerprint skip made no export, so it doesn't spend the cap.
             if len([o for o in outcomes if _spends_cap(o)]) >= cap:
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="cap"))
@@ -1012,13 +1042,22 @@ def run_refresh(
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="up_to_date"))
                 continue
             log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
-            outcomes.append(
-                refresh_one(
-                    src, recipe, store=store, preview=preview,
-                    staging_bucket=staging_bucket, work_root=work_root,
-                    trigger=trigger, previous_state=state, notify=notify, **kwargs,
-                )
+            outcome = refresh_one(
+                src, recipe, store=store, preview=preview,
+                staging_bucket=staging_bucket, work_root=work_root,
+                trigger=trigger, previous_state=state, notify=notify, **kwargs,
             )
+            outcomes.append(outcome)
+            if outcome.reason == STAGE_FAILED:
+                stage_failures += 1
+                if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
+                    log.error(
+                        "refresh: %d staging failures in a row — stopping the batch",
+                        stage_failures,
+                    )
+                    staging_down = True
+            elif outcome.status == "refreshed":
+                stage_failures = 0
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     refreshed = [o.id for o in outcomes if o.status == "refreshed"]
@@ -1030,6 +1069,7 @@ def run_refresh(
         "refreshed": refreshed,
         "unchanged": unchanged,
         "failed": failed,
+        "staging_down": staging_down,
         "outcomes": [o.__dict__ for o in outcomes],
     }
 
