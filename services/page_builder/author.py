@@ -21,6 +21,7 @@ recipes/<id>/ is.
 from __future__ import annotations
 
 import argparse
+import ast
 import csv
 import json
 import random
@@ -298,6 +299,55 @@ def _purity_findings(recipe: Recipe) -> list[str]:
     return out
 
 
+# House style: no em dash (U+2014) in anything a visitor reads. Checked on the
+# recipe source, not the rendered page, so an em dash inside CKAN data values
+# is not flagged. Comments and docstrings are exempt; every other string
+# literal in compute.py counts, since most of them end up on the page.
+# Verify-only: legacy recipes still refresh nightly and comply when next touched.
+
+# The character itself, or an HTML entity that renders as one.
+_EM_DASH_RE = re.compile(r"\u2014|&mdash;|&#0*8212;|&#[xX]0*2014;")
+_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--.*?-->", re.S)
+# A JS string literal (kept, so "a // b" or "https://…" stays checked) or a comment (blanked).
+_JS_STRING_OR_COMMENT_RE = re.compile(
+    r"""("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|/\*.*?\*/|//[^\n]*""", re.S)
+_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(</script>)", re.S | re.I)
+
+
+def _keep_newlines(m: re.Match) -> str:
+    # Blank a comment but keep its line breaks, so finding line numbers stay true.
+    return "\n" * m.group(0).count("\n")
+
+
+def _strip_js_comments(js: str) -> str:
+    return _JS_STRING_OR_COMMENT_RE.sub(lambda c: c.group(1) or _keep_newlines(c), js)
+
+
+def _em_dash_findings(recipe: Recipe) -> list[str]:
+    out = []
+    py = recipe.compute_path.read_text(encoding="utf-8")
+    tree = ast.parse(py)
+    docstrings = {id(n.value) for n in ast.walk(tree)
+                  if isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)}
+    # Matched on the literal's source text, not its value: spelling it "\u2014"
+    # is the opt-out for code that must match an em dash inside the data.
+    lines = sorted({n.lineno for n in ast.walk(tree)
+                    if isinstance(n, ast.Constant) and isinstance(n.value, str)
+                    and id(n) not in docstrings
+                    and _EM_DASH_RE.search(ast.get_source_segment(py, n) or n.value)})
+    out += [f"EM-DASH: compute.py:{n} has an em dash (U+2014) in a string literal" for n in lines]
+
+    src = _TPL_COMMENT_RE.sub(_keep_newlines,
+                              recipe.template_path.read_text(encoding="utf-8"))
+    src = _SCRIPT_RE.sub(lambda m: m.group(1) + _strip_js_comments(m.group(2)) + m.group(3), src)
+    out += [f"EM-DASH: template.html.j2:{n} has an em dash (U+2014)"
+            for n, line in enumerate(src.splitlines(), 1) if _EM_DASH_RE.search(line)]
+    if out:
+        out.append("EM-DASH: user-facing text uses no em dash; rewrite with a colon, "
+                   "comma, parentheses or a new sentence (a year range keeps its en dash –)")
+    return out
+
+
 # Chart fallback: a chart small enough to tabulate (~20 rows) carries a
 # <details><table> of its own numbers in its section. A larger series is
 # marked data-fallback="explorer" on the chart element — the shell's data
@@ -444,6 +494,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     )
     problems += _pii_findings(recipe)
     problems += _purity_findings(recipe)
+    problems += _em_dash_findings(recipe)
 
     work = Path(tempfile.mkdtemp(prefix=f"author-{dataset_id[:8]}-"))
     try:

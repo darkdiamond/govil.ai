@@ -8,6 +8,14 @@
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
 
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור רופא לפי שם או מספר רישיון ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם פרטי, שם משפחה, מספר רישיון רופא או תחום התמחות</span>
+  </span>
+</a>
+
 <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
 {%- for k, lab in [("total", "total_kpi"), ("new", "new_kpi"), ("certs", "certs_kpi"), ("share", "share_kpi"), ("fields", "fields_kpi"), ("median", "median_kpi")] %}
   <div class="card p-4 text-center">

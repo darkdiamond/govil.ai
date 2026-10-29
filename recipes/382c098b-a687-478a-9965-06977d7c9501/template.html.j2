@@ -10,12 +10,20 @@
     <div class="text-sm text-subtle">{{ label }}</div>
   </div>
 {%- endmacro -%}
-<h1>מאגר שותפויות - רשם החברות</h1>
+<h1>רשם השותפויות: מאגר השותפויות הרשומות</h1>
 
 <section class="card p-5 mb-6">
   {{ head("תקציר", "info") }}
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור שותפות ברשם השותפויות ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשם: שם השותפות, מספר שותפות, שם באנגלית או יישוב</span>
+  </span>
+</a>
 
 <div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
   {{ kpi(model.kpis.total, "שותפויות שנרשמו אי-פעם") }}
@@ -197,7 +205,7 @@
     var c = echarts.init(document.getElementById("chart-survival"));
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "—" : v + "%"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "–" : v + "%"; } },
       legend: { type: "scroll", top: 0 },
       grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
       xAxis: { type: "category", data: s.x },

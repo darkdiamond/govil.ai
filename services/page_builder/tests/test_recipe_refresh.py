@@ -405,6 +405,41 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
     assert (out / "content.html").is_file() and (out / "agent_data.json").is_file()
 
 
+def test_em_dash_lint(tmp_path):
+    from services.page_builder import author
+
+    D = "\u2014"  # em dash, spelled as an escape so this file stays free of it
+
+    shutil.copytree(FIXTURES / DS, tmp_path / DS)
+    recipe = Recipe.load(tmp_path / DS)
+    assert author._em_dash_findings(recipe) == []
+
+    c = tmp_path / DS / "compute.py"
+    src = (f'"""doc {D} ok"""\n# comment {D} ok\n'
+           'MATCH = "\\u2014"  # escaped: the opt-out for matching data\n'
+           'ENTITY = "x &mdash; y"\n'
+           + c.read_text(encoding="utf-8").replace("אירועים, {word}", f"אירועים {D} {{word}}"))
+    c.write_text(src, encoding="utf-8")
+    bad_py = next(n for n, line in enumerate(src.splitlines(), 1) if f"אירועים {D} {{word}}" in line)
+    t = tmp_path / DS / "template.html.j2"
+    base = t.read_text(encoding="utf-8").rstrip("\n")
+    tail = (f"{{# note {D} ok #}}<!-- html {D} ok -->\n"
+            f"<script>/* block {D} ok\n spans lines */\n"
+            f"var ok = 1; // js {D} ok\n"
+            f'var s = "a // b {D} c";\n'     # inside a JS string: flagged
+            "</script>\n"
+            "<p>א &mdash; ב</p>\n")         # entity: flagged
+    t.write_text(base + "\n" + tail, encoding="utf-8")
+    first = base.count("\n") + 2
+    findings = author._em_dash_findings(Recipe.load(tmp_path / DS))
+    py = sorted(f for f in findings if f.startswith("EM-DASH: compute.py:"))
+    assert py == sorted(f"EM-DASH: compute.py:{n} has an em dash (U+2014) in a string literal"
+                        for n in (4, bad_py)), findings
+    tpl = sorted(f for f in findings if f.startswith("EM-DASH: template.html.j2:"))
+    assert tpl == sorted(f"EM-DASH: template.html.j2:{first + k} has an em dash (U+2014)"
+                         for k in (4, 6)), findings
+
+
 def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     recipes = tmp_path / "recipes"

@@ -38,7 +38,7 @@ def insight_trend(yearly):
     if abs(change) < 0.02:
         return f"מספר האירועים ב-{y1} ({_int(v1)}) נותר כמעט ללא שינוי לעומת {y0}."
     word = "עלייה" if change > 0 else "ירידה"
-    return (f"ב-{y1} נרשמו {_int(v1)} אירועים — {word} של "
+    return (f"ב-{y1} נרשמו {_int(v1)} אירועים, {word} של "
             f"{abs(change) * 100:.1f}% לעומת {y0} ({_int(v0)}).")
 
 

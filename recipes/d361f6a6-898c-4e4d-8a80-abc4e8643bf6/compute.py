@@ -66,7 +66,7 @@ def insight_volume(per_year, last_full):
     if abs(chg) < 0.03:
         return f"ב-{last_full} נבחנו {n(v1)} נבחנים, בדומה ל-{last_full - 1}.{peak}"
     word = "יותר" if chg > 0 else "פחות"
-    return (f"ב-{last_full} נבחנו {n(v1)} נבחנים — {pct(abs(chg) * 100)} {word} מאשר "
+    return (f"ב-{last_full} נבחנו {n(v1)} נבחנים, {pct(abs(chg) * 100)} {word} מאשר "
             f"ב-{last_full - 1}.{peak}")
 
 
@@ -80,7 +80,7 @@ def insight_scores(stats, last_full):
     s1 = stats.loc[last_full, "ge"]
     rel = "גבוה" if m1 > base + 1 else ("נמוך" if m1 < base - 1 else "דומה")
     tail = "מהממוצע" if rel != "דומה" else "לממוצע"
-    return (f"הציון הממוצע ב-{last_full} היה {m1:.1f} — {rel} {tail} של {len(prev)} השנים "
+    return (f"הציון הממוצע ב-{last_full} היה {m1:.1f}, {rel} {tail} של {len(prev)} השנים "
             f"שלפניה ({base:.1f}); {pct(s1 * 100)} מהנבחנים קיבלו {SCORE_LINE} ומעלה.")
 
 
@@ -163,7 +163,7 @@ def compute(frames):
     inst_top = list(inst_n.head(TOP_INST).index)
     inst_mean = wi.dropna(subset=["s"]).groupby("inst")["s"].mean()
     inst_rows = [{"name": i, "count": n(inst_n[i]),
-                  "mean": "—" if i not in inst_mean.index else f"{inst_mean[i]:.1f}"}
+                  "mean": "–" if i not in inst_mean.index else f"{inst_mean[i]:.1f}"}
                  for i in inst_top]
 
     # Examinees by calendar month (all completed sittings): the exam calendar.
@@ -226,7 +226,7 @@ def compute(frames):
         "cities": {"value": int(cities.size), "display": n(cities.size), "tone": "brand"},
         "examinees": {"value": int(len(done)), "display": n(len(done)), "tone": "brand"},
         "ge_last": {"value": None if lf is None else float(lf["ge"]),
-                    "display": "—" if lf is None else f"{lf['ge'] * 100:.1f}%",
+                    "display": "–" if lf is None else f"{lf['ge'] * 100:.1f}%",
                     "tone": ge_tone},
     }
     y0 = int(done["d"].dt.year.min())
@@ -237,7 +237,7 @@ def compute(frames):
                  f"רישומים של נבחנים בבחינת דיני מתווכים במקרקעין מ-{y0} ועד {d_he(ref)}."),
         "volume_aria": f"תרשים עמודות: נבחנים בכל שנה, {y0} עד {ref.year}, עם ציון ובלי ציון.",
         "volume_note": (f"נבחנים ללא ציון בקובץ (למשל מי שלא ניגש) מוצגים בנפרד. "
-                        f"{ref.year} — שנה חלקית, עד {d_he(ref)}."),
+                        f"{ref.year} היא שנה חלקית, עד {d_he(ref)}."),
         "scores_aria": f"גרף קווים: ציון ממוצע ושיעור הנבחנים עם ציון {SCORE_LINE} ומעלה, לפי שנה.",
         "scores_note": (f"מחושב על נבחנים שיש להם ציון. ציון הסף לעבירת הבחינה אינו מופיע "
                         f"במאגר; הקו מציג ציון {SCORE_LINE} ומעלה."),
@@ -260,8 +260,8 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשם המתווכים: {n(total)} מתווכים מורשים ב-{n(cities.size)} יישובים, "
-                           f"ו-{n(len(done))} רישומי נבחנים בבחינות המתווכים מאז {y0}."),
+            "summary_he": (f"פנקס המתווכים: בדיקת מתווך מורשה לפי שם או מספר רישיון. {n(total)} מתווכים במקרקעין "
+                           f"ב-{n(cities.size)} יישובים, ו-{n(len(done))} רישומי נבחנים מאז {y0}."),
             "dataset_kind": "timeseries",
             "related_ids": ["669b2652-f75b-4de3-8e6b-0dfa17accef5",
                             "713440a1-9963-4548-a7d9-9d9c9da54f62",

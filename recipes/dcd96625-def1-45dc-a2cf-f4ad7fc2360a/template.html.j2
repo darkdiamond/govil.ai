@@ -1,4 +1,4 @@
-<h1>ריביות של פיקדונות חסכון לכל ילד</h1>
+<h1>ריביות חיסכון לכל ילד (חשכ״ל) בפיקדונות הבנקים</h1>
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -174,7 +174,7 @@
 
 <script>
   (function () {
-    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "–"; }
     var b = {{ model.charts.banks | tojson }};
     var c1 = echarts.init(document.getElementById("chart-banks"));
     c1.setOption(window.GovEcharts.option({
@@ -225,7 +225,7 @@
 
 <script>
   (function () {
-    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "–"; }
     var a = {{ model.charts.age | tojson }};
     var c4 = echarts.init(document.getElementById("chart-age"));
     c4.setOption(window.GovEcharts.option({

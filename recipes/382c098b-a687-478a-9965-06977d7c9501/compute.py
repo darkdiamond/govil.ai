@@ -149,7 +149,7 @@ def insight_registrations(df, now):
     peak = int(vc.idxmax())
     tail = (" זו שנת השיא במאגר." if peak == full
             else f" שנת השיא בשנים המלאות: {peak} ({_int(vc.max())}).")
-    return f"ב-{full} נרשמו {_int(a)} שותפויות חדשות — {trend}.{tail}"
+    return f"ב-{full} נרשמו {_int(a)} שותפויות חדשות, {trend}.{tail}"
 
 
 def insight_ytd(df, now):
@@ -160,7 +160,7 @@ def insight_ytd(df, now):
     word = ("כמעט ללא שינוי" if abs(ch) < 0.03
             else f"{'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch))}")
     return (f"מתחילת {now.year} ועד {now.day}/{now.month} נרשמו {_int(a)} שותפויות, לעומת {_int(b)} "
-            f"באותה תקופה אשתקד — {word}.")
+            f"באותה תקופה אשתקד: {word}.")
 
 
 def insight_month(df, now):
@@ -182,10 +182,10 @@ def insight_month(df, now):
         lead = _vc(cur["tgroup"])
         share = lead.iloc[0] / len(cur)
         who = "רובן מסוג" if share > 0.5 else "הסוג הנפוץ:"
-        return (f"ב-{now.day} הימים הראשונים של {now.month}/{now.year} נרשמו {_int(len(cur))} שותפויות — "
+        return (f"ב-{now.day} הימים הראשונים של {now.month}/{now.year} נרשמו {_int(len(cur))} שותפויות, "
                 f"פי {ratio:.1f} מהממוצע לאותם ימים ב-12 החודשים הקודמים ({avg:.0f}), קצב גבוה במיוחד. "
                 f"{who} '{lead.index[0]}' ({_int(lead.iloc[0])}).")
-    return (f"ב-{now.day} הימים הראשונים של {now.month}/{now.year} נרשמו {_int(len(cur))} שותפויות בלבד — "
+    return (f"ב-{now.day} הימים הראשונים של {now.month}/{now.year} נרשמו {_int(len(cur))} שותפויות בלבד, "
             f"{_pct(ratio)} מהממוצע לאותם ימים ב-12 החודשים הקודמים ({avg:.0f}).")
 
 
@@ -236,7 +236,7 @@ def insight_town(df):
     best = sorted(tops, key=lambda t: (-lim[t], t))[0]
     return (f"{top} היא הכתובת הרשומה של {_pct(vc.iloc[0] / len(act))} מהשותפויות הפעילות שיש להן יישוב "
             f"({_int(vc.iloc[0])}). מבין עשרת היישובים המובילים, ב{best} שיעור השותפויות המוגבלות "
-            f"הגבוה ביותר — {_pct(lim[best])}.")
+            f"הגבוה ביותר: {_pct(lim[best])}.")
 
 
 def insight_sector(df):
@@ -248,7 +248,7 @@ def insight_sector(df):
     lead = vc.index[0]
     lim = (cls.loc[cls["sector"] == lead, "tgroup"] == TYPE_LIMITED).mean()
     second = f"; אחריו {vc.index[1]} ({_int(vc.iloc[1])})" if len(vc) > 1 else ""
-    return (f"לפי מילות מפתח בשם, התחום הנפוץ בין השותפויות הפעילות הוא {lead} — {_int(vc.iloc[0])} "
+    return (f"לפי מילות מפתח בשם, התחום הנפוץ בין השותפויות הפעילות הוא {lead}, עם {_int(vc.iloc[0])} "
             f"שותפויות, {_pct(lim)} מהן מוגבלות{second}. ל-{_pct(1 - len(cls) / len(act))} מהשותפויות "
             f"הפעילות השם אינו מעיד על התחום.")
 
@@ -380,9 +380,9 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשם השותפויות: {_int(len(df))} שותפויות שנרשמו בישראל מאז {first}, מהן "
-                           f"{_int(len(act))} פעילות ({_int(lim_act)} מוגבלות); רישומים לאורך השנים, "
-                           f"סטטוס, שרידות, יישובים ותחומי פעילות. מעודכן עד {now_he}."),
+            "summary_he": (f"איתור שותפות ברשם השותפויות לפי שם, מספר שותפות או יישוב: {_int(len(df))} שותפויות "
+                           f"שנרשמו מאז {first}, מהן {_int(len(act))} פעילות, עם סטטוס ותאריך רישום. "
+                           f"מעודכן עד {now_he}."),
             "dataset_kind": "registry",
             "related_ids": [
                 "246d949c-a253-4811-8a11-41a137d3d613",
@@ -415,19 +415,19 @@ def compute(frames):
         "insights": insights,
         "labels": {
             "lede": (f"{_int(len(df))} שותפויות נרשמו ברשם השותפויות מאז {first}; {_int(len(act))} מהן "
-                     f"פעילות היום — {_int(lim_act)} שותפויות מוגבלות (בהן קרנות השקעה ומיזמי נדל\"ן "
+                     f"פעילות היום: {_int(lim_act)} שותפויות מוגבלות (בהן קרנות השקעה ומיזמי נדל\"ן "
                      f"ואנרגיה) והשאר בעיקר שותפויות כלליות של בעלי מקצוע ועסקים. הרישום האחרון במאגר: {now_he}."),
             "full_year": str(full),
             "this_year": str(now.year),
             "ytd_kpi": f"נרשמו מתחילת {now.year} (עד {now.day}/{now.month})",
             "yearly_aria": f"גרף עמודות מוערמות: שותפויות חדשות בכל שנה לפי סוג, {first}–{now.year}.",
-            "yearly_note": (f"מספר השותפויות שנרשמו בכל שנה, לפי סוג. השנה האחרונה חלקית — עד {now_he}. "
+            "yearly_note": (f"מספר השותפויות שנרשמו בכל שנה, לפי סוג. השנה האחרונה חלקית (עד {now_he}). "
                             f"גררו את פס הזמן לצפייה בכל התקופה."),
             "monthly_aria": f"גרף עמודות מוערמות: שותפויות חדשות בכל חודש, {MONTHS} החודשים האחרונים.",
-            "monthly_note": f"החודש האחרון חלקי — עד {now_he}.",
+            "monthly_note": f"החודש האחרון חלקי (עד {now_he}).",
             "heat_aria": f"מפת חום: שותפויות חדשות לפי חודש ושנה, {hy[0]}–{now.year}.",
             "heat_note": f"כל תא הוא מספר הרישומים בחודש; {HEAT_YEARS} השנים האחרונות. השנה האחרונה עד {now_he}.",
-            "survival_aria": "גרף קו: שיעור השותפויות שעדיין פעילות, לפי שנת הרישום — כלליות מול מוגבלות.",
+            "survival_aria": "גרף קו: שיעור השותפויות שעדיין פעילות, לפי שנת הרישום: כלליות מול מוגבלות.",
             "survival_note": (f"שיעור השותפויות מכל שנתון רישום שפעילות היום (שנתונים עם {MIN_COHORT} "
                               f"שותפויות לפחות מכל סוג). שנתונים צעירים טבעי שיהיו גבוהים יותר."),
             "status_aria": f"תרשים עמודות: {_int(len(df))} השותפויות לפי סטטוס ברשם.",
@@ -435,7 +435,7 @@ def compute(frames):
             "towns_aria": f"תרשים עמודות מוערמות: {TOP_TOWNS} היישובים עם מספר השותפויות הפעילות הגבוה ביותר, לפי סוג.",
             "towns_note": f"שותפויות פעילות לפי הכתובת הרשומה; ל-{_int(no_town)} שותפויות פעילות אין יישוב רשום.",
             "sector_aria": "תרשים עמודות מוערמות: שותפויות פעילות לפי תחום משוער מהשם, לפי סוג.",
-            "sector_note": (f"סיווג לפי מילות מפתח בשם השותפות (בעברית או באנגלית) — הערכה בלבד. "
+            "sector_note": (f"סיווג לפי מילות מפתח בשם השותפות (בעברית או באנגלית), ולכן זו הערכה בלבד. "
                             f"{_int(unclassified)} שותפויות פעילות ששמן אינו מעיד על התחום אינן מוצגות."),
         },
     }
