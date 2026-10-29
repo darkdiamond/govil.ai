@@ -113,6 +113,7 @@ def test_override_with_recipe_refreshes_only_it(harness):
     harness.refreshed = ["rec1"]
     s = _run(override_id="rec1")
     assert harness.refresh_kw["only_ids"] == ["rec1"]
+    assert harness.refresh_kw["force"] is True  # "render it now", even if up to date
     assert harness.picked_with is None and harness.queued == []
     assert s["status"] == "ok"
 
@@ -122,6 +123,12 @@ def test_override_without_recipe_queues_it(harness):
     assert harness.refresh_kw is None
     assert harness.queued == [("solo", "new")]
     assert s["status"] == "idle"
+
+
+def test_override_never_queues_a_source_without_readable_data(harness):
+    harness.sources["solo"] = SourceRecord(id="solo", title="s", analysis_status="restricted")
+    s = _run(override_id="solo")
+    assert harness.queued == [] and s["status"] == "idle"
 
 
 def test_dry_run_lists_queue_but_touches_nothing(harness):

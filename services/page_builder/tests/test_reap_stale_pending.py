@@ -1,9 +1,9 @@
-"""Orphaned `pending` sources are recycled into retryable failures.
+"""Orphaned `pending` sources are recycled into failures.
 
-`mark_analysis_pending` is written when a session starts and nothing clears it
-if the container dies mid-session (the Cloud Run request timeout did exactly
-this every day from 2026-08-01). No selector track matches `pending`, so an
-orphan would sit unbuilt forever — hence the reaper.
+The retired agent builder wrote `pending` when a session started, and nothing
+cleared it if the container died mid-session. Nothing writes `pending` any
+more; the reaper drains the legacy set into `failed`, which the authoring
+queue treats as `new`.
 """
 from __future__ import annotations
 
@@ -24,16 +24,6 @@ def _store(docs: list[MagicMock]) -> tuple[FirestoreStateStore, MagicMock]:
     client = MagicMock()
     client.collection.return_value.where.return_value.stream.return_value = iter(docs)
     return FirestoreStateStore(client=client), client
-
-
-def test_mark_pending_stamps_started_at():
-    """Without a timestamp there is no way to tell an orphan from a live run."""
-    client = MagicMock()
-    store = FirestoreStateStore(client=client)
-    store.mark_analysis_pending("id1")
-    payload = client.collection.return_value.document.return_value.set.call_args.args[0]
-    assert payload["analysis_status"] == "pending"
-    assert isinstance(payload["analysis_started_at"], datetime)
 
 
 def test_reaps_pending_older_than_cutoff():

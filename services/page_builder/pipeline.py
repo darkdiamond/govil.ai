@@ -291,7 +291,9 @@ async def run_pipeline(
         if src is None:
             raise RuntimeError(f"override source {override_id} not found in Firestore")
         only_ids = [override_id] if override_id in recipe_ids else []
-        to_queue = [] if only_ids else [(src, "legacy_updated" if src.page_path else "new")]
+        to_queue = []
+        if not only_ids and src.analysis_status not in ("restricted", "unavailable"):
+            to_queue = [(src, "legacy_updated" if src.page_path else "new")]
     else:
         only_ids = None
         to_queue = await asyncio.to_thread(
@@ -317,6 +319,9 @@ async def run_pipeline(
                 preview=False,
                 staging_bucket=staging_bucket,
                 only_ids=only_ids,
+                # A manual single-dataset run means "render it now", even
+                # when the page is already up to date.
+                force=bool(override_id),
             )
             refresh_broken = bool(summary["refresh"].get("staging_down"))
         except Exception:

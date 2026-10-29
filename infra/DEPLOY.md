@@ -85,7 +85,7 @@ Manual runs after deploy:
 gcloud run jobs execute govdata-builder-job --region=me-west1 \
   --args=-m,services.page_builder.pipeline,--dry-run --wait
 
-# One dataset (no scan): refresh it if it has a recipe, else queue it.
+# One dataset (no scan): force-render it if it has a recipe, else queue it.
 gcloud run jobs execute govdata-builder-job --region=me-west1 \
   --args=-m,services.page_builder.pipeline,--source,<ckan-id> --wait
 ```

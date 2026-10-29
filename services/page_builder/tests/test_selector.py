@@ -133,3 +133,12 @@ def test_eligible_legacy_page_behind_many_skipped_rows_is_found():
     store = _FakeStore(owned + [_legacy("tail")])
     picks = pick_authoring_candidates(store, 10, exclude_ids=frozenset(s.id for s in owned))
     assert _ids(picks) == [("tail", "legacy_updated")]
+
+
+def test_notified_backlog_does_not_starve_unnotified_new_sources():
+    """Issues pile up faster than the routine solves them; hundreds of
+    notified sources sorting ahead must not hide one that still needs one."""
+    backlog = [_new(f"b{i}", modified=MODIFIED + timedelta(hours=i + 1),
+                    authoring_status="notified", authoring_issue=i) for i in range(300)]
+    store = _FakeStore(backlog + [_new("waiting")])
+    assert _ids(pick_authoring_candidates(store, 5)) == [("waiting", "new")]

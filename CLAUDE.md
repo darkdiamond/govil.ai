@@ -417,8 +417,9 @@ python -m services.scanner.main scan --limit 5
 # refreshes, opens and publishes nothing)
 python -m services.page_builder.pipeline --dry-run
 
-# One dataset, no scan: refresh it if it has a recipe, else queue it for
-# authoring (opens a needs-authoring issue — needs GITHUB_DISPATCH_TOKEN).
+# One dataset, no scan: force-render it if it has a recipe (even when up to
+# date), else queue it for authoring (opens a needs-authoring issue — needs
+# GITHUB_DISPATCH_TOKEN; restricted/unavailable sources are never queued).
 # Needs GCS_STAGING_BUCKET.
 python -m services.page_builder.pipeline --source <dataset_id> --no-trigger-publish
 

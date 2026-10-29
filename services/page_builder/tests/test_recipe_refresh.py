@@ -140,13 +140,17 @@ def env(tmp_path, monkeypatch):
         staged[rel] = data
         return f"gs://{bucket}/{rel}"
 
-    return SimpleNamespace(tmp=tmp_path, issues=issues, staged=staged, write_gcs=write_gcs)
+    def read_gcs(bucket, rel):
+        return staged.get(rel)
+
+    return SimpleNamespace(tmp=tmp_path, issues=issues, staged=staged,
+                           write_gcs=write_gcs, read_gcs=read_gcs)
 
 
 def _run(env, store, ckan, *, preview=True, recipes=FIXTURES, **kw):
     return rf.run_refresh(
         store, rf.LocalRecipeRepo(recipes), preview=preview, staging_bucket="bkt",
-        work_root=env.tmp / "work", write_gcs=env.write_gcs,
+        work_root=env.tmp / "work", write_gcs=env.write_gcs, read_gcs=env.read_gcs,
         preview_fn=ckan.preview, fetch_fn=ckan.fetch, **kw,
     )
 
@@ -939,3 +943,21 @@ def test_consecutive_staging_failures_stop_the_batch(env, tmp_path):
     assert len(s["failed"]) == rf.MAX_CONSECUTIVE_STAGE_FAILURES
     assert [o["reason"] for o in s["outcomes"]][rf.MAX_CONSECUTIVE_STAGE_FAILURES:] == [
         "staging_down"] * (5 - rf.MAX_CONSECUTIVE_STAGE_FAILURES)
+
+
+def test_failed_firestore_mark_restores_the_last_good_body(env):
+    """Upload landed, mark didn't: the staged body must go back to the one
+    Firestore's agent_data still describes."""
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    rel, good = next(iter(env.staged.items()))
+
+    store.src = _src("2026-11-01")
+
+    def boom(*a, **k):
+        raise RuntimeError("firestore unavailable")
+
+    store.mark_refreshed = boom
+    s = _run(env, store, FakeCkan(_rows([2024, 2025, 2026])))
+    assert s["outcomes"][0]["reason"] == rf.STAGE_FAILED
+    assert env.staged[rel] == good

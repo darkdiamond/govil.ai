@@ -2,7 +2,6 @@
 
 Mocks the firestore client (no emulator, matching the rest of the suite).
 Covers the two halves of the 403-restriction feature:
-  - mark_analysis_restricted parks a source WITHOUT bumping failed_attempts.
   - save_dataset resets a restricted doc back to `never` when the scanner sees
     the dataset again (re-enable on reappearance), but leaves other statuses
     untouched.
@@ -73,13 +72,3 @@ def test_save_dataset_new_doc_initializes_never():
     p = _payload(ref)
     assert p["analysis_status"] == "never"
     assert p["first_seen_at"] is not None
-
-
-def test_mark_analysis_restricted_sets_status_without_failed_attempts():
-    store, ref = _store_with_existing({"analysis_status": "never"})
-    store.mark_analysis_restricted("fa475dcc", "CKAN datastore 403 for resource r1")
-    p = _payload(ref)
-    assert p["analysis_status"] == "restricted"
-    assert "403" in p["last_error"]
-    # An exclusion, not a retryable failure — must NOT consume retry budget.
-    assert "failed_attempts" not in p

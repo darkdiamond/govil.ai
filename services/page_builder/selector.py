@@ -44,11 +44,11 @@ log = logging.getLogger(__name__)
 
 DEFAULT_MAX_AGE_DAYS = 365
 DEFAULT_MIN_MODIFIED_FLOOR = datetime(2026, 1, 1, tzinfo=timezone.utc)
-# Runaway guard for the changed-sources stream. `change_status` is sticky,
-# so it can approach the whole corpus; the DESC-order age_cutoff break is
-# the real terminator, this only bounds a pathological run (e.g. a floor set
-# so low nothing breaks). Well above the live corpus (~1.2k docs).
-CHANGED_SCAN_CAP = 5000
+# Runaway guard for every candidate scan. `change_status` is sticky, so the
+# changed stream can approach the whole corpus; the DESC-order age_cutoff
+# break is the real terminator, this only bounds a pathological run (e.g. a
+# floor set so low nothing breaks). Well above the live corpus (~1.2k docs).
+SCAN_CAP = 5000
 # `failed` docs are a closed legacy set (nothing writes `failed` any more);
 # listed with no attempt budget so parked ones get a recipe too.
 _ANY_ATTEMPTS = 1 << 30
@@ -81,11 +81,12 @@ def pick_authoring_candidates(
         return src.metadata_modified is None or _as_utc(src.metadata_modified) < age_cutoff
 
     # New: no page yet. Rows are ordered by `metadata_modified` DESC, so the
-    # first one past the cutoff ends each list.
-    over = n + len(exclude_ids)
+    # first one past the cutoff ends each list. Not a `n`-sized window:
+    # notified sources (an open issue the routine hasn't solved yet) pile up
+    # ahead of unnotified ones and would fill it.
     for rows in (
-        store.list_never_analyzed(limit=over),
-        store.list_failed_retryable(limit=over, max_attempts=_ANY_ATTEMPTS),
+        store.list_never_analyzed(limit=SCAN_CAP),
+        store.list_failed_retryable(limit=SCAN_CAP, max_attempts=_ANY_ATTEMPTS),
     ):
         for src in rows:
             if _skip(src):
@@ -103,10 +104,10 @@ def pick_authoring_candidates(
     scanned = 0
     for src in store.iter_changed_sources():
         scanned += 1
-        if scanned > CHANGED_SCAN_CAP:
+        if scanned > SCAN_CAP:
             log.warning(
                 "authoring scan hit cap (%d) without filling quota (%d/%d) — stopping",
-                CHANGED_SCAN_CAP, len(picks), n,
+                SCAN_CAP, len(picks), n,
             )
             break
         if _skip(src) or not src.page_path:

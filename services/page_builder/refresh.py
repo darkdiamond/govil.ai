@@ -699,6 +699,17 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     return f"gs://{bucket}/{relpath}"
 
 
+def _read_gcs(bucket: str, relpath: str) -> Optional[bytes]:
+    """The staged object's current bytes, or None if there is none."""
+    from google.api_core.exceptions import NotFound
+    from google.cloud import storage
+
+    try:
+        return storage.Client().bucket(bucket).blob(relpath).download_as_bytes()
+    except NotFound:
+        return None
+
+
 @dataclass
 class RefreshOutcome:
     id: str
@@ -759,6 +770,7 @@ def refresh_one(
     previous_state: Optional[dict] = None,
     notify: bool = True,
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
+    read_gcs: Callable[[str, str], Optional[bytes]] = _read_gcs,
     **fetch_kwargs,
 ) -> RefreshOutcome:
     started = time.monotonic()
@@ -867,12 +879,16 @@ def refresh_one(
         pc["content_same"] = _same(ch, state.get("content_hash"))
         _log_precheck(src.id, pc)
     prefix = "preview/datasets" if preview else "datasets"
+    rel = f"{prefix}/{src.id}/{CONTENT_FILENAME}"
+    previous_html: Optional[bytes] = None
+    staged = False
     try:
-        write_gcs(
-            page.content_html.encode("utf-8"),
-            staging_bucket,
-            f"{prefix}/{src.id}/{CONTENT_FILENAME}",
-        )
+        # Kept so a failed Firestore mark can put it back: the staged body
+        # and the doc's agent_data must describe the same render, or the
+        # next publish pairs a new page with the old summary.
+        previous_html = read_gcs(staging_bucket, rel)
+        write_gcs(page.content_html.encode("utf-8"), staging_bucket, rel)
+        staged = True
         store.mark_refreshed(
             src.id,
             metadata_modified=src.metadata_modified,
@@ -886,8 +902,18 @@ def refresh_one(
     except Exception as e:
         # Staging/state infra, not the recipe: this source only. It is not
         # an AUTHORING_REASON, so the next run retries it; run_refresh stops
-        # the batch if staging keeps failing.
+        # the batch if staging keeps failing. If the upload landed but the
+        # mark didn't, the last-good body goes back first. (A first render
+        # has none; its doc isn't publishable yet, so the orphan is inert.)
         log.exception("refresh %s: staging failed", src.id[:8])
+        if staged and previous_html is not None:
+            try:
+                write_gcs(previous_html, staging_bucket, rel)
+            except Exception:
+                log.exception(
+                    "refresh %s: restoring the last-good body failed — staged "
+                    "page and Firestore disagree until the next refresh", src.id[:8],
+                )
         try:
             store.mark_refresh_failed(
                 src.id,

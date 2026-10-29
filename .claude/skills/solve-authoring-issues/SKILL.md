@@ -38,20 +38,34 @@ branches in it. Work in a fresh worktree off `origin/main`:
 
 ```bash
 cd /home/zilbert/workdir/govdata
-git fetch origin main
+git fetch origin
 DAY=$(TZ=Asia/Jerusalem date +%F)
+# A same-day rerun must not reuse a branch that already backs a PR:
+# pick the first batch name that exists neither locally nor on origin.
+BR="recipe/batch-$DAY"; n=2
+while git rev-parse -q --verify "refs/heads/$BR" >/dev/null \
+   || git rev-parse -q --verify "refs/remotes/origin/$BR" >/dev/null; do
+  BR="recipe/batch-$DAY-$n"; n=$((n+1))
+done
 WT=/home/zilbert/workdir/govdata-authoring
-git worktree remove --force "$WT" 2>/dev/null; git branch -D "recipe/batch-$DAY" 2>/dev/null
-git worktree add "$WT" -b "recipe/batch-$DAY" origin/main
+git worktree remove --force "$WT" 2>/dev/null   # a previous run's leftover
+git worktree add "$WT" -b "$BR" origin/main
 cd "$WT"
 ln -s /home/zilbert/workdir/govdata/node_modules node_modules            # husky pre-commit
 ln -s /home/zilbert/workdir/govdata/frontend/node_modules frontend/node_modules
+# The .gitignore patterns are directory-only (`/node_modules/`), so the
+# symlinks would show as untracked. Git reads info/exclude from the shared
+# git dir (harmless for the main checkout, where they are real dirs).
+EXCL="$(git rev-parse --git-common-dir)/info/exclude"
+for pat in /node_modules /frontend/node_modules; do
+  grep -qxF "$pat" "$EXCL" 2>/dev/null || echo "$pat" >> "$EXCL"
+done
 source /home/zilbert/workdir/govdata/.venv/bin/activate
 ```
 
 All later commands run from `$WT` (`author prepare|verify` resolve paths from
-the checkout they run in). If a branch `recipe/batch-$DAY` already has an open
-PR (a second run the same day), use `recipe/batch-$DAY-2`.
+the checkout they run in). Never delete a `recipe/batch-*` branch: it may
+back an open PR.
 
 ## 1. Pick the batch
 
@@ -66,6 +80,14 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 --json number,bo
   yesterday's batch still awaiting review.
 - Group by dataset UUID (a dataset can have a prod issue and a `preview`-lane
   issue); one recipe closes all of them.
+- Drop issues the refresh already recovered: for a reason of `recipe_failed`,
+  `schema_changed` or `too_large` (the recipe exists on main), read the
+  dataset's Firestore doc (`sources/<id>` via
+  `FirestoreStateStore().get_refresh_state(<id>)`). If `refresh_status` is
+  `succeeded` and `refreshed_metadata_modified` is at or after the issue's
+  `createdAt`, the recipe works again on the latest data. Close the issue as
+  completed with a one-line comment ("recovered: the daily refresh rendered
+  it on <date>") instead of authoring.
 - Order oldest first; take the first **10 datasets** (or `max=` if given).
 - No eligible issues → clean up the worktree (step 7) and stop. Report "nothing
   to do". Do not open an empty PR.
@@ -138,7 +160,7 @@ A human removes the label to put it back in the queue.
 git add recipes/        # only the batch's recipe dirs; never tmp/
 git status --short       # must show nothing outside recipes/<batch ids>/
 git commit -m "recipe: authoring batch $DAY (<N> datasets)"
-git push -u origin HEAD
+git push -u origin "$BR"
 gh pr create --repo darkdiamond/govil.ai --base main \
   --title "recipe: authoring batch $DAY (<N> datasets)" --body-file <file>
 ```
