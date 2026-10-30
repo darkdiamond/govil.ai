@@ -18,7 +18,10 @@ Branch switches and stray edits there clobber another session's work.
   `frontend/node_modules` and `.venv` are **symlinked** to the main checkout's, and `.env` +
   `.claude/settings.local.json` are copied. The symlinked dirs are shared, so never
   `npm ci` / `npm install` / `pip install` in a worktree: it rewrites the main checkout's
-  copy. For a dependency change, delete the symlink first and install a private copy.
+  copy. For a dependency change, remove the link itself (`rm frontend/node_modules`: no
+  `-r`, no trailing slash, either of which deletes the main checkout's files) and install a
+  private copy. Vite/Nuxt keep their build caches inside `frontend/node_modules`, so run one
+  `nuxt dev` / `npm run generate` at a time across worktrees, or use a private copy.
 - **Don't edit, stash, reset or switch branches in a checkout you didn't create.** If a
   merge or checkout is blocked by changes you didn't make, stop and ask.
 - **The Firestore emulator uses fixed port 8080**: one run at a time across worktrees. Check
@@ -40,8 +43,7 @@ Branch switches and stray edits there clobber another session's work.
 When you find something worth fixing but out of scope for your change (a review finding you
 chose not to apply, a known gap, a follow-up test), write it in `TODO.md` at the repo root
 instead of leaving it in a PR description or chat. Check `TODO.md` before starting related
-work, and delete an item in the PR that fixes it. The repo is public: describe a security gap
-by what to change, never by how to exploit it.
+work, and delete an item in the PR that fixes it. Follow the format rules in its header.
 
 ## What this project is
 
