@@ -66,7 +66,11 @@ def _join(items):
 
 
 def _pct(part, whole):
-    return f"{(part / whole * 100):.0f}%" if whole else "0%"
+    if not whole:
+        return "0%"
+    if 0 < part / whole < 0.005:  # never round a published contact down to zero
+        return "<1%"
+    return f"{(part / whole * 100):.0f}%"
 
 
 def _phone(raw):
@@ -105,7 +109,10 @@ def _prepare(df):
     })
     out = out[out["name"] != ""].drop_duplicates()
     out["city"] = out["city"].where(out["city"] != "", CITY_NONE)
-    out = out.sort_values(["city", "name", "code", "address"], kind="stable")
+    # Every column is a sort key, so duplicates that differ only in contact
+    # details still have a total order (verify shuffles the rows).
+    out = out.sort_values(["city", "name", "code", "address", "phone", "phone2",
+                           "email", "website"], kind="stable")
     out["has_phone"] = (out["phone"] != "") | (out["phone2"] != "")
     out["has_any"] = out["has_phone"] | (out["email"] != "") | (out["website"] != "")
     out["street_addr"] = (out["address"] != "") & (out["address"] != out["city"])
@@ -121,6 +128,16 @@ def _where(r):
         addr = re.sub(r",\s*" + re.escape(r["city"]) + r"$", "", addr)
         s += f" ({addr})"
     return s
+
+
+def _card_address(r):
+    """The card's address line: the address, plus the city when it is known
+    and not already in the address; the city alone when there is no address."""
+    if not r["address"]:
+        return r["city"]
+    if r["city"] == CITY_NONE or r["city"] in r["address"]:
+        return r["address"]
+    return f"{r['address']}, {r['city']}"
 
 
 # ---------------------------------------------------------------- insights
@@ -139,12 +156,10 @@ def insight_spread(df, city_counts):
     return s + "."
 
 
-def insight_contact(df):
+def insight_contact(df, phone, email, web):
     n = len(df)
     if n == 0:
         return None
-    phone, email, web = int(df["has_phone"].sum()), int((df["email"] != "").sum()), \
-        int((df["website"] != "").sum())
     none = df[~df["has_any"]]
     if n == 1:
         r = df.iloc[0]
@@ -172,7 +187,7 @@ def insight_address(df):
         return None
     if vague.empty:
         if len(df) == 1:
-            return "כתובת הרחוב של המרפאה רשומה במאגר, כך שאפשר להגיע אליה ישירות."
+            return "למרפאה רשומה במאגר כתובת רחוב מלאה, לא רק שם היישוב."
         return f"לכל {len(df):,} המרפאות רשומה כתובת רחוב."
     names = sorted(vague["name"])
     if len(names) == 1:
@@ -198,7 +213,7 @@ def compute(frames):
 
     rules = [
         ("spread", insight_spread(df, city_counts)),
-        ("contact", insight_contact(df)),
+        ("contact", insight_contact(df, has_phone, has_email, has_web)),
         ("address", insight_address(df)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
@@ -238,7 +253,7 @@ def compute(frames):
         directory.append({
             "name": r["name"],
             "city": r["city"],
-            "address": r["address"] or r["city"],
+            "address": _card_address(r),
             "phones": [{"display": p, "tel": _tel(p)} for p in phones if _tel(p)],
             "email": r["email"],
             "website": r["website"],
