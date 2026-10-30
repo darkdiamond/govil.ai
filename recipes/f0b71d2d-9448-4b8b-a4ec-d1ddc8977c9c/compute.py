@@ -5,7 +5,8 @@ Fire and Rescue Authority (כבאות והצלה לישראל) attaches to each 
 The dataset publishes a full snapshot roughly monthly as a NEW resource
 ("... נכון ליום DD-MM-YYYY"); 41 snapshots exist (2018 onward). They are the same
 table at different dates, not parts of one table, so the recipe reads ONE
-snapshot (the latest at authoring time) and never concatenates them. Earlier
+snapshot (`pick: "latest"`: the newest resource that has the table's columns)
+and never concatenates them. Earlier
 snapshots also differ in number formatting (leading zeros dropped), so a
 snapshot-to-snapshot diff would mostly measure formatting noise.
 
