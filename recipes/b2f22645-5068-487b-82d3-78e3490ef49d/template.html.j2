@@ -246,7 +246,7 @@
       window.addEventListener("resize", function () { chart.resize(); });
     }
     barH("chart-current-liter", {{ model.charts.current_liter | tojson }}, "₪ לליטר");
-    barH("chart-current-ton", {{ model.charts.current_other | tojson }}, "₪ לטון");
+    barH("chart-current-ton", {{ model.charts.current_other | tojson }}, {{ (model.charts.ton.unit or "₪ לטון") | tojson }});
   })();
   (function () {
     var el = document.getElementById("chart-gap");

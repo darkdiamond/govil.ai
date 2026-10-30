@@ -642,7 +642,7 @@ def compute(frames):
                 "096db5d2-dc8b-40c8-9fe7-2b839a435d92",
                 "db8f9bc9-738a-4d83-b3ce-74e8a5f7f844",
             ],
-            "temporal_coverage": f"{hy_min}/{hy_max}",
+            "temporal_coverage": f"{hy_min - 1}/{hy_max}",  # hydro years run Oct (hy - 1) to Sep (hy)
             "spatial_coverage": "ישראל",
         },
         "kpis": kpis,

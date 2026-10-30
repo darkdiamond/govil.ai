@@ -186,7 +186,7 @@
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
-        return p.name + "<br>" + window.__bsFmt(p.value) + " ק״מ, " + window.__bsFmt(S.count[p.dataIndex]) + " קטעים";
+        return echarts.format.encodeHTML(p.name) + "<br>" + window.__bsFmt(p.value) + " ק״מ, " + window.__bsFmt(S.count[p.dataIndex]) + " קטעים";
       } },
       polar: { radius: ["12%", "72%"] },
       angleAxis: { type: "category", data: S.names, startAngle: 112.5, clockwise: true, axisLabel: { fontSize: 11 } },

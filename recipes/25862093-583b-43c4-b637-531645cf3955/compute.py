@@ -187,6 +187,13 @@ def compute(frames):
     # Partial latest year: measurements must reach late summer.
     last_hm = meas.groupby("y")["hm"].max()
     full_years = sorted(int(y) for y, v in last_hm.items() if v >= FULL_YEAR_MONTH)
+    # The newest year when its measurements stop before late summer: labelled
+    # on the network chart and left out of the dry-springs chart (the dry
+    # season is not in it yet), so neither reads as a decline.
+    y_partial = y_last if y_last not in full_years else None
+
+    def ylab_p(y):
+        return hy_label(y) + (" (חלקית)" if y == y_partial else "")
 
     # Spring-year means and baselines ---------------------------------------
     sy = meas.groupby(["id", "y"])["q"].agg(["mean", "size"]).reset_index()
@@ -208,11 +215,9 @@ def compute(frames):
     lab_L = hy_label(L)
     idx_L = float(idx.loc[L, "median"])
     partial_note = ""
-    later = [y for y in range(L + 1, y_last + 1) if y in set(meas["y"])]
-    if later:
-        yl = later[-1]
-        mo = MONTH_HE[HY_MONTHS[int(last_hm[yl]) - 1]]
-        partial_note = (f" השנה {hy_label(yl)} חלקית (המדידות בה מגיעות עד {mo}) "
+    if y_partial is not None:
+        mo = MONTH_HE[HY_MONTHS[int(last_hm[y_partial]) - 1]]
+        partial_note = (f" השנה {hy_label(y_partial)} חלקית (המדידות בה מגיעות עד {mo}) "
                         f"ולכן אינה נכללת במדד.")
 
     chart_index = {
@@ -228,11 +233,11 @@ def compute(frames):
     net = meas.groupby("y").agg(n=("q", "size"), s=("id", "nunique"))
     net_years = list(range(y_first, y_last + 1))
     chart_network = {
-        "x": [hy_label(y) for y in net_years],
+        "x": [ylab_p(y) for y in net_years],
         "n": [int(net["n"].get(y, 0)) for y in net_years],
         "s": [int(net["s"].get(y, 0)) for y in net_years],
     }
-    table_network = [{"year": hy_label(y), "n": f"{int(net['n'].get(y, 0)):,}",
+    table_network = [{"year": ylab_p(y), "n": f"{int(net['n'].get(y, 0)):,}",
                       "s": f"{int(net['s'].get(y, 0)):,}"} for y in net_years[-TABLE_ROWS:]]
     peak_s = int(net["s"].max())
     peak_y = int(min(y for y, v in net["s"].items() if v == peak_s))
@@ -312,7 +317,7 @@ def compute(frames):
     zy = meas.groupby(["id", "y"])["q"].min().reset_index()
     zy["z"] = zy["q"] == 0
     zero = zy.groupby("y").agg(n=("z", "size"), z=("z", "sum"))
-    zero = zero[zero["n"] >= MIN_INDEX_SPRINGS]
+    zero = zero[(zero["n"] >= MIN_INDEX_SPRINGS) & zero.index.isin(full_years)]
     zero["share"] = zero["z"] / zero["n"]
     chart_zero = {"x": [hy_label(int(y)) for y in zero.index],
                   "z": [int(v) for v in zero["z"]],
@@ -554,7 +559,8 @@ def compute(frames):
         "region_aria": f"מפת חום: מדד הספיקה לפי אזור ועשור, {len(regs)} אזורים ו-{len(decs)} עשורים.",
         "region_caption": "מדד הספיקה לפי אזור ועשור (באחוזים מהרגיל).",
         "zero_note": (f"מעיינות שלפחות מדידה אחת שלהם באותה שנה הייתה ספיקה אפס (המעיין יבש), ושיעורם "
-                      f"מכלל המעיינות שנמדדו. נכללות שנים עם {MIN_INDEX_SPRINGS} מעיינות נמדדים לפחות."),
+                      f"מכלל המעיינות שנמדדו. נכללות שנים עם {MIN_INDEX_SPRINGS} מעיינות נמדדים לפחות."
+                      + (f" השנה {hy_label(y_partial)} חלקית ואינה מוצגת." if y_partial is not None else "")),
         "zero_aria": (f"תרשים: מספר המעיינות שנמצאו יבשים בכל שנה ושיעורם מהמעיינות שנמדדו, "
                       f"{chart_zero['x'][0]} עד {chart_zero['x'][-1]}."),
         "zero_caption": f"מעיינות שנמצאו יבשים ב-{len(table_zero)} השנים האחרונות.",

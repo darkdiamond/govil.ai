@@ -303,7 +303,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
         var v = p.data.slice(-5);
-        return p.name + "<br>אחוזון 5: " + v[0] + "<br>רבעון תחתון: " + v[1] + "<br>חציון: " + v[2] +
+        return echarts.format.encodeHTML(p.name) + "<br>אחוזון 5: " + v[0] + "<br>רבעון תחתון: " + v[1] + "<br>חציון: " + v[2] +
           "<br>רבעון עליון: " + v[3] + "<br>אחוזון 95: " + v[4];
       } },
       grid: { left: 40, right: 16, top: 32, bottom: 32, containLabel: true },

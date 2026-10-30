@@ -324,7 +324,10 @@ def compute(frames):
         return f"{head}."
 
     def ins_run():
-        flags = [float(idx.loc[k, "median"]) < DRY for k in idx_ks]
+        # A month missing from the index (too few springs) breaks the run:
+        # the sentence says "ברציפות".
+        flags = [float(idx.loc[k, "median"]) < DRY and (i + 1 == len(idx_ks) or idx_ks[i + 1] == k + 1)
+                 for i, k in enumerate(idx_ks)]
         n = _runs_tail(flags)
         if n < MIN_DRY_RUN:
             return None

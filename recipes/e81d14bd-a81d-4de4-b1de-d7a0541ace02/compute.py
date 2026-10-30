@@ -586,7 +586,7 @@ def compute(frames):
         "peak_caption": "שיא הספיקה היומית הממוצעת בכל תחנה (מ\"ק בשנייה) ויום השיא.",
     }
     if flag:
-        rf = flag["latest"] / flag["median"]
+        rf = flag["latest"] / flag["median"] if flag["median"] > 0 else 1.0
         labels.update({
             "flag_title": f"{flag['name']}: הנפח השנתי לאורך השנים",
             "flag_note": (f"התחנה עם החציון השנתי הגדול ביותר מבין התחנות עם {FLAG_MIN_YEARS} שנים מלאות לפחות "
