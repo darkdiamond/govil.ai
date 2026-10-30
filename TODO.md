@@ -13,17 +13,9 @@ This repo is public: describe a security gap by what to change, never by how to 
   planned promotion (around 2026-10-24) has not happened. Check a clean console on live dataset
   pages with ads filling, then move the allowlist to the enforced header (CLAUDE.md, "CSP is two
   headers"). (2026-10-30)
-- **Sandbox uid not confirmed in prod.** Recipe `compute.py` is meant to run as the `sandbox`
-  user (uid 10001, `local_sandbox.py`), but setuid inside the Cloud Run job was never checked on a
-  live run. Confirm it in a job execution's logs or with a one-off `--args` probe. (2026-10-30)
 - **Authoring routine cron is UTC.** The 07:00 Israel routine runs on `0 5 * * *` UTC, which is
   right only in winter time. Move it to `0 4 * * *` on 2027-03-26 (Israel switches to summer
   time), and back in October. (2026-10-30)
-- **Builder job redeploy for providers (after PR #238 merges).** The image must contain
-  `services/providers` (`Dockerfile`) and the job needs `PROVIDER_BOI_SDMX_ENABLED=true`
-  (`infra/builder-job.deploy.sh`). Until then the three `boi-*` recipes are skipped as
-  `no_source_doc`. The script uses `--set-env-vars`: diff against the live job first. Same for
-  `infra/refresh-preview.deploy.sh`. (2026-10-30)
 
 ## Recipes and refresh
 
@@ -37,13 +29,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **A fetch over its byte cap or wall budget is retried forever, silently.**
-  `fetch_resource_records_to_file` returns None for a network error, a crossed byte cap and an
-  exhausted wall budget alike, so `refresh.fetch_inputs` reports all three as transient
-  `fetch_failed`: no issue opens, and a dataset that outgrew its cap (or a heavy recipe's
-  `limits`) goes stale without anyone being told. CLAUDE.md says outgrowing the cap opens an
-  issue. Have the fetcher report why it stopped, and map cap/budget overruns to `too_large`.
-  (2026-10-30)
 - **`pick: "latest"` trusts CKAN `last_modified`.** Re-uploading an old snapshot bumps its
   `last_modified`, and the page would switch to it. If that happens, order by the date in the
   resource name when it parses (snapshot datasets name their date), falling back to

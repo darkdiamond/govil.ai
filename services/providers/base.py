@@ -36,7 +36,7 @@ from typing import Callable, ClassVar, Literal, Mapping, Optional
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from services.page_builder.agent_contract import FetchOutcome
+from services.page_builder.agent_contract import FetchLimitExceeded, FetchOutcome
 
 log = logging.getLogger("providers")
 
@@ -272,9 +272,9 @@ class SourceProvider(abc.ABC):
             log.warning("%s fetch %s failed: %s", self.key, resource["id"], e)
             return None
         if len(data) > max_bytes:
-            log.warning("%s fetch %s: %d bytes > cap %d", self.key, resource["id"],
-                        len(data), max_bytes)
-            return None
+            raise FetchLimitExceeded(
+                "bytes", f"{self.key} {resource['id']}: {len(data):,} bytes > cap {max_bytes:,}"
+            )
         Path(dest).write_bytes(data)
         return FetchOutcome(rows=rows, bytes=len(data), mode="full")
 

@@ -34,7 +34,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from .agent_contract import FetchOutcome
+from .agent_contract import FetchLimitExceeded, FetchOutcome
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
@@ -123,7 +123,11 @@ def _prepare_provider(dataset_id: str, provider, source) -> Path:
     for i, res in enumerate(resources, 1):
         preview = provider.preview(res) or {}
         dest = p["data"] / f"{i}.csv"
-        out = provider.fetch_to_file(res, dest, max_bytes=provider.settings.max_bytes)
+        skipped = None
+        try:
+            out = provider.fetch_to_file(res, dest, max_bytes=provider.settings.max_bytes)
+        except FetchLimitExceeded as e:
+            out, skipped = None, e.limit
         entry = {
             "resource_id": res["id"],
             "name": res["name"],
@@ -133,6 +137,7 @@ def _prepare_provider(dataset_id: str, provider, source) -> Path:
             "total": int(preview.get("total") or 0),
             "file": dest.name if out else None,
             "rows": out.rows if out else 0,
+            **({"skipped": skipped} if skipped else {}),
         }
         manifest.append(entry)
         if out:
@@ -207,15 +212,20 @@ def prepare(dataset_id: str) -> Path:
         }
         if 0 < total <= max_records:
             dest = p["data"] / f"{i}.csv"
-            out = fetch_resource_records_to_file(
-                res["id"], total, dest,
-                max_bytes=max_bytes, page_size=25_000, page_timeout_s=60.0,
-                deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
-            )
+            try:
+                out = fetch_resource_records_to_file(
+                    res["id"], total, dest,
+                    max_bytes=max_bytes, page_size=25_000, page_timeout_s=60.0,
+                    deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
+                )
+            except FetchLimitExceeded as e:
+                out = None
+                entry["skipped"] = e.limit
             if out is not None:
                 entry.update(file=dest.name, rows=out.rows)
         manifest.append(entry)
-        print(f"  {res['id'][:8]} {entry['name'][:50]!r}: {entry['rows']:,}/{total:,} rows",
+        note = f" (skipped: over {entry['skipped']})" if entry.get("skipped") else ""
+        print(f"  {res['id'][:8]} {entry['name'][:50]!r}: {entry['rows']:,}/{total:,} rows{note}",
               file=sys.stderr)
     p["manifest"].write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 

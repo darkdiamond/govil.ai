@@ -12,6 +12,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.page_builder import refresh as rf
+from services.page_builder.agent_contract import FetchLimitExceeded
 from services.providers import (
     ProviderError,
     ProviderSettings,
@@ -178,7 +179,9 @@ def test_preview_and_fetch_share_one_download(boi, tmp_path):
 def test_fetch_over_byte_cap_fails(boi, tmp_path):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
     _, fetch_fn = boi.fetch_fns([_res(boi)])
-    assert fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10) is None
+    with pytest.raises(FetchLimitExceeded) as e:
+        fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10)
+    assert e.value.limit == "bytes"
 
 
 @pytest.mark.parametrize("resp", [

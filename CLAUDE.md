@@ -137,7 +137,8 @@ landing pages. Five layers:
    Failures keep the last-good page live and, when a human must act
    (recipe broke, schema moved, data outgrew the fetch cap —
    `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue; a
-   transient fetch failure just retries next run. Big-dataset levers in
+   transient fetch failure (network, or the fetch wall budget running out) just
+   retries next run. Big-dataset levers in
    `recipe.json`: an input's `columns` (CKAN `fields=`, only those columns
    are exported), `pick: "latest"` (newest snapshot resource by
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
