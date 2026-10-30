@@ -378,8 +378,8 @@ sandboxed compute, sanitizer, `check.py`), then:
 - **robustness** — re-runs on the first 70% of rows (must still pass
   `min_insights` and produce _different_ numbers — proof they're computed)
   and on shuffled rows (must produce the _same_ model). When every input
-  has ≤1 row, the 70% cut drops nothing, so verify skips only the
-  "different numbers" check and prints `robustness skipped`;
+  has ≤1 row, the 70% cut drops nothing, so verify skips the 70% run
+  (shuffle and every other check still run) and prints `robustness skipped`;
 - template numeric-literal lint, PII grep;
 - a chart-fallback check per chart section, and `coverage.json` completeness
   (every `"<input>.<column>"` mapped to element ids on the page or to

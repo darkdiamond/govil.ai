@@ -686,8 +686,9 @@ def _single_row_recipe(tmp_path):
 def test_author_verify_skips_robustness_only_for_single_row_inputs(
         tmp_path, monkeypatch, capsys, n_rows, flagged):
     author = _prepared(tmp_path, monkeypatch, _rows([2025])[:n_rows])
-    author.verify(DS, _single_row_recipe(tmp_path))
+    rc = author.verify(DS, _single_row_recipe(tmp_path))
     out = capsys.readouterr().out
+    assert rc == int(flagged), out
     assert ("ROBUSTNESS: model unchanged" in out) is flagged, out
     assert ("robustness skipped" in out) is not flagged, out
 

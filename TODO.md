@@ -8,6 +8,12 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **Verify's robustness check is all-or-nothing across inputs.** It truncates every input and
+  compares the whole model, so a ≤1-row input next to a large one is never perturbed. A value
+  hardcoded from that small input passes, because the large input changes the model anyway.
+  Fix: truncate one input at a time (pass the resource id into `_LocalCkan`'s transform) and
+  require each multi-row input to move the model. (2026-10-30)
+
 - **`273c5e33…` (vehicle history) is not authored yet.** Its two resources hold 2.5M and 5.55M
   rows (167MB and 178MB), over the 2M `REFRESH_MAX_RECORDS` default. Recipes can now carry their
   own `limits` and fetch fewer `columns`, so it can be authored as a heavy recipe: measure the
