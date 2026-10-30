@@ -129,7 +129,7 @@ export function buildDatasetLd(
       entry.source?.home_url ||
       "https://data.gov.il",
   };
-  if (entry.tags_he?.length) ld.keywords = entry.tags_he;
+  if (entry.tags?.length) ld.keywords = entry.tags;
   if (entry.metadata_modified) {
     ld.dateModified = entry.metadata_modified;
     // We don't track CKAN's metadata_created separately; metadata_modified is

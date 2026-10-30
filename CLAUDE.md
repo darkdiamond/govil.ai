@@ -244,9 +244,10 @@ are still read by the authoring selector.
     `<html>`/`<head>`/`<body>`. Inline `<style>` and `<script>` tags OK.
   - `agent_data` — an `AgentData` (`services/page_builder/schema.py`;
     the name is legacy, the recipe's `compute()` produces it now). Holds
-    ONLY interpretive fields (`summary_he`, `dataset_kind`, optional
-    `related_ids`). Scanner facts (id, title, slug, license, resources,
-    formats, record_count, metadata_modified) are not the recipe's
+    ONLY interpretive fields (`summary_he`, `dataset_kind`, coverage
+    hints; tags and related datasets are publisher-computed). Scanner
+    facts (id, title, slug, license, resources, formats, record_count,
+    metadata_modified) are not the recipe's
     responsibility — `data.json` is owned by the publisher and rebuilt
     from Firestore.
 - **Source of truth** for everything the frontend renders is the
@@ -294,10 +295,30 @@ are still read by the authoring selector.
      the scanner actually ingests them — bump it in lockstep when the floor
      drops to admit an older year. gov.il still has ~660 pre-2025
      archival/abandoned datasets we're deliberately leaving out for now.
-- **Related-datasets scoring** (deterministic, content-first):
-  `1.5·same_ministry + 2·min(shared_tag_count, 6) + 8·cosine(embedding) + 6·agent_suggested`.
-  Embedding similarity dominates; same-ministry is a tiebreaker only.
-  Top 5 per page. Defined in `services/page_builder/related.py`.
+- **Tags are a curated vocabulary** (`taxonomy/`, `services/page_builder/tags.py`).
+  `taxonomy/tags.json` = topics + canonical tags (each with a topic and
+  `aliases` for every old spelling) + a drop list; `taxonomy/dataset-tags.json`
+  = every dataset's 3–6 canonical tags, assigned once by deliberate choice
+  (authoring adds the line: `python -m services.page_builder.tags assign <id>
+<tag>...`). The publisher writes them as `ManifestEntry.tags`; a dataset not
+  yet curated falls back to its recipe's `suggested_tags` ∪ CKAN `tags_he`
+  mapped through the aliases (ministry names and drop-list noise removed).
+  Only tags on ≥ `TAG_PAGE_MIN` (3) datasets get a `/tags/<slug>/` page
+  (`Manifest.tag_index`, grouped by `topics` on `/tags/`); others render as
+  plain chips. `Manifest.tag_redirects` 301s every old raw-tag URL whose tag
+  merged into a canonical one (`gen-redirects.mjs`); tags with no page are left
+  to 404 on purpose (soft-404 otherwise). `suggested_tags` / `related_ids` in
+  `agent_data` are deprecated and ignored. A broken vocabulary fails the
+  publish and `test_tags.py`.
+- **Related datasets** (deterministic, content-based, no API —
+  `services/page_builder/related.py`): `1.0·text + 0.6·tags + 0.05·same_ministry`.
+  `text` = TF-IDF cosine over title + `summary_he` (char 4-grams per word, so
+  Hebrew prefixes match without a stemmer; features in >50% of docs dropped);
+  `tags` = IDF-weighted share of the target's canonical tags. A pick must clear
+  `MIN_SCORE` and `REL_FLOOR`×best; ≤3 of 5 from the same ministry while others
+  qualify; unavailable sources are never picked; ties break on id. Tune with
+  `python -m services.page_builder.related sample|explain --manifest <path>`.
+  Voyage embeddings were removed (2026-10-30).
 
 ## Key files to read before editing
 
@@ -319,6 +340,7 @@ are still read by the authoring selector.
 | Page gate               | `agent/skills/check.py`                                                                    | Enforces the page rules statically; run host-side by `refresh.py` (and `author verify`) on every sanitized body                                                          |
 | Dataset page shell      | `frontend/pages/datasets/[slug].vue`                                                       | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout                                                                         |
 | Page chrome             | `frontend/layouts/default.vue`                                                             | Header/footer — sole source of truth, inherited by every page including datasets                                                                                         |
+| Tags + related          | `services/page_builder/tags.py`, `related.py`, `taxonomy/`                                 | Tag vocabulary/assignment, tag index + legacy redirects, content-based related datasets; `suggest`/`report`/`assign`, `sample`/`explain` CLIs                            |
 | Schema                  | `services/page_builder/schema.py`                                                          | `DatasetMeta` (scanner) + `AgentData` (interpretive) + merged `ManifestEntry` — split contract                                                                           |
 | Slug helper             | `services/shared/slug.py`                                                                  | Deterministic Hebrew→Latin slug used by the scanner                                                                                                                      |
 | Cloud Build pipeline    | `cloudbuild-publish.yaml`                                                                  | Fallback publisher: rsync content.html only → run publisher (writes data.json + agent_data.json + manifest.json from Firestore) → `nuxt generate` → Firebase deploy      |
@@ -467,20 +489,6 @@ are still read by the authoring selector.
   character throws `Cannot convert argument to a ByteString` and the
   whole route returns 500. Don't re-enable payload extraction without a
   Nuxt fix.
-- **Voyage embeddings are gated by `VOYAGE_ENABLED` (default off).**
-  Currently disabled for cost. The secret binding (`VOYAGE_API_KEY`
-  from Secret Manager) and call sites stay wired. Embeddings are computed
-  by the publisher (`publish.py` → `embeddings.embed`), so re-enabling
-  means `VOYAGE_ENABLED=true` + `VOYAGE_API_KEY` in the publisher's env
-  (`cloudbuild-publish.yaml` already mounts the key; `publish.yml` and
-  `publish-local.sh` need it added/exported). While off,
-  `embed()` short-circuits to `None` and `related.py` falls back to
-  ministry + shared-tag (CKAN ∪ `agent_data.suggested_tags`) +
-  `agent_data.related_ids` scoring. Existing embeddings already cached on
-  `sources/<id>.embedding` keep contributing for those docs at zero new cost. Model defaults to
-  `voyage-4` (1024-dim), overridable via `VOYAGE_MODEL`. To retro-fill
-  embeddings on already-published sources (requires re-enable), run
-  `python -m services.page_builder.backfill_embeddings`.
 - **Cloud Build trigger connection** is a manual step in `bootstrap.sh`.
   Cloud Build can't check out arbitrary filesystems — it needs either a
   GitHub 2nd-gen connection or a Cloud Source Repositories mirror.

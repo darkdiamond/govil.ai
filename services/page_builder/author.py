@@ -6,7 +6,7 @@ drives these commands:
 
     prepare <id>   read the source doc (Firestore, read-only), fetch every
                    datastore resource IN FULL into tmp/authoring/<id>/data/,
-                   write BRIEF.md (facts, schemas, samples, related candidates).
+                   write BRIEF.md (facts, schemas, samples, tag vocabulary).
                    A provider source (recipes/<id>/source.json) is read from
                    that file and fetched from its provider — no Firestore.
     verify <id>    the gate before a PR — runs the recipe exactly as the
@@ -47,9 +47,11 @@ from .recipe import (
     lint_template,
 )
 from .refresh import fetch_inputs, render_page, run_compute
+from .tags import PENDING_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-AUTHORING_ROOT = REPO_ROOT / "tmp" / "authoring"
+# One definition: tags.py parks batch-authored tags here too.
+AUTHORING_ROOT = PENDING_ROOT
 PREVIEW_OUT_ROOT = REPO_ROOT / "tmp" / "model_test"
 RECIPES_ROOT = REPO_ROOT / "recipes"
 
@@ -181,6 +183,78 @@ def _prepare_provider(dataset_id: str, provider, source) -> Path:
     return p["brief"]
 
 
+def _tags_section(dataset_id: str, siblings: list[dict]) -> list[str]:
+    """BRIEF.md block: the tag vocabulary by topic (with corpus counts) and
+    how same-ministry datasets were tagged, so a new dataset's tags line up
+    with its neighbours instead of inventing variants."""
+    from collections import Counter
+
+    from .tags import MAX_ASSIGNED, MIN_ASSIGNED, Taxonomy
+
+    tax = Taxonomy.load()
+    counts = Counter(t for tags in tax.assignments.values() for t in tags)
+    lines = [
+        "## Tags (taxonomy/)",
+        "",
+        f"Assign with `python -m services.page_builder.tags assign {dataset_id} <tag> ...`",
+        f"{MIN_ASSIGNED}–{MAX_ASSIGNED} tags from the vocabulary below, most important first, "
+        "starting with the topic's broad tag when it has one. Tag what the data is ABOUT, "
+        "not who publishes it. A genuinely new subject gets a new canonical tag in "
+        "`taxonomy/tags.json` in the same PR (with a topic and aliases), never a variant "
+        "of an existing one.",
+        "",
+    ]
+    for tid, topic in tax.topics.items():
+        names = sorted(
+            (n for n, d in tax.tags.items() if d.topic == tid), key=lambda n: (-counts[n], n)
+        )
+        lines.append(f"- **{topic.label_he}** (`{tid}`): " + " · ".join(f"{n} ({counts[n]})" for n in names))
+    tagged = [
+        {"title": s["title"], "tags": tax.assignments[s["id"]]}
+        for s in siblings if s["id"] in tax.assignments
+    ][:40]
+    if tagged:
+        lines += ["", "Same-ministry datasets and their tags:", "", "```json",
+                  json.dumps(tagged, ensure_ascii=False, indent=1), "```"]
+    return lines + [""]
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _tag_findings(dataset_id: str) -> list[str]:
+    """The dataset's tags: its line in taxonomy/dataset-tags.json, or (batch
+    authoring, where parallel authors never touch the shared file) a pending
+    tmp/authoring/<id>/tags.json that `tags assign --from-pending` merges."""
+    from .tags import (
+        MAX_ASSIGNED, MIN_ASSIGNED, Taxonomy, TaxonomyError, pending_tags_path,
+        validate_assignment,
+    )
+
+    try:
+        tax = Taxonomy.load()
+    except (TaxonomyError, ValueError) as e:
+        return [f"TAGS: taxonomy/ is inconsistent: {e}"]
+    tags = tax.assignments.get(dataset_id)
+    source = "taxonomy/dataset-tags.json"
+    pending = pending_tags_path(dataset_id)
+    if tags is None and pending.is_file():
+        try:
+            tags = json.loads(pending.read_text(encoding="utf-8"))
+        except ValueError as e:
+            return [f"TAGS: {pending} is not valid JSON: {e}"]
+        source = _display_path(pending)
+    if tags is None:
+        return [f"TAGS: no tags for {dataset_id} — add {MIN_ASSIGNED}–{MAX_ASSIGNED} vocabulary "
+                "tags (BRIEF.md § Tags) with `python -m services.page_builder.tags assign "
+                f"{dataset_id} <tag>...` (batch runs: a JSON list in {_display_path(pending)})"]
+    return [f"TAGS ({source}): {p}" for p in validate_assignment(tax, tags)]
+
+
 def prepare(dataset_id: str) -> Path:
     from services.shared.firestore import FirestoreStateStore
     from services.shared.resources import select_prefetch_resources
@@ -241,14 +315,14 @@ def prepare(dataset_id: str) -> Path:
               f"{_skip_note(entry)}", file=sys.stderr)
     p["manifest"].write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    related = []
+    siblings = []
     org = (src.organization or {}).get("name") or ""
     if org:
-        related = [
-            {"id": s.id, "title": s.title, "tags": s.tags}
+        siblings = [
+            {"id": s.id, "title": s.title}
             for s in store.list_org_sources(org, exclude_id=dataset_id)
         ]
-    p["brief"].write_text(_brief(facts, manifest, related, p), encoding="utf-8")
+    p["brief"].write_text(_brief(facts, manifest, siblings, p), encoding="utf-8")
     return p["brief"]
 
 
@@ -262,7 +336,7 @@ def _sample_rows(path: Path, n: int = 5) -> list[dict]:
         return out
 
 
-def _brief(facts: dict, manifest: list[dict], related: list[dict], p: dict) -> str:
+def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> str:
     provider = facts.get("provider")
     head = [
         f"# Authoring brief — {facts['title']}",
@@ -328,13 +402,12 @@ def _brief(facts: dict, manifest: list[dict], related: list[dict], p: dict) -> s
     if facts.get("existing_agent_data"):
         lines += ["## Current page's agent_data (legacy cloud agent)", "", "```json",
                   json.dumps(facts["existing_agent_data"], ensure_ascii=False, indent=1), "```", ""]
-    if related:
-        lines += ["## related_ids candidates (same ministry)", "", "```json",
-                  json.dumps(related, ensure_ascii=False, indent=1), "```", ""]
+    lines += _tags_section(facts["id"], siblings)
     lines += [
         "## Write",
         "",
         f"`recipes/{facts['id']}/` → `{MANIFEST_FILENAME}`, `{COMPUTE_FILENAME}`, `{TEMPLATE_FILENAME}`",
+        "and the dataset's line in `taxonomy/dataset-tags.json`,",
         f"then `python -m services.page_builder.author verify {facts['id']}`.",
     ]
     return "\n".join(lines) + "\n"
@@ -659,6 +732,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     problems += _pii_findings(recipe)
     problems += _purity_findings(recipe)
     problems += _em_dash_findings(recipe)
+    problems += _tag_findings(dataset_id)
 
     work = Path(tempfile.mkdtemp(prefix=f"author-{dataset_id[:8]}-"))
     try:

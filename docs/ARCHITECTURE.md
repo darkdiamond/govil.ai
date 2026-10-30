@@ -146,31 +146,44 @@ Every recipe render produces exactly two things:
   Leaflet, an in-house `GovExplorer`) mean the body must _not_ include
   `<script src=>` for them.
 - **`agent_data`** — interpretive fields only (`summary_he`,
-  `dataset_kind`, optional `related_ids`). Factual fields are the
-  scanner's job, not the recipe's. (The name predates recipes.)
+  `dataset_kind`, coverage hints). Factual fields are the scanner's job,
+  not the recipe's. (The name predates recipes.) Tags and related datasets
+  are not the recipe's either: see below.
 
 A key guardrail is **chart-data provenance**: every chart's numbers are
 computed by `compute.py` from the full CKAN data, and `author verify`
 proves it — re-running on a truncated copy must change the numbers, and
 re-running on shuffled rows must not.
 
-## Selection and relatedness
+## Selection, tags and relatedness
 
 **Authoring selection** (`selector.py`) queues new datasets first, then
 legacy pages whose data moved on, newest CKAN change first. Both are
 gated by an effective recency cutoff (`MIN_MODIFIED_FLOOR` /
 `MAX_AGE_DAYS`) so long-abandoned datasets don't get queued.
 
-**Related datasets** (`related.py`) are scored deterministically,
-content first:
+**Tags** are a curated vocabulary (`taxonomy/tags.json`: ~17 topics,
+~190 canonical tags, each with aliases for the spellings it replaced) and
+a curated assignment (`taxonomy/dataset-tags.json`: 3–6 tags per
+dataset), both reviewed in git like recipes. `tags.py` normalizes and
+maps them; the publisher writes each dataset's `tags`, a `tag_index` of
+the tags carried by ≥3 datasets (the only ones with a `/tags/` page,
+grouped by topic on `/tags/`), and `tag_redirects` from every old
+raw-tag URL to its canonical page.
+
+**Related datasets** (`related.py`) are scored deterministically from
+content, with no API call:
 
 ```
-1.5·same_ministry + 2·min(shared_tags, 6) + 8·cosine(embedding) + 6·agent_suggested
+1.0·text + 0.6·tags + 0.05·same_ministry
 ```
 
-Embedding similarity (optional, via Voyage) dominates; same-ministry is
-a tiebreaker. Top 5 per page. When embeddings are disabled, the score
-falls back to ministry + shared-tag + agent-suggested signals.
+`text` is a TF-IDF cosine over title + summary (character 4-grams per
+word, which matches Hebrew words through their prefixes); `tags` is the
+IDF-weighted share of the target's canonical tags, so a rare shared tag
+counts far more than a broad one. Picks must clear an absolute and a
+relative floor, at most 3 of 5 come from the target's own ministry while
+others qualify, and ties break on id.
 
 ## Tech stack
 

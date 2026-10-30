@@ -32,7 +32,8 @@ python -m services.page_builder.author prepare <dataset_id>
 
 Fetches every datastore resource IN FULL into `tmp/authoring/<id>/data/` and
 writes `tmp/authoring/<id>/BRIEF.md` (facts, columns, samples, the current
-page's agent_data, same-ministry `related_ids` candidates). Read the brief. If
+page's agent_data, the tag vocabulary and how same-ministry datasets are
+tagged). Read the brief. If
 the dataset has a live page (`https://govil.ai/datasets/<slug>`), look at it —
 it's the floor, not the ceiling.
 
@@ -218,8 +219,6 @@ Return:
   "agent_data": {            # validated as AgentData (services/page_builder/schema.py)
     "summary_he": "...",     # computed — it quotes numbers
     "dataset_kind": "timeseries|map|registry|rankings|misc",
-    "suggested_tags": ["..."],          # 1–8 short Hebrew topic labels
-    "related_ids": ["..."],             # ≤5, from BRIEF candidates (static is fine)
     "temporal_coverage": "2019/2026",   # computed, optional
     "spatial_coverage": "...",          # optional
   },
@@ -357,6 +356,29 @@ the lookup.
   </a>
   ```
 
+### Tags — `taxonomy/dataset-tags.json`, not the recipe
+
+A page's tags (the chips under the H1, its /tags/ pages, and half of the
+related-datasets score) come from the curated vocabulary in
+`taxonomy/tags.json`, not from `compute()`. Pick 3–6 canonical tags from
+BRIEF.md § Tags: the topic's broad tag first when it has one (תחבורה, מים,
+…), then the specific subjects the data is ABOUT (not its publisher). Line up
+with how the same ministry's datasets are tagged. Then:
+
+```bash
+python -m services.page_builder.tags assign <dataset_id> <tag> <tag> <tag> ...
+```
+
+It refuses non-canonical tags and names the canonical one for an alias. A
+genuinely new subject that recurs (or will) gets a new canonical tag in
+`taxonomy/tags.json` in the same PR (normal form, a `topic`, `aliases` for
+its spellings), never a near-variant of an existing tag. Under
+`/solve-authoring-issues`, write the list to `tmp/authoring/<id>/tags.json`
+instead (a JSON array); the orchestrator merges the batch. Related datasets
+are computed by the publisher (`services/page_builder/related.py`); a recipe
+never lists them, and `suggested_tags` / `related_ids` in `agent_data` are
+deprecated and ignored.
+
 ## 5. Verify (loop until PASS)
 
 ```bash
@@ -411,7 +433,7 @@ and re-verify.
   skill owns the branch, commit, review and the single PR (one `Closes #N`
   per dataset). Skip the rest of this section.
 - Commit only `recipes/<dataset_id>/` — the three contract files plus
-  `coverage.json` (never `tmp/`).
+  `coverage.json` — and `taxonomy/` (the dataset's tags line; never `tmp/`).
 - PR title `recipe: <short Hebrew/English title> (<id8>)`; body: what the page
   shows, the insight rules and their thresholds, how it handles growth, the
   `verify` output. Add `Closes #N` when authoring from an issue.
