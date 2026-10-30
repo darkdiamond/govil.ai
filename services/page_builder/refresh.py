@@ -56,6 +56,8 @@ from .recipe import (
     RECIPE_FILES,
     Recipe,
     RecipeError,
+    RecipeManifest,
+    snapshot_table,
     kpi_format_findings,
     render_template,
     resolve_inputs,
@@ -96,7 +98,7 @@ _COMPUTE_SPAWN_BACKOFF_S = 1.0
 # source would only spend a full export to fail the same way.
 STAGE_FAILED = "stage_failed"
 MAX_CONSECUTIVE_STAGE_FAILURES = 3
-AUTHORING_REASONS = ("recipe_failed", "schema_changed", "too_large")
+AUTHORING_REASONS = ("recipe_failed", "schema_changed", "too_large", "geometry_stale")
 
 
 def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
@@ -199,14 +201,13 @@ class GcsRecipeRepo:
         return SourceConfig.model_validate_json(blob.download_as_bytes())
 
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
-        dest = scratch / dataset_id
-        dest.mkdir(parents=True, exist_ok=True)
-        for name in RECIPE_FILES:
+        def fetch(name: str, dest: Path) -> None:
             blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{name}")
             if not blob.exists():
                 raise RecipeError(f"recipe {dataset_id} missing {name} in GCS")
-            blob.download_to_filename(str(dest / name))
-        return Recipe.load(dest)
+            blob.download_to_filename(str(dest))
+
+        return _load_remote(scratch / dataset_id, fetch)
 
 
 class GithubRecipeRepo:
@@ -274,15 +275,29 @@ class GithubRecipeRepo:
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
         if self._sha is None:
             self.list_ids()
-        dest = scratch / dataset_id
-        dest.mkdir(parents=True, exist_ok=True)
-        for name in RECIPE_FILES:
+        def fetch(name: str, dest: Path) -> None:
             r = self._get(
                 f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
                 f"recipes/{dataset_id}/{name}"
             )
-            (dest / name).write_bytes(r.content)
-        return Recipe.load(dest)
+            dest.write_bytes(r.content)
+
+        return _load_remote(scratch / dataset_id, fetch)
+
+
+def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:
+    """Download a recipe with `fetch(name, path)`: the fixed files, then the
+    snapshot files its recipe.json declares. The names are validated (plain
+    `<name>.geojson`) before they become paths."""
+    dest.mkdir(parents=True, exist_ok=True)
+    for name in RECIPE_FILES:
+        fetch(name, dest / name)
+    manifest = RecipeManifest.model_validate_json(
+        (dest / MANIFEST_FILENAME).read_text(encoding="utf-8")
+    )
+    for name in manifest.snapshot_files:
+        fetch(name, dest / name)
+    return Recipe.load(dest)
 
 
 def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo:
@@ -405,7 +420,7 @@ def recipe_identity(recipe: Recipe) -> str:
     prechecks so an edited recipe that kept its `recipe_version`, or a deploy
     that changed rendering, still re-renders."""
     h = hashlib.sha256()
-    for name in RECIPE_FILES:
+    for name in recipe.files:
         h.update(name.encode())
         h.update(b"\0")
         h.update((recipe.root / name).read_bytes())
@@ -427,9 +442,13 @@ def _digest(parts: list, identity: str) -> str:
 
 def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     """Check A: what the datastore preview says about every input — row total,
-    columns, first rows (`_id` dropped) — plus `recipe_identity`."""
+    columns, first rows (`_id` dropped) — plus `recipe_identity`. A snapshot
+    input has no datastore; its bytes are already in the identity."""
     parts = []
     for inp in recipe.manifest.inputs:
+        if inp.snapshot:
+            parts.append([inp.name, inp.by_id, "snapshot"])
+            continue
         for res in probe.resolved[inp.name]:
             p = probe.preview(res["id"]) or {}
             parts.append(
@@ -450,9 +469,13 @@ def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> Option
     """Check A′: CKAN's md5 + size of every input's uploaded file, the
     preview's row total and columns, plus `recipe_identity`. None when any
     input has no CKAN hash (API-pushed resource, or a source doc scanned before
-    the scanner kept it) — it never vouches for an input it can't see."""
+    the scanner kept it) — it never vouches for an input it can't see. A
+    snapshot input is exact by construction (its bytes are in the identity)."""
     parts = []
     for inp in recipe.manifest.inputs:
+        if inp.snapshot:
+            parts.append([inp.name, inp.by_id, "snapshot"])
+            continue
         for res in probe.resolved[inp.name]:
             if not res.get("hash"):
                 return None
@@ -498,6 +521,7 @@ def fetch_inputs(
     preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
     fetch_fn: Callable = fetch_resource_records_to_file,
     probe: Optional[InputProbe] = None,
+    snapshot_rows: Callable[[list], list] = lambda rows: rows,
 ) -> dict[str, list[FetchedInput]]:
     """Full export of every resource the recipe reads, as CSV in `dest_dir`.
 
@@ -507,6 +531,8 @@ def fetch_inputs(
     or the wall budget ran out; transient).
 
     `probe` (from `probe_inputs`) skips the resolve + preview calls already made.
+    A snapshot input is written from its committed GeoJSON, never fetched;
+    `snapshot_rows` lets author verify truncate/shuffle its features.
     """
     probe = probe or probe_inputs(recipe, resources, preview_fn)
     _preview = probe.preview
@@ -528,6 +554,10 @@ def fetch_inputs(
     dest_dir.mkdir(parents=True, exist_ok=True)
     out: dict[str, list[FetchedInput]] = {}
     for inp in recipe.manifest.inputs:
+        if inp.snapshot:
+            out[inp.name] = [_write_snapshot(recipe, inp, resolved[inp.name][0],
+                                             dest_dir, snapshot_rows)]
+            continue
         parts: list[FetchedInput] = []
         for i, res in enumerate(resolved[inp.name]):
             rid = res["id"]
@@ -579,6 +609,23 @@ def fetch_inputs(
             )
         out[inp.name] = parts
     return out
+
+
+def _write_snapshot(recipe: Recipe, inp, res: dict, dest_dir: Path,
+                    transform: Callable[[list], list]) -> FetchedInput:
+    header, rows = snapshot_table(recipe.root / inp.snapshot)
+    lost = [c for c in inp.required_columns if c not in header]
+    if lost:
+        raise RecipeError(f"input {inp.name!r}: snapshot {inp.snapshot} lacks column(s) {lost}")
+    rows = transform(rows)
+    if not rows:
+        raise RecipeError(f"input {inp.name!r}: snapshot {inp.snapshot} has no features")
+    dest = dest_dir / f"{inp.name}__1.csv"
+    with open(dest, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(header)
+        w.writerows(rows)
+    return FetchedInput(dest, inp.by_id, res.get("name") or "", len(rows))
 
 
 def _project_csv(path: Path, columns: list[str]) -> None:

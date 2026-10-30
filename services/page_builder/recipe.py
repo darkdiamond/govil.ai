@@ -9,6 +9,7 @@ time CKAN publishes a new version of the dataset. It lives in
     compute.py         compute(frames) -> page model (pure: no network,
                        no clock, no randomness)
     template.html.j2   Jinja2 body template rendered from the page model
+    <name>.geojson     optional map snapshot, read by an input with `snapshot`
 
 The page model is the ONLY place numbers come from. The template carries
 layout and fixed copy; every KPI, chart series and insight sentence is
@@ -23,6 +24,16 @@ between versions of the same dataset (one stray text cell turns an int
 column into object), and a recipe that silently depended on it would
 break on the very update it exists to absorb. `concat` inputs carry an
 extra `_resource_name` column naming the file each row came from.
+
+Map snapshots: data.gov.il's CDN refuses scripted downloads of uploaded
+files (SHP/KMZ/GeoJSON), so geometry that exists only in such a file can't
+be fetched at refresh time. The author downloads it once in a browser,
+`author snapshot` converts it to a committed WGS84 GeoJSON, and an input
+with `snapshot` reads that file as a table: one row per feature, its
+properties as strings plus `__geometry` (the feature's geometry as compact
+JSON). The CKAN resource it was taken from is still checked on every run:
+when its size/hash moves past `snapshot_of`, the refresh fails
+`geometry_stale` and a human re-downloads it.
 """
 from __future__ import annotations
 
@@ -47,6 +58,9 @@ RECIPE_FILES = (MANIFEST_FILENAME, COMPUTE_FILENAME, TEMPLATE_FILENAME)
 
 # Column added to every row of a `concat` input.
 RESOURCE_NAME_COLUMN = "_resource_name"
+# Column holding each feature's geometry in a `snapshot` input.
+GEOMETRY_COLUMN = "__geometry"
+_SNAPSHOT_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*\.geojson$")
 
 
 class RecipeError(RuntimeError):
@@ -60,6 +74,24 @@ class RecipeError(RuntimeError):
     def __init__(self, message: str, *, reason: str = "recipe_failed"):
         super().__init__(message)
         self.reason = reason
+
+
+class SnapshotOf(BaseModel):
+    """The CKAN resource facts a snapshot was taken from. `hash` is CKAN's
+    md5 of the upload (often empty); `size` is the fallback. `last_modified`
+    is a note only: CKAN bumps it on byte-identical re-uploads."""
+    model_config = ConfigDict(extra="forbid")
+
+    size: Optional[int] = Field(default=None, ge=0)
+    hash: Optional[str] = None
+    last_modified: Optional[str] = None
+    taken_at: Optional[str] = None
+
+    @model_validator(mode="after")
+    def _comparable(self) -> "SnapshotOf":
+        if self.size is None and not self.hash:
+            raise ValueError("snapshot_of needs `size` or `hash`")
+        return self
 
 
 class RecipeInput(BaseModel):
@@ -78,6 +110,10 @@ class RecipeInput(BaseModel):
     `columns` (optional) fetches only these columns from the datastore,
     which shrinks the export of a wide table. It must include every
     `required_columns` entry; compute sees no other column.
+
+    `snapshot` reads a committed GeoJSON in the recipe dir instead of the
+    datastore (see the module doc). `by_id` then names the CKAN map-file
+    resource it was taken from, and `snapshot_of` that resource's facts then.
     """
     model_config = ConfigDict(extra="forbid")
 
@@ -88,11 +124,25 @@ class RecipeInput(BaseModel):
     pick: Literal["all", "latest"] = "all"
     required_columns: list[str] = Field(default_factory=list)
     columns: Optional[list[str]] = Field(default=None, min_length=1)
+    snapshot: Optional[str] = None
+    snapshot_of: Optional[SnapshotOf] = None
 
     @model_validator(mode="after")
     def _one_selector(self) -> "RecipeInput":
         if bool(self.by_id) == bool(self.by_schema):
             raise ValueError(f"input {self.name!r}: set exactly one of by_id / by_schema")
+        if self.snapshot is not None or self.snapshot_of is not None:
+            if self.snapshot is None or self.snapshot_of is None:
+                raise ValueError(f"input {self.name!r}: snapshot and snapshot_of go together")
+            if not _SNAPSHOT_NAME_RE.match(self.snapshot):
+                raise ValueError(
+                    f"input {self.name!r}: snapshot must be a plain lowercase "
+                    "`<name>.geojson` file in the recipe dir"
+                )
+            if not self.by_id:
+                raise ValueError(f"input {self.name!r}: snapshot needs by_id (its CKAN resource)")
+            if self.columns is not None or self.concat or self.pick != "all":
+                raise ValueError(f"input {self.name!r}: snapshot takes no columns / concat / pick")
         if self.pick == "latest":
             if not self.by_schema:
                 raise ValueError(f"input {self.name!r}: pick 'latest' requires by_schema")
@@ -169,7 +219,14 @@ class RecipeManifest(BaseModel):
         names = [i.name for i in self.inputs]
         if len(names) != len(set(names)):
             raise ValueError("input names must be unique")
+        snaps = self.snapshot_files
+        if len(snaps) != len(set(snaps)):
+            raise ValueError("snapshot files must be unique")
         return self
+
+    @property
+    def snapshot_files(self) -> list[str]:
+        return [i.snapshot for i in self.inputs if i.snapshot]
 
 
 KpiTone = Literal["brand", "ok", "warn", "info", "danger"]
@@ -222,6 +279,11 @@ class Recipe:
     def template_path(self) -> Path:
         return self.root / TEMPLATE_FILENAME
 
+    @property
+    def files(self) -> list[str]:
+        """Every file the recipe is made of: the fixed three + its snapshots."""
+        return [*RECIPE_FILES, *self.manifest.snapshot_files]
+
     @classmethod
     def load(cls, root: Path) -> "Recipe":
         root = Path(root)
@@ -235,7 +297,70 @@ class Recipe:
             raise RecipeError(
                 f"recipe dir {root.name} declares dataset_id {manifest.dataset_id}"
             )
+        missing = [f for f in manifest.snapshot_files if not (root / f).is_file()]
+        if missing:
+            raise RecipeError(f"recipe {root} is missing snapshot {', '.join(missing)}")
         return cls(root, manifest)
+
+
+# ── map snapshots ────────────────────────────────────────────────────────
+
+
+def _cell(v: Any) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, float):
+        return repr(v)
+    if isinstance(v, int):
+        return str(v)
+    return json.dumps(v, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def snapshot_table(path: Path) -> tuple[list[str], list[list[str]]]:
+    """A committed GeoJSON FeatureCollection as (header, rows): one row per
+    feature in file order (`author snapshot` sorts them), every property as
+    a string ("" for null), plus GEOMETRY_COLUMN. A malformed file is the
+    recipe's fault (`recipe_failed`), never the data's."""
+    name = Path(path).name
+    try:
+        doc = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise RecipeError(f"snapshot {name}: unreadable ({e})") from None
+    feats = doc.get("features") if isinstance(doc, dict) else None
+    if not isinstance(feats, list) or doc.get("type") != "FeatureCollection":
+        raise RecipeError(f"snapshot {name}: not a GeoJSON FeatureCollection")
+    keys: dict[str, None] = {}
+    for f in feats:
+        props = (f or {}).get("properties") or {}
+        if not isinstance(props, dict) or GEOMETRY_COLUMN in props:
+            raise RecipeError(f"snapshot {name}: bad feature properties")
+        keys.update(dict.fromkeys(props))
+    rows = []
+    for f in feats:
+        props = f.get("properties") or {}
+        rows.append([*(_cell(props.get(k)) for k in keys), _cell(f.get("geometry"))])
+    return [*keys, GEOMETRY_COLUMN], rows
+
+
+def snapshot_stale(inp: RecipeInput, res: Optional[dict]) -> Optional[str]:
+    """Why the CKAN resource has moved past its snapshot, or None. Compares
+    CKAN's md5 when both sides have one, else the size. A resource with
+    neither can't be judged: logged, not failed."""
+    snap = inp.snapshot_of
+    if res is None:
+        return f"resource {inp.by_id} is gone from the dataset"
+    if snap.hash and res.get("hash"):
+        return None if res["hash"] == snap.hash else f"hash {snap.hash[:12]} → {res['hash'][:12]}"
+    if snap.size is not None and res.get("size") is not None:
+        size = int(res["size"])
+        return None if size == snap.size else f"size {snap.size:,} → {size:,} bytes"
+    log.warning("input %r: resource %s has no size/hash to compare with its snapshot",
+                inp.name, inp.by_id)
+    return None
 
 
 # ── input resolution ─────────────────────────────────────────────────────
@@ -275,6 +400,18 @@ def resolve_inputs(
     by_id = {r["id"]: r for r in resources or []}
     out: dict[str, list[dict]] = {}
     for inp in manifest.inputs:
+        if inp.snapshot:
+            res = by_id.get(inp.by_id)
+            why = snapshot_stale(inp, res)
+            if why:
+                raise RecipeError(
+                    f"input {inp.name!r}: map file {inp.by_id} changed since its "
+                    f"snapshot ({why}); download it again in a browser and run "
+                    "`author snapshot`",
+                    reason="geometry_stale",
+                )
+            out[inp.name] = [res]
+            continue
         if inp.by_id:
             res = by_id.get(inp.by_id)
             if res is None or not res.get("datastore_active"):

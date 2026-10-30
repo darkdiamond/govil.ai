@@ -15,6 +15,10 @@ drives these commands:
                    to tmp/model_test/<id>/ so `cli.preview render|swap` works.
     queue          datasets waiting for a recipe (issues the job opened);
                    --legacy adds published pages that have no recipe yet
+    snapshot <id> <file> --resource <rid>
+                   a map file you downloaded in a browser (data.gov.il's CDN
+                   refuses scripted downloads) → recipes/<id>/geo.geojson,
+                   and the recipe.json input that reads it
 
 tmp/authoring/ holds raw dataset content (it can include personal contact
 details) — it is gitignored and must never be committed. Only
@@ -42,9 +46,11 @@ from .recipe import (
     TEMPLATE_FILENAME,
     Recipe,
     RecipeError,
+    RecipeInput,
     dump_model,
     kpi_format_findings,
     lint_template,
+    snapshot_table,
 )
 from .refresh import fetch_inputs, render_page, run_compute
 from .tags import PENDING_ROOT
@@ -336,6 +342,19 @@ def _sample_rows(path: Path, n: int = 5) -> list[dict]:
         return out
 
 
+_MAP_FORMATS = {"geojson", "kml", "kmz", "shp", "zip", "gml", "gpkg"}
+
+
+def _map_resources(facts: dict) -> list[dict]:
+    """Uploaded files that may hold geometry (ZIPs included: SHP/KMZ ship zipped)."""
+    if facts.get("provider"):
+        return []
+    return [r for r in facts.get("resources") or []
+            if not r.get("datastore_active")
+            and ((r.get("format") or "").lower() in _MAP_FORMATS
+                 or (r.get("format") or "").lower().startswith("geojson"))]
+
+
 def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> str:
     provider = facts.get("provider")
     head = [
@@ -395,6 +414,18 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
         section = (facts.get("provider_sections") or {}).get(m["resource_id"])
         if section:
             lines += ["", section]
+        lines.append("")
+    maps = _map_resources(facts)
+    if maps:
+        lines += ["## Map files (not in the datastore)", "",
+                  "data.gov.il's CDN refuses scripted downloads, so these are NOT fetched. "
+                  "When the page needs the geometry, ask the user to download one in a "
+                  "browser, then `python -m services.page_builder.author snapshot "
+                  f"{facts['id']} <downloaded file> --resource <resource_id>` and add the "
+                  "input it prints to recipe.json.", ""]
+        for r in maps:
+            lines.append(f"- `{r['id']}` {r.get('format')} {r.get('name') or ''} "
+                         f"({r.get('size') or '?'} bytes): {r.get('url')}")
         lines.append("")
     if facts.get("provider_notes"):
         lines += [f"## Source rules ({facts.get('provider_label')})", "",
@@ -475,7 +506,9 @@ _IL_PHONE_RE = re.compile(r"(?<!\d)0(?:[2-9]|5\d|7\d)-?\d{7}(?!\d)")
 
 def _pii_findings(recipe: Recipe) -> list[str]:
     out = []
-    for name in (COMPUTE_FILENAME, TEMPLATE_FILENAME, MANIFEST_FILENAME, COVERAGE_FILENAME):
+    # Snapshots are raw upstream rows committed to a public repo: scan them too.
+    for name in (COMPUTE_FILENAME, TEMPLATE_FILENAME, MANIFEST_FILENAME, COVERAGE_FILENAME,
+                 *recipe.manifest.snapshot_files):
         if not (recipe.root / name).is_file():
             continue
         text = (recipe.root / name).read_text(encoding="utf-8")
@@ -638,6 +671,9 @@ def _coverage_findings(
     except Exception:
         return [f"COVERAGE: {COVERAGE_FILENAME} must be a JSON object of strings"], []
     fields = {m["resource_id"]: m["fields"] for m in manifest}
+    for i in recipe.manifest.inputs:
+        if i.snapshot:  # its columns are the snapshot's properties + geometry
+            fields[i.by_id] = snapshot_table(recipe.root / i.snapshot)[0]
     needed = {
         f"{name}.{col}"
         for name, parts in inputs.items()
@@ -705,6 +741,17 @@ def _resources_from_manifest(manifest: list[dict]) -> list[dict]:
     ]
 
 
+def _snapshot_resources(recipe: Recipe, source_path: Path) -> list[dict]:
+    """The CKAN map-file resources the recipe's snapshots were taken from,
+    as prepare() recorded them (size/hash included), so verify runs the same
+    staleness check as the refresh."""
+    wanted = {i.by_id for i in recipe.manifest.inputs if i.snapshot}
+    if not wanted:
+        return []
+    facts = json.loads(source_path.read_text(encoding="utf-8")) if source_path.is_file() else {}
+    return [r for r in facts.get("resources") or [] if r.get("id") in wanted]
+
+
 def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_dependent: bool = False) -> int:
     p = _paths(dataset_id)
     if not p["manifest"].is_file():
@@ -712,6 +759,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     manifest = json.loads(p["manifest"].read_text(encoding="utf-8"))
     resources = _resources_from_manifest(manifest)
     recipe = Recipe.load(recipes_root / dataset_id)
+    resources += _snapshot_resources(recipe, p["source"])
     problems: list[str] = []
     notes: list[str] = []
     provider = None
@@ -739,7 +787,8 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
         def run(transform=None, tag="full"):
             ckan = _LocalCkan(p["data"], manifest, transform)
             d = work / tag
-            inputs = fetch_inputs(recipe, resources, d, preview_fn=ckan.preview, fetch_fn=ckan.fetch)
+            inputs = fetch_inputs(recipe, resources, d, preview_fn=ckan.preview, fetch_fn=ckan.fetch,
+                                  snapshot_rows=transform or (lambda rows: rows))
             raw = run_compute(recipe, inputs, work)
             page = render_page(recipe, raw, work, inputs)
             return raw, page, inputs
@@ -855,6 +904,64 @@ def queue(*, legacy: bool, recipes_root: Path = RECIPES_ROOT) -> int:
     return 0
 
 
+# ── snapshot ─────────────────────────────────────────────────────────────
+
+
+def _ckan_resource(resource_id: str) -> dict:
+    import urllib.parse
+    import urllib.request
+
+    from .agent_contract import _CKAN_BROWSER_UA
+
+    url = ("https://data.gov.il/api/3/action/resource_show?"
+           + urllib.parse.urlencode({"id": resource_id}))
+    req = urllib.request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read())["result"]
+
+
+def snapshot(dataset_id: str, map_file: Path, resource_id: str, *, name: str = "geo",
+             max_kb: int = 150, recipes_root: Path = RECIPES_ROOT, resource_fn=_ckan_resource) -> int:
+    """Convert a browser-downloaded map file into recipes/<id>/<name>.geojson
+    and print the recipe.json input that reads it."""
+    from datetime import datetime, timezone
+
+    from .geo_snapshot import SnapshotError, build_snapshot, detect_crs, read_map_file
+
+    res = resource_fn(resource_id)
+    if res.get("package_id") not in (None, dataset_id):
+        raise SystemExit(f"resource {resource_id} belongs to dataset {res['package_id']}, not {dataset_id}")
+    try:
+        features, prj = read_map_file(map_file)
+        crs = detect_crs(features, prj)
+        body, tol = build_snapshot(features, crs=crs, max_bytes=max_kb * 1000)
+    except SnapshotError as e:
+        raise SystemExit(f"{map_file}: {e}") from None
+    if res.get("size") is not None and int(res["size"]) != map_file.stat().st_size:
+        print(f"warning: {map_file.name} is {map_file.stat().st_size:,} bytes but CKAN says "
+              f"{int(res['size']):,} — is it the file of resource {resource_id[:8]}?", file=sys.stderr)
+    snap_of = {k: v for k, v in {
+        "size": res.get("size"), "hash": res.get("hash") or None,
+        "last_modified": res.get("last_modified"),
+        "taken_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+    }.items() if v is not None}
+    entry = {"name": name, "by_id": resource_id, "snapshot": f"{name}.geojson",
+             "snapshot_of": snap_of, "required_columns": []}
+    # Refuse here, before writing, what recipe.json would refuse later: a bad
+    # --name, or a CKAN resource with neither size nor hash to watch.
+    try:
+        RecipeInput.model_validate(entry)
+    except ValueError as e:
+        raise SystemExit(f"can't snapshot: {e}") from None
+    dest = recipes_root / dataset_id / entry["snapshot"]
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(body)
+    print(f"{dest}: {len(features)} feature(s), {crs} → WGS84, "
+          f"{len(body):,} bytes, simplify tolerance {tol}°", file=sys.stderr)
+    print(json.dumps(entry, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _cli(argv: Optional[list[str]] = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -867,7 +974,16 @@ def _cli(argv: Optional[list[str]] = None) -> int:
                     help="downgrade the shuffle check to a note (e.g. 'latest row' semantics)")
     sq = sub.add_parser("queue")
     sq.add_argument("--legacy", action="store_true")
+    ss = sub.add_parser("snapshot", help="map file downloaded in a browser → recipes/<id>/<name>.geojson")
+    ss.add_argument("dataset_id")
+    ss.add_argument("map_file", type=Path, help="GeoJSON, KML, KMZ or zipped shapefile")
+    ss.add_argument("--resource", required=True, help="CKAN id of the resource the file came from")
+    ss.add_argument("--name", default="geo", help="input name and snapshot file stem")
+    ss.add_argument("--max-kb", type=int, default=150)
     args = ap.parse_args(argv)
+    if args.cmd == "snapshot":
+        return snapshot(args.dataset_id, args.map_file, args.resource,
+                        name=args.name, max_kb=args.max_kb)
     if args.cmd == "prepare":
         print(prepare(args.dataset_id))
         return 0

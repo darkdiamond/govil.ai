@@ -8,6 +8,15 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **A map snapshot misses a same-size edit when CKAN has no md5.** `snapshot_stale` compares
+  CKAN's `hash` when both sides have one, else `size` (#184's GeoJSON has an empty `hash`), and
+  ignores `last_modified` because CKAN bumps it on byte-identical re-uploads. An edit that keeps
+  the byte count goes unnoticed. If that matters, also compare `last_modified` and treat a
+  bump with the same size as "re-check by hand" (a note in the issue, not a failure). (2026-10-30)
+- **Transport/Ayalon GIS layers could get maps.** 30cc4889, 5f6d04bf, 7fb47ed4, cdd75af3,
+  e74cc3c7, ee1265d8, 360fb8b4, 00dfc38e, 03092ac8 and the existing recipe a98fbabc (Jerusalem
+  metro lines, no map today) ship their shapes only in SHP/KMZ zips next to a small attribute
+  table. Each needs a browser download, then `author snapshot`. (2026-10-30)
 - **Verify's robustness check is all-or-nothing across inputs.** It truncates every input and
   compares the whole model, so a ≤1-row input next to a large one is never perturbed. A value
   hardcoded from that small input passes, because the large input changes the model anyway.
