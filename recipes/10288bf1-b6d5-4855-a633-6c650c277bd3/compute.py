@@ -417,9 +417,13 @@ def compute(frames):
         lbl["unit_lede"] = f"חלוקת {_int(total)} הנכסים לפי סוג היחידה וסוג הבעלות."
     lbl["unit_aria"] = "תרשים עמודות מוערמות באחוזים: סוג הבעלות בחלקות שלמות לעומת תתי-חלקות. " + lbl["unit_lede"]
     m0 = meth_counts.index[0] if len(meth_counts) else ""
-    lbl["method_lede"] = (f"שיטת הרישום מצוינת רק לחלק מהנכסים: {_int(int(meth_counts.get(UNSPECIFIED_METHOD, 0)))} "
-                          f"נכסים ({_pct(_share(meth_counts.get(UNSPECIFIED_METHOD, 0), total))}) רשומים ללא ציון שיטה. "
-                          f"השיטות האחרות הן רישומים מיוחדים, כמו גוש שומה ופנקסי ספר-דף.")
+    n_unspec = int(meth_counts.get(UNSPECIFIED_METHOD, 0))
+    if n_unspec:
+        lbl["method_lede"] = (f"שיטת הרישום מצוינת רק לחלק מהנכסים: {_int(n_unspec)} "
+                              f"נכסים ({_pct(_share(n_unspec, total))}) רשומים ללא ציון שיטה. "
+                              f"השיטות האחרות הן רישומים מיוחדים, כמו גוש שומה ופנקסי ספר-דף.")
+    else:
+        lbl["method_lede"] = f"שיטת הרישום מצוינת לכל {_int(total)} הנכסים במאגר."
     lbl["method_aria"] = (f"תרשים עמודות מוערמות באחוזים: סוג הבעלות לפי שיטת הרישום, "
                           f"{_int(len(meth_cats))} קטגוריות. השיטה הנפוצה: {m0}.")
     med = float(condo_size.median()) if len(condo_size) else 0.0
