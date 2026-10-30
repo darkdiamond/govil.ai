@@ -703,9 +703,16 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
         if dump_model(raw) != dump_model(raw2) or page.content_html != page2.content_html:
             problems.append("DETERMINISM: two runs on identical data produced different output")
 
+        # A ≤1-row input survives truncation unchanged, so an unchanged model
+        # proves nothing about a single-row dataset; every other check still runs.
+        untruncatable = all(len(_truncate(range(i.rows))) == i.rows
+                            for parts in inputs.values() for i in parts)
         try:
             rawt, _, _ = run(_truncate, "truncated")
-            if dump_model(rawt) == dump_model(raw):
+            if untruncatable:
+                notes.append("robustness skipped: every input has ≤1 row, "
+                             "so truncation drops nothing")
+            elif dump_model(rawt) == dump_model(raw):
                 problems.append(
                     f"ROBUSTNESS: model unchanged after dropping {1 - TRUNCATE_FRACTION:.0%} "
                     "of rows — some numbers are not computed from the data"

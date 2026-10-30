@@ -669,6 +669,29 @@ def test_coverage_requires_unused_resources(tmp_path, monkeypatch, capsys):
     assert "resource:bbbbbbbb-0000-0000-0000-000000000002" in capsys.readouterr().out
 
 
+def _single_row_recipe(tmp_path):
+    """A recipe that ignores its data: robustness flags it unless truncation is a no-op."""
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    c = recipes / DS / "compute.py"
+    c.write_text(c.read_text() + (
+        "\n\n_real = compute\n\n\n"
+        "def compute(frames):\n"
+        "    return _real({k: v.head(1) for k, v in frames.items()})\n"
+    ))
+    return recipes
+
+
+@pytest.mark.parametrize("n_rows, flagged", [(1, False), (2, True)])
+def test_author_verify_skips_robustness_only_for_single_row_inputs(
+        tmp_path, monkeypatch, capsys, n_rows, flagged):
+    author = _prepared(tmp_path, monkeypatch, _rows([2025])[:n_rows])
+    author.verify(DS, _single_row_recipe(tmp_path))
+    out = capsys.readouterr().out
+    assert ("ROBUSTNESS: model unchanged" in out) is flagged, out
+    assert ("robustness skipped" in out) is not flagged, out
+
+
 def test_author_verify_rejects_order_dependent_recipe(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     recipes = tmp_path / "recipes"
