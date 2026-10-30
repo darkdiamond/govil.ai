@@ -86,10 +86,6 @@ class SourceRecord:
     # `agent_data.json`.
     agent_data: Optional[dict] = None
 
-    # Voyage embedding for related-dataset scoring. Cached here so the
-    # publisher doesn't recompute on every run.
-    embedding: Optional[list[float]] = None
-
     # Authoring queue (refresh state lives on the prod source doc):
     # `notified` = a needs-authoring issue is recorded, so the nightly
     # queue skips the source instead of re-asking every day.
@@ -132,7 +128,6 @@ class SourceRecord:
             page_path=data.get("page_path"),
             failed_attempts=int(data.get("failed_attempts") or 0),
             agent_data=data.get("agent_data"),
-            embedding=data.get("embedding"),
             unavailable_since=data.get("unavailable_since"),
             authoring_status=data.get("authoring_status"),
             authoring_issue=data.get("authoring_issue"),
@@ -481,18 +476,6 @@ class FirestoreStateStore:
             merge=True,
         )
 
-    def set_agent_data(self, dataset_id: str, agent_data: dict) -> None:
-        """Persist the agent's per-dataset judgments under `sources/<id>.agent_data`.
-
-        Used by backfill scripts (e.g. backfill_suggested_tags); recipe
-        refreshes write `agent_data` via `mark_refreshed`.
-        Replaces the prior `manifest_entry` field entirely — scanner facts
-        live alongside on the same doc, so there's no need to merge them.
-        """
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {"agent_data": agent_data}, merge=True
-        )
-
     def set_resource_datastore_flags(
         self, source_id: str, flags: dict[str, bool]
     ) -> bool:
@@ -514,12 +497,6 @@ class FirestoreStateStore:
         if changed:
             ref.set({"resources": resources}, merge=True)
         return changed
-
-    def set_embedding(self, dataset_id: str, embedding: list[float]) -> None:
-        """Cache the Voyage embedding so the publisher doesn't recompute it."""
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {"embedding": embedding}, merge=True
-        )
 
     def mark_source_unavailable(self, dataset_id: str, error: str) -> None:
         """Flag a *previously-succeeded* source as removed upstream.

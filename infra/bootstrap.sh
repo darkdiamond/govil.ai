@@ -119,8 +119,7 @@ done
 gcloud storage buckets add-iam-policy-binding "gs://$STAGING_BUCKET" \
   --member="serviceAccount:$BUILDER_SA" --role=roles/storage.objectAdmin --quiet >/dev/null
 
-# Publisher: read+write Firestore (writes back voyage embedding cache on
-# sources/<id>.embedding), read staging GCS, deploy Firebase Hosting.
+# Publisher: read Firestore, read staging GCS, deploy Firebase Hosting.
 # AR access is granted on the publisher repo below (writer covers the
 # image-build trigger's push + the publish trigger's pull).
 for role in roles/datastore.user roles/logging.logWriter roles/firebasehosting.admin; do
@@ -157,15 +156,6 @@ gcloud artifacts repositories add-iam-policy-binding "$AR_REPO" \
   --location="$AR_LOCATION" --project "$PROJECT" \
   --member="serviceAccount:$PUBLISHER_SA" \
   --role=roles/artifactregistry.writer --quiet >/dev/null
-
-# ---- 6. Secret Manager -----------------------------------------------------
-if ! gcloud secrets describe voyage-api-key --project "$PROJECT" >/dev/null 2>&1; then
-  echo "==> creating Secret Manager secret 'voyage-api-key' (empty; populate via: "
-  echo "    printf '%s' \"\$VOYAGE_API_KEY\" | gcloud secrets versions add voyage-api-key --data-file=-)"
-  gcloud secrets create voyage-api-key --replication-policy=automatic --project "$PROJECT" >/dev/null
-fi
-gcloud secrets add-iam-policy-binding voyage-api-key \
-  --member="serviceAccount:$BUILDER_SA" --role=roles/secretmanager.secretAccessor --quiet >/dev/null || true
 
 # ---- 7. Cloud Build triggers (publisher + publisher image) -----------------
 echo "==> Cloud Build trigger '$TRIGGER_ID' (publisher — cloudbuild-publish.yaml)"

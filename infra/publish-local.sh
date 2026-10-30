@@ -129,15 +129,6 @@ if [[ ! -d frontend/node_modules ]]; then
   ( cd frontend && npm ci --prefer-offline --no-audit )
 fi
 
-# Cloud Build mounts VOYAGE_API_KEY from Secret Manager; locally you must
-# export it yourself or the publisher silently falls back to
-# ministry+shared-tag scoring for sources without a cached embedding.
-if [[ "${VOYAGE_ENABLED:-false}" == "true" && -z "${VOYAGE_API_KEY:-}" ]]; then
-  echo "WARNING: VOYAGE_ENABLED=true but VOYAGE_API_KEY is unset — embeddings" >&2
-  echo "         will be skipped. Export it with:" >&2
-  echo "  export VOYAGE_API_KEY=\$(gcloud secrets versions access latest --secret=voyage-api-key)" >&2
-fi
-
 step_end
 
 # ---------------------------------------------------- step 1: sync datasets

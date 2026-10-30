@@ -5,13 +5,14 @@ Per dataset, three artifacts land in `frontend/public/datasets/<id>/`:
     data.json         — DatasetMeta. Scanner-derived facts from CKAN
                         (license, resources, formats, …). Owned by the
                         publisher, sourced from Firestore `sources/<id>`.
-    agent_data.json   — AgentData. Agent-derived judgments
-                        (summary_he, dataset_kind, related_ids).
+    agent_data.json   — AgentData. Interpretive fields a recipe's compute()
+                        produces (summary_he, dataset_kind, …).
                         Sourced from Firestore `sources/<id>.agent_data`.
-    content.html      — Body markup written by the agent. Synced via GCS.
+    content.html      — The rendered page body. Synced via GCS.
 
 `manifest.json` (consumed by home + category pages) is a merged view
-(DatasetMeta + AgentData + computed `embedding` + `related_ids`).
+(DatasetMeta + AgentData + publisher-computed `tags` + `related_ids`, plus
+the corpus-wide `tag_index` / `topics` / `tag_redirects`).
 """
 from __future__ import annotations
 
@@ -136,14 +137,12 @@ class AgentData(BaseModel):
 
     summary_he: str
     dataset_kind: DatasetKind
-    related_ids: list[str] = Field(default_factory=list, max_length=5)
 
-    # 3–5 short Hebrew topic labels the agent chose for this dataset.
-    # The frontend shell renders them as the clickable chip row under
-    # the H1 (linking to /tags/<slug>/), and the publisher unions them
-    # into `Manifest.tag_slugs` so each chip resolves to a tag page.
-    # CKAN `tags_he` are sparsely populated by ministries; this is the
-    # editorial layer that gives every dataset a meaningful chip row.
+    # DEPRECATED — still accepted so existing recipes validate, but ignored:
+    # related datasets are computed by the publisher (related.py), and a
+    # dataset's tags come from taxonomy/dataset-tags.json (tags.py).
+    # `suggested_tags` only feeds the fallback for a dataset not yet curated.
+    related_ids: list[str] = Field(default_factory=list, max_length=5)
     suggested_tags: list[str] = Field(default_factory=list, max_length=8)
 
     # Optional Schema.org-aligned coverage hints. Populated only when the
@@ -161,7 +160,7 @@ class ManifestEntry(BaseModel):
     """Merged per-dataset entry in `manifest.json` (home + category pages).
 
     Built by the publisher by merging `DatasetMeta` (scanner) + `AgentData`
-    (agent) + controller-computed `embedding` + `related_ids`. Not stored —
+    (recipe) + publisher-computed `tags` + `related_ids`. Not stored —
     rebuilt on every publish.
     """
     model_config = ConfigDict(extra="ignore")
@@ -193,14 +192,31 @@ class ManifestEntry(BaseModel):
     spatial_coverage: Optional[str] = None
     suggested_tags: list[str] = Field(default_factory=list)
 
-    # Publisher-computed
+    # Publisher-computed: canonical display tags (tags.py) and related
+    # datasets (related.py). `tags_he` / `suggested_tags` above stay raw.
+    tags: list[str] = Field(default_factory=list)
     related_ids: list[str] = Field(default_factory=list, max_length=5)
-    embedding: Optional[list[float]] = None
 
     source_status: str = "available"
     unavailable_since: Optional[datetime] = None
 
     version: int = 1
+
+
+class TagIndexEntry(BaseModel):
+    """One paged tag (carried by ≥ TAG_PAGE_MIN datasets)."""
+    slug: str
+    topic: Optional[str] = None
+    count: int
+    intro_he: Optional[str] = None
+    ministries: dict[str, int] = Field(default_factory=dict)
+    related: list[str] = Field(default_factory=list)
+
+
+class TopicEntry(BaseModel):
+    id: str
+    label_he: str
+    intro_he: str = ""
 
 
 class Manifest(BaseModel):
@@ -217,3 +233,11 @@ class Manifest(BaseModel):
     # leaking literal `%` into the directory name. Built by the publisher
     # from the union of every entry's `tags_he` and `suggested_tags`.
     tag_slugs: dict[str, str] = Field(default_factory=dict)
+
+    # Canonical tag → its page data, for paged tags only, count DESC
+    # (tags.build_tag_index). Tags not in here render as plain chips.
+    tag_index: dict[str, TagIndexEntry] = Field(default_factory=dict)
+    topics: list[TopicEntry] = Field(default_factory=list)
+    # Legacy /tags/<slug>/ segment → new path; frontend/scripts/gen-redirects.mjs
+    # turns these into Firebase 301s.
+    tag_redirects: dict[str, str] = Field(default_factory=dict)

@@ -14,9 +14,10 @@ emit (unavailable sources keep their preserved snapshot page):
 `content.html` is not the publisher's concern — it's rsynced from GCS
 staging by the surrounding Cloud Build step.
 
-Running the publisher recomputes the Voyage embedding (when missing) and
-the related-dataset scoring on every invocation, so manifest.json and the
-per-dataset files always agree on what's "related" to what.
+Every run also recomputes each dataset's canonical tags (tags.py, from the
+committed taxonomy/), the tag index + legacy tag redirects, and the
+related-dataset scoring (related.py) over the whole corpus, so the manifest
+always agrees with itself.
 
 CLI:
     python -m services.page_builder.publish --from-firestore \
@@ -36,8 +37,7 @@ from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
 from services.shared.slug import hebrew_slugify
 
-from .embeddings import voyage_enabled, embed, embedding_input
-from .related import top_related
+from .related import compute_related
 from .schema import (
     AgentData,
     DatasetMeta,
@@ -45,7 +45,10 @@ from .schema import (
     ManifestEntry,
     ResourceEntry,
     SourceInfo,
+    TagIndexEntry,
+    TopicEntry,
 )
+from .tags import Taxonomy, build_tag_index, org_drop_names, tag_redirects
 
 log = logging.getLogger(__name__)
 
@@ -214,7 +217,7 @@ def _build_page_slugs(metas: dict[str, DatasetMeta]) -> dict[str, str]:
 def _merged_entry(
     meta: DatasetMeta,
     agent: Optional[AgentData],
-    embedding: Optional[list[float]],
+    tags: list[str],
 ) -> ManifestEntry:
     return ManifestEntry(
         **meta.model_dump(),
@@ -223,8 +226,7 @@ def _merged_entry(
         temporal_coverage=agent.temporal_coverage if agent else None,
         spatial_coverage=agent.spatial_coverage if agent else None,
         suggested_tags=list(agent.suggested_tags) if agent else [],
-        related_ids=list(agent.related_ids) if agent else [],
-        embedding=embedding,
+        tags=tags,
     )
 
 
@@ -264,6 +266,7 @@ _SEARCH_INDEX_FIELDS = {
     "formats",
     "tags_he",
     "suggested_tags",
+    "tags",
     "record_count",
     "spatial_coverage",
     "license",
@@ -289,6 +292,8 @@ def _write_search_index(out_root: Path, manifest: Manifest) -> Path:
             "version": True,
             "generated_at": True,
             "tag_slugs": True,
+            "tag_index": {"__all__": {"slug", "topic", "count"}},
+            "topics": {"__all__": {"id", "label_he"}},
             "datasets": {"__all__": _SEARCH_INDEX_FIELDS},
         },
     ).encode("utf-8")
@@ -298,15 +303,7 @@ def _write_search_index(out_root: Path, manifest: Manifest) -> Path:
 
 def _write_manifest(out_root: Path, manifest: Manifest) -> Path:
     target = out_root / "data" / "manifest.json"
-    # Embeddings live on Firestore + interim entries for top_related scoring;
-    # the public manifest doesn't need them (no frontend code reads
-    # entry.embedding). Excluding shaves ~50% off the file when Voyage was
-    # ever enabled and left cached vectors on source docs.
-    body = manifest.model_dump_json(
-        exclude_none=True,
-        exclude={"datasets": {"__all__": {"embedding"}}},
-        indent=2,
-    ).encode("utf-8")
+    body = manifest.model_dump_json(exclude_none=True, indent=2).encode("utf-8")
     _write_json(target, body)
     return target
 
@@ -317,45 +314,25 @@ def publish(
     out_root: Path,
     *,
     store: Optional[FirestoreStateStore] = None,
+    taxonomy: Optional[Taxonomy] = None,
 ) -> dict:
     """Emit data.json + agent_data.json for each succeeded or unavailable
     source (unavailable sources keep their preserved snapshot page) and the
     merged manifest.json. Returns a small summary dict.
     """
     store = store or FirestoreStateStore()
+    # A broken vocabulary/assignment file raises here: tests/CI guard it, and
+    # publishing pages with silently-wrong tags is worse than a failed run.
+    taxonomy = taxonomy or Taxonomy.load()
 
-    # First pass: load every successful source, build the un-related shape,
-    # ensure each has an embedding cached on its doc.
     sources: list[SourceRecord] = list(store.iter_publishable_sources())
     log.info("publish: %d publishable source(s) (succeeded + unavailable)", len(sources))
 
     metas: dict[str, DatasetMeta] = {}
     agents: dict[str, Optional[AgentData]] = {}
-    embeddings: dict[str, Optional[list[float]]] = {}
-
-    voyage_on = voyage_enabled()
-    if not voyage_on:
-        log.info("VOYAGE_ENABLED=false — skipping embedding + cosine path")
-
     for src in sources:
-        meta = dataset_meta_from_source(src)
-        agent = agent_data_from_source(src)
-        metas[src.id] = meta
-        agents[src.id] = agent
-
-        if not voyage_on:
-            embeddings[src.id] = None
-            continue
-
-        emb = src.embedding
-        if emb is None and agent is not None:
-            text = embedding_input(
-                meta.title, agent.summary_he, meta.organization, meta.tags_he
-            )
-            emb = embed(text)
-            if emb is not None:
-                store.set_embedding(src.id, emb)
-        embeddings[src.id] = emb
+        metas[src.id] = dataset_meta_from_source(src)
+        agents[src.id] = agent_data_from_source(src)
 
     # Assign the URL slug for each dataset now that every meta is loaded —
     # uniqueness is computed over the whole corpus. Flows into the manifest
@@ -364,47 +341,46 @@ def publish(
     for sid, slug in page_slugs.items():
         metas[sid].page_slug = slug
 
-    # Second pass: compute related_ids over the full corpus. We build an
-    # interim ManifestEntry for each so `top_related()` can use embeddings
-    # + ministry + tags. The agent's own `related_ids` (if any) feed the
-    # AGENT_SUGGESTED_WEIGHT signal inside top_related.
-    interim: dict[str, ManifestEntry] = {
-        sid: _merged_entry(metas[sid], agents[sid], embeddings[sid])
-        for sid in metas
-    }
-    related_by_id: dict[str, list[str]] = {}
-    interim_list = list(interim.values())
-    for sid, target in interim.items():
-        scored = top_related(target, interim_list, k=5)
-        related_by_id[sid] = [c.id for c, _, _ in scored]
-
-    # Final pass: write per-dataset files + assemble manifest.
-    written_meta = 0
-    written_agent = 0
-    final_entries: list[ManifestEntry] = []
+    # Canonical tags per dataset: the curated assignment, else the fallback
+    # (recipe suggested_tags ∪ CKAN tags through the alias index).
+    drop_names = org_drop_names(m.organization for m in metas.values())
+    entries: dict[str, ManifestEntry] = {}
     for sid, meta in metas.items():
         agent = agents[sid]
-        emb = embeddings[sid]
+        tags = taxonomy.dataset_tags(
+            sid,
+            suggested=agent.suggested_tags if agent else [],
+            ckan=meta.tags_he,
+            drop_names=drop_names,
+        )
+        entries[sid] = _merged_entry(meta, agent, tags)
 
-        _write_dataset_meta(out_root, meta)
+    related = compute_related(list(entries.values()))
+
+    written_meta = 0
+    written_agent = 0
+    for sid, entry in entries.items():
+        _write_dataset_meta(out_root, metas[sid])
         written_meta += 1
-
-        if agent is not None:
-            _write_agent_data(out_root, sid, agent)
+        if agents[sid] is not None:
+            _write_agent_data(out_root, sid, agents[sid])
             written_agent += 1
+        entry.related_ids = [m.id for m in related[sid]]
 
-        entry = _merged_entry(meta, agent, emb)
-        entry.related_ids = related_by_id.get(sid, [])
-        final_entries.append(entry)
-
-    final_entries.sort(
+    final_entries = sorted(
+        entries.values(),
         key=lambda e: (e.metadata_modified or datetime.min.replace(tzinfo=timezone.utc)),
         reverse=True,
     )
+    tag_index = build_tag_index(final_entries, taxonomy)
+    raw_tags = {t for e in final_entries for t in (*e.tags_he, *e.suggested_tags)}
     manifest = Manifest(
         generated_at=datetime.now(timezone.utc),
         datasets=final_entries,
         tag_slugs=_build_tag_slugs(final_entries),
+        tag_index={t: TagIndexEntry(**v) for t, v in tag_index.items()},
+        topics=[TopicEntry(**vars(t)) for t in taxonomy.topics.values()],
+        tag_redirects=tag_redirects(raw_tags, taxonomy, tag_index, drop_names),
     )
     manifest_path = _write_manifest(out_root, manifest)
     search_index_path = _write_search_index(out_root, manifest)

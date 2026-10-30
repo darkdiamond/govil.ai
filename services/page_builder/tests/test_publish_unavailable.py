@@ -28,7 +28,6 @@ def _src(sid: str, status: str, since: datetime | None) -> SourceRecord:
 
 
 def test_unavailable_source_is_published_with_flag(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(publish, "embed", lambda _t: None)
     since = datetime(2026, 7, 20, tzinfo=timezone.utc)
     records = [
         _src("alive-1", "succeeded", None),
@@ -36,7 +35,6 @@ def test_unavailable_source_is_published_with_flag(tmp_path: Path, monkeypatch):
     ]
     store = MagicMock()
     store.iter_publishable_sources.return_value = iter(records)
-    store.set_embedding.side_effect = lambda *_: None
 
     publish.publish(out_root=tmp_path, store=store)
 
