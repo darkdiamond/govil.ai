@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "eb09155c-af56-4485-af9d-1c49e3585728",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T03:40:40.823787+00:00",
+    "rows": { "main": 90 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "07421a4e-5b12-4444-9173-5ca297b31f79",
+      "required_columns": ["baalut", "mahoz_nm", "nafa_nm", "car_num"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

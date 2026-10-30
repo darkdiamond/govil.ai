@@ -1,0 +1,51 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7a338622-63bb-4cfd-b3f7-0d2e8cf71033",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T03:55:16.383497+00:00",
+    "rows": { "fleet": 4197986 }
+  },
+  "inputs": [
+    {
+      "name": "fleet",
+      "by_id": "053cea08-09bc-40ec-8f7a-156f0677aff3",
+      "required_columns": [
+        "sug_degem",
+        "tozeret_nm",
+        "kinuy_mishari",
+        "shnat_yitzur",
+        "sug_delek_nm",
+        "baalut",
+        "tzeva_rechev",
+        "moed_aliya_lakvish",
+        "tokef_dt",
+        "kvutzat_zihum",
+        "ramat_eivzur_betihuty"
+      ],
+      "columns": [
+        "sug_degem",
+        "tozeret_nm",
+        "kinuy_mishari",
+        "shnat_yitzur",
+        "sug_delek_nm",
+        "baalut",
+        "tzeva_rechev",
+        "moed_aliya_lakvish",
+        "tokef_dt",
+        "kvutzat_zihum",
+        "ramat_eivzur_betihuty"
+      ]
+    }
+  ],
+  "limits": {
+    "max_records": 6000000,
+    "max_bytes": 600000000,
+    "total_bytes": 600000000,
+    "wall_budget_s": 1800,
+    "compute_memory_mb": 2560
+  },
+  "min_insights": 6,
+  "lint_allow_numbers": []
+}

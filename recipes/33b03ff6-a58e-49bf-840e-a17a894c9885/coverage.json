@@ -1,0 +1,12 @@
+{
+  "main.LicenseNumber": "table:list — a lab's (business) licence number, the lookup key; shown in the licence list",
+  "main.LabName": "chart-labs, chart-staff, kpi:labs, insight:both, insight:staff, insight:expiry, table:list — labs are businesses and are named",
+  "main.SampleOrLabWorker": "chart-staff, chart-labs, kpi:staff, insight:staff — comma-split and counted only; names are not listed on the page",
+  "main.LabType": "chart-types, chart-labs, chart-expiry, kpi:total, insight:types, insight:both, insight:validity, table:list — grouped into sampling vs analysis by prefix; unknown types flow through",
+  "main.LicenseExpiration": "chart-expiry, insight:expiry, insight:validity, table:list — no wall clock; the list holds licences in force, so the earliest expiry is the nearest",
+  "main.DisciplinaryMeasures": "chart-disc, kpi:disc, insight:disc, table:list — split into events, classified (התליה / נזיפה / אחר), dated by the first date in the event; aggregate only, nobody named",
+  "main.Address": "skip: free-text business address (street, PO box, zip), not reliably parseable to a settlement; in the explorer",
+  "main.PhoneNumber": "skip: contact detail, in the explorer",
+  "main.Fax": "skip: contact detail, in the explorer",
+  "main.EMail": "skip: contact detail, in the explorer"
+}

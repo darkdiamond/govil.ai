@@ -1,0 +1,38 @@
+{
+  "contract_version": 1,
+  "dataset_id": "8672aa2c-3873-443a-b1ea-47ad546c6043",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T03:43:52.746185+00:00",
+    "rows": { "main": 1441384 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "6f6acd03-f351-4a8f-8ecf-df792f4f573a",
+      "required_columns": [
+        "tkina_EU",
+        "shnat_yitzur",
+        "tozeret_nm",
+        "tozeret_eretz_nm",
+        "sug_delek_nm",
+        "degem_nm",
+        "nefach_manoa",
+        "hanaa_nm"
+      ],
+      "columns": [
+        "tkina_EU",
+        "shnat_yitzur",
+        "tozeret_nm",
+        "tozeret_eretz_nm",
+        "sug_delek_nm",
+        "degem_nm",
+        "nefach_manoa",
+        "hanaa_nm"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

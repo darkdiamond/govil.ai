@@ -1,0 +1,6 @@
+{
+  "main.baalut": "chart-nafot, chart-owner, chart-mix, chart-heat, chart-fleet, chart-conc, kpi:private, kpi:fleet, insight:private_share, insight:private_leader, insight:owner_concentration, insight:fleet_heavy",
+  "main.mahoz_nm": "chart-districts, chart-mix, kpi:districts, insight:district",
+  "main.nafa_nm": "chart-nafot, chart-heat, chart-pareto, chart-fleet, chart-conc, kpi:nafot, kpi:top, insight:top_nafa, insight:concentration, insight:unknown",
+  "main.car_num": "chart-nafot, chart-districts, chart-owner, chart-pareto, kpi:total, insight:top_nafa"
+}

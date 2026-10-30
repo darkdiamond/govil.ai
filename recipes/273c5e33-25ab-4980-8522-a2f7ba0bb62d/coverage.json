@@ -1,0 +1,14 @@
+{
+  "vehicles.mispar_rechev": "skip: vehicle licence number (lookup identifier); used only to join the two tables, never shown",
+  "vehicles.mispar_manoa": "skip: engine number, a per-vehicle identifier; not fetched",
+  "vehicles.rishum_rishon_dt": "chart-reg-year, chart-reg-heat, chart-origin, chart-first-owner, chart-still, chart-km, chart-km-origin, chart-mods-year, kpi:ytd, kpi:years, insight:reg_ytd, insight:jan_peak",
+  "vehicles.kilometer_test_aharon": "chart-km, chart-km-origin, chart-km-hist, kpi:km, insight:km_lease",
+  "vehicles.mkoriut_nm": "chart-origin, chart-still, chart-km-origin, kpi:lease, insight:leasing_origin, insight:still_first",
+  "vehicles.shinui_mivne_ind": "chart-mods, chart-mods-year, insight:mods",
+  "vehicles.gapam_ind": "chart-mods, chart-mods-year",
+  "vehicles.shnui_zeva_ind": "chart-mods, chart-mods-year",
+  "vehicles.shinui_zmig_ind": "chart-mods, chart-mods-year",
+  "owners.mispar_rechev": "chart-hands, chart-still, chart-first-owner, kpi:avg_hands, insight:hands — vehicle number, used only to count records per vehicle",
+  "owners.baalut_dt": "chart-own-month, chart-own-mix, chart-first-owner, chart-still, insight:dip, insight:dealer_share",
+  "owners.baalut": "chart-own-month, chart-own-mix, chart-first-owner, kpi:dealer, kpi:records, insight:dealer_share"
+}

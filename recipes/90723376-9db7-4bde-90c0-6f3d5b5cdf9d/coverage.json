@@ -1,0 +1,4 @@
+{
+  "eligible.mispar_rechev": "chart-series, chart-blocks, chart-length, kpi:vehicles, kpi:seven_share, kpi:eight, insight:volume, insight:series, insight:blocks, insight:eight, insight:dupes — aggregated only (plate length, leading digit, 100,000-number blocks); no plate number is ever shown",
+  "eligible.updated_dt": "kpi:as_of, insight:updates — snapshot timestamp (one value today: the file is republished whole); the insight reports how many update dates the file carries"
+}

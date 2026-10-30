@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "33b03ff6-a58e-49bf-840e-a17a894c9885",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T20:01:17.174183+00:00",
+    "rows": {
+      "main": 8
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e854dc1d-a9dc-4dd5-b73b-995f7ed5da98",
+      "required_columns": [
+        "LicenseNumber",
+        "LabName",
+        "SampleOrLabWorker",
+        "LabType",
+        "LicenseExpiration",
+        "DisciplinaryMeasures"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

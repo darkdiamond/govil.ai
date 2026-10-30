@@ -1,0 +1,49 @@
+{
+  "contract_version": 1,
+  "dataset_id": "273c5e33-25ab-4980-8522-a2f7ba0bb62d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T03:52:37.483704+00:00",
+    "rows": { "vehicles": 2501218, "owners": 5558763 }
+  },
+  "inputs": [
+    {
+      "name": "vehicles",
+      "by_id": "56063a99-8a3e-4ff4-912e-5966c0279bad",
+      "required_columns": [
+        "mispar_rechev",
+        "kilometer_test_aharon",
+        "shinui_mivne_ind",
+        "gapam_ind",
+        "shnui_zeva_ind",
+        "shinui_zmig_ind",
+        "rishum_rishon_dt",
+        "mkoriut_nm"
+      ],
+      "columns": [
+        "mispar_rechev",
+        "kilometer_test_aharon",
+        "shinui_mivne_ind",
+        "gapam_ind",
+        "shnui_zeva_ind",
+        "shinui_zmig_ind",
+        "rishum_rishon_dt",
+        "mkoriut_nm"
+      ]
+    },
+    {
+      "name": "owners",
+      "by_id": "bb2355dc-9ec7-4f06-9c3f-3344672171da",
+      "required_columns": ["mispar_rechev", "baalut_dt", "baalut"],
+      "columns": ["mispar_rechev", "baalut_dt", "baalut"]
+    }
+  ],
+  "limits": {
+    "max_records": 12000000,
+    "wall_budget_s": 2700,
+    "compute_timeout_s": 600
+  },
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
