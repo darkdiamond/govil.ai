@@ -118,8 +118,8 @@ def open_authoring_issue(
     number = int(created["number"])
     # GitHub silently drops `labels` on create unless the token has push
     # access, which the job's Issues-only PAT doesn't — so issues #112–#236
-    # opened unlabelled and the authoring routine (which lists by label)
-    # never saw them. The add-labels endpoint 403s for that PAT too
+    # opened unlabelled and the authoring routine (which then listed by
+    # label) never saw them. The add-labels endpoint 403s for that PAT too
     # (2026-10-30), so the routine now lists by author + the `[author] … (<id8>)`
     # title instead, and the label is only for humans browsing the tracker.
     # The issue stays recorded either way: a label failure must not open a

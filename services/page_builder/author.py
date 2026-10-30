@@ -73,8 +73,9 @@ BUILDER_REQUIREMENTS = REPO_ROOT / "services" / "page_builder" / "requirements.t
 PARITY_PACKAGES = ("pandas", "jinja2")
 
 
-_REQ_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*(.*)$")
-_SPEC_OPS = {
+# name, optional [extras], version spec, optional ; marker
+_REQ_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*(?:\[[^\]]*\])?\s*([^;]*)")
+_SPEC_OPS = {  # longest first, so '>=' wins over '>'
     ">=": lambda a, b: a >= b, "<=": lambda a, b: a <= b, "==": lambda a, b: a == b,
     "!=": lambda a, b: a != b, ">": lambda a, b: a > b, "<": lambda a, b: a < b,
 }
@@ -85,11 +86,14 @@ def _version_tuple(v: str) -> tuple[int, ...]:
 
 
 def _satisfies(have: str, spec: str) -> bool:
-    """`spec` like '>=3.0.5,<4' (the operators requirements.txt uses; no ~= or wildcards)."""
+    """`spec` like '>=3.0.5,<4'. Raises ValueError on an operator it can't
+    compare (~=, ===, wildcards) rather than guess."""
+    mine = _version_tuple(have)
     for clause in filter(None, (c.strip() for c in spec.split(","))):
-        op = next(o for o in sorted(_SPEC_OPS, key=len, reverse=True) if clause.startswith(o))
+        op = next((o for o in _SPEC_OPS if clause.startswith(o)), None)
+        if op is None or clause.startswith(("~=", "===")) or "*" in clause:
+            raise ValueError(f"unsupported version clause {clause!r} (use >=, <=, ==, !=, >, <)")
         want = _version_tuple(clause[len(op):])
-        mine = _version_tuple(have)
         width = max(len(want), len(mine))
         if not _SPEC_OPS[op](mine + (0,) * (width - len(mine)), want + (0,) * (width - len(want))):
             return False

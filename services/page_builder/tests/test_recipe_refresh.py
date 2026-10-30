@@ -488,6 +488,8 @@ def _prepared(tmp_path, monkeypatch, rows):
 
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
     monkeypatch.setattr(author, "PREVIEW_OUT_ROOT", tmp_path / "model_test")
+    # The installed-version gate has its own test; keep these hermetic.
+    monkeypatch.setattr(author, "runtime_parity_problems", lambda: [])
     monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     data = tmp_path / "authoring" / DS / "data"
     data.mkdir(parents=True)
@@ -1147,9 +1149,14 @@ def test_author_runtime_parity(tmp_path, monkeypatch):
     assert not author._satisfies("2.3.3", ">=3.0.5,<4")
     assert not author._satisfies("4.0", ">=3.0.5,<4")
     assert author._satisfies("3.1.6", ">=3.1.6")
+    with pytest.raises(ValueError, match="unsupported"):
+        author._satisfies("3.1.6", "~=3.1")
 
     reqs = tmp_path / "requirements.txt"
-    reqs.write_text("# comment\nhttpx>=0.28\npandas>=3.0.5,<4  # compute\njinja2>=3.1.6\n")
+    reqs.write_text(
+        "# comment\nhttpx>=0.28\npandas[performance]>=3.0.5,<4  # compute\n"
+        'jinja2>=3.1.6; python_version >= "3.10"\n'
+    )
     versions = {"pandas": "2.3.3", "jinja2": "3.1.6", "httpx": "0.1"}
     monkeypatch.setattr(metadata, "version", lambda name: versions[name])
     assert author.runtime_parity_problems(reqs) == [

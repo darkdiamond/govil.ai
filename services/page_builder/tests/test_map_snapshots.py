@@ -246,6 +246,7 @@ def _prepared(tmp_path, monkeypatch, geo_size):
 
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
     monkeypatch.setattr(author, "PREVIEW_OUT_ROOT", tmp_path / "model_test")
+    monkeypatch.setattr(author, "runtime_parity_problems", lambda: [])
     monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     root = tmp_path / "authoring" / DS
     root.mkdir(parents=True)
