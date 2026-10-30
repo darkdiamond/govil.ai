@@ -186,14 +186,19 @@ def prepare(dataset_id: str) -> Path:
     import time
 
     max_records = _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
+    max_bytes = _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    modified = {r.get("id"): r.get("last_modified") for r in src.resources or []}
     manifest = []
     for i, res in enumerate(select_prefetch_resources(src.resources or []), 1):
         preview = fetch_resource_preview(res["id"]) or {}
         total = int(preview.get("total") or 0)
+        lm = modified.get(res["id"])
         entry = {
             "resource_id": res["id"],
             "name": res.get("name") or "",
             "format": res.get("format") or "",
+            # `pick: "latest"` orders by it; verify must see what prod sees.
+            "last_modified": lm.isoformat() if hasattr(lm, "isoformat") else lm,
             "fields": [f["id"] for f in preview.get("fields") or [] if f["id"] != "_id"],
             "field_types": {f["id"]: f.get("type") for f in preview.get("fields") or [] if f["id"] != "_id"},
             "total": total,
@@ -204,7 +209,7 @@ def prepare(dataset_id: str) -> Path:
             dest = p["data"] / f"{i}.csv"
             out = fetch_resource_records_to_file(
                 res["id"], total, dest,
-                max_bytes=_DEFAULT_MAX_BYTES, page_size=25_000, page_timeout_s=60.0,
+                max_bytes=max_bytes, page_size=25_000, page_timeout_s=60.0,
                 deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
             )
             if out is not None:
@@ -541,6 +546,19 @@ def _coverage_findings(
     if stale:
         problems.append("COVERAGE: entries for columns/resources the recipe doesn't read "
                         "(typo or stale): " + ", ".join(stale[:15]))
+    # A column the recipe never fetches can't be "used" on the page.
+    unfetched = {
+        f"{i.name}.{col}"
+        for i in recipe.manifest.inputs if i.columns
+        for parts in [inputs.get(i.name, [])]
+        for part in parts
+        for col in fields.get(part.resource_id, [])
+        if col not in i.columns
+    }
+    for key in sorted(unfetched & cov.keys()):
+        if not cov[key].strip().startswith("skip:"):
+            problems.append(f"COVERAGE: {key} is marked used but not in the input's "
+                            "`columns`, so it is never fetched")
     ids = set(re.findall(r'\bid="([^"]+)"', html))
     kpis = set((model.get("kpis") or {}).keys())
     used = skipped = 0
@@ -570,7 +588,7 @@ def _coverage_findings(
 def _resources_from_manifest(manifest: list[dict]) -> list[dict]:
     return [
         {"id": m["resource_id"], "name": m["name"], "format": m["format"],
-         "datastore_active": True}
+         "last_modified": m.get("last_modified"), "datastore_active": True}
         for m in manifest
     ]
 

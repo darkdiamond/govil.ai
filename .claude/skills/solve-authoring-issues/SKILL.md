@@ -107,9 +107,12 @@ once (CKAN download bandwidth and memory). Brief each one with:
 - for an existing recipe (`recipe_failed`, `schema_changed`): "Fix the
   existing recipe against the new data. Keep what still works; bump
   `recipe_version`.";
-- for `too_large`: "Only fix it if it can be done inside the recipe (fewer
-  inputs or columns). If it needs a bigger `REFRESH_MAX_BYTES`, stop and
-  report BLOCKED with the sizes."
+- for `too_large`: "Fix it inside the recipe, in this order: `columns`
+  (fetch only what compute reads), `pick: \"latest\"` for snapshot-per-
+  resource datasets, fewer inputs, then `limits` (author-dataset §4). If even
+  `limits` within the job's 4Gi can't hold it, stop and report BLOCKED with
+  the sizes." A recipe that sets `limits` gets its own line in the PR body
+  (sizes, the limits chosen, measured compute peak RSS).
 - "Return: PASS or BLOCKED; the final `author verify` summary; for PASS, a
   short PR section (what the page shows, insight rules and thresholds,
   growth handling); for BLOCKED, the reason and the last verify output."
