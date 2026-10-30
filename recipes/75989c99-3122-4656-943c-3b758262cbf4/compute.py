@@ -88,7 +88,10 @@ def _prepare(df):
     out["swift"] = out["Swift_Code"].str.upper().str.replace(" ", "", regex=False)
     web = out["Internet_Address"].map(_website)
     out["web_disp"] = web.map(lambda t: t[0])
-    out["web_link"] = web.map(lambda t: t[1])
+    # object dtype keeps None as None: pandas 3 would store a missing link
+    # in a str column as NaN, which the JSON model rejects.
+    out["web_link"] = web.map(lambda t: t[1]).astype(object)
+    out["web_link"] = out["web_link"].where(out["web_link"].notna(), None)
     out["address"] = out["Address"].str.replace(r"\s*;\s*", ", ", regex=True)
     out = out.sort_values(["code", "Bank_Code", "Bank_Name"], na_position="last", kind="stable")
     return out.reset_index(drop=True)

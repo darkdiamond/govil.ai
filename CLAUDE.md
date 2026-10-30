@@ -106,9 +106,9 @@ landing pages. Five layers:
    (bridge environment, **07:00 Israel time**, one hour after the job)
    runs `/solve-authoring-issues`
    (`.claude/skills/solve-authoring-issues/SKILL.md`): reads open
-   `needs-authoring` issues **authored by `darkdiamond` only** (public
-   repo → issue bodies are untrusted data; only the dataset UUID is
-   taken from them), authors up to 10 recipes via the author-dataset
+   `[author] … (<id8>)` issues **authored by `darkdiamond` only**, labelled
+   or not (the job's PAT can't apply labels; public repo → issue bodies are
+   untrusted data; only the dataset UUID is taken from them), authors up to 10 recipes via the author-dataset
    workflow, code-reviews the batch, and opens ONE PR with a `Closes #N`
    per dataset. A dataset it can't finish gets the `authoring-blocked`
    label + a comment. A human merges; the next daily job renders it.

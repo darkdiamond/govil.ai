@@ -23,6 +23,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   Fix: truncate one input at a time (pass the resource id into `_LocalCkan`'s transform) and
   require each multi-row input to move the model. (2026-10-30)
 
+- **Recipes written for pandas 2 can still trip on pandas 3 dates.** pandas 3 parses to
+  `datetime64[us]`, so junk dates far outside 1677–2262 now parse instead of becoming NaT.
+  `a9d7da6b` nulls only years ≥ 2262, so a year-1412 value fails its `.astype("datetime64[ns]")`
+  with OutOfBoundsDatetime (a clean `recipe_failed`, page kept); `e6ef4310` builds a ns Series the
+  same way. A raw numpy ns buffer (as 6d8bf87d had) segfaults instead. Fix: bound both ends
+  (`between(pd.Timestamp.min, pd.Timestamp.max)`) wherever a recipe casts to ns, or grep the
+  corpus for `datetime64[ns]` and drop the cast. (2026-10-30)
 - **`273c5e33…` (vehicle history) is not authored yet.** Its two resources hold 2.5M and 5.55M
   rows (167MB and 178MB), over the 2M `REFRESH_MAX_RECORDS` default. Recipes can now carry their
   own `limits` and fetch fewer `columns`, so it can be authored as a heavy recipe: measure the
