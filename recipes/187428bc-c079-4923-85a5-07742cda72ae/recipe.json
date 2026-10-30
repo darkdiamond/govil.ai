@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "187428bc-c079-4923-85a5-07742cda72ae",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-07T10:08:32.134981+00:00",
+    "rows": { "main": 17830 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "9df52159-af92-4ede-885f-5461b8bb4611",
+      "required_columns": ["case", "date", "asset", "status"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

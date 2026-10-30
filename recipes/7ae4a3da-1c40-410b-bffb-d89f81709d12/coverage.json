@@ -1,0 +1,5 @@
+{
+  "codes.Operator": "table-codes, chart-by-op, code-grid, kpi:operators, kpi:multi, insight:multi, insight:single, insight:pal, insight:blank — legal name shown as written; a Hebrew brand name is added for well-known operators, blank names are labelled",
+  "codes.MCC": "table-codes, kpi:mcc, insight:structure, code-grid — the code map runs over the most common MCC; several MCCs switch the KPI to a count",
+  "codes.MNC": "table-codes, code-grid, chart-by-op, kpi:codes, kpi:gaps, insight:gaps, insight:dups, insight:structure — zero-padded to two digits"
+}

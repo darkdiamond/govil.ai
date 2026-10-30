@@ -1,0 +1,228 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>חגים בישראל: תאריכי החגים והמועדים</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור חג לפי שם או תאריך עברי ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם החג, התאריך העברי, תאריכי ההתחלה והסיום ותיאור החג.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "מתי חל כל חג: לוח החגים והמועדים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.table_lede }}</p>
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.table_caption }}</caption>
+    <thead>
+      <tr class="border-b border-rule text-ink-deep">
+        <th scope="col" class="text-start py-2 pe-2">חג או מועד</th>
+        <th scope="col" class="text-start py-2 pe-2">תאריכים</th>
+        <th scope="col" class="text-start py-2">בדיקה</th>
+      </tr>
+    </thead>
+    <tbody>
+{%- for r in model.tables.holidays %}
+      <tr class="border-b border-rule align-top{% if r.bad %} bg-surface{% endif %}">
+        <th scope="row" class="text-start py-2 pe-2"><span class="block font-semibold text-ink-deep">{{ r.name }}</span><span class="block text-xs text-subtle font-normal">{{ r.hd }}</span></th>
+        <td class="py-2 pe-2"><span class="block whitespace-nowrap" dir="ltr">{{ r.start }}</span>{% if r.multi %}<span class="block whitespace-nowrap">עד <span dir="ltr">{{ r.end }}</span></span>{% endif %}<span class="block text-xs text-subtle">{{ r.sub }}</span></td>
+        <td class="py-2"><span class="inline-block rounded-gov-sm border border-current px-2 text-xs font-semibold whitespace-nowrap {% if r.bad %}text-danger{% elif r.ok %}text-ok{% else %}text-subtle{% endif %}">{{ r.check }}</span>{% if r.check_note %}<span class="block text-xs text-danger mt-1">{{ r.check_note }}</span>{% endif %}</td>
+      </tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+
+{%- if model.flags.has_timeline %}
+<section class="card p-5 mb-6">
+{{ head("database", "ציר הזמן של החגים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.timeline_lede }}</p>
+  <div id="chart-timeline" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.timeline_aria }}"{% if not model.flags.timeline_small %} data-fallback="explorer"{% endif %}></div>
+{%- if model.flags.timeline_small %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <table class="w-full text-sm mt-2">
+      <caption class="sr-only">{{ model.labels.timeline_aria }}</caption>
+      <thead><tr class="border-b border-rule"><th scope="col" class="text-start py-1 pe-3">מועד</th><th scope="col" class="text-start py-1 pe-3">מתחיל</th><th scope="col" class="text-start py-1">ימים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.holidays %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3" dir="ltr">{{ r.start }}</td><td class="py-1">{{ r.days }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_months %}
+<section class="card p-5 mb-6">
+{{ head("database", "ימי חג ומועד לפי חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.months_lede }}</p>
+  <div id="chart-months" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.months_aria }}"{% if not model.flags.months_small %} data-fallback="explorer"{% endif %}></div>
+{%- if model.flags.months_small %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <table class="w-full text-sm mt-2">
+      <caption class="sr-only">{{ model.labels.months_aria }}</caption>
+      <thead><tr class="border-b border-rule"><th scope="col" class="text-start py-1 pe-3">חודש</th><th scope="col" class="text-start py-1 pe-3">ימים</th><th scope="col" class="text-start py-1">מועדים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.months %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3 whitespace-nowrap">{{ r.label }}</th><td class="py-1 pe-3">{{ r.days }}</td><td class="py-1">{{ r.names }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_descs %}
+<section class="card p-5 mb-6">
+{{ head("info", "על החגים: הסבר קצר לכל מועד") }}
+  <div class="grid gap-4 md:grid-cols-2">
+{%- for r in model.tables.descs %}
+    <div class="rounded-gov border border-rule p-4">
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ r.name }}</h3>
+      <p class="m-0 mb-2 text-xs text-subtle">{{ r.hd }}{% if r.when %} · <span dir="ltr">{{ r.when }}</span>{% endif %}</p>
+      <p class="m-0 text-sm leading-relaxed">{{ r.text }}</p>
+    </div>
+{%- endfor %}
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("info", "על המאגר") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">משרד התיירות מפרסם את רשימת החגים והמועדים המרכזיים בישראל, בעברית ובאנגלית, עם תאריך עברי, תאריכי התחלה וסיום בלוח הלועזי והסבר על כל חג. תאריך ההתחלה הוא לרוב ערב החג, שבו החג נכנס עם השקיעה. הקובץ אינו מציין אילו מהמועדים הם ימי מנוחה או ימי שבתון, ואינו כולל את חול המועד בנפרד. בדיקת ההתאמה בטבלה מחושבת לפי הלוח העברי, ומתחשבת בהקדמה או בדחייה של ימי הזיכרון והעצמאות בגלל שבת.</p>
+</section>
+
+{%- if model.flags.has_timeline %}
+<script>
+  (function () {
+    const d = {{ model.charts.timeline | tojson }};
+    const el = document.getElementById("chart-timeline");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const DAY = 86400000;
+    const ms = function (s) { const p = s.split("-"); return Date.UTC(+p[0], +p[1] - 1, +p[2]); };
+    const fmt = function (t) { const x = new Date(t); return x.getUTCDate() + "." + (x.getUTCMonth() + 1) + "." + x.getUTCFullYear(); };
+    const rows = d.names.map(function (n, i) { return [i, ms(d.start[i]), ms(d.end[i]), d.days[i]]; });
+    const names = d.names.slice();
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          const i = p.value[0];
+          const last = d.days[i] > 1 ? " עד " + fmt(p.value[2] - DAY) : "";
+          const tag = d.bad[i] ? "<br/>התאריך אינו תואם לתאריך העברי" : "";
+          return echarts.format.encodeHTML(names[i]) + "<br/>" + fmt(p.value[1]) + last + "<br/>" + (d.days[i] === 1 ? "יום אחד" : d.days[i] + " ימים") + tag;
+        }
+      },
+      grid: { left: 8, right: 8, top: 16, bottom: 28, containLabel: true },
+      xAxis: {
+        type: "time",
+        inverse: true,
+        splitNumber: narrow ? 3 : 6,
+        axisLabel: { formatter: function (t) { const x = new Date(t); return (x.getUTCMonth() + 1) + "." + x.getUTCFullYear(); }, fontSize: narrow ? 10 : 12 }
+      },
+      yAxis: {
+        type: "category",
+        data: names,
+        inverse: true,
+        position: "right",
+        axisLabel: { width: narrow ? 90 : 160, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 }
+      },
+      series: [{
+        type: "custom",
+        encode: { x: [1, 2], y: 0 },
+        data: rows,
+        renderItem: function (params, api) {
+          const i = api.value(0);
+          const a = api.coord([api.value(1), i]);
+          const b = api.coord([api.value(2), i]);
+          const h = api.size([0, 1])[1] * 0.55;
+          const x0 = Math.min(a[0], b[0]);
+          const w = Math.max(Math.abs(b[0] - a[0]), 6);
+          return {
+            type: "rect",
+            shape: { x: x0, y: a[1] - h / 2, width: w, height: h, r: 2 },
+            style: { fill: d.bad[i] ? "#dc3545" : (d.days[i] > 1 ? "#0068f5" : "#0b3668") }
+          };
+        }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_months %}
+<script>
+  (function () {
+    const d = {{ model.charts.months | tojson }};
+    const el = document.getElementById("chart-months");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          const n = d.names[p.dataIndex];
+          return echarts.format.encodeHTML(d.labels[p.dataIndex]) + "<br/>" + (p.value === 1 ? "יום אחד" : p.value + " ימים") + (n ? "<br/>" + echarts.format.encodeHTML(n) : "");
+        }
+      },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: {
+        type: "category",
+        data: d.labels,
+        inverse: true,
+        axisLabel: { interval: 0, rotate: narrow ? 60 : 30, fontSize: narrow ? 10 : 12 }
+      },
+      yAxis: { type: "value", position: "right", minInterval: 1, splitNumber: 3 },
+      series: [{
+        type: "bar",
+        data: d.days,
+        barMaxWidth: 32,
+        itemStyle: { color: "#0068f5", borderRadius: [3, 3, 0, 0] },
+        label: { show: !narrow, position: "top", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return p.value ? p.value : ""; } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

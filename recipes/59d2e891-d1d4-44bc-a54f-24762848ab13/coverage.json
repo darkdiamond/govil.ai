@@ -1,0 +1,8 @@
+{
+  "main.סוג": "chart-types, chart-codes, table-emergency, table-short, table-intl, kpi:emergency, insight:emergency — type keywords route rows to the service-area, emergency, short-number and international views",
+  "main.רשתי": "table-net — network-wide star/hash codes",
+  "main.מספר ספרות לאחר הקידומת": "chart-cap, insight:capacity — the digits+X block pattern gives each provider's share of a code's number space",
+  "main.קידומת חיוג (קוד גישה)": "chart-codes, chart-heat, chart-prov, table-emergency, table-intl, table-net, kpi:codes, insight:codes, insight:intl",
+  "main.מוקצה לספק מורשה במשרד התקשורת": "chart-prov, chart-heat, chart-cap, chart-types, table-intl, kpi:providers, insight:provider",
+  "main.הערות": "chart-codes, table-emergency, table-short, table-net, kpi:cancel, insight:status, insight:free_premium — purpose of each code (modal note) and cancel/future status keywords"
+}

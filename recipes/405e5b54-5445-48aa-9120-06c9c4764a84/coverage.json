@@ -1,0 +1,14 @@
+{
+  "he.Name": "chart-timeline, chart-months, kpi:count, insight:span, insight:longest, insight:mismatch, insight:latest, table:holidays",
+  "he.HebrewDate": "kpi:mismatch, insight:mismatch, insight:allok, table:holidays — parsed (gematria day + month) and checked against the Gregorian start with a Hebrew-calendar conversion",
+  "he.HolidayStart": "chart-timeline, chart-months, kpi:years, kpi:covered, insight:span, insight:busiest, insight:latest, table:holidays",
+  "he.HolidayEnds": "chart-timeline, chart-months, kpi:covered, insight:longest, insight:busiest, table:holidays — duration in days",
+  "he.FullDescription": "table:descs — the per-holiday explanation cards",
+  "he.ShortDescription": "table:descs — fallback text when the full description is empty",
+  "en.Hebrew_Date": "kpi:mismatch, insight:mismatch — fallback Hebrew-date parse when the Hebrew cell can't be read (joined on start+end dates)",
+  "en.HolidayStart": "kpi:mismatch — join key to the Hebrew file",
+  "en.HolidayEnds": "kpi:mismatch — join key to the Hebrew file",
+  "en.Name": "skip: English twin of the Hebrew name; the page is Hebrew-only",
+  "en.ShortDescription": "skip: English twin of the Hebrew text",
+  "en.FullDescription": "skip: English twin of the Hebrew text"
+}

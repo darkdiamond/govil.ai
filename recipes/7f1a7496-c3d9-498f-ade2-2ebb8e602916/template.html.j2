@@ -1,0 +1,116 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>מטמנות אסבסט: איפה מטמינים אסבסט בישראל</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} הרשימה הרשמית של אתרי הטמנת אסבסט ותחנות המעבר בעלי רישיון מהמשרד להגנת הסביבה.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מטמנת אסבסט לפי שם, כתובת או סוג אתר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם האתר, סוג האתר, כתובת, טלפון, פקס, האחראי ומספר הרישיון.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6" id="sites">
+{{ head("map-pin", "אתרי הטמנת אסבסט: כתובת, טלפון וסוג") }}
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.sites_lede }}</p>
+  <div class="grid gap-4 md:grid-cols-2">
+{%- for s in model.tables.sites %}
+    <article class="border border-rule rounded-gov p-4 bg-surface">
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ s.name }}</h3>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <span class="text-xs px-2 py-1 rounded-gov-pill bg-brand text-white">{{ s.kind }}</span>
+{%- for a in s.accepts if a != s.kind %}
+        <span class="text-xs px-2 py-1 rounded-gov-pill border border-rule bg-white text-ink">{{ a }}</span>
+{%- endfor %}
+{%- if s.type_raw %}
+        <span class="text-xs px-2 py-1 rounded-gov-pill border border-rule bg-white text-ink">{{ s.type_raw }}</span>
+{%- endif %}
+      </div>
+      <dl class="m-0 text-sm space-y-1">
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">כתובת:</dt><dd class="m-0">{{ s.address }}</dd></div>
+{%- if s.phones %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">טלפון:</dt><dd class="m-0">{% for p in s.phones %}<span dir="ltr" class="inline-block">{{ p }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</dd></div>
+{%- endif %}
+{%- if s.fax %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">פקס:</dt><dd class="m-0"><span dir="ltr" class="inline-block">{{ s.fax }}</span></dd></div>
+{%- endif %}
+{%- if s.person %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">אחראי:</dt><dd class="m-0">{{ s.person }}</dd></div>
+{%- endif %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">רישיון:</dt><dd class="m-0"><span dir="ltr" class="inline-block">{{ s.lic }}</span>{% if s.expiry %}, בתוקף עד <span dir="ltr" class="inline-block">{{ s.expiry }}</span>{% endif %}</dd></div>
+{%- if s.disc %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">אמצעי אכיפה:</dt><dd class="m-0 text-danger">{{ s.disc }}</dd></div>
+{%- endif %}
+      </dl>
+    </article>
+{%- endfor %}
+  </div>
+</section>
+
+{%- if model.flags.has_matrix %}
+<section class="card p-5 mb-6" id="accepts">
+{{ head("list", "איזה אסבסט כל אתר קולט: צמנט או פריך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.matrix_lede }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.matrix_caption }}</caption>
+      <thead>
+        <tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-2 pe-3">אתר</th>
+          <th scope="col" class="text-center py-2 px-2">אסבסט צמנט</th>
+          <th scope="col" class="text-center py-2 px-2">אסבסט פריך</th>
+          <th scope="col" class="text-center py-2 px-2">תחנת מעבר</th>
+{%- if model.flags.has_other %}
+          <th scope="col" class="text-start py-2 ps-2">סוג אחר</th>
+{%- endif %}
+        </tr>
+      </thead>
+      <tbody>
+{%- for r in model.tables.matrix %}
+        <tr class="border-b border-rule">
+          <th scope="row" class="text-start font-normal py-2 pe-3">{{ r.name }}</th>
+          <td class="text-center py-2 px-2">{% if r.cement %}<span class="text-ok font-semibold">כן</span>{% else %}<span class="text-subtle">לא</span>{% endif %}</td>
+          <td class="text-center py-2 px-2">{% if r.friable %}<span class="text-ok font-semibold">כן</span>{% else %}<span class="text-subtle">לא</span>{% endif %}</td>
+          <td class="text-center py-2 px-2">{% if r.transfer %}<span class="text-ink font-semibold">כן</span>{% else %}<span class="text-subtle">לא</span>{% endif %}</td>
+{%- if model.flags.has_other %}
+          <td class="text-start py-2 ps-2">{{ r.other }}</td>
+{%- endif %}
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("triangle-alert", "לפני שמפנים אסבסט") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">אסבסט פריך (מתפורר, כמו בידוד צנרת וחומרי התזה) מסוכן יותר מאסבסט צמנט (לוחות וגגות "איסכורית"), ולכן רק חלק מהאתרים מורשים לקלוט אותו. ככלל, פירוק ופינוי אסבסט מחייבים קבלן אסבסט מורשה, והפסולת מועברת לאתר מורשה בלבד. הרשימה המלאה של הקבלנים והעוסקים באסבסט מתפרסמת במאגר נפרד של המשרד להגנת הסביבה.</p>
+</section>

@@ -1,0 +1,539 @@
+<h1>עולים חדשים לפי שנים: נתוני העלייה לישראל</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last.tone }} mb-1" dir="ltr">{{ model.kpis.last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_kpi }}</div>
+  </div>
+{%- if model.kpis.change %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.change.tone }} mb-1" dir="ltr">{{ model.kpis.change.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.change_kpi }}</div>
+  </div>
+{%- endif %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.peak.tone }} mb-1" dir="ltr">{{ model.kpis.peak.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.peak_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.women.tone }} mb-1" dir="ltr">{{ model.kpis.women.display }}</div>
+    <div class="text-sm text-subtle">נשים מכלל העולים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_age.tone }} mb-1" dir="ltr">{{ model.kpis.median_age.display }}</div>
+    <div class="text-sm text-subtle">גיל חציוני ביום העלייה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">ארצות מוצא</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">יישובי קליטה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה עולים עלו לישראל בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">עולים</th><th scope="col">שינוי משנה קודמת</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.yearly.x %}
+        <tr><th scope="row">{{ x }}{% if x == model.charts.yearly.partial %} (חלקית){% endif %}</th><td>{{ model.charts.yearly.y[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.yearly.yoy[loop.index0] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות: עולים לפי חודש ושנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מאיפה מגיעים העולים: אזורי מוצא לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regions_note }}</p>
+  <div id="chart-regions" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.regions_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.regions_aria }}</caption>
+      <thead><tr><th scope="col">אזור מוצא</th><th scope="col">עולים בכל התקופה</th><th scope="col">אחוז ב-{{ model.labels.first_year }}</th><th scope="col">אחוז ב-{{ model.labels.last_year }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.regions %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total | fmt_int }}</td><td>{{ r.first | fmt_num }}%</td><td>{{ r.last | fmt_num }}%</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עולים לפי ארץ מוצא</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.countries_note }}</p>
+  <div id="chart-countries" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.countries_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.countries_aria }}</caption>
+      <thead><tr><th scope="col">ארץ מוצא</th><th scope="col">עולים בכל התקופה</th><th scope="col">אחוז מהעולים</th><th scope="col">ב-{{ model.labels.last_year }}</th></tr></thead>
+      <tbody>
+{%- for n in model.charts.countries.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ model.charts.countries["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.countries.shares[loop.index0] | fmt_num }}%</td><td>{{ model.charts.countries.last[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ארצות המוצא הגדולות לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cyears_note }}</p>
+  <div id="chart-cyears" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cyears_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cyears_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for s in model.charts.cyears.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.charts.cyears.table %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גיל ומגדר ביום העלייה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pyramid_note }}</p>
+    <div id="chart-pyramid" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.pyramid_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pyramid_aria }}</caption>
+        <thead><tr><th scope="col">גיל</th><th scope="col">גברים</th><th scope="col">נשים</th></tr></thead>
+        <tbody>
+{%- for b in model.charts.pyramid.bins %}
+          <tr><th scope="row" dir="ltr">{{ b }}</th><td>{{ model.charts.pyramid.male[loop.index0] | fmt_int }}</td><td>{{ model.charts.pyramid.female[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">פרופיל העולים לפי שנה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.profile_note }}</p>
+    <div id="chart-profile" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.profile_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">גיל חציוני</th><th scope="col">{{ model.labels.u18_label }}</th><th scope="col">{{ model.labels.o65_label }}</th><th scope="col">נשים</th></tr></thead>
+        <tbody>
+{%- for x in model.charts.profile.x %}
+          <tr><th scope="row">{{ x }}</th><td>{{ model.charts.profile.median[loop.index0] | fmt_num(0) }}</td><td>{{ model.charts.profile.u18[loop.index0] | fmt_num }}%</td><td>{{ model.charts.profile.o65[loop.index0] | fmt_num }}%</td><td>{{ model.charts.profile.women[loop.index0] | fmt_num }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל חציוני לפי ארץ מוצא</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.agec_note }}</p>
+  <div id="chart-agec" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.agec_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.agec_aria }}</caption>
+      <thead><tr><th scope="col">ארץ מוצא</th><th scope="col">גיל חציוני</th><th scope="col">עולים</th></tr></thead>
+      <tbody>
+{%- for n in model.charts.agec.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ model.charts.agec.median[loop.index0] | fmt_num(0) }}</td><td>{{ model.charts.agec.n[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עולים לפי מחוז קליטה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_note }}</p>
+  <div id="chart-districts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.districts_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for s in model.charts.districts.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.charts.districts.table %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובי הקליטה המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_aria }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">עולים בכל התקופה</th><th scope="col">אחוז מהעולים</th><th scope="col">ב-{{ model.labels.last_year }}</th></tr></thead>
+      <tbody>
+{%- for n in model.charts.cities.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ model.charts.cities["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.cities.shares[loop.index0] | fmt_num }}%</td><td>{{ model.charts.cities.last[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">עיסוק בעת העלייה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.occ_note }}</p>
+    <div id="chart-occ" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.occ_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.occ_aria }}</caption>
+        <thead><tr><th scope="col">עיסוק</th><th scope="col">עולים</th><th scope="col">אחוז</th></tr></thead>
+        <tbody>
+{%- for r in model.charts.occ %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td><td>{{ r.share | fmt_num }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">המקצועות הנפוצים בקרב העולים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prof_note }}</p>
+    <div id="chart-prof" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.prof_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.prof_aria }}</caption>
+        <thead><tr><th scope="col">מקצוע</th><th scope="col">עולים</th><th scope="col">אחוז מבעלי מקצוע מוצהר</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.prof.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.prof["values"][loop.index0] | fmt_int }}</td><td>{{ model.charts.prof.shares[loop.index0] | fmt_num }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">כל מאגר מציג מידע לגבי לפי חודש עלייה, גיל בעת העלייה, מין, ארץ מוצא, אזור מוצא, יישוב קולט, מחוז קולט, מקצוע</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var el = document.getElementById("chart-yearly"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    var peak = Math.max.apply(null, d.y);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, y = d.x[i];
+        return echarts.format.encodeHTML(y) + (y === d.partial ? " (שנה חלקית)" : "") + "<br>" + d.y[i].toLocaleString("he-IL") + " עולים" +
+          (d.yoy[i] ? "<br>שינוי משנה קודמת: " + echarts.format.encodeHTML(d.yoy[i]) : "");
+      } },
+      grid: { left: 16, right: 16, top: narrow ? 36 : 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", barCategoryGap: "25%", data: d.y.map(function (v, i) {
+        if (d.x[i] === d.partial) { return { value: v, itemStyle: { opacity: 0.45 } }; }
+        if (v === peak) { return { value: v, itemStyle: { color: "#0b3668" } }; }
+        return v;
+      }), label: { show: true, position: "top", fontSize: narrow ? 9 : 10, rotate: narrow ? 90 : 0, align: narrow ? "left" : "center", verticalAlign: "middle", distance: narrow ? 4 : 5, formatter: function (p) { return (p.value / 1000).toFixed(1) + "K"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat"), wide = el.clientWidth >= 600;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.x[p.data[0]]) + " " + echarts.format.encodeHTML(d.y[p.data[1]]) + ": " + p.data[2].toLocaleString("he-IL") + " עולים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { fontSize: 10, interval: 0, rotate: wide ? 0 : 45 } },
+      yAxis: { type: "category", data: d.y, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 8,
+                   inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: wide, fontFamily: "Rubik", fontSize: 9,
+                 formatter: function (p) { return p.data[2] >= 1000 ? (p.data[2] / 1000).toFixed(1) + "K" : p.data[2]; } },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () {
+      var w = el.clientWidth >= 600;
+      if (w !== wide) { wide = w; c.setOption({ series: [{ label: { show: wide } }], xAxis: { axisLabel: { rotate: wide ? 0 : 45 } } }); }
+      c.resize();
+    });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.regions | tojson }};
+    var c = echarts.init(document.getElementById("chart-regions"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, out = echarts.format.encodeHTML(d.x[i]);
+        ps.forEach(function (p) {
+          var s = d.series[p.seriesIndex];
+          out += "<br>" + p.marker + echarts.format.encodeHTML(s.name) + ": " + s.data[i] + "% (" + s.counts[i].toLocaleString("he-IL") + ")";
+        });
+        return out;
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "r", barCategoryGap: "20%", data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.countries | tojson }};
+    var c = echarts.init(document.getElementById("chart-countries"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " עולים · " + d.shares[i] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true, formatter: function (v) { return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.cyears | tojson }};
+    var c = echarts.init(document.getElementById("chart-cyears"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var y = ps[0].axisValue, out = echarts.format.encodeHTML(y) + (y === d.partial ? " (שנה חלקית)" : "");
+        ps.forEach(function (p) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"); });
+        return out;
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      series: d.series.map(function (s) { return { name: s.name, type: "line", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.pyramid | tojson }};
+    var c = echarts.init(document.getElementById("chart-pyramid"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "גיל " + echarts.format.encodeHTML(d.bins[i]) + "<br>גברים: " + d.male[i].toLocaleString("he-IL") + "<br>נשים: " + d.female[i].toLocaleString("he-IL");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { v = Math.abs(v); return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      yAxis: { type: "category", data: d.bins, axisTick: { show: false }, axisLabel: { fontSize: 10 } },
+      series: [
+        { name: "גברים", type: "bar", stack: "p", barCategoryGap: "10%", data: d.male.map(function (v) { return -v; }) },
+        { name: "נשים", type: "bar", stack: "p", data: d.female }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.profile | tojson }}, lb = {{ {"u18": model.labels.u18_label, "o65": model.labels.o65_label} | tojson }};
+    var c = echarts.init(document.getElementById("chart-profile"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "%", axisLabel: { formatter: "{value}%" } },
+        { type: "value", name: "גיל", scale: true, splitLine: { show: false } }
+      ],
+      series: [
+        { name: "גיל חציוני", type: "line", yAxisIndex: 1, data: d.median, lineStyle: { width: 3 } },
+        { name: lb.u18, type: "line", data: d.u18, tooltip: { valueFormatter: function (v) { return v + "%"; } } },
+        { name: lb.o65, type: "line", data: d.o65, tooltip: { valueFormatter: function (v) { return v + "%"; } } },
+        { name: "נשים", type: "line", data: d.women, tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.agec | tojson }};
+    var c = echarts.init(document.getElementById("chart-agec"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>גיל חציוני: " + d.median[i] + "<br>" + d.n[i].toLocaleString("he-IL") + " עולים";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", data: d.median, label: { show: true, position: "right", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.districts | tojson }};
+    var c = echarts.init(document.getElementById("chart-districts"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var out = echarts.format.encodeHTML(ps[0].axisValue);
+        ps.forEach(function (p) { if (p.value) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"); } });
+        return out;
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "d", barCategoryGap: "20%", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var c = echarts.init(document.getElementById("chart-cities"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " עולים · " + d.shares[i] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true, formatter: function (v) { return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.occ | tojson }};
+    var c = echarts.init(document.getElementById("chart-occ"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ type: "pie", radius: ["40%", "66%"], center: ["50%", "44%"], label: { show: false },
+                 data: d.map(function (r) { return { name: r.name, value: r.value }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.prof | tojson }};
+    var c = echarts.init(document.getElementById("chart-prof"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " עולים · " + d.shares[i] + "%";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true, formatter: function (v) { return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

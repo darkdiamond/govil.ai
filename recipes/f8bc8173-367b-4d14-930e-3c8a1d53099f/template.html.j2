@@ -1,0 +1,239 @@
+<h1>קלפיות מיוחדות בבחירות לרשויות המקומיות: רשימה ארצית</h1>
+
+<style>
+  .poll-table th, .poll-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .poll-table tbody tr { border-top: 1px solid #c3cfe7; }
+  </style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קלפי מיוחדת לפי עיר או כתובת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מחוז, עיר או רשות, כתובת, מקום הקלפי, הנחיות הגעה ונגישות.</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה כדאי לדעת</h2>
+  </div>
+  <p class="m-0 mb-2 text-sm leading-relaxed">הרשימה מפרטת היכן ממוקמות הקלפיות המיוחדות ואם הן נגישות. הנתונים אינם מפרטים מי רשאי להצביע בקלפי מיוחדת: את הזכאות ואת הקלפי שלכם כדאי לברר מול מנהל הבחירות ברשות המקומית.</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">ראו גם: <a href="{{ model.links.accessible }}" class="text-brand underline">קלפיות נגישות לבוחרים המוגבלים בניידות</a> · <a href="{{ model.links.managers }}" class="text-brand underline">פרטי קשר עם מנהלי הבחירות</a>.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.auth.tone }} mb-1" dir="ltr">{{ model.kpis.auth.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.auth_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.acc.tone }} mb-1" dir="ltr">{{ model.kpis.acc.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.acc_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.dist.tone }} mb-1" dir="ltr">{{ model.kpis.dist.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.dist_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקלפיות המיוחדות לפי מחוז ורשות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+  <div class="poll-dir">
+{%- for d in model.directory %}
+    <div class="border-t border-rule pt-3 mt-3">
+      <h3 class="m-0 text-base font-semibold text-ink-deep">{{ d.name }} <span class="text-sm font-normal text-subtle">· {{ d.summary }}</span></h3>
+{%- for a in d.auths %}
+      <div class="mt-3">
+        <div class="text-sm font-semibold text-ink-deep">{{ a.name }} <span class="font-normal text-subtle">· {{ a.count }}</span></div>
+{%- if a.rows %}
+        <div class="overflow-x-auto mt-1">
+          <table class="poll-table w-full text-sm">
+            <caption class="sr-only">{{ model.labels.dir_caption }}: {{ a.name }}</caption>
+            <thead><tr><th scope="col">כתובת</th><th scope="col">מקום הקלפי</th><th scope="col">הנחיות הגעה</th><th scope="col">נגישות</th></tr></thead>
+            <tbody>
+{%- for r in a.rows %}
+              <tr><th scope="row" class="font-normal">{{ r.address }}</th><td>{{ r.venue }}</td><td>{% if r.direction %}{{ r.direction }}{% else %}<span class="text-subtle">–</span>{% endif %}</td><td class="text-{{ r.tone }}">{{ r.access }}</td></tr>
+{%- endfor %}
+            </tbody>
+          </table>
+        </div>
+{%- endif %}
+      </div>
+{%- endfor %}
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קלפיות מיוחדות ונגישות לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="poll-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_caption }}</caption>
+        <thead><tr><th scope="col">מחוז</th><th scope="col">קלפיות</th><th scope="col">רשויות</th><th scope="col">נגישות</th><th scope="col">שיעור נגישות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dist %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.auth }}</td><td>{{ r.yes }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">באיזה מבנה נמצאת הקלפי?</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.venue_note }}</p>
+    <div id="chart-venue" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.venue_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="poll-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.venue_caption }}</caption>
+        <thead><tr><th scope="col">סוג מבנה</th><th scope="col">קלפיות</th><th scope="col">שיעור</th><th scope="col">נגישות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.venue %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.share }}</td><td>{{ r.yes }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קלפיות מיוחדות לפי רשות מקומית</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auth_note }}</p>
+  <div id="chart-auth" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="poll-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.auth_caption }}</caption>
+      <thead><tr><th scope="col">רשות</th><th scope="col">קלפיות</th><th scope="col">נגישות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.auth %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.yes }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">קלפיות מיוחדות בפריסה ארצית, בחירות לרשויות המקומיות</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var series = [
+      { type: "bar", name: "נגישה", stack: "acc", data: d.yes, itemStyle: { color: "#0068f5" } },
+      { type: "bar", name: "לא נגישה", stack: "acc", data: d.no, itemStyle: { color: "#9fc3f8" } }
+    ];
+    if (d.na.some(function (v) { return v > 0; })) {
+      series.push({ type: "bar", name: "לא צוין", stack: "acc", data: d.na, itemStyle: { color: "#c3cfe7" } });
+    }
+    var c = echarts.init(document.getElementById("chart-dist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.venue | tojson }};
+    var series = [
+      { type: "bar", name: "נגישה", stack: "acc", data: d.yes, itemStyle: { color: "#0068f5" } },
+      { type: "bar", name: "לא נגישה", stack: "acc", data: d.no, itemStyle: { color: "#9fc3f8" } }
+    ];
+    if (d.na.some(function (v) { return v > 0; })) {
+      series.push({ type: "bar", name: "לא צוין", stack: "acc", data: d.na, itemStyle: { color: "#c3cfe7" } });
+    }
+    var c = echarts.init(document.getElementById("chart-venue"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.auth | tojson }};
+    var series = [
+      { type: "bar", name: "נגישה", stack: "acc", data: d.yes, itemStyle: { color: "#0068f5" } },
+      { type: "bar", name: "לא נגישה", stack: "acc", data: d.no, itemStyle: { color: "#9fc3f8" } }
+    ];
+    if (d.na.some(function (v) { return v > 0; })) {
+      series.push({ type: "bar", name: "לא צוין", stack: "acc", data: d.na, itemStyle: { color: "#c3cfe7" } });
+    }
+    var c = echarts.init(document.getElementById("chart-auth"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

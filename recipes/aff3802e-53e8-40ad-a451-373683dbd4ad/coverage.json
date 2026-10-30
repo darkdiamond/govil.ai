@@ -1,0 +1,9 @@
+{
+  "main.OBJECTID": "skip: GIS row identifier, no meaning for visitors",
+  "main.name": "chart-host, table:directory, table:iso, kpi:pharm, insight:pharm, insight:mobile, insight:remote, map:map-main — site name after the fixed prefix line; classified by keyword into host types and shown in the directory and map popups",
+  "main.addr": "table:directory, chart-city, kpi:cities, insight:leader, insight:singles, map:map-main — free-text address; the locality is recognised from it against a lexicon (then from the site name)",
+  "main.service": "insight:services — comma-separated service list, rendered as the services chip list; identical for every row today",
+  "main.office": "skip: constant (מערך הדיגיטל הלאומי); quoted once in the lede",
+  "main.X": "map:map-main, chart-dist, kpi:near, insight:near, insight:remote, table:iso — ITM easting; one row has X/Y swapped and is corrected for distances",
+  "main.Y": "map:map-main, chart-dist, kpi:near, insight:near, insight:remote, table:iso — ITM northing"
+}

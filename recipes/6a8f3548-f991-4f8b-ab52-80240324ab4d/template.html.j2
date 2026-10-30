@@ -1,0 +1,320 @@
+<h1>רשימת שוחטים ובודקים מוסמכים של הרבנות הראשית</h1>
+
+<style>
+  .shb-table th, .shb-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .shb-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .shb-table summary, details > summary { cursor: pointer; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקה אם שוחט או בודק מוסמך: איתור לפי שם או תפקיד ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: {{ model.labels.search_fields }}.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.roles.tone }} mb-1" dir="ltr">{{ model.kpis.roles.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.roles_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.abroad.tone }} mb-1" dir="ltr">{{ model.kpis.abroad.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.abroad_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.countries_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שוחטים, בודקי סכינים, בודקי פנים וחוץ ומנקרים: התפקידים ברשימה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.job_note }}</p>
+  <div id="chart-job" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.job_aria }}"></div>
+  <div class="overflow-x-auto mt-3">
+    <table class="shb-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.job_caption }}</caption>
+      <thead><tr><th scope="col">תפקיד ומה הוא עושה</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.roles %}
+        <tr><th scope="row"><span class="block">{{ r.name }}</span>{% if r.note %}<span class="block text-xs font-normal text-subtle">{{ r.note }}</span>{% endif %}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">בישראל או בחו״ל? לפי קידומת הטלפון</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.loc_note }}</p>
+    <div id="chart-loc" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.loc_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="shb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.loc_caption }}</caption>
+        <thead><tr><th scope="col">מיקום המספר</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.loc %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.country %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">צוותים בחו״ל לפי מדינה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.country_note }}</p>
+    <div id="chart-country" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.country_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="shb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.country_caption }}</caption>
+        <thead><tr><th scope="col">מדינה</th><th scope="col">רשומות</th><th scope="col">שיעור מהרשומות בחו״ל</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.country %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.mix %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">באילו תפקידים יש יותר צוותים בחו״ל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="shb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+        <thead><tr><th scope="col">תפקיד</th>{% for h in model.tables.mix_heads %}<th scope="col">{{ h }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row" class="whitespace-nowrap">{{ r.name }}</th>{% for c in r.cells %}<td class="whitespace-nowrap">{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.region %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">בישראל: לפי אזור הקידומת</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.region_note }}</p>
+    <div id="chart-region" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.region_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="shb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.region_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th><th scope="col">רשומות</th><th scope="col">שיעור מהרשומות בישראל</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.region %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.surname %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">שמות המשפחה הנפוצים ברשימה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.surname_note }}</p>
+    <div id="chart-surname" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.surname_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="shb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.surname_caption }}</caption>
+        <thead><tr><th scope="col">שם משפחה</th><th scope="col">רשומות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.surname %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת שוחטים ובודקים המאושרים על ידי הרבנות הראשית לישראל</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.job | tojson }};
+    var el = document.getElementById("chart-job");
+    var c = echarts.init(el);
+    var wide = el.clientWidth >= 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + ": " + d.values[i].toLocaleString("he-IL") + " רשומות (" + d.share[i] + "%)";
+      } },
+      grid: { left: 16, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: wide } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "רשומות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.loc | tojson }};
+    var c = echarts.init(document.getElementById("chart-loc"));
+    var colors = { "ישראל": "#0068f5", "חו״ל": "#0b3668", "לא מזוהה": "#c3cfe7" };
+    var items = d.items.map(function (it) {
+      return { name: it.name, value: it.value, itemStyle: { color: colors[it.name] } };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " רשומות (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", percentPrecision: 1, radius: ["40%", "68%"], center: ["50%", "45%"],
+        data: items,
+        label: { formatter: "{d}%" }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-country");
+    if (!el) { return; }
+    var d = {{ model.charts.country | tojson }};
+    var c = echarts.init(el);
+    var wide = el.clientWidth >= 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: wide } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "רשומות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-mix");
+    if (!el) { return; }
+    var d = {{ model.charts.mix | tojson }};
+    var c = echarts.init(el);
+    var wide = el.clientWidth >= 500;
+    var colors = { "ישראל": "#0068f5", "חו״ל": "#0b3668", "לא מזוהה": "#c3cfe7" };
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.names[i])];
+        p.forEach(function (s) {
+          var ser = d.series[s.seriesIndex];
+          out.push(echarts.format.encodeHTML(ser.name) + ": " + ser.count[i] + " (" + ser.share[i] + "%)");
+        });
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { show: wide, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "mix", data: s.share, itemStyle: { color: colors[s.name] } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-region");
+    if (!el) { return; }
+    var d = {{ model.charts.region | tojson }};
+    var c = echarts.init(el);
+    var wide = el.clientWidth >= 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: wide } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "רשומות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-surname");
+    if (!el) { return; }
+    var d = {{ model.charts.surname | tojson }};
+    var c = echarts.init(el);
+    var wide = el.clientWidth >= 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: wide } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "רשומות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

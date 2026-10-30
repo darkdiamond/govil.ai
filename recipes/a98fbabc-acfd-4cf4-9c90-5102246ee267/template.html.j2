@@ -1,0 +1,160 @@
+<h1>מטרו ירושלים: קווי המטרו המתוכננים במטרופולין ירושלים</h1>
+
+<style>
+  .metro-table th, .metro-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .metro-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.segments.tone }} mb-1" dir="ltr">{{ model.kpis.segments.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.segments_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.length.tone }} mb-1" dir="ltr">{{ model.kpis.length.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.length_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.year.tone }} mb-1" dir="ltr">{{ model.kpis.year.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.year_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.main.tone }} mb-1" dir="ltr">{{ model.kpis.main.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.main_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך כל קטע מטרו מתוכנן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seg_note }}</p>
+  <div id="chart-seg" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.seg_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="metro-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.seg_caption }}</caption>
+        <thead><tr><th scope="col">שם הקטע</th><th scope="col">מזהה קו</th><th scope="col">סוג</th><th scope="col">אורך מדוד (ק"מ)</th><th scope="col">אורך מעוגל בקובץ (ק"מ)</th><th scope="col">שיעור מהרשת</th><th scope="col">שנת יעד</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.seg %}
+          <tr><th scope="row" dir="ltr" class="text-start">{{ r.name }}</th><td>{{ r.line_id }}</td><td>{{ r.kind }}</td><td>{{ r.km }}</td><td>{{ r.lengt }}</td><td>{{ r.share }}</td><td>{{ r.year }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.kind %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קטעים ראשיים והארכות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kind_note }}</p>
+  <div id="chart-kind" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.kind_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="metro-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kind_caption }}</caption>
+      <thead><tr><th scope="col">סוג קטע</th><th scope="col">קטעים</th><th scope="col">אורך (ק"מ)</th><th scope="col">שיעור מהרשת</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kind %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.km }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה יש במאגר, ואיפה למצוא עוד</h2>
+  </div>
+  <p class="m-0 mb-2 text-sm leading-relaxed">טבלת הנתונים כוללת לכל קטע את שמו, מזהה הקו, שנת היעד ואורכו. מפת התוואים עצמה נמצאת בקובצי ה-SHP וה-KML (מערכת ייחוס רשת ישראל החדשה, ITM) שברשימת ההורדות למטה, וקובץ ה-XLSX מכיל את המטא-דאטה של השכבה.</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">ראו גם: <a href="{{ model.links.jlm2050 }}" class="text-brand underline">תוכנית אסטרטגית למתע"ן מטרופולין ירושלים 2050</a> · <a href="{{ model.links.jlm2040 }}" class="text-brand underline">תוכנית אסטרטגית למתע"ן ירושלים 2040</a> · <a href="{{ model.links.lrt }}" class="text-brand underline">קווי רכבת קלה</a> · <a href="{{ model.links.tlv_metro }}" class="text-brand underline">קווי המטרו במטרופולין תל אביב</a>.</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">קווי המטרו המתוכננים במטרופולין ירושלים</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.seg | tojson }};
+    var c = echarts.init(document.getElementById("chart-seg"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.kind[i]) +
+          ": " + d.km[i] + " ק\"מ (" + d.share[i] + "%)";
+      } },
+      grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "ק\"מ", nameLocation: "end" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{
+        type: "bar", name: "אורך (ק\"מ)",
+        data: d.km.map(function (v, i) {
+          return { value: v, itemStyle: { color: d.kind[i] === "קטע ראשי" ? "#0068f5" : "#9fc3f8" } };
+        }),
+        label: { show: true, position: "right" }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-kind");
+    if (!el) { return; }
+    var d = {{ model.charts.kind | tojson }};
+    var colors = ["#0068f5", "#9fc3f8"];
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.seriesIndex;
+        return echarts.format.encodeHTML(d.names[i]) + ": " + d.km[i] + " ק\"מ, " + d.count[i] + " קטעים";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: el.clientWidth < 500 ? 36 : 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "ק\"מ" },
+      yAxis: { type: "category", data: ["רשת המטרו"] },
+      series: d.names.map(function (n, i) {
+        return { type: "bar", stack: "net", name: n, data: [d.km[i]], barWidth: 48,
+                 itemStyle: { color: colors[i % colors.length] },
+                 label: { show: true, formatter: d.km[i] + " ק\"מ" } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

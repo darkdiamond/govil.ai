@@ -1,0 +1,613 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro tbl(caption, heads, rows, keys) %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">{% for h in heads %}<th scope="col" class="text-start py-1 pe-3">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r[keys[0]] }}</th>{% for k in keys[1:] %}<td class="py-1 pe-3">{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>יישובים בישראל: קובץ היישובים וסמלי היישובים של הלמ״ס</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }} לכל יישוב: סמל יישוב, מחוז ונפה, מעמד מוניציפלי (עירייה, מועצה מקומית או המועצה האזורית), צורת יישוב, שנת ייסוד, גובה, קואורדינטות ואוכלוסייה.</p>
+</section>
+
+<a id="lookup" href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור יישוב לפי שם או סמל יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות קובץ היישובים: שם יישוב, סמל יישוב, שם יישוב באנגלית, שם מחוז, שם נפה, שם מעמד מונציפאלי (המועצה האזורית) ואשכול רשויות מקומיות.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת היישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-localities" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("database", "יישובים ואוכלוסייה לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_lede }}</p>
+  <div id="chart-district" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.district_aria }}"></div>
+{{ tbl(model.labels.district_aria, ["מחוז", "תושבים", "שיעור", "יישובים"], model.tables.district, ["name", "pop", "share", "n"]) }}
+</section>
+
+{%- if model.flags.years %}
+<section class="card p-5 mb-6">
+{{ head("database", "אוכלוסיית היישובים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+{{ tbl(model.labels.years_aria, ["שנה", "תושבים", "יישובים מיושבים", "הערה"], model.tables.years, ["year", "pop", "n", "note"]) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.dgrowth %}
+<section class="card p-5 mb-6">
+{{ head("database", "קצב הגידול בכל מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dgrowth_lede }}</p>
+  <div id="chart-dgrowth" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dgrowth_aria }}"></div>
+{{ tbl(model.labels.dgrowth_aria, ["מחוז", "תושבים בתחילת התקופה", "תושבים בסופה", "שינוי"], model.tables.dgrowth, ["name", "a", "b", "g"]) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.comp %}
+<section class="card p-5 mb-6">
+{{ head("database", "הרכב האוכלוסייה בכל מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_lede }}</p>
+  <div id="chart-comp" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+{%- if model.flags.foreign %}
+{{ tbl(model.labels.comp_aria, ["מחוז", "יהודים ואחרים", "ערבים", "זרים"], model.tables.comp, ["name", "jo", "arab", "foreign"]) }}
+{%- else %}
+{{ tbl(model.labels.comp_aria, ["מחוז", "יהודים ואחרים", "ערבים"], model.tables.comp, ["name", "jo", "arab"]) }}
+{%- endif %}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("database", "צורת יישוב: עיר, מושב, קיבוץ, יישוב קהילתי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.form_lede }} הקיבוצה לפי קוד צורת היישוב בקובץ; מושבים כוללים מושבים שיתופיים.</p>
+  <p class="m-0 text-xs text-subtle mb-2 md:hidden">ליד כל עמודה: מספר הרשומות | השיעור מהאוכלוסייה.</p>
+  <div id="chart-form" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.form_aria }}"></div>
+{{ tbl(model.labels.form_aria, ["צורת יישוב", "רשומות", "תושבים", "שיעור מהאוכלוסייה"], model.tables.form, ["name", "n", "pop", "share"]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מעמד מוניציפלי: עירייה, מועצה מקומית, מועצה אזורית</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.muni_lede }}</p>
+    <div id="chart-muni" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.muni_aria }}"></div>
+{{ tbl(model.labels.muni_aria, ["מעמד", "רשומות", "תושבים", "שיעור"], model.tables.muni, ["name", "n", "pop", "share"]) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">יישובים לפי גודל אוכלוסייה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+    <div id="chart-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+{{ tbl(model.labels.size_aria, ["תושבים", "יישובים", "שיעור מהאוכלוסייה"], model.tables.size, ["name", "n", "share"]) }}
+  </section>
+</div>
+
+{%- if model.flags.councils %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "המועצות האזוריות הגדולות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.councils_lede }}</p>
+  <div id="chart-councils" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.councils_aria }}"></div>
+{{ tbl(model.labels.councils_aria, ["מועצה אזורית", "רשומות", "תושבים"], model.tables.councils, ["name", "n", "pop"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("database", "היישובים הגדולים בישראל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_lede }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+{{ tbl(model.labels.top_aria, ["יישוב", "סמל יישוב", "מחוז", "תושבים"], model.tables.top, ["name", "code", "district", "pop"]) }}
+</section>
+
+{%- if model.flags.growers %}
+<section class="card p-5 mb-6">
+{{ head("database", "היישובים שגדלו הכי מהר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.growers_lede }}</p>
+  <div id="chart-growers" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.growers_aria }}"></div>
+{{ tbl(model.labels.growers_aria, ["יישוב", "מחוז", "תושבים בתחילת התקופה", "תושבים בסופה", "שינוי"], model.tables.growers, ["name", "district", "a", "b", "g"]) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.clusters %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "אשכולות רשויות מקומיות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.clusters_lede }}</p>
+  <div id="chart-clusters" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.clusters_aria }}"></div>
+{{ tbl(model.labels.clusters_aria, ["אשכול", "רשומות", "תושבים"], model.tables.clusters, ["name", "n", "pop"]) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.founded %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">שנת ייסוד: מתי הוקמו היישובים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.founded_lede }}</p>
+    <div id="chart-founded" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.founded_aria }}"></div>
+{{ tbl(model.labels.founded_aria, ["עשור", "יישובים"], model.tables.founded, ["name", "n"]) }}
+  </section>
+{%- endif %}
+{%- if model.flags.elev %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גובה היישובים מעל פני הים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.elev_lede }}</p>
+    <div id="chart-elev" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.elev_aria }}"></div>
+{{ tbl(model.labels.elev_aria, ["גובה (מ')", "יישובים"], model.tables.elev, ["name", "n"]) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.changes %}
+<section class="card p-5 mb-6">
+{{ head("list", "שינויים במערך היישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.changes_lede }} {{ model.labels.span_new }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+{%- if model.tables.new %}
+    <div class="overflow-x-auto">
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">יישובים חדשים</h3>
+      <table id="table-new" class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.new_caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">יישוב</th><th scope="col" class="text-start py-1 pe-3">סמל</th><th scope="col" class="text-start py-1">תושבים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.new %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}<span class="block text-xs text-subtle">{{ r.muni }}</span></th><td class="py-1 pe-3">{{ r.code }}</td><td class="py-1">{{ r["pop"] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+{%- endif %}
+{%- if model.tables.ren %}
+    <div class="overflow-x-auto">
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">שינויי שם</h3>
+      <table id="table-ren" class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ren_caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">שם חדש</th><th scope="col" class="text-start py-1 pe-3">שם קודם</th><th scope="col" class="text-start py-1">סמל</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ren %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.new }}</th><td class="py-1 pe-3">{{ r.old }}</td><td class="py-1">{{ r.code }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+{%- endif %}
+{%- if model.tables.gone %}
+    <div class="overflow-x-auto">
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">ירדו מהקובץ</h3>
+      <table id="table-gone" class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.gone_caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">שם</th><th scope="col" class="text-start py-1">סמל</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.gone %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1">{{ r.code }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+{%- endif %}
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">יישובים בישראל - מערכת היישובים מאפשרת שימוש בקובץ היישובים, הסברים, שינויים במערך היישובים ואת ביאורי הסמלים הגאוגרפיים הרלוונטיים לאותה שנה בהתאם להחלטות ועדת הישובים.</p>
+</section>
+
+{%- if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-pts-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-localities");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "max": model.charts.map.max, "bounds": model.charts.map.bounds, "districts": model.charts.map.districts, "munis": model.charts.map.munis, "nafot": model.charts.map.nafot} | tojson }};
+    var map = L.map(el, { preferCanvas: true, scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-pts-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (p) {
+        var t = Math.sqrt(p[2] / meta.max);
+        var mk = L.circleMarker([p[0], p[1]], {
+          radius: 3 + 22 * t, color: "#0b3668", weight: 1, fillColor: "#0068f5", fillOpacity: 0.35
+        }).addTo(map);
+        var box = document.createElement("div");
+        var title = document.createElement("strong");
+        title.textContent = p[3];
+        box.appendChild(title);
+        [["סמל יישוב", String(p[4])], ["מחוז", meta.districts[p[5]]], ["נפה", meta.nafot[p[7]]], ["מעמד", meta.munis[p[6]]], ["תושבים", fmt(p[2])]].forEach(function (row) {
+          var line = document.createElement("div");
+          line.textContent = row[0] + ": " + row[1];
+          box.appendChild(line);
+        });
+        mk.bindPopup(box);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var el = document.getElementById("chart-district");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.pop[i].toLocaleString("he-IL") + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים";
+      } },
+      grid: { left: 16, right: 72, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { show: !narrow, formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "תושבים", data: d.pop, barMaxWidth: 28,
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.years %}
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    var data = d.y.map(function (v, i) {
+      return d.break && d.x[i] >= d.break ? { value: v, itemStyle: { color: "#9fc3f8" } } : v;
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var note = d.break && d.x[i] >= d.break ? "<br>(כולל זרים)" : "";
+        return d.x[i] + "<br>" + d.y[i].toLocaleString("he-IL") + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים מיושבים" + note;
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } },
+      series: [{ type: "bar", name: "תושבים", data: data, barMaxWidth: 48 }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.dgrowth %}
+<script>
+  (function () {
+    var d = {{ model.charts.dgrowth | tojson }};
+    var el = document.getElementById("chart-dgrowth");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + "%"; } },
+      grid: { left: 16, right: 56, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "שינוי באוכלוסייה", data: d.g, barMaxWidth: 26,
+        label: { show: true, position: "right", formatter: "{c}%" },
+        markLine: { symbol: "none", silent: true, lineStyle: { color: "#0b3668", type: "dashed" },
+          label: { position: "end", distance: 6, formatter: "ממוצע ארצי", fontFamily: "Rubik", color: "#0b3668" }, data: [{ xAxis: d.nat }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.comp %}
+<script>
+  (function () {
+    var d = {{ model.charts.comp | tojson }};
+    var foreign = {{ model.flags.foreign | tojson }};
+    var el = document.getElementById("chart-comp");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    var parts = [["יהודים ואחרים", d.jo], ["ערבים", d.arab]];
+    if (foreign) { parts.push(["זרים", d.foreign]); }
+    var tot = d.names.map(function (_, i) { return parts.reduce(function (s, p) { return s + p[1][i]; }, 0); });
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668", "#9fc3f8"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.names[i])];
+        parts.forEach(function (p) {
+          out.push(p[0] + ": " + p[1][i].toLocaleString("he-IL") + " (" + (tot[i] ? (100 * p[1][i] / tot[i]).toFixed(1) : "0") + "%)");
+        });
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: narrow ? 2 : 5, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: parts.map(function (p) {
+        return { type: "bar", stack: "c", name: p[0], barMaxWidth: 28,
+          data: p[1].map(function (v, i) { return tot[i] ? Math.round(1000 * v / tot[i]) / 10 : 0; }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.form | tojson }};
+    var el = document.getElementById("chart-form");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    var tip = { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+      var i = ps[0].dataIndex;
+      return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " רשומות<br>" + d.share[i].toLocaleString("he-IL") + "% מהאוכלוסייה";
+    } };
+    if (narrow) {
+      // One panel on mobile: record counts as bars, population share in the label.
+      c.setOption(window.GovEcharts.option({
+        color: ["#0068f5"],
+        tooltip: tip,
+        grid: { left: 8, right: 96, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: false } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "רשומות", data: d.n, barMaxWidth: 18,
+          label: { show: true, position: "right", fontSize: 10, formatter: function (p) {
+            return p.value.toLocaleString("he-IL") + " | " + d.share[p.dataIndex].toLocaleString("he-IL") + "%";
+          } } }]
+      }));
+    } else {
+      c.setOption(window.GovEcharts.option({
+        color: ["#0068f5", "#0b3668"],
+        tooltip: tip,
+        legend: { bottom: 0 },
+        grid: [{ left: 16, right: "54%", top: 24, bottom: 40, containLabel: true }, { left: "54%", right: 24, top: 24, bottom: 40, containLabel: true }],
+        xAxis: [{ type: "value", gridIndex: 0, minInterval: 1 }, { type: "value", gridIndex: 1, axisLabel: { formatter: "{value}%" } }],
+        yAxis: [{ type: "category", gridIndex: 0, data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+                { type: "category", gridIndex: 1, data: d.names, inverse: true, axisLabel: { show: false } }],
+        series: [
+          { type: "bar", name: "רשומות", xAxisIndex: 0, yAxisIndex: 0, data: d.n, barMaxWidth: 22 },
+          { type: "bar", name: "שיעור מהאוכלוסייה", xAxisIndex: 1, yAxisIndex: 1, data: d.share, barMaxWidth: 22 }
+        ]
+      }));
+    }
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.muni | tojson }};
+    var el = document.getElementById("chart-muni");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " רשומות<br>" + d.pop[i].toLocaleString("he-IL") + " תושבים";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 80, overflow: "break" } },
+      yAxis: [{ type: "value", name: "רשומות", minInterval: 1 }, { type: "value", name: "תושבים", axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } }],
+      series: [
+        { type: "bar", name: "רשומות", data: d.n, barMaxWidth: 28 },
+        { type: "bar", name: "תושבים", yAxisIndex: 1, data: d.pop, barMaxWidth: 28 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.size | tojson }};
+    var el = document.getElementById("chart-size");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.names[i] + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " יישובים<br>" + d.share[i].toLocaleString("he-IL") + "% מהאוכלוסייה";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 40, fontSize: 10 } },
+      yAxis: [{ type: "value", name: "יישובים", minInterval: 1 }, { type: "value", name: "%", axisLabel: { formatter: "{value}%" } }],
+      series: [
+        { type: "bar", name: "יישובים", data: d.n, barMaxWidth: 28 },
+        { type: "line", name: "שיעור מהאוכלוסייה", yAxisIndex: 1, data: d.share }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.councils %}
+<script>
+  (function () {
+    var d = {{ model.charts.councils | tojson }};
+    var el = document.getElementById("chart-councils");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "מועצה אזורית " + echarts.format.encodeHTML(d.names[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " רשומות<br>" + d.pop[i].toLocaleString("he-IL") + " תושבים";
+      } },
+      grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 3, axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "רשומות", data: d.n, barMaxWidth: 22, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var el = document.getElementById("chart-top");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " תושבים"; } },
+      grid: { left: 16, right: 80, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { show: !narrow, formatter: function (v) { return (v / 1000).toLocaleString("he-IL") + " אלף"; } } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "תושבים", data: d.pop, barMaxWidth: 22,
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.growers %}
+<script>
+  (function () {
+    var d = {{ model.charts.growers | tojson }};
+    var el = document.getElementById("chart-growers");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + "%"; } },
+      grid: { left: 16, right: 64, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "גידול", data: d.g, barMaxWidth: 22,
+        label: { show: true, position: "right", formatter: "{c}%" },
+        markLine: { symbol: "none", silent: true, lineStyle: { color: "#0b3668", type: "dashed" },
+          label: { position: "end", distance: 6, formatter: "ממוצע ארצי", fontFamily: "Rubik", color: "#0b3668" }, data: [{ xAxis: d.nat }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.clusters %}
+<script>
+  (function () {
+    var d = {{ model.charts.clusters | tojson }};
+    var el = document.getElementById("chart-clusters");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.pop[i].toLocaleString("he-IL") + " תושבים<br>" + d.n[i].toLocaleString("he-IL") + " רשומות";
+      } },
+      grid: { left: 16, right: 72, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { show: !narrow, formatter: function (v) { return (v / 1000).toLocaleString("he-IL") + " אלף"; } } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "תושבים", data: d.pop, barMaxWidth: 22,
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.founded %}
+<script>
+  (function () {
+    var d = {{ model.charts.founded | tojson }};
+    var el = document.getElementById("chart-founded");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " יישובים"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "יישובים", data: d.n, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.elev %}
+<script>
+  (function () {
+    var d = {{ model.charts.elev | tojson }};
+    var el = document.getElementById("chart-elev");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.names[i] + " מ'<br>" + d.n[i].toLocaleString("he-IL") + " יישובים";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 45, fontSize: 10 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "יישובים", data: d.n, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

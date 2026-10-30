@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7f1a7496-c3d9-498f-ade2-2ebb8e602916",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T20:01:23.293450+00:00",
+    "rows": { "sites": 6 }
+  },
+  "inputs": [
+    {
+      "name": "sites",
+      "by_id": "fdb667e6-9217-4eae-9261-367cb0e0cf34",
+      "required_columns": ["LicenseNumber", "EnvironmentalSite", "ResponsiblePerson", "SiteType", "Address", "PhoneNumber", "FaxNumber", "LicenseExpiryDate", "DisciplinaryMeasures"]
+    }
+  ],
+  "min_insights": 2,
+  "lint_allow_numbers": []
+}

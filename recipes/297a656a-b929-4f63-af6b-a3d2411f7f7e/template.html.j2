@@ -1,0 +1,285 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>{{ model.labels.h1 }}</h1>
+
+<style>
+  .grave-table th, .grave-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .grave-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .grave-table thead th { color: #0b3668; font-weight: 600; }
+  .grave-all { max-height: 32rem; overflow-y: auto; }
+</style>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מחיר קבר מחיים לפי יישוב או חברה קדישא ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם החברה קדישא או היישוב, התעריף ושנת התעריף.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", model.labels.top_title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_lede }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="grave-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+        <thead><tr><th scope="col">חברה קדישא / יישוב</th><th scope="col">תעריף (₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.top %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td dir="ltr" class="whitespace-nowrap">{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.has_bands or model.flags.has_tiers %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.has_bands %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">התפלגות המחירים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_lede }}</p>
+    <div id="chart-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+      <table class="grave-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bands_caption }}</caption>
+        <thead><tr><th scope="col">טווח מחיר (₪)</th><th scope="col">תעריפים</th></tr></thead>
+        <tbody>
+{%- for b in model.tables.bands %}
+          <tr><th scope="row" class="font-normal" dir="ltr">{{ b.label }}</th><td>{{ b.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.has_tiers %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">רמות תעריף משותפות</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tiers_lede }}</p>
+    <div id="chart-tiers" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.tiers_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+      <table class="grave-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.tiers_caption }}</caption>
+        <thead><tr><th scope="col">תעריף (₪)</th><th scope="col">חברות קדישא</th><th scope="col">שמות</th></tr></thead>
+        <tbody>
+{%- for t in model.tables.tiers %}
+          <tr><th scope="row" class="font-normal whitespace-nowrap" dir="ltr">{{ t.value }}</th><td>{{ t.count }}</td><td>{{ t.names }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+{%- endif %}
+
+{%- if model.flags.has_change %}
+<section class="card p-5 mb-6">
+{{ head("database", model.labels.change_title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.change_lede }}</p>
+  <div id="chart-change" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.change_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="overflow-x-auto grave-all">
+      <table class="grave-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.change_caption }}</caption>
+        <thead><tr><th scope="col">חברה קדישא / יישוב</th><th scope="col">{{ model.labels.prev_year }} (₪)</th><th scope="col">{{ model.labels.year }} (₪)</th><th scope="col">שינוי</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.change %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td dir="ltr">{{ r.prev }}</td><td dir="ltr">{{ r.cur }}</td><td dir="ltr">{{ r.chg }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "תעריף קבר מחיים בכל חברה קדישא") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.all_lede }}</p>
+  <div class="overflow-x-auto grave-all">
+    <table class="grave-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.all_caption }}</caption>
+      <thead><tr><th scope="col">חברה קדישא / יישוב</th><th scope="col">תעריף (₪)</th><th scope="col">לעומת החציון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.all %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td dir="ltr" class="whitespace-nowrap">{{ r.rate }}</td><td dir="ltr" class="whitespace-nowrap">{{ r.rel }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("info", "מה זה קבר מחיים?") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">קבר מחיים הוא חלקת קבר שנרכשת מראש, בחייו של אדם, למשל כדי להיקבר לצד בן או בת זוג. הקבורה עצמה בישראל ממומנת לתושבים באמצעות המוסד לביטוח לאומי, אך רכישת חלקה מראש כרוכה בתשלום לחברה קדישא לפי תעריף שמפרסם המשרד לשירותי דת. בחלק מהערים התעריף שונה בין חברות הקדישא הפועלות בהן, ולכן כדאי לחפש את השם המדויק של החברה קדישא או של בית העלמין.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.top | tojson }};
+    const el = document.getElementById("chart-top");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const fmt = function (v) { return "₪" + Number(v).toLocaleString("he-IL"); };
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return echarts.format.encodeHTML(d.names[p.dataIndex]) + "<br/>" + fmt(p.value);
+        }
+      },
+      grid: { left: 8, right: narrow ? 52 : 64, top: 28, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return Number(v).toLocaleString("he-IL"); } } },
+      yAxis: {
+        type: "category",
+        data: d.labels,
+        axisLabel: { width: narrow ? 120 : 220, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 }
+      },
+      series: [{
+        type: "bar",
+        data: d.values,
+        barMaxWidth: 22,
+        label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058", fontSize: narrow ? 10 : 12, formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); } },
+        markLine: {
+          symbol: "none",
+          silent: true,
+          lineStyle: { color: "#0b3668", type: "dashed" },
+          label: { formatter: "חציון", fontFamily: "Rubik", color: "#0b3668" },
+          data: [{ xAxis: d.median }]
+        }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_bands %}
+<script>
+  (function () {
+    const d = {{ model.charts.bands | tojson }};
+    const el = document.getElementById("chart-bands");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return "₪" + echarts.format.encodeHTML(p.name) + "<br/>" + p.value + " תעריפים";
+        }
+      },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: narrow ? 45 : 30, fontSize: narrow ? 10 : 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 40, label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_tiers %}
+<script>
+  (function () {
+    const d = {{ model.charts.tiers | tojson }};
+    const el = document.getElementById("chart-tiers");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return echarts.format.encodeHTML(p.name) + "<br/>" + p.value + " חברות קדישא";
+        }
+      },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: narrow ? 45 : 30, fontSize: narrow ? 10 : 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 40, label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_change %}
+<script>
+  (function () {
+    const d = {{ model.charts.change | tojson }};
+    const el = document.getElementById("chart-change");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const data = d.values.map(function (v) {
+      return { value: v, itemStyle: { color: v < 0 ? "#198754" : "#0068f5" } };
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return echarts.format.encodeHTML(d.names[p.dataIndex]) + "<br/>" + p.value + "%";
+        }
+      },
+      grid: { left: 8, right: narrow ? 44 : 56, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return v + "%"; } } },
+      yAxis: {
+        type: "category",
+        data: d.labels,
+        axisLabel: { width: narrow ? 120 : 220, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 }
+      },
+      series: [{ type: "bar", data: data, barMaxWidth: 22, label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return p.value + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

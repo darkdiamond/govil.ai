@@ -1,0 +1,273 @@
+<h1>רשימת מט"שים: מתקני טיפול בשפכים בישראל</h1>
+
+<style>
+  .wwtp-table th, .wwtp-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .wwtp-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .wwtp-table thead th { font-weight: 600; color: #0b3668; }
+  .wwtp-dir { min-width: 760px; }
+  .wwtp-dir td.oper { min-width: 10rem; }
+  .wwtp-dir td.treat { min-width: 9rem; }
+  .wwtp-dir td.owners { min-width: 13rem; }
+  .wwtp-dir th[scope="row"] { min-width: 7rem; font-weight: 600; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מט"ש לפי שם, מפעיל או בעלים ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המט"ש, שם ומספר הרישיון, מספר המתקן, המפעיל, הבעלים, סוג הטיפול ואיכות המים.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.unres.tone }} mb-1" dir="ltr">{{ model.kpis.unres.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.unres_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.poor.tone }} mb-1" dir="ltr">{{ model.kpis.poor.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.poor_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.oper.tone }} mb-1" dir="ltr">{{ model.kpis.oper.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.oper_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איכות הקולחים: באיזו איכות יוצאים המים מהמט"ש?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+  <div id="chart-quality" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.quality_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="wwtp-table mt-2 w-full text-sm">
+      <caption class="sr-only">מט"שים לפי איכות הקולחים</caption>
+      <thead><tr><th scope="col">איכות קולחים</th><th scope="col">מט"שים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.quality %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג הטיפול ואיכות הקולחים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treat_note }}</p>
+  <div id="chart-treat" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.treat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="wwtp-table mt-2 w-full text-sm">
+        <caption class="sr-only">מט"שים לפי סוג טיפול ואיכות קולחים</caption>
+        <thead><tr><th scope="col">סוג טיפול</th><th scope="col">סה״כ</th>{% for l in model.tables.levels %}<th scope="col">{{ l }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.treat %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מפעיל את המט"שים?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.oper_note }}</p>
+  <div id="chart-oper" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.oper_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="wwtp-table mt-2 w-full text-sm">
+        <caption class="sr-only">מט"שים לפי מפעיל ואיכות קולחים</caption>
+        <thead><tr><th scope="col">מפעיל</th><th scope="col">סה״כ</th>{% for l in model.tables.levels %}<th scope="col">{{ l }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.oper %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה בעלים יש לכל מט"ש?</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.own_note }}</p>
+    <div id="chart-owners" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.own_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="wwtp-table mt-2 w-full text-sm">
+        <caption class="sr-only">מט"שים לפי מספר הבעלים ברישיון</caption>
+        <thead><tr><th scope="col">מספר בעלים</th><th scope="col">מט"שים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.owners %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי הבעלים: רשויות, תאגידים, קיבוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kind_note }}</p>
+    <div id="chart-kinds" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.kind_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="wwtp-table mt-2 w-full text-sm">
+        <caption class="sr-only">רשומות בעלות לפי סוג הבעלים</caption>
+        <thead><tr><th scope="col">סוג בעלים</th><th scope="col">רשומות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.kinds %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדריך המט"שים לפי איכות הקולחים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+{%- for g in model.directory %}
+  <h3 class="text-base font-semibold text-ink-deep mt-4 mb-2">{{ g.label }} <span class="text-sm font-normal text-subtle">({{ g.count }})</span></h3>
+  <div class="overflow-x-auto">
+    <table class="wwtp-table wwtp-dir w-full text-sm">
+      <caption class="sr-only">מט"שים באיכות קולחים: {{ g.label }}</caption>
+      <thead><tr><th scope="col">מט"ש</th><th scope="col">סוג טיפול</th><th scope="col">מפעיל</th><th scope="col">בעלים ברישיון</th></tr></thead>
+      <tbody>
+{%- for r in g.rows %}
+        <tr><th scope="row">{{ r.name }}</th><td class="treat">{{ r.treat }}</td><td class="oper">{{ r.oper }}</td><td class="owners">{{ r.owners }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endfor %}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">פרטי מתקני טיפול בשפכים בישראל מעודכנים לשנה דאשתקד, עם ציון הבעלים האחראים לפעילותם.
+בעלים אלה מקבלים רישיון אספקה מדי שנה הכולל את כמויות השפכים המתקבלים אל המט"ש, כמויות הקולחים לאספקה וצרכני הקולחים של המט"ש.</p>
+</section>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-quality");
+    var d = {{ model.charts.quality | tojson }};
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value + " מט\"שים (" + p.percent + "%)";
+      } },
+      legend: narrow ? { bottom: 0, type: "plain", itemWidth: 12, itemHeight: 8, textStyle: { fontSize: 11 } } : { bottom: 0, type: "scroll" },
+      series: [{
+        type: "pie", radius: narrow ? ["30%", "55%"] : ["40%", "70%"], center: ["50%", narrow ? "36%" : "44%"],
+        label: { show: !narrow, formatter: "{c}" },
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i], itemStyle: { color: d.colors[i] } }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      var narrow = el.clientWidth < 500;
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          var out = [echarts.format.encodeHTML(d.names[i]) + ": " + d.totals[i]];
+          p.forEach(function (s) {
+            if (s.value > 0) { out.push(echarts.format.encodeHTML(s.seriesName) + ": " + s.value); }
+          });
+          return out.join("<br>");
+        } },
+        legend: narrow ? { bottom: 0, type: "plain", itemWidth: 12, itemHeight: 8, textStyle: { fontSize: 11 } } : { bottom: 0, type: "scroll" },
+        grid: { left: 12, right: 16, top: 8, bottom: narrow ? 72 : 40, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: narrow ? 3 : 5 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+          axisLabel: { width: narrow ? 150 : 260, overflow: "truncate", fontSize: narrow ? 11 : 12 } },
+        series: d.series.map(function (s) {
+          return { type: "bar", name: s.name, stack: "q", data: s.data, itemStyle: { color: s.color } };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-treat", {{ model.charts.treat | tojson }});
+    stacked("chart-oper", {{ model.charts.oper | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    function bars(id, d, name) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      var narrow = el.clientWidth < 500;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 12, right: 36, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+        yAxis: { type: "category", data: d.names, inverse: true },
+        series: [{ type: "bar", name: name, data: d.values, label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-owners", {{ model.charts.owners | tojson }}, "מט\"שים");
+    bars("chart-kinds", {{ model.charts.kinds | tojson }}, "רשומות בעלות");
+  })();
+</script>

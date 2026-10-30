@@ -1,0 +1,6 @@
+{
+  "main.Kadisha": "chart-top, chart-tiers, kpi:min, kpi:max, insight:range, insight:split, insight:general, insight:expensive, table:all — burial society / locality name; split-city rows grouped by the locality before the qualifier",
+  "main.Rate": "chart-top, chart-bands, chart-tiers, kpi:median, kpi:min, kpi:max, insight:range, insight:tiers, insight:skew, table:all — tariff in shekels, rounded to whole shekels for display",
+  "main.Year": "kpi:count, insight:range — tariff year; the latest year in the data is the page year, a previous year (if one appears) feeds the year-over-year section",
+  "main.InOrder": "skip: running row number (alphabetical display order in the source), no meaning beyond row order"
+}

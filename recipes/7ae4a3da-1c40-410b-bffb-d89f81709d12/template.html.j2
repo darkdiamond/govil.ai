@@ -1,0 +1,178 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>קודי PLMN בישראל: קוד רשת סלולרית (MCC ו-MNC) לפי מפעיל</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} קוד PLMN (Public Land Mobile Network) מזהה רשת סלולרית בעולם: שלוש ספרות של קוד המדינה (MCC) ואחריהן קוד הרשת (MNC) שמוקצה למפעיל. זה הקוד שמופיע בהגדרות הטלפון, בכרטיס ה-SIM ובנדידה בחו״ל. הרשימה מתפרסמת על ידי משרד התקשורת, שמנהל את תוכנית המספור בישראל.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המפעיל (Operator), קוד המדינה (MCC) וקוד הרשת (MNC).</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "טבלת קודי הרשת: מפעיל לכל קוד MNC") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.codes_lede }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-codes" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.codes_caption }}</caption>
+      <thead>
+        <tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-2 pe-3">קוד PLMN</th>
+          <th scope="col" class="text-start py-2 pe-3">MCC</th>
+          <th scope="col" class="text-start py-2 pe-3">MNC</th>
+          <th scope="col" class="text-start py-2">מפעיל</th>
+        </tr>
+      </thead>
+      <tbody>
+{%- for r in model.tables.codes %}
+        <tr class="border-b border-rule">
+          <th scope="row" class="text-start font-semibold py-2 pe-3 whitespace-nowrap" dir="ltr">{{ r.plmn }}</th>
+          <td class="py-2 pe-3" dir="ltr">{{ r.mcc }}</td>
+          <td class="py-2 pe-3" dir="ltr">{{ r.mnc }}</td>
+          <td class="py-2">
+{%- if r.blank %}
+            <span class="text-subtle">{{ r.en }}</span>
+{%- else %}
+{%- if r.he %}<span class="font-semibold text-ink-deep">{{ r.he }}</span> {% endif %}<span dir="ltr" class="{% if r.he %}text-subtle text-xs{% endif %}">{{ r.en }}</span>
+{%- endif %}
+          </td>
+        </tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{%- if model.flags.has_grid %}
+<section class="card p-5 mb-6">
+{{ head("tag", "מפת המספרים: אילו קודים תפוסים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grid_lede }}</p>
+  <ul id="code-grid" class="list-none m-0 p-0 grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));" aria-label="{{ model.labels.grid_aria }}">
+{%- for g in model.grid %}
+    <li class="rounded-gov p-2 text-center {% if g.state == 'gap' %}border border-dashed border-rule bg-white text-subtle{% elif g.state == 'blank' %}border border-rule bg-surface-alt text-subtle{% else %}border border-rule bg-surface text-ink-deep{% endif %}">
+      <span class="block text-lg font-bold{% if g.state == 'used' %} text-brand{% endif %}" dir="ltr">{{ g.plmn }}</span>
+      <span class="block text-xs leading-snug truncate" title="{{ g.label }}">{{ g.label }}</span>
+    </li>
+{%- endfor %}
+  </ul>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_chart %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "כמה קודים לכל מפעיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ops_lede }}</p>
+  <div id="chart-by-op" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ops_aria }}"></div>
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm mt-2">
+        <caption class="sr-only">{{ model.labels.ops_aria }}</caption>
+        <thead>
+          <tr class="border-b border-rule text-ink-deep">
+            <th scope="col" class="text-start py-2 pe-3">מפעיל</th>
+            <th scope="col" class="text-start py-2 pe-3">מספר קודים</th>
+            <th scope="col" class="text-start py-2">קודי MNC</th>
+          </tr>
+        </thead>
+        <tbody>
+{%- for r in model.tables.by_op %}
+          <tr class="border-b border-rule">
+            <th scope="row" class="text-start font-normal py-2 pe-3">{{ r.name }}</th>
+            <td class="py-2 pe-3">{{ r.n }}</td>
+            <td class="py-2" dir="ltr">{{ r.codes }}</td>
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("info", "על קודי PLMN") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">קוד PLMN, או קוד רשת סלולרית, מורכב מקוד מדינה נייד (Mobile Country Code, MCC) ומקוד רשת נייד (Mobile Network Code, MNC). השיטה נקבעה בתקן של איגוד התקשורת הבינלאומי (ITU), וכל מדינה מנהלת את קודי הרשת שתחת קוד המדינה שלה. בישראל ההקצאה נעשית על ידי משרד התקשורת, והקוד משמש לזיהוי הרשת בכרטיסי SIM, בהסכמי נדידה ובבחירת רשת ידנית בטלפון. מספרים שאינם מופיעים ברשימה לא בהכרח פנויים: ייתכן שהוקצו בעבר או שמורים.</p>
+</section>
+
+{%- if model.flags.has_chart %}
+<script>
+  (function () {
+    const d = {{ model.charts.by_op | tojson }};
+    const el = document.getElementById("chart-by-op");
+    if (!el) return;
+    const narrow = el.clientWidth < 520;
+    const n = d.names.length;
+    if (narrow) {
+      /* The site's mobile CSS caps inline chart heights at 320px; a
+         stylesheet rule on the id is not capped, so 20+ bars keep room. */
+      const st = document.createElement("style");
+      st.textContent = "#chart-by-op{height:" + Math.max(320, n * 22 + 40) + "px}";
+      el.parentNode.insertBefore(st, el);
+    } else {
+      el.style.height = Math.max(460, n * 24 + 40) + "px";
+    }
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let s = echarts.format.encodeHTML(d.names[i]);
+          if (d.full[i] && d.full[i] !== d.names[i]) {
+            s += "<br/>" + echarts.format.encodeHTML(d.full[i]);
+          }
+          s += "<br/>" + d.values[i] + (d.values[i] === 1 ? " קוד" : " קודים");
+          if (d.codes[i]) s += " (MNC: " + echarts.format.encodeHTML(d.codes[i]) + ")";
+          return s;
+        }
+      },
+      grid: { left: 8, right: 32, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: {
+        type: "category",
+        inverse: true,
+        data: d.names,
+        axisLabel: { interval: 0, width: narrow ? 120 : 220, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 }
+      },
+      series: [{
+        type: "bar",
+        data: d.values,
+        barMaxWidth: 22,
+        label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058" }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

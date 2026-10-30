@@ -1,0 +1,9 @@
+{
+  "main.OID": "skip: constant -1 in every row (GIS export artefact, not an identifier)",
+  "main.LINE_ID": "table:seg — numeric line id, shown per segment",
+  "main.LINE_NAME": "chart-seg, chart-kind, insight:longest, insight:split, insight:shortest, table:seg — segment name; names containing Extension are classed as extensions",
+  "main.YEAR": "kpi:year, insight:horizon, table:seg — planning target year (2050 for every segment in the current file)",
+  "main.Shape_Length": "chart-seg, chart-kind, kpi:length, kpi:main, insight:longest, insight:split, insight:shortest, insight:rounding, table:seg — measured length in metres (ITM), shown in km",
+  "main.LENGT": "insight:rounding, table:seg — the same length rounded to whole km; fallback when Shape_Length is missing",
+  "resource:8689afdd-6df5-4610-9f3d-9c36ad35f16c": "skip: XLSX metadata sheet (publisher, contact, field list), not data rows and not a twin of the CSV"
+}

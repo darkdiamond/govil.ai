@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6a8f3548-f991-4f8b-ab52-80240324ab4d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-10T11:21:20.922510+00:00",
+    "rows": { "main": 682 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0fc0f3d0-267c-4606-abb9-c53a2aa1afd9",
+      "required_columns": ["firsname", "lastname", "job", "phone", "cellphone"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

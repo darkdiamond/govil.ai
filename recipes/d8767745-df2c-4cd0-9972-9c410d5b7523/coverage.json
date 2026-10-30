@@ -1,0 +1,11 @@
+{
+  "main.ROADNUMBER": "table-main, table-regional, chart-top, chart-digits, chart-space, chart-len, kpi:roads, insight:longest, insight:digits, insight:concentration — road number; per-road aggregation key, its digit count and leading digit drive the numbering-space views",
+  "main.ROADCLASS": "chart-class, chart-digits, chart-top, table-main, insight:digits, insight:mixed — road class; a road's class is the one covering most of its length",
+  "main.LINKTYPE": "chart-link, kpi:ramps, insight:ramps — numbered road / ramp / service road; only numbered-road segments with a positive number count as roads",
+  "main.NUM_CHANGE": "chart-change, kpi:changes, insight:changes — numbering-change stamp (0 = none, YYYYMM or YYYYMMDD); a non-date code gets its own disclosed table row",
+  "main.LENGT_M": "chart-top, chart-class, chart-len, kpi:km, table-main, insight:median — segment length in metres, summed per road and shown in km",
+  "main.ROADNAME": "skip: ramp code or street name (blank on 70% of segments); read only to detect exact duplicate rows, searchable in the explorer",
+  "main.OID": "skip: constant -1 on every row, no information",
+  "main.Shape_Length": "skip: identical to LENGT_M on every row (GIS geometry length)",
+  "resource:60796b58-877e-46f9-9f02-daa79d6aaec5": "skip: XLSX metadata sheet (publisher, contact, version, field list), not a twin of the CSV; no data rows"
+}

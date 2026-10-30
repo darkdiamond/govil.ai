@@ -1,0 +1,24 @@
+{
+  "contract_version": 1,
+  "dataset_id": "405e5b54-5445-48aa-9120-06c9c4764a84",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-05-25T05:28:44.196211+00:00",
+    "rows": { "he": 15, "en": 15 }
+  },
+  "inputs": [
+    {
+      "name": "he",
+      "by_id": "67492cda-b36e-45f4-9ed1-0471af297e8b",
+      "required_columns": ["Name", "ShortDescription", "FullDescription", "HebrewDate", "HolidayStart", "HolidayEnds"]
+    },
+    {
+      "name": "en",
+      "by_id": "38a82e1f-2800-452f-bf70-20c1f4439924",
+      "required_columns": ["Hebrew_Date", "HolidayStart", "HolidayEnds"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

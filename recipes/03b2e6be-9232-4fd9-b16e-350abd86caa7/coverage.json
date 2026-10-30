@@ -1,0 +1,11 @@
+{
+  "main.רישיון מטש": "skip: licence identifier, one per facility (1:1 with מספר מתקן); searchable in the explorer",
+  "main.שם רישיון": "skip: redundant with שם המטש (same name with an 'מטש' prefix)",
+  "main.מספר מתקן": "kpi:total, table:directory — facility key; rows repeat once per owner and are grouped on it",
+  "main.שם המטש": "table:directory, insight:owners, insight:missing — facility name",
+  "main.איכות מים": "chart-quality, chart-treat, chart-oper, kpi:unres, kpi:poor, insight:quality, insight:tertiary, insight:poor_treat, insight:missing, table:directory — effluent quality grade, ordered best to worst",
+  "main.מפעיל": "chart-oper, kpi:oper, insight:oper, table:directory — operating company",
+  "main.שנה": "kpi:total — licence year; constant (2025) today, only the latest year is shown if several appear",
+  "main.בעלים": "chart-owners, chart-kinds, insight:owners, insight:kinds, table:directory — licence owners, several per facility; kind classified by name keywords",
+  "main.סוג טיפול": "chart-treat, insight:treat, insight:tertiary, insight:poor_treat, table:directory — treatment process"
+}

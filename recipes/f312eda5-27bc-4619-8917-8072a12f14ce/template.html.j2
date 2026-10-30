@@ -1,0 +1,296 @@
+<h1>רשימת רבנים מוסמכים לעריכת חופה וקידושין</h1>
+
+<style>
+  .rb-table th, .rb-table td { padding: 0.35rem 0.5rem; text-align: start; }
+  .rb-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .rb-fallback summary { cursor: pointer; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור רב לחופה וקידושין לפי שם או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם משפחה, שם פרטי ויישוב. כך אפשר לבדוק אם רב מסוים מוסמך לסדר קידושין, או למצוא רבנים מוסמכים בעיר שלכם.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.loc.tone }} mb-1" dir="ltr">{{ model.kpis.loc.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.loc_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.leader.tone }} mb-1" dir="ltr">{{ model.kpis.leader.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.leader_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.abroad.tone }} mb-1" dir="ltr">{{ model.kpis.abroad.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.abroad_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רבנים מוסמכים לפי יישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="rb-fallback mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="rb-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_aria }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">רבנים מוסמכים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה רבנים מוסמכים יש בכל יישוב?</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spread_note }}</p>
+    <div id="chart-spread" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.spread_aria }}"></div>
+    <details class="rb-fallback mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="rb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.spread_aria }}</caption>
+        <thead><tr><th scope="col">גודל</th><th scope="col">יישובים</th><th scope="col">רבנים</th><th scope="col">שיעור מהרבנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.spread %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.loc }}</td><td>{{ r.rab }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ריכוז: כמה מהרבנים ביישובים הגדולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.conc_note }}</p>
+    <div id="chart-conc" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.conc_aria }}"></div>
+    <details class="rb-fallback mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="rb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.conc_aria }}</caption>
+        <thead><tr><th scope="col">היישובים המובילים</th><th scope="col">רבנים</th><th scope="col">שיעור מצטבר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.conc %}
+          <tr><th scope="row">{{ r.rank }}</th><td>{{ r.rabbis }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.surnames %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שמות המשפחה הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.surnames_note }}</p>
+    <div id="chart-surnames" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.surnames_aria }}"></div>
+    <details class="rb-fallback mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="rb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.surnames_aria }}</caption>
+        <thead><tr><th scope="col">שם משפחה</th><th scope="col">רבנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.surnames %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.first %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">השמות הפרטיים הנפוצים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.first_note }}</p>
+    <div id="chart-first" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.first_aria }}"></div>
+    <details class="rb-fallback mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="rb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.first_aria }}</caption>
+        <thead><tr><th scope="col">שם פרטי</th><th scope="col">רבנים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.first %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.abroad %}
+<section id="abroad" class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רבנים מוסמכים בחו״ל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.abroad_note }}</p>
+{%- if model.flags.abroad_list %}
+  <ul class="list-none m-0 ps-0 flex flex-wrap gap-2 text-sm">
+{%- for a in model.abroad %}
+    <li class="rounded-gov-pill bg-surface border border-rule px-3 py-1">{{ a.name }}{% if a.count > 1 %} <span class="text-subtle">({{ a.count }})</span>{% endif %}</li>
+{%- endfor %}
+  </ul>
+{%- endif %}
+{%- if model.labels.abroad_more or model.labels.abroad_latin %}
+  <p class="m-0 mt-3 text-sm text-subtle">{{ model.labels.abroad_more }}{% if model.labels.abroad_more and model.labels.abroad_latin %} · {% endif %}{{ model.labels.abroad_latin }}</p>
+{%- endif %}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת רבנים מוסמכים לעריכת חופות וקידושין המאושרים על ידי הרבנות הראשית לישראל</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var el = document.getElementById("chart-cities"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    var last = d.names.length - 1;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{
+        type: "bar", name: "רבנים מוסמכים",
+        data: d.values.map(function (v, i) {
+          return (i === last && d.names[i].indexOf("אחר") === 0) ? { value: v, itemStyle: { color: "#9fc3f8" } } : v;
+        }),
+        label: { show: true, position: "right" }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.spread | tojson }};
+    var el = document.getElementById("chart-spread"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: narrow ? 10 : 11, width: narrow ? 52 : undefined, overflow: narrow ? "break" : "none" } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", name: "יישובים", data: d.localities, label: { show: true, position: "top" } },
+        { type: "bar", name: "רבנים", data: d.rabbis, itemStyle: { color: "#9fc3f8" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.conc | tojson }};
+    var el = document.getElementById("chart-conc"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        return "היישובים המובילים: " + echarts.format.encodeHTML(p[0].name) + "<br>" + p[0].value + "% מהרבנים";
+      } },
+      grid: { left: 16, right: 24, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "מספר יישובים", nameLocation: "middle", nameGap: 26, boundaryGap: false },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור מצטבר", data: d.y.map(function (v, i) {
+                   return narrow && i === 0 ? { value: v, label: { position: "right" } } : v;
+                 }), areaStyle: { opacity: 0.15 },
+                 label: { show: true, formatter: "{c}%", fontSize: 11 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-surnames");
+    if (!el) { return; }
+    var d = {{ model.charts.surnames | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "רבנים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-first");
+    if (!el) { return; }
+    var d = {{ model.charts.first | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "רבנים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

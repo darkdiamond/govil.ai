@@ -1,0 +1,5 @@
+{
+  "main.שם משפחה": "chart-last, kpi:surnames, insight:surnames, insight:dups, insight:compound — top-12 surnames; full name (first + last) is used to count names shared by several licensees",
+  "main.שם פרטי": "chart-first, insight:first, insight:dups, insight:compound — top-12 first names",
+  "main.מספר רישיון": "chart-series, kpi:total, kpi:fmt0, kpi:fmt1, insight:total, insight:formats, insight:series — individual numbers are never written to the page, only series prefixes (number minus its last four digits) and digit-length formats"
+}

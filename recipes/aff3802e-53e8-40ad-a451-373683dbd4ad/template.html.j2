@@ -1,0 +1,258 @@
+<h1>עמדות שירות עצמי ממשלתיות: איפה יש עמדה קרובה</h1>
+
+<style>
+  .kiosk-table th, .kiosk-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .kiosk-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור עמדת שירות עצמי לפי יישוב, כתובת או שם המקום ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם העמדה ומקום ההצבה (למשל סופר פארם או עירייה), הכתובת והיישוב, ורשימת השירותים.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.pharm.tone }} mb-1" dir="ltr">{{ model.kpis.pharm.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.pharm_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.near.tone }} mb-1" dir="ltr">{{ model.kpis.near.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.near_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אילו שירותים אפשר לקבל בעמדה?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.services_note }}</p>
+  <ul class="list-none m-0 ps-0 flex flex-wrap gap-2">
+{%- for s in model.services %}
+    <li class="tag-chip">{{ s.name }}{% if not model.labels.services_uniform %} <span class="text-subtle">({{ s.count }})</span>{% endif %}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.has_geo %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת עמדות השירות העצמי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת העמדות לפי יישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+  <div class="kiosk-dir">
+{%- for c in model.directory %}
+    <div class="border-t border-rule py-3">
+      <h3 class="m-0 text-sm"><span class="font-semibold text-ink-deep">{{ c.name }}</span> <span class="text-subtle font-normal">· {{ c.count }} עמדות</span></h3>
+{%- if c.rows %}
+      <div class="overflow-x-auto mt-2">
+        <table class="kiosk-table w-full text-sm">
+          <caption class="sr-only">{{ model.labels.dir_caption }}: {{ c.name }}</caption>
+          <thead><tr><th scope="col">מקום</th><th scope="col">כתובת</th><th scope="col">סוג המקום</th></tr></thead>
+          <tbody>
+{%- for r in c.rows %}
+            <tr><th scope="row">{{ r.place }}</th><td>{{ r.addr }}</td><td>{{ r.host }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+{%- endif %}
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עמדות לפי יישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  <div id="chart-city" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="kiosk-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.city_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">עמדות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.city %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה מוצבות העמדות?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.host_note }}</p>
+  <div id="chart-host" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.host_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="kiosk-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.host_caption }}</caption>
+      <thead><tr><th scope="col">סוג המקום</th><th scope="col">עמדות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.host %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.has_geo %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה רחוקה העמדה הבאה?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+  <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="kiosk-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dist_caption }}</caption>
+      <thead><tr><th scope="col">מרחק לעמדה הקרובה</th><th scope="col">עמדות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dist %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+  <h3 class="mt-5 mb-2 text-base font-semibold text-ink-deep">{{ model.labels.iso_title }}</h3>
+  <div class="overflow-x-auto">
+    <table class="kiosk-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.iso_caption }}</caption>
+      <thead><tr><th scope="col">עמדה</th><th scope="col">יישוב</th><th scope="col">מרחק לעמדה הקרובה (ק״מ)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.iso %}
+        <tr><th scope="row">{{ r.place }}</th><td>{{ r.city }}</td><td dir="ltr" class="text-start">{{ r.km }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">עמדות שירות עצמי לקבלת שירותי ממשלה</p>
+</section>
+
+{%- if model.flags.has_geo %}
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "Y",
+    lngField: "X",
+    projection: "itm",
+    popupTitleField: "name",
+    popupFields: [
+      { field: "addr", label: "כתובת" }
+    ]
+  });
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.city | tojson }};
+    var c = echarts.init(document.getElementById("chart-city"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 140, overflow: "truncate" } },
+      series: [{ type: "bar", name: "עמדות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.host | tojson }};
+    var el = document.getElementById("chart-host"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 140, overflow: "break" } },
+      series: [{ type: "bar", name: "עמדות", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_geo %}
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var el = document.getElementById("chart-dist"), narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: narrow ? { interval: 0, rotate: 35, fontSize: 11 } : { interval: 0, hideOverlap: true } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "עמדות", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,20 @@
+{
+  "contract_version": 1,
+  "dataset_id": "297a656a-b929-4f63-af6b-a3d2411f7f7e",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-02-17T09:53:37.346337+00:00",
+    "rows": { "main": 94 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": ["Kadisha", "Rate", "Year"],
+      "concat": true,
+      "required_columns": ["Kadisha", "Rate", "Year"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

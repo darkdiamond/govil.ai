@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "89fbf87e-6bc0-4e26-acc7-a288c31b12a1",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T21:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-05-03T08:09:11.740420+00:00",
+    "rows": { "main": 391 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0a760550-0426-4eb7-acf6-2ee919bf12e7",
+      "required_columns": [
+        "update date",
+        "retailer pricre without VAT",
+        "consumers price includes VAT",
+        "consumer price in Eilat",
+        "product"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "e00f1a81-43f0-47c2-b4bf-1468fb6bfcd2",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-19T05:20:51.558781+00:00",
+    "rows": { "houses": 57 }
+  },
+  "inputs": [
+    {
+      "name": "houses",
+      "by_id": "b91ac631-742b-44d3-b499-60f456203fd1",
+      "required_columns": ["title", "kupa", "city", "district", "district_name", "phone", "email", "operator", "comments", "type", "type_name"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

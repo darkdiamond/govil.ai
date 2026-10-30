@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7ae4a3da-1c40-410b-bffb-d89f81709d12",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-16T06:22:46.411023+00:00",
+    "rows": { "codes": 27 }
+  },
+  "inputs": [
+    {
+      "name": "codes",
+      "by_id": "5afb773e-adc1-4665-a44a-ed7056a430b5",
+      "required_columns": ["Operator", "MCC", "MNC"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

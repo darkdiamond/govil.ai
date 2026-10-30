@@ -1,0 +1,205 @@
+<h1>רוקחים בעלי הרשאה אישית למתן מרשם</h1>
+
+<style>
+  .rx-table th, .rx-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .rx-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .rx-table td { white-space: nowrap; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת רוקח בעל הרשאה אישית לפי שם או מספר רישיון ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.lic.tone }} mb-1" dir="ltr">{{ model.kpis.lic.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.lic_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.s1.tone }} mb-1" dir="ltr">{{ model.kpis.s1.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.s1_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.s2.tone }} mb-1" dir="ltr">{{ model.kpis.s2.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.s2_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה אפשר לבדוק ברשימה, ומה לא</h2>
+  </div>
+  <p class="m-0 mb-2 text-sm leading-relaxed">רוקח או רוקחת בעלי הרשאה אישית רשאים לחדש מרשם לטיפול המשכי ולתת מרשם ל"תרופות רוקח", בתנאים שבתקנות. רוקח שאינו מופיע ברשימה המפורסמת אינו רשום בה כבעל הרשאה אישית; לבירור מעמד עדכני יש לפנות למשרד הבריאות.</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">{{ model.labels.missing_note }}</p>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך מספר הרישיון של בעלי ההרשאות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.len_note }}</p>
+  <div id="chart-len" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.len_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="rx-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.len_aria }}</caption>
+        <thead><tr><th scope="col">אורך מספר הרישיון</th>{% for h in model.labels.series_heads %}<th scope="col">{{ h }}</th>{% endfor %}<th scope="col">סה״כ</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.len %}
+          <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.blocks %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">לאורך מספור ההרשאות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.blocks_note }}</p>
+  <div id="chart-blocks" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.blocks_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="rx-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.blocks_aria }}</caption>
+        <thead><tr><th scope="col">מספרי הרשאה</th><th scope="col">רשומות</th>{% for h in model.tables.bucket_heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.blocks %}
+          <tr><th scope="row" dir="rtl">{{ r.name }}</th><td>{{ r.rows }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איכות הנתונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+  <table class="rx-table w-full text-sm">
+    <caption class="sr-only">בדיקות איכות הנתונים ברשימת הרוקחים בעלי הרשאה אישית</caption>
+    <thead><tr><th scope="col">בדיקה</th><th scope="col">מספר</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.quality %}
+      <tr><th scope="row" class="font-normal" style="white-space: normal;">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רוקחים בעלי הרשאה אישית יכולים לספק מרשם לטיפול המשכי למטופלים וכן מרשם ל"תרופות רוקח" בהתאם לתנאים שהוגדרו בתקנות הרוקחים (מתן מרשם בידי רוקח בעל הרשאה אישית), {{ model.labels.notes_year }}.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.len | tojson }};
+    var el = document.getElementById("chart-len");
+    var tot = d.names.map(function (_, i) { return d.series.reduce(function (a, s) { return a + s.values[i]; }, 0); });
+    var big = Math.max.apply(null, tot.concat([1]));
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "all", data: s.values,
+                 label: { show: true, formatter: function (p) { return p.value >= big * 0.08 ? p.value.toLocaleString("he-IL") : ""; } } };
+      })
+    }));
+    window.addEventListener("resize", function () {
+      var w = el.clientWidth < 500;
+      if (w !== narrow) { narrow = w; c.setOption({ xAxis: { axisLabel: { show: !narrow } } }); }
+      c.resize();
+    });
+  })();
+</script>
+
+{%- if model.flags.blocks %}
+<script>
+  (function () {
+    var d = {{ model.charts.blocks | tojson }};
+    var el = document.getElementById("chart-blocks");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          var out = echarts.format.encodeHTML(d.names[i]) + " (" + d.rows[i].toLocaleString("he-IL") + " רשומות)";
+          ps.forEach(function (p) {
+            out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value + "% (" + d.series[p.seriesIndex].count[i].toLocaleString("he-IL") + ")";
+          });
+          return out;
+        }
+      },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map(function (s, k) {
+        var ramp = ["#9fc3f8", "#5b9cf6", "#0068f5", "#0b3668"];
+        var odd = d.odd && k === d.series.length - 1;
+        var col = odd ? "#6c757d" : ramp[Math.round(k * (ramp.length - 1) / Math.max(d.series.length - (d.odd ? 2 : 1), 1))];
+        return { type: "bar", name: s.name, stack: "all", data: s.share, itemStyle: { color: col },
+                 label: { show: true, color: (col === "#9fc3f8" || col === "#5b9cf6") ? "#0c3058" : "#ffffff", formatter: function (p) { return p.value >= 12 ? Math.round(p.value) + "%" : ""; } } };
+      })
+    }));
+    window.addEventListener("resize", function () {
+      var w = el.clientWidth < 500;
+      if (w !== narrow) { narrow = w; c.setOption({ xAxis: { axisLabel: { show: !narrow } } }); }
+      c.resize();
+    });
+  })();
+</script>
+{%- endif %}

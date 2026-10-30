@@ -1,0 +1,11 @@
+{
+  "sites.LicenseNumber": "sites — shown on each site card; tie-break key in sorts",
+  "sites.EnvironmentalSite": "sites, accepts, insight:friable, insight:transfer, insight:expiry, insight:enforcement — card title and matrix row header",
+  "sites.ResponsiblePerson": "sites — named site manager of a licensed facility (professional capacity)",
+  "sites.SiteType": "sites, accepts, kpi:landfills, kpi:friable, kpi:cement, insight:friable, insight:transfer — parsed by keyword into cement / friable / transfer station; unmatched wording shown verbatim",
+  "sites.Address": "sites, insight:transfer",
+  "sites.PhoneNumber": "sites — facility contact numbers the ministry publishes for this purpose",
+  "sites.FaxNumber": "sites",
+  "sites.LicenseExpiryDate": "sites, insight:expiry",
+  "sites.DisciplinaryMeasures": "sites, kpi:enforcement, insight:enforcement — empty for every site today"
+}
