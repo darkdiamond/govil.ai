@@ -1,0 +1,442 @@
+{% macro head(icon, title) -%}
+<div class="flex items-center gap-2 mb-3 text-brand">
+  <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+  <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+</div>
+{%- endmacro %}
+{% macro rank_table(rows, caption, col, unit) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ col }}</th><th scope="col">{{ unit }}</th>{% if rows and rows[0].share is defined %}<th scope="col">שיעור</th>{% endif %}</tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count if r.count is defined else r.tons }}</td>{% if r.share is defined %}<td>{{ r.share }}</td>{% endif %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<h1>מפל"ס: רשימת המפעלים המדווחים למרשם הפליטות וההעברות לסביבה</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מפעל במפלס לפי שם, חברה או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם האתר, שם החברה המדווחת ומספר התאגיד, יישוב, רשות מקומית, ענף ותחום פעילות.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+  <p class="m-0 mt-3 text-xs text-subtle">{{ model.labels.method_note }}</p>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "מפת המפעלים המדווחים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "כמה מפעלים מדווחים בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">אתרים מדווחים</th><th scope="col">אתרים חדשים</th><th scope="col">לא דיווחו לעומת השנה הקודמת</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.sites }}</td><td>{{ r.new }}</td><td>{{ r.gone }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "פסולת מסוכנת: טיפול מול סילוק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.haz_lede }}</p>
+  <div id="chart-haz" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.haz_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.waste_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">מסוכנת לטיפול</th><th scope="col">מסוכנת לסילוק</th><th scope="col">שיעור טיפול</th><th scope="col">לא מסוכנת לטיפול</th><th scope="col">לא מסוכנת לסילוק</th><th scope="col">שיעור טיפול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.waste %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.ht }}</td><td>{{ r.hd }}</td><td>{{ r.hs }}</td><td>{{ r.nt }}</td><td>{{ r.nd }}</td><td>{{ r.ns }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "פסולת שאינה מסוכנת: טיפול מול סילוק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.non_lede }}</p>
+  <div id="chart-non" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.non_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.waste_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">לטיפול (טון)</th><th scope="col">לסילוק (טון)</th><th scope="col">שיעור טיפול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.waste %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.nt }}</td><td>{{ r.nd }}</td><td>{{ r.ns }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "ענפים: חלק באתרים מול חלק בפסולת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sector_lede }}</p>
+  <div id="chart-sector" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sector_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sector_caption }}</caption>
+      <thead><tr><th scope="col">ענף</th><th scope="col">אתרים</th><th scope="col">שיעור</th><th scope="col">פסולת מסוכנת (טון)</th><th scope="col">שיעור</th><th scope="col">פסולת לא מסוכנת (טון)</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sector %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.sites }}</td><td>{{ r.site_share }}</td><td>{{ r.haz }}</td><td>{{ r.haz_share }}</td><td>{{ r.non }}</td><td>{{ r.non_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "תמהיל הענפים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">מספר האתרים המדווחים בכל ענף, לפי שנת הדיווח. לחיצה על שם ענף במקרא מסתירה או מציגה אותו.</p>
+  <div id="chart-trend" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.trend_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.trend_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in model.tables.sector_trend.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.sector_trend.rows %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "תחומי הפעילות הנפוצים") }}
+  <p class="m-0 text-sm text-subtle mb-3">מספר האתרים בכל תחום פעילות בשנת {{ model.labels.ref_year }}.</p>
+  <div id="chart-field" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.field_aria }}"></div>
+  {{ rank_table(model.tables.field, model.labels.field_caption, "תחום פעילות", "אתרים") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("map-pin", "אתרים לפי מחוז") }}
+    <p class="m-0 text-sm text-subtle mb-3">מספר האתרים המדווחים בכל מחוז בשנת {{ model.labels.ref_year }}.</p>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    {{ rank_table(model.tables.dist, model.labels.dist_caption, "מחוז", "אתרים") }}
+  </section>
+  <section class="card p-5">
+    {{ head("building-2", "רשויות מקומיות מובילות") }}
+    <p class="m-0 text-sm text-subtle mb-3">הרשויות עם מספר האתרים המדווחים הגבוה ביותר בשנת {{ model.labels.ref_year }}.</p>
+    <div id="chart-auth" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+    {{ rank_table(model.tables.auth, model.labels.auth_caption, "רשות מקומית", "אתרים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "ענפים בכל מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">מספר האתרים המדווחים לפי מחוז וענף בשנת {{ model.labels.ref_year }}. צבע כהה יותר פירושו יותר אתרים.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+{% if model.flags.comp %}
+<section class="card p-5 mb-6">
+  {{ head("building-2", "החברות המדווחות על הכי הרבה אתרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_lede }}</p>
+  <div id="chart-comp" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+  {{ rank_table(model.tables.comp, model.labels.comp_caption, "חברה", "אתרים") }}
+</section>
+{% endif %}
+
+{% if model.flags.top %}
+<section class="card p-5 mb-6">
+  {{ head("triangle-alert", "האתרים שהעבירו הכי הרבה פסולת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">פסולת מסוכנת (טון)</h3>
+      <div id="chart-top-haz" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.top_haz_aria }}"></div>
+      {{ rank_table(model.tables.top_haz, model.labels.top_haz_caption, "אתר", "טון") }}
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">פסולת שאינה מסוכנת (טון)</h3>
+      <div id="chart-top-non" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.top_non_aria }}"></div>
+      {{ rank_table(model.tables.top_non, model.labels.top_non_caption, "אתר", "טון") }}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if model.flags.ww %}
+<section class="card p-5 mb-6">
+  {{ head("database", "טיפול בשפכים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ww_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">סוג הטיפול בשפכים</h3>
+      <div id="chart-wtype" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wtype_aria }}"></div>
+      {{ rank_table(model.tables.wtype, model.labels.wtype_caption, "סוג טיפול", "אתרים") }}
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">יעד השפכים</h3>
+      <div id="chart-wdest" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.wdest_aria }}"></div>
+      {{ rank_table(model.tables.wdest, model.labels.wdest_caption, "יעד", "אתרים") }}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "מתי המפעלים מגישים את הדיווח") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_lede }}</p>
+  <div id="chart-lag" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lag_caption }}</caption>
+      <thead><tr><th scope="col">שנת דיווח</th><th scope="col">חציון ימים עד ההגשה</th><th scope="col">הוגשו עד סוף אפריל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lag %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.med }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.sites[0].id | tojson }},
+    latField: "NekudatTsiunYAtarSvivatiMenifa",
+    lngField: "NekudatTsiunXAtarSvivatiMenifa",
+    projection: "itm",
+    filters: { ShnatDivuach: {{ model.labels.ref_year | tojson }} },
+    popupTitleField: "ShemAtarSvivatiMenifa",
+    popupFields: [
+      { field: "ShemTaagidShutfut", label: "חברה מדווחת" },
+      { field: "AnafAtarSvivati", label: "ענף" },
+      { field: "TchumPeilutAtarSvivati", label: "תחום פעילות" },
+      { field: "YeshuvAtarSvivatiMenifa", label: "יישוב" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "אתרים מדווחים", data: d.sites },
+        { type: "line", name: "אתרים חדשים", data: d.new, symbolSize: 6 },
+        { type: "line", name: "לא דיווחו לעומת השנה הקודמת", data: d.gone, symbolSize: 6, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function waste(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 8, top: 24, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: [
+          { type: "value", name: "טון", axisLabel: { formatter: function (v) { return v >= 1000000 ? (v / 1000000) + "M" : v >= 1000 ? (v / 1000) + "K" : v; } } },
+          { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false } }
+        ],
+        series: [
+          { type: "bar", stack: "w", name: "לטיפול", data: d.treat, tooltip: { valueFormatter: function (v) { return v == null ? "" : v.toLocaleString("he-IL") + " טון"; } } },
+          { type: "bar", stack: "w", name: "לסילוק", data: d.disp, itemStyle: { color: "#c3cfe7" }, tooltip: { valueFormatter: function (v) { return v == null ? "" : v.toLocaleString("he-IL") + " טון"; } } },
+          { type: "line", name: "שיעור הטיפול", yAxisIndex: 1, data: d.share, symbolSize: 6, itemStyle: { color: "#0b3668" }, tooltip: { valueFormatter: function (v) { return v == null ? "" : v + "%"; } } }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    waste("chart-haz", {{ model.charts.haz | tojson }});
+    waste("chart-non", {{ model.charts.non | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var s = {{ model.charts.sector | tojson }};
+    var c = echarts.init(document.getElementById("chart-sector"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668", "#7fb0f9"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: s.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "מהאתרים", data: s.sites.slice().reverse() },
+        { type: "bar", name: "מהפסולת המסוכנת", data: s.haz.slice().reverse() },
+        { type: "bar", name: "מהפסולת שאינה מסוכנת", data: s.non.slice().reverse() }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.sector_trend | tojson }};
+    var c = echarts.init(document.getElementById("chart-trend"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", boundaryGap: false, data: t.x },
+      yAxis: { type: "value" },
+      series: t.series.map(function (s) {
+        return { type: "line", stack: "s", areaStyle: {}, symbol: "none", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " " + unit; } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: function (v) { return v >= 1000000 ? (v / 1000000) + "M" : v >= 1000 ? (v / 1000) + "K" : v; } } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-field", {{ model.charts.field | tojson }}, "אתרים");
+    hbar("chart-auth", {{ model.charts.auth | tojson }}, "אתרים");
+    hbar("chart-comp", {{ model.charts.comp | tojson }}, "אתרים");
+    hbar("chart-top-haz", {{ model.charts.top_haz | tojson }}, "טון");
+    hbar("chart-top-non", {{ model.charts.top_non | tojson }}, "טון");
+    hbar("chart-wtype", {{ model.charts.wtype | tojson }}, "אתרים");
+    hbar("chart-wdest", {{ model.charts.wdest | tojson }}, "אתרים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var c = echarts.init(document.getElementById("chart-dist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "אתרים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var h = {{ model.charts.heat | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-heat"));
+    c2.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(h.sectors[p.value[1]]) + " · " + echarts.format.encodeHTML(h.districts[p.value[0]]) + ": " + p.value[2];
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.districts, splitArea: { show: true } },
+      yAxis: { type: "category", data: h.sectors, splitArea: { show: true }, axisLabel: { width: 120, overflow: "truncate" } },
+      visualMap: {
+        dimension: 2, min: 0, max: h.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik" },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.lag | tojson }};
+    var c = echarts.init(document.getElementById("chart-lag"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 8, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "ימים" },
+        { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "חציון ימים עד ההגשה", data: d.med },
+        { type: "line", name: "הוגשו עד סוף אפריל", yAxisIndex: 1, data: d.share, symbolSize: 6, itemStyle: { color: "#0b3668" }, tooltip: { valueFormatter: function (v) { return v == null ? "" : v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

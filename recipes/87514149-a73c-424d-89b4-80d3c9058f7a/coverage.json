@@ -1,0 +1,7 @@
+{
+  "main.זיהוי נחל": "skip: identifier (unique per stream, no analytic content); searchable in the shell explorer",
+  "main.שם נחל": "chart-largest, chart-parents, chart-water, chart-hops, insight:largest, insight:chain, kpi:total, kpi:largest — names are the network nodes the chains are built from",
+  "main.נחל אליו הוא נשפך": "chart-water, chart-treemap, chart-hops, chart-parents, insight:water, insight:parent, insight:chain — links streams into the river network",
+  "main.תחום התנקזות ראשי": "chart-basins, chart-treemap, chart-comp, chart-largest, insight:basin_leader, kpi:basins",
+  "main.שטח אגן היקוות (קמר)": "chart-largest, chart-dist, chart-comp, insight:largest, insight:small, insight:coverage, kpi:largest, kpi:with_area"
+}

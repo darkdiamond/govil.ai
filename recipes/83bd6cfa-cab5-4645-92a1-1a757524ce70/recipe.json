@@ -1,0 +1,266 @@
+{
+  "contract_version": 1,
+  "dataset_id": "83bd6cfa-cab5-4645-92a1-1a757524ce70",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-14T10:48:39.491030+00:00",
+    "rows": {
+      "record": 84,
+      "site_kind": 7,
+      "taxpayer_activity": 42,
+      "activity_mode": 9,
+      "activity_regions": 9,
+      "countries": 267,
+      "size_turnover": 4,
+      "size_employees": 4,
+      "localities": 1285,
+      "districts": 7,
+      "ownership": 11,
+      "legal_entities": 26,
+      "business_types": 12,
+      "tax_status": 8,
+      "legal_status": 23,
+      "branches": 591,
+      "audiences": 30,
+      "streets": 63049,
+      "authorities": 259,
+      "org_domains": 17,
+      "legal_substatus": 26,
+      "org_subdomains": 74,
+      "legal_status_detailed": 135,
+      "sectors": 47
+    }
+  },
+  "inputs": [
+    {
+      "name": "record",
+      "by_id": "146b9335-3dfe-4336-af06-37cff0ab50c8",
+      "required_columns": [
+        "Category",
+        "Name_Hebrew",
+        "Codelist",
+        "התייחסות לסוג מזהה העסק",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "site_kind",
+      "by_id": "694d165e-6351-4afa-a048-cfa02880cb9b",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "taxpayer_activity",
+      "by_id": "2777f084-a188-4c7c-b681-67b937401fed",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "activity_mode",
+      "by_id": "e7374626-840a-4817-9ea5-f0fd7af22513",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "activity_regions",
+      "by_id": "581a1afc-84b3-4188-ae02-a3d40553df98",
+      "required_columns": ["Code", "Name_HE", "Name_EN", "Description_HE"]
+    },
+    {
+      "name": "countries",
+      "by_id": "7f108e6d-287c-48e8-ac64-44000516e2b8",
+      "required_columns": [
+        "קוד לפי תקן ישראלי",
+        "שם בעברית",
+        "שם באנגלית",
+        "הערות",
+        "שם יבשת",
+        "שם יבשת גיאוגרפי",
+        "שם פיצול רשות האוכלוסין",
+        "שנת שינוי ברשות האוכלוסין"
+      ]
+    },
+    {
+      "name": "size_turnover",
+      "by_id": "6fc36204-46c7-4db9-a41f-8c2ab00f7c3e",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "size_employees",
+      "by_id": "a397604d-3121-496c-a15f-6c473d2764c7",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "localities",
+      "by_id": "0728b1d3-5869-4870-9a5e-e979afbb1a59",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "District",
+        "צורת יישוב",
+        "מעמד מוניציפלי",
+        "אשכול רשויות מקומיות"
+      ]
+    },
+    {
+      "name": "districts",
+      "by_id": "a8535dda-da4b-43ab-bd02-3419b564f195",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "ownership",
+      "by_id": "656ab523-3e8b-4b8a-a5b7-c6a7bfb8a52e",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "legal_entities",
+      "by_id": "42efe64a-6210-42ee-9001-9d69a7947df5",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "business_types",
+      "by_id": "b7e772bf-e4b1-4806-a41d-c5d62d4a131d",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "tax_status",
+      "by_id": "ce872155-9230-4e71-bb39-7cca906b2374",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "legal_status",
+      "by_id": "558bdba8-7725-4d3f-a6ca-88435063f774",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "branches",
+      "by_id": "ce289f5e-1680-4e1a-96a9-722ebd3b613e",
+      "required_columns": ["Code", "Name_Hebrew"]
+    },
+    {
+      "name": "audiences",
+      "by_id": "2f1520fe-2acc-45e6-bab3-9d46b73d3cac",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "streets",
+      "by_id": "f9129f83-c974-4a9e-b2f1-d4667870a73c",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Decription_Hebrew"
+      ]
+    },
+    {
+      "name": "authorities",
+      "by_id": "ae3fcec2-578d-4ad6-932c-86b46cc90ab0",
+      "required_columns": ["Code", "Name_Hebrew", "Description_Hebrew"]
+    },
+    {
+      "name": "org_domains",
+      "by_id": "bef14b8d-3a9a-4242-84df-75933878724f",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "legal_substatus",
+      "by_id": "71ec74c6-5d71-46e3-950b-a7c04746f49e",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "org_subdomains",
+      "by_id": "41f2c984-e421-4165-85d5-6941e99473bc",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_English",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "legal_status_detailed",
+      "by_id": "eabdd1cf-6046-45cd-90a1-fbe1f881d695",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Name_Enflish",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "sectors",
+      "by_id": "e52ea6b9-da18-4e7d-ac0d-63b068c5ce81",
+      "required_columns": ["Code", "Name_Hebrew"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,350 @@
+<h1>ריכוז הכלוריד (מליחות) בכנרת</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="mt-2 mb-0 text-sm text-subtle leading-relaxed">ריכוז הכלורידים הוא המדד המקובל למליחות מי הכנרת. הוא מושפע ממאזן המים באגם: חורפים גשומים מוסיפים מים מתוקים ומדללים אותו, ושנים שחונות ונביעות מלוחות מעלים אותו.{% if model.labels.partial_note %} {{ model.labels.partial_note }}{% endif %}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["latest", "change", "lt_mean", "peak"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpi_labels[key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הדגימות בשנתיים האחרונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">כל דגימה שבועית, לעומת הממוצע ארוך הטווח (קו מקווקו).</p>
+  <div id="chart-recent" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (הדגימות האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.recent_caption }}</caption>
+      <thead><tr><th scope="col">תאריך</th><th scope="col">כלוריד ({{ model.labels.unit }})</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.recent %}
+        <tr><th scope="row">{{ r.date }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מליחות הכנרת לאורך כל השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ממוצע חודשי של הדגימות, וממוצע נע של שנים־עשר חודשים שמסנן את המחזור העונתי. ניתן להתמקד בתקופה בעזרת המחוון שמתחת לגרף.</p>
+  <div id="chart-history" data-fallback="explorer" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.history_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ממוצע וטווח בכל שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">הקו הוא הממוצע השנתי; הפס מראה את הדגימה הנמוכה והגבוהה באותה שנה.</p>
+  <div id="chart-annual" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.annual_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.annual_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">ממוצע</th><th scope="col">מינימום</th><th scope="col">מקסימום</th><th scope="col">דגימות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.annual %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.mean }}</td><td>{{ r.min }}</td><td>{{ r.max }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שינוי שנתי בממוצע</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ההפרש בין הממוצע של כל שנה מלאה לזה של השנה שלפניה. אדום = המים נעשו מליחים יותר, ירוק = מליחים פחות.</p>
+  <div id="chart-yoy" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yoy_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (השנים האחרונות)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yoy_caption }}</caption>
+      <thead><tr><th scope="col">שנים</th><th scope="col">שינוי ({{ model.labels.unit }})</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.yoy %}
+        <tr><th scope="row">{{ r.pair }}</th><td dir="ltr">{{ r.delta }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות לפי עשור</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">הקופסה מראה את חצי הדגימות האמצעי בכל עשור, הקו שבתוכה את החציון, והשפמים את הערך הנמוך והגבוה.</p>
+    <div id="chart-decades" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dec_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">ממוצע, מינימום, חציון ומקסימום הכלוריד בכל עשור.</caption>
+        <thead><tr><th scope="col">תקופה</th><th scope="col">ממוצע</th><th scope="col">מינימום</th><th scope="col">חציון</th><th scope="col">מקסימום</th><th scope="col">דגימות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.decades %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.mean }}</td><td>{{ r.min }}</td><td>{{ r.med }}</td><td>{{ r.max }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מחזור עונתי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">ממוצע הכלוריד בכל חודש: הממוצע הרב-שנתי (מקווקו) לעומת השנים המלאות האחרונות.</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">ממוצע הכלוריד לפי חודש.</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">ממוצע רב-שנתי</th>{% for c in model.labels.season_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.month }}</th><td>{{ r.mean }}</td>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת חום: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">ממוצע הכלוריד בכל חודש. גוון כהה יותר = מים מליחים יותר.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות כל הדגימות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+  <div id="chart-hist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.hist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">מספר הדגימות בכל טווח ריכוז.</caption>
+      <thead><tr><th scope="col">טווח ({{ model.labels.unit }})</th><th scope="col">דגימות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.hist %}
+        <tr><th scope="row" dir="ltr">{{ r.bin }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var U = {{ model.labels.unit | tojson }};
+    function fmt(v) { return (typeof v === "number") ? Math.round(v) + " " + U : v; }
+
+    var r = {{ model.charts.recent | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-recent"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: r.x },
+      yAxis: { type: "value", scale: true, name: U },
+      series: [{ type: "line", name: "כלוריד", data: r.y, showSymbol: true, symbolSize: 4,
+        markLine: { silent: true, symbol: "none", data: [{ yAxis: r.mean, name: "ממוצע ארוך טווח" }],
+          lineStyle: { color: "#6c757d", type: "dashed" },
+          label: { formatter: "{b}", position: "insideEndTop", fontFamily: "Rubik" } } }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+
+    var h = {{ model.charts.history | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-history"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { top: 0 },
+      grid: { left: 48, right: 16, top: 36, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x },
+      yAxis: { type: "value", scale: true, name: U },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [
+        { type: "line", name: "ממוצע חודשי", data: h.y, showSymbol: false, lineStyle: { width: 1, opacity: 0.6 } },
+        { type: "line", name: "ממוצע נע שנתי", data: h.roll, showSymbol: false, lineStyle: { width: 2.5 }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var U = {{ model.labels.unit | tojson }};
+    function fmt(v) { return (typeof v === "number") ? Math.round(v) + " " + U : v; }
+
+    var a = {{ model.charts.annual | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-annual"));
+    var base = a.min;
+    var band = a.max.map(function (v, i) { return Math.round((v - a.min[i]) * 10) / 10; });
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var t = a.x[i] + (a.x[i] === a.partial ? " (שנה חלקית)" : "");
+        return t + "<br>ממוצע: " + Math.round(a.mean[i]) + "<br>מינימום: " + Math.round(a.min[i]) +
+          "<br>מקסימום: " + Math.round(a.max[i]) + "<br>דגימות: " + a.n[i];
+      } },
+      grid: { left: 48, right: 16, top: 24, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: a.x },
+      yAxis: { type: "value", scale: true, name: U },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8 }],
+      series: [
+        { type: "line", name: "מינימום", data: base, stack: "band", showSymbol: false, lineStyle: { opacity: 0 } },
+        { type: "line", name: "טווח", data: band, stack: "band", showSymbol: false, lineStyle: { opacity: 0 },
+          areaStyle: { color: "rgba(0,104,245,0.18)" } },
+        { type: "line", name: "ממוצע", data: a.mean, showSymbol: false, lineStyle: { width: 2.5 },
+          itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+
+    var y = {{ model.charts.yoy | tojson }};
+    var c4 = echarts.init(document.getElementById("chart-yoy"));
+    c4.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return (v > 0 ? "+" : "") + v + " " + U; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: y.x },
+      yAxis: { type: "value", name: U },
+      dataZoom: [{ type: "inside" }],
+      series: [{ type: "bar", name: "שינוי בממוצע", data: y.y.map(function (v) {
+        return { value: v, itemStyle: { color: v > 0 ? "#dc3545" : "#198754" } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c4.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var U = {{ model.labels.unit | tojson }};
+    function fmt(v) { return (typeof v === "number") ? Math.round(v) + " " + U : v; }
+
+    var dd = {{ model.charts.decades | tojson }};
+    var c5 = echarts.init(document.getElementById("chart-decades"));
+    c5.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        if (p.seriesType === "boxplot") {
+          var b = dd.box[p.dataIndex];
+          return dd.x[p.dataIndex] + "<br>מינימום: " + b[0] + "<br>רבעון תחתון: " + b[1] +
+            "<br>חציון: " + b[2] + "<br>רבעון עליון: " + b[3] + "<br>מקסימום: " + b[4];
+        }
+        return dd.x[p.dataIndex] + "<br>ממוצע: " + Math.round(p.value);
+      } },
+      grid: { left: 48, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: dd.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", scale: true, name: U },
+      series: [
+        { type: "boxplot", name: "התפלגות", data: dd.box },
+        { type: "scatter", name: "ממוצע", data: dd.mean, symbolSize: 7, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c5.resize(); });
+
+    var s = {{ model.charts.season | tojson }};
+    var c6 = echarts.init(document.getElementById("chart-season"));
+    var series = s.series.map(function (x) {
+      return { type: "line", name: x.name, data: x.data, showSymbol: true, symbolSize: 5, connectNulls: true };
+    });
+    series.push({ type: "line", name: s.mean_label, data: s.mean, showSymbol: false,
+                  lineStyle: { type: "dashed", color: "#6c757d" }, itemStyle: { color: "#6c757d" } });
+    c6.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: s.months },
+      yAxis: { type: "value", scale: true, name: U },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c6.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var U = {{ model.labels.unit | tojson }};
+    var hm = {{ model.charts.heat | tojson }};
+    var c7 = echarts.init(document.getElementById("chart-heat"));
+    c7.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return hm.months[p.value[1]] + " " + hm.years[p.value[0]] + ": " + Math.round(p.value[2]) + " " + U;
+      } },
+      grid: { left: 64, right: 24, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: hm.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: hm.months, splitArea: { show: true } },
+      visualMap: {
+        min: hm.min, max: hm.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: hm.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c7.resize(); });
+
+    var g = {{ model.charts.hist | tojson }};
+    var c8 = echarts.init(document.getElementById("chart-hist"));
+    c8.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " דגימות"; } },
+      grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: g.x, name: U, nameLocation: "middle", nameGap: 40,
+               axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "דגימות" },
+      series: [{ type: "bar", name: "דגימות", data: g.y.map(function (v, i) {
+        return i === g.hl ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c8.resize(); });
+  })();
+</script>

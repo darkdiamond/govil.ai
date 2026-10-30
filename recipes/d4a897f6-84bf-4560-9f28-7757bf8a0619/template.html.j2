@@ -1,0 +1,460 @@
+<h1>מילוני נתוני אדם: קודי ארצות, יישובים, רחובות ושפות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קוד לפי שם: יישוב, ארץ, רחוב, שכונה, שפה, דת או מקצוע לימוד ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל קובצי הספרייה: שם בעברית או באנגלית, הקוד עצמו, סמלי ארצות של האו״ם, קודי שפות ISO, ובמילון היישובים גם מחוז, נפה ומעמד מוניציפלי.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.fields.tone }} mb-1" dir="ltr">{{ model.kpis.fields.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.fields_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.linked.tone }} mb-1" dir="ltr">{{ model.kpis.linked.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.linked_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.dicts.tone }} mb-1" dir="ltr">{{ model.kpis.dicts.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.dicts_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.entries.tone }} mb-1" dir="ltr">{{ model.kpis.entries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.values_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.countries_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.localities.tone }} mb-1" dir="ltr">{{ model.kpis.localities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.localities_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המילונים בספרייה</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.dicts_lede }}</p>
+  <div id="chart-dicts" class="h-[640px]" role="img" aria-label="{{ model.labels.dicts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dicts_aria }}</caption>
+      <thead><tr><th scope="col">מילון</th><th scope="col">ערכים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dicts %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מבנה רשומת האדם: שדות לפי קטגוריה</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.cat_lede }}</p>
+  <div id="chart-categories" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cat_aria }}</caption>
+      <thead><tr><th scope="col">קטגוריה</th><th scope="col">מקושרים למילון</th><th scope="col">חופשיים</th><th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.categories %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.linked | fmt_int }}</td><td>{{ r.free | fmt_int }}</td><td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">סוגי השדות ברשומה</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.kinds_lede }}</p>
+    <div id="chart-kinds" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.kinds_aria }}</caption>
+        <thead><tr><th scope="col">סוג שדה</th><th scope="col">שדות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.kinds %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מילונים המשמשים כמה שדות</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.reuse_lede }}</p>
+    <div id="chart-reuse" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.reuse_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.reuse_aria }}</caption>
+        <thead><tr><th scope="col">מילון</th><th scope="col">שדות</th><th scope="col">שמות השדות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.reuse %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td><td>{{ r.fields }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מילון הארצות: יבשת מנהלית מול יבשת גיאוגרפית</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.cont_lede }}</p>
+  <div id="chart-continents" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cont_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cont_aria }}</caption>
+      <thead><tr><th scope="col">יבשת</th><th scope="col">לפי רשות האוכלוסין</th><th scope="col">לפי הגיאוגרפיה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.continents %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.admin | fmt_int }}</td><td>{{ r.geo | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מערכות הקוד של הארצות</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.sys_lede }}</p>
+    <div id="chart-systems" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.sys_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.sys_aria }}</caption>
+        <thead><tr><th scope="col">מערכות קוד</th><th scope="col">ארצות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.systems %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">ארצות שנגזרו מישות קודמת</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.splits_lede }}</p>
+    <div id="chart-splits" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.splits_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.splits_aria }}</caption>
+        <thead><tr><th scope="col">ישות קודמת</th><th scope="col">ארצות</th><th scope="col">שנת שינוי</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.splits %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td><td dir="ltr">{{ r.years }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מילון היישובים: מחוז וצורת יישוב</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.loc_lede }}</p>
+  <div id="chart-loc" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.loc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.loc_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th>{% for g in model.tables.loc_groups %}<th scope="col">{{ g }}</th>{% endfor %}<th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.loc %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.cells %}<td>{{ v | fmt_int }}</td>{% endfor %}<td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">רשויות מקומיות לפי סוג</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.auth_lede }}</p>
+    <div id="chart-authorities" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.auth_aria }}</caption>
+        <thead><tr><th scope="col">סוג רשות</th><th scope="col">רשויות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.authorities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מועצות אזוריות עם הכי הרבה יישובים</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.councils_lede }}</p>
+    <div id="chart-councils" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.councils_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.councils_aria }}</caption>
+        <thead><tr><th scope="col">מועצה אזורית</th><th scope="col">יישובים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.councils %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מילון השכונות: ערים עם הכי הרבה שכונות</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.neigh_lede }}</p>
+  <div id="chart-neigh" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.neigh_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.neigh_aria }}</caption>
+      <thead><tr><th scope="col">עיר</th><th scope="col">שכונות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.neigh %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מילון הרחובות: סוג הדרך לפי השם</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.stypes_lede }}</p>
+    <div id="chart-stypes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.stypes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.stypes_aria }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">שמות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.stypes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">שמות הרחובות הנפוצים בישראל</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.snames_lede }}</p>
+    <div id="chart-snames" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.snames_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.snames_aria }}</caption>
+        <thead><tr><th scope="col">שם רחוב</th><th scope="col">הופעות במילון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.snames %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מקצועות לימוד לפי תחום</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.prof_lede }}</p>
+    <div id="chart-prof" class="h-[560px]" role="img" aria-label="{{ model.labels.prof_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.prof_aria }}</caption>
+        <thead><tr><th scope="col">תחום לימודים</th><th scope="col">מקצועות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.prof %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מוסדות להשכלה גבוהה לפי סוג</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.inst_lede }}</p>
+    <div id="chart-inst" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.inst_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.inst_aria }}</caption>
+        <thead><tr><th scope="col">סוג מוסד</th><th scope="col">מוסדות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.inst %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ספריית מילוני נתונים: טרמינולוגיית נתוני אדם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">ספריית מילונים זו מהווה את הטרמינולוגיה האחודה לערכים הנוגעים ליישות אדם. בספרייה זו ניתן למצוא את מבנה רשומת הנתונים המרכזית וכן אוסף מילונים המכילים את הערכים הרלוונטיים לנתונים שברשומה זו.
+
+מילון (code lists או list of values) הוא רשימת ערכים וסיווגים אחידה. מילוני הקוד עבור היישות אדם מרכזים ערכים סטנדרטיים ואחידים לתיאור מאפיינים שונים של פרטים באוכלוסייה, כגון מאפיינים דמוגרפיים, סטטוסים מנהליים, שיוכים גיאוגרפיים ומאפייני חיים נוספים.
+
+מילונים אלו נועדו לייצר שפה משותפת בין גופים ממשלתיים ובמגזר הציבורי בכללותו, וכן בין מגזרים, לאפשר אינטגרציה בין מערכות ולתמוך בניתוחים סטטיסטיים ותפעוליים על בסיס נתונים עקבי ואיכותי. השימוש במילונים יאפשר אחידות בהגדרות, יקטין כפילויות וחוסר התאמה, ויתרום לשיפור קבלת ההחלטות והתכנון. הספרייה מסומנת על ידי המפרסם כגרסה בהרצה.</p>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, opts) {
+      opts = opts || {};
+      var el = document.getElementById(id);
+      if (!el) return;
+      var chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 48, top: 16, bottom: 24, containLabel: true },
+        xAxis: opts.log ? { type: "log", min: 1, logBase: 10 } : { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: opts.labelWidth || 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: opts.name || "", data: d.values,
+                   label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    }
+    function donut(id, data) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+        legend: { bottom: 0, type: "scroll" },
+        series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "44%"],
+                   label: { formatter: "{c}" }, data: data }]
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    }
+
+    hbar("chart-dicts", {{ model.charts.dicts | tojson }}, { log: true, name: "ערכים", labelWidth: 140 });
+
+    (function () {
+      var d = {{ model.charts.categories | tojson }};
+      var chart = echarts.init(document.getElementById("chart-categories"));
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 36, bottom: 24, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: 140, overflow: "truncate" } },
+        series: [
+          { type: "bar", stack: "f", name: "מקושרים למילון", data: d.linked, itemStyle: { color: "#0068f5" } },
+          { type: "bar", stack: "f", name: "שדות חופשיים", data: d.free, itemStyle: { color: "#c3cfe7" } }
+        ]
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    })();
+
+    donut("chart-kinds", {{ model.charts.kinds | tojson }});
+    hbar("chart-reuse", {{ model.charts.reuse | tojson }}, { name: "שדות", labelWidth: 120 });
+
+    (function () {
+      var d = {{ model.charts.continents | tojson }};
+      var chart = echarts.init(document.getElementById("chart-continents"));
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 36, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names },
+        yAxis: { type: "value", minInterval: 1, name: "ארצות" },
+        series: [
+          { type: "bar", name: "לפי רשות האוכלוסין", data: d.admin, itemStyle: { color: "#0068f5" } },
+          { type: "bar", name: "לפי הגיאוגרפיה", data: d.geo, itemStyle: { color: "#0b3668" } }
+        ]
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    })();
+
+    hbar("chart-systems", {{ model.charts.systems | tojson }}, { name: "ארצות", labelWidth: 150 });
+    hbar("chart-splits", {{ model.charts.splits | tojson }}, { name: "ארצות", labelWidth: 130 });
+
+    (function () {
+      var d = {{ model.charts.loc | tojson }};
+      var chart = echarts.init(document.getElementById("chart-loc"));
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0, type: "scroll" },
+        grid: { left: 16, right: 24, top: 40, bottom: 24, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.districts, inverse: true },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "loc", name: s.name, data: s.data };
+        })
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    })();
+
+    donut("chart-authorities", {{ model.charts.authorities | tojson }});
+    hbar("chart-councils", {{ model.charts.councils | tojson }}, { name: "יישובים", labelWidth: 110 });
+    hbar("chart-neigh", {{ model.charts.neigh | tojson }}, { name: "שכונות", labelWidth: 110 });
+    hbar("chart-stypes", {{ model.charts.stypes | tojson }}, { name: "שמות", labelWidth: 130 });
+    hbar("chart-snames", {{ model.charts.snames | tojson }}, { name: "הופעות", labelWidth: 100 });
+    hbar("chart-prof", {{ model.charts.prof | tojson }}, { name: "מקצועות", labelWidth: 150 });
+    hbar("chart-inst", {{ model.charts.inst | tojson }}, { name: "מוסדות", labelWidth: 130 });
+  })();
+</script>

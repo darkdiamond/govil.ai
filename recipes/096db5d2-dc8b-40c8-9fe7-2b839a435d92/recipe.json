@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "096db5d2-dc8b-40c8-9fe7-2b839a435d92",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:44:57.878689+00:00",
+    "rows": { "main": 458 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "a0522b41-00ad-4367-a00a-2d97b050ec1d",
+      "required_columns": [
+        "זיהוי תחנה",
+        "שם עברית",
+        "תאריך הקמה",
+        "שטח היקוות (קמ''ר)",
+        "שטח משותף",
+        "נ.צ. X (רוחב)",
+        "נ.צ. Y (רוחב)",
+        "מספר קבוצה",
+        "תחום התנקזות של נחל ראשי",
+        "סטטוס תחנה נוכחי"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

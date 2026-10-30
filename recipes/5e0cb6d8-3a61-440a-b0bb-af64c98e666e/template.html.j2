@@ -1,0 +1,236 @@
+{%- macro head(icon, title) -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+<h1>כללי נהיגה ספורטיבית: תקנונים לאירועי מרוצים לפי ענף</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור כלל או תקנון נהיגה ספורטיבית לפי ענף ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.search_hint }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rules.tone }} mb-1" dir="ltr">{{ model.kpis.rules.display }}</div>
+    <div class="text-sm text-subtle">מסמכי כללים במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.subs.tone }} mb-1" dir="ltr">{{ model.kpis.subs.display }}</div>
+    <div class="text-sm text-subtle">תתי-תחומים (ענפים)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.technical.tone }} mb-1" dir="ltr">{{ model.kpis.technical.display }}</div>
+    <div class="text-sm text-subtle">מסמכי כללים טכניים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.event_cov.tone }} mb-1" dir="ltr">{{ model.kpis.event_cov.display }}</div>
+    <div class="text-sm text-subtle">תתי-תחומים עם מסמך כללי אירוע</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+{{ head("database", "כללים לפי תחום") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.domains_lede }}</p>
+    <div id="chart-domains" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.domains_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.domains_aria }}</caption>
+        <thead><tr><th scope="col">תחום</th><th scope="col">מסמכים</th><th scope="col">תתי-תחומים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.domains %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.subs }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+
+  <section class="card p-5">
+{{ head("tag", "כללים לפי סוג המסמך") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">מסמכים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("database", "מפת הענפים: תחום ותת-תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_lede }}</p>
+  <div id="chart-tree" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tree_aria }}</caption>
+      <thead><tr><th scope="col">תת-תחום</th><th scope="col">תחום</th><th scope="col">מסמכים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.tree %}
+        <tr><th scope="row">{{ r.sub }}</th><td>{{ r.domain }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "סוגי הכללים בכל ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.matrix_lede }}</p>
+  <div id="chart-matrix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.matrix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.matrix_aria }}</caption>
+      <thead><tr><th scope="col">תת-תחום</th>{% for c in model.labels.type_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.matrix %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("external-link", "קישורים למסמכי הכללים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.links_lede }}</p>
+  <div id="chart-links" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.links_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.links_aria }}</caption>
+      <thead><tr><th scope="col">סוג קישור</th><th scope="col">כללים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.links %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6" id="rules-catalog">
+{{ head("list", "מדריך הכללים לפי ענף") }}
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.catalog_lede }}</p>
+{%- for d in model.catalog %}
+  <h3 class="text-base font-semibold text-ink-deep mt-4 mb-2">{{ d.name }} <span class="text-sm font-normal text-subtle">({{ d.count }} מסמכים)</span></h3>
+{%- for s in d.subs %}
+  <details class="mb-2 border border-rule rounded-gov px-3 py-2">
+    <summary class="cursor-pointer font-medium text-ink">{{ s.name }} <span class="text-sm text-subtle">({{ s.count }})</span></summary>
+    <ul class="list-disc ps-5 mt-2 mb-1 space-y-1 text-sm marker:text-brand">
+{%- for r in s.rules %}
+      <li>{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener" class="text-brand underline">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %} <span class="text-xs text-subtle">· {{ r.type }}</span></li>
+{%- endfor %}
+    </ul>
+  </details>
+{%- endfor %}
+{%- endfor %}
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.domains | tojson }};
+    var c = echarts.init(document.getElementById("chart-domains"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " מסמכים (" + p.percent + "%)"; } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: d,
+                 label: { formatter: "{c}" }, avoidLabelOverlap: true }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מסמכים", data: d.values.slice().reverse(), label: { show: true, position: "insideEnd", color: "#fff" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var t = {{ model.charts.tree | tojson }};
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " מסמכים"; } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: false,
+                 breadcrumb: { show: false }, width: "100%", height: "100%",
+                 upperLabel: { show: true, height: 22, color: "#fff" },
+                 label: { show: true, formatter: "{b}\n{c}", overflow: "truncate" },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var m = {{ model.charts.matrix | tojson }};
+    var c = echarts.init(document.getElementById("chart-matrix"));
+    var ys = m.y.slice().reverse();
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: ys, axisLabel: { width: 120, overflow: "truncate" } },
+      series: m.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse(), emphasis: { focus: "series" } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.links | tojson }};
+    var colors = { pdf: "#0068f5", page: "#0b3668", file: "#6c757d", none: "#dc3545" };
+    var c = echarts.init(document.getElementById("chart-links"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"],
+                 label: { formatter: "{c}" },
+                 data: d.map(function (x) { return { name: x.name, value: x.value, itemStyle: { color: colors[x.kind] } }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

@@ -1,0 +1,13 @@
+{
+  "main.שנה": "chart-volume, chart-time, chart-yearly, chart-heat, chart-autonomy, kpi:span, insight:volume, insight:dip — with חודש forms the period key; latest 12 months present = the trend window",
+  "main.חודש": "chart-volume, chart-time, chart-heat, insight:dip, insight:comm_time, insight:pers_time — partial years are labelled by their month count",
+  "main.בית מכס": "chart-houses, chart-house-time, chart-house-queue, insight:house_gap, insight:queue — top houses + other bucket",
+  "main.תהליך להצהרה": "chart-proc, chart-mix, insight:courier — courier processes recognised by the word בלדר in the name",
+  "main.סוג תהליך": "chart-volume, chart-time, chart-yearly, chart-heat, chart-house-time, kpi:comm_n, kpi:hc, kpi:hp, insight:comm_time, insight:pers_time — personal vs commercial kept apart everywhere",
+  "main.האם אוטונומיה": "chart-autonomy, insight:autonomy",
+  "main.כמות הצהרות": "chart-volume, chart-houses, chart-mix, kpi:total, kpi:comm_n, insight:volume, insight:courier, insight:dip — also the weight of every mean time",
+  "main.זמן ממוצע בדקות": "chart-time, chart-yearly, chart-heat, chart-house-time, chart-proc, chart-autonomy, kpi:hc, kpi:hp, insight:comm_time, insight:pers_time, insight:house_gap — declaration-weighted, shown in hours",
+  "main.זמן מינימלי בדקות": "table:processes — median of the monthly minimum per process (minutes)",
+  "main.זמן מקסימלי בדקות": "table:processes — median of the monthly maximum per process (days); single maxima reach years and are not shown on their own",
+  "main.מספר הצהרות שהיו בתור חובה": "chart-house-queue, table:yearly, kpi:queue, insight:queue, insight:autonomy"
+}

@@ -1,0 +1,37 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5fc5c912-4fa5-4474-93c1-326e505e22cf",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-16T06:28:08.320490+00:00",
+    "rows": { "sites": 7810 }
+  },
+  "inputs": [
+    {
+      "name": "sites",
+      "by_id": "7ad8ddc7-87f4-45f9-84e4-d7f972662153",
+      "required_columns": [
+        "MisparTaagidShutfutMenifa",
+        "ShemTaagidShutfut",
+        "ShnatDivuach",
+        "TaarichDivuahBefoal",
+        "AnafAtarSvivati",
+        "TchumPeilutAtarSvivati",
+        "SugTipulBeshfachim",
+        "YaadHashfachim",
+        "SachTipulPsoletMesukenet",
+        "SachSilukPsoletMesukenet",
+        "SachTipulPsoletLoMesukenet",
+        "SachSilukPsoletLoMesukenet",
+        "MisparAtarSvivati",
+        "ShemAtarSvivatiMenifa",
+        "RashutMekomitAtarSvivati",
+        "MachozAtarSvivati",
+        "MisparAtarSvivatiAndShnatDivuach"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

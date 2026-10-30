@@ -1,0 +1,400 @@
+<h1>ספיקות שיא היסטוריות בתחנות הידרומטריות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור ספיקת השיא של תחנה לפי שם או מספר תחנה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: זיהוי תחנה, שם התחנה בעברית ובאנגלית, שנה הידרולוגית ותאריך המדידה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+{%- for key in ["stations", "max", "median", "recent", "span"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels['kpi_' ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות עם ספיקת השיא הגבוהה ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_aria }}</caption>
+      <thead><tr><th scope="col">תחנה</th><th scope="col">ספיקת שיא (מ״ק לשנייה)</th><th scope="col">תאריך</th><th scope="col">רום המים (מ׳)</th><th scope="col">אזור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.q }}</td><td>{{ r.date }}</td><td>{{ r.stage }}</td><td>{{ r.region }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ספיקות השיא לפי אזור ניקוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.region_note }}</p>
+  <div id="chart-region" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.region_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.region_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">תחנות</th><th scope="col">חציון (מ״ק לשנייה)</th><th scope="col">מרבי (מ״ק לשנייה)</th><th scope="col">התחנה המובילה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.region %}
+        <tr><th scope="row">{{ r.region }}</th><td>{{ r.n }}</td><td>{{ r.median }}</td><td>{{ r.max }}</td><td>{{ r.lead }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">התפלגות ספיקות השיא</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_aria }}</caption>
+        <thead><tr><th scope="col">ספיקת שיא (מ״ק לשנייה)</th><th scope="col">תחנות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dist %}
+          <tr><th scope="row">{{ r.bin }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">כמה זמן עומד השיא</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_note }}</p>
+    <div id="chart-age" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.age_aria }}</caption>
+        <thead><tr><th scope="col">גיל השיא</th><th scope="col">תחנות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.age %}
+          <tr><th scope="row">{{ r.bin }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי נקבעו השיאים: לפי עשור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dec_note }}</p>
+  <div id="chart-dec" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dec_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dec_aria }}</caption>
+      <thead><tr><th scope="col">עשור</th><th scope="col">שיאים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dec %}
+        <tr><th scope="row">{{ r.dec }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונת השיטפונות: החודש שבו נמדד השיא</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mon_note }}</p>
+  <div id="chart-mon" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.mon_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mon_aria }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">שיאים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.mon %}
+        <tr><th scope="row">{{ r.month }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.storm %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיטפונות ששברו שיאים בכמה תחנות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.storm_note }}</p>
+  <div id="chart-storm" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.storm_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.storm_aria }}</caption>
+      <thead><tr><th scope="col">אירוע</th><th scope="col">תחנות</th><th scope="col">הספיקה הגבוהה (מ״ק לשנייה)</th><th scope="col">בתחנה</th><th scope="col">אזורים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.storm %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.n }}</td><td>{{ r.maxq }}</td><td>{{ r.lead }}</td><td>{{ r.regions }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הנחלים עם הספיקות הגבוהות ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.streams_note }}</p>
+  <div id="chart-streams" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.streams_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.streams_aria }}</caption>
+      <thead><tr><th scope="col">נחל</th><th scope="col">ספיקת שיא מרבית (מ״ק לשנייה)</th><th scope="col">תחנות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.streams %}
+        <tr><th scope="row">{{ r.stream }}</th><td>{{ r.q }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כל השיאים על ציר הזמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" class="h-80 md:h-[460px]" data-fallback="explorer" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var c = echarts.init(document.getElementById("chart-top"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.y[i].toLocaleString("he-IL") +
+          " מ״ק לשנייה<br>" + d.date[i] + "<br>" + echarts.format.encodeHTML(d.region[i]);
+      } },
+      grid: { left: 16, right: 48, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value", name: "מ״ק/ש׳" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "ספיקת שיא", data: d.y.map(function (v, i) {
+        return i === 0 ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      }), label: { show: true, position: "right", fontFamily: "Rubik", formatter: function (p) { return Math.round(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.region | tojson }};
+    var c = echarts.init(document.getElementById("chart-region"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex, b = d.box[i];
+        return echarts.format.encodeHTML(d.regions[i]) + " (" + d.n[i] + " תחנות)<br>מרבי: " + b[4].toLocaleString("he-IL") +
+          "<br>רבעון עליון: " + b[3].toLocaleString("he-IL") + "<br>חציון: " + b[2].toLocaleString("he-IL") +
+          "<br>רבעון תחתון: " + b[1].toLocaleString("he-IL") + "<br>מזערי: " + b[0].toLocaleString("he-IL") + " מ״ק לשנייה";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "log", name: "מ״ק/ש׳", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "category", data: d.regions, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "boxplot", name: "ספיקת שיא", data: d.box,
+        itemStyle: { color: "#f1f7ff", borderColor: "#0068f5", borderWidth: 2 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var c = echarts.init(document.getElementById("chart-dist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return p[0].name + " מ״ק לשנייה<br>" + p[0].value + " תחנות";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value", name: "תחנות", minInterval: 1 },
+      series: [{ type: "bar", name: "תחנות", data: d.y, label: { show: true, position: "top", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.age | tojson }};
+    var c = echarts.init(document.getElementById("chart-age"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return p[0].name + "<br>" + p[0].value + " תחנות";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value", name: "תחנות", minInterval: 1 },
+      series: [{ type: "bar", name: "תחנות", data: d.y, itemStyle: { color: "#0b3668" },
+        label: { show: true, position: "top", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dec | tojson }};
+    var c = echarts.init(document.getElementById("chart-dec"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 35 } },
+      yAxis: { type: "value", name: "שיאים", minInterval: 1 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "r", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.mon | tojson }};
+    var c = echarts.init(document.getElementById("chart-mon"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "שיאים", minInterval: 1 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "r", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.storm %}
+<script>
+  (function () {
+    var d = {{ model.charts.storm | tojson }};
+    var c = echarts.init(document.getElementById("chart-storm"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return d.x[i] + "<br>" + d.y[i] + " תחנות קבעו שיא<br>הגבוהה: " + echarts.format.encodeHTML(d.lead[i]) +
+          ", " + d.maxq[i].toLocaleString("he-IL") + " מ״ק לשנייה";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "תחנות", minInterval: 1 },
+      series: [{ type: "bar", name: "תחנות שקבעו שיא", data: d.y,
+        label: { show: true, position: "top", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.streams | tojson }};
+    var c = echarts.init(document.getElementById("chart-streams"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return "נחל " + echarts.format.encodeHTML(d.names[i]) + "<br>" + d.y[i].toLocaleString("he-IL") +
+          " מ״ק לשנייה<br>" + d.n[i] + " תחנות במאגר";
+      } },
+      grid: { left: 16, right: 48, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value", name: "מ״ק/ש׳" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "ספיקת שיא מרבית", data: d.y,
+        label: { show: true, position: "right", fontFamily: "Rubik", formatter: function (p) { return Math.round(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.scatter | tojson }};
+    var c = echarts.init(document.getElementById("chart-scatter"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value;
+        return echarts.format.encodeHTML(v[2]) + "<br>" + v[3] + "<br>" + v[1].toLocaleString("he-IL") +
+          " מ״ק לשנייה<br>" + echarts.format.encodeHTML(p.seriesName);
+      } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 48, bottom: 56, containLabel: true },
+      xAxis: { type: "value", scale: true, axisLabel: { formatter: function (v) { return String(Math.round(v)); } } },
+      yAxis: { type: "log", name: "מ״ק/ש׳" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 16 }],
+      series: d.series.map(function (s) { return { type: "scatter", name: s.name, data: s.data, symbolSize: 9,
+        itemStyle: { opacity: 0.8 } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

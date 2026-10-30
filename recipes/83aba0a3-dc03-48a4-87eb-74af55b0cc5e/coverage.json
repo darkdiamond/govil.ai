@@ -1,0 +1,8 @@
+{
+  "main.שם תחנה": "insight:latest — station name quoted in the lede (single station, כנרת A)",
+  "main.תאריך ניטור": "chart-recent, chart-history, chart-annual, chart-yoy, chart-decades, chart-season, chart-heat, kpi:latest, kpi:change, kpi:span, insight:latest, insight:year_change, insight:season, insight:swing",
+  "main.סמל פרמטר": "skip: constant (CL, chloride) on every row; the page is about chloride",
+  "main.עומק הדגימה במטרים": "insight:latest — sampling depth quoted in the lede (constant, 1 m)",
+  "main.תוצאה": "chart-recent, chart-history, chart-annual, chart-yoy, chart-decades, chart-season, chart-heat, chart-hist, kpi:latest, kpi:change, kpi:lt_mean, kpi:peak, insight:latest, insight:year_change, insight:peak, insight:decades, insight:season, insight:swing",
+  "main.יחידת מדידה": "kpi:latest, kpi:lt_mean — unit (MG/L) rendered in KPI labels and ledes"
+}

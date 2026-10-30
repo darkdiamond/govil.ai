@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6498e21c-a532-45c0-9812-ada23af5af82",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T17:40:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-15T12:53:10.135934+00:00",
+    "rows": { "main": 196 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "cc89067d-a1b0-4ca5-843d-9af1673c6a1d",
+      "required_columns": ["tviaa_number", "decision_date", "tik", "pub_link"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

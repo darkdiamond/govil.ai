@@ -1,0 +1,18 @@
+{
+  "main.number": "skip: sanction serial number (identifier); used only as a sort key",
+  "main.companyname": "chart-companies, insight:repeat, insight:private — display name of each corporation (its most frequent spelling); private executors are aggregated, never named",
+  "main.hpnumber": "chart-companies, chart-repeat, chart-entity, kpi:corps, insight:repeat, insight:private, insight:double — corporate key (9 digits starting with 5)",
+  "main.adress": "skip: free-text construction-site address (project, block and parcel), no separate city field; not reliably aggregable, and the explorer searches it",
+  "main.date": "chart-yearly, chart-heat, chart-theme-year, chart-tariff, chart-entity, chart-objections, kpi:count, kpi:settled, insight:trend",
+  "main.volationclause": "chart-themes, chart-theme-year, insight:theme — normalised into violation themes by regex",
+  "main.sum": "chart-yearly, chart-themes, chart-tariff, chart-companies, kpi:total, kpi:typical, kpi:final, insight:tariff, insight:double",
+  "main.decisiondate": "skip: mixed date formats (four styles) and often earlier than the sanction date; not reliable for timing",
+  "main.commissionersdecision": "chart-objections, chart-reduction, kpi:final, insight:objections — free text normalised to rejection / reduction / cancellation",
+  "main.sumafterdecision": "chart-reduction, kpi:final, insight:reduction",
+  "main.reasonforreduction": "insight:reduction — almost always regulation 1(a)(1)",
+  "main.reductionpercentage": "chart-reduction, insight:reduction — fallback when amounts are missing; the actual cut is computed from the amounts because this column has typos",
+  "main.committeedate": "skip: 1% filled, mixed formats",
+  "main.committeedecision": "kpi:final, insight:committee",
+  "main.sumaftercommittee": "kpi:final",
+  "main.committeepercentage": "skip: 4 non-empty values; the committee's amount is taken from sumaftercommittee"
+}

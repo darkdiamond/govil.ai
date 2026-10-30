@@ -1,0 +1,23 @@
+{
+  "grants.(אל תשנה) בקשה": "skip: internal CRM record GUID, identifier only",
+  "grants.(אל תשנה) בדיקת סיכום של שורה": "skip: internal CRM row checksum",
+  "grants.(אל תשנה) השתנה ב:": "skip: internal CRM modification timestamp, not a property of the grant",
+  "grants.call_for_proposals": "chart-calls, insight:trend — top calls by number of grants",
+  "grants.partner_country": "chart-country, chart-intl-share, insight:international",
+  "grants.category_of_call": "chart-cat-year, chart-treemap, chart-gender-cat, insight:gender",
+  "grants.call_program": "chart-treemap — second level of the category treemap",
+  "grants.reference_number": "skip: internal reference identifier",
+  "grants.budget_year": "chart-yearly, chart-cat-year, chart-gender-year, chart-status, chart-intl-share, kpi:years, insight:trend, insight:peak",
+  "grants.field": "chart-field, chart-gender-field, chart-subfield, insight:field",
+  "grants.sub_field": "chart-subfield",
+  "grants.merkava_number": "skip: internal procurement (Merkava) identifier",
+  "grants.proposal_status": "chart-status, kpi:active",
+  "grants.institution": "chart-inst, kpi:institutions, insight:institutions",
+  "grants.researcher_full_name": "kpi:researchers — distinct names; individual lookup via the explorer",
+  "grants.gender": "chart-gender-year, chart-gender-cat, chart-gender-field, kpi:female, insight:gender, insight:gender_trend",
+  "grants.proposal_title": "skip: free text, searchable in the explorer",
+  "grants.project_start_date": "chart-duration",
+  "grants.contract_end_date": "chart-duration",
+  "grants.budget": "chart-yearly, chart-treemap, chart-field, chart-inst, chart-size, kpi:budget, kpi:median, insight:size, insight:median",
+  "grants.currency": "kpi:budget — non-ILS grants excluded from shekel sums, disclosed under the KPIs"
+}
