@@ -1,0 +1,458 @@
+<h1>קטלוג מעיינות בישראל</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מעיין לפי שם, אקויפר או תא דיווח ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי ברשימת המעיינות המלאה: שם המעיין בעברית ובאנגלית, מספר זיהוי, סוג מעיין, שם אקויפר ושם תא דיווח.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "regular", "below", "first"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpi_labels[key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המעיינות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">כל המעיינות בקטלוג לפי נקודת הנביעה. לחיצה על נקודה מציגה את שם המעיין, הסוג, האקויפר ותא הדיווח.</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">סוג המעיין: מי נמדד</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_note }}</p>
+    <div id="chart-type" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.type_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.type_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">מעיינות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.type %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מעיינות לפי אזור</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.region_note }}</p>
+    <div id="chart-region" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.region_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.region_caption }}</caption>
+        <thead><tr><th scope="col">אזור</th><th scope="col">מעיינות</th><th scope="col">נמדדים באופן סדיר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.region %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.reg }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">האקויפרים שמזינים את המעיינות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.aq_note }}</p>
+  <div id="chart-aquifer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.aq_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.aq_caption }}</caption>
+      <thead><tr><th scope="col">אקויפר</th><th scope="col">מעיינות</th><th scope="col">נמדדים באופן סדיר</th><th scope="col">שיעור מהקטלוג</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.aquifer %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.reg }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תאי הדיווח עם הכי הרבה מעיינות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cell_note }}</p>
+  <div id="chart-cell" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cell_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cell_caption }}</caption>
+      <thead><tr><th scope="col">תא דיווח</th><th scope="col">מעיינות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cell %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.decade %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי התחילה התצפית</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.decade_note }}</p>
+  <div id="chart-decade" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.decade_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.decade_caption }}</caption>
+      <thead><tr><th scope="col">עשור</th><th scope="col">מעיינות</th><th scope="col">מהם נמדדים באופן סדיר</th><th scope="col">מצטבר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.decade %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.reg }}</td><td>{{ r.cum }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- if model.flags.oldest %}
+  <h3 class="mt-5 mb-2 text-base font-semibold text-ink-deep">המעיינות הנמדדים באופן סדיר עם התצפית הוותיקה ביותר</h3>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.oldest_caption }}</caption>
+    <thead><tr><th scope="col">מעיין</th><th scope="col">תחילת תצפית</th><th scope="col">תא דיווח</th><th scope="col">אקויפר</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.oldest %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.start }}</td><td>{{ r.cell }}</td><td>{{ r.aq }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+{%- endif %}
+</section>
+{%- endif %}
+
+{%- if model.flags.elev %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רום הנביעה: מתחת לפני הים ועד ההרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.elev_note }}</p>
+  <div id="chart-elev" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.elev_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.elev_caption }}</caption>
+      <thead><tr><th scope="col">רום (מ׳)</th><th scope="col">מעיינות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.elev %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+  {%- if model.labels.extreme_note %}
+  <p class="mt-5 mb-0 text-sm text-subtle">{{ model.labels.extreme_note }}</p>
+{%- endif %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">המעיינות הנמוכים ביותר</h3>
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.low_caption }}</caption>
+        <thead><tr><th scope="col">מעיין</th><th scope="col">רום (מ׳)</th><th scope="col">תא דיווח</th><th scope="col">סוג</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.low %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.el }}</td><td>{{ r.cell }}</td><td>{{ r.type }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">המעיינות הגבוהים ביותר</h3>
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.high_caption }}</caption>
+        <thead><tr><th scope="col">מעיין</th><th scope="col">רום (מ׳)</th><th scope="col">תא דיווח</th><th scope="col">סוג</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.high %}
+          <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.el }}</td><td>{{ r.cell }}</td><td>{{ r.type }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.box %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">רום הנביעה לפי אקויפר</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+    <div id="chart-box" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.box_caption }}</caption>
+        <thead><tr><th scope="col">אקויפר</th><th scope="col">מעיינות</th><th scope="col">מינימום</th><th scope="col">חציון</th><th scope="col">מקסימום</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.box %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.min }}</td><td dir="ltr">{{ r.med }}</td><td dir="ltr">{{ r.max }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">פרופיל צפון־דרום</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.profile_note }}</p>
+    <div id="chart-profile" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+  </section>
+</div>
+
+{%- if model.flags.offset %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה נמדד המעיין</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.offset_note }}</p>
+  <div id="chart-offset" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.offset_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.offset_caption }}</caption>
+      <thead><tr><th scope="col">מרחק</th><th scope="col">מעיינות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.offset %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת המעיינות בישראל הנמדדים על ידי השירות ההידרולוגי</p>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "נביעה Y .נ.צ",
+    lngField: "נביעה X .נ.צ",
+    projection: "itm",
+    popupTitleField: "שם מעיין",
+    popupFields: [
+      { field: "סוג מעיין", label: "סוג" },
+      { field: "שם אקויפר", label: "אקויפר" },
+      { field: "שם תא דיווח", label: "תא דיווח" },
+      { field: "רום הנביעה", label: "רום הנביעה (מ׳)" },
+      { field: "תחילת תצפית", label: "תחילת תצפית" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.type | tojson }};
+    var c = echarts.init(document.getElementById("chart-type"));
+    var data = d.names.map(function (n, i) { return { name: n, value: d.values[i] }; });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " מעיינות (" + Math.round(p.percent) + "%)";
+      } },
+      legend: { bottom: 0, textStyle: { fontFamily: "Rubik" } },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: data,
+        label: { formatter: "{d}%", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stack(id, d, horiz) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var c = echarts.init(el);
+      var cat = { type: "category", data: d.cats, axisLabel: { width: 120, overflow: "truncate" } };
+      var val = { type: "value", min: 0 };
+      if (horiz) { cat.inverse = true; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          var s = echarts.format.encodeHTML(d.cats[i]) + ": " + d.totals[i].toLocaleString("he-IL") + " מעיינות";
+          p.forEach(function (x) { if (x.value) { s += "<br>" + echarts.format.encodeHTML(x.seriesName) + ": " + x.value.toLocaleString("he-IL"); } });
+          return s;
+        } },
+        legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: horiz ? val : cat,
+        yAxis: horiz ? cat : val,
+        series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stack("chart-region", {{ model.charts.region | tojson }}, true);
+    stack("chart-aquifer", {{ model.charts.aquifer | tojson }}, true);
+    stack("chart-cell", {{ model.charts.cell | tojson }}, true);
+  })();
+</script>
+
+{%- if model.flags.decade %}
+<script>
+  (function () {
+    var d = {{ model.charts.decade | tojson }};
+    var c = echarts.init(document.getElementById("chart-decade"));
+    var series = d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; });
+    series.push({ type: "line", name: "מצטבר", yAxisIndex: 1, data: d.cum, symbol: "circle", symbolSize: 6,
+      lineStyle: { color: "#0b3668" }, itemStyle: { color: "#0b3668" } });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.cats, axisLabel: { rotate: 45 } },
+      yAxis: [{ type: "value", name: "מעיינות", min: 0 }, { type: "value", name: "מצטבר", min: 0, splitLine: { show: false } }],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.elev %}
+<script>
+  (function () {
+    var d = {{ model.charts.elev | tojson }};
+    var c = echarts.init(document.getElementById("chart-elev"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.cats[i]) + " מ׳: " + d.totals[i].toLocaleString("he-IL") + " מעיינות";
+        p.forEach(function (x) { if (x.value) { s += "<br>" + echarts.format.encodeHTML(x.seriesName) + ": " + x.value.toLocaleString("he-IL"); } });
+        return s;
+      } },
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", min: 0 },
+      yAxis: { type: "category", data: d.cats, axisLabel: { width: 150, overflow: "truncate" } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.box %}
+<script>
+  (function () {
+    var d = {{ model.charts.box | tojson }};
+    var c = echarts.init(document.getElementById("chart-box"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex, v = d.data[i];
+        return echarts.format.encodeHTML(d.cats[i]) + " (" + d.n[i] + " מעיינות)<br>מינימום: " + v[0] +
+          " מ׳<br>חציון: " + Math.round(v[2]) + " מ׳<br>מקסימום: " + v[4] + " מ׳";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "מ׳" },
+      yAxis: { type: "category", data: d.cats, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "boxplot", name: "רום הנביעה", data: d.data,
+        itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.profile | tojson }};
+    var c = echarts.init(document.getElementById("chart-profile"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.value[2]) + "<br>" + echarts.format.encodeHTML(p.seriesName) +
+          "<br>רום: " + p.value[0].toLocaleString("he-IL") + " מ׳";
+      } },
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "רום (מ׳)", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "צפון (ק״מ)", scale: true },
+      series: d.series.map(function (s) { return { type: "scatter", name: s.name, data: s.data, symbolSize: 6,
+        itemStyle: { opacity: 0.75 } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.offset %}
+<script>
+  (function () {
+    var d = {{ model.charts.offset | tojson }};
+    var c = echarts.init(document.getElementById("chart-offset"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מעיינות"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.cats, axisLabel: { interval: 0, width: 70, overflow: "break" } },
+      yAxis: { type: "value", min: 0 },
+      series: [{ type: "bar", name: "מעיינות", data: d.values, label: { show: true, position: "top", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

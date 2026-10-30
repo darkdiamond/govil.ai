@@ -1,0 +1,12 @@
+{
+  "main.זיהוי תחנה": "chart-region, chart-flash, chart-index, chart-net, kpi:stations — station key; all but its last three digits are the drainage-basin code that gives the region",
+  "main.שם תחנה בעברית": "chart-peaks, chart-vol, chart-db, chart-latest, chart-flash, insight:record, insight:giant — station display name (latest spelling per station)",
+  "main.שנה הידרולוגית": "chart-index, chart-net, chart-db, chart-latest, kpi:span, insight:latest, insight:extremes, insight:trend — YYYY/YYYY, a few short YY/YY duplicates normalised and dropped",
+  "main.נפח שנתי (מלמ''ק)": "chart-index, chart-vol, chart-region, chart-flash, chart-db, chart-net, kpi:vol_idx, insight:latest, insight:extremes, insight:trend, insight:zero, insight:giant",
+  "main.ספיקה מקסימלית (מ''ק/שניה)": "chart-index, chart-peaks, chart-month, chart-region, chart-flash, chart-latest, chart-net, kpi:peak, kpi:q_idx, insight:record, insight:season",
+  "main.תאריך המדידה": "chart-month, chart-peaks, chart-latest, insight:season — day of the annual peak; month read from the text (a few dates carry a 2-digit year)",
+  "main.הערות": "chart-notes, insight:sewage — free-text remarks classified by keyword",
+  "main.שם תחנה באנגלית": "skip: transliteration of the Hebrew station name; page is Hebrew-only",
+  "main.שעת המדידה": "skip: time of the peak; 00:00:00 is a placeholder on ~13% of timed rows, so an hour-of-day view would mislead",
+  "main.רום המים (מ')": "skip: water stage at the peak, relative to each station's own local gauge datum (some rows national datum), not comparable across stations"
+}

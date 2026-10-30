@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "fb522ddd-bd25-4272-abef-eceab9aa268d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:46:04.123239+00:00",
+    "rows": { "main": 217709 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "2d834439-3f88-45ef-bf6e-9924c2f7e8f9",
+      "required_columns": [
+        "שם תחנה",
+        "תאריך ניטור",
+        "שיטת מדידה",
+        "סמל פרמטר",
+        "תוצאה",
+        "יחידת מדידה"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["95", "90", "10", "5"]
+}

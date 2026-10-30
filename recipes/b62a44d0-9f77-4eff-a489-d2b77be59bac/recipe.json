@@ -1,0 +1,40 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b62a44d0-9f77-4eff-a489-d2b77be59bac",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-04T08:16:47.509787+00:00",
+    "rows": { "decisions": 2999, "caseload": 8941 }
+  },
+  "inputs": [
+    {
+      "name": "decisions",
+      "by_schema": ["מחוז", "מאסר", "טיפול", "זיכוי"],
+      "concat": true,
+      "required_columns": ["מחוז", "מאסר", "טיפול", "זיכוי"]
+    },
+    {
+      "name": "caseload",
+      "by_schema": [
+        "כלפי הסדר הציבורי",
+        "אלימות",
+        "שימוש וסחר בסמים",
+        "עבירות מין",
+        "כלפי רכוש",
+        "תאונות דרכים ועבירות תעבורה"
+      ],
+      "concat": true,
+      "required_columns": [
+        "כלפי הסדר הציבורי",
+        "אלימות",
+        "שימוש וסחר בסמים",
+        "עבירות מין",
+        "כלפי רכוש",
+        "תאונות דרכים ועבירות תעבורה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

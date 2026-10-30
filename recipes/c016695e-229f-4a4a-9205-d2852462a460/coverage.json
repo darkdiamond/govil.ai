@@ -1,0 +1,4 @@
+{
+  "main.שם תאגיד": "chart-themes, chart-mix, kpi:investig, kpi:multi, insight:themes, insight:mix, insight:noinv — names are scanned for service keywords (investigations, intelligence, security, information, consulting, surveillance); the explorer searches the full names",
+  "main.מספר רישיון": "chart-series, kpi:total, kpi:groups, insight:total, insight:formats, insight:series — individual numbers are not written to the page, only series prefixes (number minus its last four digits) and digit-length formats"
+}

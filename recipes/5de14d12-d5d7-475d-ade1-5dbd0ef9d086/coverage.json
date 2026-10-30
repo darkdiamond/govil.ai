@@ -1,0 +1,13 @@
+{
+  "main.מספר זיהוי": "key:spring — groups measurements per spring; disambiguates duplicate names",
+  "main.שם עברית": "chart-chloride, chart-no3-top, chart-no3-change, chart-anions, chart-cl-1, insight:coverage, insight:salinity, insight:thermal",
+  "main.שם אנגלית": "skip: English transliteration of שם עברית (explorer searches it)",
+  "main.מוסד דוגם": "skip: constant (שירות הידרולוגי on every row), named in the lede",
+  "main.שם מעבדה": "chart-labs",
+  "main.שנה הידרולוגית": "chart-yearly, chart-chloride, chart-no3-bands, chart-no3-change, chart-cl-1, kpi:latest",
+  "main.תאריך דגימה": "chart-months, kpi:span, insight:coverage, insight:season — sampling event = spring + date",
+  "main.סמל פרמטר": "chart-params, chart-chloride, chart-no3-bands, chart-no3-top, chart-temp, chart-anions",
+  "main.תאור מקוצר": "skip: truncated English description of סמל פרמטר; the page uses Hebrew parameter names",
+  "main.תוצאה": "chart-chloride, chart-no3-bands, chart-no3-top, chart-no3-change, chart-cl-1, chart-temp, chart-anions, kpi:no3_over, kpi:no3_up",
+  "main.יחידת מדידה": "chart-params — unit per parameter in the table"
+}

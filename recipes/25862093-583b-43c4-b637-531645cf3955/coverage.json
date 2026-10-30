@@ -1,0 +1,9 @@
+{
+  "main.מספר זיהוי": "chart-index, chart-region, chart-network, kpi:active, kpi:measurements — spring key; its leading digits (basin code) give the region",
+  "main.שם עברית": "chart-latest, chart-major-1, chart-top, insight:largest, insight:records, kpi:largest",
+  "main.שם אנגלית": "skip: transliteration of the Hebrew name (page is Hebrew-only)",
+  "main.שנה הידרולוגית": "chart-index, chart-latest, chart-major-1, chart-region, chart-zero, chart-network, chart-methods, kpi:index, insight:latest, insight:drought_run, insight:dry_share, insight:zero",
+  "main.תאריך מדידת ספיקה": "chart-season, insight:season, kpi:measurements — month of measurement drives seasonality; also detects a partial latest year",
+  "main.ספיקה (ליטר/שניה)": "chart-index, chart-latest, chart-major-1, chart-season, chart-region, chart-zero, chart-top, kpi:index, kpi:largest, insight:latest, insight:largest, insight:records, insight:region, insight:zero",
+  "main.שיטת מדידה": "chart-methods, insight:methods — rows marked 'ללא מדידה' are excluded from flow statistics"
+}

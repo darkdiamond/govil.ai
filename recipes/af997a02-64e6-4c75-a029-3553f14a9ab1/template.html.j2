@@ -1,0 +1,427 @@
+<h1>כלי רכב חדשים ללא קוד דגם שעלו לכביש: מסירות חודשיות לפי סוג רכב ויצרן</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in ["total", "latest", "ytd", "month_yoy", "lead_type", "makers"] %}
+{%- if model.kpis[key].display %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endif %}
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מסירות חודשיות של כלי רכב ללא קוד דגם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כלי רכב לפי שנה וסוג רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in model.tables.yearly.cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סך הכל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.yearly.rows %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.ytd %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השנה לעומת התקופה המקבילה אשתקד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ytd_note }}</p>
+  <div id="chart-ytd" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ytd_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ytd_caption }}</caption>
+      <thead><tr><th scope="col">סוג רכב</th><th scope="col">{{ model.labels.ytd_prev }}</th><th scope="col">{{ model.labels.ytd_cur }}</th><th scope="col">שינוי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ytd %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.prev }}</td><td>{{ r.cur }}</td><td dir="ltr">{{ r.chg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.multiples %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המגמה בכל סוג רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+{%- for s in model.charts.multiples.series %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ s.name }}</h3>
+      <div id="chart-trend-{{ loop.index }}" class="h-48 md:h-56" role="img" aria-label="{{ model.labels.trend_aria }} {{ s.name }}."></div>
+    </div>
+{%- endfor %}
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.trend_caption }}</caption>
+      <thead><tr><th scope="col">סוג רכב</th><th scope="col">שנים-עשר החודשים האחרונים</th><th scope="col">שנים-עשר החודשים שקדמו</th><th scope="col">שינוי</th><th scope="col">משקל מכלל המאגר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.trend %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.l12 }}</td><td>{{ r.p12 }}</td><td dir="ltr">{{ r.chg }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות: חודש מול שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_note }}</p>
+  <div id="chart-season" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היצרנים המובילים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.makers_note }}</p>
+  <div id="chart-makers" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.makers_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.makers_caption }}</caption>
+      <thead><tr><th scope="col">יצרן</th><th scope="col">כלי רכב</th><th scope="col">משקל</th><th scope="col">שנים-עשר החודשים האחרונים</th><th scope="col">סוג רכב עיקרי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.makers %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.share }}</td><td>{{ r.l12 }}</td><td>{{ r.type }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מייצר מה: יצרנים בכל סוג רכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+  <div id="chart-tree" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה: ריכוזיות בכל סוג רכב</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.conc_caption }}</caption>
+      <thead><tr><th scope="col">סוג רכב</th><th scope="col">יצרנים</th><th scope="col">היצרן המוביל</th><th scope="col">משקל המוביל</th><th scope="col">משקל שלושת הגדולים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.conc %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.makers }}</td><td>{{ r.leader }}</td><td>{{ r.leader_share }}</td><td>{{ r.top3 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">הדגמים הנפוצים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.models_note }}</p>
+    <div id="chart-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.models_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.models_caption }}</caption>
+        <thead><tr><th scope="col">דגם</th><th scope="col">יצרן</th><th scope="col">סוג רכב</th><th scope="col">כלי רכב</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.models %}
+          <tr><th scope="row" dir="auto">{{ r.model }}</th><td>{{ r.maker }}</td><td>{{ r.type }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גיוון: יצרנים ודגמים בכל שנה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.div_note }}</p>
+    <div id="chart-diversity" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.div_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.div_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">יצרנים</th><th scope="col">שמות דגם</th><th scope="col">כלי רכב</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.diversity %}
+          <tr><th scope="row">{{ r.year }}</th><td>{{ r.makers }}</td><td>{{ r.models }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">{{ model.labels.notes }}</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.monthly | tojson }};
+    var c = echarts.init(document.getElementById("chart-monthly"));
+    var start = d.x.length > 60 ? Math.round((1 - 60 / d.x.length) * 100) : 0;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) {
+        return (typeof v === "number") ? Math.round(v).toLocaleString("he-IL") + " כלי רכב" : "";
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", min: 0 },
+      dataZoom: [{ type: "inside", start: start, end: 100 }, { type: "slider", bottom: 8, height: 18, start: start, end: 100 }],
+      series: [
+        { type: "line", name: "כלי רכב בחודש", data: d.y, showSymbol: false, areaStyle: { opacity: 0.12 } },
+        { type: "line", name: "ממוצע נע (שנה)", data: d.ma, showSymbol: false, lineStyle: { type: "dashed", width: 2 }, color: "#0b3668" }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) {
+        return v.toLocaleString("he-IL");
+      } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.ytd %}
+<script>
+  (function () {
+    var d = {{ model.charts.ytd | tojson }};
+    var c = echarts.init(document.getElementById("chart-ytd"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#9fbfe8", "#0068f5"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex, ch = d.chg[i];
+        var s = echarts.format.encodeHTML(d.names[i]);
+        p.forEach(function (q) { s += "<br>" + echarts.format.encodeHTML(q.seriesName) + ": " + q.value.toLocaleString("he-IL"); });
+        if (ch !== null) { s += "<br>שינוי: ‎" + (ch > 0 ? "+" : (ch < 0 ? "−" : "")) + Math.abs(ch) + "%"; }
+        return s;
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 40, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: d.prev_label, data: d.prev },
+        { type: "bar", name: d.cur_label, data: d.cur }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.multiples %}
+<script>
+  (function () {
+    var m = {{ model.charts.multiples | tojson }};
+    m.series.forEach(function (s, k) {
+      var el = document.getElementById("chart-trend-" + (k + 1));
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) {
+          return v.toLocaleString("he-IL") + " כלי רכב בשנה שהסתיימה בחודש זה";
+        } },
+        grid: { left: 8, right: 16, top: 12, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: m.x, axisLabel: { formatter: function (v) { return v.slice(0, 4); } } },
+        yAxis: { type: "value", min: 0, splitNumber: 3 },
+        series: [{ type: "line", name: s.name, data: s.y, showSymbol: false, areaStyle: { opacity: 0.12 } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.season | tojson }};
+    var c = echarts.init(document.getElementById("chart-season"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " כלי רכב";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: d.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.makers | tojson }};
+    var c = echarts.init(document.getElementById("chart-makers"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex, s = echarts.format.encodeHTML(d.names[i]);
+        p.forEach(function (q) { s += "<br>" + echarts.format.encodeHTML(q.seriesName) + ": " + q.value.toLocaleString("he-IL"); });
+        return s;
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "כל התקופה", data: d.total },
+        { type: "bar", name: "שנה אחרונה", data: d.l12 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.tree | tojson }};
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (n) { return echarts.format.encodeHTML(n.name); }).join(" / ");
+        return path + "<br>" + p.value.toLocaleString("he-IL") + " כלי רכב";
+      } },
+      series: [{
+        type: "treemap", data: d, roam: false, nodeClick: "zoomToNode", leafDepth: 2,
+        top: 8, left: 8, right: 8, bottom: 32,
+        breadcrumb: { bottom: 4, itemStyle: { color: "#0b3668" } },
+        label: { show: true, fontFamily: "Rubik", fontSize: 11 },
+        upperLabel: { show: true, height: 22, fontFamily: "Rubik", color: "#ffffff" },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 3, gapWidth: 3 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.models | tojson }};
+    var c = echarts.init(document.getElementById("chart-models"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " כלי רכב";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "כלי רכב", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.diversity | tojson }};
+    var c = echarts.init(document.getElementById("chart-diversity"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 30 } },
+      yAxis: [{ type: "value", name: "שמות דגם", min: 0 }, { type: "value", name: "יצרנים", min: 0, splitLine: { show: false } }],
+      series: [
+        { type: "line", name: "שמות דגם", data: d.models },
+        { type: "line", name: "יצרנים", yAxisIndex: 1, data: d.makers }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

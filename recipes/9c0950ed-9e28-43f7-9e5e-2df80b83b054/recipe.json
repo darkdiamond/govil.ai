@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "9c0950ed-9e28-43f7-9e5e-2df80b83b054",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:01:10.112964+00:00",
+    "rows": { "racks": 242 }
+  },
+  "inputs": [
+    {
+      "name": "racks",
+      "by_id": "bbfc918c-21d5-4084-860f-3f01f31bb9d4",
+      "required_columns": ["Address", "sign", "NoSign", "lat", "lon"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

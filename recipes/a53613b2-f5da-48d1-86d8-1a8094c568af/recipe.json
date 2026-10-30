@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a53613b2-f5da-48d1-86d8-1a8094c568af",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:45:07.126647+00:00",
+    "rows": { "main": 679 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e0f10edd-2780-4221-97dc-3ac9d2f62cd0",
+      "required_columns": [
+        "מספר זיהוי",
+        "שם מעיין",
+        "תחילת תצפית",
+        "נביעה X .נ.צ",
+        "נביעה Y .נ.צ",
+        "נ.צ. X מקום מדידה",
+        "נ.צ. Y מקום מדידה",
+        "רום הנביעה",
+        "סוג מעיין",
+        "שם אקויפר",
+        "שם תא דיווח"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

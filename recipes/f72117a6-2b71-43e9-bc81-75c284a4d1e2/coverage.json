@@ -1,0 +1,13 @@
+{
+  "flow.שם תחנה": "chart-records, chart-latest, chart-storms, chart-sewage, chart-network, chart-long, table-decades, kpi:stations, kpi:active, insight:record, insight:latest, insight:network",
+  "flow.זמן מדידת ספיקה": "chart-peaks, chart-season, chart-heat, chart-storms, chart-flow, chart-network, chart-long, chart-latest, kpi:span, kpi:active, insight:season, insight:storm, insight:wettest, insight:sewage — hydrological year (Oct-Sep) is derived from the timestamp",
+  "flow.ספיקה (מ''ק/שנייה)": "chart-records, chart-peaks, chart-latest, chart-season, chart-storms, chart-flow, table-decades, kpi:record, insight:record, insight:latest, insight:wettest",
+  "flow.סוג זרימה": "chart-flow, chart-sewage, chart-heat, insight:sewage, insight:sewage_stations — known codes גאות/תקין/ביוב, anything else folded into אחר; normal flow reading zero at both ends is shown as a dry riverbed",
+  "flow.סוג נתון": "chart-records, table-decades, insight:recon, insight:record — measured vs reconstructed",
+  "flow._resource_name": "skip: file name of each period CSV; the timestamp already carries the period",
+  "flow.זיהוי תחנה": "skip: identifier, 1:1 with station name (not fetched)",
+  "flow.שם תחנה באנגלית": "skip: English duplicate of the station name (not fetched)",
+  "flow.שנה הידרולוגית": "skip: redundant, derived from the timestamp (not fetched)",
+  "flow.רום המים (מ')": "skip: stage height in each station's local gauge datum, not comparable across stations; 7% empty (not fetched)",
+  "flow.סוג רשומה": "chart-flow, chart-sewage, insight:sewage, insight:sewage_stations — segment end/start markers: the interval after a segment end is a data gap and is not counted as flow time"
+}

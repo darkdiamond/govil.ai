@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d16214ba-56b3-417d-9342-6a144f215b9b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T15:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:45:36.266295+00:00",
+    "rows": { "main": 7562 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "fe88ac88-8c30-4b33-9ea8-ea6a050e0951",
+      "required_columns": [
+        "זיהוי תחנה",
+        "שם תחנה בעברית",
+        "שנה הידרולוגית",
+        "נפח שנתי (מלמ''ק)",
+        "ספיקה מקסימלית (מ''ק/שניה)",
+        "תאריך המדידה",
+        "הערות"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

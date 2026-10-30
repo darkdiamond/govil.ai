@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b2f22645-5068-487b-82d3-78e3490ef49d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T11:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-05T05:31:28.121467+00:00",
+    "rows": { "main": 1372 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "bdce45e7-9fe9-473e-bd51-cef1d787a951",
+      "required_columns": ["תאריך", "מוצר", "יחידות", "מחיר"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

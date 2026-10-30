@@ -1,0 +1,16 @@
+{
+  "main.מספר זיהוי": "chart-region, insight:region — spring key; its leading digits (drainage-basin code) give the region, as on the annual-volumes page",
+  "main.שם מעיין": "chart-profile, table:oldest, table:low, table:high, map:map-main, insight:below, insight:highest, insight:history",
+  "main.שם מעיין באנגלית": "skip: transliteration of the Hebrew name (page is Hebrew-only; searchable in the explorer)",
+  "main.תחילת תצפית": "chart-decade, kpi:first, table:oldest, insight:history, insight:recent, insight:missing",
+  "main.נביעה X .נ.צ": "map:map-main, chart-offset, insight:offset",
+  "main.נביעה Y .נ.צ": "map:map-main, chart-profile, chart-offset, insight:offset",
+  "main.נ.צ. X מקום מדידה": "chart-offset, insight:offset",
+  "main.נ.צ. Y מקום מדידה": "chart-offset, insight:offset",
+  "main.רום הנביעה": "chart-elev, chart-box, chart-profile, kpi:below, table:low, table:high, insight:below, insight:highest",
+  "main.סוג מעיין": "chart-type, chart-region, chart-aquifer, chart-cell, chart-decade, chart-elev, chart-profile, kpi:regular, insight:mix, insight:missing",
+  "main.שם אקויפר": "chart-aquifer, chart-box, table:oldest, insight:aquifer",
+  "main.קוד אקויפר": "skip: numeric code, one-to-one with שם אקויפר",
+  "main.שם תא דיווח": "chart-cell, table:oldest, table:low, table:high, insight:highest",
+  "main.קוד תא דיווח": "skip: numeric code, one-to-one with שם תא דיווח"
+}

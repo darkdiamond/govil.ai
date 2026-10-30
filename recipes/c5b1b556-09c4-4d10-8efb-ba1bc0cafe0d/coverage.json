@@ -1,0 +1,11 @@
+{
+  "main.item_id": "skip: internal catalogue record id (sequential, no meaning on its own)",
+  "main.item_name": "chart-years, chart-lang, chart-themes, chart-heat, chart-pages, kpi:foreign, insight:lang_shift, insight:theme_shift, insight:pages — language (Hebrew letters or not) and keyword themes",
+  "main.item_sticker": "chart-bands, insight:sticker — shelf sticker number, bands of 1,000",
+  "main.pub_year": "chart-years, chart-lang, chart-heat, chart-bands, kpi:span, kpi:peak, kpi:no_year, insight:peak, insight:recent, insight:lang_shift, insight:gaps — valid 1900-2099 only, rest disclosed",
+  "main.remarks": "chart-remarks, kpi:digital — keyword categories, multi-label",
+  "main.publishing_house": "chart-publishers, kpi:publishers, insight:publisher — case/space normalised, typo aliases merged",
+  "main.pub_place": "chart-origin, chart-countries, insight:origin — mapped to country; Hebrew-script = Israel unless a known foreign name",
+  "main.pages": "chart-pages, kpi:median_pages, insight:pages, insight:gaps",
+  "main.author_name": "chart-authors — split on '/', each co-author counted"
+}

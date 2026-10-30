@@ -1,0 +1,10 @@
+{
+  "main.sgira_month": "chart-monthly, chart-yearly, chart-season, chart-types, chart-country-share, chart-country-cmp, chart-brand-lines, chart-diversity, kpi:latest_month, kpi:ytd, kpi:ytd_chg, kpi:last_full, insight:ytd, insight:season, insight:record, insight:month — month of registration; drives every time axis and the 12-month windows",
+  "main.sug_degem": "chart-monthly, chart-types, chart-models, chart-two — P private, M commercial, 3 two-wheelers",
+  "main.tozeret_cd": "chart-diversity — with degem_cd forms the distinct model-code count",
+  "main.tozeret_nm": "chart-brands, chart-brand-lines, chart-country-share, chart-country-cmp, chart-two, kpi:china, kpi:brands12, insight:leader, insight:grower, insight:country_shift, insight:diversity — parsed into brand + country of manufacture",
+  "main.degem_cd": "chart-diversity, insight:diversity — distinct model codes per year",
+  "main.degem_nm": "skip: technical model designation (e.g. KUN26L-DRASYW); kinuy_mishari is the readable model name and the explorer searches this column",
+  "main.car_num": "chart-monthly, chart-yearly, chart-season, chart-types, chart-country-share, chart-country-cmp, chart-brands, chart-brand-lines, chart-models, chart-two, kpi:latest_month, kpi:ytd, insight:ytd — vehicle count summed everywhere",
+  "main.kinuy_mishari": "chart-models, insight:model — commercial model name (empty for two-wheelers)"
+}

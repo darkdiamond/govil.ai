@@ -1,0 +1,50 @@
+{
+  "contract_version": 1,
+  "dataset_id": "aa009a0c-8103-4641-9ff4-247b5e1fe303",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T11:17:23.121725+00:00",
+    "rows": {
+      "main": 14279892
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "שם היחידה",
+        "סטטוס תנועה",
+        "סוג האגרה",
+        "סכום בשקלים",
+        "יתרה להתאמה",
+        "סיבת פטור וביטול"
+      ],
+      "concat": true,
+      "columns": [
+        "שם היחידה",
+        "סטטוס תנועה",
+        "סוג האגרה",
+        "סכום בשקלים",
+        "יתרה להתאמה",
+        "סיבת פטור וביטול"
+      ],
+      "required_columns": [
+        "שם היחידה",
+        "סטטוס תנועה",
+        "סוג האגרה",
+        "סכום בשקלים",
+        "יתרה להתאמה",
+        "סיבת פטור וביטול"
+      ]
+    }
+  ],
+  "limits": {
+    "max_records": 4000000,
+    "total_bytes": 1000000000,
+    "wall_budget_s": 3600,
+    "compute_memory_mb": 2560
+  },
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

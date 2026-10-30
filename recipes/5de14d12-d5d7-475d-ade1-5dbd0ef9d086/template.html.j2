@@ -1,0 +1,461 @@
+<h1>איכות מים במעיינות: מדידות השירות ההידרולוגי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpi_labels[key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תוצאות דיגום של מעיין לפי שם או פרמטר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המעיין בעברית או באנגלית, מספר זיהוי, סמל הפרמטר (כגון CL לכלוריד), שנה הידרולוגית ותאריך דגימה.</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הדיגום לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_lede }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.yearly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה נמדד: הפרמטרים במאגר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.params_lede }}</p>
+  <div id="chart-params" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.params_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.params_aria }}</caption>
+      <thead><tr><th scope="col">פרמטר</th><th scope="col">סמל</th><th scope="col">יחידה</th><th scope="col">מדידות</th><th scope="col">מעיינות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.params %}
+        <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.code }}</td><td dir="ltr">{{ r.unit }}</td><td>{{ r.n | fmt_int }}</td><td>{{ r.springs | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.chloride %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המעיינות המליחים ביותר (כלוריד)</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chloride_lede }}</p>
+  <div id="chart-chloride" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.chloride_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.chloride_aria }}</caption>
+      <thead><tr><th scope="col">מעיין</th><th scope="col">חציון כלוריד (מ״ג/ל)</th><th scope="col">דגימות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.chloride %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.median_d }}</td><td>{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.nitrate %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חנקה מול תקן מי השתייה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.no3_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">התפלגות המעיינות לפי חציון החנקה (מ״ג/ל)</h3>
+      <div id="chart-no3-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.no3_bands_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.no3_bands_aria }}</caption>
+          <thead><tr><th scope="col">חציון חנקה (מ״ג/ל)</th><th scope="col">מעיינות</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.no3_bands %}
+            <tr><th scope="row">{{ r.label }}{% if r.over %} (מעל התקן){% endif %}</th><td>{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">המעיינות עם החנקה הגבוהה ביותר</h3>
+      <div id="chart-no3-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.no3_top_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.no3_top_aria }}</caption>
+          <thead><tr><th scope="col">מעיין</th><th scope="col">חציון (מ״ג/ל)</th><th scope="col">מרבי (מ״ג/ל)</th><th scope="col">דגימות</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.no3_top %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.median_d }}{% if r.over %} (מעל התקן){% endif %}</td><td>{{ r.max_d }}</td><td>{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.no3_change %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">החנקה אז והיום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.no3_change_lede }}</p>
+  <div id="chart-no3-change" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.no3_change_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.no3_change_aria }}</caption>
+      <thead><tr><th scope="col">מעיין</th><th scope="col">{{ model.labels.no3_change_early }}</th><th scope="col">{{ model.labels.no3_change_recent }}</th><th scope="col">שינוי (מ״ג/ל)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.no3_change %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.early_d }}</td><td>{{ r.recent_d }}</td><td dir="ltr">{{ r.delta_d }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.multi %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מליחות לאורך עשורים: המעיינות עם הרצף הארוך ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.multi_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for p in model.charts.multi %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ p.name }}</h3>
+      <p class="m-0 mb-2 text-xs text-subtle">{{ p.note }}</p>
+      <div id="{{ p.id }}" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ p.aria }}"></div>
+    </div>
+{%- endfor %}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.temp %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">טמפרטורת המים ומעיינות חמים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.temp_lede }}</p>
+  <div id="chart-temp" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.temp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.temp_aria }}</caption>
+      <thead><tr><th scope="col">חציון טמפרטורה (מעלות צלזיוס)</th><th scope="col">מעיינות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.temp %}
+        <tr><th scope="row">{{ r.label }}{% if r.hot %} (מעיין חם){% endif %}</th><td>{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.anions %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">טיפוס המים: הרכב האניונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.anions_lede }}</p>
+  <div id="chart-anions" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.anions_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.anions_aria }}</caption>
+      <thead><tr><th scope="col">מעיין</th>{% for s in model.charts.anions.series %}<th scope="col">{{ s.name }} (%)</th>{% endfor %}<th scope="col">אניון שולט</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.anions %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.shares %}<td>{{ v | fmt_num }}</td>{% endfor %}<td>{{ r.dom }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות הדיגום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.months_lede }}</p>
+  <div id="chart-months" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.months_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.months_aria }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">אירועי דיגום</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.months %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי ביצע את הבדיקות</h2>
+  </div>
+  <div id="chart-labs" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.labs_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.labs_aria }}</caption>
+      <thead><tr><th scope="col">מעבדה</th><th scope="col">מדידות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.labs %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n | fmt_int }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר המידע מכיל נתוני איכות מים במעיינות אשר נדגמים על ידי השירות ההידרולוגי.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.yearly | tojson }};
+    const chart = echarts.init(document.getElementById("chart-yearly"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", name: "מדידות" }, { type: "value", name: "מעיינות", splitLine: { show: false } }],
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [
+        { name: "מדידות", type: "bar", data: d.rows },
+        { name: "מעיינות שנדגמו", type: "line", yAxisIndex: 1, showSymbol: false, data: d.springs }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.params | tojson }};
+    const chart = echarts.init(document.getElementById("chart-params"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ name: "מדידות", type: "bar", data: d.values }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- if model.flags.chloride %}
+<script>
+  (function () {
+    const d = {{ model.charts.chloride | tojson }};
+    const chart = echarts.init(document.getElementById("chart-chloride"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v.toLocaleString("he-IL") + " מ״ג/ל" },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "log", name: "מ״ג/ל" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ name: "חציון כלוריד", type: "bar", data: d.values }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.nitrate %}
+<script>
+  (function () {
+    const d = {{ model.charts.no3_bands | tojson }};
+    const chart = echarts.init(document.getElementById("chart-no3-bands"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", name: "מעיינות" },
+      series: [{ name: "מעיינות", type: "bar",
+        data: d.values.map((v, i) => d.over[i] ? { value: v, itemStyle: { color: "#dc3545" } } : v) }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.no3_top | tojson }};
+    const chart = echarts.init(document.getElementById("chart-no3-top"));
+    const pos = d.values.every((v) => v > 0);
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (p) => echarts.format.encodeHTML(p[0].name) + "<br>" + p[0].value.toLocaleString("he-IL") + " מ״ג/ל" + (d.over[p[0].dataIndex] ? " (מעל התקן)" : "") },
+      grid: { left: 16, right: 24, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: pos ? "log" : "value", name: "מ״ג/ל" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ name: "חציון חנקה", type: "bar",
+        data: d.values.map((v, i) => d.over[i] ? { value: v, itemStyle: { color: "#dc3545" } } : v),
+        markLine: { symbol: "none", lineStyle: { color: "#0c3058", type: "dashed" },
+          label: { formatter: "תקן " + d.limit }, data: [{ xAxis: d.limit }] } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.no3_change %}
+<script>
+  (function () {
+    const d = {{ model.charts.no3_change | tojson }};
+    const early = {{ model.labels.no3_change_early | tojson }};
+    const recent = {{ model.labels.no3_change_recent | tojson }};
+    const chart = echarts.init(document.getElementById("chart-no3-change"));
+    const lo = d.early.map((v, i) => Math.min(v, d.recent[i]));
+    const span = d.early.map((v, i) => Math.abs(d.recent[i] - v));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (p) => { const i = p[0].dataIndex; return echarts.format.encodeHTML(d.names[i]) + "<br>" + early + ": " + d.early[i] + " מ״ג/ל<br>" + recent + ": " + d.recent[i] + " מ״ג/ל"; } },
+      legend: { top: 0, data: [early, recent] },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "מ״ג/ל" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "s", data: lo, itemStyle: { color: "transparent" }, silent: true, barWidth: 4 },
+        { type: "bar", stack: "s", data: span, itemStyle: { color: "#c3cfe7" }, silent: true, barWidth: 4,
+          markLine: { symbol: "none", lineStyle: { color: "#dc3545", type: "dashed" },
+            label: { formatter: "תקן " + d.limit }, data: [{ xAxis: d.limit }] } },
+        { name: early, type: "scatter", symbolSize: 10, data: d.early.map((v, i) => [v, d.names[i]]), itemStyle: { color: "#6c757d" } },
+        { name: recent, type: "scatter", symbolSize: 12, data: d.recent.map((v, i) => [v, d.names[i]]), itemStyle: { color: "#0068f5" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.multi %}
+<script>
+  (function () {
+    const panels = {{ model.charts.multi | tojson }};
+    panels.forEach((p) => {
+      const chart = echarts.init(document.getElementById(p.id));
+      chart.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "אין דגימה" : v.toLocaleString("he-IL") + " מ״ג/ל") },
+        grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: p.x },
+        yAxis: { type: "value", scale: true, name: "מ״ג/ל" },
+        series: [{ name: "חציון כלוריד", type: "line", data: p.y, connectNulls: false, showSymbol: false }]
+      }));
+      window.addEventListener("resize", () => chart.resize());
+    });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.temp %}
+<script>
+  (function () {
+    const d = {{ model.charts.temp | tojson }};
+    const chart = echarts.init(document.getElementById("chart-temp"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: (p) => echarts.format.encodeHTML(p[0].name) + " מעלות: " + p[0].value + " מעיינות" + (d.hot[p[0].dataIndex] ? " (חמים)" : "") },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "°C" },
+      yAxis: { type: "value", name: "מעיינות" },
+      series: [{ name: "מעיינות", type: "bar",
+        data: d.values.map((v, i) => d.hot[i] ? { value: v, itemStyle: { color: "#dc3545" } } : v) }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.anions %}
+<script>
+  (function () {
+    const d = {{ model.charts.anions | tojson }};
+    const chart = echarts.init(document.getElementById("chart-anions"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map((s) => ({ name: s.name, type: "bar", stack: "a", data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.months | tojson }};
+    const chart = echarts.init(document.getElementById("chart-months"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "אירועי דיגום" },
+      series: [{ name: "אירועי דיגום", type: "bar", data: d.values }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.labs | tojson }};
+    const chart = echarts.init(document.getElementById("chart-labs"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: (p) => echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)" },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ name: "מדידות", type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], label: { show: false },
+        data: d.names.map((n, i) => ({ name: n, value: d.values[i] })) }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>

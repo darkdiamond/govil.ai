@@ -1,0 +1,6 @@
+{
+  "main.תאריך": "chart-unit-1, chart-unit-2, chart-index, chart-yoy, chart-heat, chart-moves, chart-spread, chart-quote, chart-sulfur, kpi:months, insight:main_yoy, insight:stopped — first of month; keyed by YYYY-MM (some months are dated the 2nd/3rd)",
+  "main.מוצר": "chart-unit-1, chart-unit-2, chart-index, chart-yoy, chart-range, chart-heat, chart-moves, chart-quote, chart-sulfur, kpi:active, insight:breadth, insight:stopped, insight:quote — names folded across the April 2025 relabelling (footnote marks, במיכליות/במכלית, sulfur clause); family = name without delivery mode",
+  "main.יחידת מידה": "chart-unit-1, chart-unit-2, table:yoy, table:range — one line chart per unit (kilolitre / metric ton); kerosene is published in both",
+  "main.מחיר": "chart-unit-1, chart-unit-2, chart-index, chart-yoy, chart-range, chart-heat, chart-moves, chart-spread, chart-quote, chart-sulfur, kpi:main, kpi:main_yoy, kpi:gas, kpi:range, insight:main_yoy, insight:range, insight:swing, insight:spread, insight:move — NIS per unit"
+}
