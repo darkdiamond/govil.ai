@@ -55,6 +55,3 @@ This repo is public: describe a security gap by what to change, never by how to 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
-- **No frontend type checker.** `npx nuxi typecheck` needs `typescript` and `vue-tsc`, which are
-  not in `frontend/package.json`, so `.vue`/`.ts` type errors are caught only at runtime. Add them
-  as dev dependencies and run the check in CI. (2026-10-30)
