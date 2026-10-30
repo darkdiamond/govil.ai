@@ -1,0 +1,8 @@
+{
+  "main.שם שמאי": "table:directory, kpi:total, insight:districts — decisive appraisers act in a public professional capacity, so names are listed with their settlement",
+  "main.כתובת": "chart-districts, chart-cities, kpi:cities, kpi:lead, insight:districts, insight:periphery, insight:empty, insight:cities, insight:pobox — only the settlement after the last ~ and the PO-box flag are read; street addresses stay in the explorer",
+  "main.טלפון": "chart-channels, insight:contact — filled or not only; numbers stay in the explorer",
+  "main.נייד": "chart-channels, insight:contact — filled or not only; numbers stay in the explorer",
+  "main.פקס": "chart-channels, insight:contact — filled or not only (empty in every row when authored)",
+  "main.דוא~ל": "chart-mail, chart-channels, kpi:own, insight:mail — domain class only (own office domain, public webmail, ISP mailbox); addresses never shown"
+}

@@ -1,0 +1,20 @@
+{
+  "contract_version": 1,
+  "dataset_id": "10288bf1-b6d5-4855-a633-6c650c277bd3",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T11:29:01.469619+00:00",
+    "rows": { "main": 2876419 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "a1a91496-d692-4420-bc21-3487600b71a5",
+      "required_columns": ["גוש", "חלקה", "תת חלקה", "תיאור שיטה", "סוג בעלות"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": [],
+  "limits": { "max_records": 4000000 }
+}

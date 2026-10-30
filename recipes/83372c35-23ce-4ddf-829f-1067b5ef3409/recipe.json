@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "83372c35-23ce-4ddf-829f-1067b5ef3409",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T09:14:38.171950+00:00",
+    "rows": { "main": 26 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "a0839273-c03b-489b-ad51-e5280624ab00",
+      "required_columns": ["שם שמאי", "כתובת", "טלפון", "נייד", "פקס", "דוא~ל"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

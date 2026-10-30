@@ -1,0 +1,378 @@
+<h1>אשפוזיות לגמילה מסמים ומאלכוהול</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.inpatient.tone }} mb-1" dir="ltr">{{ model.kpis.inpatient.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.inp_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.no_inp.tone }} mb-1" dir="ltr">{{ model.kpis.no_inp.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.no_inp_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אשפוזיות, מסגרות משולבות ומרפאות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_caption }}</caption>
+        <thead><tr><th scope="col">סוג מסגרת</th><th scope="col">מסגרות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מפעיל את המסגרות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owners_note }}</p>
+    <div id="chart-owners" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.owners_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto relative">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.owners_caption }}</caption>
+          <thead><tr><th scope="col">בעלות</th>{% for c in model.tables.type_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.owners %}
+            <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פריסה לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_note }}</p>
+    <div id="chart-districts" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto relative">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.districts_caption }}</caption>
+          <thead><tr><th scope="col">מחוז</th>{% for c in model.tables.type_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.districts %}
+            <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים עם הכי הרבה מסגרות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+    <div id="chart-cities" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto relative">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.cities_caption }}</caption>
+          <thead><tr><th scope="col">יישוב</th>{% for c in model.tables.type_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.cities %}
+            <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+{%- if model.flags.has_res %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת האשפוזיות ומסגרות השהייה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.res_note }}</p>
+  <div class="overflow-x-auto relative">
+    <table class="w-full text-sm">
+      <caption class="sr-only">אשפוזיות לגמילה ומסגרות משולבות לפי סוג, מחוז ויישוב.</caption>
+      <thead><tr><th scope="col">שם המסגרת</th><th scope="col">יישוב</th><th scope="col">מחוז</th><th scope="col">סוג</th><th scope="col">בעלות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.residential %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.city }}</td><td>{{ r.district }}</td><td>{{ r.type }}</td><td>{{ r.owner }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.has_focus %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">למי מיועדות המסגרות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.focus_note }}</p>
+    <div id="chart-focus" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.focus_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.focus_caption }}</caption>
+        <thead><tr><th scope="col">תחום בשם המסגרת</th><th scope="col">מסגרות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.focus %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שלמות פרטי הקשר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_note }}</p>
+    <div id="chart-contact" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.contact_caption }}</caption>
+        <thead><tr><th scope="col">פרט קשר</th><th scope="col">מסגרות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.contact %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.k }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{%- if model.flags.has_managers %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מנהלים של כמה מסגרות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.managers_note }}</p>
+  <div id="chart-managers" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.managers_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.managers_caption }}</caption>
+        <thead><tr><th scope="col">מנהל</th>{% for c in model.tables.type_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.managers %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">האשפוזיות פועלות לקליטה מהירה, לגמילה גופנית ולהכוונה להמשך טיפול, והן למעשה תחילתה של דרך טיפול ארוכה.</p>
+</section>
+
+<script>
+  (function () {
+    var t = {{ model.charts.types | tojson }};
+    var cols = {{ model.charts.colors | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: cols,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: t.items,
+                 label: { formatter: "{c}" }, avoidLabelOverlap: true }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var o = {{ model.charts.owners | tojson }};
+    var cols = {{ model.charts.colors | tojson }};
+    var c = echarts.init(document.getElementById("chart-owners"));
+    c.setOption(window.GovEcharts.option({
+      color: cols,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: o.names, inverse: true,
+               axisLabel: { fontSize: 11, width: 120, overflow: "truncate" } },
+      series: o.series.map(function (s) {
+        return { type: "bar", stack: "o", name: s.name, data: s.data, barMaxWidth: 28 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.districts | tojson }};
+    var cols = {{ model.charts.colors | tojson }};
+    var c = echarts.init(document.getElementById("chart-districts"));
+    c.setOption(window.GovEcharts.option({
+      color: cols,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "d", name: s.name, data: s.data, barMaxWidth: 32 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var cols = {{ model.charts.colors | tojson }};
+    var c = echarts.init(document.getElementById("chart-cities"));
+    c.setOption(window.GovEcharts.option({
+      color: cols,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11 } },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "c", name: s.name, data: s.data, barMaxWidth: 20 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_focus %}
+<script>
+  (function () {
+    var f = {{ model.charts.focus | tojson }};
+    var c = echarts.init(document.getElementById("chart-focus"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: f.names, inverse: true, axisLabel: { fontSize: 11 } },
+      series: [{ type: "bar", name: "מסגרות", data: f.values, barMaxWidth: 24,
+                 itemStyle: { color: "#0068f5" }, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var k = {{ model.charts.contact | tojson }};
+    var c = echarts.init(document.getElementById("chart-contact"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+      yAxis: { type: "category", data: k.names, inverse: true, axisLabel: { fontSize: 11 } },
+      series: [{ type: "bar", name: "שיעור המסגרות", data: k.values, barMaxWidth: 24,
+                 itemStyle: { color: "#0b3668" }, label: { show: true, position: "right", formatter: "{c}%" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_managers %}
+<script>
+  (function () {
+    var m = {{ model.charts.managers | tojson }};
+    var cols = {{ model.charts.colors | tojson }};
+    var c = echarts.init(document.getElementById("chart-managers"));
+    c.setOption(window.GovEcharts.option({
+      color: cols,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 4, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: m.names, inverse: true,
+               axisLabel: { fontSize: 11, width: 130, overflow: "truncate" } },
+      series: m.series.map(function (s) {
+        return { type: "bar", stack: "m", name: s.name, data: s.data, barMaxWidth: 22 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

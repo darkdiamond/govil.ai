@@ -1,0 +1,6 @@
+{
+  "main.city_name": "chart-districts, chart-words, directory, courts, table:ambiguous, kpi:localities, kpi:largest, kpi:smallest, kpi:ambiguous, insight:leader, insight:top2, insight:smallest, insight:name_word, insight:ambiguous, insight:duplicates, insight:shared_court — unique names feed the locality KPI and every total in prose; per-district counts are distinct (name, district) pairs, so a name listed under two districts counts once in each",
+  "main.court_district": "table:districts, directory — the numeric district code, shown next to each district name in the fallback table and directory headings",
+  "main.מחוז": "chart-districts, chart-words, directory, courts, table:ambiguous, kpi:districts, kpi:largest, kpi:smallest, kpi:ambiguous, kpi:courts, insight:leader, insight:top2, insight:smallest, insight:name_word, insight:ambiguous, insight:shared_court",
+  "main.regional_courts": "directory, courts, table:districts, kpi:courts, insight:shared_court — an HTML anchor to the gov.il regional labour court page; compute parses the https gov.il href (anything else is dropped), groups districts that share one link (a regional labour court serving several districts) and renders one link per district"
+}

@@ -1,0 +1,21 @@
+{
+  "main.city": "chart-cities, kpi:cities, insight:cities, table:residential — top 15 + other settlements",
+  "main.cityCode": "chart-districts, kpi:no_inp, insight:district — mapped to the official district by a fixed CBS-code table; unknown codes shown as לא ממופה",
+  "main.address": "skip: free-text full address; facility addresses stay in the shell's explorer",
+  "main.institute_code": "table:residential — only a sort tie-break key; the code itself is not shown",
+  "main.institute_name": "chart-focus, insight:focus, table:residential — focus categories read from the name",
+  "main.streetCode": "skip: CBS street code, an identifier duplicating street",
+  "main.street": "chart-contact — completeness share (street + building number) only",
+  "main.Building_num": "chart-contact — completeness share (street + building number) only",
+  "main.Zip_code": "chart-contact — completeness share only",
+  "main.phone": "chart-contact, insight:phone — validity share only (placeholder values like 0 counted as missing)",
+  "main.phone2": "chart-contact — completeness share only",
+  "main.fax": "chart-contact — completeness share only",
+  "main.email": "chart-contact — completeness share only",
+  "main.manager": "chart-managers, insight:managers — facility directors named in a professional capacity, only those heading 2+ facilities",
+  "main.notes": "skip: always empty",
+  "main.ownershipCode": "skip: numeric code duplicating ownershipDesc",
+  "main.ownershipDesc": "chart-owners, insight:kupot, insight:residential_owner, table:residential",
+  "main.institute_type_code": "chart-types, chart-owners, chart-districts, chart-cities, chart-managers, kpi:inpatient, insight:types — known codes get friendly labels, unknown ones fall back to the type name",
+  "main.institute_type_name": "chart-types — fallback label for type codes not in the fixed map"
+}

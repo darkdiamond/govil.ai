@@ -1,0 +1,13 @@
+{
+  "resource:8f994f73-45a5-4544-b808-c9ae593b0eb3": "skip: English-language twin of the Hebrew list (same 17 entities); the page is Hebrew-only",
+  "banks.Category": "chart-categories, chart-cities, table-directory, kpi:top_cat, insight:mix, insight:missing",
+  "banks.Bank_Code": "table-directory, insight:codes — also the directory's sort key",
+  "banks.Bank_Name": "table-directory, chart-cities, insight:swift, insight:shared, insight:missing, insight:web, insight:codes",
+  "banks.Internet_Address": "table-directory, chart-fields, kpi:complete, insight:web, insight:missing",
+  "banks.Swift_Code": "table-directory, chart-fields, kpi:swift, kpi:complete, insight:swift",
+  "banks.Address": "table-directory, chart-fields, kpi:complete, insight:missing",
+  "banks.City": "chart-cities, table-directory, insight:cities, insight:shared",
+  "banks.Zip_Code": "table-directory, chart-fields, kpi:complete, insight:shared",
+  "banks.Telephone": "table-directory, chart-fields, kpi:complete, insight:missing",
+  "banks.Fax": "table-directory, chart-fields, kpi:complete"
+}

@@ -1,0 +1,3 @@
+{
+  "qadis.קאדים": "table-roster, chart-composition, kpi:persons, kpi:entries, kpi:women, kpi:women_share, insight:composition, insight:head, insight:women, insight:dups, insight:roles — parsed into title prefix, name and an optional place qualifier after a hyphen; role entries (e.g. on-duty qadi) are listed apart and not counted as persons"
+}

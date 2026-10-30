@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "75989c99-3122-4656-943c-3b758262cbf4",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T10:00:39.269962+00:00",
+    "rows": {
+      "banks": 17
+    }
+  },
+  "inputs": [
+    {
+      "name": "banks",
+      "by_id": "ebb61778-e34c-4e67-8fcf-0e643d9cf8c2",
+      "required_columns": [
+        "Category",
+        "Bank_Code",
+        "Bank_Name",
+        "Internet_Address",
+        "Swift_Code",
+        "Address",
+        "City",
+        "Zip_Code",
+        "Telephone",
+        "Fax"
+      ]
+    }
+  ],
+  "min_insights": 3
+}

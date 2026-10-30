@@ -1,0 +1,57 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a38ee853-150f-4360-9177-669063f3322b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:10:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T11:43:38.685297+00:00",
+    "rows": { "main": 1361656 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "operator_nm",
+        "cluster_nm",
+        "operator_line_id",
+        "office_line_id",
+        "line_type_nm",
+        "VehicleType_nm",
+        "VehicleSize_nm",
+        "rishui_date",
+        "origin_yishuv_nm",
+        "destination_yishuv_nm",
+        "trips_count"
+      ],
+      "pick": "latest",
+      "required_columns": [
+        "operator_nm",
+        "cluster_nm",
+        "operator_line_id",
+        "office_line_id",
+        "line_type_nm",
+        "VehicleType_nm",
+        "VehicleSize_nm",
+        "rishui_date",
+        "origin_yishuv_nm",
+        "destination_yishuv_nm",
+        "trips_count"
+      ],
+      "columns": [
+        "operator_nm",
+        "cluster_nm",
+        "operator_line_id",
+        "office_line_id",
+        "line_type_nm",
+        "VehicleType_nm",
+        "VehicleSize_nm",
+        "rishui_date",
+        "origin_yishuv_nm",
+        "destination_yishuv_nm",
+        "trips_count"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
