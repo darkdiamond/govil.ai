@@ -1136,3 +1136,24 @@ def test_unreadable_previous_body_does_not_fail_the_render(env):
 
     env.read_gcs = _boom
     assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
+
+
+def test_author_runtime_parity(tmp_path, monkeypatch):
+    from importlib import metadata
+
+    from services.page_builder import author
+
+    assert author._satisfies("3.1.0", ">=3.0.5,<4")
+    assert not author._satisfies("2.3.3", ">=3.0.5,<4")
+    assert not author._satisfies("4.0", ">=3.0.5,<4")
+    assert author._satisfies("3.1.6", ">=3.1.6")
+
+    reqs = tmp_path / "requirements.txt"
+    reqs.write_text("# comment\nhttpx>=0.28\npandas>=3.0.5,<4  # compute\njinja2>=3.1.6\n")
+    versions = {"pandas": "2.3.3", "jinja2": "3.1.6", "httpx": "0.1"}
+    monkeypatch.setattr(metadata, "version", lambda name: versions[name])
+    assert author.runtime_parity_problems(reqs) == [
+        "pandas 2.3.3 here, builder image pins pandas>=3.0.5,<4"
+    ]
+    versions["pandas"] = "3.1.0"
+    assert author.runtime_parity_problems(reqs) == []

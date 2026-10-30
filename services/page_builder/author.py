@@ -65,6 +65,56 @@ RECIPES_ROOT = REPO_ROOT / "recipes"
 TRUNCATE_FRACTION = 0.7
 SHUFFLE_SEED = 1729
 
+# Libraries whose behaviour shapes a recipe's output; verify refuses to run
+# when the local one falls outside the builder image's pin. pandas 2 keeps
+# None in a str column where pandas 3 stores NaN, so a recipe verified on
+# pandas 2 passed locally and crashed in the job (2026-10-30).
+BUILDER_REQUIREMENTS = REPO_ROOT / "services" / "page_builder" / "requirements.txt"
+PARITY_PACKAGES = ("pandas", "jinja2")
+
+
+_REQ_RE = re.compile(r"^([A-Za-z0-9_.-]+)\s*(.*)$")
+_SPEC_OPS = {
+    ">=": lambda a, b: a >= b, "<=": lambda a, b: a <= b, "==": lambda a, b: a == b,
+    "!=": lambda a, b: a != b, ">": lambda a, b: a > b, "<": lambda a, b: a < b,
+}
+
+
+def _version_tuple(v: str) -> tuple[int, ...]:
+    return tuple(int(m) for m in re.findall(r"\d+", v.split("+")[0])[:3])
+
+
+def _satisfies(have: str, spec: str) -> bool:
+    """`spec` like '>=3.0.5,<4' (the operators requirements.txt uses; no ~= or wildcards)."""
+    for clause in filter(None, (c.strip() for c in spec.split(","))):
+        op = next(o for o in sorted(_SPEC_OPS, key=len, reverse=True) if clause.startswith(o))
+        want = _version_tuple(clause[len(op):])
+        mine = _version_tuple(have)
+        width = max(len(want), len(mine))
+        if not _SPEC_OPS[op](mine + (0,) * (width - len(mine)), want + (0,) * (width - len(want))):
+            return False
+    return True
+
+
+def runtime_parity_problems(requirements: Path = BUILDER_REQUIREMENTS) -> list[str]:
+    """Each PARITY_PACKAGES pin the running interpreter doesn't satisfy."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    problems = []
+    for line in requirements.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        m = _REQ_RE.match(line)
+        if not m or m.group(1).lower() not in PARITY_PACKAGES:
+            continue
+        name, spec = m.group(1), m.group(2).strip()
+        try:
+            have = version(name)
+        except PackageNotFoundError:
+            have = None
+        if have is None or not _satisfies(have, spec):
+            problems.append(f"{name} {have or 'not installed'} here, builder image pins {name}{spec}")
+    return problems
+
 
 def _paths(dataset_id: str) -> dict[str, Path]:
     root = AUTHORING_ROOT / dataset_id
@@ -756,6 +806,13 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     p = _paths(dataset_id)
     if not p["manifest"].is_file():
         raise SystemExit(f"run `author prepare {dataset_id}` first")
+    parity = runtime_parity_problems()
+    if parity:
+        raise SystemExit(
+            "verify must run on the builder's library versions, or a PASS here can crash in the job:\n  "
+            + "\n  ".join(parity)
+            + f"\nupgrade the venv: pip install -r {BUILDER_REQUIREMENTS.relative_to(REPO_ROOT)}"
+        )
     manifest = json.loads(p["manifest"].read_text(encoding="utf-8"))
     resources = _resources_from_manifest(manifest)
     recipe = Recipe.load(recipes_root / dataset_id)

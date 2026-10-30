@@ -119,19 +119,19 @@ def open_authoring_issue(
     # GitHub silently drops `labels` on create unless the token has push
     # access, which the job's Issues-only PAT doesn't — so issues #112–#236
     # opened unlabelled and the authoring routine (which lists by label)
-    # never saw them. The add-labels endpoint needs only Issues:write and
-    # fails loudly. The issue stays recorded either way: a label failure
-    # must not open a duplicate next run, so nothing here may raise. The
-    # source is then `notified` and never re-queued, so an unlabelled issue
-    # stays invisible to the routine: retry once, then log what to run.
+    # never saw them. The add-labels endpoint 403s for that PAT too
+    # (2026-10-30), so the routine now lists by author + the `[author] … (<id8>)`
+    # title instead, and the label is only for humans browsing the tracker.
+    # The issue stays recorded either way: a label failure must not open a
+    # duplicate next run, so nothing here may raise.
     try:
         have = {lb.get("name") for lb in created.get("labels") or [] if isinstance(lb, dict)}
         if not set(labels) <= have and not any(
             add_labels(number, labels, repo=repo, token=token) for _ in range(2)
         ):
-            log.error(
-                "issue #%s for %s is unlabelled and invisible to the authoring routine; "
-                "label it by hand: gh issue edit %s --repo %s --add-label %s",
+            log.warning(
+                "issue #%s for %s opened unlabelled (the routine still finds it by title); "
+                "to label it: gh issue edit %s --repo %s --add-label %s",
                 number, dataset_id, number, repo, ",".join(labels),
             )
     except Exception:

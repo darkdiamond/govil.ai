@@ -64,7 +64,7 @@ def _safe_url(u):
 
 
 def _link_kind(u):
-    if u is None:
+    if not isinstance(u, str):
         return "none"
     path = URL_RE.match(u).group(2) or ""
     path = re.split(r"[?#]", path, maxsplit=1)[0].lower()
@@ -89,7 +89,10 @@ def _prepare(df):
     df["sub"] = df["תת תחום"].where(df["תת תחום"] != "", df["domain"])
     df["name"] = df["שם כלל"]
     df["type"] = df["name"].map(_classify)
-    df["url"] = df["לינק לכלל"].map(_safe_url)
+    # object dtype keeps None as None: pandas 3 would store a missing link
+    # in a str column as NaN, which crashes _link_kind and the JSON model.
+    df["url"] = df["לינק לכלל"].map(_safe_url).astype(object)
+    df["url"] = df["url"].where(df["url"].notna(), None)
     df["link_kind"] = df["url"].map(_link_kind)
     # Exact duplicate documents (same name + sub + link) count once.
     df = df.drop_duplicates(subset=["domain", "sub", "name", "לינק לכלל"])
