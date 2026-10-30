@@ -287,14 +287,13 @@ def compute(frames):
         sub = df[df["_y"] == y]
         yfr[y], raw[y], meta[y] = _year_frame(sub, dmap)
     all_years = sorted(yfr)
-    latest = all_years[-1]
-    # A yearly file lists every locality; a much shorter one is partial.
+    # A yearly file lists every locality; a much shorter one is partial and
+    # is left out everywhere, including as the page's snapshot (the lede
+    # names it). The largest file is never partial, so `years` is non-empty.
     full_n = max(len(f) for f in yfr.values())
     partial = [y for y in all_years if len(yfr[y]) < 0.9 * full_n]
     years = [y for y in all_years if y not in partial]
-    if latest not in years:
-        years.append(latest)
-        years.sort()
+    latest = years[-1]
 
     L = yfr[latest].copy()
     R = raw[latest]
@@ -725,7 +724,7 @@ def compute(frames):
     labels["lede"] = (f"קובץ היישובים של הלשכה המרכזית לסטטיסטיקה הוא הרשימה הרשמית של יישובי ישראל וסמליהם. "
                       f"הקובץ העדכני, {latest}{prov}, כולל {n_entries:,} רשומות: {n_pop:,} יישובים עם אוכלוסייה "
                       f"ועוד {n_entries - n_pop:,} שטחים, אזורי תעשייה ויישובים ללא נתוני אוכלוסייה. "
-                      f"במאגר {len(all_years):,} קבצים שנתיים ברי השוואה, {all_years[0]}-{latest}.")
+                      f"במאגר {len(years):,} קבצים שנתיים ברי השוואה, {years[0]}-{latest}.")
 
     insights.insert(0, {"id": "scale", "text_he": (
         f"בקובץ היישובים {latest} רשומים {n_pop:,} יישובים מיושבים ובהם {_i(total)} תושבים{prov}, "
