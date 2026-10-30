@@ -708,6 +708,7 @@ class FirestoreStateStore:
             "inputs_hash": inputs_hash,
             "content_hash": content_hash,
             "file_fingerprint": file_fingerprint,
+            "wall_budget_strikes": None,
         }
         if not preview:
             payload.update(
@@ -759,6 +760,7 @@ class FirestoreStateStore:
         }
         if inputs_hash is not None:
             payload["inputs_hash"] = inputs_hash
+            payload["wall_budget_strikes"] = None  # the full fetch completed
         if advance_version:
             payload.update(
                 {
@@ -782,22 +784,25 @@ class FirestoreStateStore:
         error: str,
         reason: str,
         failed_version: str,
+        wall_budget_strikes: Optional[int] = None,
         preview: bool = False,
     ) -> None:
         """Record a failed refresh. Never touches `analysis_status`: the
         last-good page stays live. `failed_version` (metadata_modified +
         recipe_version) lets the next run skip a deterministic re-failure
-        until either the data or the recipe moves."""
-        self._refresh_ref(dataset_id, preview).set(
-            {
-                "refresh_status": "failed",
-                "refresh_error": (error or "")[:1000],
-                "refresh_reason": reason,
-                "refresh_failed_version": failed_version,
-                "last_refresh_attempt_at": datetime.now(timezone.utc),
-            },
-            merge=True,
-        )
+        until either the data or the recipe moves. `wall_budget_strikes`
+        (wall-budget overruns since the last full fetch) is written only
+        when given; other failures leave the count alone."""
+        payload: dict[str, Any] = {
+            "refresh_status": "failed",
+            "refresh_error": (error or "")[:1000],
+            "refresh_reason": reason,
+            "refresh_failed_version": failed_version,
+            "last_refresh_attempt_at": datetime.now(timezone.utc),
+        }
+        if wall_budget_strikes is not None:
+            payload["wall_budget_strikes"] = wall_budget_strikes
+        self._refresh_ref(dataset_id, preview).set(payload, merge=True)
 
     def mark_authoring_needed(
         self, dataset_id: str, reason: str, *, preview: bool = False

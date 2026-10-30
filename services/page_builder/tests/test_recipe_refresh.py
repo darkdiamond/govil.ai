@@ -91,7 +91,8 @@ class FakeStore:
                   authoring_status="done", authoring_reason=None, authoring_issue=None,
                   last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
-                  content_hash=content_hash, file_fingerprint=file_fingerprint)
+                  content_hash=content_hash, file_fingerprint=file_fingerprint,
+                  wall_budget_strikes=None)
 
     def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
                                inputs_hash=None, file_fingerprint=None, reason,
@@ -100,15 +101,19 @@ class FakeStore:
               "file_fingerprint": file_fingerprint}
         if inputs_hash is not None:
             kw["inputs_hash"] = inputs_hash
+            kw["wall_budget_strikes"] = None
         if advance_version:
             kw.update(refreshed_metadata_modified=metadata_modified, refresh_status="succeeded",
                       refresh_failed_version=None, authoring_status="done",
                       authoring_reason=None, authoring_issue=None)
         self._upd(dataset_id, preview, **kw)
 
-    def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version, preview=False):
+    def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version,
+                            wall_budget_strikes=None, preview=False):
         self._upd(dataset_id, preview, refresh_status="failed", refresh_error=error,
                   refresh_reason=reason, refresh_failed_version=failed_version)
+        if wall_budget_strikes is not None:
+            self._upd(dataset_id, preview, wall_budget_strikes=wall_budget_strikes)
 
     def mark_authoring_needed(self, dataset_id, reason, *, preview=False):
         self._upd(dataset_id, preview, authoring_status="needed", authoring_reason=reason)
@@ -396,6 +401,44 @@ def test_wall_budget_overrun_is_transient(env):
     s = _run(env, store, _LimitedCkan(_rows([2024, 2025]), "wall_budget"))
     assert s["outcomes"][0]["reason"] == "fetch_failed"
     assert env.issues == []
+
+
+def _strikes(store):
+    return store.get_refresh_state(DS, preview=True).get("wall_budget_strikes")
+
+
+def test_repeated_wall_budget_overrun_escalates_to_too_large(env):
+    store = FakeStore(_src())
+    slow = _LimitedCkan(_rows([2024, 2025]), "wall_budget")
+    for n in (1, 2):
+        s = _run(env, store, slow)
+        assert s["outcomes"][0]["reason"] == "fetch_failed" and _strikes(store) == n
+    assert env.issues == []
+    s = _run(env, store, slow)
+    assert s["outcomes"][0]["reason"] == "too_large"
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "too_large"
+    assert _strikes(store) == 0  # a re-authored recipe gets a fresh run of tries
+
+
+def test_full_fetch_resets_wall_budget_strikes(env):
+    store = FakeStore(_src())
+    rows = _rows([2024, 2025])
+    for _ in range(2):
+        _run(env, store, _LimitedCkan(rows, "wall_budget"))
+    assert _strikes(store) == 2
+    store.src = _src("2026-10-02")  # new data, so the next run fetches again
+    s = _run(env, store, FakeCkan(rows))
+    assert s["failed"] == [] and _strikes(store) is None
+    store.src = _src("2026-10-03")
+    s = _run(env, store, _LimitedCkan(rows, "wall_budget"))
+    assert s["outcomes"][0]["reason"] == "fetch_failed" and _strikes(store) == 1
+
+
+def test_wall_budget_strike_limit_is_env_tunable(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_WALL_BUDGET_STRIKES", "1")
+    store = FakeStore(_src())
+    s = _run(env, store, _LimitedCkan(_rows([2024, 2025]), "wall_budget"))
+    assert s["outcomes"][0]["reason"] == "too_large" and len(env.issues) == 1
 
 
 def test_new_recipe_version_rerenders(env, tmp_path):

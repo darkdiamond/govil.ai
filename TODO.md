@@ -6,18 +6,6 @@ wrong, why it matters, and what would fix it, and end it with the date it was ad
 
 This repo is public: describe a security gap by what to change, never by how to exploit it.
 
-## Security and operations
-
-- **Enforced CSP not checked with ads filling.** The pre-promotion check ran headless, where
-  AdSense came back unfilled, so the hosts a filled ad and Google's Israeli ccTLD
-  (`*.google.co.il`) use were never exercised. The policy has no reporting endpoint either, so a
-  block shows only in a visitor's console. Open a few live dataset pages in a normal browser with
-  ads filling, look for `Refused to …` lines, and add any missing host to `firebase.json`.
-  (2026-10-30)
-- **Authoring routine cron is UTC.** The 07:00 Israel routine runs on `0 5 * * *` UTC, which is
-  right only in winter time. Move it to `0 4 * * *` on 2027-03-26 (Israel switches to summer
-  time), and back in October. (2026-10-30)
-
 ## Recipes and refresh
 
 - **`273c5e33…` (vehicle history) is not authored yet.** Its two resources hold 2.5M and 5.55M
@@ -30,11 +18,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **A wall-budget overrun never escalates.** A fetch that runs out of `REFRESH_WALL_BUDGET_S`
-  (or a recipe's `limits.wall_budget_s`) is a transient `fetch_failed`, because one run can't tell a
-  slow CKAN night from a dataset that outgrew its budget. A dataset that really did outgrow it is
-  retried every night and its page stays last-good with no issue. Count consecutive wall-budget
-  failures in the refresh state and open a `too_large` issue after a few in a row. (2026-10-30)
 - **`pick: "latest"` trusts CKAN `last_modified`.** Re-uploading an old snapshot bumps its
   `last_modified`, and the page would switch to it. If that happens, order by the date in the
   resource name when it parses (snapshot datasets name their date), falling back to
@@ -55,8 +38,3 @@ This repo is public: describe a security gap by what to change, never by how to 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
-- **esbuild override.** `frontend/package.json` pins `esbuild` to 0.28.1 via `overrides`, outside
-  vite's declared range. Drop the override once vite/nuxt depend on esbuild ^0.28. (2026-10-30)
-- **No frontend type checker.** `npx nuxi typecheck` needs `typescript` and `vue-tsc`, which are
-  not in `frontend/package.json`, so `.vue`/`.ts` type errors are caught only at runtime. Add them
-  as dev dependencies and run the check in CI. (2026-10-30)
