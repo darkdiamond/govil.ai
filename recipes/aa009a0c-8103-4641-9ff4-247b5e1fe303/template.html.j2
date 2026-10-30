@@ -1,0 +1,500 @@
+<h1>הכנסות וגבייה של משרד המשפטים: אגרות, חיובים ושיעורי גבייה</h1>
+
+<style>
+  .mj-table th, .mj-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .mj-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="m-0 mt-2 text-sm text-subtle">כל שורה במאגר היא חיוב (תנועה) של אגרה. חיוב תקף שעדיין לא הותאם לתשלום נשאר עם &quot;יתרה להתאמה&quot;, ולכן שיעור הגבייה בעמוד הוא החלק מסכום החיובים התקפים שכבר שולם. חיובים בפטור, בביטול או בהקפאה אינם נגבים ומוצגים בנפרד. היתרות נכונות למועד העדכון האחרון של הקבצים.</p>
+{%- if model.flags.excluded %}
+  <p class="m-0 mt-2 text-sm text-ink">{{ model.labels.excluded_note }}</p>
+{%- endif %}
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for k in model.labels.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חיובים וגבייה לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.years_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">חיובים (כל הסטטוסים)</th><th scope="col">חיובים תקפים (מיליוני ₪)</th><th scope="col">נגבה (מיליוני ₪)</th><th scope="col">פתוח (מיליוני ₪)</th><th scope="col">שיעור גבייה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.years %}
+          <tr><th scope="row" class="font-normal">{{ r.year }}</th><td>{{ r.count }}</td><td>{{ r.billed }}</td><td>{{ r.collected }}</td><td>{{ r.open }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי גובה: חיובים לפי יחידה במשרד המשפטים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.units_note }}</p>
+  <div id="chart-units" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.units_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.units_aria }}</caption>
+        <thead><tr><th scope="col">יחידה</th><th scope="col">חיובים תקפים (מיליוני ₪)</th><th scope="col">חלק מהסך</th><th scope="col">מספר חיובים תקפים</th><th scope="col">שיעור גבייה</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.units %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.billed }}</td><td>{{ r.share }}</td><td>{{ r.count }}</td><td>{{ r.rate }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חיובים לפי יחידה ושנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+        <thead><tr><th scope="col">יחידה</th>
+{%- for y in model.charts.heat.x %}<th scope="col">{{ y }}</th>{% endfor -%}
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th>
+{%- for v in r.vals %}<td>{{ v }}</td>{% endfor -%}
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.rate %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור הגבייה לפי יחידה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rate_note }}</p>
+  <div id="chart-rate" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.rate_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.rate_aria }}</caption>
+        <thead><tr><th scope="col">יחידה</th><th scope="col">שיעור גבייה</th><th scope="col">חיובים תקפים (מיליוני ₪)</th><th scope="col">פתוח (מיליוני ₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.rate %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.rate }}</td><td>{{ r.billed }}</td><td>{{ r.open }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אגרות שנתיות מול אגרות שירות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+        <thead><tr><th scope="col">סוג אגרה</th><th scope="col">חיובים תקפים (מיליוני ₪)</th><th scope="col">חלק מהסך</th><th scope="col">שיעור גבייה</th><th scope="col">פתוח (מיליוני ₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.billed }}</td><td>{{ r.share }}</td><td>{{ r.rate }}</td><td>{{ r.open }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סטטוס החיובים לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+  <div id="chart-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">חיובים</th>
+{%- for s in model.tables.status_names %}<th scope="col">{{ s }}</th>{% endfor -%}
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row" class="font-normal">{{ r.year }}</th><td>{{ r.count }}</td>
+{%- for v in r.shares %}<td>{{ v }}</td>{% endfor -%}
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פטורים וביטולים לפי יחידה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_units_note }}</p>
+  <div id="chart-status-units" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.status_units_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_units_aria }}</caption>
+        <thead><tr><th scope="col">יחידה</th>
+{%- for s in model.tables.status_names %}<th scope="col">{{ s }}</th>{% endfor -%}
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.status_units %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th>
+{%- for v in r.shares %}<td>{{ v }}</td>{% endfor -%}
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.reasons %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">למה חיובים לא נגבים: סיבות לפטור ולביטול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reasons_note }}</p>
+  <div id="chart-reasons" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.reasons_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="mj-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.reasons_aria }}</caption>
+        <thead><tr><th scope="col">סיבה</th><th scope="col">חיובים</th><th scope="col">שיעור</th><th scope="col">סכום (מיליוני ₪)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.reasons %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.amount }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גובה החיובים: התפלגות הסכומים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.amounts_note }}</p>
+    <div id="chart-amounts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.amounts_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto relative">
+        <table class="mj-table mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.amounts_aria }}</caption>
+          <thead><tr><th scope="col">סכום החיוב (₪)</th><th scope="col">חיובים</th><th scope="col">שיעור</th><th scope="col">סכום (מיליוני ₪)</th><th scope="col">חלק מהכסף</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.amounts %}
+            <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.amount }}</td><td>{{ r.amount_share }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">כמות מול גובה: מספר החיובים והחיוב הממוצע</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+    <div id="chart-scatter" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto relative">
+        <table class="mj-table mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.scatter_aria }}</caption>
+          <thead><tr><th scope="col">יחידה</th><th scope="col">חיובים תקפים</th><th scope="col">חיוב ממוצע (₪)</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.scatter %}
+            <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.avg }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">כלל התקבולים והחיובים של משרד המשפטים</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(ps[0].name)
+          + "<br>נגבה: " + d.collected[i].toLocaleString("he-IL") + " מיליון ₪"
+          + "<br>פתוח: " + d.open[i].toLocaleString("he-IL") + " מיליון ₪"
+          + "<br>שיעור גבייה: " + d.rate[i] + "%"
+          + "<br>חיובים: " + d.count[i].toLocaleString("he-IL") + " אלף";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 8, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "מיליוני ₪", nameTextStyle: { fontSize: narrow ? 10 : 12 } },
+        { type: "value", name: "אלפי חיובים", splitLine: { show: false }, nameTextStyle: { fontSize: narrow ? 10 : 12 } }
+      ],
+      series: [
+        { name: "נגבה", type: "bar", stack: "m", data: d.collected },
+        { name: "פתוח", type: "bar", stack: "m", data: d.open, itemStyle: { color: "#9fc2f7" } },
+        { name: "מספר חיובים (אלפים)", type: "line", yAxisIndex: 1, data: d.count, symbolSize: 6, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.units | tojson }};
+    var el = document.getElementById("chart-units");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(ps[0].name)
+          + "<br>נגבה: " + d.collected[i].toLocaleString("he-IL") + " מיליון ₪"
+          + "<br>פתוח: " + d.open[i].toLocaleString("he-IL") + " מיליון ₪";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", name: "מיליוני ₪", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: narrow ? 100 : 200, overflow: "truncate", ellipsis: "…" } },
+      series: [
+        { name: "נגבה", type: "bar", stack: "m", data: d.collected },
+        { name: "פתוח", type: "bar", stack: "m", data: d.open, itemStyle: { color: "#9fc2f7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.y[p.value[1]] + ", " + d.x[p.value[0]]) + "<br>" + p.value[2].toLocaleString("he-IL") + " מיליון ₪";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { fontSize: narrow ? 9 : 12, interval: 0, rotate: narrow ? 45 : 0 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: narrow ? 9 : 11, width: narrow ? 80 : 180, overflow: "truncate", ellipsis: "…" } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontFamily: "Rubik", fontSize: 10 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.flags.rate %}
+  (function () {
+    var d = {{ model.charts.rate | tojson }};
+    var el = document.getElementById("chart-rate");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    var colors = { ok: "#198754", warn: "#9a6700", danger: "#dc3545" };
+    var tag = { ok: "", warn: " (בינוני)", danger: " (נמוך)" };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(ps[0].name) + "<br>שיעור גבייה: " + d.y[i] + "%" + tag[d.tone[i]];
+      } },
+      grid: { left: 8, right: 24, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.x, axisLabel: { width: narrow ? 100 : 200, overflow: "truncate", ellipsis: "…" } },
+      series: [{ name: "שיעור גבייה", type: "bar",
+        data: d.y.map(function (v, i) { return { value: v, itemStyle: { color: colors[d.tone[i]] } }; }),
+        label: { show: true, position: "right", formatter: "{c}%", fontSize: narrow ? 9 : 11 },
+        markLine: { silent: true, symbol: "none", lineStyle: { color: "#6c757d", type: "dashed" },
+          data: [{ xAxis: d.ok }, { xAxis: d.warn }], label: { formatter: "{c}%" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var el = document.getElementById("chart-types");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, out = echarts.format.encodeHTML(ps[0].name);
+        ps.forEach(function (p) {
+          var r = d.rate[p.seriesIndex].data[i];
+          out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL") + " מיליון ₪"
+            + (r === null ? "" : " (נגבו " + r + "%)");
+        });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "מיליוני ₪" },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "t", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var el = document.getElementById("chart-status");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var out = echarts.format.encodeHTML(ps[0].name);
+        ps.forEach(function (p) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + Number(p.value).toFixed(1) + "%"; });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "all", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.status_units | tojson }};
+    var el = document.getElementById("chart-status-units");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var out = echarts.format.encodeHTML(ps[0].name);
+        ps.forEach(function (p) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + Number(p.value).toFixed(1) + "%"; });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%", show: !narrow } },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: narrow ? 100 : 200, overflow: "truncate", ellipsis: "…" } },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "all", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.flags.reasons %}
+  (function () {
+    var d = {{ model.charts.reasons | tojson }};
+    var el = document.getElementById("chart-reasons");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(ps[0].name) + "<br>" + d.y[i].toLocaleString("he-IL") + " חיובים"
+          + "<br>" + d.amount[i].toLocaleString("he-IL") + " מיליון ₪";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: narrow ? 110 : 240, overflow: "truncate", ellipsis: "…" } },
+      series: [{ name: "חיובים", type: "bar", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.amounts | tojson }};
+    var el = document.getElementById("chart-amounts");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(ps[0].name) + " ₪<br>" + d.y[i].toLocaleString("he-IL") + " חיובים"
+          + "<br>" + d.amount[i].toLocaleString("he-IL") + " מיליון ₪";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: narrow ? 60 : 35, fontSize: narrow ? 9 : 11 } },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return v >= 1000000 ? (v / 1000000).toLocaleString("he-IL") + " מיליון" : v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v; } } },
+      series: [{ name: "חיובים", type: "bar", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.scatter | tojson }};
+    var el = document.getElementById("chart-scatter");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.value[2]) + "<br>" + p.value[0].toLocaleString("he-IL") + " חיובים תקפים"
+          + "<br>חיוב ממוצע: " + Math.round(p.value[1]).toLocaleString("he-IL") + " ₪";
+      } },
+      grid: { left: 8, right: 24, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "log", name: "חיובים", axisLabel: { formatter: function (v) { return v >= 1000000 ? (v / 1000000).toLocaleString("he-IL") + " מיליון" : v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : v; } } },
+      yAxis: { type: "log", name: "₪ לחיוב" },
+      series: [{ type: "scatter", data: d.points, symbolSize: 12 }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

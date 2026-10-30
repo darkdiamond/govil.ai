@@ -1,0 +1,16 @@
+{
+  "main.זיהוי תחנה הידרומטרית": "chart-index, chart-heat, chart-region, chart-network, chart-latest, chart-regime, chart-peak, kpi:stations, kpi:active — station key; all but its last three digits are the drainage-basin code that gives the region",
+  "main.שם תחנה הידרומטרית": "chart-heat, chart-flag, chart-daily, chart-latest, chart-peak, insight:flagship, insight:peak — the name shown for each station",
+  "main.תאריך": "chart-index, chart-heat, chart-flag, chart-daily, chart-season, chart-network, chart-peak, kpi:span, insight:latest, insight:network — parsed to day; hydrological year (Oct-Sep) and month derive from it",
+  "main.נפח יומי (מ''ק)": "chart-index, chart-heat, chart-flag, chart-daily, chart-latest, chart-region, chart-regime, chart-season, chart-peak, kpi:index, kpi:flag, kpi:peak, insight:latest, insight:extremes, insight:drought_run, insight:region, insight:regime, insight:season, insight:peak",
+  "main.שם תחנה באנגלית": "skip: transliteration of the Hebrew station name (page is Hebrew-only); not fetched",
+  "main.ספיקה יומית ממוצעת (מ''ק/שניה)": "skip: equals daily volume / 86,400 rounded to 2 decimals; the recipe derives discharge from the volume, not fetched",
+  "main.שנה הידרולוגית": "skip: derived from the date (October-September year), verified identical on every row; not fetched",
+  "early.זיהוי תחנה הידרומטרית": "chart-index, chart-heat, chart-network, kpi:stations — same as main (1960-1980 file)",
+  "early.שם תחנה הידרומטרית": "chart-heat, chart-peak — same as main",
+  "early.תאריך": "chart-index, chart-heat, chart-network, kpi:span — same as main",
+  "early.נפח יומי (מטר קוב)": "chart-index, chart-heat, chart-flag, chart-season, chart-peak, kpi:index — same as main volume; this file spells the unit differently",
+  "early.שם תחנה באנגלית": "skip: transliteration of the Hebrew station name; not fetched",
+  "early.ספיקה יומית ממוצעת (מטר קוב/שניה)": "skip: equals daily volume / 86,400; not fetched",
+  "early.שנה הידרולוגית": "skip: derived from the date; not fetched"
+}

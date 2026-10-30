@@ -1,0 +1,8 @@
+{
+  "segments.SHAPE_Leng": "map-segments, chart-bands, chart-pareto, chart-longest, chart-sectors, chart-rings, chart-grid, chart-scatter, kpi:total_km, kpi:segments, kpi:median, kpi:long_share, insight:pareto, insight:long, insight:short, insight:longest, insight:sector, insight:extent, insight:spread — segment length in metres",
+  "segments.lat": "map-segments, chart-longest, chart-sectors, chart-rings, chart-grid, chart-scatter, insight:longest, insight:sector, insight:extent, insight:spread — segment reference point (WGS84)",
+  "segments.lon": "map-segments, chart-longest, chart-sectors, chart-rings, chart-grid, chart-scatter, insight:longest, insight:sector, insight:extent, insight:spread — segment reference point (WGS84)",
+  "resource:7514cf04-086d-4fdd-8589-d9c5f24fa21e": "skip: XLSX twin of the CSV, identical rows",
+  "resource:b782b39b-3dd9-4216-8cfa-a7e589226a8e": "skip: same segments in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:0b52886d-6e84-4b09-a1fb-e5f771518061": "skip: XLSX twin of the ITM resource"
+}

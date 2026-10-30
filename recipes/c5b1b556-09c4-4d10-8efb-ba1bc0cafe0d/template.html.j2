@@ -1,0 +1,447 @@
+{%- macro simple_table(caption, head1, head2, names, counts, shares=None, head3=None) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr><th scope="col" class="text-start">{{ head1 }}</th><th scope="col" class="text-start">{{ head2 }}</th>{% if shares is not none %}<th scope="col" class="text-start">{{ head3 }}</th>{% endif %}</tr></thead>
+        <tbody>
+{%- for n in names %}
+          <tr><th scope="row" class="text-start font-normal">{{ n }}</th><td>{{ counts[loop.index0] | fmt_int }}</td>{% if shares is not none %}<td>{{ shares[loop.index0] }}%</td>{% endif %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro -%}
+
+<h1>ספרייה מקצועית של משרד התיירות: קטלוג ספרות מקצועית ומחקרי תיירות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 mb-2 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">קטלוג הידע המשרדי של הספרייה המקצועית במשרד התיירות מפרט ספרים, דוחות, סקרים, תוכניות אב, כתבי עת ומאמרים בנושאי תיירות, מלונאות ופיתוח תיירותי. לכל פריט נרשמו כותר, מספר מדבקה (מספר המדף בספרייה), שנת פרסום, הוצאה לאור, מקום פרסום, מספר עמודים, מחבר והערות. הרישום נעשה ידנית ולכן חלק מהשדות חסרים או כתובים בכמה צורות; בעמוד זה הם אוחדו ככל האפשר.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור ספר, דוח או מחקר בתיירות לפי כותר, מחבר או הוצאה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הקטלוג: שם הפריט, מספר מדבקה, שנת פרסום, הוצאה לאור, מקום פרסום, מחבר והערות</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">פריטים בקטלוג</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.foreign.tone }} mb-1" dir="ltr">{{ model.kpis.foreign.display }}</div>
+    <div class="text-sm text-subtle">פריטים שכותרם בלועזית</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">טווח שנות הפרסום</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.peak.tone }} mb-1" dir="ltr">{{ model.kpis.peak.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.peak_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.publishers.tone }} mb-1" dir="ltr">{{ model.kpis.publishers.display }}</div>
+    <div class="text-sm text-subtle">הוצאות לאור שונות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_pages.tone }} mb-1" dir="ltr">{{ model.kpis.median_pages.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_pages_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.digital.tone }} mb-1" dir="ltr">{{ model.kpis.digital.display }}</div>
+    <div class="text-sm text-subtle">פריטים שצוין שיש להם עותק דיגיטלי</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.no_year.tone }} mb-1" dir="ltr">{{ model.kpis.no_year.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.no_year_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פריטים לפי שנת פרסום ושפה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.years_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עברית ולועזית לפי עשור</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.lang_lede }}</p>
+  <div id="chart-lang" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lang_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lang_aria }}</caption>
+        <thead><tr><th scope="col" class="text-start">עשור</th><th scope="col" class="text-start">עברית</th><th scope="col" class="text-start">לועזית</th><th scope="col" class="text-start">שיעור לועזית</th></tr></thead>
+        <tbody>
+{%- for x in model.charts.lang.labels %}
+          <tr><th scope="row" class="text-start font-normal">{{ x }}</th><td>{{ model.charts.lang.hebrew[loop.index0] | fmt_int }}</td><td>{{ model.charts.lang.foreign[loop.index0] | fmt_int }}</td><td>{{ model.charts.lang.foreign_share[loop.index0] }}%</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על מה הספרייה: נושאים בכותרות</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.themes_lede }}</p>
+  <div id="chart-themes" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+  {{ simple_table(model.labels.themes_aria, "נושא", "פריטים", model.charts.themes.names, model.charts.themes.counts, model.charts.themes.shares, "מכלל הקטלוג") }}
+</section>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך השתנו הנושאים לאורך העשורים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הוצאות לאור מובילות</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.pub_lede }}</p>
+  <div id="chart-publishers" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.pub_aria }}"></div>
+  {{ simple_table(model.labels.pub_aria, "הוצאה לאור", "פריטים", model.charts.publishers.names, model.charts.publishers.counts, model.charts.publishers.shares, "מהפריטים עם הוצאה") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מקום הפרסום: ישראל וחו״ל</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.origin_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">ישראל מול חו״ל</h3>
+      <div id="chart-origin" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.origin_aria }}"></div>
+      {{ simple_table(model.labels.origin_aria, "מקום", "פריטים", model.charts.origin.names, model.charts.origin.counts, model.charts.origin.shares, "מכלל הקטלוג") }}
+    </div>
+{%- if model.flags.countries %}
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">מדינות הפרסום בחו״ל</h3>
+      <div id="chart-countries" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.country_aria }}"></div>
+      {{ simple_table(model.labels.country_aria, "מדינה", "פריטים", model.charts.countries.names, model.charts.countries.counts, model.charts.countries.shares, "מהפריטים בחו״ל") }}
+    </div>
+{%- endif %}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הפריטים: מספר עמודים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.pages_lede }}</p>
+  <div id="chart-pages" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pages_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pages_aria }}</caption>
+        <thead><tr><th scope="col" class="text-start">עמודים</th><th scope="col" class="text-start">עברית</th><th scope="col" class="text-start">לועזית</th></tr></thead>
+        <tbody>
+{%- for b in model.charts.pages.bins %}
+          <tr><th scope="row" class="text-start font-normal">{{ b }}</th><td>{{ model.charts.pages.hebrew[loop.index0] | fmt_int }}</td><td>{{ model.charts.pages.foreign[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.authors %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחברים ועורכים מובילים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.auth_lede }}</p>
+  <div id="chart-authors" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.auth_aria }}"></div>
+  {{ simple_table(model.labels.auth_aria, "מחבר או עורך", "פריטים", model.charts.authors.names, model.charts.authors.counts) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הערות הספרנים: עותקים דיגיטליים, מפות ומיקום</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.rem_lede }}</p>
+  <div id="chart-remarks" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rem_aria }}"></div>
+  {{ simple_table(model.labels.rem_aria, "סוג הערה", "פריטים", model.charts.remarks.names, model.charts.remarks.counts) }}
+</section>
+
+{%- if model.flags.bands %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מספר המדבקה וגיל הפריט</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.band_lede }}</p>
+  <div id="chart-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.band_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.band_aria }}</caption>
+        <thead><tr><th scope="col" class="text-start">טווח מספרי מדבקה</th><th scope="col" class="text-start">חציון שנת פרסום</th><th scope="col" class="text-start">פריטים מתוארכים</th></tr></thead>
+        <tbody>
+{%- for b in model.charts.bands.labels %}
+          <tr><th scope="row" class="text-start font-normal">{{ b }}</th><td>{{ model.charts.bands.median[loop.index0] }}</td><td>{{ model.charts.bands.counts[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-subtle">תיאור נתוני ספרים העוסקים בתיירות בישראל</p>
+</section>
+
+<script>
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var d = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          if (!ps.length) { return ""; }
+          var j = ps[0].dataIndex;
+          var out = "<b>" + enc(d.x[j]) + "</b> (" + fmt(d.hebrew[j] + d.foreign[j]) + " פריטים)";
+          ps.forEach(function (p) { out += "<br/>" + p.marker + enc(p.seriesName) + ": " + fmt(p.value); });
+          return out;
+        }
+      },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 56, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "s", name: "עברית", data: d.hebrew },
+        { type: "bar", stack: "s", name: "לועזית", data: d.foreign }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var d = {{ model.charts.lang | tojson }};
+    var el = document.getElementById("chart-lang");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          if (!ps.length) { return ""; }
+          var j = ps[0].dataIndex;
+          return "<b>" + enc(d.labels[j]) + "</b> (" + fmt(d.totals[j]) + " פריטים)" +
+            "<br/>עברית: " + fmt(d.hebrew[j]) + "<br/>לועזית: " + fmt(d.foreign[j]) +
+            "<br/>שיעור לועזית: " + d.foreign_share[j] + "%";
+        }
+      },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: [
+        { type: "value", name: "פריטים" },
+        { type: "value", name: "% לועזית", min: 0, max: 100, splitLine: { show: false }, axisLabel: { formatter: "{value}%" } }
+      ],
+      series: [
+        { type: "bar", stack: "s", name: "עברית", data: d.hebrew },
+        { type: "bar", stack: "s", name: "לועזית", data: d.foreign },
+        { type: "line", name: "שיעור לועזית", yAxisIndex: 1, data: d.foreign_share, symbolSize: 7, lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function hbar(id, d, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            if (!ps.length) { return ""; }
+            var j = ps[0].dataIndex;
+            var s = d.shares ? " (" + d.shares[j] + "%)" : "";
+            return enc(d.names[j]) + ": " + fmt(d.counts[j]) + " " + unit + s;
+          }
+        },
+        grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 150, overflow: "truncate", interval: 0 } },
+        series: [{ type: "bar", data: d.counts, barMaxWidth: 22, label: { show: true, position: "right", formatter: function (p) { return fmt(p.value); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-themes", {{ model.charts.themes | tojson }}, "פריטים");
+    hbar("chart-publishers", {{ model.charts.publishers | tojson }}, "פריטים");
+    hbar("chart-countries", {{ model.charts.countries | tojson }}, "פריטים");
+    hbar("chart-authors", {{ model.charts.authors | tojson }}, "פריטים");
+    hbar("chart-remarks", {{ model.charts.remarks | tojson }}, "פריטים");
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          var v = p.value;
+          return enc(d.themes[v[1]]) + ", " + enc(d.decades[v[0]]) + ": " + v[2] + "% (" + Number(v[3]).toLocaleString("he-IL") + " פריטים)";
+        }
+      },
+      grid: { left: 16, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.decades, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "category", data: d.themes, inverse: true, splitArea: { show: true }, axisLabel: { width: 130, overflow: "truncate" } },
+      visualMap: {
+        min: 0, max: d.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: true, fontFamily: "Rubik", fontSize: 10, formatter: function (p) { return p.value[2]; } },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var d = {{ model.charts.origin | tojson }};
+    var el = document.getElementById("chart-origin");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) { return enc(p.name) + ": " + fmt(p.value) + " (" + d.shares[p.dataIndex] + "%)"; }
+      },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{
+        type: "pie", radius: ["40%", "66%"], center: ["50%", "44%"],
+        label: { formatter: function (p) { return d.shares[p.dataIndex] + "%"; } },
+        data: d.names.map(function (n, i) { return { name: n, value: d.counts[i] }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var d = {{ model.charts.pages | tojson }};
+    var el = document.getElementById("chart-pages");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.bins, name: "עמודים", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "עברית", data: d.hebrew, barMaxWidth: 28 },
+        { type: "bar", name: "לועזית", data: d.foreign, barMaxWidth: 28 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var d = {{ model.charts.bands | tojson }};
+    var el = document.getElementById("chart-bands");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (ps) {
+          if (!ps.length) { return ""; }
+          var j = ps[0].dataIndex;
+          return "מדבקות " + enc(d.labels[j]) + "<br/>חציון שנת פרסום: " + d.median[j] + "<br/>" + fmt(d.counts[j]) + " פריטים מתוארכים";
+        }
+      },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value", scale: true, name: "שנת פרסום" },
+      series: [{ type: "line", data: d.median, symbolSize: 8, lineStyle: { width: 2 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

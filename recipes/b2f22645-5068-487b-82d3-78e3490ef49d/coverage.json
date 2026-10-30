@@ -1,0 +1,6 @@
+{
+  "main.תאריך": "chart-liter, chart-ton, chart-gap, chart-events, chart-per-year, chart-heat, chart-cum, kpi:gas, kpi:gas_last, kpi:die_year, kpi:span, insight:latest_gas, insight:diesel_year, insight:turnover, insight:volatility — effective date of each rate; mid-month rows are order changes",
+  "main.מוצר": "chart-liter, chart-ton, chart-current-liter, chart-current-ton, chart-heat, chart-cum, insight:identical, insight:turnover, insight:cumulative — gasoline, diesel and LPG found by name pattern",
+  "main.יחידות": "chart-current-liter, chart-current-ton, chart-liter, chart-ton — kiloliter rates shown per liter (divided by 1,000), metric-ton rates as published",
+  "main.מחיר": "chart-liter, chart-ton, chart-current-liter, chart-current-ton, chart-gap, chart-events, chart-heat, chart-cum, kpi:gas, kpi:die, kpi:lpg, kpi:gas_last, kpi:die_year, insight:gas_peak, insight:gap, insight:cumulative"
+}

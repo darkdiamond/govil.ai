@@ -1,0 +1,376 @@
+<h1>מעיינות: נפחים חודשיים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["index", "flagship", "measured", "zero"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpi_labels[key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדד השפיעה החודשי: חודשים שחונים ושופעים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.index_note }}</p>
+  <div id="chart-index" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.index_aria }}"></div>
+</section>
+
+{%- if model.flags.flagship %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.band_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.band_note }}</p>
+  <div id="chart-band" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.band_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.band_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">{{ model.charts.band.cur_name }}</th><th scope="col">חציון</th><th scope="col">טווח העשירונים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.band %}
+        <tr><th scope="row">{{ r.m }}</th><td>{{ r.cur }}</td><td>{{ r.med }}</td><td>{{ r.rng }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.lvn %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השנה האחרונה חודש אחר חודש, לעומת הרגיל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lvn_note }}</p>
+  <div id="chart-lvn" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lvn_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lvn_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">נפח (אלמ״ק)</th><th scope="col">רגיל (אלמ״ק)</th><th scope="col">% מהרגיל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lvn %}
+        <tr><th scope="row">{{ r.m }}</th><td>{{ r.cur }}</td><td>{{ r.norm }}</td><td>{{ r.pct }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.top %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המעיינות השופעים ביותר בשנה האחרונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_caption }}</caption>
+      <thead><tr><th scope="col">מעיין</th><th scope="col">נפח שנתי (אלמ״ק)</th><th scope="col">חציון רב-שנתי</th><th scope="col">% מהחציון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.vol }}</td><td>{{ r.med }}</td><td>{{ r.pct }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.flagship %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.heat_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.season %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">העונתיות של המעיינות הגדולים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_note }}</p>
+    <div id="chart-season" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_caption }}</caption>
+        <thead><tr><th scope="col">מעיין</th><th scope="col">החודש השופע</th><th scope="col">החודש הדל</th><th scope="col">יחס</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.peak }}</td><td>{{ r.low }}</td><td>{{ r.ratio }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">באיזה חודש מגיעים המעיינות לשיא</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.peak_note }}</p>
+    <div id="chart-peak" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.peak_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.peak_caption }}</caption>
+        <thead><tr><th scope="col">חודש השיא</th><th scope="col">מעיינות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.peak %}
+          <tr><th scope="row">{{ r.m }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מעיינות שיבשו: חודשים בנפח אפס</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dry_note }}</p>
+  <div id="chart-dry" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dry_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dry_caption }}</caption>
+      <thead><tr><th scope="col">שנה הידרולוגית</th><th scope="col">מעיינות שנמדדו</th><th scope="col">עם חודש יבש</th><th scope="col">חודשים יבשים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dry %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.springs }}</td><td>{{ r.zs }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.index | tojson }};
+    var c = echarts.init(document.getElementById("chart-index"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex, v = d.y[i];
+        var s = d.x[i] + "<br>" + Math.round(v) + "% מהרגיל לחודש זה<br>" + d.n[i] + " מעיינות";
+        if (d.roll[i] !== null) s += "<br>חציון נע שנתי: " + Math.round(d.roll[i]) + "%";
+        return s;
+      } },
+      legend: { top: 0 },
+      grid: { left: 40, right: 16, top: 40, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "%" },
+      dataZoom: [{ type: "inside", start: d.zoom, end: 100 }, { type: "slider", bottom: 8, start: d.zoom, end: 100 }],
+      series: [
+        { type: "line", name: "מדד חודשי", data: d.y, showSymbol: false, lineStyle: { width: 1 },
+          markLine: { silent: true, symbol: "none", data: [{ yAxis: 100, name: "רגיל" }],
+            lineStyle: { color: "#6c757d", type: "dashed" },
+            label: { formatter: "{b}", position: "insideEndTop", fontFamily: "Rubik" } } },
+        { type: "scatter", name: "חודש שחון", data: d.y.map(function (v) { return v < d.dry ? v : null; }),
+          symbolSize: 4, itemStyle: { color: "#dc3545" } },
+        { type: "line", name: "חציון נע שנתי", data: d.roll, showSymbol: false, connectNulls: false,
+          lineStyle: { width: 2.5, color: "#0b3668" }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.flagship %}
+<script>
+  (function () {
+    var d = {{ model.charts.band | tojson }};
+    var c = echarts.init(document.getElementById("chart-band"));
+    var lo = d.p10, span = d.p90.map(function (v, i) { return (v === null || lo[i] === null) ? null : Math.round((v - lo[i]) * 10) / 10; });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        function f(v) { return v === null ? "אין נתון" : v.toLocaleString("he-IL"); }
+        return d.x[i] + "<br>" + d.cur_name + ": " + f(d.cur[i]) + " אלמ״ק<br>" + d.pre_name + ": " + f(d.pre[i]) +
+          " אלמ״ק<br>חציון: " + f(d.med[i]) + "<br>טווח העשירונים: " + f(d.p10[i]) + " עד " + f(d.p90[i]);
+      } },
+      legend: { top: 0, type: "scroll", data: [d.cur_name, d.pre_name, "חציון"] },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", name: "אלמ״ק", min: 0 },
+      series: [
+        { type: "line", name: "lo", data: lo, stack: "band", symbol: "none", lineStyle: { opacity: 0 }, tooltip: { show: false } },
+        { type: "line", name: "טווח", data: span, stack: "band", symbol: "none", lineStyle: { opacity: 0 },
+          areaStyle: { color: "#c3cfe7", opacity: 0.6 }, tooltip: { show: false } },
+        { type: "line", name: "חציון", data: d.med, symbol: "none", lineStyle: { color: "#6c757d", type: "dashed" }, itemStyle: { color: "#6c757d" } },
+        { type: "line", name: d.pre_name, data: d.pre, symbolSize: 5, lineStyle: { color: "#6c9fd8" }, itemStyle: { color: "#6c9fd8" } },
+        { type: "line", name: d.cur_name, data: d.cur, symbolSize: 7, lineStyle: { width: 3, color: "#0b3668" }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return d.y[p.value[1]] + ", " + d.x[p.value[0]] + "<br>" + p.value[2].toLocaleString("he-IL") + " אלמ״ק";
+      } },
+      grid: { left: 16, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { rotate: 45 } },
+      yAxis: { type: "category", data: d.y, inverse: true },
+      dataZoom: [{ type: "inside", yAxisIndex: 0 }],
+      visualMap: {
+        dimension: 2, min: 0, max: d.vmax, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells,
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.lvn %}
+<script>
+  (function () {
+    var d = {{ model.charts.lvn | tojson }};
+    var c = echarts.init(document.getElementById("chart-lvn"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "אין נתון" : v.toLocaleString("he-IL") + " אלמ״ק"; } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "אלמ״ק" },
+      series: [
+        { type: "bar", name: "השנה האחרונה", data: d.cur.map(function (v, i) {
+          var n = d.norm[i];
+          if (v !== null && n && v < 0.7 * n) return { value: v, itemStyle: { color: "#dc3545" } };
+          return v;
+        }) },
+        { type: "line", name: "רגיל", data: d.norm, symbolSize: 6, lineStyle: { color: "#6c757d", type: "dashed" }, itemStyle: { color: "#6c757d" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.top %}
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var c = echarts.init(document.getElementById("chart-top"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.names[i]) + "<br>" + d.vol[i].toLocaleString("he-IL") + " אלמ״ק";
+        if (d.med[i] !== null) s += "<br>חציון רב-שנתי: " + d.med[i].toLocaleString("he-IL");
+        return s;
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "אלמ״ק" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "השנה האחרונה", data: d.vol },
+        { type: "scatter", name: "חציון רב-שנתי", data: d.med, symbol: "diamond", symbolSize: 11, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var p = {{ model.charts.peak | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-peak"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + " מעיינות"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: p.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "מעיינות", minInterval: 1 },
+      series: [{ type: "bar", name: "מעיינות", data: p.y }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+{%- if model.flags.season %}
+    var d = {{ model.charts.season | tojson }};
+    var c = echarts.init(document.getElementById("chart-season"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "% מהשנה", min: 0 },
+      series: d.series.map(function (s) {
+        return { type: "line", name: s.name, data: s.data, symbolSize: 5 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+{%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dry | tojson }};
+    var c = echarts.init(document.getElementById("chart-dry"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 40, right: 40, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: [{ type: "value", name: "מעיינות", minInterval: 1 }, { type: "value", name: "%", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מעיינות עם חודש יבש", data: d.zs, itemStyle: { color: "#9a6700" } },
+        { type: "line", name: "שיעור החודשים היבשים", yAxisIndex: 1, data: d.share, symbolSize: 5,
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

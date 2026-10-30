@@ -1,0 +1,10 @@
+{
+  "racks.Address": "map-main, chart-types, chart-top, insight:types, insight:largest, insight:multi — place name; the type class is inferred from keywords in it",
+  "racks.sign": "map-main, chart-size, chart-config, chart-types, chart-top, chart-balance, chart-dist, chart-sectors, kpi:stands, kpi:marked, kpi:empty, insight:marked, insight:config, insight:balance",
+  "racks.NoSign": "map-main, chart-size, chart-config, chart-types, chart-top, chart-balance, chart-dist, chart-sectors, kpi:stands, kpi:marked, kpi:empty, insight:marked, insight:config, insight:balance",
+  "racks.lat": "map-main, chart-dist, chart-sectors, insight:spread",
+  "racks.lon": "map-main, chart-dist, chart-sectors, insight:spread",
+  "resource:14aa90e3-38d4-4d2c-a78b-ace98e93e207": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:d253e9f7-2837-4322-a8cf-14252921749c": "skip: same rows as the CSV, with lat/lon columns holding ITM coordinates",
+  "resource:8b8897ed-394a-4296-8138-d0801e1b7a5a": "skip: XLSX twin of the ITM file"
+}

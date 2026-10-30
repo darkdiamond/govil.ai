@@ -1,0 +1,14 @@
+{
+  "samples.מספר זיהוי": "chart-stations, chart-activity, chart-salty, chart-trend, chart-heat, kpi:stations, kpi:active, kpi:events, insight:active — station key; shown in the stations table",
+  "samples.שם עברית": "chart-stations, chart-streams, chart-salty, chart-trend, chart-heat, insight:stream, insight:saltiest, insight:cl_shift — stream name is the part before the first hyphen",
+  "samples.שם אנגלית": "skip: English twin of שם עברית (page is Hebrew-only)",
+  "samples.מוסד דוגם": "skip: constant (one sampling body, the Hydrological Service), named in the lede",
+  "samples.מעבדה": "chart-years — stacks the yearly bars by lab (national monitoring lab, field tests, other)",
+  "samples.שנה הידרולוגית": "chart-years, kpi:latest, insight:latest, insight:volume — derived from the sample date (Oct-Sep, labelled by end year), identical to the column on every row",
+  "samples.תאריך דגימה": "chart-years, chart-months, chart-activity, chart-trend, chart-no3, kpi:span, kpi:events, insight:volume",
+  "samples.סימן גדול/קטן": "insight:censored — below-detection flags (mostly nitrate)",
+  "samples.תוצאה": "chart-salty, chart-trend, chart-no3, chart-heat, kpi:cl_median, insight:saltiest, insight:cl_shift, insight:nitrate",
+  "samples.סמל פרמטר": "chart-params, chart-salty, chart-trend, chart-no3, chart-heat, kpi:params, insight:chloride_backbone",
+  "samples.תאור מקוצר": "chart-params — fallback Hebrew-less label for parameters without a known code",
+  "samples.יחידת מידה": "chart-params — unit column of the parameters table"
+}

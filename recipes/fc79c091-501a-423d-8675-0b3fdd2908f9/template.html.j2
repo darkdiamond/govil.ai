@@ -1,0 +1,256 @@
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-64 md:h-80") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, cap) }}
+</section>
+{%- endmacro %}
+<h1>שבילי אופניים בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total_km", "segments", "median", "long_share"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת שבילי האופניים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-segments" class="h-72 md:h-[420px]"></div>
+</section>
+
+{{ chart_section("chart-bands", "list", "קטעים לפי אורך", model.labels.bands_note, model.labels.bands_aria, model.labels.bands_cap, model.tables.bands) }}
+
+{{ chart_section("chart-pareto", "database", "ריכוז האורך בקטעים הארוכים", model.labels.pareto_note, model.labels.pareto_aria, model.labels.pareto_cap, model.tables.pareto) }}
+
+{{ chart_section("chart-longest", "list", "הקטעים הארוכים ביותר", model.labels.longest_note, model.labels.longest_aria, model.labels.longest_cap, model.tables.longest, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-sectors", "map-pin", "פריסה לפי כיוון", model.labels.sectors_note, model.labels.sectors_aria, model.labels.sectors_cap, model.tables.sectors, "h-72 md:h-96") }}
+
+{{ chart_section("chart-rings", "map-pin", "מרחק ממרכז הרשת", model.labels.rings_note, model.labels.rings_aria, model.labels.rings_cap, model.tables.rings) }}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפיפות השבילים במשבצות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grid_note }}</p>
+  <div id="chart-grid" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.grid_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך הקטע מול המרחק מהמרכז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-segments",
+    resourceId: {{ inputs.segments[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: false,
+    popupFields: [{ field: "SHAPE_Leng", label: "אורך הקטע (מ׳)" }]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__bsMk = mk;
+    window.__bsFmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+  })();
+</script>
+
+<script>
+  (function () {
+    var D = {{ model.charts.bands | tojson }};
+    var c = window.__bsMk("chart-bands");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: D.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+      yAxis: [{ type: "value", name: "קטעים", minInterval: 1 }, { type: "value", name: "ק״מ", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "קטעים", data: D.count },
+        { type: "line", name: "ק״מ", yAxisIndex: 1, data: D.km, symbolSize: 8 }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = {{ model.charts.pareto | tojson }};
+    var c = window.__bsMk("chart-pareto");
+    if (!c) { return; }
+    var pts = P.x.map(function (x, i) { return [x, P.y[i]]; });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var p = ps[0];
+        return "הקטעים הארוכים: " + p.value[0] + "%<br>שיעור מהאורך: " + p.value[1] + "%";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value", min: 0, max: 100, name: "% מהקטעים", nameLocation: "middle", nameGap: 26, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "line", name: "שיעור מצטבר מהאורך", data: [[0, 0]].concat(pts), areaStyle: { opacity: 0.15 }, symbolSize: 6 },
+        { type: "line", name: "קטעים באורך שווה", data: [[0, 0], [100, 100]], symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" }, tooltip: { show: false } }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var B = {{ model.charts.longest | tojson }};
+    var c = window.__bsMk("chart-longest");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return window.__bsFmt(v) + " מ׳"; } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4 },
+      yAxis: { type: "category", data: B.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "אורך הקטע", data: B.values.slice().reverse() }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.sectors | tojson }};
+    var c = window.__bsMk("chart-sectors");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br>" + window.__bsFmt(p.value) + " ק״מ, " + window.__bsFmt(S.count[p.dataIndex]) + " קטעים";
+      } },
+      polar: { radius: ["12%", "72%"] },
+      angleAxis: { type: "category", data: S.names, startAngle: 112.5, clockwise: true, axisLabel: { fontSize: 11 } },
+      radiusAxis: { type: "value", axisLabel: { show: false } },
+      series: [{ type: "bar", coordinateSystem: "polar", name: "ק״מ", data: S.km }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var R = {{ model.charts.rings | tojson }};
+    var c = window.__bsMk("chart-rings");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: R.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+      yAxis: [{ type: "value", name: "ק״מ" }, { type: "value", name: "מ׳", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "ק״מ שבילים", data: R.km },
+        { type: "line", name: "אורך ממוצע לקטע (מ׳)", yAxisIndex: 1, data: R.avg, symbolSize: 8 }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var G = {{ model.charts.grid | tojson }};
+    var c = window.__bsMk("chart-grid");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value;
+        return G.y[v[1]] + ", " + G.x[v[0]] + "<br>" + window.__bsFmt(v[2]) + " ק״מ, " + window.__bsFmt(v[3]) + " קטעים";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: G.x, splitArea: { show: true }, axisLabel: { fontSize: 10, rotate: 45 } },
+      yAxis: { type: "category", data: G.y, splitArea: { show: true }, axisLabel: { fontSize: 10 } },
+      visualMap: { min: 0, max: G.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik" } },
+      series: [{ type: "heatmap", name: "ק״מ", data: G.cells, label: { show: false },
+        emphasis: { itemStyle: { borderColor: "#0c3058", borderWidth: 1 } } }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var T = {{ model.charts.scatter | tojson }};
+    var c = window.__bsMk("chart-scatter");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return "מרחק מהמרכז: " + window.__bsFmt(p.value[0]) + " ק״מ<br>אורך: " + window.__bsFmt(p.value[1]) + " מ׳";
+      } },
+      grid: { left: 8, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "value", name: "ק״מ מהמרכז", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "value", name: "אורך (מ׳)" },
+      series: [{ type: "scatter", name: "קטעים", data: T.points, symbolSize: 9, itemStyle: { opacity: 0.75 } }]
+    }));
+  })();
+</script>

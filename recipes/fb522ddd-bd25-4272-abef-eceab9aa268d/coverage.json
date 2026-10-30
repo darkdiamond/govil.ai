@@ -1,0 +1,8 @@
+{
+  "main.שם תחנה": "insight:lede — single station; its name is quoted in the summary card",
+  "main.תאריך ניטור": "chart-years, chart-nitrogen, chart-phos, chart-ions, chart-solids, chart-season, chart-temp, chart-heat, chart-change, chart-decade, kpi:span, kpi:years, insight:gaps",
+  "main.שיטת מדידה": "chart-years, insight:method",
+  "main.סמל פרמטר": "chart-params, chart-nitrogen, chart-phos, chart-ions, chart-solids, chart-change, kpi:params, insight:nitrate_basis",
+  "main.תוצאה": "chart-nitrogen, chart-phos, chart-ions, chart-solids, chart-season, chart-temp, chart-heat, chart-change, chart-decade, kpi:tn, kpi:tp, kpi:total, insight:total_n, insight:biggest_change, insight:season_tss, insight:temperature",
+  "main.יחידת מדידה": "chart-params, chart-change — dominant unit per parameter; split thousands values re-joined"
+}

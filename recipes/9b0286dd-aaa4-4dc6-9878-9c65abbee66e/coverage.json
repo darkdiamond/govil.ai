@@ -1,0 +1,8 @@
+{
+  "main.מספר זיהוי": "chart-index, chart-band, chart-heat, chart-lvn, chart-top, chart-season, chart-peak, chart-dry, kpi:measured, kpi:zero — spring key for every per-spring baseline",
+  "main.שם עברית": "chart-top, chart-season, chart-band, chart-heat, insight:flagship, insight:top — names published totals (\"סיכום\"/\"סכום\") are detected from it",
+  "main.שם אנגלית": "skip: transliteration of the Hebrew name (page is Hebrew-only)",
+  "main.שנה הידרולוגית": "skip: derived from חודש שנה (October to September); recomputed in compute rather than read",
+  "main.חודש שנה": "chart-index, chart-band, chart-heat, chart-lvn, chart-season, chart-peak, chart-dry, kpi:index, kpi:measured, insight:month, insight:run, insight:peak",
+  "main.נפח חודשי למעיין (אלמ''ק)": "chart-index, chart-band, chart-heat, chart-lvn, chart-top, chart-season, chart-peak, chart-dry, kpi:index, kpi:flagship, kpi:zero, insight:month, insight:run, insight:flagship, insight:band, insight:lvn, insight:top, insight:dry"
+}

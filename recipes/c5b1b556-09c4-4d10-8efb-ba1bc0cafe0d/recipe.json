@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "c5b1b556-09c4-4d10-8efb-ba1bc0cafe0d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-05T06:37:51.487026+00:00",
+    "rows": { "main": 9081 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d08657a8-9adc-45e7-9c53-9dcf200ea0e3",
+      "required_columns": [
+        "item_name",
+        "item_sticker",
+        "pub_year",
+        "remarks",
+        "publishing_house",
+        "pub_place",
+        "pages",
+        "author_name"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

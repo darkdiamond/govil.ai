@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "db8f9bc9-738a-4d83-b3ce-74e8a5f7f844",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T11:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:45:09.087185+00:00",
+    "rows": { "samples": 49141 }
+  },
+  "inputs": [
+    {
+      "name": "samples",
+      "by_id": "eea54e96-d51e-4def-b975-bd409eda7c64",
+      "required_columns": [
+        "מספר זיהוי",
+        "שם עברית",
+        "מעבדה",
+        "שנה הידרולוגית",
+        "תאריך דגימה",
+        "סימן גדול/קטן",
+        "תוצאה",
+        "סמל פרמטר",
+        "תאור מקוצר",
+        "יחידת מידה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

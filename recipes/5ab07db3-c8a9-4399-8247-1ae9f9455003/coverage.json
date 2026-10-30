@@ -1,0 +1,6 @@
+{
+  "main.company_name": "chart-combo, chart-form, kpi:bodies, insight:multi, insight:quality, table:multi, table:quality — licensed bodies are commercial entities (companies, partnerships, cooperatives, sole traders), named only in the multi-licence table; legal form is parsed from the name suffix",
+  "main.type": "chart-chain, chart-rate, kpi:active, kpi:frozen, kpi:share, insight:frozen — code 10 marks a frozen/cancelled licence (fallback when the description is empty); other codes are grouped by their description",
+  "main.type_description": "chart-chain, chart-rate, chart-labs, chart-other, kpi:active, kpi:frozen, insight:lead, insight:other, insight:rate — classified into supply-chain stages by keyword; frozen/cancelled detected by its wording",
+  "main.notes": "chart-chain, chart-rate, chart-labs, chart-other, insight:labs, insight:other, insight:rate — for frozen rows the former activity (after the badge markup), for labs the service scope (research / GAP / GMP), for 'other' licences the sub-activity"
+}

@@ -1,0 +1,8 @@
+{
+  "main.sgira_month": "chart-monthly, chart-yearly, chart-ytd, chart-season, chart-diversity, kpi:latest, kpi:ytd, kpi:month_yoy, insight:ytd, insight:season, insight:record, insight:shift — trend small multiples use the same month axis",
+  "main.kvutzat_sug_rechev": "chart-yearly, chart-ytd, chart-tree, kpi:lead_type, insight:leading_type, insight:type_mover, insight:shift, insight:concentration, table:conc",
+  "main.tozeret_cd": "skip: numeric manufacturer code; tozeret_nm carries the same grouping in readable form",
+  "main.tozeret_nm": "chart-makers, chart-tree, chart-models, chart-diversity, kpi:makers, insight:top_maker, insight:concentration",
+  "main.degem_nm": "chart-models, chart-diversity — free-text model name (no model code); empty names grouped as ללא שם דגם",
+  "main.car_num": "chart-monthly, chart-yearly, chart-ytd, chart-season, chart-makers, chart-tree, chart-models, kpi:total, kpi:latest, insight:ytd, insight:record"
+}
