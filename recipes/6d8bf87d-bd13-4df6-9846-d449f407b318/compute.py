@@ -179,7 +179,12 @@ def _city(raw):
 def _dates(col, fmt=DMY):
     """Parse a date column per distinct value; returns datetime64 array (NaT = missing)."""
     codes, uniq = pd.factorize(col, sort=True)
-    parsed = pd.to_datetime(pd.Series(uniq, dtype=object), format=fmt, errors="coerce").to_numpy()
+    parsed = pd.to_datetime(pd.Series(uniq, dtype=object), format=fmt, errors="coerce")
+    # pandas 3 parses to datetime64[us], so junk like '141226' (year 1412) or
+    # '99990909' parses; numpy's us->ns cast of such a value segfaults. Drop
+    # anything outside the ns range first (pandas 2 made those NaT itself).
+    parsed = parsed.where(parsed.between(pd.Timestamp.min, pd.Timestamp.max))
+    parsed = parsed.astype("datetime64[ns]").to_numpy()
     out = np.full(len(col), np.datetime64("NaT"), dtype="datetime64[ns]")
     ok = codes >= 0
     out[ok] = parsed[codes[ok]]
