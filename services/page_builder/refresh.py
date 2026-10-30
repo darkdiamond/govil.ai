@@ -25,6 +25,7 @@ CLI (what the preview Cloud Run job runs; also handy locally):
 from __future__ import annotations
 
 import argparse
+import csv
 import functools
 import hashlib
 import json
@@ -75,6 +76,9 @@ _DEFAULT_WALL_BUDGET_S = 900.0
 _DEFAULT_PAGE_SIZE = 25_000
 _PAGE_TIMEOUT_S = 60.0
 _COMPUTE_TIMEOUT_S = 300
+# Heap cap for compute (see `_memory_guard`). The job has 4Gi; the rest is
+# the builder, the page cache and the exported CSVs on the tmpfs.
+_DEFAULT_COMPUTE_MEMORY_MB = 3072
 # Sandbox-spawn flake (gRPC atfork handlers abort the forked child, SIGABRT
 # + an `ev_epoll1_linux` line on stderr): not the recipe's fault, so retry
 # in a fresh sandbox instead of opening an authoring issue.
@@ -475,12 +479,17 @@ def fetch_inputs(
     _preview = probe.preview
     resolved = probe.resolved
 
-    max_records = _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
-    max_bytes = _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
-    remaining = _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES)
+    limits = recipe.manifest.limits
+    max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
+    max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    # A per-resource cap above the dataset total would be clipped by it.
+    remaining = limits.total_bytes or max(
+        _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
+    )
     page_size = _env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE)
     deadline = time.monotonic() + float(
-        _env_int("REFRESH_WALL_BUDGET_S", int(_DEFAULT_WALL_BUDGET_S))
+        limits.wall_budget_s
+        or _env_int("REFRESH_WALL_BUDGET_S", int(_DEFAULT_WALL_BUDGET_S))
     )
 
     dest_dir.mkdir(parents=True, exist_ok=True)
@@ -512,6 +521,7 @@ def fetch_inputs(
                 deadline=deadline,
                 sample_target_rows=0,
                 prefer_sample=False,
+                fields=inp.columns,
             )
             if outcome is None or outcome.mode != "full":
                 raise RecipeError(
@@ -519,6 +529,8 @@ def fetch_inputs(
                     "(network, wall budget or byte cap)",
                     reason="fetch_failed",
                 )
+            if inp.columns:
+                _project_csv(dest, inp.columns)
             remaining -= outcome.bytes
             parts.append(
                 FetchedInput(dest, rid, res.get("name") or "", outcome.rows)
@@ -527,7 +539,55 @@ def fetch_inputs(
     return out
 
 
+def _project_csv(path: Path, columns: list[str]) -> None:
+    """Rewrite `path` to exactly `columns`, in that order. A no-op for a
+    CKAN export (already projected by `fields=`); fetchers that ignore
+    `fields` (providers, author verify's cache) get projected here, so
+    compute sees the same frame whichever fetcher ran."""
+    with open(path, encoding="utf-8", newline="") as f:
+        header = next(csv.reader(f), [])
+    if header == columns:
+        return
+    lost = [c for c in columns if c not in header]
+    if lost:
+        raise RecipeError(
+            f"{path.name}: export lacks column(s) {lost}", reason="schema_changed"
+        )
+    idx = [header.index(c) for c in columns]
+    tmp = path.with_suffix(".projected")
+    with open(path, encoding="utf-8", newline="") as src, open(
+        tmp, "w", encoding="utf-8", newline=""
+    ) as out:
+        w = csv.writer(out)
+        for row in csv.reader(src):
+            w.writerow([row[i] if i < len(row) else "" for i in idx])
+    tmp.replace(path)
+
+
 # ── compute + render ─────────────────────────────────────────────────────
+
+
+def _memory_guard(recipe: Recipe) -> str:
+    """Python prologue for the compute process. It caps its own heap
+    (RLIMIT_DATA: allocations past it raise MemoryError, a clean recipe
+    failure) and volunteers as the OOM killer's first victim, so a recipe
+    that outgrows the container takes down itself, not the builder and the
+    rest of the night's refresh. Cap: the recipe's
+    `limits.compute_memory_mb`, else REFRESH_COMPUTE_MEMORY_MB; 0 = no cap."""
+    limits = recipe.manifest.limits
+    mb = limits.compute_memory_mb or _env_int(
+        "REFRESH_COMPUTE_MEMORY_MB", _DEFAULT_COMPUTE_MEMORY_MB
+    )
+    code = (
+        "try:\n"
+        "    open('/proc/self/oom_score_adj', 'w').write('1000')\n"
+        "except OSError:\n"
+        "    pass\n"
+    )
+    if mb > 0:
+        n = mb * 1024 * 1024
+        code += f"import resource; resource.setrlimit(resource.RLIMIT_DATA, ({n}, {n}))\n"
+    return code
 
 
 class _SpawnFlake(RecipeError):
@@ -543,13 +603,16 @@ def run_compute(
     inputs: dict[str, list[FetchedInput]],
     work_root: Path,
     *,
-    timeout: int = _COMPUTE_TIMEOUT_S,
+    timeout: Optional[int] = None,
 ) -> dict:
     """`_run_compute_once`, retried on the known sandbox-spawn flake only.
 
     Every other failure (recipe exceptions, timeouts, a bare SIGABRT
-    without the gRPC signature) surfaces immediately.
+    without the gRPC signature) surfaces immediately. `timeout` defaults to
+    the recipe's `limits.compute_timeout_s`, else `_COMPUTE_TIMEOUT_S`.
     """
+    limits = recipe.manifest.limits
+    timeout = timeout or limits.compute_timeout_s or _COMPUTE_TIMEOUT_S
     for attempt in range(1, _COMPUTE_SPAWN_ATTEMPTS):
         try:
             return _run_compute_once(recipe, inputs, work_root, timeout=timeout)
@@ -570,7 +633,7 @@ def _run_compute_once(
     inputs: dict[str, list[FetchedInput]],
     work_root: Path,
     *,
-    timeout: int = _COMPUTE_TIMEOUT_S,
+    timeout: int,
 ) -> dict:
     """Execute compute.py in a fresh LocalSandbox; return the raw model.
 
@@ -608,7 +671,8 @@ def _run_compute_once(
             json.dumps(spec, ensure_ascii=False), encoding="utf-8"
         )
         execution = sandbox.run_code(
-            "import runpy; runpy.run_path('recipe_exec.py', run_name='__main__')",
+            _memory_guard(recipe)
+            + "import runpy; runpy.run_path('recipe_exec.py', run_name='__main__')",
             language="python",
             timeout=timeout,
         )
@@ -1117,8 +1181,17 @@ def run_refresh(
     outcomes: list[RefreshOutcome] = []
     stage_failures = 0  # consecutive
     staging_down = False
-    try:
+    # Heavy recipes (`limits` set) run after all the others: if one still
+    # outgrows the container, every other page is already staged.
+    heavy: list[tuple[str, Recipe]] = []
+
+    def _queue():
         for dataset_id in ids:
+            yield dataset_id, None
+        yield from heavy
+
+    try:
+        for dataset_id, recipe in _queue():
             if staging_down:
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="staging_down"))
                 continue
@@ -1130,22 +1203,26 @@ def run_refresh(
             if src is None:
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="no_source_doc"))
                 continue
-            try:
-                recipe = repo.load(dataset_id, scratch)
-            except Exception as e:
-                log.exception("recipe %s failed to load", dataset_id[:8])
-                outcome = RefreshOutcome(
-                    dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e))
-                )
-                # The page can't refresh until the recipe is fixed, so it
-                # needs authoring like any other broken recipe. Idempotent:
-                # the open issue is reused every night until then.
-                if notify:
-                    outcome.issue = _queue_authoring_safely(
-                        store, src, "recipe_failed", detail=str(e), preview=preview
+            if recipe is None:
+                try:
+                    recipe = repo.load(dataset_id, scratch)
+                except Exception as e:
+                    log.exception("recipe %s failed to load", dataset_id[:8])
+                    outcome = RefreshOutcome(
+                        dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e))
                     )
-                outcomes.append(outcome)
-                continue
+                    # The page can't refresh until the recipe is fixed, so it
+                    # needs authoring like any other broken recipe. Idempotent:
+                    # the open issue is reused every night until then.
+                    if notify:
+                        outcome.issue = _queue_authoring_safely(
+                            store, src, "recipe_failed", detail=str(e), preview=preview
+                        )
+                    outcomes.append(outcome)
+                    continue
+                if recipe.manifest.heavy:
+                    heavy.append((dataset_id, recipe))
+                    continue
             state = store.get_refresh_state(dataset_id, preview=preview)
             trigger = "forced" if force else needs_refresh(src, state, recipe)
             if trigger is None:

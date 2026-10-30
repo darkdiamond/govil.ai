@@ -219,11 +219,21 @@ class _ByteCapExceeded(Exception):
 
 
 def _fetch_page(
-    resource_id: str, offset: int, limit: int, timeout: float
+    resource_id: str,
+    offset: int,
+    limit: int,
+    timeout: float,
+    fields: Optional[list[str]] = None,
 ) -> tuple[list[str], list[dict]]:
     """One datastore_search page → (field ids sans _id, records). Raises on
-    any HTTP/parse/success=false problem — callers decide the fallback."""
-    qs = urlencode({"resource_id": resource_id, "limit": limit, "offset": offset})
+    any HTTP/parse/success=false problem — callers decide the fallback.
+    `fields` asks CKAN for only those columns, in that order."""
+    params: dict = {"resource_id": resource_id, "limit": limit, "offset": offset}
+    if fields:
+        # Repeated, not comma-joined: CKAN splits a joined string on commas,
+        # and Hebrew column names can contain one.
+        params["fields"] = list(fields)
+    qs = urlencode(params, doseq=True)
     req = urllib_request.Request(
         f"{_CKAN_DATASTORE_URL}?{qs}", headers={"User-Agent": _CKAN_BROWSER_UA}
     )
@@ -282,11 +292,13 @@ def fetch_resource_records_to_file(
     deadline: float,
     sample_target_rows: int,
     prefer_sample: bool = False,
+    fields: Optional[list[str]] = None,
 ) -> Optional[FetchOutcome]:
     """Datastore export for one resource, streamed to `dest` as UTF-8 CSV.
 
     Pages datastore_search host-side (same source of truth the agent would
-    query); `_id` is dropped, field order follows the datastore schema.
+    query); `_id` is dropped, field order follows the datastore schema, or
+    `fields` (only those columns, in that order) when given.
     A full export that crosses `max_bytes` mid-stream retries in sample
     mode instead of discarding everything. Sampling (when
     `sample_target_rows` > 0) fetches deterministic contiguous blocks:
@@ -306,22 +318,22 @@ def fetch_resource_records_to_file(
                 while offset < total:
                     if time.monotonic() > deadline:
                         raise TimeoutError("prefetch wall budget exceeded")
-                    fields, records = _fetch_page(
-                        resource_id, offset, page_size, page_timeout_s
+                    page_fields, records = _fetch_page(
+                        resource_id, offset, page_size, page_timeout_s, fields
                     )
                     if not records:
                         break
-                    w.write_page(fields, records)
+                    w.write_page(page_fields, records)
                     offset += len(records)
             else:
                 for offset in offsets:
                     if time.monotonic() > deadline:
                         raise TimeoutError("prefetch wall budget exceeded")
-                    fields, records = _fetch_page(
-                        resource_id, offset, page_size, page_timeout_s
+                    page_fields, records = _fetch_page(
+                        resource_id, offset, page_size, page_timeout_s, fields
                     )
                     if records:
-                        w.write_page(fields, records)
+                        w.write_page(page_fields, records)
             if w.rows == 0:
                 raise RuntimeError("no records returned")
             return w.rows, w.bytes

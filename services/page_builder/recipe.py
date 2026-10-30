@@ -27,8 +27,9 @@ extra `_resource_name` column naming the file each row came from.
 from __future__ import annotations
 
 import json
+import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, Optional
 
@@ -37,6 +38,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .schema import AgentData
 
 CONTRACT_VERSION = 1
+
+log = logging.getLogger("page_builder.recipe")
 MANIFEST_FILENAME = "recipe.json"
 COMPUTE_FILENAME = "compute.py"
 TEMPLATE_FILENAME = "template.html.j2"
@@ -68,7 +71,13 @@ class RecipeInput(BaseModel):
       - `by_schema`: every datastore-active resource whose columns include
         all of these. Use for datasets that add a file per period (a new
         yearly CSV) — the new file is picked up automatically. Pair with
-        `concat: true`.
+        `concat: true`, or with `pick: "latest"` for datasets that publish
+        each full snapshot as a new resource: only the matching resource
+        with the newest CKAN `last_modified` is read.
+
+    `columns` (optional) fetches only these columns from the datastore,
+    which shrinks the export of a wide table. It must include every
+    `required_columns` entry; compute sees no other column.
     """
     model_config = ConfigDict(extra="forbid")
 
@@ -76,19 +85,57 @@ class RecipeInput(BaseModel):
     by_id: Optional[str] = None
     by_schema: Optional[list[str]] = None
     concat: bool = False
+    pick: Literal["all", "latest"] = "all"
     required_columns: list[str] = Field(default_factory=list)
+    columns: Optional[list[str]] = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def _one_selector(self) -> "RecipeInput":
         if bool(self.by_id) == bool(self.by_schema):
             raise ValueError(f"input {self.name!r}: set exactly one of by_id / by_schema")
-        if self.by_schema and not self.concat:
-            raise ValueError(f"input {self.name!r}: by_schema requires concat: true")
+        if self.pick == "latest":
+            if not self.by_schema:
+                raise ValueError(f"input {self.name!r}: pick 'latest' requires by_schema")
+            if self.concat:
+                raise ValueError(f"input {self.name!r}: pick 'latest' reads one resource; drop concat")
+        elif self.by_schema and not self.concat:
+            raise ValueError(
+                f"input {self.name!r}: by_schema requires concat: true or pick: 'latest'"
+            )
+        if self.columns is not None:
+            missing = [c for c in self.required_columns if c not in self.columns]
+            if missing:
+                raise ValueError(
+                    f"input {self.name!r}: required_columns {missing} not in columns"
+                )
+            if len(set(self.columns)) != len(self.columns):
+                raise ValueError(f"input {self.name!r}: duplicate entries in columns")
+            if "_id" in self.columns:
+                raise ValueError(f"input {self.name!r}: `_id` is never exported; drop it from columns")
         return self
 
     @property
     def columns_needed(self) -> list[str]:
-        return list(dict.fromkeys([*(self.by_schema or []), *self.required_columns]))
+        return list(dict.fromkeys(
+            [*(self.by_schema or []), *self.required_columns, *(self.columns or [])]
+        ))
+
+
+class RecipeLimits(BaseModel):
+    """Per-recipe overrides of the refresh's fetch/compute caps, for the few
+    datasets too big for the defaults (env `REFRESH_*`). A recipe that sets
+    any of them is "heavy": the refresh runs it after every other recipe, so
+    if it still blows up, the rest of the night is already done. The upper
+    bounds are a sanity ceiling, not a budget.
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    max_records: Optional[int] = Field(default=None, ge=1, le=20_000_000)
+    max_bytes: Optional[int] = Field(default=None, ge=1, le=2_000_000_000)
+    total_bytes: Optional[int] = Field(default=None, ge=1, le=4_000_000_000)
+    wall_budget_s: Optional[int] = Field(default=None, ge=1, le=3600)
+    compute_timeout_s: Optional[int] = Field(default=None, ge=1, le=1800)
+    compute_memory_mb: Optional[int] = Field(default=None, ge=256, le=30_000)
 
 
 class RecipeManifest(BaseModel):
@@ -111,6 +158,11 @@ class RecipeManifest(BaseModel):
     # Literal strings allowed to contain digits in template prose (e.g.
     # "24/7", "ISO 9001"). Everything else numeric must come from the model.
     lint_allow_numbers: list[str] = Field(default_factory=list)
+    limits: RecipeLimits = Field(default_factory=RecipeLimits)
+
+    @property
+    def heavy(self) -> bool:
+        return bool(self.limits.model_fields_set)
 
     @model_validator(mode="after")
     def _unique_names(self) -> "RecipeManifest":
@@ -189,6 +241,20 @@ class Recipe:
 # ── input resolution ─────────────────────────────────────────────────────
 
 
+def _modified_key(resource: dict) -> datetime:
+    """Sort key for `pick: "latest"`: the resource's CKAN `last_modified`
+    (a datetime from Firestore, an ISO string from JSON), oldest when missing.
+    Naive timestamps are UTC, as CKAN writes them."""
+    from services.scanner.models import _parse_datetime
+
+    v = resource.get("last_modified")
+    if isinstance(v, str):
+        v = _parse_datetime(v)
+    if not isinstance(v, datetime):
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+
+
 def resolve_inputs(
     manifest: RecipeManifest,
     resources: list[dict],
@@ -229,6 +295,18 @@ def resolve_inputs(
                     f"input {inp.name!r}: no resource has columns {inp.by_schema}",
                     reason="schema_changed",
                 )
+            if inp.pick == "latest":
+                undated = [r["id"][:8] for r in matched
+                           if not by_id.get(r["id"], {}).get("last_modified")]
+                if undated:
+                    log.warning(
+                        "input %r: resource(s) %s have no last_modified; pick 'latest' "
+                        "ranks them oldest", inp.name, undated,
+                    )
+                # max() keeps the first of equal keys, i.e. CKAN order.
+                matched = [max(
+                    matched, key=lambda r: _modified_key(by_id.get(r["id"], {}))
+                )]
         needed = inp.columns_needed
         if needed:
             for res in matched:

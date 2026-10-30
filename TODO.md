@@ -27,17 +27,27 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **`author prepare` ignores `REFRESH_MAX_BYTES`.** `services/page_builder/author.py` passes
-  `_DEFAULT_MAX_BYTES` (300MB) to the fetch, while prod runs `REFRESH_MAX_BYTES=450000000`. A
-  dataset between the two caps refreshes in prod but cannot be prepared locally. Read the env var
-  the way `max_records` already does. (2026-10-30)
-- **No "latest snapshot" input mode.** Datasets that publish each snapshot as a new resource
-  (e.g. `f0b71d2d…`, 41 monthly CSVs) can only be pinned `by_id`, so the page silently stays on
-  that snapshot. Add a `recipe.py` input mode that picks the newest matching resource.
+- **`273c5e33…` (vehicle history) is not authored yet.** Its two resources hold 2.5M and 5.55M
+  rows (167MB and 178MB), over the 2M `REFRESH_MAX_RECORDS` default. Recipes can now carry their
+  own `limits` and fetch fewer `columns`, so it can be authored as a heavy recipe: measure the
+  export with only the columns the page reads, and compute's peak RSS, before choosing limits.
   (2026-10-30)
-- **`273c5e33…` (vehicle history) is blocked by `REFRESH_MAX_RECORDS`.** Its two resources hold
-  2.5M and 5.55M rows, over the 2M default. Raise `REFRESH_MAX_RECORDS` on the job if memory and
-  the fetch caps allow, otherwise it stays a legacy page. (2026-10-30)
+- **Heavy recipes share the job's 4Gi.** A recipe with `limits` runs last and its compute is
+  heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, 3072 by default) and first in line for the OOM
+  killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
+  recipes multiply, give them their own job execution with more memory (filter on
+  `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
+- **A fetch over its byte cap or wall budget is retried forever, silently.**
+  `fetch_resource_records_to_file` returns None for a network error, a crossed byte cap and an
+  exhausted wall budget alike, so `refresh.fetch_inputs` reports all three as transient
+  `fetch_failed`: no issue opens, and a dataset that outgrew its cap (or a heavy recipe's
+  `limits`) goes stale without anyone being told. CLAUDE.md says outgrowing the cap opens an
+  issue. Have the fetcher report why it stopped, and map cap/budget overruns to `too_large`.
+  (2026-10-30)
+- **`pick: "latest"` trusts CKAN `last_modified`.** Re-uploading an old snapshot bumps its
+  `last_modified`, and the page would switch to it. If that happens, order by the date in the
+  resource name when it parses (snapshot datasets name their date), falling back to
+  `last_modified`. (2026-10-30)
 - **Provider checks are scattered over the CKAN paths.** `refresh_one`, `reconcile.probe_one`
   and `selector._skip` each branch on `getattr(src, "provider")`. A new CKAN-shaped path that
   forgets the branch treats a provider doc as CKAN. Add a `CkanProvider` adapter around the

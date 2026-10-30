@@ -171,9 +171,34 @@ Constraints that don't move: every `<script>` block < 50KB (aggregate in
 
 - `by_id` for a single stable resource. For a dataset that adds a file per
   period use `{"name": "...", "by_schema": [cols every file has], "concat": true}`
-  — rows get a `_resource_name` column naming their file.
+  — rows get a `_resource_name` column naming their file. For a dataset that
+  publishes each **full snapshot** as a new resource ("נכון ליום …"), use
+  `{"name": "...", "by_schema": [...], "pick": "latest"}` (no `concat`): only
+  the matching resource with the newest CKAN `last_modified` is read, so the
+  page follows new snapshots instead of staying pinned `by_id` to one.
 - `required_columns`: every column `compute` reads. A missing one fails the
   refresh as `schema_changed` (page kept, issue opened) instead of crashing.
+- `columns` (optional): fetch only these columns. The refresh asks CKAN for
+  them alone (`datastore_search fields=`), so a wide table exports a fraction
+  of its bytes: 2 of the 20 columns of the vehicle registry cut a page from
+  14MB to 1.6MB. `compute` sees exactly these columns, in this order. Must
+  include every `required_columns` entry. Use it whenever the page reads
+  well under all of a big table's columns; `coverage.json` still lists the
+  rest as `skip:`.
+- `limits` (optional, top level, for datasets over the default caps only):
+  `{"max_records", "max_bytes", "total_bytes", "wall_budget_s",
+"compute_timeout_s", "compute_memory_mb"}` override the job's `REFRESH_*`
+  defaults (2M rows, `REFRESH_MAX_BYTES` per resource, 600MB per dataset,
+  900s fetch, 300s compute, 3072MB compute heap). Try `columns` and
+  `pick: "latest"` first. A recipe with `limits` is **heavy**: it runs after
+  every other recipe, and its compute dies alone (`MemoryError`) rather than
+  taking the night's job with it. The job has 4Gi in total, and on Cloud Run
+  the exported CSVs sit in memory (`/tmp` is RAM) next to compute's
+  footprint (about 2.5× the CSV size in pandas), so keep
+  `total_bytes` + `compute_memory_mb` under about 3.5GB. Set only the
+  limits the data needs, with headroom for growth, and say why in the PR.
+  To explore such a dataset, run `prepare` with the caps raised:
+  `REFRESH_MAX_RECORDS=… REFRESH_MAX_BYTES=… python -m services.page_builder.author prepare <id>`.
 - `min_insights`: below this many surviving insights the refresh fails for a
   human look. Set it to what a good page needs, usually 2–4.
 - Re-authoring an existing recipe: **bump `recipe_version`**.

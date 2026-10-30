@@ -137,7 +137,16 @@ landing pages. Five layers:
    Failures keep the last-good page live and, when a human must act
    (recipe broke, schema moved, data outgrew the fetch cap —
    `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue; a
-   transient fetch failure just retries next run. `REFRESH_CAP` (200)
+   transient fetch failure just retries next run. Big-dataset levers in
+   `recipe.json`: an input's `columns` (CKAN `fields=`, only those columns
+   are exported), `pick: "latest"` (newest snapshot resource by
+   `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
+   `limits` is **heavy**: `run_refresh` runs it after all others. Every
+   compute runs heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, default 3072) with
+   `oom_score_adj=1000`, so an outsized recipe dies alone. The refresh code
+   ships in the builder image, but recipes are read from `main` at run time:
+   **redeploy the job before merging a recipe that uses a new
+   `recipe.json` field**, or the old image rejects it as `recipe_invalid`. `REFRESH_CAP` (200)
    bounds renders per run. **Issue dedup:** a successful render
    (`mark_refreshed` / `mark_refresh_unchanged`) clears the recorded
    `authoring_issue`; `queue_authoring` reuses a recorded issue unless
