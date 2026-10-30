@@ -46,6 +46,8 @@ from .agent_contract import (
     run_host_check,
     sanitize_content_html,
 )
+from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
+
 from .local_sandbox import LocalSandbox
 from .recipe import (
     MANIFEST_FILENAME,
@@ -146,6 +148,15 @@ class LocalRecipeRepo:
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
         return Recipe.load(self.root / dataset_id)
 
+    def provider_source_ids(self) -> list[str]:
+        return [i for i in self.list_ids() if (self.root / i / SOURCE_CONFIG_FILENAME).is_file()]
+
+    def source_config(self, dataset_id: str) -> Optional[SourceConfig]:
+        path = self.root / dataset_id / SOURCE_CONFIG_FILENAME
+        if not path.is_file():
+            return None
+        return SourceConfig.model_validate_json(path.read_text(encoding="utf-8"))
+
 
 class GcsRecipeRepo:
     """Recipes uploaded to gs://<bucket>/<prefix><id>/ — the preview lane
@@ -158,13 +169,26 @@ class GcsRecipeRepo:
         self.prefix = prefix if prefix.endswith("/") else prefix + "/"
 
     def list_ids(self) -> list[str]:
-        ids = set()
+        ids, with_source = set(), set()
         for blob in self._bucket.client.list_blobs(self._bucket, prefix=self.prefix):
             rel = blob.name[len(self.prefix):]
             parts = rel.split("/")
             if len(parts) == 2 and parts[1] == MANIFEST_FILENAME:
                 ids.add(parts[0])
+            elif len(parts) == 2 and parts[1] == SOURCE_CONFIG_FILENAME:
+                with_source.add(parts[0])
+        self._with_source = with_source & ids
         return sorted(ids)
+
+    def provider_source_ids(self) -> list[str]:
+        ids = self.list_ids()
+        return [i for i in ids if i in self._with_source]
+
+    def source_config(self, dataset_id: str) -> Optional[SourceConfig]:
+        blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{SOURCE_CONFIG_FILENAME}")
+        if not blob.exists():
+            return None
+        return SourceConfig.model_validate_json(blob.download_as_bytes())
 
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
         dest = scratch / dataset_id
@@ -195,6 +219,7 @@ class GithubRecipeRepo:
             self._headers["Authorization"] = f"Bearer {token}"
         self._sha: Optional[str] = None
         self._ids: Optional[list[str]] = None
+        self._with_source: set[str] = set()
 
     def _get(self, url: str, **kw):
         import httpx
@@ -215,13 +240,28 @@ class GithubRecipeRepo:
             ).json()
             if tree.get("truncated"):
                 raise RuntimeError("git tree listing truncated — recipe list incomplete")
-            ids = set()
+            ids, with_source = set(), set()
             for node in tree.get("tree") or []:
                 parts = node.get("path", "").split("/")
                 if len(parts) == 3 and parts[0] == "recipes" and parts[2] == MANIFEST_FILENAME:
                     ids.add(parts[1])
+                elif len(parts) == 3 and parts[0] == "recipes" and parts[2] == SOURCE_CONFIG_FILENAME:
+                    with_source.add(parts[1])
             self._sha, self._ids = sha, sorted(ids)
+            self._with_source = with_source & ids
         return list(self._ids)
+
+    def provider_source_ids(self) -> list[str]:
+        return [i for i in self.list_ids() if i in self._with_source]
+
+    def source_config(self, dataset_id: str) -> Optional[SourceConfig]:
+        if dataset_id not in set(self.provider_source_ids()):
+            return None
+        r = self._get(
+            f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
+            f"recipes/{dataset_id}/{SOURCE_CONFIG_FILENAME}"
+        )
+        return SourceConfig.model_validate_json(r.content)
 
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
         if self._sha is None:
@@ -758,6 +798,13 @@ def _same(new: str, old: Optional[str]) -> Optional[bool]:
     return None if old is None else new == old
 
 
+def fetchable_resources(resources: list[dict]) -> list[dict]:
+    """A provider doc's resources as input resolution sees them. They are
+    stored `datastore_active: false` (data.json must not send the browser
+    explorer to data.gov.il), but every one is fetchable by its provider."""
+    return [{**r, "datastore_active": True} for r in resources or []]
+
+
 def refresh_one(
     src,
     recipe: Recipe,
@@ -771,10 +818,24 @@ def refresh_one(
     notify: bool = True,
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
     read_gcs: Callable[[str, str], Optional[bytes]] = _read_gcs,
+    providers=None,
     **fetch_kwargs,
 ) -> RefreshOutcome:
     started = time.monotonic()
     rv = recipe.manifest.recipe_version
+    resources = src.resources
+    provider_key = getattr(src, "provider", None)
+    if provider_key:
+        # A non-CKAN source: its provider fetches (services/providers), CKAN
+        # is never called. Disabled provider → leave the last-good page.
+        p = provider_for_key(provider_key, providers)
+        if p is None:
+            log.info("refresh %s: provider %s is disabled — skipped", src.id, provider_key)
+            return RefreshOutcome(src.id, "skipped", trigger, f"provider_disabled:{provider_key}")
+        resources = fetchable_resources(src.resources)
+        preview_fn, fetch_fn = p.fetch_fns(resources)
+        fetch_kwargs.setdefault("preview_fn", preview_fn)
+        fetch_kwargs.setdefault("fetch_fn", fetch_fn)
     mode = precheck_mode()
     state = previous_state or {}
     may_skip = mode != "off" and _precheck_may_skip(trigger, state)
@@ -786,7 +847,7 @@ def refresh_one(
         if mode != "off":
             identity = recipe_identity(recipe)
             probe = probe_inputs(
-                recipe, src.resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
+                recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
             )
             fp = hashes["input_fingerprint"] = input_fingerprint(recipe, probe, identity)
             pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
@@ -802,7 +863,7 @@ def refresh_one(
                     raise _Unchanged("inputs_hash")
 
         page, inputs = build_page(
-            recipe, src.resources, work_root,
+            recipe, resources, work_root,
             probe=probe, after_fetch=after_fetch, **fetch_kwargs,
         )
     except _Unchanged as u:
@@ -1200,15 +1261,26 @@ def _cli() -> None:
         raise SystemExit("GCS_STAGING_BUCKET must be set")
     run_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
     started = datetime.now(timezone.utc)
+    repo = recipe_repo_from_env()
+    # Provider sources (BoI, …) get their doc + version from the sync step,
+    # as the daily job does. Prod only: it writes `sources/<id>`, and the
+    # preview lane reads unmerged recipes, so it must never touch prod docs.
+    # A preview of a provider recipe therefore needs its prod doc to exist.
+    providers_summary = None
+    if not preview:
+        from services.providers.sync import sync_provider_sources
+
+        providers_summary = sync_provider_sources(store, repo, only_ids=args.source)
     summary = run_refresh(
         store,
-        recipe_repo_from_env(),
+        repo,
         preview=preview,
         staging_bucket=bucket,
         only_ids=args.source,
         force=args.force,
         notify=not args.no_notify,
     )
+    summary["providers"] = providers_summary
     summary["run_id"] = run_id
     summary["started_at"] = started
     summary["completed_at"] = datetime.now(timezone.utc)

@@ -1,0 +1,22 @@
+{
+  "purchases.SERIES_CODE": "chart-total, chart-yoy, chart-tree, chart-growth, chart-sub — the sector tree comes from code prefixes",
+  "purchases.SERIES_NAME_HE": "chart-yoy, chart-tree, chart-sub — sector labels (last facet of BoI's name)",
+  "purchases.TIME_PERIOD": "chart-total, chart-yoy, chart-growth, kpi:level, kpi:yoy, kpi:m4",
+  "purchases.OBS_VALUE": "chart-total, chart-yoy, chart-tree, chart-growth, chart-sub, kpi:level, kpi:base",
+  "purchases.UNIT_MULT": "chart-total, kpi:level — scales values to millions of shekels",
+  "purchases.FREQ": "skip: constant D (daily)",
+  "purchases.DATA_SOURCE": "skip: constant SHVA, credited in the lede",
+  "purchases.INTERNAL_PROCESS": "skip: constant BoI research process code",
+  "purchases.ADJUSTMENT": "skip: constant Y (seasonally adjusted), stated in every note",
+  "purchases.ACTIVITY": "skip: BoI activity code, one-to-one with SERIES_CODE",
+  "purchases.CC_PRESENCE": "skip: constant _T (all card-present types)",
+  "purchases.TRANSFORMATION": "skip: constant A7 (7-day moving average), stated in the notes",
+  "purchases.UNIT_MEASURE": "skip: constant ILS, stated in labels",
+  "purchases.CONF_STATUS": "skip: constant F (free for publication)",
+  "purchases.PRICES": "skip: constant V (current prices), stated in the notes",
+  "purchases.VOL_VAL": "skip: constant VL (value)",
+  "purchases.TIME_COLLECT": "skip: constant S (summed)",
+  "purchases.COMMENTS": "skip: empty for every series in this dataflow",
+  "purchases.PUB_WEBSITE": "skip: constant Y",
+  "purchases.RELEASE_STATUS": "skip: release-status code, not shown"
+}

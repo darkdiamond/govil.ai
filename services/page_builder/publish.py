@@ -44,6 +44,7 @@ from .schema import (
     Manifest,
     ManifestEntry,
     ResourceEntry,
+    SourceInfo,
 )
 
 log = logging.getLogger(__name__)
@@ -104,7 +105,24 @@ def dataset_meta_from_source(src: SourceRecord) -> DatasetMeta:
             "unavailable" if src.analysis_status == "unavailable" else "available"
         ),
         unavailable_since=src.unavailable_since,
+        source=_source_info(src),
+        page_slug_suffix=src.page_slug_suffix,
     )
+
+
+def _source_info(src: SourceRecord) -> Optional[SourceInfo]:
+    """The credit block of a provider source (services/providers); None for
+    CKAN. A malformed one is dropped, not fatal: the page then falls back to
+    the shell's defaults rather than failing the whole publish."""
+    if not src.provider or not src.presentation:
+        return None
+    try:
+        return SourceInfo.model_validate(
+            {**src.presentation, "provider": src.provider, "source_url": src.source_url}
+        )
+    except Exception as e:
+        log.warning("malformed presentation for %s: %s", src.id, e)
+        return None
 
 
 def agent_data_from_source(src: SourceRecord) -> Optional[AgentData]:
@@ -166,6 +184,17 @@ def _build_page_slugs(metas: dict[str, DatasetMeta]) -> dict[str, str]:
     out: dict[str, str] = {}
     for sid in sorted(metas):
         base = hebrew_slugify(metas[sid].title)
+        # A provider source names its own readable suffix (unique within its
+        # id prefix, so only a cross-provider title clash can collide — then
+        # the full id, which is globally unique).
+        own = metas[sid].page_slug_suffix
+        if own:
+            slug = f"{base}-{own}" if base else sid
+            if slug in seen and seen[slug] != sid:
+                slug = f"{base}-{sid}" if base else sid
+            seen[slug] = sid
+            out[sid] = slug
+            continue
         compact = sid.replace("-", "")
         n = 8
         while True:

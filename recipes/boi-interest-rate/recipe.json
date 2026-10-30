@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "boi-interest-rate",
+  "recipe_version": 1,
+  "authored_at": "2026-10-29T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T00:00:00Z",
+    "rows": { "rates": 41028 }
+  },
+  "inputs": [
+    {
+      "name": "rates",
+      "by_id": "boi-br",
+      "required_columns": ["SERIES_CODE", "TIME_PERIOD", "OBS_VALUE"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

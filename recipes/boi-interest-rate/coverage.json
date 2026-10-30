@@ -1,0 +1,15 @@
+{
+  "rates.SERIES_CODE": "chart-history, chart-corridor, kpi:effective, insight:corridor — selects the policy rate, effective yield, windows and SHIR",
+  "rates.TIME_PERIOD": "chart-history, chart-recent, chart-per-year, chart-cycles, chart-holds, kpi:days",
+  "rates.OBS_VALUE": "chart-history, chart-recent, chart-cycles, chart-holds, chart-corridor, kpi:rate, kpi:prime, kpi:last_change",
+  "rates.FREQ": "skip: constant D (daily) for every series in this dataflow",
+  "rates.IR_FV_TYPE": "skip: one-to-one with SERIES_CODE (the rate type code)",
+  "rates.DATA_SOURCE": "skip: constant BOI",
+  "rates.TIME_COLLECT": "skip: constant V (BoI collection-method code)",
+  "rates.CONF_STATUS": "skip: constant F (free for publication)",
+  "rates.PUB_WEBSITE": "skip: constant Y (published on the BoI site)",
+  "rates.UNIT_MEASURE": "skip: constant PT (percent), stated in every label",
+  "rates.UNIT_MULT": "skip: constant 0 (units)",
+  "rates.RELEASE_STATUS": "skip: release-status code, constant YP in the data",
+  "rates.SERIES_NAME_HE": "skip: BoI's long series name; the page reads five fixed series codes and gives them short labels"
+}
