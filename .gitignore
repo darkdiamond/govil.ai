@@ -24,7 +24,7 @@ wheels/
 venv/
 ENV/
 env/
-.venv/
+.venv
 
 # IDE
 .idea/
@@ -59,10 +59,10 @@ Thumbs.db
 htmlcov/
 
 # Root development tooling
-/node_modules/
+/node_modules
 
 # Frontend (Nuxt 3)
-frontend/node_modules/
+frontend/node_modules
 frontend/.output/
 frontend/.nuxt/
 frontend/.data/
@@ -113,8 +113,10 @@ frontend/3000/
 
 # Local Claude Code settings + worktrees. Project skills are shared:
 # /author-dataset is how recipes get written (services/page_builder/recipe.py).
+# settings.json is shared too: it holds the worktree setup (CLAUDE.md, "Work in a worktree").
 .claude/*
 !.claude/skills/
+!.claude/settings.json
 
 # Firebase local artifacts
 firebase-debug.log

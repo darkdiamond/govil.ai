@@ -1,0 +1,5 @@
+# Gitignored files Claude Code copies from the main checkout into each new worktree
+# (CLAUDE.md, "Work in a worktree"). Directories too big to copy are symlinked instead,
+# via worktree.symlinkDirectories in .claude/settings.json.
+.env
+.claude/settings.local.json
