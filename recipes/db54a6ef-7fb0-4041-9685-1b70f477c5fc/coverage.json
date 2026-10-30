@@ -1,0 +1,14 @@
+{
+  "clinics.institute_code": "table:directory — dedup / sort tie-break key only; not shown",
+  "clinics.institute_name": "table:directory, insight:spread, insight:contact, insight:address",
+  "clinics.city": "table:directory, kpi:cities, insight:spread — also the by-city chart (chart-cities) once there are 2+ cities",
+  "clinics.cityCode": "skip: numeric code duplicating the city name",
+  "clinics.streetCode": "skip: numeric street code; the free-text address carries the street",
+  "clinics.street": "skip: the street is already part of the free-text address shown on the card",
+  "clinics.address": "table:directory, insight:spread, insight:address",
+  "clinics.email": "table:directory, kpi:contact, insight:contact — also chart-contact once there are 3+ clinics",
+  "clinics.phone": "table:directory, kpi:contact, insight:contact — also chart-contact once there are 3+ clinics",
+  "clinics.phone2": "table:directory, kpi:contact, insight:contact — also chart-contact once there are 3+ clinics",
+  "clinics.website": "table:directory, kpi:contact, insight:contact — also chart-contact once there are 3+ clinics",
+  "clinics.Manager_first_name": "skip: a manager's first name alone identifies nobody usefully and ties a person to an addiction clinic; kept off the page"
+}
