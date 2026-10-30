@@ -1,0 +1,446 @@
+<h1>{{ model.labels.h1 }}</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.users.tone }} mb-1" dir="ltr">{{ model.kpis.users.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.users_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.answers.tone }} mb-1" dir="ltr">{{ model.kpis.answers.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.answers_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.mentions.tone }} mb-1" dir="ltr">{{ model.kpis.mentions.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.mentions_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.neighborhoods.tone }} mb-1" dir="ltr">{{ model.kpis.neighborhoods.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.nb_kpi }}</div>
+  </div>
+{%- if model.flags.top_share %}
+  <div class="card p-4 text-center col-span-2 md:col-span-1">
+    <div class="text-3xl font-bold text-{{ model.kpis.top_share.tone }} mb-1" dir="ltr">{{ model.kpis.top_share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.top_kpi }}</div>
+  </div>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro share_table(rows, aria, head) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ aria }}</caption>
+      <thead><tr><th scope="col">{{ head }}</th><th scope="col">משיבים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+
+{% macro multi_table(rows, heads, aria, head) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ aria }}</caption>
+      <thead><tr><th scope="col">{{ head }}</th>{% for h in heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אילו עסקים חסרים לתושבים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_items_note }}</p>
+  <div id="chart-top-items" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_items_aria }}"></div>
+  {{ share_table(model.tables.top_items, model.labels.top_items_aria, "סוג עסק") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">קטגוריות העסקים שנבחרו</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור המשיבים שבחרו לענות על כל קטגוריה.</p>
+    <div id="chart-cats" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+    {{ share_table(model.tables.cats, model.labels.cat_aria, "קטגוריה") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה חסרים העסקים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">כל משיב בחר מקום אחד שאליו התייחס בתשובותיו.</p>
+    <div id="chart-sel" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.sel_aria }}"></div>
+    {{ share_table(model.tables.sel, model.labels.sel_aria, "מקום") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ליד הבית או במרכז העיר: מה מבקשים בכל מקום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור המבקשים מתוך המשיבים שהתייחסו לכל מקום, לעשרת העסקים המבוקשים ביותר.</p>
+  <div id="chart-ctx" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ctx_aria }}"></div>
+  {{ multi_table(model.tables.ctx, model.tables.ctx_heads, model.labels.ctx_aria, "סוג עסק") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המבוקשים בכל קטגוריה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.cats_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for c in model.cat_items %}
+    <div>
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ c.name }}</h3>
+      <p class="m-0 text-xs text-subtle">{{ c.n_users }} משיבים בחרו בקטגוריה</p>
+      <div id="{{ c.id }}" class="h-64 md:h-80" role="img" aria-label="{{ c.aria }}"></div>
+      <details class="mt-2">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ c.aria }}</caption>
+          <thead><tr><th scope="col">סוג עסק</th><th scope="col">משיבים</th><th scope="col">שיעור</th></tr></thead>
+          <tbody>
+{%- for r in c.rows %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">משיבים לפי שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nb_note }}</p>
+  <div id="chart-nb" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.nb_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nb_aria }}</caption>
+      <thead><tr><th scope="col">שכונה</th>{% for h in model.tables.nb_heads %}<th scope="col">{{ h }}</th>{% endfor %}<th scope="col">סך הכול</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nb %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה חסר בכל שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שלושת העסקים המבוקשים בכל שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nbtop_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nbtop_note }}</caption>
+      <thead><tr><th scope="col">שכונה</th><th scope="col">משיבים</th><th scope="col">מקום ראשון</th><th scope="col">מקום שני</th><th scope="col">מקום שלישי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nb_top_items %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td>{% for it in r['items'] %}<td>{{ it }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.gender %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">נשים וגברים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור הבוחרים בכל קטגוריה, בקרב משיבים שציינו מגדר.</p>
+    <div id="chart-gender" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.gender_aria }}"></div>
+    {{ multi_table(model.tables.gender, model.tables.gender_heads, model.labels.gender_aria, "קטגוריה") }}
+  </section>
+{%- endif %}
+{%- if model.flags.kids %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">הורים ומשיבים בלי ילדים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">שיעור הבוחרים בכל קטגוריה, בקרב משיבים שענו על שאלת הילדים.</p>
+    <div id="chart-kids" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.kids_aria }}"></div>
+    {{ multi_table(model.tables.kids, model.tables.kids_heads, model.labels.kids_aria, "קטגוריה") }}
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי ענה על הסקר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.profile_note }}</p>
+  <div id="chart-profile" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.profile_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.profile_aria }}</caption>
+      <thead><tr><th scope="col">שאלה</th><th scope="col">חלוקה</th><th scope="col">לא ענו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.profile %}
+        <tr><th scope="row">{{ r.title }}</th><td>{{ r.parts }}</td><td>{{ r.missing }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.age %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גיל המשיבים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_note }}</p>
+    <div id="chart-age" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_aria }}"></div>
+    {{ share_table(model.tables.age, model.labels.age_aria, "גיל") }}
+  </section>
+{%- endif %}
+{%- if model.flags.fam %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מצב משפחתי</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">בקרב משיבים שציינו מצב משפחתי.</p>
+    <div id="chart-fam" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fam_aria }}"></div>
+    {{ share_table(model.tables.fam, model.labels.fam_aria, "מצב משפחתי") }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.free %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/search.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות בבחירה חופשית</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.free_note }}</p>
+  <div id="chart-free" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.free_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.free_aria }}</caption>
+      <thead><tr><th scope="col">בקשה</th><th scope="col">משיבים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.free %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) return null;
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__bsSurvey = {
+      mk: mk,
+      hbar: function (id, d, unit) {
+        var c = mk(id);
+        if (!c) return;
+        c.setOption(window.GovEcharts.option({
+          color: window.GOVIL_PALETTE,
+          tooltip: { trigger: "axis", valueFormatter: function (v) { return v + unit; } },
+          grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+          xAxis: { type: "value", axisLabel: { formatter: "{value}" + unit } },
+          yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+          series: [{ type: "bar", data: d.values.slice().reverse(), label: { show: true, position: "right", formatter: "{c}" + unit } }]
+        }));
+      },
+      group: function (id, d) {
+        var c = mk(id);
+        if (!c) return;
+        c.setOption(window.GovEcharts.option({
+          color: window.GOVIL_PALETTE,
+          tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+          legend: { bottom: 0 },
+          grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+          xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+          yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+          series: d.series.map(function (s) { return { type: "bar", name: s.name, data: s.values.slice().reverse() }; })
+        }));
+      }
+    };
+  })();
+  (function () {
+    window.__bsSurvey.hbar("chart-top-items", {{ model.charts.top_items | tojson }}, "%");
+  })();
+  (function () {
+    window.__bsSurvey.hbar("chart-cats", {{ model.charts.cats | tojson }}, "%");
+  })();
+  (function () {
+    var d = {{ model.charts.sel | tojson }};
+    var c = window.__bsSurvey.mk("chart-sel");
+    if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value + " משיבים (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: d, label: { formatter: "{b}\n{d}%" } }]
+    }));
+  })();
+  (function () {
+    window.__bsSurvey.group("chart-ctx", {{ model.charts.ctx | tojson }});
+  })();
+{%- for ci in model.cat_items %}
+  (function () {
+    window.__bsSurvey.hbar({{ ci.id | tojson }}, {{ ci.chart | tojson }}, "%");
+  })();
+{%- endfor %}
+  (function () {
+    var d = {{ model.charts.nb | tojson }};
+    var c = window.__bsSurvey.mk("chart-nb");
+    if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.values.slice().reverse() }; })
+    }));
+  })();
+{%- if model.flags.heat %}
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = window.__bsSurvey.mk("chart-heat");
+    if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) { var e = echarts.format.encodeHTML; return e(d.x[p.value[0]]) + "<br>" + e(d.y[p.value[1]]) + ": " + p.value[2] + "% מתוך " + p.value[3] + " משיבים"; } },
+      grid: { left: 16, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 40 } },
+      yAxis: { type: "category", data: d.y, splitArea: { show: true }, axisLabel: { width: 110, overflow: "truncate" } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: true, fontSize: 10, formatter: function (p) { return Math.round(p.value[2]); } } }]
+    }));
+  })();
+{%- endif %}
+{%- if model.flags.gender %}
+  (function () {
+    window.__bsSurvey.group("chart-gender", {{ model.charts.gender | tojson }});
+  })();
+{%- endif %}
+{%- if model.flags.kids %}
+  (function () {
+    window.__bsSurvey.group("chart-kids", {{ model.charts.kids | tojson }});
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.profile | tojson }};
+    var c = window.__bsSurvey.mk("chart-profile");
+    if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#9fc3f7"],
+      tooltip: { trigger: "item", formatter: function (p) { var s = d.series[p.seriesIndex]; return echarts.format.encodeHTML(s.labels[p.dataIndex]) + ": " + p.value + "%"; } },
+      grid: { left: 16, right: 24, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names.slice().reverse() },
+      series: d.series.map(function (s) {
+        var labels = s.labels.slice().reverse();
+        return { type: "bar", stack: "p", data: s.values.slice().reverse(),
+          label: { show: true, color: s.name === "first" ? "#ffffff" : "#0c3058", formatter: function (p) { return labels[p.dataIndex] + " " + Math.round(p.value) + "%"; } } };
+      })
+    }));
+  })();
+{%- if model.flags.age %}
+  (function () {
+    var d = {{ model.charts.age | tojson }};
+    var c = window.__bsSurvey.mk("chart-age");
+    if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "משיבים", data: d.values }]
+    }));
+  })();
+{%- endif %}
+{%- if model.flags.fam %}
+  (function () {
+    var d = {{ model.charts.fam | tojson }};
+    var c = window.__bsSurvey.mk("chart-fam");
+    if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: d, label: { formatter: "{b}\n{d}%" } }]
+    }));
+  })();
+{%- endif %}
+{%- if model.flags.free %}
+  (function () {
+    window.__bsSurvey.hbar("chart-free", {{ model.charts.free | tojson }}, "");
+  })();
+{%- endif %}
+</script>

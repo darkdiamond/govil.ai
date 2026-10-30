@@ -1,0 +1,63 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4bee0109-501e-4ae0-aa9e-a70f713b84d0",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T08:28:45.066244+00:00",
+    "rows": {
+      "main": 1008
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "a853e465-b435-445c-b38b-26fadd795df5",
+      "required_columns": [
+        "PTLCODE",
+        "PTLNAME",
+        "PTLTYPE",
+        "AUTHORITY",
+        "TRAFAUTH",
+        "STREETNAME",
+        "ROADNAME",
+        "URBANTYPE",
+        "STATUS",
+        "OPTYPE",
+        "PAINT",
+        "DIVISION",
+        "ENFORCMENT",
+        "STARTDATE",
+        "LASTCHANGE",
+        "OTHERBUSES",
+        "TAXI",
+        "BRT",
+        "SERVLINES",
+        "PARKING",
+        "MOTORCYCLE",
+        "LIGHTRAIL",
+        "DISABLED",
+        "EV",
+        "AV",
+        "VAN",
+        "LENGT",
+        "NUMLANES",
+        "NUMLOTHER",
+        "HOV",
+        "HOT",
+        "FRHR_WK_F",
+        "TOHR_WK_F",
+        "FRHR_WK_2_F",
+        "TOHR_WK_2_F",
+        "FRHR_FRI_F",
+        "TOHR_FRI_F",
+        "FRHR_FRI_2_F",
+        "TOHR_FRI_2_F",
+        "FRHR_SAT_F",
+        "TOHR_SAT_F"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

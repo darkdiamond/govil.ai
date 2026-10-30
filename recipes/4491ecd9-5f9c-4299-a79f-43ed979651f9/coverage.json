@@ -1,0 +1,12 @@
+{
+  "companies.company-name": "chart-emp, chart-scatter, table:directory, insight:size",
+  "companies.company-field": "chart-fields, chart-size, chart-years, kpi:fields, insight:field, insight:field_size — English categories mapped to Hebrew, raw label kept for unknown ones",
+  "companies.company-website": "chart-pres, table:directory, insight:presence — shown as a bare domain",
+  "companies.foundation-date": "chart-years, chart-months, chart-scatter, kpi:years, insight:years, insight:jan1",
+  "companies.company-location": "chart-places, kpi:bs_share, kpi:settlements, insight:place — free-text address reduced to a settlement; street addresses not shown",
+  "companies.company-emp": "chart-bins, chart-emp, chart-size, chart-scatter, kpi:employees, kpi:median, insight:size",
+  "companies.describe": "skip: free-text product description, searchable in the explorer",
+  "companies.compay-logo": "chart-pres — logo filename only; presence counted",
+  "companies.product-video": "chart-pres, kpi:video, insight:presence",
+  "resource:57e8792e-dccf-4fb5-8f2a-30bcad896e83": "skip: CSV twin of the XLSX resource; multi-line descriptions split into junk rows"
+}

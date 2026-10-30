@@ -1,0 +1,741 @@
+<h1>ארכיון הנתונים המטאורולוגיים של השירות המטאורולוגי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 mb-2 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="m-0 text-subtle leading-relaxed">המאגר הרשמי של השירות המטאורולוגי (שמ״ט): נתוני מזג אוויר היסטוריים מתחנות המדידה ברחבי הארץ, כולל טמפרטורות מקסימום ומינימום יומיות, תופעות מזג אוויר, כמויות גשם חודשיות, מדי גשם מאוגרים וקרינת שמש. הדף מסכם את הארכיון: התחממות לעומת הנורמה, עונות הגשם, השיאים ופריסת התחנות.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.stations.tone }} mb-1" dir="ltr">{{ model.kpis.stations.display }}</div>
+    <div class="text-sm text-subtle">תחנות מדידה במאגר (כל התקופות)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">תחנות פעילות (ללא תאריך סגירה)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">שנות פעילות התחנות</div>
+  </div>
+{%- if model.kpis.anomaly %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.anomaly.tone }} mb-1" dir="ltr">{{ model.kpis.anomaly.display }}</div>
+    <div class="text-sm text-subtle">חריגת טמפרטורת המקסימום בשנה המלאה האחרונה (°C, לעומת הנורמה)</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.hottest %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.hottest.tone }} mb-1" dir="ltr">{{ model.kpis.hottest.display }}</div>
+    <div class="text-sm text-subtle">הטמפרטורה הגבוהה ביותר שנמדדה (°C)</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.coldest %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.coldest.tone }} mb-1" dir="ltr">{{ model.kpis.coldest.display }}</div>
+    <div class="text-sm text-subtle">הטמפרטורה הנמוכה ביותר שנמדדה (°C)</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.rain %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rain.tone }} mb-1" dir="ltr">{{ model.kpis.rain.display }}</div>
+    <div class="text-sm text-subtle">גשם בעונה המלאה האחרונה, מהממוצע הרב-שנתי</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.rain_max %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rain_max.tone }} mb-1" dir="ltr">{{ model.kpis.rain_max.display }}</div>
+    <div class="text-sm text-subtle">שיא גשם יומי בתחנה (מ״מ)</div>
+  </div>
+{%- endif %}
+</div>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תחנה מטאורולוגית ונתוני מזג אוויר היסטוריים ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם התחנה בעברית או באנגלית, מספר תחנה, תאריך תצפית, ובקובצי הנתונים היומיים, השעתיים, הגשם והקרינה</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{# ------------------------------------------------------------ temperature #}
+{%- if model.charts.anomaly %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התחממות: חריגת הטמפרטורה השנתית מהנורמה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.anomaly_note }} עמודה אדומה: שנה חמה מהנורמה; עמודה כחולה: שנה קרה ממנה.</p>
+  <div id="chart-anomaly" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.anomaly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.hot_title }}</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.hot_note }}</p>
+  <div id="chart-hotdays" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.hot_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.charts.climate %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אקלים לפי תחנה: טמפרטורת המקסימום החודשית מצפון לדרום</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.climate_note }}</p>
+  <div id="chart-climate" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.climate_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.charts.hot %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיאי חום וקור</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.records_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">טמפרטורת המקסימום הגבוהה ביותר (°C)</h3>
+      <div id="chart-hot" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.hot_rec_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.hot_rec_aria }}</caption>
+          <thead><tr><th scope="col">תחנה</th><th scope="col">°C</th><th scope="col">תאריך</th></tr></thead>
+          <tbody>
+{%- for n in model.charts.hot.names %}
+            <tr><th scope="row">{{ n }}</th><td dir="ltr">{{ model.charts.hot["values"][loop.index0] | fmt_num }}</td><td>{{ model.charts.hot.dates[loop.index0] }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">טמפרטורת המינימום הנמוכה ביותר (°C)</h3>
+      <div id="chart-cold" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cold_rec_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.cold_rec_aria }}</caption>
+          <thead><tr><th scope="col">תחנה</th><th scope="col">°C</th><th scope="col">תאריך</th></tr></thead>
+          <tbody>
+{%- for n in model.charts.cold.names %}
+            <tr><th scope="row">{{ n }}</th><td dir="ltr">{{ model.charts.cold["values"][loop.index0] | fmt_num }}</td><td>{{ model.charts.cold.dates[loop.index0] }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.charts.phenomena %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תופעות מזג אוויר: רעמים, ברד, ערפל, כפור, סופות חול ושלג</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.phen_note }}</p>
+  <div id="chart-phenomena" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.phen_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.phen_aria }}</caption>
+      <thead><tr><th scope="col">תופעה</th><th scope="col">ימים עם התופעה</th><th scope="col">ימי דיווח</th><th scope="col">חודש השיא</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.phenomena.table %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.days | fmt_int }}</td><td>{{ r.reports | fmt_int }}</td><td>{{ r.peak }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{# ------------------------------------------------------------ rain #}
+{%- if model.charts.rain_index %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונות הגשמים: כמות הגשם באחוזים מהממוצע</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.rain_index_note }}</p>
+  <div id="chart-rain-index" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.rain_index_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.charts.rain_months %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי יורד הגשם: התפלגות לפי חודשי שנת הגשם</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">חלקו של כל חודש בכמות הגשם השנתית (עמודות) וממוצע ימי הגשם בחודש (קו). {{ model.labels.rain_months_note }}</p>
+  <div id="chart-rain-months" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rain_months_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rain_months_aria }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">חלק מהגשם השנתי (%)</th><th scope="col">ימי גשם בממוצע</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.rain_months.rows %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.share | fmt_num }}</td><td>{{ r.days | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.charts.gradient %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מצפון לדרום: כמות הגשם השנתית לפי קו רוחב</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.gradient_lede }}</p>
+  <div id="chart-gradient" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.gradient_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.charts.rain_max %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיאי גשם יומיים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.rain_max_note }}</p>
+  <div id="chart-rain-max" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.rain_max_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rain_max_aria }}</caption>
+      <thead><tr><th scope="col">תחנה</th><th scope="col">גשם ביום (מ״מ)</th><th scope="col">תאריך</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.rain_max.rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.value | fmt_num }}</td><td>{{ r.date }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.charts.totalizers %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גשם במדבר: מדי הגשם המאוגרים בנגב ובערבה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">חציון כמות הגשם השנתית שנאספה באוגרים (מ״מ). {{ model.labels.tz_note }}</p>
+  <div id="chart-totalizers" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.tz_aria }}"></div>
+</section>
+{%- endif %}
+
+{# ------------------------------------------------------------ radiation #}
+{%- if model.charts.radiation %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קרינת שמש לפי חודש ותחנה</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">קרינה גלובלית: קרינת השמש הישירה והמפוזרת המגיעה למשטח אופקי. {{ model.labels.rad_note }}</p>
+  <div id="chart-radiation" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.rad_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rad_aria }}</caption>
+      <thead><tr><th scope="col">חודש</th>{% for s in model.charts.radiation.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for m in model.charts.radiation.months %}
+{%- set mi = loop.index0 %}
+        <tr><th scope="row">{{ m }}</th>{% for s in model.charts.radiation.series %}<td>{% if s.data[mi] is not none %}{{ s.data[mi] | fmt_num(2) }}{% endif %}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.labels.rad_hour_aria %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מהלך היום: קרינה לפי שעה וחודש</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">ממוצע הקרינה הגלובלית בכל שעת אור (וואט למ״ר), כל תחנות הקרינה באותה תקופה. השעות לפי UTC, כמו בקובץ המקורי (שעון ישראל מקדים בשעתיים בחורף ובשלוש בקיץ).</p>
+  <div id="chart-rad-hours" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.rad_hour_aria }}"></div>
+</section>
+{%- endif %}
+{%- endif %}
+
+{# ------------------------------------------------------------ network #}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשת תחנות המדידה לאורך השנים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.network_lede }}</p>
+  <div id="chart-network" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.network_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת תחנות השירות המטאורולוגי</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">כל התחנות במאגר, פעילות וסגורות. לחיצה על נקודה מציגה את שם התחנה, הגובה ותאריכי הפעילות.</p>
+  <div id="map-stations" class="h-72 md:h-[420px]" role="region" aria-label="מפה אינטראקטיבית של תחנות המדידה של השירות המטאורולוגי. גרסה נגישה: ראו את טבלת התחנות בעיון בנתונים למטה."></div>
+</section>
+
+{%- if model.charts.elevation %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גובה התחנות הפעילות מעל פני הים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.elevation_lede }}</p>
+  <div id="chart-elevation" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.elevation_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.elevation_aria }}</caption>
+      <thead><tr><th scope="col">גובה (מ׳)</th><th scope="col">תחנות פעילות</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.elevation.rows %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.count | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר הנתונים הרשמי של השירות המטאורולוגי (שמ״ט) מוצג בזה לציבור, באמצעות פורטל השירותים והמידע הממשלתי (Data.Gov), מכיל מגוון נתונים מטאורולוגיים (טמפרטורה, לחות יחסית, לחץ, משקעים, רוח ועוד) מתחנות מדידה שפעלו ברחבי הארץ בתקופות שונות.
+המאגר מורכב משני חלקים: ארכיון נתונים מטאורולוגיים ומאגר נתונים עשר דקתיים (תחנות אוטומטיות). הנתונים שבארכיון הנתונים המטאורולוגים עברו תהליכי בקרה. עם זאת, מתגלה מדי פעם צורך בעדכונים ובתיקונים נוספים.</p>
+</section>
+
+<script>
+  window.__mkA6 = function (id) {
+    var el = document.getElementById(id);
+    if (!el || !window.echarts) { return null; }
+    var c = echarts.getInstanceByDom(el) || echarts.init(el);
+    window.addEventListener("resize", function () { c.resize(); });
+    return c;
+  };
+</script>
+
+{%- if model.charts.anomaly %}
+<script>
+  (function () {
+    var d = {{ model.charts.anomaly | tojson }};
+    var c = window.__mkA6("chart-anomaly");
+    if (!c) { return; }
+    var bars = d.max.map(function (v) {
+      return { value: v, itemStyle: { color: v > 0 ? "#dc3545" : "#0068f5" } };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (p) {
+          var i = p[0].dataIndex;
+          var f = function (v) { return (v > 0 ? "+" : "") + v.toFixed(2) + "°"; };
+          return echarts.format.encodeHTML(d.x[i]) + (d.max[i] > 0 ? " (חמה מהנורמה)" : " (קרה מהנורמה)") +
+            "<br>חריגת המקסימום: " + f(d.max[i]) +
+            "<br>חריגת המינימום: " + f(d.min[i]) +
+            "<br>תחנות: " + d.n[i];
+        }
+      },
+      legend: { top: 0, data: ["חריגת טמפרטורת המקסימום", "חריגת טמפרטורת המינימום"] },
+      grid: { left: 8, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}°" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [
+        { name: "חריגת טמפרטורת המקסימום", type: "bar", data: bars, itemStyle: { color: "#dc3545" } },
+        { name: "חריגת טמפרטורת המינימום", type: "line", data: d.min, symbolSize: 4, itemStyle: { color: "#0b3668" }, lineStyle: { color: "#0b3668", width: 1.5 } }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.anomaly | tojson }};
+    var c = window.__mkA6("chart-hotdays");
+    if (!c) { return; }
+    var bars = d.hot.map(function (v) {
+      return { value: v, itemStyle: { color: v > 0 ? "#dc3545" : "#0068f5" } };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (p) {
+          var i = p[0].dataIndex, v = d.hot[i];
+          return echarts.format.encodeHTML(d.x[i]) + "<br>" + (v > 0 ? "+" : "") + v.toFixed(1) + " ימים לתחנה" +
+            (v > 0 ? " (יותר מהנורמה)" : " (פחות מהנורמה)");
+        }
+      },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "ימים", nameTextStyle: { align: "right" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [{ name: "ימים חמים לעומת הנורמה", type: "bar", data: bars }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.climate %}
+<script>
+  (function () {
+    var d = {{ model.charts.climate | tojson }};
+    var c = window.__mkA6("chart-climate");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(d.rows[p.value[1]]) + ", " + d.months[p.value[0]] + "<br>מקסימום ממוצע: " + p.value[2].toFixed(1) + "°";
+        }
+      },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45, fontSize: 11 } },
+      yAxis: { type: "category", data: d.rows, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: {
+        min: d.min, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: true, fontFamily: "Rubik", fontSize: 10, formatter: function (p) { return Math.round(p.value[2]); } },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.hot %}
+<script>
+  (function () {
+    var specs = [["chart-hot", {{ model.charts.hot | tojson }}, "#dc3545"], ["chart-cold", {{ model.charts.cold | tojson }}, "#0068f5"]];
+    specs.forEach(function (s) {
+      var d = s[1];
+      var c = window.__mkA6(s[0]);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        tooltip: {
+          trigger: "axis",
+          formatter: function (p) {
+            var i = p[0].dataIndex;
+            return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toFixed(1) + "° (" + echarts.format.encodeHTML(d.dates[i]) + ")";
+          }
+        },
+        grid: { left: 8, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", scale: true, axisLabel: { formatter: "{value}°" } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, width: 120, overflow: "truncate" } },
+        series: [{ type: "bar", data: d.values, itemStyle: { color: s[2] },
+          label: { show: true, position: "right", formatter: function (p) { return p.value.toFixed(1); } } }]
+      }));
+    });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.phenomena %}
+<script>
+  (function () {
+    var d = {{ model.charts.phenomena | tojson }};
+    var c = window.__mkA6("chart-phenomena");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(d.rows[p.value[1]]) + ", " + d.months[p.value[0]] + "<br>" + p.value[2].toFixed(2) +
+            "% מימי הדיווח<br>ימי דיווח: " + p.value[3].toLocaleString("he-IL");
+        }
+      },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45, fontSize: 11 } },
+      yAxis: { type: "category", data: d.rows, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: true, fontFamily: "Rubik", fontSize: 10, formatter: function (p) { return p.value[2] >= 10 ? Math.round(p.value[2]) : p.value[2].toFixed(1); } },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.rain_index %}
+<script>
+  (function () {
+    var d = {{ model.charts.rain_index | tojson }};
+    var c = window.__mkA6("chart-rain-index");
+    if (!c) { return; }
+    var bars = d.y.map(function (v) {
+      return { value: v, itemStyle: { color: v < d.dry ? "#dc3545" : v > d.wet ? "#198754" : "#0068f5" } };
+    });
+    c.setOption(window.GovEcharts.option({
+      tooltip: {
+        trigger: "axis",
+        formatter: function (p) {
+          var i = p[0].dataIndex, v = d.y[i];
+          var tag = v < d.dry ? " (שחונה)" : v > d.wet ? " (גשומה)" : "";
+          return "עונת " + echarts.format.encodeHTML(d.x[i]) + tag + "<br>" + v.toFixed(1) + "% מהממוצע<br>תחנות: " + d.n[i];
+        }
+      },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [{ type: "bar", data: bars, name: "אחוז מהממוצע",
+        markLine: { symbol: "none", silent: true, data: [{ yAxis: 100 }], lineStyle: { color: "#0c3058", type: "dashed" }, label: { formatter: "ממוצע" } } }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.rain_months %}
+<script>
+  (function () {
+    var d = {{ model.charts.rain_months | tojson }};
+    var c = window.__mkA6("chart-rain-months");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0, data: ["חלק מהגשם השנתי (%)", "ימי גשם בממוצע"] },
+      grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45, fontSize: 11 } },
+      yAxis: [
+        { type: "value", axisLabel: { formatter: "{value}%" } },
+        { type: "value", splitLine: { show: false } }
+      ],
+      series: [
+        { name: "חלק מהגשם השנתי (%)", type: "bar", data: d.share },
+        { name: "ימי גשם בממוצע", type: "line", yAxisIndex: 1, data: d.days, itemStyle: { color: "#0b3668" }, lineStyle: { color: "#0b3668" } }
+      ]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.gradient %}
+<script>
+  (function () {
+    var d = {{ model.charts.gradient | tojson }};
+    var c = window.__mkA6("chart-gradient");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          var v = p.value;
+          return echarts.format.encodeHTML(v[2]) + "<br>" + Math.round(v[1]).toLocaleString("he-IL") + " מ״מ בעונה בממוצע<br>קו רוחב: " + v[0].toFixed(2) +
+            (v[3] !== null ? "<br>גובה: " + v[3] + " מ׳" : "");
+        }
+      },
+      grid: { left: 8, right: 24, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "value", scale: true, name: "קו רוחב", nameLocation: "middle", nameGap: 24 },
+      yAxis: { type: "value", name: "מ״מ בעונה", nameTextStyle: { align: "right" } },
+      series: [{ type: "scatter", data: d.points, symbolSize: 7, itemStyle: { opacity: 0.75 } }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.rain_max %}
+<script>
+  (function () {
+    var d = {{ model.charts.rain_max | tojson }};
+    var c = window.__mkA6("chart-rain-max");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (p) {
+          var i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toFixed(1) + " מ״מ (" + echarts.format.encodeHTML(d.dates[i]) + ")";
+        }
+      },
+      grid: { left: 8, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", name: "מ״מ" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: 11, width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: function (p) { return p.value.toFixed(1); } } }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.totalizers %}
+<script>
+  (function () {
+    var d = {{ model.charts.totalizers | tojson }};
+    var c = window.__mkA6("chart-totalizers");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (p) {
+          var i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.x[i]) + "<br>חציון: " + d.y[i].toFixed(1) + " מ״מ<br>אוגרים: " + d.n[i];
+        }
+      },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "מ״מ", nameTextStyle: { align: "right" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [{ type: "bar", data: d.y, name: "חציון",
+        markLine: { symbol: "none", silent: true, data: [{ yAxis: d.overall }], lineStyle: { color: "#0c3058", type: "dashed" }, label: { formatter: "חציון רב-שנתי" } } }]
+    }));
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.radiation %}
+<script>
+  (function () {
+    var d = {{ model.charts.radiation | tojson }};
+    var c = window.__mkA6("chart-radiation");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "" : v.toFixed(2) + " קוט״ש למ״ר"; } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 8, right: 16, top: 48, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.months, axisLabel: { interval: 0, rotate: 45, fontSize: 11 } },
+      yAxis: { type: "value", name: "קוט״ש למ״ר ליום", nameTextStyle: { align: "right" } },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "line", data: s.data, symbolSize: 4, connectNulls: false };
+      })
+    }));
+  })();
+</script>
+
+{%- if model.labels.rad_hour_aria %}
+<script>
+  (function () {
+    var d = {{ model.charts.radiation | tojson }};
+    var c = window.__mkA6("chart-rad-hours");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return d.months[p.value[1]] + ", שעות " + echarts.format.encodeHTML(d.hours[p.value[0]]) + " (UTC)<br>" + p.value[2].toLocaleString("he-IL") + " וואט למ״ר";
+        }
+      },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.hours, name: "שעה (UTC)", nameLocation: "middle", nameGap: 28, splitArea: { show: true }, axisLabel: { fontSize: 10 } },
+      yAxis: { type: "category", data: d.months, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: {
+        min: 0, max: d.hmax, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+  })();
+</script>
+{%- endif %}
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.network | tojson }};
+    var c = window.__mkA6("chart-network");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", name: "תחנות", nameTextStyle: { align: "right" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "line", stack: "all", areaStyle: {}, symbol: "none", data: s.data };
+      })
+    }));
+  })();
+</script>
+
+<script>
+  GovMap.create({
+    container: "#map-stations",
+    resourceId: {{ inputs.stations[0].id | tojson }},
+    latField: "stn_lat",
+    lngField: "stn_long",
+    projection: "wgs84",
+    popupTitleField: "stn_name_heb",
+    popupFields: [
+      { field: "stn_hgt", label: "גובה (מ׳)" },
+      { field: "date_open", label: "נפתחה" },
+      { field: "date_close", label: "נסגרה" },
+      { field: "stn_num", label: "מספר תחנה" }
+    ]
+  });
+</script>
+
+{%- if model.charts.elevation %}
+<script>
+  (function () {
+    var d = {{ model.charts.elevation | tojson }};
+    var c = window.__mkA6("chart-elevation");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) { var i = p[0].dataIndex; return echarts.format.encodeHTML(d.x[i]) + " מ׳<br>" + d.y[i] + " תחנות"; } },
+      grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.y, name: "תחנות", barCategoryGap: "10%" }]
+    }));
+  })();
+</script>
+{%- endif %}

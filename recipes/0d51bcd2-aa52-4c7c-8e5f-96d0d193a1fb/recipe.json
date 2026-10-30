@@ -1,0 +1,43 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0d51bcd2-aa52-4c7c-8e5f-96d0d193a1fb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-28T06:58:22.204301+00:00",
+    "rows": { "courses": 2761, "institutions": 9 }
+  },
+  "inputs": [
+    {
+      "name": "courses",
+      "by_schema": [
+        "School",
+        "Name",
+        "Number",
+        "Date",
+        "Instructor",
+        "Region",
+        "Language",
+        "Price"
+      ],
+      "concat": true,
+      "required_columns": [
+        "School",
+        "Name",
+        "Number",
+        "Date",
+        "Instructor",
+        "Region",
+        "Language",
+        "Price"
+      ]
+    },
+    {
+      "name": "institutions",
+      "by_id": "6df4369b-54ee-4d17-b36a-0d57c4cab517",
+      "required_columns": ["institution", "city", "address", "remarks"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["2020"]
+}

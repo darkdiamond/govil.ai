@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "aee606f8-d3a4-44d6-9359-8682cc78adad",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:05:14.254108+00:00",
+    "rows": { "clubs": 17 }
+  },
+  "inputs": [
+    {
+      "name": "clubs",
+      "by_id": "68a292ca-0647-472e-9900-695293d819e1",
+      "required_columns": ["name", "address", "type", "lat", "lon"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

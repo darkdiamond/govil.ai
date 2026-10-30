@@ -1,0 +1,6 @@
+{
+  "main.stat-area": "chart-nbs, chart-treemap, kpi:areas, kpi:avg, insight:groups, insight:split, insight:cross_group — codes listed per neighborhood in the chart-nbs table; hundreds digit drives the code groups",
+  "main.neighborhood_1": "chart-nbs, chart-treemap, kpi:nbs, kpi:avg, insight:top, insight:singles, insight:cross_group",
+  "main.neighborhood_2": "chart-nbs, chart-treemap, kpi:split, insight:split, table:split — second neighborhood of a boundary-straddling area",
+  "main.neighborhood_3": "chart-nbs, chart-treemap, kpi:split, insight:split, table:split — third neighborhood of a boundary-straddling area"
+}

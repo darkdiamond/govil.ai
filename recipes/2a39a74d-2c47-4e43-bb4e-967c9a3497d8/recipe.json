@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2a39a74d-2c47-4e43-bb4e-967c9a3497d8",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:06:58.824151+00:00",
+    "rows": { "fountains": 35 }
+  },
+  "inputs": [
+    {
+      "name": "fountains",
+      "by_id": "49c7aa6d-ef48-419d-8d5f-03aea139f94d",
+      "required_columns": ["name", "address", "LINK", "lat", "lon"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

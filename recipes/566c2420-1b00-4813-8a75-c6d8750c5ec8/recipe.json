@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "566c2420-1b00-4813-8a75-c6d8750c5ec8",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:11:46.618882+00:00",
+    "rows": { "sirens": 72 }
+  },
+  "inputs": [
+    {
+      "name": "sirens",
+      "by_id": "4b87697a-cb28-4b5d-85c1-5e2c3325e1e9",
+      "required_columns": ["ID", "Name", "Address", "Neiborhood", "lat", "lon"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,225 @@
+{%- macro head(icon, title) -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro table(caption, cols, rows, keys) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th>{% for k in keys %}<td>{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro -%}
+<h1>עסקים עם התו הסגול בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור עסק עם תו סגול לפי שם או רחוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם העסק, רחוב ומספר בית</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "names", "venue", "streets"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "מפת העסקים עם התו הסגול") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+{% if model.has_sites %}
+<section class="card p-5 mb-6">
+  {{ head("building-2", "מרכזי הקניות והנקודות הצפופות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sites_note }}</p>
+  <div id="chart-sites" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.sites_aria }}"></div>
+  {{ table(model.labels.sites_caption, ["מקום", "עסקים", "שיעור"], model.tables.sites, ["count", "share"]) }}
+</section>
+{% endif %}
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "הרחובות עם הכי הרבה עסקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.streets_note }}</p>
+  <div id="chart-streets" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.streets_aria }}"></div>
+  {{ table(model.labels.streets_caption, ["רחוב", "עסקים", "שיעור"], model.tables.streets, ["count", "share"]) }}
+</section>
+{% if model.has_cats %}
+<section class="card p-5 mb-6">
+  {{ head("tag", "תחומי העסקים (הערכה לפי השם)") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cats_note }}</p>
+  <div id="chart-cats" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cats_aria }}"></div>
+  {{ table(model.labels.cats_caption, ["תחום", "עסקים", "שיעור מהמסווגים"], model.tables.cats, ["count", "share"]) }}
+</section>
+{% endif %}
+{% if model.has_mix %}
+<section class="card p-5 mb-6">
+  {{ head("building-2", "מה יש בקניון ומה ברחוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  {{ table(model.labels.mix_caption, ["תחום", "במרכזי קניות", "ברחובות"], model.tables.mix, ["venue", "street"]) }}
+</section>
+{% endif %}
+{% if model.has_names %}
+<section class="card p-5 mb-6">
+  {{ head("list", "שמות שחוזרים: רשתות ודוכנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.names_note }}</p>
+  <div id="chart-names" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.names_aria }}"></div>
+  {{ table(model.labels.names_caption, ["שם העסק", "רשומות"], model.tables.names, ["count"]) }}
+</section>
+{% endif %}
+{% if model.has_geo %}
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "מרחק ממרכז הפריסה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rings_note }}</p>
+  <div id="chart-rings" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.rings_aria }}"></div>
+  {{ table(model.labels.rings_caption, ["מרחק (ק״מ)", "עסקים", "שיעור"], model.tables.rings, ["count", "share"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "צפיפות העסקים ברחבי העיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grid_note }}</p>
+  <div id="chart-grid" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.grid_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+<section class="card p-5 mb-6">
+  {{ head("database", "כמה מהרשומות מלאות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fields_note }}</p>
+  <div id="chart-fields" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fields_aria }}"></div>
+  {{ table(model.labels.fields_caption, ["שדה", "רשומות", "שיעור"], model.tables.fields, ["count", "share"]) }}
+</section>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function hbar(id, d, unit) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values.slice().reverse() }]
+      }));
+    }
+    hbar("chart-sites", {{ model.charts.sites | tojson }}, "עסקים");
+    hbar("chart-streets", {{ model.charts.streets | tojson }}, "עסקים");
+    hbar("chart-cats", {{ model.charts.cats | tojson }}, "עסקים");
+    hbar("chart-names", {{ model.charts.names | tojson }}, "רשומות");
+
+    var m = {{ model.charts.mix | tojson }};
+    var cm = mk("chart-mix");
+    if (cm) {
+      cm.setOption(window.GovEcharts.option({
+        color: [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[4]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: m.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [
+          { type: "bar", name: "במרכזי קניות", data: m.venue.slice().reverse() },
+          { type: "bar", name: "ברחובות", data: m.street.slice().reverse() }
+        ]
+      }));
+    }
+
+    var r = {{ model.charts.rings | tojson }};
+    var cr = mk("chart-rings");
+    if (cr) {
+      cr.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
+        xAxis: { type: "category", data: r.names, name: "ק״מ", nameLocation: "middle", nameGap: 26 },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: "עסקים", data: r.values }]
+      }));
+    }
+
+    var f = {{ model.charts.fields | tojson }};
+    var cf = mk("chart-fields");
+    if (cf) {
+      cf.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: f.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: "אחוז מלא", data: f.pct.slice().reverse() }]
+      }));
+    }
+  })();
+</script>
+{% if model.has_geo %}
+<script>
+  (function () {
+    var g = {{ model.charts.grid | tojson }};
+    var el = document.getElementById("chart-grid");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top" },
+      grid: { left: 8, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: g.x, splitArea: { show: true }, name: "מערב-מזרח (ק״מ)", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "category", data: g.y, splitArea: { show: true }, name: "דרום-צפון (ק״מ)" },
+      visualMap: { min: 0, max: g.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+                   inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", name: "עסקים", data: g.data, label: { show: false } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    fitBounds: false,
+    initialView: {{ model.map_view | tojson }},
+    popupTitleField: "business",
+    popupFields: [
+      { field: "street", label: "רחוב" },
+      { field: "house_numb", label: "מספר בית" }
+    ]
+  });
+</script>

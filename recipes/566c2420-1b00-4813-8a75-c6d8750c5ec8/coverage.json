@@ -1,0 +1,11 @@
+{
+  "sirens.ID": "insight:noid — most newer sirens carry ID 0; reported as a data-quality fact, never shown per row",
+  "sirens.Name": "map-sirens, chart-type, chart-nn, table:list, kpi:sirens, insight:type, insight:isolated, insight:closest, insight:dups — site name; the site type is classified from it by keyword",
+  "sirens.Address": "map-sirens, table:list, insight:addr — address shown in the list and the map popup",
+  "sirens.Neiborhood": "chart-hoods, kpi:hoods, insight:hood, insight:nohood — normalised (letter neighbourhoods, quotes, 'שכונה' prefix, alert-zone prefix)",
+  "sirens.lat": "map-sirens, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "sirens.lon": "map-sirens, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "resource:a37d0e59-af78-4e8c-b580-43a85f242468": "skip: CSV twin of the XLSX; its datastore copy has quote-shifted rows (columns slid into each other), so the clean XLSX is read",
+  "resource:71263998-88c7-4aaf-96b1-1cc1313c849a": "skip: same sirens in ITM coordinates (columns named lat/lon hold easting/northing)",
+  "resource:78b94982-7a86-4973-b884-4a2a7186da83": "skip: XLSX twin of the ITM resource"
+}

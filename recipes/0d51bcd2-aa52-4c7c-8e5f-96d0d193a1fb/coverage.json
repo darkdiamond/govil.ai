@@ -1,0 +1,21 @@
+{
+  "courses.School": "chart-orgs, chart-years, kpi:orgs, insight:orgs, insight:peak, lookup — spelling variants (legal suffixes, punctuation) merged into one organizer",
+  "courses.Name": "lookup — course title, free text; searchable in the explorer",
+  "courses.Number": "lookup — catalog number; also a stable sort key in compute",
+  "courses.Date": "chart-months, chart-dow, chart-years, insight:season, insight:weekday, insight:trend, kpi:span — parsed from ISO, dd/mm/yyyy and d.m.yy; each file is assigned to the July-June training year its dates fall in",
+  "courses.Instructor": "chart-instr — split on commas, academic titles removed",
+  "courses.Region": "chart-region, kpi:region, insight:region — fine-grained places in older files mapped to the main regions, unknown to אחר",
+  "courses.character": "chart-types, chart-ptype, insight:types, insight:ptype — spelling variants of the long-walk type merged; absent from the 2021-2022 file",
+  "courses.Place": "skip: only in the 2021-2022 file (site or town); Region carries the location for every year",
+  "courses.Language": "chart-langs, insight:langs",
+  "courses.Price": "chart-price, chart-bands, chart-ptype, kpi:price, insight:price, insight:ptype",
+  "courses.Price_Range": "skip: band labels change every year (50 עד 100 ₪, 101-150, 100-149); the page bins Price itself in chart-bands",
+  "courses.Registration": "skip: HTML link to the organizer's registration page; available in the explorer",
+  "institutions.institution": "table-inst",
+  "institutions.city": "table-inst",
+  "institutions.address": "table-inst",
+  "institutions.remarks": "table-inst — course language note",
+  "institutions.contact": "skip: contact person's name; kept to the explorer",
+  "institutions.phone": "skip: HTML tel link; available in the explorer",
+  "institutions.email": "skip: HTML mailto link; available in the explorer"
+}

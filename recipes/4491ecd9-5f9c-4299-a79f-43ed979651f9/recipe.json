@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4491ecd9-5f9c-4299-a79f-43ed979651f9",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:12:00.357001+00:00",
+    "rows": { "companies": 37 }
+  },
+  "inputs": [
+    {
+      "name": "companies",
+      "by_id": "004aa170-6bf7-4a07-a3d6-4e076c7c1884",
+      "required_columns": [
+        "company-name",
+        "company-field",
+        "company-website",
+        "foundation-date",
+        "company-location",
+        "company-emp",
+        "compay-logo",
+        "product-video"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

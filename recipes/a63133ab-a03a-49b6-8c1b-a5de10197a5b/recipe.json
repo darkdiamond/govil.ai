@@ -1,0 +1,132 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a63133ab-a03a-49b6-8c1b-a5de10197a5b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T10:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-28T10:27:49.528361+00:00",
+    "rows": {
+      "stations": 2305,
+      "daily": 1682838,
+      "rain_monthly": 342097,
+      "totalizers": 2856,
+      "radiation": 305251
+    }
+  },
+  "inputs": [
+    {
+      "name": "stations",
+      "by_id": "83841660-b9c4-4ecc-a403-d435b3e8c92f",
+      "required_columns": [
+        "stn_num",
+        "stn_type",
+        "stn_name_heb",
+        "stn_lat",
+        "stn_hgt",
+        "date_open",
+        "date_close",
+        "stn_auto",
+        "date_web_last"
+      ]
+    },
+    {
+      "name": "daily",
+      "by_id": "cee3ad4a-4e77-4015-8245-52505417d7ea",
+      "columns": [
+        "stn_num",
+        "time_obs",
+        "tmp_air_max",
+        "tmp_air_min",
+        "rpr_hail",
+        "rpr_snow",
+        "rpr_frost",
+        "rpr_fog",
+        "rpr_thunder",
+        "rpr_sand_storm"
+      ],
+      "required_columns": [
+        "stn_num",
+        "time_obs",
+        "tmp_air_max",
+        "tmp_air_min",
+        "rpr_hail",
+        "rpr_snow",
+        "rpr_frost",
+        "rpr_fog",
+        "rpr_thunder",
+        "rpr_sand_storm"
+      ]
+    },
+    {
+      "name": "rain_monthly",
+      "by_id": "53a21a1a-b083-44c0-a3ce-19fdc01eebcd",
+      "columns": [
+        "stn_num",
+        "time_obs",
+        "rain_ttl",
+        "rain_days_num",
+        "rain_max_day",
+        "rain_max_val",
+        "rain_max_code"
+      ],
+      "required_columns": [
+        "stn_num",
+        "time_obs",
+        "rain_ttl",
+        "rain_days_num",
+        "rain_max_day",
+        "rain_max_val",
+        "rain_max_code"
+      ]
+    },
+    {
+      "name": "totalizers",
+      "by_id": "c141f389-e1c8-45b9-b041-ad9565a38fbc",
+      "required_columns": ["stn_num", "time_obs", "rain_ttl"]
+    },
+    {
+      "name": "radiation",
+      "by_id": "219bc8fd-43a7-4c6e-9882-bdc4cdd8c8b0",
+      "columns": [
+        "stn_num",
+        "time_obs",
+        "rad_type",
+        "rad_04",
+        "rad_05",
+        "rad_06",
+        "rad_07",
+        "rad_08",
+        "rad_09",
+        "rad_10",
+        "rad_11",
+        "rad_12",
+        "rad_13",
+        "rad_14",
+        "rad_15",
+        "rad_16",
+        "rad_17"
+      ],
+      "required_columns": [
+        "stn_num",
+        "time_obs",
+        "rad_type",
+        "rad_04",
+        "rad_05",
+        "rad_06",
+        "rad_07",
+        "rad_08",
+        "rad_09",
+        "rad_10",
+        "rad_11",
+        "rad_12",
+        "rad_13",
+        "rad_14",
+        "rad_15",
+        "rad_16",
+        "rad_17"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

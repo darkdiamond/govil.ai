@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "fffada0a-b021-4629-9244-bc5e301f23d5",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:13:10.948111+00:00",
+    "rows": {
+      "main": 1260
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "7c8c4ddd-3d63-418d-b3a3-c1df9fc1f03c",
+      "required_columns": [
+        "business",
+        "street",
+        "house_numb",
+        "X",
+        "Y",
+        "Note",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

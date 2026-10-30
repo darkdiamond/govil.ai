@@ -1,0 +1,13 @@
+{
+  "areas.Name": "map-areas, chart-top, chart-tree, table:list, insight:largest, insight:spread, insight:distance — prefix before ' - ' dropped for chart labels",
+  "areas.remarks": "chart-types, chart-share, chart-tree, chart-size, chart-comp, chart-dist, map-areas, table:list, kpi:types, insight:area_leader, insight:count_leader, insight:shape, insight:nb_vs_mall — known spellings folded into one type, then grouped into families",
+  "areas.SHAPE_Area": "chart-share, chart-tree, chart-top, chart-size, chart-comp, table:list, kpi:total, kpi:median, insight:area_leader, insight:largest, insight:spread, insight:nb_vs_mall — m², shown in dunams",
+  "areas.SHAPE_Leng": "chart-comp, insight:shape — polygon perimeter, used for compactness 4πA/P²",
+  "areas.lat": "map-areas, chart-dist, table:list, insight:distance — WGS84 centroid",
+  "areas.lon": "map-areas, chart-dist, table:list, insight:distance — WGS84 centroid",
+  "areas.FolderPath": "skip: GIS layer folder path, near-constant, no meaning for visitors",
+  "areas.descriptio": "skip: free text, more than 80% empty",
+  "resource:e7d32e8f-070b-438c-b205-8a1c5f827a4e": "skip: same areas with ITM coordinates in lat/lon columns",
+  "resource:3c5f8d70-b04d-49e0-acb8-e56231ef9d26": "skip: XLSX twin of the ITM resource",
+  "resource:476d5802-240d-44fb-a3bb-6155bec81e84": "skip: XLSX twin of the CSV, identical rows"
+}

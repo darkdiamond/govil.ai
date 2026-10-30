@@ -1,0 +1,14 @@
+{
+  "centers.institute_code": "table:directory — dedup / sort tie-break key only; not shown",
+  "centers.institute_name": "table:directory, chart-served, hosen-q, insight:spread, insight:leader, insight:concentration, insight:unlisted, insight:shared_phone, insight:short, insight:langs",
+  "centers.cityCode": "skip: numeric code duplicating the city name",
+  "centers.city": "table:directory — host city, shown when no street address is published",
+  "centers.streetCode": "insight:address — an empty street code with no address marks a city-only listing",
+  "centers.street": "skip: the street is already part of the free-text address shown in the directory",
+  "centers.address": "table:directory, chart-contact, insight:address",
+  "centers.email": "table:directory, chart-contact — institutional mailboxes only; public webmail (e.g. Gmail) is treated as personal and not shown",
+  "centers.phone": "table:directory, hosen-q, chart-contact, chart-phones, kpi:phone, insight:shared_phone, insight:short",
+  "centers.phone2": "table:directory, hosen-q, chart-contact, chart-phones, kpi:phone, insight:shared_phone, insight:short",
+  "centers.other_cities": "hosen-q, table:directory, chart-served, chart-size, kpi:places, kpi:max, insight:spread, insight:leader, insight:concentration, insight:overlap, insight:unlisted — comma-separated list of served settlements",
+  "centers.el_notes": "table:directory, chart-contact, insight:langs, insight:unlisted"
+}

@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5c8651bc-5288-4d46-a3f5-2ebfbe5c9615",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T06:12:07.672132+00:00",
+    "rows": { "centers": 45 }
+  },
+  "inputs": [
+    {
+      "name": "centers",
+      "by_id": "cef1c51a-452f-484d-8834-6bd77f696ad8",
+      "required_columns": [
+        "institute_code",
+        "institute_name",
+        "city",
+        "full_address",
+        "email",
+        "phone",
+        "phone2",
+        "families_center_type_name",
+        "adjustment_name"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

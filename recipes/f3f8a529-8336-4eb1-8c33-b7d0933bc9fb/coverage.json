@@ -1,0 +1,17 @@
+{
+  "buildings.Used": "map-main, chart-use, chart-area, chart-floors, chart-stock, chart-apts, chart-box, chart-units, kpi:res-share, insight:residential, insight:area-gap, insight:tallest, insight:units, insight:named — primary use; any use containing מגורים counts as residential",
+  "buildings.Name": "map-main, insight:named — optional building name (popup only; sparse and sometimes misattached)",
+  "buildings.floors": "map-main, chart-floors, chart-stock, kpi:tallest, insight:low-rise, insight:stock, insight:tallest, insight:quality",
+  "buildings.appartment": "map-main, chart-stock, chart-apts, chart-housing, chart-quality, kpi:apts, insight:residential, insight:stock, insight:single",
+  "buildings.Entrances": "chart-ent, insight:entrances",
+  "buildings.Not_reside": "chart-units, insight:units — non-residential units in the building",
+  "buildings.Shape_Area": "chart-area, chart-box, chart-quality, kpi:footprint, insight:area-gap, insight:quality — footprint area, m²",
+  "buildings.Shape_Leng": "skip: footprint perimeter, redundant with Shape_Area",
+  "buildings.lat": "map-main, chart-density, chart-housing, insight:density",
+  "buildings.lon": "map-main, chart-density, chart-housing, insight:density",
+  "buildings.background": "skip: constant; CKAN notes say it is not relevant",
+  "buildings.RuleID": "skip: constant; CKAN notes say it is not relevant",
+  "resource:bd6a4ec0-3eab-4521-8c78-95594261e56d": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:900c9bdb-8c79-47ff-86a0-2ea7b650fb97": "skip: same buildings as the CSV, in ITM coordinates",
+  "resource:2c09c720-dec4-411f-84b5-14d3645238dd": "skip: XLSX twin of the ITM file"
+}

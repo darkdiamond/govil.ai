@@ -1,0 +1,10 @@
+{
+  "parks.name": "map-parks, chart-area, chart-pareto, chart-nn, table:list, kpi:parks, insight:size, insight:shape, insight:isolated, insight:closest, insight:names — park label and part of the dedup key",
+  "parks.SHAPE_Area": "map-parks, chart-area, chart-bands, chart-pareto, chart-shape, chart-sectors, chart-dist, table:list, kpi:area, kpi:median, insight:size, insight:concentration, insight:median, insight:shape, insight:sector — fenced area in square metres (ITM polygon area)",
+  "parks.SHAPE_Leng": "map-parks, chart-shape, table:list, insight:fence, insight:shape — polygon perimeter in metres; combined with area into a compactness index",
+  "parks.lat": "map-parks, chart-sectors, chart-dist, chart-nn, kpi:nn, insight:isolated, insight:closest, insight:sector, insight:centre",
+  "parks.lon": "map-parks, chart-sectors, chart-dist, chart-nn, kpi:nn, insight:isolated, insight:closest, insight:sector, insight:centre",
+  "resource:e8dc2133-46a5-44cb-8771-3b3ef5025b91": "skip: XLSX twin of the CSV, identical rows",
+  "resource:597efef2-fff2-4986-b878-f505e35d4543": "skip: same parks in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:86277c99-cc8c-4aee-bcf9-86fcbe36cd39": "skip: XLSX twin of the ITM resource"
+}

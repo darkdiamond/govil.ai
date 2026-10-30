@@ -1,0 +1,8 @@
+{
+  "main.Shape_Leng": "chart-len, chart-lorenz, chart-grid, chart-cells, chart-ring, chart-med, chart-sec, chart-long, chart-qual, kpi:segments, kpi:km, kpi:median, kpi:dups, insight:head, insight:tiny, insight:long, insight:core, insight:sector, insight:cell, insight:dup — segment length in metres; summed as integer millimetres",
+  "main.lat": "chart-grid, chart-cells, chart-ring, chart-med, chart-sec, chart-long, chart-qual, kpi:dups, insight:core, insight:sector, insight:cell, insight:long, insight:dup — WGS84 latitude of the segment's single reference point",
+  "main.lon": "chart-grid, chart-cells, chart-ring, chart-med, chart-sec, chart-long, chart-qual, kpi:dups, insight:core, insight:sector, insight:cell, insight:long, insight:dup — WGS84 longitude of the segment's single reference point",
+  "resource:5b803bf2-08b8-4b90-a19a-6d3432d0e800": "skip: XLSX twin of the CSV (identical rows)",
+  "resource:670b395b-d012-4ab8-8c4f-a7437601c7ba": "skip: same rows with lat/lon holding ITM coordinates",
+  "resource:855c5554-f2ee-4e0a-a45e-de958547e0f8": "skip: XLSX twin of the ITM file"
+}

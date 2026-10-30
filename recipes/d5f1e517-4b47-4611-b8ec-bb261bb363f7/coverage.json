@@ -1,0 +1,23 @@
+{
+  "monthly.שנת_רישום": "chart-yearly, chart-monthly, chart-heat, chart-mix, chart-sectors, chart-s25, chart-flows, kpi:span, insight:peak, insight:ytd",
+  "monthly.חודש_רישום": "chart-monthly, chart-heat, kpi:ytd, insight:ytd, insight:season",
+  "monthly.אשרה": "chart-yearly, chart-mix, chart-s25, chart-women, kpi:vs_peak, kpi:work, insight:work, insight:s25, insight:women",
+  "monthly.תת_אשרה": "skip: 92 fine-grained sub-types, mostly empty (46%); the page groups by אשרה and the explorer searches sub-types",
+  "monthly.היתר": "chart-sectors, insight:work — work-permit sector, read for ב/1 licences only",
+  "monthly.מין": "chart-pyr, chart-women, insight:women",
+  "monthly.קבוצת_גיל": "chart-pyr",
+  "monthly.ארץ_דרכון": "chart-tour-c, chart-work-c, chart-s25, insight:tour_country, insight:work_country, insight:s25",
+  "monthly.חדשים": "chart-yearly, chart-monthly, chart-heat, chart-mix, chart-sectors, chart-tour-c, chart-work-c, chart-s25, chart-pyr, chart-women, kpi:ref_total, kpi:ytd, kpi:vs_peak, kpi:work",
+  "monthly.הארכות": "chart-flows, chart-s25, kpi:ext",
+  "monthly.תיקונים": "chart-flows",
+  "historic.שנה": "chart-yearly, chart-mix, chart-s25, chart-flows, kpi:span — years before the monthly file starts",
+  "historic.אשרה": "chart-yearly, chart-mix, chart-s25",
+  "historic.חדשים": "chart-yearly, chart-mix, chart-s25, insight:peak — \"קטן מ6\" cells counted as 0, disclosed",
+  "historic.הארכות": "chart-flows, chart-s25",
+  "historic.תיקונים": "chart-flows",
+  "historic.תת_אשרה": "skip: not fetched (columns); historic years shown at visa-group level only",
+  "historic.היתר": "skip: not fetched (columns); sector view covers the monthly years",
+  "historic.מין": "skip: not fetched (columns); sex view covers the latest full year",
+  "historic.קבוצת_גיל": "skip: not fetched (columns); age view covers the latest full year",
+  "historic.ארץ_דרכון": "skip: not fetched (columns); country views compare monthly years"
+}

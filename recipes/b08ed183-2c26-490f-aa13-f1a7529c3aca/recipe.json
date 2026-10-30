@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b08ed183-2c26-490f-aa13-f1a7529c3aca",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T06:12:10.457172+00:00",
+    "rows": { "centers": 16 }
+  },
+  "inputs": [
+    {
+      "name": "centers",
+      "by_id": "457673b2-c3c4-4cb5-909c-03b29d8ce1ff",
+      "required_columns": [
+        "institute_code",
+        "institute_name",
+        "city",
+        "streetCode",
+        "address",
+        "email",
+        "phone",
+        "phone2",
+        "other_cities",
+        "el_notes"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

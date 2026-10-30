@@ -1,0 +1,10 @@
+{
+  "fountains.name": "map-fountains, chart-kind, chart-video, chart-nn, table:list, kpi:sites, kpi:fountains, insight:kind, insight:isolated, insight:closest, insight:dups — site label; the kind (fountain vs other water feature) is read from the name's first word",
+  "fountains.address": "map-fountains, chart-addr, table:list, insight:addr, insight:shared — address detail classified by presence of a house number; shared addresses counted",
+  "fountains.LINK": "chart-video, table:list, kpi:videos, insight:video — classified as a valid YouTube video, a malformed link or none; valid ids are re-linked as https",
+  "fountains.lat": "map-fountains, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "fountains.lon": "map-fountains, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "resource:5e18d101-5856-4b9e-9dfa-1e2d7b41372a": "skip: XLSX twin of the CSV, identical rows",
+  "resource:f867cc09-0754-46ff-afbd-1f01e43843ff": "skip: same sites in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:ad11e7bb-e277-435b-b4a9-f0205ef96b05": "skip: XLSX twin of the ITM resource"
+}

@@ -1,0 +1,38 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d25f8679-13bc-4082-bf6e-6156e1d2df60",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:12:02.972013+00:00",
+    "rows": { "facilities": 168 }
+  },
+  "inputs": [
+    {
+      "name": "facilities",
+      "by_id": "ac12e904-be38-4011-9306-bc4820eb7f41",
+      "required_columns": [
+        "Type",
+        "Name",
+        "street",
+        "HouseNumbe",
+        "neighborho",
+        "Operator",
+        "Seats",
+        "Activity",
+        "fencing",
+        "lighting",
+        "handicappe",
+        "condition",
+        "Owner",
+        "ForSchool",
+        "associatio",
+        "SportType",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

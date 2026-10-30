@@ -1,0 +1,382 @@
+{%- macro head(icon, title) -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+<h1>מבנים בבאר שבע: שימוש, קומות ודירות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מבנה לפי שימוש, שם או מספר קומות ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+{%- for key in ["total", "apts", "res-share", "tallest", "footprint"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "מפת המבנים בעיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "שימוש עיקרי במבנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.use_note }}</p>
+  <div id="chart-use" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.use_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.use_caption }}</caption>
+      <thead><tr><th scope="col">שימוש</th><th scope="col">מבנים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.use %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "מספר המבנים מול השטח הבנוי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+  <div id="chart-area" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.area_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.area_caption }}</caption>
+      <thead><tr><th scope="col">שימוש</th><th scope="col">מבנים</th><th scope="col">שיעור מהמבנים</th><th scope="col">תכסית (אלפי מ"ר)</th><th scope="col">שיעור מהתכסית</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.area %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.cnt_share }}</td><td>{{ r.area }}</td><td>{{ r.area_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "גובה המבנים: מספר קומות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.floors_note }}</p>
+  <div id="chart-floors" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.floors_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.floors_caption }}</caption>
+      <thead><tr><th scope="col">קומות</th><th scope="col">מבנים</th><th scope="col">מגורים</th><th scope="col">אחר</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.floors %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.res }}</td><td>{{ r.other }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "איפה הדירות: מבני מגורים לפי גובה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stock_note }}</p>
+  <div id="chart-stock" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.stock_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.stock_caption }}</caption>
+      <thead><tr><th scope="col">קומות</th><th scope="col">מבני מגורים</th><th scope="col">שיעור</th><th scope="col">דירות</th><th scope="col">שיעור</th><th scope="col">דירות למבנה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.stock %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.b }}</td><td>{{ r.bs }}</td><td>{{ r.a }}</td><td>{{ r.as }}</td><td>{{ r.avg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "כמה דירות בכל בניין מגורים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.apts_note }}</p>
+  <div id="chart-apts" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.apts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.apts_caption }}</caption>
+      <thead><tr><th scope="col">דירות במבנה</th><th scope="col">מבני מגורים</th><th scope="col">שיעור</th><th scope="col">סך הדירות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.apts %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td><td>{{ r.a }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.has_box %}
+<section class="card p-5 mb-6">
+  {{ head("database", "גודל המבנים: שטח תכסית לפי שימוש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  <div id="chart-box" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_caption }}</caption>
+      <thead><tr><th scope="col">שימוש</th><th scope="col">מבנים</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.q1 }}</td><td>{{ r.med }}</td><td>{{ r.q3 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.has_units %}
+<section class="card p-5 mb-6">
+  {{ head("database", "יחידות שאינן למגורים: מסחר, משרדים ושירותים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.units_note }}</p>
+  <div id="chart-units" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.units_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.units_caption }}</caption>
+      <thead><tr><th scope="col">שימוש המבנה</th><th scope="col">יחידות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.units %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "כניסות למבנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ent_note }}</p>
+  <div id="chart-ent" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ent_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ent_caption }}</caption>
+      <thead><tr><th scope="col">כניסות</th><th scope="col">מבנים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ent %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{% if model.has_density %}
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "צפיפות הבינוי בעיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.density_note }}</p>
+  <div id="chart-density" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.density_aria }}" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "צפיפות הדירות בעיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.housing_note }}</p>
+  <div id="chart-housing" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.housing_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "הערות על איכות הנתונים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+  <div id="chart-quality" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.quality_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.quality_caption }}</caption>
+      <thead><tr><th scope="col">סוג החריגה</th><th scope="col">רשומות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.quality %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.buildings[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    popupTitleField: "Used",
+    popupFields: [
+      { field: "Name", label: "שם" },
+      { field: "floors", label: "קומות" },
+      { field: "appartment", label: "דירות" },
+      { field: "Entrances", label: "כניסות" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function hbar(id, names, values, unit, w) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: w, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+    }
+    function vbar(id, names, values, unit) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: names, axisLabel: { interval: 0, rotate: 30, width: 80, overflow: "truncate" } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: unit, data: values }]
+      }));
+    }
+    var u = {{ model.charts.use | tojson }};
+    hbar("chart-use", u.names, u.values, "מבנים", 120);
+    var a = {{ model.charts.apts | tojson }};
+    vbar("chart-apts", a.names, a.values, "מבני מגורים");
+    var e = {{ model.charts.ent | tojson }};
+    vbar("chart-ent", e.names, e.values, "מבנים");
+    var un = {{ model.charts.units | tojson }};
+    hbar("chart-units", un.names, un.values, "יחידות", 120);
+    var q = {{ model.charts.quality | tojson }};
+    hbar("chart-quality", q.names, q.values, "רשומות", 150);
+  })();
+</script>
+
+<script>
+  (function () {
+    function pair(id, d, k1, n1, k2, n2, horizontal) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      var cat = { type: "category", data: horizontal ? d.names.slice().reverse() : d.names,
+                  axisLabel: horizontal ? { width: 110, overflow: "truncate" } : { interval: 0, rotate: 30 } };
+      var val = { type: "value", axisLabel: { formatter: "{value}%" } };
+      function ser(k, n) {
+        return { type: "bar", name: n, data: horizontal ? d[k].slice().reverse() : d[k] };
+      }
+      c.setOption(window.GovEcharts.option({
+        color: ["#0068f5", "#9a6700"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: [ser(k1, n1), ser(k2, n2)]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    pair("chart-area", {{ model.charts.area | tojson }}, "cnt", "שיעור מהמבנים", "area", "שיעור משטח התכסית", true);
+    pair("chart-stock", {{ model.charts.stock | tojson }}, "b", "שיעור ממבני המגורים", "a", "שיעור מהדירות", false);
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.floors | tojson }};
+    var el = document.getElementById("chart-floors");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "t", name: "מגורים", data: d.res },
+        { type: "bar", stack: "t", name: "שימושים אחרים", data: d.other }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var x = {{ model.charts.box | tojson }};
+    var el = document.getElementById("chart-box");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value;
+        return echarts.format.encodeHTML(p.name) + "<br>חציון: " + v[3] + " מ\"ר<br>רבעונים: " + v[2] + " עד " + v[4] + " מ\"ר";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: x.names, axisLabel: { interval: 0, rotate: 35, width: 80, overflow: "truncate" } },
+      yAxis: { type: "value", name: "מ\"ר" },
+      series: [{ type: "boxplot", name: "שטח תכסית", data: x.data,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function heat(id, d, unit, top) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        tooltip: { formatter: function (p) {
+          return "קו אורך " + echarts.format.encodeHTML(d.x[p.value[0]]) + ", קו רוחב " + echarts.format.encodeHTML(d.y[p.value[1]]) + ": " + p.value[2] + " " + unit;
+        } },
+        grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.x, splitArea: { show: false }, axisLabel: { interval: 3 } },
+        yAxis: { type: "category", data: d.y, axisLabel: { interval: 3 } },
+        visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal",
+          left: "center", bottom: 0, inRange: { color: ["#f1f7ff", top, "#0b3668"] } },
+        series: [{ type: "heatmap", name: unit, data: d.cells, itemStyle: { borderColor: "#fff", borderWidth: 1 } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    heat("chart-density", {{ model.charts.density | tojson }}, "מבנים", "#0068f5");
+    heat("chart-housing", {{ model.charts.housing | tojson }}, "דירות", "#9a6700");
+  })();
+</script>
