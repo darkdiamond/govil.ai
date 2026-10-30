@@ -105,6 +105,8 @@ def insight_types(type_counts, total, group_counts):
                   f"; {n(narrow)} מרישיונות האנליזה מוגבלים לדגימות אוויר בלבד")
         return s + "."
     lead, lv = type_counts.index[0], int(type_counts.iloc[0])
+    if len(type_counts) > 1 and int(type_counts.iloc[1]) == lv:
+        return None
     return f"סוג הרישיון הנפוץ ברשימה הוא {lead}: {n(lv)} מתוך {n(total)} רישיונות."
 
 
@@ -128,8 +130,10 @@ def insight_staff(staff_per, total_staff, distinct_staff):
         return None
     top_lab, top_type, top_v = staff_per.iloc[0][["lab", "type", "staff"]]
     singles = int((staff_per["staff"] == 1).sum())
-    s = (f"ברישיונות רשומים {n(distinct_staff)} דוגמים ואנליטיקאים מורשים; "
-         f"הצוות הגדול ביותר הוא ברישיון ה{top_type} של {top_lab} עם {'אדם אחד' if int(top_v) == 1 else f'{n(top_v)} אנשים'}")
+    s = f"ברישיונות רשומים {n(distinct_staff)} דוגמים ואנליטיקאים מורשים"
+    if len(staff_per) == 1 or int(staff_per.iloc[1]["staff"]) < int(top_v):
+        s += (f"; הצוות הגדול ביותר הוא ברישיון ה{top_type} של {top_lab} עם "
+              f"{'אדם אחד' if int(top_v) == 1 else f'{n(top_v)} אנשים'}")
     if singles:
         s += (f", ואילו {n(singles)} רישיונות נשענים על אדם מורשה אחד בלבד"
               if singles > 1 else ", ואילו רישיון אחד נשען על אדם מורשה אחד בלבד")
@@ -152,7 +156,7 @@ def insight_expiry(lic):
     return s
 
 
-def insight_disc(n_disc, total, kind_counts, ev_years, n_disc_labs):
+def insight_disc(n_disc, total, kind_counts, ev_years, n_disc_labs, n_undated=0):
     if total == 0:
         return None
     if n_disc == 0:
@@ -166,10 +170,13 @@ def insight_disc(n_disc, total, kind_counts, ev_years, n_disc_labs):
          f"{labs_txt}, רשום היבט משמעתי: {_list_he(parts)}")
     if len(ev_years):
         y0, y1 = int(min(ev_years)), int(max(ev_years))
+        dated = "" if not n_undated else " (האירועים שתאריכם מצוין)"
         if y0 == y1:
-            s += f", כולם משנת {y0}"
+            s += f", {'כולם' if not n_undated else 'כל האירועים שתאריכם מצוין'} משנת {y0}"
         else:
-            s += f", בין השנים {y0} ל-{y1}. האירוע המאוחר ביותר המתועד הוא משנת {y1}"
+            s += f", בין השנים {y0} ל-{y1}{dated}"
+        if n_undated:
+            s += f"; ל{'אירוע אחד' if n_undated == 1 else f'-{n(n_undated)} אירועים'} לא מצוין תאריך"
     return s + "."
 
 
@@ -272,7 +279,8 @@ def compute(frames):
         ("staff", insight_staff(staff_per, total_staff, distinct_staff)),
         ("expiry", insight_expiry(lic)),
         ("validity", insight_validity(lic)),
-        ("disc", insight_disc(n_disc, total, kind_counts, ev_years, n_disc_labs)),
+        ("disc", insight_disc(n_disc, total, kind_counts, ev_years, n_disc_labs,
+                              int(pd.to_numeric(ev["year"], errors="coerce").isna().sum()))),
     ]:
         if txt:
             insights.append({"id": iid, "text_he": txt})

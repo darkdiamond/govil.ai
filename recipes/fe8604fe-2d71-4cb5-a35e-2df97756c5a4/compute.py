@@ -37,6 +37,7 @@ ANCHOR_MIN_DAY = 10        # a day with at least this many rows counts as real v
 EV_MIN = 10                # electrified series starts at the first year with this many
 MAX_MONTHLY_POINTS = 600   # beyond this the monthly series switches to quarters
 SEASON_RATIO = 1.15        # busiest / quietest calendar month for the season rule
+YTD_MIN_DAYS = 45          # year-to-date comparison needs this many days into the year
 
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -186,7 +187,7 @@ def _same_window(ts, year):
 
 
 def insight_ytd(cur, prev, year, anchor):
-    if prev == 0:
+    if prev == 0 or anchor.dayofyear < YTD_MIN_DAYS:
         return None, None
     ch = cur / prev - 1
     span = f"מתחילת {year} ועד {anchor.day} ב{MONTHS_HE[anchor.month - 1]}"
@@ -262,7 +263,7 @@ def insight_brand(vc, n):
     if len(vc) < 3:
         return None
     (b1, n1), (b2, n2), (b3, n3) = list(vc.items())[:3]
-    if n1 / n < 0.05:
+    if n1 / n < 0.05 or n1 == n2:
         return None
     lead = ", בפער ניכר," if n1 >= 1.15 * n2 else ""
     return (f"היצרן הנפוץ ביותר{lead} בכל השנים הוא {b1} עם {_int(n1)} כלי רכב שבוטלו "
@@ -286,6 +287,8 @@ def insight_model(rows, from_year):
     if len(rows) < 2:
         return None
     a, b = rows[0], rows[1]
+    if a["n"] == b["n"]:
+        return None
     return (f"מאז {from_year}, הדגם שבוטל סופית הכי הרבה פעמים הוא {a['model']} של {a['brand']} "
             f"({_int(a['n'])} כלי רכב), ואחריו {b['model']} של {b['brand']} ({_int(b['n'])}).")
 
@@ -582,7 +585,7 @@ def compute(frames):
 
     # ── KPIs ────────────────────────────────────────────────────────────
     if ytd_ch is None:
-        ch_tone, ch_display = "brand", "0.0%"
+        ch_tone, ch_display = "brand", "לא זמין"
     elif abs(ytd_ch) < TREND_BAND:
         ch_tone, ch_display = "brand", ("+" if ytd_ch >= 0 else "−") + _pct(abs(ytd_ch))
     else:

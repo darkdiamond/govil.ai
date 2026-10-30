@@ -248,14 +248,19 @@ def ins_directory(dir_df):
     by_t = dir_df["type"].value_counts().sort_index().sort_values(ascending=False, kind="stable")
     d, dn = by_d.index[0], int(by_d.iloc[0])
     t, tn = by_t.index[0], int(by_t.iloc[0])
-    if len(by_d) > 1 and int(by_d.iloc[1]) == dn:
-        lead = f"מחוזות {d} ו{by_d.index[1]} מובילים עם {_int(dn)} אתרים כל אחד"
+    sites = lambda k: "אתר אחד" if k == 1 else f"{_int(k)} אתרים"
+    tied = [x for x, v in by_d.items() if int(v) == dn]
+    if len(tied) > 1:
+        names = ", ".join(tied[:-1]) + " ו" + tied[-1]
+        lead = f"מחוזות {names} מובילים עם {sites(dn)} כל אחד"
     else:
-        lead = f"מחוז {d} מוביל עם {_int(dn)} אתרים"
+        lead = f"מחוז {d} מוביל עם {sites(dn)}"
+    if len(by_t) == 1 or int(by_t.iloc[1]) < tn:
+        lead += f", והסוג הנפוץ הוא {t} ({_int(tn)})"
     n_closed = int(dir_df["closed"].sum())
-    tail = f" {_int(n_closed)} אתרים במדריך מסומנים כסגורים." if n_closed else ""
-    return (f"במדריך אתרי הפסולת המעורבת {_int(len(dir_df))} אתרים; {lead}, "
-            f"והסוג הנפוץ הוא {t} ({_int(tn)}).{tail}")
+    tail = ("" if not n_closed else " אתר אחד במדריך מסומן כסגור." if n_closed == 1
+            else f" {_int(n_closed)} אתרים במדריך מסומנים כסגורים.")
+    return f"במדריך אתרי הפסולת המעורבת {sites(len(dir_df))}; {lead}.{tail}"
 
 
 
@@ -267,8 +272,12 @@ def ins_contacts(dir_df):
     no_any = int((~dir_df["has_phone"] & ~dir_df["has_email"]).sum())
     if no_phone / n < 0.1:
         return None
-    return (f"ל-{_int(no_phone)} אתרים במדריך ({_pct(no_phone / n)}) אין מספר טלפון, "
-            f"ול-{_int(no_any)} מהם אין גם כתובת דוא״ל.")
+    who = "לאתר אחד" if no_phone == 1 else f"ל-{_int(no_phone)} אתרים"
+    text = f"{who} במדריך ({_pct(no_phone / n)}) אין מספר טלפון"
+    if no_any == 0:
+        return text + ", אך לכולם רשומה כתובת דוא״ל."
+    tail = "לאחד מהם" if no_any == 1 else f"ל-{_int(no_any)} מהם"
+    return text + f", ו{tail} אין גם כתובת דוא״ל."
 
 
 # ---------------------------------------------------------------- compute

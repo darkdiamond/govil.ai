@@ -288,7 +288,7 @@ def insight_brand(df):
         return None
     (b1, n1), (b2, n2), (b3, n3) = list(vc.items())[:3]
     n = len(df)
-    if n1 / n < 0.05:
+    if n1 / n < 0.05 or n1 == n2:
         return None
     return (f"היצרן הנפוץ ביותר הוא {b1} עם {_int(n1)} כלי רכב ({_pct(n1 / n)}), לפני {b2} ({_int(n2)}) "
             f"{_vav(b3)} ({_int(n3)}). שלושתם יחד הם {_pct((n1 + n2 + n3) / n)} מהצי הפעיל.")
