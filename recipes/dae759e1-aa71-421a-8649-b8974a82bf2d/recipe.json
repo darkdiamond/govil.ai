@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "dae759e1-aa71-421a-8649-b8974a82bf2d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:12:54.167250+00:00",
+    "rows": { "syn": 270 }
+  },
+  "inputs": [
+    {
+      "name": "syn",
+      "by_id": "40de91c6-1eb3-4f12-9cea-5c44484377d7",
+      "required_columns": [
+        "Id",
+        "neighborho",
+        "street",
+        "HouseNumbe",
+        "name",
+        "OtherName",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,11 @@
+{
+  "centers.ID": "kpi:noid, insight:ids — rows with ID 0 or blank counted as missing an identifier",
+  "centers.Name": "map-centers, chart-nn, table:list, insight:isolated, insight:closest, insight:truncated — label is name plus neighbourhood, since truncated names repeat",
+  "centers.Address": "map-centers, table:list, insight:truncated",
+  "centers.neighborho": "map-centers, chart-neigh, table:list, kpi:neigh, insight:neigh, insight:single",
+  "centers.lat": "map-centers, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:isolated, insight:closest, insight:sector",
+  "centers.lon": "map-centers, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:isolated, insight:closest, insight:sector",
+  "resource:7a593db7-ee1b-40f7-8550-0f84713bf2cb": "skip: XLSX twin of the CSV, identical rows",
+  "resource:6558c7ad-152f-4c65-81e2-5c562a2dd3ea": "skip: same centres in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:2a14ea03-93b6-440c-987c-d537f3d50cf2": "skip: XLSX twin of the ITM resource"
+}

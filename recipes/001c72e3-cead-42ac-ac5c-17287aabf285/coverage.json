@@ -1,0 +1,9 @@
+{
+  "stations.Name": "map-stations, chart-nn, table:list, kpi:stations, kpi:dups, insight:dups, insight:isolated, insight:closest, insight:names — dedup key and station label",
+  "stations.address": "map-stations, chart-addr, table:list, kpi:noaddr, insight:addr — address completeness classified by presence of a house number",
+  "stations.lat": "map-stations, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "stations.lon": "map-stations, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "resource:494f711c-97c2-4422-83d4-2ca61735598f": "skip: XLSX twin of the CSV, identical rows",
+  "resource:01d42704-7c24-41c4-bc0e-9dcd694e97ca": "skip: same stations in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:48ea5dfd-4e9b-4430-a06e-b8498d8e5029": "skip: XLSX twin of the ITM resource"
+}

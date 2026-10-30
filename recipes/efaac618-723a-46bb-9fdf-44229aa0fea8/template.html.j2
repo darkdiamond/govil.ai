@@ -1,0 +1,273 @@
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-64 md:h-80") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, cap) }}
+</section>
+{%- endmacro %}
+<h1>מתקני משחקים בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור גן משחקים (גן שעשועים) לפי שם ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הגן, סוג המשטח, הצללה ותיאור המתקנים הנוספים.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["sites", "units", "shade", "median"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת גני המשחקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-sites" class="h-72 md:h-[420px]"></div>
+</section>
+
+{{ chart_section("chart-types", "list", "סוגי המתקנים: יחידות והיקף", model.labels.types_note, model.labels.types_aria, model.labels.types_cap, model.tables.types, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-units", "database", "כמה מתקנים יש בגן", model.labels.units_note, model.labels.units_aria, model.labels.units_cap, model.tables.units) }}
+
+{{ chart_section("chart-kinds", "tag", "מגוון המתקנים בגן", model.labels.kinds_note, model.labels.kinds_aria, model.labels.kinds_cap, model.tables.kinds) }}
+
+{{ chart_section("chart-top", "building-2", "הגנים המאובזרים ביותר", model.labels.top_note, model.labels.top_aria, model.labels.top_cap, model.tables.top, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-cooc", "tag", "אילו מתקנים מופיעים יחד", model.labels.cooc_note, model.labels.cooc_aria, model.labels.cooc_cap, model.tables.cooc, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-shade", "circle-check", "הצללה בגני המשחקים", model.labels.shade_note, model.labels.shade_aria, model.labels.shade_cap, model.tables.shade) }}
+
+{{ chart_section("chart-surface", "list", "סוג המשטח והצללה", model.labels.surface_note, model.labels.surface_aria, model.labels.surface_cap, model.tables.surf_shade) }}
+
+{{ chart_section("chart-surf-avg", "database", "מתקנים לגן לפי סוג המשטח", model.labels.surf_avg_note, model.labels.surf_avg_aria, model.labels.surf_avg_cap, model.tables.surf_avg) }}
+
+{% if model.flags.geo %}
+{{ chart_section("chart-sectors", "map-pin", "פריסה לפי כיוון והצללה", model.labels.sectors_note, model.labels.sectors_aria, model.labels.sectors_cap, model.tables.sectors, "h-72 md:h-96") }}
+
+{{ chart_section("chart-dist", "map-pin", "מרחק ממרכז הפריסה", model.labels.dist_note, model.labels.dist_aria, model.labels.dist_cap, model.tables.dist) }}
+{% endif %}
+
+{% if model.flags.extras %}
+{{ chart_section("chart-extras", "search", "מתקנים נוספים מהתיאור החופשי", model.labels.extras_note, model.labels.extras_aria, model.labels.extras_cap, model.tables.extras, "h-72 md:h-96") }}
+{% endif %}
+
+<script>
+  GovMap.create({
+    container: "#map-sites",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: true,
+    popupTitleField: "Name",
+    popupFields: [
+      { field: "surface", label: "משטח" },
+      { field: "shadowing", label: "הצללה" },
+      { field: "other", label: "מתקנים נוספים" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function fmtN(v) { return v == null ? "-" : Number(v).toLocaleString("he-IL"); }
+    window.__pg = { mk: mk, fmtN: fmtN };
+    window.__pg.vbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmtN(v) + " " + unit; } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+    };
+    window.__pg.hbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return fmtN(v) + " " + unit; } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values.slice().reverse() }]
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var T = {{ model.charts.types | tojson }};
+    var c = window.__pg.mk("chart-types");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 24, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4 },
+      yAxis: { type: "category", data: T.names.slice().reverse(), axisLabel: { width: 100, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "יחידות", data: T.units.slice().reverse() },
+        { type: "bar", name: "גנים שבהם קיים", data: T.sites.slice().reverse() }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    window.__pg.vbar("chart-units", {{ model.charts.units | tojson }}, "גנים");
+    window.__pg.vbar("chart-kinds", {{ model.charts.kinds | tojson }}, "גנים");
+    window.__pg.hbar("chart-top", {{ model.charts.top | tojson }}, "יחידות");
+    window.__pg.vbar("chart-surf-avg", {{ model.charts.surf_avg | tojson }}, "יחידות לגן");
+  })();
+</script>
+
+<script>
+  (function () {
+    var H = {{ model.charts.cooc | tojson }};
+    var c = window.__pg.mk("chart-cooc");
+    if (!c) { return; }
+    var small = window.innerWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: {
+        formatter: function (p) {
+          var a = echarts.format.encodeHTML(H.names[p.value[1]]);
+          var b = echarts.format.encodeHTML(H.names[p.value[0]]);
+          return "מתוך הגנים עם " + a + ": " + p.value[2] + "% עם " + b + " (" + window.__pg.fmtN(p.value[3]) + " גנים)";
+        }
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: H.names, axisLabel: { interval: 0, rotate: 45, fontSize: small ? 9 : 11 }, splitArea: { show: true } },
+      yAxis: { type: "category", data: H.names, inverse: true, axisLabel: { fontSize: small ? 9 : 11 }, splitArea: { show: true } },
+      visualMap: { min: 0, max: 100, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", data: H.cells, label: { show: !small, fontSize: 9, formatter: function (p) { return Math.round(p.value[2]); } } }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.shade | tojson }};
+    var c = window.__pg.mk("chart-shade");
+    if (!c) { return; }
+    var data = S.names.map(function (n, i) { return { name: n, value: S.values[i] }; });
+    c.setOption(window.GovEcharts.option({
+      color: ["#198754", "#dc3545", "#6c757d"],
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + window.__pg.fmtN(p.value) + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: data, label: { formatter: "{d}%" } }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.surf_shade | tojson }};
+    var c = window.__pg.mk("chart-surface");
+    if (!c) { return; }
+    var cols = ["#198754", "#dc3545", "#6c757d"];
+    c.setOption(window.GovEcharts.option({
+      color: cols,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: S.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value" },
+      series: S.series.map(function (n, i) { return { type: "bar", stack: "s", name: n, data: S.values[i] }; })
+    }));
+  })();
+</script>
+
+{% if model.flags.geo %}
+<script>
+  (function () {
+    var S = {{ model.charts.sectors | tojson }};
+    var c = window.__pg.mk("chart-sectors");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 8, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: S.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+      yAxis: [
+        { type: "value", name: "גנים" },
+        { type: "value", name: "% מוצל", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "גני משחקים", data: S.sites },
+        { type: "line", name: "שיעור מוצל (%)", yAxisIndex: 1, data: S.shade, connectNulls: false }
+      ]
+    }));
+    window.__pg.vbar("chart-dist", {{ model.charts.dist | tojson }}, "גנים");
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.extras %}
+<script>
+  (function () {
+    window.__pg.hbar("chart-extras", {{ model.charts.extras | tojson }}, "גנים");
+  })();
+</script>
+{% endif %}

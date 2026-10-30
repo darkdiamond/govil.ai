@@ -1,0 +1,250 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro fallback(caption, col, unit, rows, with_pct=false) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">{{ col }}</th><th scope="col" class="text-start py-1 pe-3">{{ unit }}</th>{% if with_pct %}<th scope="col" class="text-start py-1">שיעור</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.n | fmt_int }}</td>{% if with_pct %}<td class="py-1" dir="ltr">{{ r.pct }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+<h1>מרכזי חוסן: איתור מרכז החוסן לפי יישוב</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} מרכזי החוסן מעניקים טיפול ותמיכה רגשית לתושבים שנחשפו לאירועי ביטחון, לחרדה ולמצבי דחק. כל מרכז משרת רשימת יישובים ורשויות, והעמוד מאפשר למצוא את המרכז של היישוב שלכם ואת מספר הטלפון שלו.</p>
+</section>
+
+{%- if model.flags.has_lookup %}
+<section class="card p-5 mb-6">
+{{ head("search", "איזה מרכז חוסן משרת את היישוב שלי?") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lookup_lede }}</p>
+  <label for="hosen-q" class="sr-only">{{ model.labels.lookup_aria }}</label>
+  <input id="hosen-q" type="search" autocomplete="off" placeholder="שם היישוב, למשל: נתיבות" class="w-full border border-rule rounded-gov px-3 py-2 text-base" />
+  <ul id="hosen-results" class="list-none m-0 ps-0 mt-3 grid gap-2" aria-live="polite"></ul>
+  <p id="hosen-empty" class="m-0 mt-3 text-sm text-subtle" hidden>היישוב לא נמצא ברשימות המרכזים. אפשר לחפש בשם אחר של היישוב, או לפנות למרכז הארצי שברשימה למטה.</p>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "places", "max", "phone"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "רשימת מרכזי החוסן ופרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.dir_lede }}</p>
+  <ul id="hosen-directory" class="list-none m-0 ps-0 grid gap-3 md:grid-cols-2" aria-label="{{ model.labels.dir_caption }}">
+{%- for c in model.tables.directory %}
+    <li class="border border-rule rounded-gov p-3 min-w-0">
+      <div class="font-semibold text-ink-deep break-words">{{ c.name }}</div>
+{%- if c.address or c.city %}
+      <div class="text-sm text-subtle flex items-start gap-1 mt-1 break-words">
+        <img src="/icons/map-pin.svg" alt="" class="w-4 h-4 mt-0.5 shrink-0" />
+        <span>{% if c.address %}{{ c.address }}{% else %}{{ c.city }} (כתובת מדויקת לא פורסמה){% endif %}</span>
+      </div>
+{%- endif %}
+      <div class="text-sm mt-2 flex flex-wrap gap-x-4 gap-y-1">
+{%- for p in c.phones %}
+        <a href="tel:{{ p.tel }}" class="text-primary" dir="ltr">{{ p.display }}</a>
+{%- endfor %}
+{%- if c.email %}
+        <a href="mailto:{{ c.email }}" class="text-primary break-all" dir="ltr">{{ c.email }}</a>
+{%- endif %}
+{%- if not c.phones and not c.email %}
+        <span class="text-subtle">לא פורסמו פרטי קשר</span>
+{%- endif %}
+      </div>
+{%- if c.note %}
+      <p class="m-0 mt-2 text-sm text-subtle break-words">{{ c.note }}</p>
+{%- endif %}
+{%- if c.places %}
+      <details class="mt-2">
+        <summary class="text-sm text-subtle cursor-pointer">יישובים בשירות המרכז ({{ c.n_places | fmt_int }})</summary>
+        <p class="m-0 mt-1 text-sm break-words">{{ c.places | join(", ") }}</p>
+      </details>
+{%- endif %}
+    </li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.has_served %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "כמה יישובים משרת כל מרכז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.served_lede }}</p>
+  <div id="chart-served" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.served_aria }}"></div>
+{{ fallback(model.labels.served_aria, "מרכז", "יישובים", model.tables.served) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "מרכזים אזוריים ומרכזים עירוניים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+  <div id="chart-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+{{ fallback(model.labels.size_aria, "גודל המרכז", "מרכזים", model.tables.size) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "זמינות פרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_lede }}</p>
+  <div id="chart-contact" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+{{ fallback(model.labels.contact_aria, "פרט קשר", "מרכזים", model.tables.contact, true) }}
+</section>
+
+{%- if model.flags.has_phones %}
+<section class="card p-5 mb-6">
+{{ head("tag", "סוגי מספרי הטלפון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.phone_lede }}</p>
+  <div id="chart-phones" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.phone_aria }}"></div>
+{{ fallback(model.labels.phone_aria, "סוג קו", "מספרים", model.tables.phones, true) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("info", "על המאגר") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">הרשימה מתפרסמת על ידי משרד הבריאות וכוללת את מרכזי החוסן, היישוב המארח, הכתובת, הטלפונים והרשויות שכל מרכז משרת. סוג קו הטלפון נגזר מקידומת המספר. במצב חירום או במחשבות פגיעה עצמית יש לפנות מיד למוקד החירום או לחדר המיון הקרוב.</p>
+</section>
+
+{%- if model.flags.has_lookup %}
+<script>
+  (function () {
+    const data = {{ model.lookup | tojson }};
+    const q = document.getElementById("hosen-q");
+    const out = document.getElementById("hosen-results");
+    const empty = document.getElementById("hosen-empty");
+    if (!q || !out || !empty) return;
+    const strip = ["\"", "'", "״", "׳", "-", " "];
+    const norm = function (s) {
+      let t = String(s).replace(/\s+/g, " ");
+      strip.forEach(function (c) { t = t.split(c).join(""); });
+      return t;
+    };
+    const index = data.places.map(function (p) { return [norm(p[0]), p[0], p[1]]; });
+    const render = function () {
+      const term = norm(q.value);
+      while (out.firstChild) out.removeChild(out.firstChild);
+      empty.hidden = true;
+      if (!term) return;
+      const hits = index.filter(function (p) { return p[0].indexOf(term) !== -1; })
+        .sort(function (a, b) { return (a[0].indexOf(term) === 0 ? 0 : 1) - (b[0].indexOf(term) === 0 ? 0 : 1) || a[1].localeCompare(b[1], "he"); })
+        .slice(0, 8);
+      if (!hits.length) { empty.hidden = false; return; }
+      hits.forEach(function (h) {
+        const li = document.createElement("li");
+        li.className = "border border-rule rounded-gov p-3 text-sm";
+        const t = document.createElement("div");
+        t.className = "font-semibold text-ink-deep";
+        t.textContent = h[1];
+        li.appendChild(t);
+        h[2].forEach(function (c) {
+          const row = document.createElement("div");
+          row.className = "mt-1 flex flex-wrap gap-x-3";
+          const n = document.createElement("span");
+          n.textContent = "מרכז חוסן " + c;
+          row.appendChild(n);
+          (data.centers[c] || []).forEach(function (p) {
+            const a = document.createElement("a");
+            a.className = "text-primary";
+            a.dir = "ltr";
+            a.href = "tel:" + p.replace(/[^\d*+]/g, "");
+            a.textContent = p;
+            row.appendChild(a);
+          });
+          li.appendChild(row);
+        });
+        out.appendChild(li);
+      });
+    };
+    q.addEventListener("input", render);
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    var enc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    window.__hosenBar = function (id, d, unit, opts) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var chart = echarts.init(el);
+      var narrow = el.clientWidth < 520;
+      var pct = function (v) { return d.total ? Math.round(v / d.total * 100) + "%" : ""; };
+      var horizontal = opts && opts.horizontal;
+      var cat = { type: "category", data: d.names };
+      var val = { type: "value", minInterval: 1 };
+      if (horizontal) {
+        cat.axisLabel = { width: narrow ? 110 : 190, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 };
+      } else {
+        cat.axisLabel = { interval: 0, width: narrow ? 60 : 120, overflow: "break", fontSize: narrow ? 10 : 12 };
+        if (d.total) val.max = d.total;
+      }
+      chart.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            var p = ps[0];
+            var s = enc(p.name) + "<br/>" + enc(p.value) + " " + unit;
+            if (d.total) s += " מתוך " + enc(d.total) + " (" + pct(p.value) + ")";
+            return s;
+          } },
+        grid: { left: 8, right: horizontal ? 36 : 8, top: 24, bottom: 8, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: [{ type: "bar", data: d.values, barMaxWidth: horizontal ? 22 : 48,
+          colorBy: opts && opts.colorBy ? "data" : "series",
+          label: { show: true, position: horizontal ? "right" : "top", fontFamily: "Rubik", color: "#0c3058",
+            formatter: function (p) { return d.total ? pct(p.value) : String(p.value); } } }]
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    };
+  })();
+</script>
+{%- if model.flags.has_served %}
+<script>
+  (function () {
+    const d = {{ model.charts.served | tojson }};
+    window.__hosenBar("chart-served", d, "יישובים", { horizontal: true });
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    window.__hosenBar("chart-size", d, "מרכזים", { colorBy: true });
+  })();
+  (function () {
+    const d = {{ model.charts.contact | tojson }};
+    window.__hosenBar("chart-contact", d, "מרכזים", {});
+  })();
+</script>
+{%- if model.flags.has_phones %}
+<script>
+  (function () {
+    const d = {{ model.charts.phones | tojson }};
+    window.__hosenBar("chart-phones", d, "מספרים", { colorBy: true });
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,42 @@
+{
+  "contract_version": 1,
+  "dataset_id": "965c2334-6af6-42a2-b0e0-99d9226abd93",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:04:04.655908+00:00",
+    "rows": { "survey": 5012 }
+  },
+  "inputs": [
+    {
+      "name": "survey",
+      "by_id": "d245414c-5231-4e86-a9d9-d2cf724b4be0",
+      "required_columns": [
+        "user_id",
+        "date",
+        "selection",
+        "neighborhood",
+        "gender",
+        "student",
+        "children",
+        "vehicle",
+        "family_status",
+        "age",
+        "category_name",
+        "choices",
+        "choise_1",
+        "choise_2",
+        "choise_3",
+        "choise_4",
+        "choise_5",
+        "choise_6",
+        "choise_7",
+        "choise_8",
+        "choise_9",
+        "choise_10"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

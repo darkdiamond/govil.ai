@@ -1,0 +1,13 @@
+{
+  "syn.Id": "insight:noid — records with Id 0 and shared ids, a data-quality note only",
+  "syn.neighborho": "map-syn, chart-neigh, chart-shelter, kpi:neigh, insight:neigh, insight:shelter — lettered neighbourhoods shown as שכונה X׳",
+  "syn.street": "map-syn, chart-streets, chart-addr, insight:addr",
+  "syn.HouseNumbe": "map-syn, chart-addr, insight:addr",
+  "syn.name": "map-syn, chart-type, chart-names, chart-shelter, kpi:shelter, insight:shelter, insight:names, insight:status, insight:community",
+  "syn.OtherName": "map-syn, chart-type, chart-names, insight:names, insight:community",
+  "syn.lat": "map-syn, chart-nn, kpi:nn, insight:nn, insight:coloc, insight:badgeo",
+  "syn.lon": "map-syn, chart-nn, kpi:nn, insight:nn, insight:coloc, insight:badgeo",
+  "resource:8ca705da-997d-4b11-aef9-2eb1b3511e8e": "skip: XLSX twin of the CSV, same rows",
+  "resource:af7e71bb-886d-4c29-91a6-01f2b06dc470": "skip: same sites in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:6767ae7a-9b0b-46eb-aef5-ff5937d178f1": "skip: XLSX twin of the ITM resource"
+}

@@ -1,0 +1,21 @@
+{
+  "main.combined1": "chart-types, chart-units, chart-kinds, chart-top, chart-cooc, kpi:units, kpi:median, insight:types, insight:concentration — משולב א׳",
+  "main.combined2": "chart-types, chart-units, chart-kinds, chart-top, chart-cooc, kpi:units, insight:types — משולב ב׳",
+  "main.combined3": "chart-types, chart-units, chart-kinds, chart-top, chart-cooc, kpi:units, insight:quality — משולב ג׳; one count of 31 is excluded as a data-entry outlier",
+  "main.SpecialCom": "chart-types, chart-units, chart-cooc, kpi:units, insight:types — משולב מיוחד",
+  "main.Swing": "chart-types, chart-units, chart-cooc, kpi:units, insight:types — swings",
+  "main.slid": "chart-types, chart-units, chart-cooc, kpi:units, insight:types — slides",
+  "main.carrousel": "chart-types, chart-units, chart-cooc, kpi:units, insight:types — carousels",
+  "main.spring": "chart-types, chart-units, chart-cooc, kpi:units, insight:types — spring riders",
+  "main.omega": "chart-types, chart-units, chart-cooc, kpi:units, insight:rare — zip line",
+  "main.roserose": "chart-types, chart-units, chart-cooc, kpi:units, insight:types — עלה ורד seesaws",
+  "main.other": "chart-extras, insight:extras, insight:zero — free text; keyword counts only, the text itself is not printed",
+  "main.shadowing": "chart-shade, chart-surface, chart-sectors, kpi:shade, insight:shade, insight:surf_shade, insight:sector_shade — יש / אי (truncated אין)",
+  "main.surface": "chart-surface, chart-surf-avg, chart-top, insight:surface, insight:surf_shade",
+  "main.Name": "map-sites, chart-top, insight:concentration, insight:names — playground name, map popup title",
+  "main.lat": "map-sites, chart-sectors, chart-dist, insight:sector, insight:sector_shade",
+  "main.lon": "map-sites, chart-sectors, chart-dist, insight:sector, insight:sector_shade",
+  "resource:64129aff-845c-4792-a479-1792c1ab9b0a": "skip: CSV twin of the XLSX; its datastore load broke on multi-line cells (372 rows, shifted columns)",
+  "resource:5ae7365e-5646-42e6-a58e-8b7b3ec67bfe": "skip: same playgrounds in ITM coordinates (CSV, same broken load)",
+  "resource:a572448d-8823-4f4d-8843-e3dc9b844a92": "skip: XLSX twin in ITM coordinates"
+}

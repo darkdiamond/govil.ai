@@ -1,0 +1,471 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro tbl(caption, heads, rows, keys) %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">{% for h in heads %}<th scope="col" class="text-start py-1 pe-3">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r[keys[0]] }}</th>{% for k in keys[1:] %}<td class="py-1 pe-3">{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro ytbl(caption, first, cols, rows, key) %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">{{ first }}</th>{% for c in cols %}<th scope="col" class="text-start py-1 pe-3">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r[key] }}</th>{% for v in r.v %}<td class="py-1 pe-3">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>השתלמויות למורי דרך: קטלוג השתלמויות לחידוש רישיון מורה דרך</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }} ההשתלמויות מופעלות בידי מארגנים חיצוניים (מוזיאונים, מכללות, עמותות וגופי מורשת) במסגרת קול קורא של משרד התיירות.</p>
+</section>
+
+<a id="lookup" href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור השתלמות למורי דרך לפי נושא, מארגן או מרצה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הקטלוג: שם ההשתלמות, מספר ההשתלמות, המארגן, המרצה, האזור, אופי ההשתלמות, השפה, המחיר וקישור ההרשמה.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "היקף ההשתלמויות בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+{%- if model.labels.dup_note %}
+  <p class="m-0 mt-2 text-xs text-subtle">{{ model.labels.dup_note }}</p>
+{%- endif %}
+{{ tbl(model.labels.years_aria, ["שנת השתלמויות", "השתלמויות", "מארגנים"], model.tables.years, ["year", "n", "orgs"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "עונתיות: באילו חודשים נערכות ההשתלמויות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.months_lede }}</p>
+  <div id="chart-months" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.months_aria }}"></div>
+{{ ytbl(model.labels.months_aria, "חודש", model.years, model.tables.months, "m") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">ימים בשבוע</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dow_lede }}</p>
+    <div id="chart-dow" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dow_aria }}"></div>
+{{ tbl(model.labels.dow_aria, ["יום", "כל המאגר", model.latest], model.tables.dow, ["d", "all", "cur"]) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">טווחי מחיר בקטלוג {{ model.latest }}</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.price_lede }}</p>
+    <div id="chart-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+{{ tbl(model.labels.bands_aria, ["טווח מחיר", "השתלמויות", "שיעור"], model.tables.bands, ["name", "n", "share"]) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("map-pin", "השתלמויות לפי אזור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.region_lede }}</p>
+  <div id="chart-region" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.region_aria }}"></div>
+{{ ytbl(model.labels.region_aria, "אזור", model.years, model.tables.region, "r") }}
+</section>
+
+{%- if model.flags.types %}
+<section class="card p-5 mb-6">
+{{ head("list", "אופי ההשתלמות: סיורים וימי עיון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+  <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+{{ ytbl(model.labels.types_aria, "אופי ההשתלמות", model.labels.types_years, model.tables.types, "t") }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("database", "מחיר השתלמות לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.price_lede }} הקופסה מציגה את הרבעון התחתון עד העליון, הקו בתוכה את החציון, והנקודה את הממוצע.</p>
+  <div id="chart-price" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.price_aria }}"></div>
+{{ tbl(model.labels.price_aria, ["שנה", "מינימום", "רבעון תחתון", "חציון", "רבעון עליון", "מקסימום", "ממוצע"], model.tables.price, ["year", "min", "q1", "med", "q3", "max", "mean"]) }}
+</section>
+
+{%- if model.flags.ptype %}
+<section class="card p-5 mb-6">
+{{ head("database", "מחיר לפי אופי ההשתלמות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ptype_lede }}</p>
+  <div id="chart-ptype" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ptype_aria }}"></div>
+{{ tbl(model.labels.ptype_aria, ["אופי ההשתלמות", "מחיר ממוצע (₪)", "מחיר חציוני (₪)", "השתלמויות"], model.tables.ptype, ["t", "mean", "med", "n"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "מארגני ההשתלמויות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orgs_lede }} {{ model.labels.orgs_steady }}</p>
+  <div id="chart-orgs" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.orgs_aria }}"></div>
+{{ tbl(model.labels.orgs_aria, ["מארגן", "השתלמויות ב-" ~ model.latest, "שנים במאגר"], model.tables.orgs, ["name", "n", "years"]) }}
+</section>
+
+{%- if model.flags.langs %}
+<section class="card p-5 mb-6">
+{{ head("list", "השתלמויות בשפות זרות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.langs_lede }}</p>
+  <div id="chart-langs" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.langs_aria }}"></div>
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.langs_aria }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">שנה</th>{% for l in model.charts.langs.langs %}<th scope="col" class="text-start py-1 pe-3">{{ l }}</th>{% endfor %}<th scope="col" class="text-start py-1 pe-3">שיעור שאינו עברית</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.langs %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.year }}</th>{% for v in r.v %}<td class="py-1 pe-3">{{ v }}</td>{% endfor %}<td class="py-1 pe-3">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.instr %}
+<section class="card p-5 mb-6">
+{{ head("list", "המרצים הפעילים ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.instr_lede }}</p>
+  <div id="chart-instr" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.instr_aria }}"></div>
+{{ tbl(model.labels.instr_aria, ["מרצה", "השתלמויות", "שנים"], model.tables.instr, ["name", "n", "years"]) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.inst %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "מוסדות לימוד: קורס מורי דרך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inst_lede }} אלה המוסדות המכשירים מורי דרך חדשים לקראת הרישיון; ההשתלמויות שלמעלה מיועדות למורי דרך מורשים.</p>
+  <div class="overflow-x-auto">
+    <table id="table-inst" class="w-full text-sm">
+      <caption class="sr-only">מוסדות הלימוד לקורס מורי דרך</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">מוסד</th><th scope="col" class="text-start py-1 pe-3">יישוב</th><th scope="col" class="text-start py-1 pe-3">כתובת</th><th scope="col" class="text-start py-1">שפת הקורס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.inst %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.city }}</td><td class="py-1 pe-3">{{ r.addr }}</td><td class="py-1">{{ r.remarks }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle">מורי דרך מחויבים בביצוע שתי השתלמויות, במהלך שנתיים, לשם חידוש רישיונם בהתאם להנחיות הממונה, כמוגדר בתקנות.</p>
+  <p class="m-0 mt-2 text-sm text-subtle">עד לחודש יולי 2020 סיפק המשרד בעצמו את ההשתלמויות והחל מחודש זה שונתה השיטה ולמורי הדרך הוצעה תכנית השתלמויות שבוצעה ותופעלה על ידי מארגני השתלמויות חיצוניים, בהתאם לתנאים שנקבעו על ידי המשרד בקול קורא.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + (d.partial[i] ? " (חלקי)" : "") + "<br>" + d.n[i].toLocaleString("he-IL") + " השתלמויות<br>" + d.orgs[i].toLocaleString("he-IL") + " מארגנים";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: [{ type: "value", minInterval: 1 }, { type: "value", minInterval: 1, splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "השתלמויות", data: d.n.map(function (v, i) { return d.partial[i] ? { value: v, itemStyle: { color: "#9fc3f8" } } : v; }), barMaxWidth: 48,
+          label: { show: true, position: "top", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } },
+        { type: "line", name: "מארגנים", yAxisIndex: 1, data: d.orgs, symbolSize: 7, lineStyle: { color: "#0b3668" }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.months | tojson }};
+    var el = document.getElementById("chart-months");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.months[p.value[0]] + " " + d.years[p.value[1]]) + "<br>" + p.value[2].toLocaleString("he-IL") + " השתלמויות";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 60 : 0, fontSize: 11 } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#f1f7ff", "#9fc3f8", "#0068f5", "#0b3668"] } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontSize: 10 },
+        emphasis: { itemStyle: { borderColor: "#0c3058", borderWidth: 1 } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dow | tojson }};
+    var el = document.getElementById("chart-dow");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#9fc3f8", "#0068f5"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "bar", name: "כל המאגר", data: d.all, barMaxWidth: 24 },
+        { type: "bar", name: d.cur_name, data: d.cur, barMaxWidth: 24 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.bands | tojson }};
+    var el = document.getElementById("chart-bands");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " השתלמויות"; } },
+      grid: { left: 16, right: 16, top: 28, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "השתלמויות", data: d.n, barMaxWidth: 56,
+        label: { show: true, position: "top", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.region | tojson }};
+    var el = document.getElementById("chart-region");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.years[i])];
+        ps.forEach(function (p) {
+          out.push(echarts.format.encodeHTML(p.seriesName) + ": " + d.n[p.seriesName][i].toLocaleString("he-IL") + " (" + p.value.toLocaleString("he-IL") + "%)");
+        });
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.years, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.regions.map(function (r) {
+        return { type: "bar", stack: "r", name: r, data: d.share[r], barMaxWidth: 56 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.types %}
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var el = document.getElementById("chart-types");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.years[i])];
+        ps.forEach(function (p) {
+          out.push(echarts.format.encodeHTML(p.seriesName) + ": " + d.n[p.seriesName][i].toLocaleString("he-IL") + " (" + p.value.toLocaleString("he-IL") + "%)");
+        });
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.years, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.types.map(function (t) {
+        return { type: "bar", stack: "t", name: t, data: d.share[t], barMaxWidth: 56 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.price | tojson }};
+    var el = document.getElementById("chart-price");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        var b = d.box[i];
+        return echarts.format.encodeHTML(d.years[i]) + "<br>חציון: " + b[2].toLocaleString("he-IL") + " ₪<br>רבעונים: " + b[1].toLocaleString("he-IL") + " עד " + b[3].toLocaleString("he-IL") + " ₪<br>טווח: " + b[0].toLocaleString("he-IL") + " עד " + b[4].toLocaleString("he-IL") + " ₪<br>ממוצע: " + d.mean[i].toLocaleString("he-IL") + " ₪";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.years, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", axisLabel: { formatter: "{value} ₪" } },
+      series: [
+        { type: "boxplot", name: "מחיר", data: d.box, itemStyle: { color: "#f1f7ff", borderColor: "#0068f5" } },
+        { type: "scatter", name: "ממוצע", data: d.mean, symbolSize: 9, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.ptype %}
+<script>
+  (function () {
+    var d = {{ model.charts.ptype | tojson }};
+    var el = document.getElementById("chart-ptype");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>מחיר ממוצע: " + d.mean[i].toLocaleString("he-IL") + " ₪<br>" + d.n[i].toLocaleString("he-IL") + " השתלמויות";
+      } },
+      grid: { left: 16, right: 64, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false } },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 130, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "מחיר ממוצע", data: d.mean, barMaxWidth: 26,
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL") + " ₪"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.orgs | tojson }};
+    var el = document.getElementById("chart-orgs");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " השתלמויות<br>פעיל ב-" + d.years[i].toLocaleString("he-IL") + " שנים במאגר";
+      } },
+      grid: { left: 8, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: narrow ? 130 : 260, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "השתלמויות", data: d.n, barMaxWidth: 20,
+        label: { show: true, position: "right", fontSize: 11 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.langs %}
+<script>
+  (function () {
+    var d = {{ model.charts.langs | tojson }};
+    var el = document.getElementById("chart-langs");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.years[i])];
+        ps.forEach(function (p) {
+          out.push(echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"));
+        });
+        out.push("שיעור שאינו עברית: " + d.share[i].toLocaleString("he-IL") + "%");
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.years, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.langs.map(function (l) {
+        return { type: "bar", stack: "l", name: l, data: d.n[l], barMaxWidth: 48 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.instr %}
+<script>
+  (function () {
+    var d = {{ model.charts.instr | tojson }};
+    var el = document.getElementById("chart-instr");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " השתלמויות<br>ב-" + d.years[i].toLocaleString("he-IL") + " שנים";
+      } },
+      grid: { left: 8, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "השתלמויות", data: d.n, barMaxWidth: 20,
+        label: { show: true, position: "right", fontSize: 11 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2a795952-3fb8-487b-bc25-6f563908abe9",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T07:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T08:43:23.341556+00:00",
+    "rows": { "main": 262 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "b669cece-8cdd-4db9-8591-5fb6e9a7e1b9",
+      "required_columns": [
+        "MIHCODE",
+        "MIHNAME",
+        "MIHTYPE",
+        "ROAD1",
+        "ROAD2",
+        "ROAD3",
+        "TRAFAUTH"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

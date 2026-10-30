@@ -1,0 +1,13 @@
+{
+  "main.business": "chart-cats, chart-mix, chart-names, insight:cats, insight:mix, insight:names, insight:quality, kpi:names, chart-fields, map-main — business names are commercial and may be named; the domain is estimated from words in the name",
+  "main.street": "chart-streets, chart-sites, chart-mix, insight:street, insight:venue, insight:site, insight:mix, kpi:venue, kpi:streets, chart-fields, map-main — street without house number; the shopping-centre name after a comma or dash marks a venue",
+  "main.house_numb": "chart-sites, chart-fields, insight:quality — labels a shared point and counts complete addresses",
+  "main.X": "chart-fields, insight:quality — ITM easting, zero on part of the rows; only its presence is charted",
+  "main.Y": "chart-fields, insight:quality — ITM northing, zero on part of the rows; only its presence is charted",
+  "main.Note": "chart-fields — a fixed disclaimer text; its wording is paraphrased in the lede",
+  "main.lat": "map-main, chart-sites, chart-rings, chart-grid, insight:site, insight:near, insight:quality, chart-fields",
+  "main.lon": "map-main, chart-sites, chart-rings, chart-grid, insight:site, insight:near, insight:quality, chart-fields",
+  "resource:88321a21-981e-48f7-b26a-c891adb9db4c": "skip: same rows, but its lat/lon columns hold swapped ITM values instead of WGS84",
+  "resource:9aa90ee8-2c88-4b98-9448-233de0dba6b3": "skip: XLSX twin of the ITM file, same swapped lat/lon",
+  "resource:04a21dc7-088a-495e-9b97-47b7ddbd4ead": "skip: XLSX twin of the CSV that is read, identical rows"
+}

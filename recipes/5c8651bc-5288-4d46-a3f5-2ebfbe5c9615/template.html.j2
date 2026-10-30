@@ -1,0 +1,347 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro fallback(caption, col, rows, with_pct=false) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">{{ col }}</th><th scope="col" class="text-start py-1 pe-3">מרכזים</th>{% if with_pct %}<th scope="col" class="text-start py-1">שיעור</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.n | fmt_int }}</td>{% if with_pct %}<td class="py-1" dir="ltr">{{ r.pct }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+{%- macro adjtable(caption, col, rows) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">{{ col }}</th>
+{%- for a in model.tables.adj_order %}<th scope="col" class="text-start py-1 pe-3">{{ a }}</th>{% endfor %}<th scope="col" class="text-start py-1">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th>
+{%- for c in r.cells %}<td class="py-1 pe-3">{{ c | fmt_int }}</td>{% endfor %}<td class="py-1">{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>מרכזי ייעוץ למשפחות של נפגעי נפש</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} מרכזי יעוץ (ייעוץ) למשפחות ולבני משפחה של מתמודדים עם מחלה או פגיעה נפשית מעניקים הדרכה, תמיכה ומידע על זכויות ושירותי שיקום. הרשימה של משרד הבריאות כוללת מרכזים בקהילה ובבתי חולים פסיכיאטריים, ומציינת אם המרכז מותאם לכל הציבור, לציבור החרדי או לציבור הערבי.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מרכז ייעוץ למשפחות לפי עיר או שם ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המרכז, יישוב, כתובת, טלפון, סוג המרכז וההתאמה לציבור.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "cities", "hosp", "adapted"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "רשימת המרכזים ופרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.dir_lede }}</p>
+  <ul id="center-directory" class="list-none m-0 ps-0 grid gap-3 md:grid-cols-2" aria-label="{{ model.labels.dir_caption }}">
+{%- for c in model.tables.directory %}
+    <li class="border border-rule rounded-gov p-3 min-w-0">
+      <div class="font-semibold text-ink-deep break-words">{{ c.name }}</div>
+      <div class="text-sm text-subtle flex items-start gap-1 mt-1 break-words">
+        <img src="/icons/map-pin.svg" alt="" class="w-4 h-4 mt-0.5 shrink-0" />
+        <span>{% if c.address %}{{ c.address }}{% if c.city not in c.address %}, {{ c.city }}{% endif %}{% else %}{{ c.city }}{% endif %}</span>
+      </div>
+      <div class="mt-1 flex flex-wrap gap-1">
+        <span class="inline-block text-xs bg-surface text-ink-deep rounded-gov-sm px-2 py-0.5">{{ c.type }}</span>
+        <span class="inline-block text-xs bg-surface-alt text-ink-deep rounded-gov-sm px-2 py-0.5{% if c.special %} font-semibold{% endif %}">{{ c.adj }}</span>
+      </div>
+      <div class="text-sm mt-2 flex flex-wrap gap-x-4 gap-y-1">
+{%- for p in c.phones %}
+        <a href="tel:{{ p.tel }}" class="text-primary" dir="ltr">{{ p.display }}</a>
+{%- endfor %}
+{%- if c.email %}
+        <a href="mailto:{{ c.email }}" class="text-primary break-all" dir="ltr">{{ c.email }}</a>
+{%- endif %}
+{%- if not c.phones and not c.email %}
+        <span class="text-subtle">לא פורסמו פרטי קשר</span>
+{%- endif %}
+      </div>
+    </li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.has_types %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "מרכזים בקהילה ובבתי חולים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_lede }}</p>
+  <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.type_aria }}"></div>
+{{ fallback(model.labels.type_aria, "סוג מרכז", model.tables.types, true) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_adj %}
+<section class="card p-5 mb-6">
+{{ head("tag", "התאמה לציבור: כללי, חרדי, ערבי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.adj_lede }}</p>
+  <div id="chart-adj" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.adj_aria }}"></div>
+{{ fallback(model.labels.adj_aria, "התאמה", model.tables.adj, true) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_cross %}
+<section class="card p-5 mb-6">
+{{ head("database", "סוג המרכז לפי התאמה לציבור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cross_lede }}</p>
+  <div id="chart-cross" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cross_aria }}"></div>
+{{ adjtable(model.labels.cross_aria, "סוג מרכז", model.tables.cross) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_cities %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מרכזי ייעוץ למשפחות לפי עיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_lede }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+{{ adjtable(model.labels.city_aria, "יישוב", model.tables.cities) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_networks %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "רשתות ושלוחות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.net_lede }}</p>
+  <div id="chart-networks" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.net_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.net_aria }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">רשת</th><th scope="col" class="text-start py-1 pe-3">מרכזים</th><th scope="col" class="text-start py-1">יישובים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.networks %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.n | fmt_int }}</td><td class="py-1">{{ r.cities | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_adj %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "פריסה: בכמה יישובים יש מרכז מותאם") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reach_lede }}</p>
+  <div id="chart-reach" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.reach_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.reach_aria }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">התאמה</th><th scope="col" class="text-start py-1 pe-3">מרכזים</th><th scope="col" class="text-start py-1">יישובים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.reach %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.centers | fmt_int }}</td><td class="py-1">{{ r.n | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("database", "זמינות פרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_lede }}</p>
+  <div id="chart-contact" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+{{ fallback(model.labels.contact_aria, "פרט", model.tables.contact, true) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("info", "על המאגר") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">המאגר מרכז את מרכזי הייעוץ למשפחות של נפגעי נפש שמפרסם משרד הבריאות: שם המרכז, יישוב, כתובת כשקיימת, טלפון, סוג המרכז (בקהילה או בבית חולים) וההתאמה לציבור. השיוך לרשתות בעמוד זה נגזר מהמילה הראשונה בשם המרכז ואינו שדה רשמי. במצב חירום נפשי או במחשבות פגיעה עצמית יש לפנות מיד למוקד החירום או לחדר המיון הקרוב.</p>
+</section>
+
+<script>
+  (function () {
+    var enc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    var on = function (id, build) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option(build(el.clientWidth < 520)));
+      window.addEventListener("resize", function () { chart.resize(); });
+    };
+    var vbar = function (id, d, unit) {
+      on(id, function (narrow) {
+        return {
+          color: window.GOVIL_PALETTE,
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+            formatter: function (ps) { var p = ps[0]; return enc(p.name) + "<br/>" + enc(p.value) + " " + unit; } },
+          grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+          xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 70 : 140, overflow: "break", fontSize: narrow ? 10 : 12 } },
+          yAxis: { type: "value", minInterval: 1 },
+          series: [{ type: "bar", data: d.values, barMaxWidth: 48, colorBy: "data",
+            label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } }]
+        };
+      });
+    };
+    var stacked = function (id, cats, series, horizontal) {
+      on(id, function (narrow) {
+        var catAxis = { type: "category", data: cats,
+          axisLabel: horizontal ? { width: narrow ? 100 : 180, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 }
+                                : { interval: 0, width: narrow ? 90 : 160, overflow: "break", fontSize: narrow ? 10 : 12 } };
+        var valAxis = { type: "value", minInterval: 1 };
+        return {
+          color: window.GOVIL_PALETTE,
+          legend: { top: 0, type: "scroll" },
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+            formatter: function (ps) {
+              var s = enc(ps[0].name);
+              ps.forEach(function (p) { if (p.value) s += "<br/>" + p.marker + enc(p.seriesName) + ": " + enc(p.value); });
+              return s;
+            } },
+          grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+          xAxis: horizontal ? valAxis : catAxis,
+          yAxis: horizontal ? catAxis : valAxis,
+          series: series.map(function (s) { return { type: "bar", name: s.name, stack: "all", data: s.data, barMaxWidth: horizontal ? 22 : 64 }; })
+        };
+      });
+    };
+    window.__famCharts = { on: on, vbar: vbar, stacked: stacked, enc: enc };
+  })();
+</script>
+{%- if model.flags.has_types %}
+<script>
+  (function () {
+    const d = {{ model.charts.types | tojson }};
+    const f = window.__famCharts;
+    f.on("chart-types", function (narrow) {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "item", formatter: function (p) { return f.enc(p.name) + "<br/>" + f.enc(p.value) + " מרכזים (" + p.percent + "%)"; } },
+        legend: { bottom: 0, type: "scroll" },
+        series: [{ type: "pie", radius: narrow ? ["35%", "62%"] : ["40%", "70%"], center: ["50%", "45%"],
+          data: d.items, label: { formatter: "{d}%", fontFamily: "Rubik" } }]
+      };
+    });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_adj %}
+<script>
+  (function () {
+    const d = {{ model.charts.adj | tojson }};
+    window.__famCharts.vbar("chart-adj", d, "מרכזים");
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_cross %}
+<script>
+  (function () {
+    const d = {{ model.charts.cross | tojson }};
+    window.__famCharts.stacked("chart-cross", d.types, d.series, false);
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_cities %}
+<script>
+  (function () {
+    const d = {{ model.charts.cities | tojson }};
+    window.__famCharts.stacked("chart-cities", d.names, d.series, true);
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_networks %}
+<script>
+  (function () {
+    const d = {{ model.charts.networks | tojson }};
+    const f = window.__famCharts;
+    f.on("chart-networks", function (narrow) {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) { const p = ps[0]; return f.enc(p.name) + "<br/>" + f.enc(p.value) + " מרכזים"; } },
+        grid: { left: 8, right: 36, top: 12, bottom: 24, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names,
+          axisLabel: { width: narrow ? 120 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 24,
+          label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058" } }]
+      };
+    });
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_adj %}
+<script>
+  (function () {
+    const d = {{ model.charts.reach | tojson }};
+    const f = window.__famCharts;
+    f.on("chart-reach", function (narrow) {
+      return {
+        color: window.GOVIL_PALETTE,
+        legend: { top: 0 },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            var s = f.enc(ps[0].name);
+            ps.forEach(function (p) { s += "<br/>" + p.marker + f.enc(p.seriesName) + ": " + f.enc(p.value); });
+            return s;
+          } },
+        grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 70 : 140, overflow: "break", fontSize: narrow ? 10 : 12 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: [
+          { type: "bar", name: "מרכזים", data: d.centers, barMaxWidth: 36, label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } },
+          { type: "bar", name: "יישובים", data: d.cities, barMaxWidth: 36, label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } }
+        ]
+      };
+    });
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.contact | tojson }};
+    const f = window.__famCharts;
+    const pct = function (v) { return d.total ? Math.round(v / d.total * 100) + "%" : "0%"; };
+    f.on("chart-contact", function (narrow) {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) { const p = ps[0]; return f.enc(p.name) + "<br/>" + f.enc(p.value) + " מתוך " + f.enc(d.total) + " (" + pct(p.value) + ")"; } },
+        grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 60 : 120, overflow: "break", fontSize: narrow ? 10 : 12 } },
+        yAxis: { type: "value", minInterval: 1, max: d.total || null },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 48,
+          label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return pct(p.value); } } }]
+      };
+    });
+  })();
+</script>

@@ -1,0 +1,36 @@
+{
+  "contract_version": 1,
+  "dataset_id": "efaac618-723a-46bb-9fdf-44229aa0fea8",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:07:36.483158+00:00",
+    "rows": { "main": 343 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d080e9a2-2080-4eca-a7bf-7f22bff24f06",
+      "required_columns": [
+        "combined1",
+        "combined2",
+        "combined3",
+        "SpecialCom",
+        "Swing",
+        "slid",
+        "carrousel",
+        "spring",
+        "omega",
+        "roserose",
+        "other",
+        "shadowing",
+        "surface",
+        "Name",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,23 @@
+{
+  "facilities.Type": "chart-fam, chart-famamen, chart-acc, chart-seats, chart-sites, insight:fam, insight:access, insight:light, insight:sites, insight:seats — keyword-grouped into facility families with an אחר bucket",
+  "facilities.Name": "map-facilities, chart-sites, chart-seats, insight:sites, insight:seats — site name; sites with 2+ facilities ranked",
+  "facilities.street": "map-facilities, insight:broken — address completeness note under the map; part of broken-row detection",
+  "facilities.HouseNumbe": "map-facilities — count of facilities with a real house number (0.0 is a placeholder) in the note under the map",
+  "facilities.neighborho": "chart-nb, kpi:nbhd, insight:nbhd — spellings unified (ג/ג'/שכונה ג')",
+  "facilities.Operator": "chart-oper, insight:oper",
+  "facilities.Seats": "chart-seats, insight:seats",
+  "facilities.Activity": "chart-acc, kpi:open, insight:access — open vs by coordination",
+  "facilities.fencing": "chart-amen, chart-famamen",
+  "facilities.lighting": "chart-amen, chart-famamen, kpi:lit, insight:light",
+  "facilities.handicappe": "chart-amen, chart-famamen, kpi:access, insight:hcap",
+  "facilities.condition": "chart-amen — normalised to working / defect / not stated",
+  "facilities.Owner": "chart-oper — ownership split stated in the operator section note",
+  "facilities.ForSchool": "kpi:school, insight:school",
+  "facilities.associatio": "chart-clubs — known club stems counted, others as אחר",
+  "facilities.SportType": "chart-sports — known discipline stems counted, others as אחר",
+  "facilities.lat": "map-facilities, insight:broken",
+  "facilities.lon": "map-facilities, insight:broken",
+  "resource:ca2091a6-12fc-4962-99a3-91973d52f8e8": "skip: XLSX twin of the CSV",
+  "resource:7f912561-7669-4c5b-9081-bbdb0476f6fa": "skip: same facilities in ITM coordinates",
+  "resource:eafdbc5d-4a2b-4c3e-9d52-ce96c35a3de4": "skip: XLSX twin of the ITM resource"
+}

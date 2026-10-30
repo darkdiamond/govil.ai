@@ -1,0 +1,165 @@
+<h1>טבלת המרה: אזורים סטטיסטיים (אג״ס) לשכונות באר שבע</h1>
+
+<style>
+  .ags-table th, .ags-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .ags-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור השכונה של אזור סטטיסטי לפי מספר האג״ס ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הטבלה: מספר אזור סטטיסטי ושם שכונה</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.areas.tone }} mb-1" dir="ltr">{{ model.kpis.areas.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.areas_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.nbs.tone }} mb-1" dir="ltr">{{ model.kpis.nbs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.nbs_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.avg.tone }} mb-1" dir="ltr">{{ model.kpis.avg.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.avg_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.split.tone }} mb-1" dir="ltr">{{ model.kpis.split.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.split_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אזורים סטטיסטיים בכל שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nbs_lede }}</p>
+  <div id="chart-nbs" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.nbs_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה: מספרי האג״ס בכל שכונה</summary>
+    <div class="overflow-x-auto">
+      <table class="ags-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.nbs_caption }}</caption>
+        <thead><tr><th scope="col">שכונה</th><th scope="col">אזורים סטטיסטיים</th><th scope="col">מספרי אג״ס</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.nbs %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td dir="ltr" class="text-start">{{ r.codes }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצות קוד ושכונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treemap_lede }}</p>
+  <div id="chart-treemap" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.treemap_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ags-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+        <thead><tr><th scope="col">קבוצת קוד</th><th scope="col">אזורים סטטיסטיים</th><th scope="col">שכונות</th><th scope="col">שמות השכונות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.groups %}
+          <tr><th scope="row" dir="ltr" class="text-start">{{ r.name }}</th><td>{{ r.areas | fmt_int }}</td><td>{{ r.nbs | fmt_int }}</td><td>{{ r.list }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.split %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אזורים סטטיסטיים החוצים גבול שכונה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.split_lede }}</p>
+  <table class="ags-table w-full text-sm">
+    <caption class="sr-only">{{ model.labels.split_kpi }}</caption>
+    <thead><tr><th scope="col">מספר אג״ס</th><th scope="col">שכונות</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.split %}
+      <tr><th scope="row">{{ r.code }}</th><td>{{ r.names }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">אגר סטטי המשמש להמרת מידע ממאגרים בהם המידע מופיע ביחידות מרחביות של אזורים גיאוגרפיים סטטיסטיים (אג"ס) ליחידות מרחביות של שכונות העיר באר שבע.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.nbs | tojson }};
+    var el = document.getElementById("chart-nbs");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v + " אזורים סטטיסטיים"; } },
+      grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { width: 110, overflow: "truncate", interval: 0 } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 18,
+                 label: { show: true, position: "insideStart" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var t = {{ model.charts.treemap | tojson }};
+    var c = echarts.init(document.getElementById("chart-treemap"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (x) { return x.name; }).join(" · ");
+        return echarts.format.encodeHTML(path) + ": " + echarts.format.encodeHTML(String(p.value)) + " אזורים סטטיסטיים";
+      } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: false,
+                 breadcrumb: { show: false }, width: "100%", height: "100%",
+                 upperLabel: { show: true, height: 22, color: "#fff" },
+                 label: { show: true, formatter: "{b}", overflow: "truncate" },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { itemStyle: { borderColor: "#fff", borderWidth: 1, gapWidth: 1 }, colorSaturation: [0.35, 0.6] }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

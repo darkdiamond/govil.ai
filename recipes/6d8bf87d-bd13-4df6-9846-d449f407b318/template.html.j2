@@ -1,0 +1,437 @@
+{%- macro head(icon, title) -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro tbl(caption, heads, rows, keys) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+      <table class="kr-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for h in heads %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr><th scope="row" class="font-normal">{{ r[keys[0]] }}</th>
+{%- for k in keys[1:] %}{% set v = r[k] %}{% if v is string %}<td>{{ v }}</td>{% else %}{% for x in v %}<td>{{ x }}</td>{% endfor %}{% endif %}{% endfor -%}
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro -%}
+<h1>מאגר הכונס הרשמי: תיקי פשיטת רגל, פירוק חברות ותביעות חוב</h1>
+
+<style>
+  .kr-table th, .kr-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .kr-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+{%- if model.flags.ended_note %}
+  <p class="m-0 mt-2 text-sm text-ink">{{ model.labels.ended_note }}</p>
+{%- endif %}
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור חברה בפירוק או תיק פשיטת רגל ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם החברה ומספר החברה בקובץ החברות בפירוק, ועיר, בית משפט, סטטוס וסיבת ביטול בתיקי החייבים ובתביעות החוב.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for k in ["cases", "peak_year", "discharge", "disc_years", "companies", "not_closed", "claims", "claim_median", "approve_rate"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "חייבים בהליך פשיטת רגל: תיקים, צווים וביטולים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  {{ tbl(model.labels.yearly_aria, ["שנה"] + model.columns.yearly, model.tables.yearly, ["year", "vals"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "פתיחת תיקי פשיטת רגל לפי חודש ושנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("list", "שלבי ההליך: מצו כינוס ועד הפטר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.funnel_note }}</p>
+  <div id="chart-funnel" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.funnel_aria }}"></div>
+  {{ tbl(model.labels.funnel_aria, ["שלב", "תיקים", "שיעור מכלל התיקים"], model.tables.funnel, ["name", "n", "share"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("tag", "איך מסתיימים תיקי פשיטת רגל: סיבות לביטול הצו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reasons_note }}</p>
+  <div id="chart-reasons" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.reasons_aria }}"></div>
+  {{ tbl(model.labels.reasons_aria, ["סיבה", "תיקים", "שיעור"], model.tables.reasons, ["name", "n", "share"]) }}
+</section>
+
+{%- if model.flags.mix %}
+<section class="card p-5 mb-6">
+  {{ head("tag", "תוצאות התיקים לפי שנת הפתיחה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  {{ tbl(model.labels.mix_aria, ["שנת פתיחה", "תיקים"] + model.columns.mix, model.tables.mix, ["year", "total", "shares"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "כמה זמן נמשך הליך פשיטת רגל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.duration_note }}</p>
+  <div id="chart-duration" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.duration_aria }}"></div>
+  {{ tbl(model.labels.duration_aria, ["משך", "תיקים", "שיעור"], model.tables.duration, ["name", "n", "share"]) }}
+  <div class="overflow-x-auto relative">
+    <table class="kr-table mt-3 w-full text-sm">
+      <caption class="text-sm text-subtle text-start mb-1">משך חציוני לפי תוצאת התיק</caption>
+      <thead><tr><th scope="col">תוצאה</th><th scope="col">תיקים</th><th scope="col">חציון (שנים)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dur_groups %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.median }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("building-2", "תיקי פשיטת רגל לפי בית משפט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.courts_note }}</p>
+  <div id="chart-courts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.courts_aria }}"></div>
+  {{ tbl(model.labels.courts_aria, ["שנה"] + model.columns.courts, model.tables.courts, ["year", "vals"]) }}
+</section>
+
+{%- if model.flags.cities %}
+<section class="card p-5 mb-6">
+  {{ head("map-pin", "היכן מתגוררים החייבים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  {{ tbl(model.labels.cities_aria, ["עיר", "תיקים", "שיעור"], model.tables.cities, ["name", "n", "share"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "צווי כינוס הכוללים את סעיף 42") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.s42_note }}</p>
+  <div id="chart-s42" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.s42_aria }}"></div>
+  {{ tbl(model.labels.s42_aria, ["שנת פתיחה", "תיקים", "כולל סעיף 42"], model.tables.s42, ["year", "total", "share"]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">יתרת הבנק של החייבים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bank_note }}</p>
+    <div id="chart-bank" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bank_aria }}"></div>
+    {{ tbl(model.labels.bank_aria, ["יתרה (₪)", "תיקים", "שיעור"], model.tables.bank, ["name", "n", "share"]) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">סכום הצו</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.amt_note }}</p>
+    <div id="chart-amt" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.amt_aria }}"></div>
+    {{ tbl(model.labels.amt_aria, ["סכום (₪)", "תיקים", "שיעור"], model.tables.amt, ["name", "n", "share"]) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("building-2", "פירוק חברות: בקשות, צווים וסגירת תיקים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.c_yearly_note }}</p>
+  <div id="chart-c-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.c_yearly_aria }}"></div>
+  {{ tbl(model.labels.c_yearly_aria, ["שנה"] + model.columns.c_yearly, model.tables.c_yearly, ["year", "vals"]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">איך נסגרים תיקי פירוק</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.c_reasons_note }}</p>
+    <div id="chart-c-reasons" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.c_reasons_aria }}"></div>
+    {{ tbl(model.labels.c_reasons_aria, ["סיבת סגירה", "תיקים", "שיעור"], model.tables.c_reasons, ["name", "n", "share"]) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">תיקי פירוק לפי בית משפט</h2>
+    <p class="m-0 text-sm text-subtle mb-3">בית המשפט המחוזי שבו מתנהל התיק, בכל שנות המאגר.</p>
+    <div id="chart-c-courts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.c_courts_aria }}"></div>
+    {{ tbl(model.labels.c_courts_aria, ["בית משפט", "תיקים", "שיעור"], model.tables.c_courts, ["name", "n", "share"]) }}
+  </section>
+</div>
+
+{%- if model.flags.c_duration or model.flags.c_cities %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.c_duration %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">משך תיק פירוק: מצו הפירוק ועד הסגירה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.c_duration_note }}</p>
+    <div id="chart-c-duration" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.c_duration_aria }}"></div>
+    {{ tbl(model.labels.c_duration_aria, ["משך", "תיקים", "שיעור"], model.tables.c_duration, ["name", "n", "share"]) }}
+  </section>
+{%- endif %}
+{%- if model.flags.c_cities %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">עיר הפעילות של החברות בפירוק</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.c_cities_note }}</p>
+    <div id="chart-c-cities" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.c_cities_aria }}"></div>
+    {{ tbl(model.labels.c_cities_aria, ["עיר", "תיקים", "שיעור"], model.tables.c_cities, ["name", "n", "share"]) }}
+  </section>
+{%- endif %}
+</div>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "תביעות חוב לפי שנה וסוג הליך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_yearly_note }}</p>
+  <div id="chart-d-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.d_yearly_aria }}"></div>
+  {{ tbl(model.labels.d_yearly_aria, ["שנה"] + model.columns.d_yearly + ["סך הכול"], model.tables.d_yearly, ["year", "vals", "total"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("list", "מי הנושים: תביעות חוב לפי סוג התובע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_type_note }}</p>
+  <div id="chart-d-type" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.d_type_aria }}"></div>
+  {{ tbl(model.labels.d_type_aria, ["סוג תובע", "תביעות", "שיעור", "תביעה חציונית (₪)", "שיעור אישור", "אושר בדין קדימה"], model.tables.d_type, ["name", "n", "share", "med", "rate", "pri"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("list", "הנושים בפשיטת רגל לעומת פירוק חברה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_sys_note }}</p>
+  <div id="chart-d-sys" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.d_sys_aria }}"></div>
+  {{ tbl(model.labels.d_sys_aria, ["סוג תובע"] + model.columns.d_sys, model.tables.d_sys, ["name", "vals"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "תמהיל הנושים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_ymix_note }}</p>
+  <div id="chart-d-ymix" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.d_ymix_aria }}"></div>
+  {{ tbl(model.labels.d_ymix_aria, ["שנה"] + model.columns.d_ymix, model.tables.d_ymix, ["year", "vals"]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">סטטוס תביעות החוב</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_status_note }}</p>
+    <div id="chart-d-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.d_status_aria }}"></div>
+    {{ tbl(model.labels.d_status_aria, ["סטטוס", "תביעות", "שיעור"], model.tables.d_status, ["name", "n", "share"]) }}
+  </section>
+{%- if model.flags.pri %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מי נפרע ראשון: אישור בדין קדימה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_pri_note }}</p>
+    <div id="chart-d-pri" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.d_pri_aria }}"></div>
+    {{ tbl(model.labels.d_pri_aria, ["סוג תובע", "אושר בדין קדימה"], model.tables.d_type, ["name", "pri"]) }}
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "גודל תביעות החוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.d_size_note }}</p>
+  <div id="chart-d-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.d_size_aria }}"></div>
+  {{ tbl(model.labels.d_size_aria, ["סכום התביעה (₪)", "תביעות", "שיעור"], model.tables.d_size, ["name", "n", "share"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מציג את פרופיל החייבים בהליך פשיטת רגל, פרופיל חברות בפירוק ותביעות חוב שהוגשו בהליכים הנ״ל. ניתן לבצע קישור בין מאגרי התיקים לבין מאגרי תביעות חוב באמצעות מספר מזהה של התיק וסיווג התיק כגון פשיטת רגל או פירוקי חברות.
+המידע העומד לרשותכם בקבצים מתעדכן מידי שבוע.</p>
+</section>
+
+<script>
+  (function () {
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function axisFmt(v) {
+      if (Math.abs(v) >= 1000000) return (v / 1000000).toLocaleString("he-IL") + " מיליון";
+      if (Math.abs(v) >= 1000) return (v / 1000).toLocaleString("he-IL") + " אלף";
+      return v;
+    }
+    function make(id) {
+      var el = document.getElementById(id);
+      if (!el) return null;
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return { c: c, narrow: el.clientWidth < 500 };
+    }
+    function axisTip(unit, pct) {
+      return function (ps) {
+        var out = echarts.format.encodeHTML(ps[0].name);
+        ps.forEach(function (p) {
+          out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " +
+            (pct ? Number(p.value).toFixed(1) + "%" : fmt(p.value) + (unit ? " " + unit : ""));
+        });
+        return out;
+      };
+    }
+    window.KrCharts = {
+      barH: function (id, d, unit, pct) {
+        var m = make(id); if (!m) return;
+        m.c.setOption(window.GovEcharts.option({
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+            var p = ps[0];
+            return echarts.format.encodeHTML(p.name) + ": " + (pct ? Number(p.value).toFixed(1) + "%" : fmt(p.value) + " " + unit);
+          } },
+          grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
+          xAxis: { type: "value", axisLabel: { formatter: pct ? "{value}%" : axisFmt } },
+          yAxis: { type: "category", inverse: true, data: d.names,
+                   axisLabel: { width: m.narrow ? 110 : 190, overflow: "truncate" } },
+          series: [{ type: "bar", data: d.values, barMaxWidth: 26,
+                     label: { show: true, position: "right", formatter: function (p) {
+                       return pct ? Number(p.value).toFixed(1) + "%" : fmt(p.value); } } }]
+        }));
+      },
+      barV: function (id, d, unit) {
+        var m = make(id); if (!m) return;
+        m.c.setOption(window.GovEcharts.option({
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: axisTip(unit, false) },
+          grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+          xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: m.narrow ? 45 : 0 } },
+          yAxis: { type: "value", axisLabel: { formatter: axisFmt } },
+          series: [{ type: "bar", name: unit, data: d.values, barMaxWidth: 48,
+                     label: { show: !m.narrow, position: "top", formatter: function (p) { return fmt(p.value); } } }]
+        }));
+      },
+      lines: function (id, d, unit, pct, partial) {
+        var m = make(id); if (!m) return;
+        var series = d.series.map(function (s) {
+          return { name: s.name, type: "line", data: s.data, symbolSize: 5 };
+        });
+        m.c.setOption(window.GovEcharts.option({
+          tooltip: { trigger: "axis", formatter: axisTip(unit, pct) },
+          legend: { bottom: 0, type: "scroll" },
+          grid: { left: 8, right: 16, top: 16, bottom: 64, containLabel: true },
+          xAxis: { type: "category", data: d.x, axisLabel: { rotate: m.narrow ? 60 : 45 } },
+          yAxis: { type: "value", max: pct ? 100 : null, axisLabel: { formatter: pct ? "{value}%" : axisFmt } },
+          dataZoom: d.x.length > 20 ? [{ type: "inside" }] : [],
+          series: series
+        }));
+      },
+      stack: function (id, d, unit, pct, area) {
+        var m = make(id); if (!m) return;
+        var series = d.series.map(function (s) {
+          return area ? { name: s.name, type: "line", stack: "all", areaStyle: {}, symbol: "none", data: s.data }
+                      : { name: s.name, type: "bar", stack: "all", data: s.data, barMaxWidth: 36 };
+        });
+        m.c.setOption(window.GovEcharts.option({
+          tooltip: { trigger: "axis", formatter: axisTip(unit, pct) },
+          legend: { bottom: 0, type: "scroll" },
+          grid: { left: 8, right: 16, top: 16, bottom: 72, containLabel: true },
+          xAxis: { type: "category", data: d.x, boundaryGap: !area, axisLabel: { rotate: m.narrow ? 60 : 0 } },
+          yAxis: { type: "value", max: pct ? 100 : null, axisLabel: { formatter: pct ? "{value}%" : axisFmt } },
+          dataZoom: d.x.length > 20 ? [{ type: "inside" }] : [],
+          series: series
+        }));
+      },
+      grouped: function (id, d) {
+        var m = make(id); if (!m) return;
+        m.c.setOption(window.GovEcharts.option({
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: axisTip("", true) },
+          legend: { bottom: 0 },
+          grid: { left: 8, right: 48, top: 8, bottom: 40, containLabel: true },
+          xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+          yAxis: { type: "category", inverse: true, data: d.names,
+                   axisLabel: { width: m.narrow ? 100 : 180, overflow: "truncate" } },
+          series: d.series.map(function (s) {
+            return { name: s.name, type: "bar", data: s.data, barMaxWidth: 16 };
+          })
+        }));
+      }
+    };
+  })();
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    window.KrCharts.lines("chart-yearly", d, "", false);
+  })();
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.months[p.value[0]] + " " + d.years[p.value[1]]) + ": " +
+          Number(p.value[2]).toLocaleString("he-IL") + " תיקים";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 60 : 0 } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 4,
+                   inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+                   textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontFamily: "Rubik", fontSize: 10 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    window.KrCharts.barH("chart-funnel", {{ model.charts.funnel | tojson }}, "תיקים", false);
+    window.KrCharts.barH("chart-reasons", {{ model.charts.reasons | tojson }}, "תיקים", false);
+  })();
+{%- if model.flags.mix %}
+  (function () {
+    window.KrCharts.stack("chart-mix", {{ model.charts.mix | tojson }}, "", true, false);
+  })();
+{%- endif %}
+  (function () {
+    window.KrCharts.barV("chart-duration", {{ model.charts.duration | tojson }}, "תיקים");
+    window.KrCharts.stack("chart-courts", {{ model.charts.courts | tojson }}, "תיקים", false, false);
+  })();
+{%- if model.flags.cities %}
+  (function () {
+    window.KrCharts.barH("chart-cities", {{ model.charts.cities | tojson }}, "תיקים", false);
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.s42 | tojson }};
+    window.KrCharts.lines("chart-s42", { x: d.x, series: [{ name: "כולל סעיף 42", data: d.y }] }, "", true);
+    window.KrCharts.barV("chart-bank", {{ model.charts.bank | tojson }}, "תיקים");
+    window.KrCharts.barV("chart-amt", {{ model.charts.amt | tojson }}, "תיקים");
+  })();
+</script>
+
+<script>
+  (function () {
+    window.KrCharts.lines("chart-c-yearly", {{ model.charts.c_yearly | tojson }}, "", false);
+    window.KrCharts.barH("chart-c-reasons", {{ model.charts.c_reasons | tojson }}, "תיקים", false);
+    window.KrCharts.barH("chart-c-courts", {{ model.charts.c_courts | tojson }}, "תיקים", false);
+{%- if model.flags.c_duration %}
+    window.KrCharts.barV("chart-c-duration", {{ model.charts.c_duration | tojson }}, "תיקים");
+{%- endif %}
+{%- if model.flags.c_cities %}
+    window.KrCharts.barH("chart-c-cities", {{ model.charts.c_cities | tojson }}, "תיקים", false);
+{%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    var y = {{ model.charts.d_yearly | tojson }};
+    window.KrCharts.stack("chart-d-yearly", y, "תביעות", false, false);
+    window.KrCharts.barH("chart-d-type", {{ model.charts.d_type | tojson }}, "תביעות", false);
+    window.KrCharts.grouped("chart-d-sys", {{ model.charts.d_sys | tojson }});
+    window.KrCharts.stack("chart-d-ymix", {{ model.charts.d_ymix | tojson }}, "", true, true);
+    window.KrCharts.barH("chart-d-status", {{ model.charts.d_status | tojson }}, "תביעות", false);
+{%- if model.flags.pri %}
+    window.KrCharts.barH("chart-d-pri", {{ model.charts.d_pri | tojson }}, "", true);
+{%- endif %}
+    window.KrCharts.barV("chart-d-size", {{ model.charts.d_size | tojson }}, "תביעות");
+  })();
+</script>

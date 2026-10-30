@@ -1,0 +1,10 @@
+{
+  "stations.Name": "map-stations, chart-nn, table:list, kpi:planned, insight:planned, insight:rivals, insight:isolated — station label; \"בתכנון\" marks a planned site",
+  "stations.ADDRESS": "map-stations, chart-addr, table:list — address completeness classified by presence of a house number",
+  "stations.firma": "map-stations, chart-brand, chart-sectors, chart-nnbands, kpi:brands, kpi:lead, kpi:planned, insight:leader, insight:singles, insight:rivals, insight:rivalshare, table:list",
+  "stations.lat": "map-stations, chart-dist, chart-sectors, chart-nnbands, chart-nn, insight:rivals, insight:isolated, insight:sector",
+  "stations.lon": "map-stations, chart-dist, chart-sectors, chart-nnbands, chart-nn, insight:rivals, insight:isolated, insight:sector",
+  "resource:211eba0b-da80-448e-9042-fb4df8950336": "skip: XLSX twin of the CSV, identical rows",
+  "resource:70d04598-8278-4539-a0d8-cf9d7e9a9030": "skip: same stations in ITM coordinates (columns named lat/lon hold northing/easting)",
+  "resource:426a7321-7b8c-4a88-87b1-275056364f6f": "skip: XLSX twin of the ITM resource"
+}

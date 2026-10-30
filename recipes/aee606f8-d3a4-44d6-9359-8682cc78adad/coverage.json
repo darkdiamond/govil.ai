@@ -1,0 +1,11 @@
+{
+  "clubs.Id": "skip: constant 0 in every row, not an identifier",
+  "clubs.name": "map-clubs, chart-nn, table:list, kpi:clubs, insight:names, insight:isolated, insight:closest — club label and dedup key",
+  "clubs.address": "map-clubs, table:list, insight:streets — popup field; streets hosting more than one club",
+  "clubs.type": "chart-type, chart-family, table:list, kpi:daycentres, kpi:types, insight:type, insight:family, insight:sheltered",
+  "clubs.lat": "map-clubs, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "clubs.lon": "map-clubs, chart-dist, chart-sectors, chart-nn, kpi:nn, insight:centre, insight:sector, insight:isolated, insight:closest",
+  "resource:78dadd17-b707-4503-a845-0c28fc922303": "skip: XLSX twin of the CSV, identical rows",
+  "resource:ab2e41c1-3410-4378-b85e-6810e50bb70c": "skip: same clubs in ITM coordinates (columns named lat/lon hold easting/northing)",
+  "resource:ae722b10-0aa0-41e1-9e02-5035669337ee": "skip: XLSX twin of the ITM resource"
+}

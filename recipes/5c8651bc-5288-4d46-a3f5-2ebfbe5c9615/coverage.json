@@ -1,0 +1,16 @@
+{
+  "centers.institute_code": "table:directory — used only as a dedup / sort tie-break key; not shown",
+  "centers.institute_name": "table:directory, chart-networks, insight:networks, insight:shared_phone, insight:no_city — networks are read from the first word of the name",
+  "centers.city_code": "skip: numeric code duplicating the city name",
+  "centers.city": "chart-cities, chart-reach, table:directory, kpi:cities, insight:spread, insight:adapted, insight:no_city",
+  "centers.street_code": "skip: numeric code, empty on all but a couple of rows; the street is part of full_address",
+  "centers.street": "skip: the street is already part of the free-text full_address shown in the directory",
+  "centers.full_address": "table:directory, chart-contact, insight:contact",
+  "centers.email": "table:directory, chart-contact, insight:contact — empty on every row today; shown if published",
+  "centers.phone": "table:directory, chart-contact, insight:shared_phone, insight:contact",
+  "centers.phone2": "table:directory, chart-contact, insight:contact",
+  "centers.families_center_type": "skip: numeric code duplicating families_center_type_name",
+  "centers.families_center_type_name": "chart-types, chart-cross, table:directory, kpi:hosp, insight:types, insight:hosp_general",
+  "centers.adjustment": "skip: numeric code duplicating adjustment_name",
+  "centers.adjustment_name": "chart-adj, chart-cross, chart-cities, chart-reach, table:directory, kpi:adapted, insight:adapted, insight:hosp_general"
+}

@@ -1,0 +1,214 @@
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-64 md:h-80") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, cap) }}
+</section>
+{%- endmacro %}
+<h1>מועדונים חברתיים לקשיש בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מועדון גמלאים או מרכז יום לפי שם או כתובת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המועדון, כתובת (רחוב ומספר) וסוג המסגרת.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["clubs", "daycentres", "types", "nn"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המועדונים ומרכזי היום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-clubs" class="h-72 md:h-[420px]"></div>
+</section>
+
+{{ chart_section("chart-type", "list", "סוגי המסגרות", model.labels.type_note, model.labels.type_aria, model.labels.type_cap, model.tables.type, "h-72 md:h-96") }}
+
+{{ chart_section("chart-family", "list", "מועדון, מרכז יום או מבנה מגורים", model.labels.family_note, model.labels.family_aria, model.labels.family_cap, model.tables.family) }}
+
+{% if model.flags.geo %}
+{{ chart_section("chart-dist", "map-pin", "מרחק ממרכז המועדונים", model.labels.dist_note, model.labels.dist_aria, model.labels.dist_cap, model.tables.dist) }}
+
+{{ chart_section("chart-sectors", "map-pin", "פריסה לפי כיוון", model.labels.sectors_note, model.labels.sectors_aria, model.labels.sectors_cap, model.tables.sectors, "h-72 md:h-96") }}
+
+{{ chart_section("chart-nn", "map-pin", "המרחק למועדון הקרוב", model.labels.nn_note, model.labels.nn_aria, model.labels.nn_cap, model.tables.nn, "h-80 md:h-[460px]") }}
+{% endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת המועדונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.list_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.list_cap }}</caption>
+    <thead><tr>{% for h_ in model.tables.list.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in model.tables.list.rows %}
+      <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-clubs",
+    resourceId: {{ inputs.clubs[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: false,
+    popupTitleField: "name",
+    popupFields: [{ field: "address", label: "כתובת" }, { field: "type", label: "סוג" }]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__mk = mk;
+    window.__vbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var T = {{ model.charts.type | tojson }};
+    var c = window.__mk("chart-type");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: T.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מועדונים", data: T.values.slice().reverse(), label: { show: true, position: "insideRight" } }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var F = {{ model.charts.family | tojson }};
+    var c = window.__mk("chart-family");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item" },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ type: "pie", name: "מועדונים", radius: ["38%", "64%"], center: ["50%", "44%"],
+                 label: { formatter: "{c}" }, data: F.items }]
+    }));
+  })();
+</script>
+
+{% if model.flags.geo %}
+<script>
+  (function () {
+    var D = {{ model.charts.dist | tojson }};
+    window.__vbar("chart-dist", D, "מועדונים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.sectors | tojson }};
+    var c = window.__mk("chart-sectors");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item" },
+      polar: { radius: ["12%", "72%"] },
+      angleAxis: { type: "category", data: S.names, startAngle: 112.5, clockwise: true, axisLabel: { fontSize: 11 } },
+      radiusAxis: { type: "value", minInterval: 1, axisLabel: { show: false } },
+      series: [{ type: "bar", coordinateSystem: "polar", name: "מועדונים", data: S.values }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var N = {{ model.charts.nn | tojson }};
+    var c = window.__mk("chart-nn");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מ׳"; } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4 },
+      yAxis: { type: "category", data: N.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מרחק למועדון הקרוב", data: N.values.slice().reverse() }]
+    }));
+  })();
+</script>
+{% endif %}

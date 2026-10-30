@@ -1,0 +1,294 @@
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-64 md:h-80") %}
+<section class="card p-5 mb-6">
+{{ head(icon, title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, cap) }}
+</section>
+{%- endmacro %}
+<h1>גינות כלבים בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור גינת כלבים לפי שם הגינה או הפארק ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הגינה (לרוב כולל את הפארק או השכונה), שטח והיקף.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["parks", "area", "median", "nn"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת גינות הכלבים (פינות כלבים) בעיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-parks" class="h-72 md:h-[420px]"></div>
+</section>
+
+{{ chart_section("chart-area", "database", "הגינות לפי שטח", model.labels.area_note, model.labels.area_aria, model.labels.area_cap, model.tables.area, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-bands", "database", "התפלגות הגדלים", model.labels.bands_note, model.labels.bands_aria, model.labels.bands_cap, model.tables.bands) }}
+
+{% if model.flags.pareto %}
+{{ chart_section("chart-pareto", "database", "ריכוז השטח בגינות הגדולות", model.labels.pareto_note, model.labels.pareto_aria, model.labels.pareto_cap, model.tables.pareto) }}
+{% endif %}
+
+{% if model.flags.shape %}
+<section class="card p-5 mb-6">
+{{ head("database", "צורת הגינות: היקף מול שטח") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shape_note }}</p>
+  <div id="chart-shape" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.shape_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+{{ chart_section("chart-sectors", "map-pin", "פריסה לפי כיוון", model.labels.sectors_note, model.labels.sectors_aria, model.labels.sectors_cap, model.tables.sectors, "h-72 md:h-96") }}
+
+{{ chart_section("chart-dist", "map-pin", "מרחק ממרכז הגינות", model.labels.dist_note, model.labels.dist_aria, model.labels.dist_cap, model.tables.dist) }}
+
+{% if model.flags.nn %}
+{{ chart_section("chart-nn", "map-pin", "המרחק לגינת הכלבים הקרובה", model.labels.nn_note, model.labels.nn_aria, model.labels.nn_cap, model.tables.nn, "h-80 md:h-[460px]") }}
+{% endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "רשימת גינות הכלבים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.list_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.list_cap }}</caption>
+    <thead><tr>{% for h_ in model.tables.list.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+    <tbody>
+{%- for r in model.tables.list.rows %}
+      <tr><th scope="row">{{ r[0] }}</th>{% for c in r[1:] %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-parks",
+    resourceId: {{ inputs.parks[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: false,
+    popupTitleField: "name",
+    popupFields: [
+      { field: "SHAPE_Area", label: "שטח (מ״ר)" },
+      { field: "SHAPE_Leng", label: "היקף (מ׳)" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__dpMk = mk;
+    window.__dpFmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+  })();
+</script>
+
+<script>
+  (function () {
+    var A = {{ model.charts.area | tojson }};
+    var c = window.__dpMk("chart-area");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return window.__dpFmt(v) + " מ״ר"; } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4 },
+      yAxis: { type: "category", data: A.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate", fontSize: 11 } },
+      series: [{
+        type: "bar", name: "שטח", data: A.values.slice().reverse(),
+        markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: "#6c757d" },
+          label: { formatter: "חציון", color: "#6c757d" }, data: [{ xAxis: A.median }] }
+      }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var B = {{ model.charts.bands | tojson }};
+    var c = window.__dpMk("chart-bands");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 8, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: B.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 30 : 0 } },
+      yAxis: [
+        { type: "value", minInterval: 1, name: "גינות" },
+        { type: "value", name: "% מהשטח", axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "גינות", data: B.counts },
+        { type: "line", name: "שיעור מהשטח", yAxisIndex: 1, data: B.shares, color: window.GOVIL_PALETTE[5],
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = {{ model.charts.pareto | tojson }};
+    var c = window.__dpMk("chart-pareto");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: {
+        trigger: "axis",
+        formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(P.names[i]) + "<br/>" + (i + 1) + " הגדולות: " + P.cum[i] + "%";
+        }
+      },
+      grid: { left: 8, right: 16, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: P.ranks, name: "גינות", nameLocation: "middle", nameGap: 24, boundaryGap: false },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "line", name: "שיעור מצטבר מהשטח", data: P.cum, areaStyle: { opacity: 0.15 }, symbolSize: 5 },
+        { type: "line", name: "חלוקה שווה", data: P.even, symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" }, color: "#6c757d" }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.shape | tojson }};
+    var c = window.__dpMk("chart-shape");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          var d = p.data;
+          return echarts.format.encodeHTML(d[3]) + "<br/>שטח: " + window.__dpFmt(d[1]) + " מ״ר<br/>היקף: " +
+            window.__dpFmt(d[0]) + " מ׳<br/>קומפקטיות: " + d[2];
+        }
+      },
+      visualMap: { dimension: 2, min: S.cmin, max: S.cmax, calculable: false, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 80, text: ["קומפקטית", "מוארכת"], inRange: { color: ["#c3cfe7", "#0068f5", "#0b3668"] } },
+      grid: { left: 8, right: 24, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "value", name: "היקף (מ׳)", nameLocation: "middle", nameGap: 26, scale: true },
+      yAxis: { type: "value", name: "שטח (מ״ר)", scale: true },
+      series: [{ type: "scatter", name: "גינות", data: S.points, symbolSize: 12 }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.sectors | tojson }};
+    var c = window.__dpMk("chart-sectors");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          var i = p.dataIndex;
+          return echarts.format.encodeHTML(S.names[i]) + "<br/>" + S.counts[i] + " גינות<br/>" + window.__dpFmt(S.areas[i]) + " מ״ר";
+        }
+      },
+      polar: { radius: ["12%", "72%"] },
+      angleAxis: { type: "category", data: S.names, startAngle: 112.5, clockwise: true, axisLabel: { fontSize: 11 } },
+      radiusAxis: { type: "value", axisLabel: { show: false } },
+      series: [{ type: "bar", coordinateSystem: "polar", name: "שטח (מ״ר)", data: S.areas }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var D = {{ model.charts.dist | tojson }};
+    var c = window.__dpMk("chart-dist");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 8, top: 36, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: D.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 30 : 0 } },
+      yAxis: [
+        { type: "value", minInterval: 1, name: "גינות" },
+        { type: "value", name: "מ״ר", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "גינות", data: D.counts },
+        { type: "line", name: "שטח (מ״ר)", yAxisIndex: 1, data: D.areas, color: window.GOVIL_PALETTE[5] }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var N = {{ model.charts.nn | tojson }};
+    var c = window.__dpMk("chart-nn");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return window.__dpFmt(v) + " מ׳"; } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4 },
+      yAxis: { type: "category", data: N.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "מרחק לגינה הקרובה", data: N.values.slice().reverse() }]
+    }));
+  })();
+</script>

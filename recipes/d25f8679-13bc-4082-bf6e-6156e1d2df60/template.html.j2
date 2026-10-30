@@ -1,0 +1,227 @@
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-64 md:h-80") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, cap) }}
+</section>
+{%- endmacro %}
+<h1>מתקני ספורט בבאר שבע</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מגרש, אולם ספורט או מתקן כושר לפי שם, שכונה או רחוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם האתר, סוג המתקן, רחוב, שכונה, גורם מפעיל ובית הספר המשורת.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in ["total", "open", "access", "lit", "nbhd", "school"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת מתקני הספורט</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }} {{ model.labels.addr_note }}</p>
+  <div id="map-facilities" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+{{ chart_section("chart-fam", "list", "מתקנים לפי סוג", model.labels.fam_note, model.labels.fam_aria, model.labels.fam_cap, model.tables.fam, "h-72 md:h-96") }}
+
+{{ chart_section("chart-acc", "info", "פתוח לציבור או בתיאום מראש", model.labels.acc_note, model.labels.acc_aria, model.labels.acc_cap, model.tables.acc, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-amen", "circle-check", "גידור, תאורה, נגישות ותקינות", model.labels.amen_note, model.labels.amen_aria, model.labels.amen_cap, model.tables.amen) }}
+
+{% if model.flags.famamen %}
+{{ chart_section("chart-famamen", "circle-check", "תאורה, נגישות וגידור לפי סוג מתקן", model.labels.famamen_note, model.labels.famamen_aria, model.labels.famamen_cap, model.tables.famamen, "h-80 md:h-[460px]") }}
+{% endif %}
+
+{{ chart_section("chart-nb", "map-pin", "מתקנים לפי שכונה", model.labels.nb_note, model.labels.nb_aria, model.labels.nb_cap, model.tables.nb, "h-80 md:h-[460px]") }}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מפעיל את המתקנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.oper_note }} {{ model.labels.own_note }}</p>
+  <div id="chart-oper" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.oper_aria }}"></div>
+{{ fallback(model.tables.oper, model.labels.oper_cap) }}
+</section>
+
+{% if model.flags.sites %}
+{{ chart_section("chart-sites", "building-2", "אתרים עם כמה מתקנים", model.labels.sites_note, model.labels.sites_aria, model.labels.sites_cap, model.tables.sites, "h-72 md:h-96") }}
+{% endif %}
+
+{% if model.flags.seats %}
+{{ chart_section("chart-seats", "building-2", "יציעים ומקומות ישיבה לקהל", model.labels.seats_note, model.labels.seats_aria, model.labels.seats_cap, model.tables.seats) }}
+{% endif %}
+
+{% if model.flags.sports %}
+{{ chart_section("chart-sports", "tag", "ענפי ספורט מוצהרים", model.labels.sports_note, model.labels.sports_aria, model.labels.sports_cap, model.tables.sports) }}
+{% endif %}
+
+{% if model.flags.clubs %}
+{{ chart_section("chart-clubs", "tag", "אגודות ספורט פעילות במתקנים", model.labels.clubs_note, model.labels.clubs_aria, model.labels.clubs_cap, model.tables.clubs) }}
+{% endif %}
+
+<script>
+  GovMap.create({
+    container: "#map-facilities",
+    resourceId: {{ inputs.facilities[0].id | tojson }},
+    latField: "lat",
+    lngField: "lon",
+    projection: "wgs84",
+    cluster: true,
+    popupTitleField: "Name",
+    popupFields: [
+      { field: "Type", label: "סוג מתקן" },
+      { field: "neighborho", label: "שכונה" },
+      { field: "street", label: "רחוב" },
+      { field: "Activity", label: "פעילות" },
+      { field: "Operator", label: "גורם מפעיל" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__mk = mk;
+    window.__hbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values.slice().reverse() }]
+      }));
+    };
+    window.__vbar = function (id, d, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: [{ type: "bar", name: unit, data: d.values }]
+      }));
+    };
+    window.__stack = function (id, d, colors) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0 },
+        grid: { left: 8, right: 24, top: 36, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "all", name: s.name, data: s.data.slice().reverse() };
+        })
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    window.__hbar("chart-fam", {{ model.charts.fam | tojson }}, "מתקנים");
+    window.__hbar("chart-nb", {{ model.charts.nb | tojson }}, "מתקנים");
+    window.__hbar("chart-oper", {{ model.charts.oper | tojson }}, "מתקנים");
+  })();
+</script>
+
+<script>
+  (function () {
+    window.__stack("chart-acc", {{ model.charts.acc | tojson }}, ["#198754", "#0068f5", "#c3cfe7"]);
+    window.__stack("chart-amen", {{ model.charts.amen | tojson }}, ["#198754", "#dc3545", "#c3cfe7"]);
+  })();
+</script>
+
+<script>
+  (function () {
+    var F = {{ model.charts.famamen | tojson }};
+    var c = window.__mk("chart-famamen");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 24, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: F.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+      series: F.series.map(function (s) {
+        return { type: "bar", name: s.name, data: s.data.slice().reverse() };
+      })
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.sites | tojson }};
+    if (S.names.length) { window.__hbar("chart-sites", S, "מתקנים"); }
+    var T = {{ model.charts.seats | tojson }};
+    if (T.names.length) { window.__hbar("chart-seats", T, "מקומות ישיבה"); }
+    var P = {{ model.charts.sports | tojson }};
+    if (P.names.length) { window.__vbar("chart-sports", P, "מתקנים"); }
+    var K = {{ model.charts.clubs | tojson }};
+    if (K.names.length) { window.__vbar("chart-clubs", K, "מתקנים"); }
+  })();
+</script>

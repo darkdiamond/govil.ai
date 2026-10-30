@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a906f71d-e4c2-40d2-a16e-dd07e3f04a13",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:06:42.803872+00:00",
+    "rows": { "centers": 15 }
+  },
+  "inputs": [
+    {
+      "name": "centers",
+      "by_id": "8e08e632-a903-4f85-9260-f145ab2530e7",
+      "required_columns": ["ID", "Name", "Address", "neighborho", "lat", "lon"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

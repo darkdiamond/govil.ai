@@ -1,0 +1,447 @@
+<h1>סטטיסטיקת הנפקת רישיונות שהייה לזרים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} נתוני רשות האוכלוסין וההגירה על רישיונות ישיבה (אשרות) שניתנו לזרים: ביקור ותיירות, עבודה (היתרי עבודה לעובדים זרים לפי ענף), לימודים, בני משפחה ועוד, כולל הארכות ותיקונים.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ref_total.tone }} mb-1" dir="ltr">{{ model.kpis.ref_total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ref_total_kpi }}</div>
+  </div>
+{%- if model.flags.ytd %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ytd.tone }} mb-1" dir="ltr">{{ model.kpis.ytd.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ytd_kpi }}</div>
+  </div>
+{%- endif %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.vs_peak.tone }} mb-1" dir="ltr">{{ model.kpis.vs_peak.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.vs_peak_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.work.tone }} mb-1" dir="ltr">{{ model.kpis.work.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.work_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ext.tone }} mb-1" dir="ltr">{{ model.kpis.ext.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ext_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.span_kpi }}</div>
+  </div>
+</div>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">חיפוש רישיונות לפי ארץ דרכון, סוג אשרה או ענף ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שנה וחודש, סוג אשרה ותת-אשרה, ענף היתר העבודה, מין, קבוצת גיל וארץ דרכון</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישיונות חדשים לפי שנה</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.yearly_lede }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">ביקור ותיירות</th><th scope="col">שאר הסוגים</th><th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.yearly.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.yearly.tour[loop.index0] | fmt_int }}</td><td>{{ model.charts.yearly.other[loop.index0] | fmt_int }}</td><td>{{ model.charts.yearly.total[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישיונות חדשים לפי חודש</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.monthly_lede }}</p>
+  <div id="chart-monthly" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות התיירות: חודש מול שנה</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רישיונות שאינם לביקור: הרכב לפי סוג</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.mix_lede }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for s in model.charts.mix.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.sectors %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עובדים זרים: היתרי עבודה לפי ענף</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.sectors_lede }}</p>
+  <div id="chart-sectors" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sectors_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sectors_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for s in model.charts.sectors.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.sectors %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">ארצות הדרכון המובילות: ביקור ותיירות</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.tour_c_lede }}</p>
+    <div id="chart-tour-c" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tour_c_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.tour_c_aria }}</caption>
+        <thead><tr><th scope="col">ארץ דרכון</th><th scope="col">{{ model.labels.ref_year }}</th><th scope="col">{{ model.labels.base_year }}</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.tour_c.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.tour_c.cur[loop.index0] | fmt_int }}</td><td>{{ model.charts.tour_c.old[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.work_c %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">ארצות הדרכון המובילות: עבודה</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.work_c_lede }}</p>
+    <div id="chart-work-c" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.work_c_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.work_c_aria }}</caption>
+        <thead><tr><th scope="col">ארץ דרכון</th><th scope="col">{{ model.labels.ref_year }}</th><th scope="col">{{ model.labels.base_year }}</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.work_c.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.work_c.cur[loop.index0] | fmt_int }}</td><td>{{ model.charts.work_c.old[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.s25_title }}</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.s25_lede }}</p>
+  <div id="chart-s25" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.s25_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.s25_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">רישיונות חדשים</th><th scope="col">הארכות</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.s25.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.s25.new[loop.index0] | fmt_int }}</td><td>{{ model.charts.s25.ext[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מין וגיל של מקבלי הרישיונות</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.pyr_lede }}</p>
+    <div id="chart-pyr" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.pyr_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pyr_aria }}</caption>
+        <thead><tr><th scope="col">קבוצת גיל</th><th scope="col">גברים</th><th scope="col">נשים</th></tr></thead>
+        <tbody>
+{%- for a in model.charts.pyramid.ages %}
+          <tr><th scope="row">{{ a }}</th><td>{{ model.charts.pyramid.men[loop.index0] | fmt_int }}</td><td>{{ model.charts.pyramid.women[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיעור הנשים לפי סוג רישיון</h2>
+    <p class="text-sm text-subtle mb-3">{{ model.labels.women_lede }}</p>
+    <div id="chart-women" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.women_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.women_aria }}</caption>
+        <thead><tr><th scope="col">סוג רישיון</th><th scope="col">שיעור נשים</th><th scope="col">רישיונות (מין רשום)</th></tr></thead>
+        <tbody>
+{%- for n in model.charts.women.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ model.charts.women.share[loop.index0] | fmt_num }}%</td><td>{{ model.charts.women.n[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הארכות ותיקונים של רישיונות</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.flows_lede }}</p>
+  <div id="chart-flows" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.flows_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.flows_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">הארכות</th><th scope="col">תיקונים</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.flows.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.flows.ext[loop.index0] | fmt_int }}</td><td>{{ model.charts.flows.fix[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">מסמך זה מכיל סטטיסטיקה על הנפקת רישיונות שהייה חדשים שניתנו לזרים, לפי שנה, סוג רישיון, מין, קבוצת גיל, ארץ אזרחות הזר, היתר עבודה לפי ענף (לעובדים זרים).</p>
+</section>
+
+<script>
+  (function () {
+    const fmt = (v) => Number(v).toLocaleString("he-IL");
+    const mk = (id) => { const el = document.getElementById(id); if (!el) return null; const c = echarts.init(el); window.addEventListener("resize", () => c.resize()); return c; };
+    window.__lic = { fmt: fmt, mk: mk };
+  })();
+  (function () {
+    const d = {{ model.charts.yearly | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-yearly"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+      series: [
+        { name: "ביקור ותיירות", type: "bar", stack: "t", data: d.tour },
+        { name: "שאר הסוגים", type: "bar", stack: "t", data: d.other }
+      ]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-monthly"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "ביקור", axisLabel: { formatter: (v) => fmt(v) } },
+        { type: "value", name: "שאר הסוגים", splitLine: { show: false }, axisLabel: { formatter: (v) => fmt(v) } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { name: "ביקור ותיירות", type: "line", showSymbol: false, data: d.tour },
+        { name: "שאר הסוגים (ציר משני)", type: "line", yAxisIndex: 1, showSymbol: false, data: d.other }
+      ]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-heat"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: (p) => { const enc = echarts.format.encodeHTML; return enc(d.months[p.value[0]]) + " " + enc(d.years[p.value[1]]) + ": " + fmt(p.value[2]); } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" },
+        formatter: (v) => fmt(Math.round(v)) },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.mix | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-mix"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+      series: d.series.map((s) => ({ name: s.name, type: "bar", stack: "m", data: s.data }))
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.sectors | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-sectors"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+      series: d.series.map((s) => ({ name: s.name, type: "bar", stack: "s", data: s.data }))
+    }));
+  })();
+  (function () {
+    const tc = {{ model.charts.tour_c | tojson }};
+    const wc = {{ model.charts.work_c | tojson }};
+    const ys = {{ [model.labels.ref_year, model.labels.base_year] | tojson }};
+    const { fmt, mk } = window.__lic;
+    [["chart-tour-c", tc], ["chart-work-c", wc]].forEach(([id, d]) => {
+      const c = mk(id); if (!c) return;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v), rotate: 30 } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+        series: [
+          { name: ys[0], type: "bar", data: d.cur.slice().reverse() },
+          { name: ys[1], type: "bar", data: d.old.slice().reverse() }
+        ]
+      }));
+    });
+  })();
+  (function () {
+    const d = {{ model.charts.s25 | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-s25"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => fmt(v) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+      series: [
+        { name: "רישיונות חדשים", type: "bar", data: d.new },
+        { name: "הארכות", type: "line", data: d.ext }
+      ]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.pyramid | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-pyr"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(Math.abs(v)) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: (v) => fmt(Math.abs(v)), rotate: 30 } },
+      yAxis: { type: "category", data: d.ages, axisTick: { show: false } },
+      series: [
+        { name: "גברים", type: "bar", stack: "p", data: d.men.map((v) => -v) },
+        { name: "נשים", type: "bar", stack: "p", data: d.women }
+      ]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.women | tojson }};
+    const { mk } = window.__lic;
+    const c = mk("chart-women"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v + "%" },
+      grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ name: "שיעור נשים", type: "bar", data: d.share.slice().reverse(),
+        label: { show: true, position: "right", formatter: (p) => p.value + "%" } }]
+    }));
+  })();
+  (function () {
+    const d = {{ model.charts.flows | tojson }};
+    const { fmt, mk } = window.__lic;
+    const c = mk("chart-flows"); if (!c) return;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => fmt(v) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => fmt(v) } },
+      series: [
+        { name: "הארכות", type: "bar", data: d.ext },
+        { name: "תיקונים", type: "bar", data: d.fix }
+      ]
+    }));
+  })();
+</script>

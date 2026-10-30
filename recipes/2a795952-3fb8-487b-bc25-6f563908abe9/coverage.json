@@ -1,0 +1,11 @@
+{
+  "main.OID": "skip: constant (-1 on every row), an export artifact with no meaning",
+  "main.MIHCODE": "table:junctions, table:road_dirs — two-letter interchange code, unique per row; also searchable in the explorer",
+  "main.MIHNAME": "table:junctions, table:road_dirs, insight:triple, insight:missing — interchange name",
+  "main.MIHTYPE": "chart-types, chart-auth, kpi:full, insight:types, insight:missing, table:junctions, table:road_dirs — interchange type",
+  "main.ROAD1": "chart-roads, chart-nroads, chart-classes, chart-pairs, kpi:roads, insight:top_road, insight:single, insight:triple, table:road_dirs, table:junctions — first connecting road (0 = none)",
+  "main.ROAD2": "chart-roads, chart-nroads, chart-classes, chart-pairs, kpi:roads, insight:top_road, insight:single, insight:triple, table:road_dirs, table:junctions — second connecting road (0 = none)",
+  "main.ROAD3": "chart-roads, chart-nroads, chart-classes, chart-pairs, kpi:roads, insight:triple, table:road_dirs, table:junctions — third connecting road (0 = none)",
+  "main.TRAFAUTH": "chart-auth, kpi:lead_auth, insight:auth, insight:municipal, insight:missing, table:junctions — traffic authority",
+  "resource:481e104a-ce2a-4eab-9bd7-e7eb149e7748": "skip: metadata sheet (publisher, field descriptions); field meanings used for labels only"
+}
