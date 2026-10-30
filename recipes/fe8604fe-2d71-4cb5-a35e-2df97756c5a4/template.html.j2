@@ -1,0 +1,440 @@
+<h1>כלי רכב שירדו מהכביש ובסטטוס ביטול סופי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ytd.tone }} mb-1" dir="ltr">{{ model.kpis.ytd.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ytd_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ytd_change.tone }} mb-1" dir="ltr">{{ model.kpis.ytd_change.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ytd_change_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.med_age.tone }} mb-1" dir="ltr">{{ model.kpis.med_age.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.age_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% macro rank_table(rows, caption, head, unit="כלי רכב", share="שיעור (%)") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th><th scope="col">{{ share }}</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+{% macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+
+<section class="card p-5 mb-6">
+  {{ head("ביטולים סופיים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">כלי רכב שבוטלו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.yearly %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("קצב הביטולים החודשי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("עונתיות: חודש מול שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("גיל הרכב בעת הביטול") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_trend_note }}</p>
+    <div id="chart-age-trend" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_trend_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.age_trend_aria }}</caption>
+        <thead><tr><th scope="col">שנת ביטול</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.age_trend %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.q1 }}</td><td>{{ r.med }}</td><td>{{ r.q3 }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.age_hist %}
+  <section class="card p-5">
+    {{ head("התפלגות הגיל: אז והיום") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_hist_note }}</p>
+    <div id="chart-age-hist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.age_hist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.age_hist_aria }}</caption>
+        <thead><tr><th scope="col">גיל (שנים)</th>{% for c in model.tables.age_hist_cols %}<th scope="col">{{ c }} (%)</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.age_hist %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.cols %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("איזה סוג רכב יורד מהכביש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+      <thead><tr><th scope="col">סוג רכב</th><th scope="col">כלי רכב (כל השנים)</th><th scope="col">שיעור (%)</th><th scope="col">שיעור בשנה המלאה הראשונה (%)</th><th scope="col">שיעור בשנה המלאה האחרונה (%)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.first }}</td><td>{{ r.last }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("יצרנים מובילים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.brands_note }}</p>
+    <div id="chart-brands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.brands_aria }}"></div>
+    {{ rank_table(model.tables.brands, model.labels.brands_aria, "יצרן") }}
+  </section>
+{%- if model.flags.shift %}
+  <section class="card p-5">
+    {{ head("מי יורד מהכביש: אז מול היום") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shift_note }}</p>
+    <div id="chart-shift" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.shift_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.shift_aria }}</caption>
+        <thead><tr><th scope="col">יצרן</th><th scope="col">{{ model.charts.shift.early_label }} (%)</th><th scope="col">{{ model.charts.shift.recent_label }} (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.shift %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.early }}</td><td>{{ r.recent }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.models %}
+<section class="card p-5 mb-6">
+  {{ head("הדגמים שבוטלו הכי הרבה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.models_note }}</p>
+  <div id="chart-models" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.models_aria }}"></div>
+  {{ rank_table(model.tables.models, model.labels.models_aria, "דגם (יצרן)", share="שיעור מהרשומות עם כינוי (%)") }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.ev %}
+  <section class="card p-5">
+    {{ head("חשמליים והיברידיים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ev_note }}</p>
+    <div id="chart-ev" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ev_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ev_aria }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for c in model.tables.ev_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">שיעור מהביטולים (%)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ev %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.cols %}<td>{{ v }}</td>{% endfor %}<td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+    {{ rank_table(model.tables.fuel, model.labels.fuel_caption, "סוג דלק (כל השנים)") }}
+  </section>
+{%- endif %}
+{%- if model.flags.owner %}
+  <section class="card p-5">
+    {{ head("סוג הבעלות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owner_note }}</p>
+    <div id="chart-owner" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.owner_aria }}"></div>
+    {{ rank_table(model.tables.owner, model.labels.owner_aria, "בעלות (כל השנים)") }}
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("צבע הרכב") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.colors_note }}</p>
+    <div id="chart-colors" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.colors_aria }}"></div>
+    {{ rank_table(model.tables.colors, model.labels.colors_aria, "צבע", share="שיעור מהצבעים הידועים (%)") }}
+  </section>
+  <section class="card p-5">
+    {{ head("הימים העמוסים ביותר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.days_note }}</p>
+    <div id="chart-days" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.days_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.days_aria }}</caption>
+        <thead><tr><th scope="col">תאריך</th><th scope="col">כלי רכב שבוטלו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.days %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    var data = d.y.map(function (v, i) {
+      return d.partial[i] ? { value: v, itemStyle: { color: "#9a6700" } } : v;
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (p) {
+          var i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.x[i]) + (d.partial[i] ? " (שנה חלקית)" : "") + "<br>" + d.y[i].toLocaleString("he-IL") + " כלי רכב";
+        } },
+      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "ביטולים", data: data }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.monthly | tojson }};
+    var c = echarts.init(document.getElementById("chart-monthly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 40, right: 16, top: 32, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside", start: d.zoom_start, end: 100 },
+                 { type: "slider", start: d.zoom_start, end: 100, bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "ביטולים", data: d.y, showSymbol: false, areaStyle: { opacity: 0.12 } },
+        { type: "line", name: "ממוצע נע שנתי", data: d.avg, showSymbol: false, lineStyle: { width: 2.5, color: "#0b3668" }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.months[p.data[0]] + " " + d.years[p.data[1]]) + "<br>" + p.data[2].toLocaleString("he-IL") + " כלי רכב";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+                   itemHeight: 120, inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+                   textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", name: "ביטולים", data: d.cells,
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.age_trend | tojson }};
+    var c = echarts.init(document.getElementById("chart-age-trend"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>חציון: " + d.med[i] + " שנים<br>רבעונים: " + d.q1[i] + " עד " + d.q3[i] + " שנים";
+      } },
+      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", name: "שנים", scale: true },
+      series: [
+        { type: "line", name: "רבעון תחתון", data: d.q1, stack: "band", lineStyle: { opacity: 0 }, showSymbol: false, silent: true },
+        { type: "line", name: "טווח בין-רבעוני", data: d.band, stack: "band", lineStyle: { opacity: 0 }, showSymbol: false, silent: true,
+          areaStyle: { color: "rgba(0,104,245,0.15)" } },
+        { type: "line", name: "חציון", data: d.med, showSymbol: false, lineStyle: { width: 2.5, color: "#0068f5" }, itemStyle: { color: "#0068f5" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    function grouped(id, x, series, horizontal, unit) {
+      var c = echarts.init(document.getElementById(id));
+      var cat = { type: "category", data: horizontal ? x.slice().reverse() : x, axisLabel: { width: 110, overflow: "truncate" } };
+      var val = { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + unit; } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 16, bottom: 40, containLabel: true },
+        xAxis: horizontal ? val : cat,
+        yAxis: horizontal ? cat : val,
+        series: series.map(function (s) {
+          return { type: "bar", name: s.name, stack: s.stack, data: horizontal ? s.data.slice().reverse() : s.data };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+{%- if model.flags.age_hist %}
+    var ah = {{ model.charts.age_hist | tojson }};
+    grouped("chart-age-hist", ah.x, ah.series, false, "%");
+{%- endif %}
+    hbar("chart-brands", {{ model.charts.brands | tojson }}, "כלי רכב");
+{%- if model.flags.shift %}
+    var sh = {{ model.charts.shift | tojson }};
+    grouped("chart-shift", sh.names, [{ name: sh.early_label, data: sh.early }, { name: sh.recent_label, data: sh.recent }], true, "%");
+{%- endif %}
+{%- if model.flags.models %}
+    hbar("chart-models", {{ model.charts.models | tojson }}, "כלי רכב");
+{%- endif %}
+{%- if model.flags.ev %}
+    var ev = {{ model.charts.ev | tojson }};
+    grouped("chart-ev", ev.x, ev.series.map(function (s) { return { name: s.name, data: s.data, stack: "ev" }; }), false, "");
+{%- endif %}
+    hbar("chart-colors", {{ model.charts.colors | tojson }}, "כלי רכב");
+    hbar("chart-days", {{ model.charts.days | tojson }}, "כלי רכב שבוטלו");
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex, out = echarts.format.encodeHTML(d.x[i]);
+        p.forEach(function (s) {
+          var cnt = d.series[s.seriesIndex].counts[i];
+          out += "<br>" + echarts.format.encodeHTML(s.seriesName) + ": " + s.value.toFixed(1) + "% (" + cnt.toLocaleString("he-IL") + ")";
+        });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) {
+        return { type: "line", name: s.name, data: s.data, stack: "t", areaStyle: {}, showSymbol: false, lineStyle: { width: 1 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.owner %}
+<script>
+  (function () {
+    var d = {{ model.charts.owner | tojson }};
+    var c = echarts.init(document.getElementById("chart-owner"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toFixed(1) + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) {
+        return { type: "line", name: s.name, data: s.data, showSymbol: false };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

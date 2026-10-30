@@ -1,0 +1,8 @@
+{
+  "nice.סוג ניצה": "chart-nice, table:nice, kpi:nice, kpi:goods, kpi:services, insight:goods_services — class number; classes 1-34 are goods, 35 and up services",
+  "nice.תיאור בעברית": "chart-nice, table:nice — leading class number stripped",
+  "nice.תיאור באנגלית": "table:nice",
+  "vienna.סיווג וינה": "chart-vienna, chart-vienna-tree, chart-gaps, kpi:categories, kpi:divisions, insight:vienna_leader, insight:concentration, insight:vienna_single, insight:vienna_gaps, insight:text_categories — code category.division split into its two parts",
+  "vienna.תיאור בעברית": "chart-vienna-tree — division heading shown on the treemap tiles",
+  "vienna.תיאור באנגלית": "insight:text_categories — detects the Hebrew-script division; the full English text stays in the explorer"
+}

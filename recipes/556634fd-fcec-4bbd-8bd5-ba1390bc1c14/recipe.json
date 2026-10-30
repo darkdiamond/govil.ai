@@ -1,0 +1,24 @@
+{
+  "contract_version": 1,
+  "dataset_id": "556634fd-fcec-4bbd-8bd5-ba1390bc1c14",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T02:14:52.044932+00:00",
+    "rows": { "nice": 45, "vienna": 144 }
+  },
+  "inputs": [
+    {
+      "name": "nice",
+      "by_id": "bc9b55dc-a0c6-4b52-a925-5dabc7ef7979",
+      "required_columns": ["סוג ניצה", "תיאור בעברית", "תיאור באנגלית"]
+    },
+    {
+      "name": "vienna",
+      "by_id": "820e988c-2740-46ca-8df4-2ed04ec7bf01",
+      "required_columns": ["סיווג וינה", "תיאור בעברית", "תיאור באנגלית"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

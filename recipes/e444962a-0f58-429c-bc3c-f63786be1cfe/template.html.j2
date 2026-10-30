@@ -1,0 +1,421 @@
+<h1>מערכת מידע פסולת: רשימות אתרי טיפול, סוגי פסולת ורשויות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור אתר טיפול בפסולת, קוד סוג פסולת או קוד רשות ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הנספחים: שם האתר ומזהה האתר במערכת, שם סוג הפסולת והקוד שלו, שם הרשות המקומית, ובמדריך הקשר גם מחוז, סוג מתקן ומיקום.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.entries.tone }} mb-1" dir="ltr">{{ model.kpis.entries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.entries_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.operators.tone }} mb-1" dir="ltr">{{ model.kpis.operators.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.operators_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.types.tone }} mb-1" dir="ltr">{{ model.kpis.types.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.types_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.authorities.tone }} mb-1" dir="ltr">{{ model.kpis.authorities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.auth_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.directory.tone }} mb-1" dir="ltr">{{ model.kpis.directory.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.dir_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.closed.tone }} mb-1" dir="ltr">{{ model.kpis.closed.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.closed_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימות אתרי הטיפול: מטמנות, מפעלי מחזור ותחנות מעבר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lists_note }}</p>
+  <div id="chart-lists" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lists_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lists_aria }}</caption>
+      <thead><tr><th scope="col">סוג מתקן</th><th scope="col">זרם פסולת</th><th scope="col">אתרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lists %}
+        <tr><th scope="row">{{ r.kind }}</th><td>{{ r.stream }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.has_ops %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפעילים עם כמה אתרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ops_note }}</p>
+  <div id="chart-operators" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.ops_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ops_aria }}</caption>
+        <thead><tr><th scope="col">מפעיל (שם אתר)</th><th scope="col">רישומים</th><th scope="col">רשימות</th><th scope="col">כל שמות האתרים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.operators %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.entries }}</td><td>{{ r.lists }}</td><td>{{ r.names }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">צורת ההתאגדות של המפעילים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.forms_note }}</p>
+    <div id="chart-forms" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.forms_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.forms_aria }}</caption>
+        <thead><tr><th scope="col">צורת התאגדות</th><th scope="col">מפעילים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.forms %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.has_overlap %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אתרים שמופיעים בכמה רשימות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.overlap_note }}</p>
+    <div id="chart-overlap" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.overlap_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.overlap_aria }}</caption>
+        <thead><tr><th scope="col">רשימה</th><th scope="col">רשימה נוספת</th><th scope="col">אתרים משותפים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.overlap %}
+          <tr><th scope="row">{{ r.a }}</th><td>{{ r.b }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קודי סוגי הפסולת לפי משפחה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+        <thead><tr><th scope="col">משפחה</th>{% for c in model.tables.flag_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.family }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.has_dir %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדריך אתרי הפסולת המעורבת לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+  <div id="chart-directory" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dir_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dir_aria }}</caption>
+        <thead><tr><th scope="col">מחוז</th>{% for c in model.tables.dir_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.directory %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שלמות פרטי הקשר במדריך</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_note }}</p>
+    <div id="chart-contact" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.contact_aria }}</caption>
+          <thead><tr><th scope="col">סוג מתקן</th><th scope="col">אתרים</th><th scope="col">עם טלפון</th><th scope="col">עם דוא״ל</th><th scope="col">עם שם בעל אתר</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.contact %}
+            <tr><th scope="row">{{ r.type }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.phone }}</td><td dir="ltr">{{ r.email }}</td><td dir="ltr">{{ r.owner }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+{%- if model.flags.has_hubs %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מקומות עם כמה אתרי טיפול</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hubs_note }}</p>
+    <div id="chart-hubs" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.hubs_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.hubs_aria }}</caption>
+        <thead><tr><th scope="col">מיקום</th><th scope="col">אתרים</th><th scope="col">סוגי מתקן</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.hubs %}
+          <tr><th scope="row">{{ r.loc }}</th><td>{{ r.count }}</td><td>{{ r.types }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר נתונים זה כולל את הנספחים הנלווים למדריך החיבור למערכת מידע פסולת, שנשלח לאתרי הטיפול בפסולת מחויבי הדיווח על פי תנאי רשיון העסק לטיפול בפסולת. הנספחים כוללים: רשימת תחנות מעבר, אתרי הטמנה, מפעלי מיחזור פסולת וכן רשימת רשויות מקומיות וסוגי פסולת.
+יודגש כי מאגרים אלה נועדו לשמש מפתחים ועובדי אתרי הפסולת בבואם לדווח למערכת מידע פסולת, רשימת האתרים אינה מלאה ואינה מהווה מאגר רשמי עבור הציבור לעניין אתרי הפסולת ופרטיהם.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.lists | tojson }};
+    const el = document.getElementById("chart-lists");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.kinds, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "אתרים" },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "all", data: s.data, emphasis: { focus: "series" } };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- if model.flags.has_ops %}
+<script>
+  (function () {
+    const d = {{ model.charts.operators | tojson }};
+    const el = document.getElementById("chart-operators");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (p) {
+          const i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i] + " רישומים ב-" + d.lists[i] + " רשימות";
+        }
+      },
+      grid: { left: 16, right: 24, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "insideLeft", color: "#fff" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.forms | tojson }};
+    const el = document.getElementById("chart-forms");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{
+        type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"],
+        label: { formatter: "{d}%" },
+        data: d
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- if model.flags.has_overlap %}
+<script>
+  (function () {
+    const d = {{ model.charts.overlap | tojson }};
+    const el = document.getElementById("chart-overlap");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 170, overflow: "truncate" } },
+      series: [{ type: "bar", name: "אתרים משותפים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.types | tojson }};
+    const el = document.getElementById("chart-types");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, name: "קודים" },
+      yAxis: { type: "category", data: d.families, axisLabel: { width: 150, overflow: "truncate" } },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "all", data: s.data, emphasis: { focus: "series" } };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- if model.flags.has_dir %}
+<script>
+  (function () {
+    const d = {{ model.charts.directory | tojson }};
+    const el = document.getElementById("chart-directory");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.districts, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", minInterval: 1, name: "אתרים" },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "all", data: s.data, emphasis: { focus: "series" } };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.contact | tojson }};
+    const el = document.getElementById("chart-contact");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const pct = function (v) { return v.toFixed(1) + "%"; };
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: pct },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.types, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [
+        { name: "טלפון", type: "bar", data: d.phone },
+        { name: "דוא״ל", type: "bar", data: d.email },
+        { name: "שם בעל אתר", type: "bar", data: d.owner }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- if model.flags.has_hubs %}
+<script>
+  (function () {
+    const d = {{ model.charts.hubs | tojson }};
+    const el = document.getElementById("chart-hubs");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "אתרים", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+{%- endif %}

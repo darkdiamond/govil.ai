@@ -1,4 +1,4 @@
-"""רכבת ישראל — תכנון מול ביצוע (planned vs operated trips), monthly.
+"""רכבת ישראל: תכנון מול ביצוע (planned vs operated trips), monthly.
 
 One row per month × train number × origin → destination:
   rishui_all   trips planned (licensed) that month
@@ -79,7 +79,7 @@ def insight_latest(mon, partial):
             tail = f", בדומה ל{mlabel(prev)} ({pct(full.loc[prev, 'rate'])})"
         else:
             word = "עלייה" if diff > 0 else "ירידה"
-            tail = f" — {word} של {abs(diff):.1f} נקודות אחוז לעומת {mlabel(prev)}"
+            tail = f", {word} של {abs(diff):.1f} נקודות אחוז לעומת {mlabel(prev)}"
     return (f"ב{mlabel(p)} בוצעו {pct(r['rate'])} מהנסיעות המתוכננות "
             f"({int(r['plan'] - r['cancel']):,} מתוך {int(r['plan']):,}){tail}.")
 
@@ -114,7 +114,7 @@ def insight_12m(mon, partial):
         trend = f"דומה ל-12 החודשים שקדמו להם ({pct(rp)})"
     else:
         trend = f"{'שיפור' if diff > 0 else 'הרעה'} של {abs(diff):.1f} נקודות אחוז לעומת 12 החודשים שקדמו להם"
-    return (f"ב-12 החודשים האחרונים בוצעו {pct(rc)} מהנסיעות המתוכננות — {trend}; "
+    return (f"ב-12 החודשים האחרונים בוצעו {pct(rc)} מהנסיעות המתוכננות ({trend}); "
             f"בוטלו בסך הכול {int(cur['cancel'].sum()):,} נסיעות.")
 
 
@@ -123,7 +123,7 @@ def insight_station(st):
         return None
     top = st.iloc[0]
     return (f"בתחנת המוצא {top.name} בוטלו ב-12 החודשים האחרונים {pct(top['crate'])} "
-            f"מהנסיעות המתוכננות — השיעור הגבוה ביותר בין התחנות עם "
+            f"מהנסיעות המתוכננות, השיעור הגבוה ביותר בין התחנות עם "
             f"{MIN_STATION_TRIPS:,} נסיעות מתוכננות לפחות.")
 
 
@@ -195,8 +195,8 @@ def compute(frames):
 
     tm = last12[last12["plan"] > 0]
     r = (tm["plan"] - tm["cancel"]) / tm["plan"]
-    buckets = [("100%", r >= 1.0), ("95%–99.9%", (r >= 0.95) & (r < 1.0)),
-               ("90%–94.9%", (r >= 0.90) & (r < 0.95)), ("50%–89.9%", (r >= 0.5) & (r < 0.9)),
+    buckets = [("100%", r >= 1.0), ("95%-99.9%", (r >= 0.95) & (r < 1.0)),
+               ("90%-94.9%", (r >= 0.90) & (r < 0.95)), ("50%-89.9%", (r >= 0.5) & (r < 0.9)),
                ("פחות מ-50%", r < 0.5)]
     dist = {"x": [b for b, _ in buckets], "y": [int(mask.sum()) for _, mask in buckets]}
 
@@ -248,7 +248,7 @@ def compute(frames):
     partial_note = (f" {mlabel(p1)} מופיע בנתונים חלקית ואינו נכלל בהשוואות." if partial else "")
     labels = {
         "lede": (f"נסיעות הרכבת המתוכננות מול אלה שבוצעו בפועל, לפי מספר רכבת ומסלול, "
-                 f"מ{mlabel(p0)} עד {mlabel(p1)} — {len(mon)} חודשים ו-{df['train'].nunique():,} "
+                 f"מ{mlabel(p0)} עד {mlabel(p1)}: {len(mon)} חודשים ו-{df['train'].nunique():,} "
                  f"מספרי רכבת.{partial_note}"),
         "monthly_aria": f"גרף: שיעור הביצוע ומספר הנסיעות המתוכננות בכל חודש, {mlabel(p0)} עד {mlabel(p1)}.",
         "cancel_aria": "תרשים עמודות: נסיעות שבוטלו ונסיעות שבוצעו ללא תכנון בכל חודש.",
@@ -269,14 +269,14 @@ def compute(frames):
                    for y, r_, pl, c in zip(yearly.index, yearly["rate"], yearly["plan"], yearly["cancel"])],
         "season": [{"m": x, "rate": f"{v:.2f}"} for x, v in zip(season_chart["x"], season_chart["rate"])],
         "stations": [{"s": s, "rate": f"{v:.2f}"} for s, v in zip(stations["x"], stations["y"])],
-        "routes": [{"r": x, "plan": f"{p:,}", "rate": "—" if v is None else f"{v:.2f}"}
+        "routes": [{"r": x, "plan": f"{p:,}", "rate": "\u2014" if v is None else f"{v:.2f}"}
                    for x, p, v in zip(routes["x"], routes["plan"], routes["rate"])],
         "dist": [{"b": b, "n": f"{n:,}"} for b, n in zip(dist["x"], dist["y"])],
     }
 
     return {
         "agent_data": {
-            "summary_he": (f"נסיעות רכבת ישראל המתוכננות מול אלה שבוצעו, {mlabel(p0)}–{mlabel(p1)}: "
+            "summary_he": (f"נסיעות רכבת ישראל המתוכננות מול אלה שבוצעו, מ{mlabel(p0)} עד {mlabel(p1)}: "
                            f"ב-12 החודשים האחרונים בוצעו {pct(c12_rate)} מהנסיעות המתוכננות."),
             "dataset_kind": "timeseries",
             "related_ids": ["cdffbed6-8388-4b72-8c74-d36403cc5b83"],

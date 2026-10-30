@@ -1,4 +1,4 @@
-<h1>רכבת ישראל — תכנון מול ביצוע</h1>
+<h1>רכבת ישראל: תכנון מול ביצוע</h1>
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -214,7 +214,7 @@
 
 <script>
   (function () {
-    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "\u2014"; }
     var y = {{ model.charts.yearly | tojson }};
     var c3 = echarts.init(document.getElementById("chart-yearly"));
     c3.setOption(window.GovEcharts.option({

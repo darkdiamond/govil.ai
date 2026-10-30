@@ -1,0 +1,201 @@
+<h1>סיווגי סימני מסחר: סיווג ניצה וסיווג וינה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מחלקת ניצה או חטיבת וינה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בטבלאות הסיווג: מספר מחלקה או קוד חטיבה, תיאור בעברית ותיאור באנגלית</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.nice.tone }} mb-1" dir="ltr">{{ model.kpis.nice.display }}</div>
+    <div class="text-sm text-subtle">מחלקות בסיווג ניצה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.goods.tone }} mb-1" dir="ltr">{{ model.kpis.goods.display }}</div>
+    <div class="text-sm text-subtle">מחלקות סחורות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.services.tone }} mb-1" dir="ltr">{{ model.kpis.services.display }}</div>
+    <div class="text-sm text-subtle">מחלקות שירותים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.categories.tone }} mb-1" dir="ltr">{{ model.kpis.categories.display }}</div>
+    <div class="text-sm text-subtle">קטגוריות בסיווג וינה</div>
+  </div>
+  <div class="card p-4 text-center col-span-2 md:col-span-1">
+    <div class="text-3xl font-bold text-{{ model.kpis.divisions.tone }} mb-1" dir="ltr">{{ model.kpis.divisions.display }}</div>
+    <div class="text-sm text-subtle">חטיבות בסיווג וינה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סיווג ניצה: מחלקות הסחורות והשירותים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nice_note }}</p>
+  <div id="chart-nice" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.nice_aria }}"></div>
+  <div class="overflow-x-auto mt-4">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.nice_caption }}</caption>
+      <thead><tr><th scope="col">מחלקה</th><th scope="col">תיאור</th><th scope="col">תיאור באנגלית</th><th scope="col">סוג</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.nice %}
+        <tr><th scope="row">{{ r.cls }}</th><td>{{ r.he }}</td><td dir="ltr" lang="en" class="text-start">{{ r.en }}</td><td>{{ r.kind }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סיווג וינה: חטיבות לפי קטגוריה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.vienna_note }}</p>
+  <div id="chart-vienna" class="h-[640px]" role="img" aria-label="{{ model.labels.vienna_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.vienna_caption }}</caption>
+      <thead><tr><th scope="col">קטגוריה</th><th scope="col">נושא</th><th scope="col">חטיבות</th><th scope="col">טווח קודים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.vienna %}
+        <tr><th scope="row">{{ r.cat }}</th><td>{{ r.name }}</td><td>{{ r.n }}</td><td>{{ r.range }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כל חטיבות וינה במבט אחד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+  <div id="chart-vienna-tree" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מספור החטיבות: מספרים שמורים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gaps_note }}</p>
+  <div id="chart-gaps" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.gaps_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.gaps_caption }}</caption>
+      <thead><tr><th scope="col">קטגוריה</th><th scope="col">נושא</th><th scope="col">חטיבות</th><th scope="col">הקוד הגבוה</th><th scope="col">מספרים שדולגו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.gaps %}
+        <tr><th scope="row">{{ r.cat }}</th><td>{{ r.name }}</td><td>{{ r.n }}</td><td dir="ltr" class="text-start">{{ r.max }}</td><td>{{ r.unused }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">המאגר מכיל סיווגים של סימני מסחר</p>
+</section>
+
+<script>
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function tree(id, data, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { formatter: function (p) {
+          if (p.treePathInfo && p.treePathInfo.length > 2) { return enc(p.name); }
+          return enc(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " " + unit;
+        } },
+        series: [{ type: "treemap", data: data, roam: false, nodeClick: false,
+                   breadcrumb: { show: false }, width: "100%", height: "100%",
+                   upperLabel: { show: true, height: 22, color: "#fff", fontFamily: "Rubik", overflow: "truncate" },
+                   label: { show: true, formatter: "{b}", overflow: "truncate", fontFamily: "Rubik", fontSize: 11 },
+                   levels: [
+                     { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                     { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+                   ] }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    tree("chart-nice", {{ model.charts.nice_tree | tojson }}, "מחלקות");
+    tree("chart-vienna-tree", {{ model.charts.vienna_tree | tojson }}, "חטיבות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.vienna | tojson }};
+    var el = document.getElementById("chart-vienna");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(d.names[p[0].dataIndex]) + "<br>" + d.values[p[0].dataIndex].toLocaleString("he-IL") + " חטיבות";
+      } },
+      grid: { left: 16, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0, fontSize: 11, width: Math.min(220, el.clientWidth * 0.5), overflow: "truncate" } },
+      series: [{ type: "bar", name: "חטיבות", data: d.values, label: { show: true, position: "insideStart", color: "#fff", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.gaps | tojson }};
+    var c = echarts.init(document.getElementById("chart-gaps"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#c3cfe7"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "קטגוריה", nameLocation: "middle", nameGap: 26, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [
+        { type: "bar", name: "חטיבות בפועל", data: d.count },
+        { type: "bar", name: "מספר החטיבה הגבוה", data: d.max_div }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

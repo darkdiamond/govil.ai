@@ -1,0 +1,20 @@
+{
+  "main.mispar_rechev": "skip: licence plate, a per-vehicle lookup identifier; not fetched by the recipe, served by the shell's explorer",
+  "main.mispar_shilda": "skip: chassis (VIN) number, a per-vehicle identifier; never shown",
+  "main.tkina_EU": "chart-families, chart-years, chart-decades, chart-cc, chart-cc-trend, chart-israel, insight:family, insight:cc — EU class codes folded into 7 families; the code table sits in the families section",
+  "main.shnat_yitzur": "chart-years, chart-decades, chart-mix, chart-cc-trend, kpi:med_year, kpi:pre_share, insight:era, insight:shift, insight:cc — years before 1930 (mostly the 1900 placeholder) excluded from the time views and disclosed",
+  "main.tozeret_cd": "skip: numeric maker code, one-to-one with tozeret_nm which is shown",
+  "main.tozeret_nm": "chart-makers, chart-israel, chart-models, kpi:makers, insight:maker, insight:israel, insight:model — five-character truncated names; known makers completed and merged",
+  "main.tozeret_eretz_nm": "chart-countries, chart-mix, chart-israel, insight:country, insight:shift, insight:israel",
+  "main.sug_delek_cd": "skip: numeric fuel code, one-to-one with sug_delek_nm which is shown",
+  "main.sug_delek_nm": "chart-fuel, insight:fuel",
+  "main.mishkal_kolel": "skip: total weight is 0 (unknown) for 50% of rows",
+  "main.degem_nm": "chart-models, insight:model — model name as recorded, paired with the maker",
+  "main.mishkal_azmi": "skip: kerb weight is 0 (unknown) for 75% of rows",
+  "main.nefach_manoa": "chart-cc, chart-cc-trend, insight:cc — passenger cars (M1) only, values above 10,000 cc dropped as errors",
+  "main.degem_manoa": "skip: ~55,000 engine-model codes, meaningless without a lookup table",
+  "main.hanaa_cd": "skip: drive code, one-to-one with hanaa_nm which is shown",
+  "main.hanaa_nm": "chart-drive",
+  "main.mishkal_mitan_harama": "skip: payload weight is 0 (unknown) for 69% of rows",
+  "main.horaat_rishum": "skip: registration-directive number, empty for 88% of rows"
+}

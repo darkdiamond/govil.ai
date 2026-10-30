@@ -1,0 +1,163 @@
+<h1>מערכת בטיחות ברכב: רכבים זכאים להנחה באגרת הרישוי</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת זכאות להנחה באגרת הרישוי לפי מספר רכב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר לפי מספר הרישוי (ספרות בלבד, ללא מקפים). רכב שמופיע ברשימה עומד בתנאים להנחה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.vehicles.tone }} mb-1" dir="ltr">{{ model.kpis.vehicles.display }}</div>
+    <div class="text-sm text-subtle">כלי רכב זכאים להנחה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.seven_share.tone }} mb-1" dir="ltr">{{ model.kpis.seven_share.display }}</div>
+    <div class="text-sm text-subtle">שיעור הרכבים עם מספר רישוי בן שבע ספרות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.eight.tone }} mb-1" dir="ltr">{{ model.kpis.eight.display }}</div>
+    <div class="text-sm text-subtle">רכבים עם מספר רישוי בן שמונה ספרות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-2xl font-bold text-{{ model.kpis.as_of.tone }} mb-1" dir="ltr">{{ model.kpis.as_of.display }}</div>
+    <div class="text-sm text-subtle">מועד עדכון הרשימה</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רכבים זכאים לפי סדרת מספר הרישוי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.series_lede }}</p>
+  <div id="chart-series" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.series_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.series_aria }}</caption>
+      <thead><tr><th scope="col">טווח מספרי רישוי</th><th scope="col">אורך</th><th scope="col">רכבים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.series %}
+        <tr><th scope="row" dir="ltr" class="text-start">{{ r.name }}</th><td>{{ r.len }}</td><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צפיפות לאורך טווח המספרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.blocks_lede }}</p>
+  <div id="chart-blocks" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.blocks_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אורך מספר הרישוי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.length_lede }}</p>
+  <div id="chart-length" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.length_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.length_aria }}</caption>
+      <thead><tr><th scope="col">אורך מספר הרישוי</th><th scope="col">רכבים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.length %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על המאגר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">מאגר זה מכיל את מספרי הרישוי של הרכבים העומדים בתנאים לקבלת הנחה באגרת הרישוי בגין התקנת מערכת בטיחות.</p>
+  <p class="mt-2 mb-0 text-sm text-subtle">מספרי הרישוי עצמם אינם מוצגים בדף; הם זמינים בחיפוש ובקבצים להורדה שבהמשך.</p>
+</section>
+
+<script>
+  (function () {
+    var s = {{ model.charts.series | tojson }};
+    var c1 = echarts.init(document.getElementById("chart-series"));
+    c1.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " רכבים"; } },
+      grid: { left: 16, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: s.names, inverse: true },
+      series: [{ type: "bar", name: "רכבים", data: s.values, barMaxWidth: 28 }]
+    }));
+    window.addEventListener("resize", function () { c1.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var b = {{ model.charts.blocks | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-blocks"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return "מ-" + echarts.format.encodeHTML(b.starts[i]) + ": " +
+               Number(b.y[i]).toLocaleString("he-IL") + " רכבים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: b.x, name: "מיליון", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4, height: 16 }],
+      series: [{ type: "bar", name: "רכבים", data: b.y, barCategoryGap: "10%" }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var l = {{ model.charts.length | tojson }};
+    var c3 = echarts.init(document.getElementById("chart-length"));
+    c3.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " רכבים"; } },
+      grid: { left: 16, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "log", logBase: 10, min: 1 },
+      yAxis: { type: "category", data: l.names },
+      series: [{ type: "bar", name: "רכבים", data: l.values, barMaxWidth: 36 }]
+    }));
+    window.addEventListener("resize", function () { c3.resize(); });
+  })();
+</script>

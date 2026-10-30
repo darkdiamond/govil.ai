@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "90723376-9db7-4bde-90c0-6f3d5b5cdf9d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T10:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T03:42:08.570675+00:00",
+    "rows": { "eligible": 1170859 }
+  },
+  "inputs": [
+    {
+      "name": "eligible",
+      "by_id": "83bfb278-7be1-4dab-ae2d-40125a923da1",
+      "required_columns": ["mispar_rechev", "updated_dt"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

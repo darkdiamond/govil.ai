@@ -1,0 +1,124 @@
+{
+  "contract_version": 1,
+  "dataset_id": "e444962a-0f58-429c-bc3c-f63786be1cfe",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T20:01:24.527649+00:00",
+    "rows": {
+      "types": 83,
+      "authorities": 259,
+      "energy": 1,
+      "landfill_build": 14,
+      "landfill_mixed": 10,
+      "recycle_build": 35,
+      "recycle_mixed": 31,
+      "transfer_build": 11,
+      "transfer_mixed": 58,
+      "organic": 5,
+      "transfer_prune": 16,
+      "directory": 43
+    }
+  },
+  "inputs": [
+    {
+      "name": "types",
+      "by_id": "ca71e149-49f1-48a2-b319-b27be21e3e21",
+      "required_columns": ["שם", "מזהה", "האם חומר?"]
+    },
+    {
+      "name": "authorities",
+      "by_id": "4e041600-1ce3-4780-9e3f-3d2ce1561dea",
+      "required_columns": ["Authority", "Authority ID"]
+    },
+    {
+      "name": "energy",
+      "by_id": "89ab056c-ca88-43f6-aa83-32a0cbcbe79c",
+      "required_columns": [
+        "EnergyRecoveryFacility_Name",
+        "EnergyRecoveryFacility company",
+        "EnergyRecoveryFacility ID"
+      ]
+    },
+    {
+      "name": "landfill_build",
+      "by_id": "4afcd995-2645-45de-9d92-1473f6339b28",
+      "required_columns": ["Landfill Name", "Landfill company", "Landfill ID"]
+    },
+    {
+      "name": "landfill_mixed",
+      "by_id": "21df12e1-6e16-48e0-92c1-bb51974428a0",
+      "required_columns": ["Landfill_Name", "Landfill_company", "Landfill_ID"]
+    },
+    {
+      "name": "recycle_build",
+      "by_id": "076285c0-6b11-4089-8a0b-ab4d50eb4b3d",
+      "required_columns": [
+        "Recycling factory Name",
+        "Recycling factory company",
+        "Recycling factory ID"
+      ]
+    },
+    {
+      "name": "recycle_mixed",
+      "by_id": "0064cb30-1176-4808-889d-5ef05d72f116",
+      "required_columns": [
+        "Recycling_factory_Name",
+        "Recycling_factory_company",
+        "Recycling_factory_ID"
+      ]
+    },
+    {
+      "name": "transfer_build",
+      "by_id": "395bdcda-b898-4739-9135-5d640157bee2",
+      "required_columns": [
+        "Transition station Name",
+        "Transition station company",
+        "Transition station ID"
+      ]
+    },
+    {
+      "name": "transfer_mixed",
+      "by_id": "c5d2f1b9-c4f6-4e58-ba3d-ef02ba6d43c8",
+      "required_columns": [
+        "Transition_station_Name",
+        "Transition_station_company",
+        "Transition_station_ID"
+      ]
+    },
+    {
+      "name": "organic",
+      "by_id": "fe5fe429-895c-4bfe-8941-eb01aff35547",
+      "required_columns": [
+        "Recycling_factory_Name",
+        "Recycling_factory_company",
+        "Recycling_factory_ID"
+      ]
+    },
+    {
+      "name": "transfer_prune",
+      "by_id": "8e322234-4511-4f0b-b0c1-ac19710d4846",
+      "required_columns": [
+        "Transition station Name",
+        "Transition station company",
+        "Transition station ID"
+      ]
+    },
+    {
+      "name": "directory",
+      "by_id": "9d5ed09b-744c-4694-a748-038a382fd8d6",
+      "required_columns": [
+        "מחוז",
+        "רשות מקומית",
+        "שם האתר",
+        "סוג מתקן",
+        "מיקום",
+        "בעל האתר",
+        "פרטי קשר - טלפון",
+        "כתובת מייל"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

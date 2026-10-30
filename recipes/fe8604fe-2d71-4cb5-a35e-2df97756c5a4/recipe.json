@@ -1,0 +1,39 @@
+{
+  "contract_version": 1,
+  "dataset_id": "fe8604fe-2d71-4cb5-a35e-2df97756c5a4",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T03:56:57.611176+00:00",
+    "rows": { "main": 2396883 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": ["bitul_dt", "tozeret_nm", "sug_rechev_nm", "shnat_yitzur"],
+      "concat": true,
+      "required_columns": [
+        "bitul_dt",
+        "tozeret_nm",
+        "sug_rechev_nm",
+        "shnat_yitzur",
+        "baalut",
+        "tzeva_rechev",
+        "sug_delek_nm",
+        "kinuy_mishari"
+      ],
+      "columns": [
+        "bitul_dt",
+        "tozeret_nm",
+        "sug_rechev_nm",
+        "shnat_yitzur",
+        "baalut",
+        "tzeva_rechev",
+        "sug_delek_nm",
+        "kinuy_mishari"
+      ]
+    }
+  ],
+  "min_insights": 5,
+  "lint_allow_numbers": []
+}
