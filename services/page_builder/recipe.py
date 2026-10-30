@@ -27,6 +27,7 @@ extra `_resource_name` column naming the file each row came from.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .schema import AgentData
 
 CONTRACT_VERSION = 1
+
+log = logging.getLogger("page_builder.recipe")
 MANIFEST_FILENAME = "recipe.json"
 COMPUTE_FILENAME = "compute.py"
 TEMPLATE_FILENAME = "template.html.j2"
@@ -107,6 +110,8 @@ class RecipeInput(BaseModel):
                 )
             if len(set(self.columns)) != len(self.columns):
                 raise ValueError(f"input {self.name!r}: duplicate entries in columns")
+            if "_id" in self.columns:
+                raise ValueError(f"input {self.name!r}: `_id` is never exported; drop it from columns")
         return self
 
     @property
@@ -153,11 +158,11 @@ class RecipeManifest(BaseModel):
     # Literal strings allowed to contain digits in template prose (e.g.
     # "24/7", "ISO 9001"). Everything else numeric must come from the model.
     lint_allow_numbers: list[str] = Field(default_factory=list)
-    limits: Optional[RecipeLimits] = None
+    limits: RecipeLimits = Field(default_factory=RecipeLimits)
 
     @property
     def heavy(self) -> bool:
-        return self.limits is not None
+        return bool(self.limits.model_fields_set)
 
     @model_validator(mode="after")
     def _unique_names(self) -> "RecipeManifest":
@@ -240,12 +245,11 @@ def _modified_key(resource: dict) -> datetime:
     """Sort key for `pick: "latest"`: the resource's CKAN `last_modified`
     (a datetime from Firestore, an ISO string from JSON), oldest when missing.
     Naive timestamps are UTC, as CKAN writes them."""
+    from services.scanner.models import _parse_datetime
+
     v = resource.get("last_modified")
     if isinstance(v, str):
-        try:
-            v = datetime.fromisoformat(v)
-        except ValueError:
-            v = None
+        v = _parse_datetime(v)
     if not isinstance(v, datetime):
         return datetime.min.replace(tzinfo=timezone.utc)
     return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
@@ -292,6 +296,13 @@ def resolve_inputs(
                     reason="schema_changed",
                 )
             if inp.pick == "latest":
+                undated = [r["id"][:8] for r in matched
+                           if not by_id.get(r["id"], {}).get("last_modified")]
+                if undated:
+                    log.warning(
+                        "input %r: resource(s) %s have no last_modified; pick 'latest' "
+                        "ranks them oldest", inp.name, undated,
+                    )
                 # max() keeps the first of equal keys, i.e. CKAN order.
                 matched = [max(
                     matched, key=lambda r: _modified_key(by_id.get(r["id"], {}))

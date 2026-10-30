@@ -55,7 +55,6 @@ from .recipe import (
     RECIPE_FILES,
     Recipe,
     RecipeError,
-    RecipeLimits,
     kpi_format_findings,
     render_template,
     resolve_inputs,
@@ -480,10 +479,13 @@ def fetch_inputs(
     _preview = probe.preview
     resolved = probe.resolved
 
-    limits = recipe.manifest.limits or RecipeLimits()
+    limits = recipe.manifest.limits
     max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
     max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
-    remaining = limits.total_bytes or _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES)
+    # A per-resource cap above the dataset total would be clipped by it.
+    remaining = limits.total_bytes or max(
+        _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
+    )
     page_size = _env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE)
     deadline = time.monotonic() + float(
         limits.wall_budget_s
@@ -572,7 +574,7 @@ def _memory_guard(recipe: Recipe) -> str:
     that outgrows the container takes down itself, not the builder and the
     rest of the night's refresh. Cap: the recipe's
     `limits.compute_memory_mb`, else REFRESH_COMPUTE_MEMORY_MB; 0 = no cap."""
-    limits = recipe.manifest.limits or RecipeLimits()
+    limits = recipe.manifest.limits
     mb = limits.compute_memory_mb or _env_int(
         "REFRESH_COMPUTE_MEMORY_MB", _DEFAULT_COMPUTE_MEMORY_MB
     )
@@ -609,7 +611,7 @@ def run_compute(
     without the gRPC signature) surfaces immediately. `timeout` defaults to
     the recipe's `limits.compute_timeout_s`, else `_COMPUTE_TIMEOUT_S`.
     """
-    limits = recipe.manifest.limits or RecipeLimits()
+    limits = recipe.manifest.limits
     timeout = timeout or limits.compute_timeout_s or _COMPUTE_TIMEOUT_S
     for attempt in range(1, _COMPUTE_SPAWN_ATTEMPTS):
         try:

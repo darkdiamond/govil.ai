@@ -37,6 +37,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
+- **A fetch over its byte cap or wall budget is retried forever, silently.**
+  `fetch_resource_records_to_file` returns None for a network error, a crossed byte cap and an
+  exhausted wall budget alike, so `refresh.fetch_inputs` reports all three as transient
+  `fetch_failed`: no issue opens, and a dataset that outgrew its cap (or a heavy recipe's
+  `limits`) goes stale without anyone being told. CLAUDE.md says outgrowing the cap opens an
+  issue. Have the fetcher report why it stopped, and map cap/budget overruns to `too_large`.
+  (2026-10-30)
 - **`pick: "latest"` trusts CKAN `last_modified`.** Re-uploading an old snapshot bumps its
   `last_modified`, and the page would switch to it. If that happens, order by the date in the
   resource name when it parses (snapshot datasets name their date), falling back to

@@ -148,7 +148,7 @@ def test_fetch_page_sends_fields(monkeypatch):
 
     monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
     fields, _ = agent_contract._fetch_page("rid", 0, 10, 5.0, ["b", "a"])
-    assert seen["fields"] == ["b,a"] and fields == ["b", "a"]
+    assert seen["fields"] == ["b", "a"] and fields == ["b", "a"]
     seen.clear()
     agent_contract._fetch_page("rid", 0, 10, 5.0)
     assert "fields" not in seen
@@ -287,3 +287,79 @@ def test_memory_guard_turns_overuse_into_memory_error(monkeypatch):
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False,
                          timeout=60).stdout.split()
     assert out == ["1000", "MemoryError"]
+
+
+# ── review follow-ups ────────────────────────────────────────────────────
+
+
+def test_id_is_not_a_fetchable_column():
+    with pytest.raises(ValueError):
+        _manifest([{"name": "x", "by_id": RID, "columns": ["_id", "a"]}])
+
+
+def test_empty_limits_are_not_heavy():
+    assert not _manifest([{"name": "x", "by_id": RID}], limits={}).heavy
+
+
+def test_fields_with_commas_are_sent_as_repeated_params(monkeypatch):
+    seen = {}
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def read(self):
+            return json.dumps({"success": True, "result": {"fields": [], "records": []}}).encode()
+
+    def fake(req, timeout=None):
+        seen.update(parse_qs(urlparse(req.full_url).query))
+        return _Resp()
+
+    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
+    agent_contract._fetch_page("rid", 0, 10, 5.0, ['סכום, ש"ח', "שנה"])
+    assert seen["fields"] == ['סכום, ש"ח', "שנה"]
+
+
+def test_max_bytes_limit_is_not_clipped_by_the_default_total(tmp_path, monkeypatch):
+    monkeypatch.setenv("REFRESH_TOTAL_BYTES", "100")
+    recipes = _fixture_copy(tmp_path, lambda d: d.update(limits={"max_bytes": 5000}))
+    recipe = Recipe.load(recipes / DS)
+    ckan = FakeCkan(_rows([2024]))
+    caps = []
+    orig = ckan.fetch
+
+    def fetch(rid, total, dest, **kw):
+        caps.append(kw["max_bytes"])
+        return orig(rid, total, dest, **kw)
+
+    rf.fetch_inputs(recipe, _src().resources, tmp_path / "d",
+                    preview_fn=ckan.preview, fetch_fn=fetch)
+    assert caps == [5000]
+
+
+def test_projection_of_an_export_missing_a_column_is_schema_changed(tmp_path):
+    f = tmp_path / "x.csv"
+    f.write_text("a,b\n1,2\n", encoding="utf-8")
+    with pytest.raises(RecipeError) as e:
+        rf._project_csv(f, ["b", "c"])
+    assert e.value.reason == "schema_changed"
+    rf._project_csv(f, ["b"])
+    assert f.read_text(encoding="utf-8").splitlines() == ["b", "2"]
+
+
+def test_coverage_flags_a_used_column_that_is_never_fetched(tmp_path):
+    from services.page_builder import author
+
+    recipes = _fixture_copy(tmp_path, lambda d: d["inputs"][0].update(
+        columns=COLS[:3], required_columns=COLS[:3]))
+    recipe = Recipe.load(recipes / DS)
+    (recipes / DS / author.COVERAGE_FILENAME).write_text(json.dumps(
+        {f"events.{c}": "skip: not shown on this page" for c in COLS[:3]}
+        | {f"events.{COLS[3]}": "kpi:total"}, ensure_ascii=False), encoding="utf-8")
+    manifest = [{"resource_id": RID, "fields": COLS}]
+    inputs = {"events": [rf.FetchedInput(tmp_path / "x.csv", RID, "events", 1)]}
+    problems, _ = author._coverage_findings(recipe, inputs, manifest, "", {"kpis": {}})
+    assert any("never fetched" in p for p in problems)

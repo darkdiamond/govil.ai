@@ -228,10 +228,12 @@ def _fetch_page(
     """One datastore_search page → (field ids sans _id, records). Raises on
     any HTTP/parse/success=false problem — callers decide the fallback.
     `fields` asks CKAN for only those columns, in that order."""
-    params = {"resource_id": resource_id, "limit": limit, "offset": offset}
+    params: dict = {"resource_id": resource_id, "limit": limit, "offset": offset}
     if fields:
-        params["fields"] = ",".join(fields)
-    qs = urlencode(params)
+        # Repeated, not comma-joined: CKAN splits a joined string on commas,
+        # and Hebrew column names can contain one.
+        params["fields"] = list(fields)
+    qs = urlencode(params, doseq=True)
     req = urllib_request.Request(
         f"{_CKAN_DATASTORE_URL}?{qs}", headers={"User-Agent": _CKAN_BROWSER_UA}
     )

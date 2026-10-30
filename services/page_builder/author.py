@@ -547,14 +547,12 @@ def _coverage_findings(
         problems.append("COVERAGE: entries for columns/resources the recipe doesn't read "
                         "(typo or stale): " + ", ".join(stale[:15]))
     # A column the recipe never fetches can't be "used" on the page.
-    unfetched = {
-        f"{i.name}.{col}"
-        for i in recipe.manifest.inputs if i.columns
-        for parts in [inputs.get(i.name, [])]
-        for part in parts
-        for col in fields.get(part.resource_id, [])
-        if col not in i.columns
-    }
+    unfetched = set()
+    for i in recipe.manifest.inputs:
+        if i.columns:
+            for part in inputs.get(i.name, []):
+                unfetched |= {f"{i.name}.{c}" for c in fields.get(part.resource_id, [])
+                              if c not in i.columns}
     for key in sorted(unfetched & cov.keys()):
         if not cov[key].strip().startswith("skip:"):
             problems.append(f"COVERAGE: {key} is marked used but not in the input's "
