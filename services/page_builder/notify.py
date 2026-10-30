@@ -113,7 +113,43 @@ def open_authoring_issue(
     if r.status_code != 201:
         log.error("authoring issue for %s: %s %s", dataset_id, r.status_code, r.text[:300])
         return None
-    return int(r.json()["number"])
+    number = int(r.json()["number"])
+    # GitHub silently drops `labels` on create unless the token has push
+    # access, which the job's Issues-only PAT doesn't — so issues #112–#236
+    # opened unlabelled and the authoring routine (which lists by label)
+    # never saw them. The add-labels endpoint needs only Issues:write and
+    # fails loudly. The issue stays recorded either way: a label failure
+    # must not open a duplicate next run.
+    have = {lb.get("name") for lb in r.json().get("labels") or []}
+    if not set(labels) <= have:
+        add_labels(number, labels, repo=repo, token=token)
+    return number
+
+
+def add_labels(
+    number: int, labels: list[str], *, repo: Optional[str] = None, token: Optional[str] = None
+) -> bool:
+    """Add labels to an existing issue; True on success."""
+    token, repo = _github(token, repo)
+    if not token:
+        return False
+    import httpx
+
+    try:
+        r = httpx.post(
+            f"https://api.github.com/repos/{repo}/issues/{number}/labels",
+            json={"labels": labels},
+            headers=_headers(token),
+            timeout=30.0,
+            follow_redirects=True,
+        )
+    except Exception:
+        log.exception("labelling issue #%s failed", number)
+        return False
+    if r.status_code != 200:
+        log.error("labelling issue #%s: %s %s", number, r.status_code, r.text[:300])
+        return False
+    return True
 
 
 def issue_state(
