@@ -6,12 +6,6 @@ wrong, why it matters, and what would fix it, and end it with the date it was ad
 
 This repo is public: describe a security gap by what to change, never by how to exploit it.
 
-## Security and operations
-
-- **Authoring routine cron is UTC.** The 07:00 Israel routine runs on `0 5 * * *` UTC, which is
-  right only in winter time. Move it to `0 4 * * *` on 2027-03-26 (Israel switches to summer
-  time), and back in October. (2026-10-30)
-
 ## Recipes and refresh
 
 - **`273c5e33…` (vehicle history) is not authored yet.** Its two resources hold 2.5M and 5.55M
