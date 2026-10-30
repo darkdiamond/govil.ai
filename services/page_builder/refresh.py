@@ -328,8 +328,27 @@ class InputProbe:
 
     def preview(self, rid: str) -> Optional[dict]:
         if rid not in self._previews:
-            self._previews[rid] = self._preview_fn(rid)
+            try:
+                self._previews[rid] = self._preview_fn(rid)
+            except FetchLimitExceeded as e:
+                # A provider reads the whole series to preview it.
+                raise _limit_error(e, f"preview of {rid[:8]}") from None
         return self._previews[rid]
+
+
+def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
+    """A byte overrun is the dataset outgrowing its cap: a retry fetches the
+    same bytes again, so a human must act (`too_large`). A wall-budget
+    overrun is slow CKAN or a dataset that outgrew the budget; one run can't
+    tell which, so it is retried (`fetch_failed`)."""
+    if e.limit == "bytes":
+        return RecipeError(
+            f"{what}: {e} (REFRESH_MAX_BYTES / REFRESH_TOTAL_BYTES / recipe limits)",
+            reason="too_large",
+        )
+    if e.limit == "wall_budget":
+        return RecipeError(f"{what}: ran out of wall budget ({e})", reason="fetch_failed")
+    raise AssertionError(f"unhandled fetch limit {e.limit!r}")
 
 
 def probe_inputs(
@@ -514,6 +533,12 @@ def fetch_inputs(
                 )
             dest = dest_dir / f"{inp.name}__{i + 1}.csv"
             cap = min(max_bytes, remaining)
+            if cap <= 0:
+                raise RecipeError(
+                    f"input {inp.name!r}: earlier inputs used the whole "
+                    "REFRESH_TOTAL_BYTES budget",
+                    reason="too_large",
+                )
             try:
                 outcome = fetch_fn(
                     rid,
@@ -528,22 +553,10 @@ def fetch_inputs(
                     fields=inp.columns,
                 )
             except FetchLimitExceeded as e:
-                if e.limit == "bytes":
-                    # Outgrew the cap: a retry fetches the same bytes again.
-                    raise RecipeError(
-                        f"input {inp.name!r}: export of {rid[:8]} > {cap:,} bytes "
-                        "(REFRESH_MAX_BYTES / REFRESH_TOTAL_BYTES / recipe limits)",
-                        reason="too_large",
-                    ) from None
-                # Slow CKAN or a dataset that outgrew the budget; can't tell
-                # which from one run, so retry rather than open an issue.
-                raise RecipeError(
-                    f"input {inp.name!r}: export of {rid[:8]} ran out of wall budget",
-                    reason="fetch_failed",
-                ) from None
+                raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
             if outcome is None or outcome.mode != "full":
                 raise RecipeError(
-                    f"input {inp.name!r}: full fetch of {rid[:8]} failed (network/CKAN error)",
+                    f"input {inp.name!r}: full fetch of {rid[:8]} failed (fetch error)",
                     reason="fetch_failed",
                 )
             if inp.columns:

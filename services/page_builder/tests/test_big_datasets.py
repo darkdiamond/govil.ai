@@ -363,3 +363,42 @@ def test_coverage_flags_a_used_column_that_is_never_fetched(tmp_path):
     inputs = {"events": [rf.FetchedInput(tmp_path / "x.csv", RID, "events", 1)]}
     problems, _ = author._coverage_findings(recipe, inputs, manifest, "", {"kpis": {}})
     assert any("never fetched" in p for p in problems)
+
+
+# ── author verify mirrors the byte caps ──────────────────────────────────
+
+
+def _local_ckan(tmp_path, **entry):
+    from services.page_builder import author
+
+    (tmp_path / "1.csv").write_text("a,b\n" + "1,xxxxxxxxxx\n" * 50, encoding="utf-8")
+    m = {"resource_id": "r1", "fields": ["a", "b"], "total": 50, "file": "1.csv", **entry}
+    return author._LocalCkan(tmp_path, [m])
+
+
+def test_local_ckan_measures_the_cap_on_projected_columns(tmp_path):
+    lc = _local_ckan(tmp_path)
+    dest = tmp_path / "out.csv"
+    # All columns: ~600 bytes, over 300. Only `a` (what prod exports): ~100.
+    with pytest.raises(agent_contract.FetchLimitExceeded):
+        lc.fetch("r1", 50, dest, max_bytes=300)
+    assert not dest.exists()
+    out = lc.fetch("r1", 50, dest, max_bytes=300, fields=["a"])
+    assert out.rows == 50 and dest.read_text().splitlines()[0] == "a"
+
+
+def test_local_ckan_replays_a_prepare_skip(tmp_path):
+    lc = _local_ckan(tmp_path, file=None, skipped="bytes")
+    with pytest.raises(agent_contract.FetchLimitExceeded) as e:
+        lc.fetch("r1", 50, tmp_path / "out.csv", max_bytes=10**6)
+    assert e.value.limit == "bytes"
+
+
+def test_brief_names_the_byte_cap_skip(tmp_path):
+    from services.page_builder import author
+
+    facts = {"id": DS, "title": "t", "organization": {}, "notes": "", "metadata_modified": "x"}
+    m = {"resource_id": "r1", "name": "n", "format": "CSV", "field_types": {},
+         "total": 9, "file": None, "rows": 0, "skipped": "bytes"}
+    brief = author._brief(facts, [m], [], {"data": tmp_path})
+    assert "over the byte cap" in brief and "REFRESH_MAX_RECORDS" not in brief

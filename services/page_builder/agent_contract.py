@@ -25,7 +25,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
@@ -222,13 +222,18 @@ class _WallBudgetExceeded(Exception):
     pass
 
 
-class FetchLimitExceeded(Exception):
-    """A full-or-nothing export (`sample_target_rows=0`) stopped at a limit,
-    not on an error: `limit` is "bytes" (the byte cap) or "wall_budget"
-    (the deadline). A byte overrun means the dataset outgrew its cap,
-    which a retry won't fix."""
+FetchLimit = Literal["bytes", "wall_budget"]
 
-    def __init__(self, limit: str, message: str):
+
+class FetchLimitExceeded(Exception):
+    """A fetch stopped at a limit, not on an error: `limit` is "bytes" (a
+    byte cap) or "wall_budget" (the deadline). Raised by a full-or-nothing
+    CKAN export (`sample_target_rows=0`) and by provider fetchers. A byte
+    overrun means the dataset outgrew its cap, which a retry won't fix."""
+
+    def __init__(self, limit: FetchLimit, message: str):
+        if limit not in ("bytes", "wall_budget"):
+            raise ValueError(f"unknown fetch limit {limit!r}")
         super().__init__(message)
         self.limit = limit
 
