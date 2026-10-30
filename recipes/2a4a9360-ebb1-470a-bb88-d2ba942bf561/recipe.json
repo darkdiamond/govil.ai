@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "2a4a9360-ebb1-470a-bb88-d2ba942bf561",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T20:00:53.747752+00:00",
+    "rows": { "params": 586 }
+  },
+  "inputs": [
+    {
+      "name": "params",
+      "by_id": "6777c281-f4e9-4241-aa45-04552befe5a3",
+      "required_columns": ["ParameterKod", "ParameterName", "SamplingType"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

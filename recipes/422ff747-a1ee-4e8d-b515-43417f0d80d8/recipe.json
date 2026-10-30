@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "422ff747-a1ee-4e8d-b515-43417f0d80d8",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T20:00:57.100960+00:00",
+    "rows": { "reports": 46 }
+  },
+  "inputs": [
+    {
+      "name": "reports",
+      "by_id": "84c67bf9-dbd6-4f1d-86f5-a69c092a945d",
+      "required_columns": [
+        "SiteName",
+        "SiteRegion",
+        "ReportActualDate",
+        "ChimneyName",
+        "PollutingName",
+        "StartDate",
+        "EndDate",
+        "FaultType",
+        "FaultTypeDesc",
+        "Remarks"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

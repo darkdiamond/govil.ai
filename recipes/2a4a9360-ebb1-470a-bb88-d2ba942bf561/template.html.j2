@@ -1,0 +1,258 @@
+<h1>פרמטרים לדיווחי דיגומים: קודי פרמטרים של המשרד להגנת הסביבה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קוד פרמטר לפי שם החומר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: קוד פרמטר, שם הפרמטר (החומר או המדד) וסוג הדיגום (שפכי תעשייה, פליטות מארובות, הזרמה לים)</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rows.tone }} mb-1" dir="ltr">{{ model.kpis.rows.display }}</div>
+    <div class="text-sm text-subtle">רשומות (פרמטר וסוג דיגום)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.names.tone }} mb-1" dir="ltr">{{ model.kpis.names.display }}</div>
+    <div class="text-sm text-subtle">פרמטרים שונים (לפי שם)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.codes.tone }} mb-1" dir="ltr">{{ model.kpis.codes.display }}</div>
+    <div class="text-sm text-subtle">קודי פרמטר שונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.coded.tone }} mb-1" dir="ltr">{{ model.kpis.coded.display }}</div>
+    <div class="text-sm text-subtle">מהרשומות כוללות קוד פרמטר</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הדיגום וכיסוי הקודים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+      <thead><tr><th scope="col">סוג דיגום</th><th scope="col">רשומות</th><th scope="col">עם קוד</th><th scope="col">שיעור עם קוד</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.rows }}</td><td>{{ r.coded }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">משפחות חומרים לפי סוג דיגום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fam_note }}</p>
+  <div id="chart-families" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.fam_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (כולל דוגמאות)</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.fam_aria }}</caption>
+      <thead><tr><th scope="col">משפחה</th><th scope="col">סך הכול</th>
+{%- for h in model.tables.family_heads %}<th scope="col">{{ h }}</th>{% endfor -%}
+      <th scope="col">דוגמאות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.families %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>
+{%- for c in r.cells %}<td>{{ c }}</td>{% endfor -%}
+        <td>{{ r.examples }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פרמטרים משותפים לכמה סוגי דיגום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.overlap_note }}</p>
+  <div id="chart-overlap" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.overlap_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.overlap_aria }}</caption>
+      <thead><tr><th scope="col">סוגי הדיגום שבהם מופיע הפרמטר</th><th scope="col">פרמטרים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.overlap %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סדרות הקודים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.series_note }}</p>
+    <div id="chart-series" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.series_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.series_aria }}</caption>
+        <thead><tr><th scope="col">סדרה</th><th scope="col">רשומות</th><th scope="col">קודים שונים</th><th scope="col">טווח</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.series %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.distinct }}</td><td dir="ltr">{{ r.range }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">איכות הנתונים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+    <div id="chart-quality" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.quality_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.quality_aria }}</caption>
+        <thead><tr><th scope="col">בדיקה</th><th scope="col">מספר</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.quality %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">פרטי פרמטרים המיועדים לדיווחי דיגומים במשרד להגנת הסביבה</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "break" } },
+      series: [
+        { type: "bar", stack: "t", name: "עם קוד פרמטר", data: d.coded.slice().reverse() },
+        { type: "bar", stack: "t", name: "ללא קוד פרמטר", data: d.uncoded.slice().reverse() }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.families | tojson }};
+    var c = echarts.init(document.getElementById("chart-families"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 8, right: 24, top: 8, bottom: 48, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "break" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.overlap | tojson }};
+    var c = echarts.init(document.getElementById("chart-overlap"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 32, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "break" } },
+      series: [{ type: "bar", name: "פרמטרים", data: d.values.slice().reverse(), label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.series | tojson }};
+    var c = echarts.init(document.getElementById("chart-series"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 70, overflow: "break" } },
+      yAxis: { type: "value" },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.quality | tojson }};
+    var c = echarts.init(document.getElementById("chart-quality"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 32, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "break" } },
+      series: [{ type: "bar", name: "מספר", data: d.values.slice().reverse(), label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

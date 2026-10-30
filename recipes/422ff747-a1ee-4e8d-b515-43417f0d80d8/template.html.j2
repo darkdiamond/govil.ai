@@ -1,0 +1,393 @@
+{% macro count_table(rows, caption, head, unit="דיווחים", share=true) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">{{ unit }}</th>{% if share %}<th scope="col">שיעור</th>{% endif %}</tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td>{% if share %}<td>{{ r.share }}</td>{% endif %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<h1>דיווח על תקלה לידיעת הציבור: תקלות בארובות מפעלים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+{%- if model.labels.test_note %}
+  <p class="mt-2 mb-0 text-sm text-subtle">{{ model.labels.test_note }}</p>
+{%- endif %}
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור דיווח תקלה לפי שם מפעל או ארובה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל הדיווחים: שם המפעל, אזור, כתובת, שם הארובה, המזהם, סוג התקלה והערות המפעל.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+{%- for key in ["reports", "sites", "top_share", "lag", "span"] %}
+{%- if model.kpis[key] is defined %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endif %}
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">דיווחים לאורך זמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.timeline_lede }}</p>
+  <div id="chart-timeline" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.timeline_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (תקופות עם דיווחים)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.timeline_aria }}</caption>
+      <thead><tr><th scope="col">תקופה</th><th scope="col">דיווחים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.timeline %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המפעלים המדווחים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sites_lede }}</p>
+  <div id="chart-sites" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.sites_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sites_aria }}</caption>
+      <thead><tr><th scope="col">מפעל</th><th scope="col">דיווחים</th><th scope="col">שיעור</th><th scope="col">ארובות</th><th scope="col">תקלה אחרונה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sites %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td><td>{{ r.chimneys }}</td><td>{{ r.last }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי התקלות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.faults_lede }}</p>
+    <div id="chart-faults" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.faults_aria }}"></div>
+    {{ count_table(model.tables.faults, model.labels.faults_aria, "סוג תקלה") }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המזהמים המנוטרים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pollutants_lede }}</p>
+    <div id="chart-pollutants" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.pollutants_aria }}"></div>
+    {{ count_table(model.tables.pollutants, model.labels.pollutants_aria, "מזהם") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה גרם לתקלות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.themes_lede }}</p>
+  <div id="chart-themes" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+  {{ count_table(model.tables.themes, model.labels.themes_aria, "נושא") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מהירות הדיווח</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_lede }}</p>
+    <div id="chart-lag" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+    {{ count_table(model.tables.lag, model.labels.lag_aria, "זמן עד הדיווח", share=false) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">משך התקלה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.duration_lede }}</p>
+    <div id="chart-duration" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.duration_aria }}"></div>
+    {{ count_table(model.tables.duration, model.labels.duration_aria, "משך", share=false) }}
+  </section>
+</div>
+
+{%- if model.charts.has_downtime %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שעות השבתה שדווחו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.downtime_lede }}</p>
+  <div id="chart-downtime" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.downtime_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.downtime_aria }}</caption>
+      <thead><tr><th scope="col">תאריך התקלה</th><th scope="col">מפעל</th><th scope="col">שעות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.downtime %}
+        <tr><th scope="row">{{ r.date }}</th><td>{{ r.site }}</td><td>{{ r.hours }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">דיווחים לפי אזור</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regions_lede }}</p>
+    <div id="chart-regions" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.regions_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.regions_aria }}</caption>
+        <thead><tr><th scope="col">אזור</th><th scope="col">דיווחים</th><th scope="col">מפעלים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.regions %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.sites }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">ארובות ומוקדי פליטה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.chimneys_lede }}</p>
+    <div id="chart-chimneys" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.chimneys_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.chimneys_aria }}</caption>
+        <thead><tr><th scope="col">ארובה</th><th scope="col">מפעל</th><th scope="col">דיווחים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.chimneys %}
+          <tr><th scope="row">{{ r.chimney }}</th><td>{{ r.site }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הדיווחים האחרונים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_lede }}</p>
+  <div class="overflow-x-auto">
+  <table id="table-recent" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.recent_lede }}</caption>
+    <thead><tr><th scope="col">תחילת התקלה</th><th scope="col">מפעל</th><th scope="col">ארובה</th><th scope="col">מזהם</th><th scope="col">התקלה</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.recent %}
+      <tr><th scope="row">{{ r.date }}</th><td>{{ r.site }}</td><td>{{ r.chimney }}</td><td>{{ r.pollutant }}</td><td>{{ r.desc }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-subtle">פרסום לציבור נתוני של ניטור רציף מזהמים בארובה</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.timeline | tojson }};
+    const chart = echarts.init(document.getElementById("chart-timeline"));
+    const zoom = d.x.length > 24;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (p) { return echarts.format.encodeHTML(p[0].name) + "<br>" + p[0].value + " דיווחים"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: zoom ? 64 : 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1, name: "דיווחים" },
+      dataZoom: zoom ? [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }] : [],
+      series: [{ type: "bar", data: d.y, itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.sites | tojson }};
+    const chart = echarts.init(document.getElementById("chart-sites"));
+    const names = d.names.slice().reverse();
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: names, axisLabel: { width: 150, overflow: "truncate" } },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "f", data: s.data.slice().reverse() };
+      })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.faults | tojson }};
+    const chart = echarts.init(document.getElementById("chart-faults"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + "<br>" + p.value + " דיווחים (" + p.percent + "%)"; } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "44%"], label: { show: false },
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }) }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.pollutants | tojson }};
+    const chart = echarts.init(document.getElementById("chart-pollutants"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.values.slice().reverse(), label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.themes | tojson }};
+    const chart = echarts.init(document.getElementById("chart-themes"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.values.slice().reverse(), label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.lag | tojson }};
+    const chart = echarts.init(document.getElementById("chart-lag"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.duration | tojson }};
+    const chart = echarts.init(document.getElementById("chart-duration"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+{%- if model.charts.has_downtime %}
+  (function () {
+    const d = {{ model.charts.downtime | tojson }};
+    const chart = echarts.init(document.getElementById("chart-downtime"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        const i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + echarts.format.encodeHTML(d.site[i]) + "<br>" + d.y[i] + " שעות";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45, fontSize: 11 } },
+      yAxis: { type: "value", name: "שעות" },
+      series: [{ type: "bar", data: d.y, itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.regions | tojson }};
+    const chart = echarts.init(document.getElementById("chart-regions"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        const i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i] + " דיווחים, " + d.sites[i] + " מפעלים";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.chimneys | tojson }};
+    const chart = echarts.init(document.getElementById("chart-chimneys"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>

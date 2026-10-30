@@ -1,0 +1,19 @@
+{
+  "forecast.type_id": "skip: row ordinal; used only for a stable row order",
+  "forecast.type": "chart-dist, map-regions, chart-timeline — splits region rows (Map) from warning/forecast rows (Content)",
+  "forecast.name": "map-regions, insight:north_south, insight:warning — region code keys the map centre; Warning/OneDay/TwoDay pick the content rows",
+  "forecast.title": "map-regions, insight:elevated, insight:north_south — region name in the region list and map",
+  "forecast.air_quality": "chart-dist, map-regions, kpi:high, kpi:worst, insight:distribution, insight:elevated, insight:north_south",
+  "forecast.file_link": "map-regions — per-region link to the ministry's settlements list (gov.il only)",
+  "forecast.fill_color": "chart-dist, map-regions — the ministry's own level colour for the region swatches and map circles",
+  "forecast.show": "insight:warning — whether the last warning is currently active",
+  "forecast.day_of_week": "chart-timeline, kpi:date, insight:forecast, insight:warning",
+  "forecast.date": "chart-timeline, kpi:date, insight:forecast, insight:warning",
+  "forecast.content": "insight:warning — full warning text shown in the warning card",
+  "forecast.morning": "chart-timeline — period heading",
+  "forecast.morning_content": "chart-timeline, insight:forecast, insight:cause",
+  "forecast.noon": "chart-timeline — period heading",
+  "forecast.noon_content": "chart-timeline, insight:forecast, insight:cause",
+  "forecast.evening": "chart-timeline — period heading",
+  "forecast.evening_content": "chart-timeline, insight:forecast, insight:cause"
+}

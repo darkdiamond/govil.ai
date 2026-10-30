@@ -1,0 +1,13 @@
+{
+  "main.תאריך הגשת בקשה": "chart-yearly, chart-share, chart-heat, chart-weekday, chart-district, chart-dshare, chart-court, chart-dur, chart-box, chart-paper, chart-status, kpi:total, kpi:last_full, kpi:ytd, insight:growth, insight:ytd, insight:season, insight:weekday — filing date drives every time view; durations are measured from it",
+  "main.סוג בקשה": "chart-yearly, chart-share, chart-types, chart-outcome, chart-court, chart-dur, insight:top_type, insight:wills — core order types (inheritance order, probate) vs copies and the rest",
+  "main.מחוז": "chart-district, chart-dshare, chart-box, insight:district",
+  "main.מיוצג": "skip: constant (every row is 'כן')",
+  "main.סטטוס בקשה": "chart-status — requests not yet in the finished status",
+  "main.תאריך פרסום": "chart-paper — share of order requests with a publication date",
+  "main.עיתון מפרסם": "chart-paper, insight:paper",
+  "main.החלטת רשם": "chart-dec",
+  "main.תאריך החלטת רשם": "chart-dec — median days from filing to a registrar decision in the lede",
+  "main.סיבת סגירה": "chart-outcome, chart-court, kpi:granted, insight:court",
+  "main.תאריך סגירה": "chart-dur, chart-box, chart-status, kpi:median_days, insight:duration"
+}

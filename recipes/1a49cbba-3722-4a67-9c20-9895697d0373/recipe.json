@@ -1,0 +1,45 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1a49cbba-3722-4a67-9c20-9895697d0373",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:35:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T13:39:32.512221+00:00",
+    "rows": { "main": 35198 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "name1",
+        "name2",
+        "name3",
+        "name4",
+        "name7",
+        "name8",
+        "name9",
+        "name10"
+      ],
+      "pick": "latest",
+      "required_columns": [
+        "name1",
+        "name2",
+        "name3",
+        "name4",
+        "name5",
+        "name6",
+        "name7",
+        "name8",
+        "name9",
+        "name10",
+        "name11",
+        "name12",
+        "name14",
+        "name15",
+        "description"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

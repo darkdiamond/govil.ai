@@ -1,0 +1,17 @@
+{
+  "main.name1": "chart-importer, kpi:importers, insight:importers — importer (business)",
+  "main.name2": "chart-country, chart-heat, chart-mix, chart-maker, chart-body, kpi:countries, insight:country, insight:dairy_country — country of origin",
+  "main.name3": "chart-body, chart-heat, kpi:bodies, insight:body — kashrut body abroad; a few column-shifted junk values fall into אחר",
+  "main.name4": "kpi:rows — Hebrew product name; free text, searchable in the explorer (lookup callout)",
+  "main.name5": "skip: foreign product name, free text; searchable in the explorer",
+  "main.name6": "chart-maker, kpi:makers — manufacturer (business, \"עברית | LATIN\")",
+  "main.name7": "chart-certs, chart-country, chart-importer, chart-issue, kpi:certs, insight:certs — certificate number (grouping key only)",
+  "main.name8": "chart-expiry, chart-dur, kpi:expired, insight:expired, insight:wave — certificate expiry date",
+  "main.name9": "chart-issue, chart-expiry, chart-dur, kpi:recent, insight:recent, insight:expired — certificate issue date; newest issue date is the snapshot anchor",
+  "main.name10": "chart-kind, chart-pesach, chart-tags, chart-mix, insight:kind, insight:pesach, insight:dairy_country — pipe-separated kashrut attributes",
+  "main.name11": "chart-req, insight:batch — lot code (filled or not)",
+  "main.name12": "chart-req, insight:batch — serial / lot-number range (filled or not), 96% empty",
+  "main.name14": "chart-req, insight:batch — production date (parsed or not)",
+  "main.name15": "chart-req, insight:batch — product expiry date (parsed or not)",
+  "main.description": "chart-req — label wording + certificate notes; keyword flags only"
+}

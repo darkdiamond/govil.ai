@@ -1,0 +1,14 @@
+{
+  "reports.SiteNumber": "skip: internal site registration number, an identifier; SiteName carries the same grouping",
+  "reports.SiteName": "chart-sites, chart-downtime, chart-chimneys, table-recent, kpi:sites, kpi:top_share, insight:concentration — test-portal rows detected by region/name are excluded and disclosed",
+  "reports.SiteRegion": "chart-regions — also flags the ministry's test district rows",
+  "reports.SiteAddress": "skip: one address per site (redundant with SiteName); the explorer shows it",
+  "reports.ReportActualDate": "chart-lag, table-recent, kpi:lag, insight:lag — report date vs fault start",
+  "reports.ChimneyName": "chart-chimneys, table-recent, chart-sites — distinct chimneys per site in the sites table",
+  "reports.PollutingName": "chart-pollutants, table-recent — names normalized by the abbreviation in parentheses",
+  "reports.StartDate": "chart-timeline, chart-duration, chart-lag, insight:trend, insight:duration, kpi:span",
+  "reports.EndDate": "chart-duration, insight:duration",
+  "reports.FaultType": "chart-faults, chart-sites, insight:fault_leader",
+  "reports.FaultTypeDesc": "chart-themes, table-recent, insight:theme — keyword themes; shown as the fault label in recent reports",
+  "reports.Remarks": "chart-themes, chart-downtime, insight:downtime, insight:theme — free text never quoted; keyword themes and stated downtime hours only"
+}

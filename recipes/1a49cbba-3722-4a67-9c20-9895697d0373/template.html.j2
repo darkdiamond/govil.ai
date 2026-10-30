@@ -1,0 +1,604 @@
+<h1>רשימת מוצרי מזון וחומרי גלם מיובאים</h1>
+
+<style>
+  .ki-table th, .ki-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .ki-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .ki-table td.num, .ki-table th.num { white-space: nowrap; }
+  .ki-table .item-name { min-width: 10rem; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="m-0 mt-2 text-sm text-subtle">זוהי רשימת הכשרות של מוצרי יבוא (מזון מיובא כשר) מטעם הרבנות הראשית. מוצר שאינו ברשימה, או שתוקף אישורו פג, אינו מאושר בה; הסמכות הקובעת היא תעודת הכשרות עצמה.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת כשרות מוצר מיובא לפי שם המוצר, היבואן או היצרן ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם המוצר בעברית ובלועזית, יבואן, יצרן, ארץ ייצור, גוף כשרות, מספר תעודה, סימוני הכשרות וקוד אצווה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rows.tone }} mb-1" dir="ltr">{{ model.kpis.rows.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rows_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.countries.tone }} mb-1" dir="ltr">{{ model.kpis.countries.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.countries_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.importers.tone }} mb-1" dir="ltr">{{ model.kpis.importers.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.importers_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.bodies.tone }} mb-1" dir="ltr">{{ model.kpis.bodies.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.bodies_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.makers.tone }} mb-1" dir="ltr">{{ model.kpis.makers.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.makers_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.certs.tone }} mb-1" dir="ltr">{{ model.kpis.certs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.certs_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.recent.tone }} mb-1" dir="ltr">{{ model.kpis.recent.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.expired.tone }} mb-1" dir="ltr">{{ model.kpis.expired.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.expired_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ארצות המקור של המזון המיובא הכשר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.country_note }}</p>
+  <div id="chart-country" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.country_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.country_aria }}</caption>
+        <thead><tr><th scope="col">ארץ מקור</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">שיעור</th><th scope="col" class="num">תעודות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.country %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td><td class="num">{{ r.certs }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גופי הכשרות בחו״ל (הכשר, בד״ץ, ועד כשרות)</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.body_note }}</p>
+  <div id="chart-body" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.body_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.body_aria }}</caption>
+        <thead><tr><th scope="col">גוף כשרות</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">שיעור</th><th scope="col" class="num">מדינות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.body %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td><td class="num">{{ r.countries }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה גוף כשרות משגיח בכל ארץ מקור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+        <thead><tr><th scope="col">גוף כשרות</th>{% for t in model.tables.heat_cols %}<th scope="col" class="num">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th>{% for v in r.vals %}<td class="num">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היבואנים הגדולים של מזון כשר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.importer_note }}</p>
+  <div id="chart-importer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.importer_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.importer_aria }}</caption>
+        <thead><tr><th scope="col">יבואן</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">תעודות</th><th scope="col" class="num">מדינות מקור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.importer %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.certs }}</td><td class="num">{{ r.countries }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היצרנים בחו״ל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.maker_note }}</p>
+  <div id="chart-maker" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.maker_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.maker_aria }}</caption>
+        <thead><tr><th scope="col">יצרן</th><th scope="col" class="num">מוצרים</th><th scope="col">ארץ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.maker %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td>{{ r.country }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פרווה, חלבי או בשרי, וכשר לפסח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kind_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div id="chart-kind" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.kind_aria }}"></div>
+    <div id="chart-pesach" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pes_aria }}"></div>
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="ki-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kind_aria }}</caption>
+      <thead><tr><th scope="col">חלוקה</th><th scope="col">סוג</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kind %}
+        <tr><td>{{ r.group }}</td><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סימוני הכשרות: השגחה צמודה, חדש, אפיית ובישול ישראל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tag_note }}</p>
+  <div id="chart-tags" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tag_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="ki-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tag_aria }}</caption>
+      <thead><tr><th scope="col">סימון</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.tags %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל הכשרות בכל ארץ מקור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+        <thead><tr><th scope="col">ארץ מקור</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">פרווה</th><th scope="col" class="num">חלבי</th><th scope="col" class="num">כשר לפסח</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.pareve }}</td><td class="num">{{ r.dairy }}</td><td class="num">{{ r.pesach }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי ניתנו האישורים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.issue_note }}</p>
+  <div id="chart-issue" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.issue_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="ki-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.issue_aria }}</caption>
+      <thead><tr><th scope="col">שנת הנפקה</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">תעודות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.issue_year %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.certs }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תוקף תעודות הכשרות: מתי פג האישור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.exp_note }}</p>
+  <div id="chart-expiry" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.exp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="ki-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.exp_aria }}</caption>
+      <thead><tr><th scope="col">חודש פקיעה</th><th scope="col" class="num">מוצרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.expiry %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">לכמה זמן ניתן אישור</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dur_note }}</p>
+    <div id="chart-dur" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dur_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dur_aria }}</caption>
+        <thead><tr><th scope="col">משך תוקף</th><th scope="col" class="num">מוצרים</th><th scope="col" class="num">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dur %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">כמה מוצרים בכל תעודת כשרות</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cert_note }}</p>
+    <div id="chart-certs" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cert_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="ki-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cert_aria }}</caption>
+        <thead><tr><th scope="col">מוצרים בתעודה</th><th scope="col" class="num">תעודות</th><th scope="col" class="num">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.certs %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אישור לאצווה מסוימת ודרישות הסימון על האריזה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.req_note }}</p>
+  <div id="chart-req" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.req_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="ki-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.req_aria }}</caption>
+      <thead><tr><th scope="col">פרט ברשומה</th><th scope="col" class="num">רשומות</th><th scope="col" class="num">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.req %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על המאגר</h2>
+  </div>
+  <p class="m-0 text-subtle">רשימת מוצרי מזון וחומרי גלם מיובאים המאושרים על ידי הרבנות הראשית לישראל</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.country | tojson }};
+    var el = document.getElementById("chart-country");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.y[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מוצרים · " + d.certs[i].toLocaleString("he-IL") + " תעודות";
+      } },
+      grid: { left: 8, right: narrow ? 44 : 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 90 : 140, overflow: "truncate", ellipsis: "…" } },
+      series: [{ type: "bar", label: { show: true, position: "right" }, data: d.n.map(function (v, i) {
+        return d.y[i] === "אחר" ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.body | tojson }};
+    var el = document.getElementById("chart-body");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.y[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מוצרים · " + d.countries[i].toLocaleString("he-IL") + " מדינות";
+      } },
+      grid: { left: 8, right: narrow ? 44 : 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 130 : 240, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", label: { show: true, position: "right" }, data: d.n.map(function (v, i) {
+        return d.y[i] === "אחר" ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", confine: true, formatter: function (p) {
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + " · " + echarts.format.encodeHTML(d.x[p.value[0]]) + "<br>" + p.value[2] + "% ממוצרי המדינה (" + p.value[3].toLocaleString("he-IL") + " מוצרים)";
+      } },
+      grid: { left: 8, right: 8, top: narrow ? 36 : 8, bottom: narrow ? 4 : 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 90 : 30, fontSize: narrow ? 9 : 12 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { interval: 0, width: narrow ? 96 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 9 : 12 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", top: narrow ? 0 : undefined, bottom: narrow ? undefined : 4, itemWidth: 12, itemHeight: narrow ? 90 : 160,
+                   inRange: { color: ["#f0f4fa", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" },
+                   formatter: function (v) { return Math.round(v) + "%"; } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontSize: 10, formatter: function (p) { return p.value[2] >= 1 ? String(Math.round(p.value[2])) : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.importer | tojson }};
+    var el = document.getElementById("chart-importer");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.y[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מוצרים · " + d.certs[i].toLocaleString("he-IL") + " תעודות · " + d.countries[i].toLocaleString("he-IL") + " מדינות";
+      } },
+      grid: { left: 8, right: narrow ? 44 : 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 130 : 260, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", data: d.n, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.maker | tojson }};
+    var el = document.getElementById("chart-maker");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "<div style=\"max-width:280px;white-space:normal\">" + echarts.format.encodeHTML(d.full[i]) + "<br>" + echarts.format.encodeHTML(d.country[i]) + " · " + d.n[i].toLocaleString("he-IL") + " מוצרים</div>";
+      } },
+      grid: { left: 8, right: narrow ? 40 : 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 130 : 240, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", data: d.n, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    function donut(id, d, colors) {
+      var el = document.getElementById(id);
+      var c = echarts.init(el);
+      var tot = d.data.reduce(function (a, b) { return a + b.value; }, 0);
+      c.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "item", formatter: function (p) {
+          return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " מוצרים (" + (p.value / tot * 100).toFixed(1) + "%)";
+        } },
+        legend: { bottom: 0 },
+        series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: d.data,
+                   label: { formatter: function (p) { return (p.value / tot * 100).toFixed(1) + "%"; } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    donut("chart-kind", {{ model.charts.kind | tojson }}, ["#0068f5", "#0b3668", "#7fb2fa", "#c3cfe7"]);
+    donut("chart-pesach", {{ model.charts.pesach | tojson }}, ["#0068f5", "#7fb2fa", "#c3cfe7"]);
+  })();
+  (function () {
+    var d = {{ model.charts.tags | tojson }};
+    var el = document.getElementById("chart-tags");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.y[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מוצרים (" + d.share[i] + "%)";
+      } },
+      grid: { left: 8, right: narrow ? 48 : 60, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 120 : 220, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", data: d.share, label: { show: true, position: "right", formatter: "{c}%" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.mix | tojson }};
+    var el = document.getElementById("chart-mix");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    var colors = { "פרווה": "#0068f5", "חלבי": "#0b3668", "בשרי": "#7fb2fa", "לא צוין": "#c3cfe7" };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var out = echarts.format.encodeHTML(ps[0].axisValue);
+        ps.forEach(function (p) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value + "%"; });
+        return out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" }, splitNumber: narrow ? 2 : 5 },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 80 : 120, overflow: "truncate", ellipsis: "…" } },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "all", data: s.data, itemStyle: { color: colors[s.name] || "#c3cfe7" } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.issue | tojson }};
+    var el = document.getElementById("chart-issue");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מוצרים · " + d.certs[i].toLocaleString("he-IL") + " תעודות";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 56, containLabel: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      xAxis: { type: "category", data: d.x, axisLabel: { fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [{ type: "bar", name: "מוצרים", data: d.n }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.expiry | tojson }};
+    var el = document.getElementById("chart-expiry");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    var last = d.x.length - 1;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " מוצרים";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: narrow ? 60 : 40, fontSize: narrow ? 9 : 11 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [{ type: "bar", data: d.n.map(function (v, i) {
+        if (i === 0) { return { value: v, itemStyle: { color: "#dc3545" } }; }
+        if (i === last) { return { value: v, itemStyle: { color: "#c3cfe7" } }; }
+        return v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.dur | tojson }};
+    var c = echarts.init(document.getElementById("chart-dur"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + ": " + d.n[i].toLocaleString("he-IL") + " מוצרים";
+      } },
+      grid: { left: 8, right: 8, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35, fontSize: 10 } },
+      yAxis: { type: "value", splitNumber: 3 },
+      series: [{ type: "bar", data: d.n }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.certs | tojson }};
+    var c = echarts.init(document.getElementById("chart-certs"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + " מוצרים בתעודה: " + d.n[i].toLocaleString("he-IL") + " תעודות";
+      } },
+      grid: { left: 8, right: 8, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "מוצרים בתעודה", nameLocation: "middle", nameGap: 26, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "value", splitNumber: 3 },
+      series: [{ type: "bar", data: d.n }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.req | tojson }};
+    var el = document.getElementById("chart-req");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.y[i]) + "<br>" + d.n[i].toLocaleString("he-IL") + " רשומות (" + d.share[i] + "%)";
+      } },
+      grid: { left: 8, right: narrow ? 48 : 60, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.y, axisLabel: { width: narrow ? 130 : 220, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", label: { show: true, position: "right", formatter: "{c}%" }, data: d.share.map(function (v, i) {
+        return d.group[i] === "אצווה" ? v : { value: v, itemStyle: { color: "#0b3668" } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

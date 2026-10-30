@@ -1,0 +1,35 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4acf8b98-776e-4c36-8f98-73cc73fed623",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T18:59:17.034029+00:00",
+    "rows": { "zones": 31 }
+  },
+  "inputs": [
+    {
+      "name": "zones",
+      "by_id": "30af8da4-7586-4b00-ac88-c5ee75251632",
+      "required_columns": [
+        "alina_id",
+        "alina_name",
+        "district",
+        "available_space",
+        "occupied_space",
+        "open_to_market",
+        "website",
+        "alina_description",
+        "contact_name",
+        "contact_phone",
+        "contact_email",
+        "small_factories",
+        "medium_factories",
+        "big_factories",
+        "geom"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

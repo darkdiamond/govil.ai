@@ -1,0 +1,6 @@
+{
+  "main.city_name": "chart-districts, chart-words, directory, table:ambiguous, kpi:localities, kpi:largest, kpi:smallest, kpi:ambiguous, insight:leader, insight:top2, insight:smallest, insight:name_word, insight:ambiguous, insight:duplicates — unique names feed the locality KPI and every total in prose; per-district counts are distinct (name, district) pairs, so a name listed under two districts counts once in each",
+  "main.court_district": "table:districts, directory — the numeric district code, shown next to each district name in the fallback table and directory headings",
+  "main.מחוז": "chart-districts, chart-words, directory, table:ambiguous, kpi:districts, kpi:largest, kpi:smallest, kpi:ambiguous, insight:leader, insight:top2, insight:smallest, insight:name_word, insight:ambiguous",
+  "main.regional_courts": "directory, table:districts — an HTML anchor to the gov.il traffic-court list per district; compute parses the https gov.il href (anything else is dropped) and renders one link per district"
+}
