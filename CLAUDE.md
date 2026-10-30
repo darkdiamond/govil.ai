@@ -146,7 +146,15 @@ landing pages. Five layers:
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
    `limits` is **heavy**: `run_refresh` runs it after all others. Every
    compute runs heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, default 3072) with
-   `oom_score_adj=1000`, so an outsized recipe dies alone. The refresh code
+   `oom_score_adj=1000`, so an outsized recipe dies alone. **Map snapshots:**
+   data.gov.il's CDN 403s every scripted file download (only `/api/3/action`
+   answers; don't work around it), so geometry that exists only in an
+   uploaded SHP/KMZ/GeoJSON is downloaded once in a browser, converted by
+   `author snapshot` (`geo_snapshot.py`, pure Python, ITM→WGS84) and committed
+   as `recipes/<id>/<name>.geojson`. An input with `snapshot` reads it as a
+   table (properties + `__geometry`), and when CKAN's size/hash for the
+   resource moves past `snapshot_of`, the refresh fails `geometry_stale`
+   (page kept, issue opened). The refresh code
    ships in the builder image, but recipes are read from `main` at run time:
    **redeploy the job before merging a recipe that uses a new
    `recipe.json` field**, or the old image rejects it as `recipe_invalid`. `REFRESH_CAP` (200)
