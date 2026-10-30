@@ -1,0 +1,513 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro kpi(k, label) -%}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro -%}
+{%- set L = model.labels -%}
+{%- set C = model.charts -%}
+<h1>רישוי מערך האוטובוסים: נסיעות מורשות לפי קו, מפעיל ויישוב</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ L.lede }}</p>
+  <p class="m-0 mt-2 text-sm text-subtle">רישוי קו הוא האישור של משרד התחבורה לקו: מסלול, מפעיל ומספר הנסיעות בכל יום. {{ L.ref_note }}.{% if L.partial_note %} {{ L.partial_note }}{% endif %}{% if L.other_years_note %} {{ L.other_years_note }}{% endif %}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קו אוטובוס לפי מספר קו, מפעיל או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרישוי: מספר קו, מק״ט משרדי, מפעיל, אשכול, תחנת מוצא ויעד ויישוב.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ kpi(model.kpis.trips, L.trips_kpi) }}
+  {{ kpi(model.kpis.lines, L.lines_kpi) }}
+  {{ kpi(model.kpis.operators, L.ops_kpi) }}
+  {{ kpi(model.kpis.clusters, L.clusters_kpi) }}
+  {%- if model.kpis.change %}
+  {{ kpi(model.kpis.change, L.change_kpi) }}
+  {%- endif %}
+  {%- if model.kpis.sat_ratio %}
+  {{ kpi(model.kpis.sat_ratio, L.sat_kpi) }}
+  {%- endif %}
+  {{ kpi(model.kpis.year_total, L.year_total_kpi) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("נסיעות מורשות בכל יום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.daily_lede }}</p>
+  <div id="chart-daily" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ L.daily_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("חציון יומי לפי חודש: יום חול, שישי ושבת") }}
+  <p class="m-0 text-sm text-subtle mb-3">החציון מנטרל חגים בודדים. חודש שהנתונים בו אינם מלאים מסומן כחלקי.</p>
+  <div id="chart-monthly" class="h-64 md:h-80" role="img" aria-label="{{ L.monthly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.monthly_aria }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">יום חול</th><th scope="col">שישי</th><th scope="col">שבת</th><th scope="col">קווים פעילים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.monthly %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.weekday | fmt_int if r.weekday is not none else "" }}</td><td>{{ r.fri | fmt_int if r.fri is not none else "" }}</td><td>{{ r.sat | fmt_int if r.sat is not none else "" }}</td><td>{{ r.lines | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("לפי יום בשבוע") }}
+    <p class="m-0 text-sm text-subtle mb-3">חציון סך הנסיעות המורשות בכל יום בשבוע, על פני כל השנה.</p>
+    <div id="chart-dow" class="h-64 md:h-80" role="img" aria-label="{{ L.dow_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ L.dow_aria }}</caption>
+        <thead><tr><th scope="col">יום</th><th scope="col">חציון נסיעות</th><th scope="col">ימים בנתונים</th></tr></thead>
+        <tbody>
+{%- for n in C.dow.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ C.dow["values"][loop.index0] | fmt_int }}</td><td>{{ C.dow.days[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("קווים פעילים בכל חודש") }}
+    <p class="m-0 text-sm text-subtle mb-3">קווים שהייתה להם לפחות נסיעה מורשית אחת בחודש.</p>
+    <div id="chart-lines-month" class="h-64 md:h-80" role="img" aria-label="{{ L.lines_month_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ L.lines_month_aria }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">קווים פעילים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.monthly %}
+          <tr><th scope="row">{{ r.label }}</th><td>{{ r.lines | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("מפעילי התחבורה הציבורית", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">נסיעות {{ L.ref_phrase }} לפי מפעיל. {{ L.ops_note }}</p>
+  <div id="chart-operators" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.ops_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.ops_aria }}</caption>
+      <thead><tr><th scope="col">מפעיל</th><th scope="col">נסיעות</th><th scope="col">אחוז</th><th scope="col">קווים</th></tr></thead>
+      <tbody>
+{%- for n in C.operators.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ C.operators["values"][loop.index0] | fmt_int }}</td><td dir="ltr">{{ C.operators.share[loop.index0] }}%</td><td>{{ C.operators.lines[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("חלוקת הנסיעות בין המפעילים לאורך השנה", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז מהנסיעות המורשות בכל חודש. {{ L.mix_note }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.mix_aria }}</caption>
+      <thead><tr><th scope="col">מפעיל</th>{% for m in C.mix.months %}<th scope="col">{{ m }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for s in C.mix.series %}
+        <tr><th scope="row">{{ s.name }}</th>{% for v in s.data %}<td dir="ltr">{{ v }}%</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("האשכולות הגדולים", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">נסיעות {{ L.ref_phrase }} לפי אשכול. {{ L.clusters_note }}</p>
+  <div id="chart-clusters" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.clusters_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.clusters_aria }}</caption>
+      <thead><tr><th scope="col">אשכול</th><th scope="col">מפעיל עיקרי</th><th scope="col">נסיעות</th><th scope="col">קווים</th></tr></thead>
+      <tbody>
+{%- for n in C.clusters.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ C.clusters.ops[loop.index0] }}</td><td>{{ C.clusters["values"][loop.index0] | fmt_int }}</td><td>{{ C.clusters.lines[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("לפי סוג קו", "tag") }}
+    <p class="m-0 text-sm text-subtle mb-3">נסיעות {{ L.ref_phrase }} בקווים עירוניים, בינעירוניים ואזוריים.</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ L.types_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ L.types_aria }}</caption>
+        <thead><tr><th scope="col">סוג קו</th><th scope="col">נסיעות</th><th scope="col">אחוז</th><th scope="col">קווים</th></tr></thead>
+        <tbody>
+{%- for n in C.types.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ C.types["values"][loop.index0] | fmt_int }}</td><td dir="ltr">{{ C.types.share[loop.index0] }}%</td><td>{{ C.types.lines[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("כמה נסיעות יש לקו", "list") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ L.dist_note }}</p>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ L.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ L.dist_aria }}</caption>
+        <thead><tr><th scope="col">נסיעות ביום</th><th scope="col">קווים</th></tr></thead>
+        <tbody>
+{%- for n in C.dist.labels %}
+          <tr><th scope="row" dir="ltr">{{ n }}</th><td>{{ C.dist["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("לפי גודל רכב", "tag") }}
+    <p class="m-0 text-sm text-subtle mb-3">נסיעות {{ L.ref_phrase }} לפי גודל הרכב שנקבע ברישוי: אוטובוס, מפרקי, מיניבוס ועוד.</p>
+    <div id="chart-vsizes" class="h-64 md:h-80" role="img" aria-label="{{ L.vsizes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ L.vsizes_aria }}</caption>
+        <thead><tr><th scope="col">גודל רכב</th><th scope="col">נסיעות</th><th scope="col">אחוז</th><th scope="col">קווים</th></tr></thead>
+        <tbody>
+{%- for n in C.vsizes.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ C.vsizes["values"][loop.index0] | fmt_int }}</td><td dir="ltr">{{ C.vsizes.share[loop.index0] }}%</td><td>{{ C.vsizes.lines[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("לפי סוג רכב", "tag") }}
+    <p class="m-0 text-sm text-subtle mb-3">נסיעות {{ L.ref_phrase }} לפי סוג הרכב, כולל אוטובוסים ממוגנים.</p>
+    <div id="chart-vtypes" class="h-64 md:h-80" role="img" aria-label="{{ L.vtypes_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ L.vtypes_aria }}</caption>
+        <thead><tr><th scope="col">סוג רכב</th><th scope="col">נסיעות</th><th scope="col">אחוז</th><th scope="col">קווים</th></tr></thead>
+        <tbody>
+{%- for n in C.vtypes.names %}
+          <tr><th scope="row">{{ n }}</th><td>{{ C.vtypes["values"][loop.index0] | fmt_int }}</td><td dir="ltr">{{ C.vtypes.share[loop.index0] }}%</td><td>{{ C.vtypes.lines[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("הקווים העמוסים ביותר", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">נסיעות {{ L.ref_phrase }} בכל הכיוונים של הקו. המסלול הוא החלופה עם הכי הרבה נסיעות.</p>
+  <div id="chart-lines" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.lines_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto relative">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.lines_aria }}</caption>
+      <thead><tr><th scope="col">קו</th><th scope="col">מסלול</th><th scope="col" class="hidden md:table-cell">סוג</th><th scope="col" class="hidden md:table-cell">מק״ט</th><th scope="col">נסיעות</th></tr></thead>
+      <tbody>
+{%- for l in model.top_lines %}
+        <tr><th scope="row">{{ l.label }}</th><td>{{ l.route }}</td><td class="hidden md:table-cell">{{ l.kind }}</td><td class="hidden md:table-cell" dir="ltr">{{ l.makat }}</td><td>{{ l.value | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("יישובי המוצא העמוסים", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">נסיעות יוצאות {{ L.ref_phrase }}. {{ L.cities_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.cities_aria }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">נסיעות יוצאות</th><th scope="col">קווים</th></tr></thead>
+      <tbody>
+{%- for n in C.cities.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ C.cities["values"][loop.index0] | fmt_int }}</td><td>{{ C.cities.lines[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if C.sat_cities %}
+<section class="card p-5 mb-6">
+  {{ head("נסיעות בשבת לפי יישוב מוצא", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.sat_note }}</p>
+  <div id="chart-sat" class="h-72 md:h-96" role="img" aria-label="{{ L.sat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.sat_aria }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">נסיעות בשבת</th><th scope="col">אחוז</th></tr></thead>
+      <tbody>
+{%- for n in C.sat_cities.names %}
+        <tr><th scope="row">{{ n }}</th><td>{{ C.sat_cities["values"][loop.index0] | fmt_int }}</td><td dir="ltr">{{ C.sat_cities.share[loop.index0] }}%</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("תיאור מקורי", "list") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר זה מציג את כמות הנסיעות היומית ברישוי לפי קו.</p>
+</section>
+
+<script>
+(function () {
+  const d = {{ C.daily | tojson }};
+  const el = document.getElementById("chart-daily");
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " נסיעות"; } },
+    grid: { left: 16, right: 16, top: 24, bottom: 64, containLabel: true },
+    xAxis: { type: "category", data: d.x, inverse: true },
+    yAxis: { type: "value", position: "right", axisLabel: { formatter: function (v) { return (v / 1000) + " אלף"; } } },
+    dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+    series: [{ type: "line", name: "נסיעות", data: d.y, showSymbol: false, lineStyle: { width: 1.5 }, areaStyle: { opacity: 0.12 } }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.monthly | tojson }};
+  const chart = echarts.init(document.getElementById("chart-monthly"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "" : Number(v).toLocaleString("he-IL"); } },
+    legend: { top: 0 },
+    grid: { left: 16, right: 16, top: 36, bottom: 24, containLabel: true },
+    xAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: "value", position: "right" },
+    series: [
+      { type: "line", name: "יום חול", data: d.weekday },
+      { type: "line", name: "שישי", data: d.fri },
+      { type: "line", name: "שבת", data: d.sat }
+    ]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.dow | tojson }};
+  const chart = echarts.init(document.getElementById("chart-dow"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " נסיעות"; } },
+    grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+    xAxis: { type: "category", data: d.names, inverse: true },
+    yAxis: { type: "value", position: "right" },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 40 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.monthly | tojson }};
+  const chart = echarts.init(document.getElementById("chart-lines-month"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " קווים"; } },
+    grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+    xAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: "value", position: "right", scale: true },
+    series: [{ type: "line", data: d.lines }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.operators | tojson }};
+  const chart = echarts.init(document.getElementById("chart-operators"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+      const i = p[0].dataIndex;
+      return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " נסיעות (" + d.share[i] + "%)<br>" + d.lines[i].toLocaleString("he-IL") + " קווים";
+    } },
+    grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+    xAxis: { type: "value", inverse: true },
+    yAxis: { type: "category", data: d.names, inverse: true, position: "right" },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 22 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.mix | tojson }};
+  const chart = echarts.init(document.getElementById("chart-mix"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+    legend: { top: 0, type: "scroll" },
+    grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+    xAxis: { type: "category", data: d.months, inverse: true, axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: "value", max: 100, position: "right", axisLabel: { formatter: "{value}%" } },
+    series: d.series.map(function (s) { return { type: "bar", stack: "mix", name: s.name, data: s.data }; })
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.clusters | tojson }};
+  const chart = echarts.init(document.getElementById("chart-clusters"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+      const i = p[0].dataIndex;
+      return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.ops[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " נסיעות, " + d.lines[i].toLocaleString("he-IL") + " קווים";
+    } },
+    grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+    xAxis: { type: "value", inverse: true },
+    yAxis: { type: "category", data: d.names, inverse: true, position: "right", axisLabel: { width: 130, overflow: "truncate" } },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 22 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.types | tojson }};
+  const chart = echarts.init(document.getElementById("chart-types"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "item", formatter: function (p) {
+      return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " נסיעות (" + d.share[p.dataIndex] + "%)";
+    } },
+    legend: { bottom: 0 },
+    series: [{ type: "pie", radius: ["40%", "70%"], center: ["50%", "45%"],
+      label: { formatter: "{b}\n{d}%" },
+      data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }) }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.dist | tojson }};
+  const chart = echarts.init(document.getElementById("chart-dist"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " קווים"; } },
+    grid: { left: 16, right: 16, top: 24, bottom: 36, containLabel: true },
+    xAxis: { type: "category", data: d.labels, inverse: true, name: "נסיעות ביום", nameLocation: "middle", nameGap: 28 },
+    yAxis: { type: "value", position: "right" },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 40 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.vsizes | tojson }};
+  const chart = echarts.init(document.getElementById("chart-vsizes"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "item", formatter: function (p) {
+      return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " נסיעות (" + d.share[p.dataIndex] + "%)";
+    } },
+    legend: { bottom: 0, type: "scroll" },
+    series: [{ type: "pie", radius: ["40%", "70%"], center: ["50%", "45%"],
+      label: { formatter: "{b}\n{d}%" },
+      data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }) }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.vtypes | tojson }};
+  const chart = echarts.init(document.getElementById("chart-vtypes"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+      const i = p[0].dataIndex;
+      return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " נסיעות (" + d.share[i] + "%)<br>" + d.lines[i].toLocaleString("he-IL") + " קווים";
+    } },
+    grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+    xAxis: { type: "value", inverse: true },
+    yAxis: { type: "category", data: d.names, inverse: true, position: "right" },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 28 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.lines | tojson }};
+  const chart = echarts.init(document.getElementById("chart-lines"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+      const i = p[0].dataIndex;
+      return echarts.format.encodeHTML(d.labels[i]) + "<br>" + echarts.format.encodeHTML(d.routes[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " נסיעות";
+    } },
+    grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+    xAxis: { type: "value", inverse: true },
+    yAxis: { type: "category", data: d.labels, inverse: true, position: "right", axisLabel: { width: 130, overflow: "truncate" } },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 22 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+(function () {
+  const d = {{ C.cities | tojson }};
+  const chart = echarts.init(document.getElementById("chart-cities"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+      const i = p[0].dataIndex;
+      return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " נסיעות, " + d.lines[i].toLocaleString("he-IL") + " קווים";
+    } },
+    grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+    xAxis: { type: "value", inverse: true },
+    yAxis: { type: "category", data: d.names, inverse: true, position: "right" },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 22 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+{%- if C.sat_cities %}
+(function () {
+  const d = {{ C.sat_cities | tojson }};
+  const chart = echarts.init(document.getElementById("chart-sat"));
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+      const i = p[0].dataIndex;
+      return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.values[i].toLocaleString("he-IL") + " נסיעות (" + d.share[i] + "%)";
+    } },
+    grid: { left: 16, right: 16, top: 8, bottom: 24, containLabel: true },
+    xAxis: { type: "value", inverse: true },
+    yAxis: { type: "category", data: d.names, inverse: true, position: "right" },
+    series: [{ type: "bar", data: d.values, barMaxWidth: 22 }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+{%- endif %}
+</script>

@@ -1,0 +1,8 @@
+{
+  "main.court_name": "chart-top, chart-breadth, chart-gaps, towns, directory, kpi:towns, insight:hub, insight:family_gap, insight:peace_small, insight:youth, insight:single — the town is parsed from the name (text after the last ' - ')",
+  "main.court_district": "chart-dist-type, directory — numeric district code, used only for district ordering",
+  "main.מחוז": "chart-dist-type, directory, towns, kpi:districts, kpi:top_district, insight:largest, insight:labour",
+  "main.court_activity": "chart-dist-type, chart-types, chart-top, chart-gaps, towns, kpi:types, insight:labour, insight:family_gap — type code, mapped to short labels with a fallback to תחום",
+  "main.תחום": "chart-types, chart-dist-type, directory — full type name (tooltips, table, fallback label for unknown codes)",
+  "main.court_details": "directory — HTML link; only the https://www.gov.il/ href is extracted and linked"
+}

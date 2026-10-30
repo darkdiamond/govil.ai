@@ -1,0 +1,13 @@
+{
+  "clinics.institute_code": "table:directory — used only as a dedup / sort tie-break key; not shown",
+  "clinics.institute_name": "table:directory, chart-audience, insight:audience, insight:shared_address, insight:star, insight:address_detail, insight:contact, kpi:kids — audience is read from words in the name",
+  "clinics.city": "chart-cities, table:directory, kpi:cities, insight:spread, insight:address_detail",
+  "clinics.cityCode": "skip: numeric code duplicating the city name",
+  "clinics.streetCode": "insight:address_detail — an empty street code marks a city-only address",
+  "clinics.street": "skip: the street is already part of the free-text address shown in the directory",
+  "clinics.address": "table:directory, insight:shared_address, insight:address_detail",
+  "clinics.email": "table:directory, chart-contact, chart-bodies, insight:contact, insight:bodies — institutional clinic mailboxes; the domain hints at the operating body",
+  "clinics.phone": "table:directory, chart-contact, kpi:phone, insight:contact, insight:star",
+  "clinics.phone2": "table:directory, chart-contact, kpi:phone, insight:contact, insight:star",
+  "clinics.website": "table:directory, chart-contact, chart-bodies, insight:contact, insight:bodies"
+}

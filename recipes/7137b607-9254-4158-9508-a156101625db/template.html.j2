@@ -1,0 +1,236 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+<h1>בתי הדין לעבודה לפי יישוב: לאיזה בית דין אזורי לעבודה מגישים תביעה</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a id="lookup" href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בית הדין לעבודה לפי שם היישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם היישוב (city_name), שם מחוז השיפוט (מחוז) וקוד המחוז (court_district).</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.has_districts %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "מספר היישובים בכל מחוז שיפוט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_lede }}</p>
+  <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">מחוז שיפוט</th>
+          <th scope="col" class="text-start py-1 pe-3">קוד מחוז</th>
+          <th scope="col" class="text-start py-1 pe-3">יישובים</th>
+          <th scope="col" class="text-start py-1 pe-3">שיעור</th>
+          <th scope="col" class="text-start py-1">בית הדין לעבודה</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.districts %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.district }}</th><td class="py-1 pe-3">{{ r.code }}</td><td class="py-1 pe-3">{{ r.n_display }}</td><td class="py-1 pe-3" dir="ltr">{{ r.share_display }}</td><td class="py-1">{% if r.link %}<a href="{{ r.link }}" target="_blank" rel="noopener">לפרטים</a>{% endif %}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_groups %}
+<section id="courts" class="card p-5 mb-6">
+{{ head("map-pin", "מחוזות שיפוט ובתי הדין האזוריים לעבודה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_lede }}</p>
+  <div class="relative overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep">
+        <th scope="col" class="text-start py-1 pe-3">מחוזות השיפוט</th>
+        <th scope="col" class="text-start py-1 pe-3">מחוזות</th>
+        <th scope="col" class="text-start py-1 pe-3">יישובים</th>
+        <th scope="col" class="text-start py-1">בית הדין לעבודה</th>
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.groups %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.label }}</th><td class="py-1 pe-3">{{ r.k }}</td><td class="py-1 pe-3">{{ r.n }}</td><td class="py-1"><a href="{{ r.link }}" target="_blank" rel="noopener">לפרטים</a></td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section id="directory" class="card p-5 mb-6">
+{{ head("list", "רשימת היישובים לפי מחוז שיפוט ובית הדין לעבודה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_lede }}</p>
+{%- for g in model.directory %}
+  <details class="border-b border-rule py-2">
+    <summary class="cursor-pointer font-semibold text-ink-deep">{{ g.summary }}{% if g.code %} <span class="text-sm font-normal text-subtle">(קוד מחוז {{ g.code }})</span>{% endif %}</summary>
+{%- if g.link %}
+    <p class="mt-2 mb-0 text-sm"><a href="{{ g.link }}" target="_blank" rel="noopener">{{ g.link_text }}</a>{% if g.shared_with %} <span class="text-subtle">(משותף למחוז {{ g.shared_with | join(", ") }})</span>{% endif %}</p>
+{%- endif %}
+    <ul class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 mt-2 ps-0 text-sm list-none">
+{%- for n in g.names %}
+      <li>{{ n }}</li>
+{%- endfor %}
+    </ul>
+  </details>
+{%- endfor %}
+</section>
+
+{%- if model.flags.has_words %}
+<section class="card p-5 mb-6">
+{{ head("tag", "מילים נפוצות בשמות יישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.words_lede }}</p>
+  <div id="chart-words" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.words_aria }}"></div>
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.words_caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">מילה</th>
+          <th scope="col" class="text-start py-1 pe-3">יישובים</th>
+          <th scope="col" class="text-start py-1">המחוז הנפוץ</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.words %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.word }}</th><td class="py-1 pe-3">{{ r.n }}</td><td class="py-1">{{ r.lead }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_ambiguous %}
+<section class="card p-5 mb-6">
+{{ head("triangle-alert", "שמות יישוב בכמה מחוזות") }}
+  <p class="m-0 text-sm text-subtle mb-3">שם יישוב שמופיע תחת יותר ממחוז שיפוט אחד מציין בדרך כלל שני יישובים שונים באותו שם. לפני הגשת תביעה או בקשה לבית הדין לעבודה, ודאו באיזה יישוב מדובר ובאיזה מחוז הוא נמצא.</p>
+  <div class="relative overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.amb_caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep">
+        <th scope="col" class="text-start py-1 pe-3">שם היישוב</th>
+        <th scope="col" class="text-start py-1">מחוזות שיפוט</th>
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.ambiguous %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1">{{ r.districts }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("info", "על הרשימה") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">בתי הדין האזוריים לעבודה דנים בסכסוכים בין עובדים למעסיקים (שכר, פיצויי פיטורים, זכויות סוציאליות והפליה בעבודה), בתביעות נגד המוסד לביטוח לאומי ובענייני ארגוני עובדים, ועל פסקי הדין שלהם ניתן לערער לבית הדין הארצי לעבודה. בית הדין שאליו מגישים תביעה נקבע לפי כללי הסמכות המקומית בתקנות סדרי הדין של בית הדין לעבודה, ובין היתר לפי מקום העבודה או מקום המגורים. הרשימה של הרשות השופטת משייכת כל יישוב למחוז השיפוט שלו ומפנה לפרטי בית הדין האזורי לעבודה של אותו מחוז באתר הרשות השופטת. כדאי לוודא את כללי הסמכות במקרה הספציפי לפני הגשת התביעה.</p>
+</section>
+
+{%- if model.flags.has_districts %}
+<script>
+  (function () {
+    const d = {{ model.charts.districts | tojson }};
+    const el = document.getElementById("chart-districts");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const p = ps[0];
+          return "מחוז " + echarts.format.encodeHTML(d.labels[p.dataIndex]) + "<br/>" +
+            Number(p.value).toLocaleString("he-IL") + " יישובים (" + d.shares[p.dataIndex] + "%)";
+        }
+      },
+      grid: { left: 8, right: narrow ? 40 : 56, top: 12, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } , splitNumber: narrow ? 2 : 5 },
+      yAxis: { type: "category", data: d.labels, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: [{
+        type: "bar",
+        data: d.values,
+        barMaxWidth: 28,
+        label: {
+          show: true,
+          position: "right",
+          fontFamily: "Rubik",
+          color: "#0c3058",
+          formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); }
+        }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_words %}
+<script>
+  (function () {
+    const d = {{ model.charts.words | tojson }};
+    const el = document.getElementById("chart-words");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    const series = d.districts.map(function (name, i) {
+      return { name: name, type: "bar", stack: "all", data: d.series[i], barMaxWidth: 28, emphasis: { focus: "series" } };
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, itemGap: narrow ? 8 : 14, textStyle: { fontFamily: "Rubik", fontSize: narrow ? 11 : 12 } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          let total = 0;
+          let rows = "";
+          ps.forEach(function (p) {
+            total += Number(p.value) || 0;
+            if (p.value) { rows += "<br/>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value; }
+          });
+          return echarts.format.encodeHTML(d.words[ps[0].dataIndex]) + " (" + total + " יישובים)" + rows;
+        }
+      },
+      grid: { left: 8, right: 16, top: narrow ? 56 : 36, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: narrow ? 2 : 5 },
+      yAxis: { type: "category", data: d.words, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: series
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

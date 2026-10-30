@@ -1,0 +1,347 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro tbl_open(caption) %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+{%- endmacro %}
+{%- macro tbl_close() %}
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>בתי המשפט ובתי הדין לעבודה בישראל: רשימה לפי מחוז, סוג ויישוב</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a id="lookup" href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בית משפט לפי שם, יישוב, מחוז או סוג ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם בית המשפט (כולל היישוב), מחוז השיפוט ותחום הפעילות, כמו שלום, משפחה, תעבורה, נוער, תביעות קטנות או בית דין לעבודה.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "בתי משפט לפי מחוז שיפוט וסוג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dt_lede }}</p>
+  <div id="chart-dist-type" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.dt_aria }}"></div>
+{{ tbl_open(model.labels.dt_caption) }}
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">מחוז</th>
+{%- for t in model.charts.dist_type.types %}
+          <th scope="col" class="text-start py-1 pe-3">{{ t }}</th>
+{%- endfor %}
+          <th scope="col" class="text-start py-1">סך הכול</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.dist_type %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.district }}</th>{% for c in r.cells %}<td class="py-1 pe-3">{{ c }}</td>{% endfor %}<td class="py-1 font-semibold">{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+{{ tbl_close() }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "סוגי בתי המשפט: כמה יש ובכמה יישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+  <div id="chart-types" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+{{ tbl_open(model.labels.types_caption) }}
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">סוג בית המשפט</th>
+          <th scope="col" class="text-start py-1 pe-3">בתי משפט</th>
+          <th scope="col" class="text-start py-1">יישובים</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.type }}</th><td class="py-1 pe-3">{{ r.courts }}</td><td class="py-1">{{ r.towns }}</td></tr>
+{%- endfor %}
+        </tbody>
+{{ tbl_close() }}
+</section>
+
+{%- if model.flags.has_top %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מרכזי השיפוט: היישובים עם הכי הרבה סוגי בתי משפט") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_lede }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+{{ tbl_open(model.labels.top_caption) }}
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">יישוב</th>
+          <th scope="col" class="text-start py-1 pe-3">סוגי בתי משפט</th>
+          <th scope="col" class="text-start py-1">בתי משפט</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.top %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.town }}</th><td class="py-1 pe-3">{{ r.types }}</td><td class="py-1">{{ r.courts }}</td></tr>
+{%- endfor %}
+        </tbody>
+{{ tbl_close() }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_breadth %}
+<section class="card p-5 mb-6">
+{{ head("database", "כמה סוגי בתי משפט יש בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.breadth_lede }}</p>
+  <div id="chart-breadth" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.breadth_aria }}"></div>
+{{ tbl_open(model.labels.breadth_caption) }}
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">מספר סוגי בתי משפט ביישוב</th>
+          <th scope="col" class="text-start py-1">יישובים</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.breadth %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.k }}</th><td class="py-1">{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+{{ tbl_close() }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_gaps %}
+<section class="card p-5 mb-6">
+{{ head("triangle-alert", "יישובים עם בית משפט שלום: אילו בתי משפט חסרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gap_lede }}</p>
+  <div id="chart-gaps" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gap_aria }}"></div>
+{{ tbl_open(model.labels.gap_caption) }}
+        <thead><tr class="border-b border-rule text-ink-deep">
+          <th scope="col" class="text-start py-1 pe-3">סוג בית המשפט</th>
+          <th scope="col" class="text-start py-1 pe-3">קיים ביישוב</th>
+          <th scope="col" class="text-start py-1 pe-3">לא קיים</th>
+          <th scope="col" class="text-start py-1 pe-3">שיעור החסר</th>
+          <th scope="col" class="text-start py-1">יישובים בלי בית משפט כזה</th>
+        </tr></thead>
+        <tbody>
+{%- for r in model.tables.gaps %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.type }}</th><td class="py-1 pe-3">{{ r.have }}</td><td class="py-1 pe-3">{{ r.missing }}</td><td class="py-1 pe-3" dir="ltr">{{ r.share_display }}</td><td class="py-1">{{ r.examples }}</td></tr>
+{%- endfor %}
+        </tbody>
+{{ tbl_close() }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_towns %}
+<section id="towns" class="card p-5 mb-6">
+{{ head("list", "איזה בית משפט יש בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.town_lede }}</p>
+  <div class="relative overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.town_caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep">
+        <th scope="col" class="text-start py-1 pe-3">יישוב</th>
+        <th scope="col" class="text-start py-1 pe-3">מחוז</th>
+{%- for t in model.tables.town_types %}
+        <th scope="col" class="text-center py-1 px-1">{{ t }}</th>
+{%- endfor %}
+      </tr></thead>
+      <tbody>
+{%- for r in model.tables.towns %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3 whitespace-nowrap">{{ r.town }}</th><td class="py-1 pe-3 text-subtle whitespace-nowrap">{{ r.district }}</td>{% for i in model.tables.town_idx %}<td class="py-1 px-1 text-center">{% if r.cells[i] %}<span class="text-ok font-semibold">✓</span><span class="sr-only">יש</span>{% else %}<span class="text-subtle" aria-hidden="true">·</span><span class="sr-only">אין</span>{% endif %}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section id="directory" class="card p-5 mb-6">
+{{ head("list", "רשימת בתי המשפט ובתי הדין לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_lede }}</p>
+{%- for g in model.directory %}
+  <details class="border-b border-rule py-2">
+    <summary class="cursor-pointer font-semibold text-ink-deep">מחוז {{ g.district }} <span class="text-sm font-normal text-subtle">({{ g.n }} בתי משפט)</span></summary>
+    <ul class="list-none m-0 ps-0 mt-2 space-y-1 text-sm">
+{%- for it in g.courts %}
+      <li class="flex flex-wrap items-center gap-2"><span class="badge">{{ it.type }}</span>{% if it.url %}<a href="{{ it.url }}" target="_blank" rel="noopener" class="text-brand">{{ it.name }}</a>{% else %}<span>{{ it.name }}</span>{% endif %}</li>
+{%- endfor %}
+    </ul>
+  </details>
+{%- endfor %}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">במאגר זה מוצגים פרטי בתי המשפט ופרטי בתי הדין לעבודה בחלוקה לפי מחוזות ולפי תחומי פעילות.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.dist_type | tojson }};
+    const el = document.getElementById("chart-dist-type");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    const series = d.types.map(function (name, i) {
+      return { name: name, type: "bar", stack: "all", data: d.series[i], barMaxWidth: 30, emphasis: { focus: "series" } };
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { type: "scroll", top: 0, itemGap: narrow ? 8 : 14, textStyle: { fontFamily: "Rubik", fontSize: narrow ? 11 : 12 } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let rows = "";
+          ps.forEach(function (p) {
+            if (p.value) { rows += "<br/>" + p.marker + echarts.format.encodeHTML(d.full[p.seriesIndex]) + ": " + p.value; }
+          });
+          return "מחוז " + echarts.format.encodeHTML(d.districts[i]) + " (" + d.totals[i] + " בתי משפט)" + rows;
+        }
+      },
+      grid: { left: 8, right: 16, top: narrow ? 56 : 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.districts, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    const d = {{ model.charts.types | tojson }};
+    const el = document.getElementById("chart-types");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, data: ["בתי משפט", "יישובים"], textStyle: { fontFamily: "Rubik" } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.full[i]) + "<br/>" + d.courts[i] + " בתי משפט, ב-" + d.towns[i] + " יישובים";
+        }
+      },
+      grid: { left: 8, right: 16, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: [
+        { name: "בתי משפט", type: "bar", data: d.courts, barMaxWidth: 18, label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058" } },
+        { name: "יישובים", type: "bar", data: d.towns, barMaxWidth: 18, label: { show: !narrow, position: "right", fontFamily: "Rubik", color: "#0c3058" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+{%- if model.flags.has_top %}
+<script>
+  (function () {
+    const d = {{ model.charts.top | tojson }};
+    const el = document.getElementById("chart-top");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    const series = [];
+    d.types.forEach(function (name, i) {
+      const s = d.series[i];
+      if (s.some(function (v) { return v > 0; })) {
+        series.push({ name: name, type: "bar", stack: "all", data: s, barMaxWidth: 22, emphasis: { focus: "series" } });
+      }
+    });
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { type: "scroll", top: 0, itemGap: narrow ? 8 : 14, textStyle: { fontFamily: "Rubik", fontSize: narrow ? 11 : 12 } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          let rows = "";
+          ps.forEach(function (p) {
+            if (p.value) { rows += "<br/>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value; }
+          });
+          return echarts.format.encodeHTML(d.towns[i]) + " (" + d.n_types[i] + " סוגים)" + rows;
+        }
+      },
+      grid: { left: 8, right: 16, top: narrow ? 56 : 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, name: narrow ? "" : "בתי משפט", nameLocation: "middle", nameGap: 26 },
+      yAxis: { type: "category", data: d.towns, inverse: true, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: series
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_breadth %}
+<script>
+  (function () {
+    const d = {{ model.charts.breadth | tojson }};
+    const el = document.getElementById("chart-breadth");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          return ps[0].value + " יישובים עם " + echarts.format.encodeHTML(ps[0].name) + " סוגי בתי משפט";
+        }
+      },
+      grid: { left: 8, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "סוגי בתי משפט ביישוב", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.y, barMaxWidth: 40, label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_gaps %}
+<script>
+  (function () {
+    const d = {{ model.charts.gaps | tojson }};
+    const el = document.getElementById("chart-gaps");
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, data: ["יש ביישוב", "אין ביישוב"], textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.labels, inverse: true },
+      series: [
+        { name: "יש ביישוב", type: "bar", stack: "all", data: d.have, barMaxWidth: 28, label: { show: true, fontFamily: "Rubik", color: "#ffffff" } },
+        { name: "אין ביישוב", type: "bar", stack: "all", data: d.missing, barMaxWidth: 28, itemStyle: { color: "#c3cfe7" }, label: { show: true, fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return p.value ? p.value : ""; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

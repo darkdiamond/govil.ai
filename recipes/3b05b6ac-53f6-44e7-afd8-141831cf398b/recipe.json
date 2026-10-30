@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3b05b6ac-53f6-44e7-afd8-141831cf398b",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T09:14:31.328753+00:00",
+    "rows": { "qadis": 8 }
+  },
+  "inputs": [
+    {
+      "name": "qadis",
+      "by_id": "3c255886-3a49-4aad-b56a-d432c693717c",
+      "required_columns": ["קאדים"]
+    }
+  ],
+  "min_insights": 2,
+  "lint_allow_numbers": []
+}

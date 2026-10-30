@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b71257cf-d117-47b0-a800-06fd6e53f2d8",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T12:59:41.822969+00:00",
+    "rows": { "main": 120 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "5f8cff43-30fb-449b-96b1-280b2aafb2c3",
+      "required_columns": [
+        "court_name",
+        "court_district",
+        "מחוז",
+        "court_activity",
+        "תחום",
+        "court_details"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

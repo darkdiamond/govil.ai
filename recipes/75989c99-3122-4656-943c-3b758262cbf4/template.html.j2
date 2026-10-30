@@ -1,0 +1,162 @@
+<h1>רשימת התאגידים הבנקאיים בישראל: קודי בנק, קודי SWIFT, כתובות ואתרים</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#directory" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בנק לפי שם, קוד בנק או קוד SWIFT ←</span>
+    <span class="block text-sm text-subtle">מדריך התאגידים הבנקאיים בהמשך העמוד, וחיפוש חי בכל הרשומות בטבלת הנתונים שבתחתית: שם, קוד, אתר, SWIFT, כתובת, יישוב וטלפון.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in model.labels.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section id="directory" class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדריך הבנקים: קוד בנק, SWIFT ופרטי קשר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+  <div class="overflow-x-auto relative">
+  <table id="table-directory" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.dir_caption }}</caption>
+    <thead>
+      <tr><th scope="col">קוד</th><th scope="col">שם התאגיד</th><th scope="col">אתר</th><th scope="col">קוד SWIFT</th><th scope="col">כתובת המטה</th><th scope="col">טלפון</th><th scope="col">פקס</th></tr>
+    </thead>
+{%- for g in model.tables.directory %}
+    <tbody>
+      <tr><th scope="rowgroup" colspan="7" class="text-start bg-surface text-ink-deep font-semibold">{{ g.category }} ({{ g.count }})</th></tr>
+{%- for r in g.rows %}
+      <tr>
+        <td dir="ltr" class="font-semibold">{{ r.code }}</td>
+        <th scope="row" class="text-start font-normal">{{ r.name }}</th>
+        <td dir="ltr">{% if r.web_link %}<a href="{{ r.web_link }}" target="_blank" rel="noopener nofollow">{{ r.web_disp }}</a>{% elif r.web_disp %}{{ r.web_disp }}{% else %}<span class="text-subtle">-</span>{% endif %}</td>
+        <td dir="ltr">{% if r.swift %}{{ r.swift }}{% else %}<span class="text-subtle">-</span>{% endif %}</td>
+        <td>{% if r.address %}{{ r.address }}, {% endif %}{{ r.city }}{% if r.zip %} <span dir="ltr">{{ r.zip }}</span>{% endif %}</td>
+        <td dir="ltr" class="whitespace-nowrap">{% if r.phone %}{{ r.phone }}{% else %}<span class="text-subtle">-</span>{% endif %}</td>
+        <td dir="ltr" class="whitespace-nowrap">{% if r.fax %}{{ r.fax }}{% else %}<span class="text-subtle">-</span>{% endif %}</td>
+      </tr>
+{%- endfor %}
+    </tbody>
+{%- endfor %}
+  </table>
+  </div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי התאגידים הבנקאיים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cat_note }}</p>
+    <div id="chart-categories" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cat_caption }}</caption>
+        <thead><tr><th scope="col">סוג</th><th scope="col">תאגידים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.categories %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן יושבים מטות הבנקים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+    <div id="chart-cities" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.city_caption }}</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">תאגידים</th><th scope="col">שמות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.names }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שלמות פרטי הקשר במאגר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fields_note }}</p>
+  <div id="chart-fields" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.fields_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.fields_caption }}</caption>
+      <thead><tr><th scope="col">פרט</th><th scope="col">רשום</th><th scope="col">חסר</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.fields %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.filled }}</td><td>{{ r.missing }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    function hbar(id, d, opts) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: (opts && opts.colors) || window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: d.series.length > 1 ? { bottom: 0 } : { show: false },
+        grid: { left: 8, right: 24, top: 8, bottom: d.series.length > 1 ? 56 : 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse(),
+                   label: { show: d.series.length === 1, position: "inside", fontFamily: "Rubik" } };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var cat = {{ model.charts.categories | tojson }};
+    hbar("chart-categories", { names: cat.names, series: [{ name: "תאגידים", data: cat.values }] });
+    hbar("chart-cities", {{ model.charts.cities | tojson }});
+    var f = {{ model.charts.fields | tojson }};
+    hbar("chart-fields", { names: f.names, series: [
+      { name: "רשום", data: f.filled }, { name: "חסר", data: f.missing }
+    ] }, { colors: ["#0068f5", "#c3cfe7"] });
+  })();
+</script>

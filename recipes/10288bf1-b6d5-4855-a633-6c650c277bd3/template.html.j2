@@ -1,0 +1,375 @@
+{%- macro stack_table(ch, caption, first_col) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="relative overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead>
+          <tr>
+            <th scope="col" class="text-start">{{ first_col }}</th>
+{%- for o in ch.owners %}
+            <th scope="col" class="text-start">{{ o }}</th>
+{%- endfor %}
+            <th scope="col" class="text-start">סך הכול</th>
+          </tr>
+        </thead>
+        <tbody>
+{%- for c in ch.cats %}
+{%- set j = loop.index0 %}
+          <tr>
+            <th scope="row" class="text-start font-normal">{{ c }}</th>
+{%- for o in ch.owners %}
+            <td>{{ ch.counts[loop.index0][j] | fmt_int }} <span class="text-subtle">({{ ch.shares[loop.index0][j] }}%)</span></td>
+{%- endfor %}
+            <td>{{ ch.totals[j] | fmt_int }}</td>
+          </tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro -%}
+
+<h1>סוג בעלות בנכסים הרשומים בפנקסי המקרקעין (טאבו)</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 mb-2 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">המאגר של רשם המקרקעין במשרד המשפטים מסווג כל נכס הרשום בפנקסי המקרקעין (לשכות רישום המקרקעין, הטאבו) לפי סוג הבעלות: פרטית, מדינה, רשות מקומית, מעורבת או אחרת. נכס הוא חלקה שלמה או תת-חלקה, כלומר יחידה בבית משותף. הסיווג אינו נסח טאבו ואינו קובע זכות כלשהי בנכס.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת סוג הבעלות בנכס לפי גוש וחלקה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: גוש, חלקה, תת חלקה, תיאור שיטה וסוג בעלות</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.blocks.tone }} mb-1" dir="ltr">{{ model.kpis.blocks.display }}</div>
+    <div class="text-sm text-subtle">גושים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.parcels.tone }} mb-1" dir="ltr">{{ model.kpis.parcels.display }}</div>
+    <div class="text-sm text-subtle">חלקות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.subs.tone }} mb-1" dir="ltr">{{ model.kpis.subs.display }}</div>
+    <div class="text-sm text-subtle">תתי-חלקות (יחידות בבתים משותפים)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.private.tone }} mb-1" dir="ltr">{{ model.kpis.private.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.private_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.state.tone }} mb-1" dir="ltr">{{ model.kpis.state.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.state_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות הנכסים לפי סוג בעלות</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.owners_lede }}</p>
+  <div id="chart-owners" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.owners_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.owners_aria }}</caption>
+      <thead><tr><th scope="col" class="text-start">סוג בעלות</th><th scope="col" class="text-start">נכסים</th><th scope="col" class="text-start">שיעור</th></tr></thead>
+      <tbody>
+{%- for n in model.charts.owners.names %}
+        <tr><th scope="row" class="text-start font-normal">{{ n }}</th><td>{{ model.charts.owners.nums[loop.index0] | fmt_int }}</td><td>{{ model.charts.owners.shares[loop.index0] }}%</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חלקות שלמות לעומת תתי-חלקות בבתים משותפים</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.unit_lede }}</p>
+  <div id="chart-unit" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.unit_aria }}"></div>
+  {{ stack_table(model.charts.unit, model.labels.unit_aria, "סוג יחידה") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בתים משותפים: גודל והרכב בעלות</h2>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">מספר בתים משותפים לפי מספר תתי-החלקות</h3>
+      <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.size_lede }}</p>
+      <div id="chart-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.size_aria }}</caption>
+          <thead><tr><th scope="col" class="text-start">תתי-חלקות בחלקה</th><th scope="col" class="text-start">בתים משותפים</th></tr></thead>
+          <tbody>
+{%- for c in model.charts.size.cats %}
+            <tr><th scope="row" class="text-start font-normal">{{ c }}</th><td>{{ model.charts.size.nums[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">הרכב סוגי הבעלות בבית המשותף</h3>
+      <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.mix_lede }}</p>
+      <div id="chart-mix" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+          <thead><tr><th scope="col" class="text-start">הרכב</th><th scope="col" class="text-start">בתים משותפים</th></tr></thead>
+          <tbody>
+{%- for c in model.charts.mix.cats %}
+            <tr><th scope="row" class="text-start font-normal">{{ c }}</th><td>{{ model.charts.mix.nums[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג הבעלות לפי גודל הבית המשותף</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.size_own_lede }}</p>
+  <div id="chart-size-own" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.size_own_aria }}"></div>
+  {{ stack_table(model.charts.size_own, model.labels.size_own_aria, "תתי-חלקות בבית") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גושים לפי סוג הבעלות המוביל</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.blocks_lede }}</p>
+  <div id="chart-blocks" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.blocks_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.blocks_aria }}</caption>
+      <thead><tr><th scope="col" class="text-start">סוג בעלות</th><th scope="col" class="text-start">גושים שבהם הוא המוביל</th><th scope="col" class="text-start">גושים הומוגניים</th></tr></thead>
+      <tbody>
+{%- for n in model.charts.blocks.names %}
+        <tr><th scope="row" class="text-start font-normal">{{ n }}</th><td>{{ model.charts.blocks.dominant[loop.index0] | fmt_int }}</td><td>{{ model.charts.blocks.homogeneous[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג הבעלות לפי טווח מספרי גוש</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.bands_lede }}</p>
+  <div id="chart-bands" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  {{ stack_table(model.charts.bands, model.labels.bands_aria, "טווח גושים") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הגושים עם מספר הנכסים הגדול ביותר</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.top_lede }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  {{ stack_table(model.charts.top, model.labels.top_aria, "גוש") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוג הבעלות לפי שיטת הרישום</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.method_lede }}</p>
+  <div id="chart-method" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.method_aria }}"></div>
+  {{ stack_table(model.charts.method, model.labels.method_aria, "שיטת רישום") }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת הנכסים בפנקסי המקרקעין על פי סוג בעלות לכל נכס.
+האמור לקוח מתוך מאפיינים שנקבעו בהתאם לטבלת סיווג, אין במידע המפורסם האמור באתר data.gov, כדי לקבוע זכות כלשהי בדבר הבעלות או ההערה התכנונית הנחזים כאן.</p>
+</section>
+
+<script>
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function pctStack(id, ch) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      var series = ch.owners.map(function (o, i) {
+        return { type: "bar", stack: "s", name: o, data: ch.shares[i], barMaxWidth: 36 };
+      });
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            if (!ps.length) { return ""; }
+            var j = ps[0].dataIndex;
+            var out = "<b>" + enc(ch.cats[j]) + "</b> (" + fmt(ch.totals[j]) + " נכסים)";
+            ps.forEach(function (p) {
+              out += "<br/>" + p.marker + enc(p.seriesName) + ": " + fmt(ch.counts[p.seriesIndex][j]) + " (" + p.value + "%)";
+            });
+            return out;
+          }
+        },
+        legend: { bottom: 0, type: "scroll" },
+        grid: { left: 16, right: 8, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value", max: 100, inverse: true, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: ch.cats, inverse: true, position: "right", axisLabel: { width: 120, overflow: "truncate" } },
+        series: series
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    pctStack("chart-unit", {{ model.charts.unit | tojson }});
+    pctStack("chart-size-own", {{ model.charts.size_own | tojson }});
+    pctStack("chart-bands", {{ model.charts.bands | tojson }});
+    pctStack("chart-method", {{ model.charts.method | tojson }});
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var ch = {{ model.charts.top | tojson }};
+    var el = document.getElementById("chart-top");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          if (!ps.length) { return ""; }
+          var j = ps[0].dataIndex;
+          var out = "<b>" + enc(ch.cats[j]) + "</b> (" + fmt(ch.totals[j]) + " נכסים)";
+          ps.forEach(function (p) {
+            out += "<br/>" + p.marker + enc(p.seriesName) + ": " + fmt(p.value) + " (" + ch.shares[p.seriesIndex][j] + "%)";
+          });
+          return out;
+        }
+      },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 8, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", inverse: true },
+      yAxis: { type: "category", data: ch.cats, inverse: true, position: "right" },
+      series: ch.owners.map(function (o, i) {
+        return { type: "bar", stack: "s", name: o, data: ch.counts[i], barMaxWidth: 28 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    var d = {{ model.charts.owners | tojson }};
+    var el = document.getElementById("chart-owners");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          return enc(p.name) + ": " + fmt(p.value) + " (" + d.shares[p.dataIndex] + "%)";
+        }
+      },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{
+        type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"],
+        label: { formatter: function (p) { return p.name + "\n" + d.shares[p.dataIndex] + "%"; } },
+        data: d.names.map(function (n, i) { return { name: n, value: d.nums[i] }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+
+  (function () {
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL"); }
+    function vbar(id, cats, values, unit, rotate) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) { return enc(ps[0].name) + ": " + fmt(ps[0].value) + " " + unit; }
+        },
+        grid: { left: 16, right: 16, top: 16, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: cats, inverse: true, axisLabel: { interval: 0, rotate: rotate, width: 90, overflow: "break" } },
+        yAxis: { type: "value", position: "right" },
+        series: [{ type: "bar", name: unit, data: values, barMaxWidth: 40 }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var s = {{ model.charts.size | tojson }};
+    vbar("chart-size", s.cats, s.nums, "בתים משותפים", 0);
+    var m = {{ model.charts.mix | tojson }};
+    vbar("chart-mix", m.cats, m.nums, "בתים משותפים", 0);
+
+    var b = {{ model.charts.blocks | tojson }};
+    var el = document.getElementById("chart-blocks");
+    if (el) {
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[1]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 16, top: 16, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: b.names, inverse: true, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", position: "right" },
+        series: [
+          { type: "bar", name: "גושים שבהם זה הסוג המוביל", data: b.dominant, barMaxWidth: 32 },
+          { type: "bar", name: "גושים הומוגניים (סוג אחד בלבד)", data: b.homogeneous, barMaxWidth: 32 }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+  })();
+</script>

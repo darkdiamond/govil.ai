@@ -1,0 +1,202 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro fallback(caption, col, rows, with_pct=false) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">{{ col }}</th><th scope="col" class="text-start py-1 pe-3">מרפאות</th>{% if with_pct %}<th scope="col" class="text-start py-1">שיעור</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.n | fmt_int }}</td>{% if with_pct %}<td class="py-1" dir="ltr">{{ r.pct }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro %}
+<h1>מרכזי טראומה: מרפאות לטיפול בטראומה נפשית</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} הרשימה כוללת מרפאות ומרכזים לטיפול בפוסט טראומה ובתגובות דחק, למבוגרים, לילדים ולנוער, עם כתובת, טלפון, דוא״ל ואתר כפי שפרסם משרד הבריאות.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המרפאה, יישוב, כתובת, טלפון ודוא״ל.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "cities", "kids", "phone"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "רשימת מרכזי הטראומה ופרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.dir_lede }}</p>
+  <ul id="clinic-directory" class="list-none m-0 ps-0 grid gap-3 md:grid-cols-2" aria-label="{{ model.labels.dir_caption }}">
+{%- for c in model.tables.directory %}
+    <li class="border border-rule rounded-gov p-3 min-w-0">
+      <div class="font-semibold text-ink-deep break-words">{{ c.name }}</div>
+      <div class="text-sm text-subtle flex items-start gap-1 mt-1 break-words">
+        <img src="/icons/map-pin.svg" alt="" class="w-4 h-4 mt-0.5 shrink-0" />
+        <span>{{ c.address }}{% if c.city not in c.address %}, {{ c.city }}{% endif %}</span>
+      </div>
+{%- if c.audience %}
+      <div class="mt-1"><span class="inline-block text-xs bg-surface text-ink-deep rounded-gov-sm px-2 py-0.5">{{ c.audience }}</span></div>
+{%- endif %}
+      <div class="text-sm mt-2 flex flex-wrap gap-x-4 gap-y-1">
+{%- for p in c.phones %}
+        <a href="tel:{{ p.tel }}" class="text-primary" dir="ltr">{{ p.display }}</a>
+{%- endfor %}
+{%- if c.email %}
+        <a href="mailto:{{ c.email }}" class="text-primary break-all" dir="ltr">{{ c.email }}</a>
+{%- endif %}
+{%- if c.website %}
+        <a href="{{ c.website }}" target="_blank" rel="noopener" class="text-primary">אתר המרפאה</a>
+{%- endif %}
+{%- if not c.phones and not c.email and not c.website %}
+        <span class="text-subtle">לא פורסמו פרטי קשר</span>
+{%- endif %}
+      </div>
+    </li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.has_cities %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מרכזי טראומה לפי עיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_lede }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+{{ fallback(model.labels.city_aria, "יישוב", model.tables.cities) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("tag", "קהל היעד: ילדים, נוער ומבוגרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.aud_lede }}</p>
+  <div id="chart-audience" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.aud_aria }}"></div>
+{{ fallback(model.labels.aud_aria, "קהל יעד", model.tables.audience) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "זמינות פרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_lede }}</p>
+  <div id="chart-contact" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.contact_aria }}"></div>
+{{ fallback(model.labels.contact_aria, "ערוץ קשר", model.tables.contact, true) }}
+</section>
+
+{%- if model.flags.has_bodies %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "הגוף שאליו שייכים פרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.body_lede }}</p>
+  <div id="chart-bodies" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.body_aria }}"></div>
+{{ fallback(model.labels.body_aria, "גוף", model.tables.bodies) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("info", "על המאגר") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">המאגר מרכז את מרפאות הטראומה הנפשית המוכרות על ידי משרד הבריאות: מרפאות בקהילה, מרפאות של בתי חולים ומרכזים ייעודיים. במצב חירום או במחשבות פגיעה עצמית יש לפנות מיד למוקד החירום או לחדר המיון הקרוב. קהל היעד והגוף המשויך בעמוד זה נגזרים משם המרפאה ומכתובות הקשר, ואינם שדות רשמיים במאגר.</p>
+</section>
+
+<script>
+  (function () {
+    var enc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    var hbar = function (id, d, unit) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      var chart = echarts.init(el);
+      var narrow = el.clientWidth < 520;
+      chart.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) { var p = ps[0]; return enc(p.name) + "<br/>" + enc(p.value) + " " + unit; } },
+        grid: { left: 8, right: 36, top: 12, bottom: 24, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names,
+          axisLabel: { width: narrow ? 120 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 24,
+          label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058" } }]
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    };
+    window.__traumaHbar = hbar;
+  })();
+</script>
+{%- if model.flags.has_cities %}
+<script>
+  (function () {
+    const d = {{ model.charts.cities | tojson }};
+    window.__traumaHbar("chart-cities", d, "מרפאות");
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.has_bodies %}
+<script>
+  (function () {
+    const d = {{ model.charts.bodies | tojson }};
+    window.__traumaHbar("chart-bodies", d, "מרפאות");
+  })();
+</script>
+{%- endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.audience | tojson }};
+    const el = document.getElementById("chart-audience");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { const p = ps[0]; return echarts.format.encodeHTML(String(p.name)) + "<br/>" + echarts.format.encodeHTML(String(p.value)) + " מרפאות"; } },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 70 : 140, overflow: "break", fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 48, colorBy: "data",
+        label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.contact | tojson }};
+    const el = document.getElementById("chart-contact");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 520;
+    const pct = function (v) { return d.total ? Math.round(v / d.total * 100) + "%" : "0%"; };
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { const p = ps[0]; return echarts.format.encodeHTML(String(p.name)) + "<br/>" + echarts.format.encodeHTML(String(p.value)) + " מתוך " + echarts.format.encodeHTML(String(d.total)) + " (" + pct(p.value) + ")"; } },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow ? 60 : 120, overflow: "break", fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", minInterval: 1, max: d.total || null },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 48,
+        label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058", formatter: function (p) { return pct(p.value); } } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
