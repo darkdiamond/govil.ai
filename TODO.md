@@ -8,11 +8,12 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Security and operations
 
-- **CSP allowlist is still report-only.** `firebase.json` sends the full allowlist as
-  `Content-Security-Policy-Report-Only`; the soak after PR #93 showed no violations and the
-  planned promotion (around 2026-10-24) has not happened. Check a clean console on live dataset
-  pages with ads filling, then move the allowlist to the enforced header (CLAUDE.md, "CSP is two
-  headers"). (2026-10-30)
+- **Enforced CSP not checked with ads filling.** The pre-promotion check ran headless, where
+  AdSense came back unfilled, so the hosts a filled ad and Google's Israeli ccTLD
+  (`*.google.co.il`) use were never exercised. The policy has no reporting endpoint either, so a
+  block shows only in a visitor's console. Open a few live dataset pages in a normal browser with
+  ads filling, look for `Refused to …` lines, and add any missing host to `firebase.json`.
+  (2026-10-30)
 - **Authoring routine cron is UTC.** The 07:00 Israel routine runs on `0 5 * * *` UTC, which is
   right only in winter time. Move it to `0 4 * * *` on 2027-03-26 (Israel switches to summer
   time), and back in October. (2026-10-30)
