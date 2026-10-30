@@ -12,9 +12,11 @@ from types import SimpleNamespace
 import pytest
 
 from services.page_builder import refresh as rf
+from services.page_builder.agent_contract import FetchLimitExceeded
 from services.providers import (
     ProviderError,
     ProviderSettings,
+    ProviderTooLarge,
     SourceConfig,
     build_providers,
     provider_for_id,
@@ -178,7 +180,25 @@ def test_preview_and_fetch_share_one_download(boi, tmp_path):
 def test_fetch_over_byte_cap_fails(boi, tmp_path):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
     _, fetch_fn = boi.fetch_fns([_res(boi)])
-    assert fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10) is None
+    with pytest.raises(FetchLimitExceeded) as e:
+        fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10)
+    assert e.value.limit == "bytes"
+
+
+def test_series_over_provider_cap_still_versions(boi, tmp_path):
+    """Over the provider's own max_bytes: version() still moves (so the sync
+    bumps the doc and a refresh runs), preview/fetch raise ProviderTooLarge
+    (so that refresh reports too_large), and it stays a ProviderError."""
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
+    boi.settings = boi.settings.model_copy(update={"max_bytes": 10})
+    res = _res(boi)
+    assert boi.version(res).size > 10
+    preview_fn, fetch_fn = boi.fetch_fns([res])
+    with pytest.raises(ProviderTooLarge) as e:
+        preview_fn("boi-br")
+    assert e.value.limit == "bytes" and isinstance(e.value, ProviderError)
+    with pytest.raises(ProviderTooLarge):
+        fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10**6)
 
 
 @pytest.mark.parametrize("resp", [

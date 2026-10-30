@@ -16,7 +16,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.page_builder import refresh as rf
-from services.page_builder.agent_contract import FetchOutcome
+from services.page_builder.agent_contract import FetchLimitExceeded, FetchOutcome
 from services.page_builder.recipe import (
     Recipe,
     RecipeError,
@@ -343,6 +343,59 @@ def test_over_cap_is_too_large(env, monkeypatch):
     store = FakeStore(_src())
     s = _run(env, store, FakeCkan(_rows([2024, 2025])))
     assert s["outcomes"][0]["reason"] == "too_large"
+
+
+class _LimitedCkan(FakeCkan):
+    def __init__(self, rows, limit):
+        super().__init__(rows)
+        self.limit = limit
+
+    def fetch(self, rid, total, dest, **kw):
+        raise FetchLimitExceeded(self.limit, f"stopped at {self.limit}")
+
+
+def test_byte_cap_overrun_is_too_large_and_opens_issue(env):
+    store = FakeStore(_src())
+    s = _run(env, store, _LimitedCkan(_rows([2024, 2025]), "bytes"))
+    assert s["outcomes"][0]["reason"] == "too_large"
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "too_large"
+
+
+class _TooLargePreviewCkan(FakeCkan):
+    """A provider previews by downloading the series, so its cap can trip
+    in the probe, before any fetch."""
+
+    def preview(self, rid):
+        raise FetchLimitExceeded("bytes", "series over cap")
+
+
+@pytest.mark.parametrize("precheck", ["off", "full"])
+def test_byte_cap_overrun_in_preview_is_too_large(env, monkeypatch, precheck):
+    monkeypatch.setenv("REFRESH_PRECHECK", precheck)
+    store = FakeStore(_src())
+    s = _run(env, store, _TooLargePreviewCkan(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "too_large"
+    assert len(env.issues) == 1
+
+
+def test_spent_total_byte_budget_is_too_large(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_TOTAL_BYTES", "0")
+    store = FakeStore(_src())
+    ckan = FakeCkan(_rows([2024, 2025]))
+    s = _run(env, store, ckan)
+    assert s["outcomes"][0]["reason"] == "too_large" and ckan.fetches == 0
+
+
+def test_unknown_fetch_limit_is_rejected():
+    with pytest.raises(ValueError):
+        FetchLimitExceeded("byte", "typo")
+
+
+def test_wall_budget_overrun_is_transient(env):
+    store = FakeStore(_src())
+    s = _run(env, store, _LimitedCkan(_rows([2024, 2025]), "wall_budget"))
+    assert s["outcomes"][0]["reason"] == "fetch_failed"
+    assert env.issues == []
 
 
 def test_new_recipe_version_rerenders(env, tmp_path):

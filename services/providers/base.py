@@ -36,7 +36,7 @@ from typing import Callable, ClassVar, Literal, Mapping, Optional
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from services.page_builder.agent_contract import FetchOutcome
+from services.page_builder.agent_contract import FetchLimitExceeded, FetchOutcome
 
 log = logging.getLogger("providers")
 
@@ -46,6 +46,16 @@ PREVIEW_SAMPLE_ROWS = 5
 
 class ProviderError(Exception):
     """A provider couldn't produce what was asked (config, network, data)."""
+
+
+class ProviderTooLarge(FetchLimitExceeded, ProviderError):
+    """A series over the provider's own `max_bytes`, raised by preview and
+    fetch (not by `version`, so the sync still moves the doc). The refresh
+    maps it to `too_large`, like a CKAN export over its cap; it is also a
+    ProviderError for callers that handle any provider failure."""
+
+    def __init__(self, message: str):
+        super().__init__("bytes", message)
 
 
 class ProviderSettings(BaseModel):
@@ -231,19 +241,27 @@ class SourceProvider(abc.ABC):
     def csv_bytes(self, resource: dict) -> bytes:
         """Normalized CSV, downloaded once per run: the sync step's version
         probe and the refresh share it."""
-        return self._cached(resource)[0]
+        return self._capped(resource)[0]
 
     def _cached(self, resource: dict) -> tuple[bytes, int]:
         url = resource["url"]
         if url not in self._cache:
             data, rows = normalize_csv(self.download(resource), self.sort_keys, count=True)
-            if len(data) > self.settings.max_bytes:
-                raise ProviderError(
-                    f"{resource['id']}: {len(data):,} bytes > max_bytes "
-                    f"{self.settings.max_bytes:,}"
-                )
             self._cache[url] = (data, rows)
         return self._cache[url]
+
+    def _capped(self, resource: dict) -> tuple[bytes, int]:
+        """`_cached`, refused over the provider's `max_bytes`. `version` reads
+        uncapped, so a series that outgrew the cap still moves its version,
+        and the refresh it triggers reports `too_large` instead of the page
+        going stale unnoticed."""
+        data, rows = self._cached(resource)
+        if len(data) > self.settings.max_bytes:
+            raise ProviderTooLarge(
+                f"{resource['id']}: {len(data):,} bytes > max_bytes "
+                f"{self.settings.max_bytes:,}"
+            )
+        return data, rows
 
     def clear_cache(self) -> None:
         self._cache.clear()
@@ -253,8 +271,11 @@ class SourceProvider(abc.ABC):
         return ResourceVersion(hashlib.sha256(data).hexdigest(), len(data), rows)
 
     def preview(self, resource: dict) -> Optional[dict]:
+        """None on a failed download; ProviderTooLarge passes through."""
         try:
-            data, rows = self._cached(resource)
+            data, rows = self._capped(resource)
+        except ProviderTooLarge:
+            raise
         except ProviderError as e:
             log.warning("%s preview %s failed: %s", self.key, resource["id"], e)
             return None
@@ -267,14 +288,14 @@ class SourceProvider(abc.ABC):
 
     def fetch_to_file(self, resource: dict, dest: Path, *, max_bytes: int) -> Optional[FetchOutcome]:
         try:
-            data, rows = self._cached(resource)
+            data, rows = self._capped(resource)
+        except ProviderTooLarge:
+            raise
         except ProviderError as e:
             log.warning("%s fetch %s failed: %s", self.key, resource["id"], e)
             return None
         if len(data) > max_bytes:
-            log.warning("%s fetch %s: %d bytes > cap %d", self.key, resource["id"],
-                        len(data), max_bytes)
-            return None
+            raise ProviderTooLarge(f"{resource['id']}: {len(data):,} bytes > cap {max_bytes:,}")
         Path(dest).write_bytes(data)
         return FetchOutcome(rows=rows, bytes=len(data), mode="full")
 

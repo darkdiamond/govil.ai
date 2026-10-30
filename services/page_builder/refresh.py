@@ -43,6 +43,7 @@ from typing import Callable, Optional
 from .agent_contract import (
     ResourceRestrictedError,
     fetch_resource_preview,
+    FetchLimitExceeded,
     fetch_resource_records_to_file,
     run_host_check,
     sanitize_content_html,
@@ -327,8 +328,27 @@ class InputProbe:
 
     def preview(self, rid: str) -> Optional[dict]:
         if rid not in self._previews:
-            self._previews[rid] = self._preview_fn(rid)
+            try:
+                self._previews[rid] = self._preview_fn(rid)
+            except FetchLimitExceeded as e:
+                # A provider reads the whole series to preview it.
+                raise _limit_error(e, f"preview of {rid[:8]}") from None
         return self._previews[rid]
+
+
+def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
+    """A byte overrun is the dataset outgrowing its cap: a retry fetches the
+    same bytes again, so a human must act (`too_large`). A wall-budget
+    overrun is slow CKAN or a dataset that outgrew the budget; one run can't
+    tell which, so it is retried (`fetch_failed`)."""
+    if e.limit == "bytes":
+        return RecipeError(
+            f"{what}: {e} (REFRESH_MAX_BYTES / REFRESH_TOTAL_BYTES / recipe limits)",
+            reason="too_large",
+        )
+    if e.limit == "wall_budget":
+        return RecipeError(f"{what}: ran out of wall budget ({e})", reason="fetch_failed")
+    raise AssertionError(f"unhandled fetch limit {e.limit!r}")
 
 
 def probe_inputs(
@@ -470,8 +490,9 @@ def fetch_inputs(
     """Full export of every resource the recipe reads, as CSV in `dest_dir`.
 
     Raises RecipeError: `schema_changed` (inputs no longer resolve),
-    `too_large` (over REFRESH_MAX_RECORDS — sampling is never an option
-    here), `fetch_failed` (CKAN/network; transient).
+    `too_large` (over REFRESH_MAX_RECORDS, or the export crossed its byte
+    cap — sampling is never an option here), `fetch_failed` (CKAN/network,
+    or the wall budget ran out; transient).
 
     `probe` (from `probe_inputs`) skips the resolve + preview calls already made.
     """
@@ -511,22 +532,31 @@ def fetch_inputs(
                     reason="too_large",
                 )
             dest = dest_dir / f"{inp.name}__{i + 1}.csv"
-            outcome = fetch_fn(
-                rid,
-                total,
-                dest,
-                max_bytes=min(max_bytes, remaining),
-                page_size=page_size,
-                page_timeout_s=_PAGE_TIMEOUT_S,
-                deadline=deadline,
-                sample_target_rows=0,
-                prefer_sample=False,
-                fields=inp.columns,
-            )
+            cap = min(max_bytes, remaining)
+            if cap <= 0:
+                raise RecipeError(
+                    f"input {inp.name!r}: earlier inputs used the whole "
+                    "REFRESH_TOTAL_BYTES budget",
+                    reason="too_large",
+                )
+            try:
+                outcome = fetch_fn(
+                    rid,
+                    total,
+                    dest,
+                    max_bytes=cap,
+                    page_size=page_size,
+                    page_timeout_s=_PAGE_TIMEOUT_S,
+                    deadline=deadline,
+                    sample_target_rows=0,
+                    prefer_sample=False,
+                    fields=inp.columns,
+                )
+            except FetchLimitExceeded as e:
+                raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
             if outcome is None or outcome.mode != "full":
                 raise RecipeError(
-                    f"input {inp.name!r}: full fetch of {rid[:8]} failed "
-                    "(network, wall budget or byte cap)",
+                    f"input {inp.name!r}: full fetch of {rid[:8]} failed (fetch error)",
                     reason="fetch_failed",
                 )
             if inp.columns:

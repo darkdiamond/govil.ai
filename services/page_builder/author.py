@@ -32,9 +32,9 @@ import shutil
 import sys
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 
-from .agent_contract import FetchOutcome
+from .agent_contract import FetchLimitExceeded, FetchOutcome
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
@@ -109,6 +109,19 @@ def _provider_for_recipe(dataset_id: str, recipes_root: Path = RECIPES_ROOT):
     return cls.from_env(), source
 
 
+def _fetch_or_skip(fetch: Callable, *args, **kwargs) -> tuple[Any, Optional[str]]:
+    """(fetch(...), None), or (None, limit) when it stopped at a limit; the
+    limit is kept as the manifest entry's `skipped`."""
+    try:
+        return fetch(*args, **kwargs), None
+    except FetchLimitExceeded as e:
+        return None, e.limit
+
+
+def _skip_note(entry: dict) -> str:
+    return f" (skipped: over {entry['skipped']})" if entry.get("skipped") else ""
+
+
 def _prepare_provider(dataset_id: str, provider, source) -> Path:
     """prepare() for a provider source: facts from source.json + the
     provider, data from the provider — no Firestore needed."""
@@ -121,9 +134,14 @@ def _prepare_provider(dataset_id: str, provider, source) -> Path:
     resources = [r.model_dump() for r in pf.resources]
     manifest, sections = [], {}
     for i, res in enumerate(resources, 1):
-        preview = provider.preview(res) or {}
+        preview, skipped = _fetch_or_skip(provider.preview, res)
+        preview = preview or {}
         dest = p["data"] / f"{i}.csv"
-        out = provider.fetch_to_file(res, dest, max_bytes=provider.settings.max_bytes)
+        out = None
+        if not skipped:
+            out, skipped = _fetch_or_skip(
+                provider.fetch_to_file, res, dest, max_bytes=provider.settings.max_bytes
+            )
         entry = {
             "resource_id": res["id"],
             "name": res["name"],
@@ -133,11 +151,13 @@ def _prepare_provider(dataset_id: str, provider, source) -> Path:
             "total": int(preview.get("total") or 0),
             "file": dest.name if out else None,
             "rows": out.rows if out else 0,
+            **({"skipped": skipped} if skipped else {}),
         }
         manifest.append(entry)
         if out:
             sections[res["id"]] = provider.brief_section(res, dest)
-        print(f"  {res['id']} {res['name'][:50]!r}: {entry['rows']:,} rows", file=sys.stderr)
+        print(f"  {res['id']} {res['name'][:50]!r}: {entry['rows']:,} rows{_skip_note(entry)}",
+              file=sys.stderr)
     p["manifest"].write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     facts = {
         "id": dataset_id,
@@ -207,16 +227,18 @@ def prepare(dataset_id: str) -> Path:
         }
         if 0 < total <= max_records:
             dest = p["data"] / f"{i}.csv"
-            out = fetch_resource_records_to_file(
-                res["id"], total, dest,
+            out, skipped = _fetch_or_skip(
+                fetch_resource_records_to_file, res["id"], total, dest,
                 max_bytes=max_bytes, page_size=25_000, page_timeout_s=60.0,
                 deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
             )
+            if skipped:
+                entry["skipped"] = skipped
             if out is not None:
                 entry.update(file=dest.name, rows=out.rows)
         manifest.append(entry)
-        print(f"  {res['id'][:8]} {entry['name'][:50]!r}: {entry['rows']:,}/{total:,} rows",
-              file=sys.stderr)
+        print(f"  {res['id'][:8]} {entry['name'][:50]!r}: {entry['rows']:,}/{total:,} rows"
+              f"{_skip_note(entry)}", file=sys.stderr)
     p["manifest"].write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
 
     related = []
@@ -276,9 +298,16 @@ def _brief(facts: dict, manifest: list[dict], related: list[dict], p: dict) -> s
         "",
     ]
     for m in manifest:
-        status = f"`data/{m['file']}` — {m['rows']:,} rows" if m["file"] else (
-            f"NOT fetched ({m['total']:,} rows — over REFRESH_MAX_RECORDS or empty)"
-        )
+        if m["file"]:
+            status = f"`data/{m['file']}` — {m['rows']:,} rows"
+        elif m.get("skipped") == "bytes":
+            status = (f"NOT fetched ({m['total']:,} rows — export over the byte cap; "
+                      "fetch only the `columns` the page reads, or set recipe `limits`)")
+        elif m.get("skipped") == "wall_budget":
+            status = (f"NOT fetched ({m['total']:,} rows — export ran out of wall budget; "
+                      "fewer `columns`, or a recipe `limits.wall_budget_s`)")
+        else:
+            status = f"NOT fetched ({m['total']:,} rows — over REFRESH_MAX_RECORDS or empty)"
         lines += [
             f"### {m['name'] or m['resource_id']}",
             f"- resource_id: `{m['resource_id']}` ({m['format']})",
@@ -331,6 +360,8 @@ class _LocalCkan:
 
     def fetch(self, rid, total, dest, **kw) -> Optional[FetchOutcome]:
         m = self.by_id.get(rid)
+        if m and m.get("skipped"):
+            raise FetchLimitExceeded(m["skipped"], f"prepare skipped {rid[:8]}: over {m['skipped']}")
         if not m or not m.get("file"):
             return None
         with open(self.data_dir / m["file"], encoding="utf-8", newline="") as f:
@@ -338,11 +369,21 @@ class _LocalCkan:
         header, body = rows[0], rows[1:]
         if self.transform:
             body = self.transform(body)
+        fields = kw.get("fields")
+        if fields and all(c in header for c in fields):
+            # The prod export carries only `fields`; measure the cap on that.
+            # A missing column is left for fetch_inputs to report.
+            idx = [header.index(c) for c in fields]
+            header, body = fields, [[r[j] if j < len(r) else "" for j in idx] for r in body]
         with open(dest, "w", encoding="utf-8", newline="") as f:
             w = csv.writer(f)
             w.writerow(header)
             w.writerows(body)
-        return FetchOutcome(rows=len(body), bytes=dest.stat().st_size, mode="full")
+        size = dest.stat().st_size
+        if "max_bytes" in kw and size > kw["max_bytes"]:
+            dest.unlink()
+            raise FetchLimitExceeded("bytes", f"{rid[:8]}: {size:,} bytes > cap {kw['max_bytes']:,}")
+        return FetchOutcome(rows=len(body), bytes=size, mode="full")
 
 
 def _truncate(rows: list) -> list:

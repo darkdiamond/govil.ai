@@ -25,7 +25,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
@@ -218,6 +218,26 @@ class _ByteCapExceeded(Exception):
     pass
 
 
+class _WallBudgetExceeded(Exception):
+    pass
+
+
+FetchLimit = Literal["bytes", "wall_budget"]
+
+
+class FetchLimitExceeded(Exception):
+    """A fetch stopped at a limit, not on an error: `limit` is "bytes" (a
+    byte cap) or "wall_budget" (the deadline). Raised by a full-or-nothing
+    CKAN export (`sample_target_rows=0`) and by provider fetchers. A byte
+    overrun means the dataset outgrew its cap, which a retry won't fix."""
+
+    def __init__(self, limit: FetchLimit, message: str):
+        if limit not in ("bytes", "wall_budget"):
+            raise ValueError(f"unknown fetch limit {limit!r}")
+        super().__init__(message)
+        self.limit = limit
+
+
 def _fetch_page(
     resource_id: str,
     offset: int,
@@ -304,8 +324,10 @@ def fetch_resource_records_to_file(
     `sample_target_rows` > 0) fetches deterministic contiguous blocks:
     the head page plus pages at fixed strides — verbatim datastore output,
     recipe recorded in `sample_note`. Returns None when nothing could or
-    should be written (dest is removed); callers treat None as "run the
-    session the old way".
+    should be written (dest is removed). Without sampling
+    (`sample_target_rows=0`), crossing `max_bytes` or `deadline` raises
+    FetchLimitExceeded instead (dest removed), so the caller can tell an
+    outgrown dataset from a network error.
     """
     if not resource_id or total <= 0 or max_bytes <= 0:
         return None
@@ -317,7 +339,7 @@ def fetch_resource_records_to_file(
                 offset = 0
                 while offset < total:
                     if time.monotonic() > deadline:
-                        raise TimeoutError("prefetch wall budget exceeded")
+                        raise _WallBudgetExceeded()
                     page_fields, records = _fetch_page(
                         resource_id, offset, page_size, page_timeout_s, fields
                     )
@@ -328,7 +350,7 @@ def fetch_resource_records_to_file(
             else:
                 for offset in offsets:
                     if time.monotonic() > deadline:
-                        raise TimeoutError("prefetch wall budget exceeded")
+                        raise _WallBudgetExceeded()
                     page_fields, records = _fetch_page(
                         resource_id, offset, page_size, page_timeout_s, fields
                     )
@@ -348,10 +370,23 @@ def fetch_resource_records_to_file(
             )
             return FetchOutcome(rows=rows, bytes=nbytes, mode="full")
         except _ByteCapExceeded:
+            if sample_target_rows <= 0:
+                dest.unlink(missing_ok=True)
+                raise FetchLimitExceeded(
+                    "bytes", f"export of {resource_id[:8]} crossed the {max_bytes:,}-byte cap"
+                ) from None
             log.info(
                 "data prefetch %s: byte cap crossed mid-fetch — retrying as sample",
                 resource_id[:8],
             )
+        except _WallBudgetExceeded:
+            dest.unlink(missing_ok=True)
+            if sample_target_rows <= 0:
+                raise FetchLimitExceeded(
+                    "wall_budget", f"export of {resource_id[:8]} ran out of wall budget"
+                ) from None
+            log.warning("data prefetch %s (full) failed: wall budget exceeded", resource_id[:8])
+            return None
         except Exception as e:
             log.warning("data prefetch %s (full) failed: %s", resource_id[:8], e)
             dest.unlink(missing_ok=True)

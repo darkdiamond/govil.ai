@@ -3,7 +3,8 @@ and resource selection — what the recipe refresh and `author prepare` fetch.
 
 The fetcher pages datastore_search host-side and streams one CSV per
 resource; every failure/gate path must degrade to "no file". Over-cap
-resources fall back to a deterministic sample when sampling is requested.
+resources fall back to a deterministic sample when sampling is requested;
+without sampling, a crossed byte cap or wall budget raises FetchLimitExceeded.
 """
 from __future__ import annotations
 
@@ -14,9 +15,13 @@ import time
 import urllib.error as urllib_error
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 
 from services.page_builder import agent_contract
-from services.page_builder.agent_contract import fetch_resource_records_to_file
+from services.page_builder.agent_contract import (
+    FetchLimitExceeded,
+    fetch_resource_records_to_file,
+)
 from services.shared.resources import select_prefetch_resources
 
 
@@ -62,7 +67,7 @@ def _make_records(n: int) -> list[dict]:
 
 
 def _fetch(dest, total, *, max_bytes=10_000_000, page_size=4, sample_rows=0,
-           prefer_sample=False, resource_id="res-1"):
+           prefer_sample=False, resource_id="res-1", deadline=None):
     return fetch_resource_records_to_file(
         resource_id,
         total,
@@ -70,7 +75,7 @@ def _fetch(dest, total, *, max_bytes=10_000_000, page_size=4, sample_rows=0,
         max_bytes=max_bytes,
         page_size=page_size,
         page_timeout_s=5.0,
-        deadline=time.monotonic() + 60,
+        deadline=time.monotonic() + 60 if deadline is None else deadline,
         sample_target_rows=sample_rows,
         prefer_sample=prefer_sample,
     )
@@ -136,10 +141,28 @@ def test_byte_cap_falls_back_to_sample(monkeypatch, tmp_path):
     assert calls[-2:] == [0, 50]
 
 
-def test_byte_cap_without_sampling_returns_none(monkeypatch, tmp_path):
+def test_byte_cap_without_sampling_raises(monkeypatch, tmp_path):
     _paged_urlopen(monkeypatch, _make_records(100), page_size_expected=4)
     dest = tmp_path / "d.csv"
-    assert _fetch(dest, total=100, max_bytes=600, sample_rows=0) is None
+    with pytest.raises(FetchLimitExceeded) as e:
+        _fetch(dest, total=100, max_bytes=600, sample_rows=0)
+    assert e.value.limit == "bytes"
+    assert not dest.exists()
+
+
+def test_wall_budget_without_sampling_raises(monkeypatch, tmp_path):
+    _paged_urlopen(monkeypatch, _make_records(100), page_size_expected=4)
+    dest = tmp_path / "d.csv"
+    with pytest.raises(FetchLimitExceeded) as e:
+        _fetch(dest, total=100, deadline=time.monotonic() - 1)
+    assert e.value.limit == "wall_budget"
+    assert not dest.exists()
+
+
+def test_wall_budget_with_sampling_returns_none(monkeypatch, tmp_path):
+    _paged_urlopen(monkeypatch, _make_records(100), page_size_expected=4)
+    dest = tmp_path / "d.csv"
+    assert _fetch(dest, total=100, sample_rows=8, deadline=time.monotonic() - 1) is None
     assert not dest.exists()
 
 
