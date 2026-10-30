@@ -434,14 +434,18 @@ are still read by the authoring selector.
   on a normal load, not just with `/_nuxt/**` blocked.
 - **CSP is enforced** (`firebase.json`, `source: "**"`, one
   `Content-Security-Policy` header). It allowlists scripts/connect/frames
-  for GA, AdSense, Clarity, Cloudflare Insights and data.gov.il; page
-  bodies are inline scripts, so `script-src` needs `'unsafe-inline'`.
-  It ran report-only from PR #93 until 2026-10-30 with no violations.
+  for GA, AdSense, Clarity, Cloudflare Insights, data.gov.il and
+  Formspree (the contact and report-issue forms POST with `fetch`, so
+  Formspree is in both `connect-src` and `form-action`); page bodies are
+  inline scripts, so `script-src` needs `'unsafe-inline'`. It ran
+  report-only from PR #93 until 2026-10-30. The policy has no reporting
+  endpoint, so a violation shows only in the visitor's browser console.
   Adding a third-party script, fetch target, frame or form target means
   adding its host to the allowlist, or the browser blocks it. AdSense's
   host set drifts: if ads or a page break with `Refused to …` in the
   console, add the host, or revert the promotion (push-to-deploy re-ships
-  `firebase.json`).
+  `firebase.json`; Cloudflare caches HTML with its headers for up to an
+  hour, so purge the zone cache for the fix to take effect at once).
 - **Chunk prefetching is disabled on purpose.** The `build:manifest`
   hook in `frontend/nuxt.config.ts` sets `chunk.prefetch = false`.
   Cloudflare Speed Brain speculatively fetches `<link rel="prefetch">`
