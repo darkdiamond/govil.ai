@@ -275,6 +275,8 @@ def build_tag_index(
 
 
 _LEGACY_URL_UNSAFE = re.compile(r"[\s/?#&]+")
+# Firebase Hosting `source` glob syntax.
+_GLOB_META = re.compile(r"[*:{}!?\\\[\]]")
 
 
 def legacy_tag_slug_map(raw_tags: Iterable[str]) -> dict[str, str]:
@@ -306,11 +308,15 @@ def tag_redirects(
     Legacy slugs that are still a live page are omitted, and so are tags
     with no page any more (dropped, or under TAG_PAGE_MIN): redirecting a
     gone page to an index is a soft-404 search engines penalise, so those
-    are left to 404."""
+    are left to 404.
+
+    Segments become Firebase redirect `source` patterns, and the raw tags
+    come from CKAN: one carrying glob syntax (`*`, `:name`, `{a,b}`, …)
+    could capture live URLs, so such segments are never emitted."""
     live = {v["slug"] for v in tag_index.values()}
     out: dict[str, str] = {}
     for raw, old in legacy_tag_slug_map(raw_tags).items():
-        if old in live:
+        if old in live or _GLOB_META.search(old):
             continue
         tag = taxonomy.resolve(raw, drop_names)
         if tag in tag_index:

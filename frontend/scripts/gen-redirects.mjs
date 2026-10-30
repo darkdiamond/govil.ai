@@ -108,8 +108,12 @@ for (const d of datasets) {
 //    The destination is a real URL, so it stays encoded.
 let tagCount = 0;
 const seenSources = new Set();
+// Segments derive from CKAN tags; a source with Firebase glob syntax could
+// capture live URLs (the publisher already skips these — belt and braces).
+const GLOB_META = /[*:{}!?\\[\]]/;
 function addTag(source, destination) {
   if (!destination || seenSources.has(source)) return;
+  if (GLOB_META.test(source.slice("/tags/".length, -1))) return;
   seenSources.add(source);
   redirects.push({ source, destination, type: 301 });
   tagCount++;

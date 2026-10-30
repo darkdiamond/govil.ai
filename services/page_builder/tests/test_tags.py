@@ -166,6 +166,10 @@ def test_tag_redirects_targets():
     assert red[legacy["מי-תהום"]] == "/tags/מי-תהום/"
     assert red["אקוויפר"] == "/tags/מי-תהום/"
     assert "GIS" not in red                        # dropped: left to 404
+    # A CKAN tag carrying Firebase glob syntax must never become a source.
+    tax2 = Taxonomy.from_dicts({"tags": {"מי תהום": {"aliases": ["מי*", "מי:x", "{מי}"]}}})
+    red2 = tag_redirects(["מי*", "מי:x", "{מי}"], tax2, index)
+    assert red2 == {}
     assert "נדיר" not in red                       # no page: left to 404
 
 
