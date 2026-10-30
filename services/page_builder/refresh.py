@@ -74,6 +74,9 @@ _DEFAULT_MAX_RECORDS = 2_000_000
 _DEFAULT_MAX_BYTES = 300_000_000
 _DEFAULT_TOTAL_BYTES = 600_000_000
 _DEFAULT_WALL_BUDGET_S = 900.0
+# A wall-budget overrun is transient (slow CKAN); this many in a row since
+# the last full fetch means the dataset outgrew its budget → `too_large`.
+_DEFAULT_WALL_BUDGET_STRIKES = 3
 _DEFAULT_PAGE_SIZE = 25_000
 _PAGE_TIMEOUT_S = 60.0
 _COMPUTE_TIMEOUT_S = 300
@@ -336,18 +339,27 @@ class InputProbe:
         return self._previews[rid]
 
 
+class WallBudgetExceeded(RecipeError):
+    """A fetch ran out of wall budget. Transient (`fetch_failed`) on its
+    own; `refresh_one` counts them and escalates a run of them."""
+
+    def __init__(self, message: str):
+        super().__init__(message, reason="fetch_failed")
+
+
 def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
     """A byte overrun is the dataset outgrowing its cap: a retry fetches the
     same bytes again, so a human must act (`too_large`). A wall-budget
     overrun is slow CKAN or a dataset that outgrew the budget; one run can't
-    tell which, so it is retried (`fetch_failed`)."""
+    tell which, so it is retried (`fetch_failed`) until it repeats
+    (`_DEFAULT_WALL_BUDGET_STRIKES`)."""
     if e.limit == "bytes":
         return RecipeError(
             f"{what}: {e} (REFRESH_MAX_BYTES / REFRESH_TOTAL_BYTES / recipe limits)",
             reason="too_large",
         )
     if e.limit == "wall_budget":
-        return RecipeError(f"{what}: ran out of wall budget ({e})", reason="fetch_failed")
+        return WallBudgetExceeded(f"{what}: ran out of wall budget ({e})")
     raise AssertionError(f"unhandled fetch limit {e.limit!r}")
 
 
@@ -989,12 +1001,24 @@ def refresh_one(
         log.warning("refresh %s: restricted upstream: %s", src.id[:8], e)
         return RefreshOutcome(src.id, "failed", trigger, "restricted", str(e))
     except RecipeError as e:
+        strikes = None
+        if isinstance(e, WallBudgetExceeded):
+            strikes = int(state.get("wall_budget_strikes") or 0) + 1
+            limit = _env_int("REFRESH_WALL_BUDGET_STRIKES", _DEFAULT_WALL_BUDGET_STRIKES)
+            if strikes >= limit:
+                # Reset, so a re-authored recipe gets a fresh run of tries.
+                e = RecipeError(
+                    f"{e} — {strikes} runs in a row since the last full fetch",
+                    reason="too_large",
+                )
+                strikes = 0
         log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
         store.mark_refresh_failed(
             src.id,
             error=str(e),
             reason=e.reason,
             failed_version=version_key(src.metadata_modified, rv),
+            wall_budget_strikes=strikes,
             preview=preview,
         )
         outcome = RefreshOutcome(

@@ -18,11 +18,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy
   recipes multiply, give them their own job execution with more memory (filter on
   `manifest.heavy`) rather than raising the shared job's `--memory`. (2026-10-30)
-- **A wall-budget overrun never escalates.** A fetch that runs out of `REFRESH_WALL_BUDGET_S`
-  (or a recipe's `limits.wall_budget_s`) is a transient `fetch_failed`, because one run can't tell a
-  slow CKAN night from a dataset that outgrew its budget. A dataset that really did outgrow it is
-  retried every night and its page stays last-good with no issue. Count consecutive wall-budget
-  failures in the refresh state and open a `too_large` issue after a few in a row. (2026-10-30)
 - **`pick: "latest"` trusts CKAN `last_modified`.** Re-uploading an old snapshot bumps its
   `last_modified`, and the page would switch to it. If that happens, order by the date in the
   resource name when it parses (snapshot datasets name their date), falling back to

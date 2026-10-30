@@ -138,7 +138,9 @@ landing pages. Five layers:
    (recipe broke, schema moved, data outgrew the fetch cap —
    `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue; a
    transient fetch failure (network, or the fetch wall budget running out) just
-   retries next run. Big-dataset levers in
+   retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget
+   overruns since the last full fetch (`wall_budget_strikes` in the refresh
+   state) open a `too_large` issue. Big-dataset levers in
    `recipe.json`: an input's `columns` (CKAN `fields=`, only those columns
    are exported), `pick: "latest"` (newest snapshot resource by
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
