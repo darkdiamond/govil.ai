@@ -826,18 +826,25 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
         if dump_model(raw) != dump_model(raw2) or page.content_html != page2.content_html:
             problems.append("DETERMINISM: two runs on identical data produced different output")
 
-        try:
-            rawt, _, _ = run(_truncate, "truncated")
-            if dump_model(rawt) == dump_model(raw):
-                problems.append(
-                    f"ROBUSTNESS: model unchanged after dropping {1 - TRUNCATE_FRACTION:.0%} "
-                    "of rows — some numbers are not computed from the data"
-                )
-            notes.append(f"truncated run OK — {len(rawt.get('insights') or [])} insights: "
-                         + " | ".join(i['text_he'] for i in rawt.get('insights') or []))
-        except RecipeError as e:
-            problems.append(f"ROBUSTNESS: recipe fails on {TRUNCATE_FRACTION:.0%} of the rows "
-                            f"[{e.reason}]: {e}")
+        # A ≤1-row input survives truncation unchanged: the truncated run would
+        # repeat the full run and prove nothing. Every other check still runs.
+        if all(len(_truncate(range(i.rows))) == i.rows
+               for parts in inputs.values() for i in parts):
+            notes.append("robustness skipped: every input has ≤1 row, "
+                         "so truncation drops nothing")
+        else:
+            try:
+                rawt, _, _ = run(_truncate, "truncated")
+                if dump_model(rawt) == dump_model(raw):
+                    problems.append(
+                        f"ROBUSTNESS: model unchanged after dropping {1 - TRUNCATE_FRACTION:.0%} "
+                        "of rows — some numbers are not computed from the data"
+                    )
+                notes.append(f"truncated run OK — {len(rawt.get('insights') or [])} insights: "
+                             + " | ".join(i['text_he'] for i in rawt.get('insights') or []))
+            except RecipeError as e:
+                problems.append(f"ROBUSTNESS: recipe fails on {TRUNCATE_FRACTION:.0%} of the rows "
+                                f"[{e.reason}]: {e}")
 
         try:
             raws, _, _ = run(_shuffle, "shuffled")
