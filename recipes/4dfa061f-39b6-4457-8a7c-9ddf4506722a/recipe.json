@@ -1,0 +1,59 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4dfa061f-39b6-4457-8a7c-9ddf4506722a",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-09T13:34:49.488718+00:00",
+    "rows": { "key": 348, "plan": 1922 }
+  },
+  "inputs": [
+    {
+      "name": "key",
+      "by_id": "90632211-c9f4-4413-ab18-f88393a0d2d7",
+      "required_columns": [
+        "year",
+        "unit",
+        "indicator",
+        "stable_existing",
+        "binary",
+        "direction",
+        "recurring",
+        "baseline_value",
+        "target_value",
+        "actual_value_2025",
+        "achievement_rate",
+        "rate_scale",
+        "data_source",
+        "public_explanation"
+      ]
+    },
+    {
+      "name": "plan",
+      "by_id": "b53dc314-c67a-42b9-a1ee-ab12837a729d",
+      "required_columns": [
+        "year",
+        "unit",
+        "goal",
+        "target",
+        "task",
+        "indicator",
+        "indicator_type",
+        "binary",
+        "recurring_indicator",
+        "end_date",
+        "baseline_value",
+        "target_value",
+        "value_at_end_date",
+        "actual_value_2025",
+        "rate_scale",
+        "rate_range",
+        "data_source",
+        "public_explanation",
+        "primary_barrier"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

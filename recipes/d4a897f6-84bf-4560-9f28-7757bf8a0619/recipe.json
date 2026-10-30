@@ -1,0 +1,237 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d4a897f6-84bf-4560-9f28-7757bf8a0619",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-14T09:00:58.959611+00:00",
+    "rows": {
+      "schema": 99,
+      "id_types": 6,
+      "countries": 267,
+      "gender": 4,
+      "localities": 1285,
+      "place_types": 8,
+      "citizenship": 6,
+      "residency": 16,
+      "health_funds": 5,
+      "authorities": 259,
+      "authority_types": 4,
+      "districts": 7,
+      "subdistricts": 16,
+      "natural_regions": 52,
+      "neighborhoods": 1732,
+      "streets": 63049,
+      "languages": 185,
+      "pop_groups": 4,
+      "religions": 31,
+      "religion_groups": 7,
+      "religiosity": 11,
+      "nationalities": 125,
+      "marital": 8,
+      "disability_types": 7,
+      "disability_bodies": 5,
+      "education_levels": 11,
+      "institutions": 56,
+      "study_fields": 20,
+      "professions": 339,
+      "employment": 8,
+      "income": 8,
+      "pets": 8,
+      "driving": 13
+    }
+  },
+  "inputs": [
+    {
+      "name": "schema",
+      "by_id": "788ba412-6f07-4b00-98b8-c00d66ee07a8",
+      "required_columns": [
+        "Name_Hebrew",
+        "Name_English",
+        "Codelist",
+        "Category"
+      ]
+    },
+    {
+      "name": "id_types",
+      "by_id": "d247b217-cd56-49e4-a975-5b8badbf6651",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "countries",
+      "by_id": "5ad06609-3712-4ad3-8d33-419281e30796",
+      "required_columns": [
+        "שם בעברית",
+        "קוד לפי תקן ישראלי",
+        "קוד ארץ רשות האוכלוסין",
+        "שם יבשת",
+        "שם יבשת גיאוגרפי",
+        "שם פיצול רשות האוכלוסין",
+        "שנת שינוי ברשות האוכלוסין",
+        "סמל ארץ אלפביתי 2 (UN)"
+      ]
+    },
+    {
+      "name": "gender",
+      "by_id": "7125007d-a7aa-4634-b600-2df5c80a98af",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "localities",
+      "by_id": "9b17a3f4-8819-48cd-89db-22bea727fc3e",
+      "required_columns": ["Code", "District", "צורת יישוב", "מעמד מוניציפלי"]
+    },
+    {
+      "name": "place_types",
+      "by_id": "39036bcf-8501-416d-984e-a128f9a3dd49",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "citizenship",
+      "by_id": "6c672a93-c22f-4bab-b7a0-c77ecf8ca5ee",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "residency",
+      "by_id": "66608fe5-f965-45bd-806f-f0ca87520ae6",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "health_funds",
+      "by_id": "fb7dbd8a-3d0e-4c97-b119-1ba74019781d",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "authorities",
+      "by_id": "b13e55b8-7bac-4d7b-9d20-ee56e10ab411",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "Authority_Type_Code",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "authority_types",
+      "by_id": "6a7d110e-c376-48a6-a8f4-fb5bafa24665",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "districts",
+      "by_id": "82758a33-4296-499e-b7dd-6f248a9c0c5d",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "subdistricts",
+      "by_id": "c64b23e7-cf47-47cf-ae4f-8a2c187d11c1",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "natural_regions",
+      "by_id": "40449658-b3f5-4a47-a723-6925537bdc9f",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "neighborhoods",
+      "by_id": "d6b9634d-8e79-4fdf-80e4-678cd583a116",
+      "required_columns": [
+        "Code_City",
+        "Name_City_Hebrew",
+        "Name_Neighborhood_Hebrew"
+      ]
+    },
+    {
+      "name": "streets",
+      "by_id": "31c165e7-a1d7-46f6-ba6c-9d0b3b4d601f",
+      "required_columns": ["Code", "Name_Hebrew"],
+      "columns": ["Code", "Name_Hebrew"]
+    },
+    {
+      "name": "languages",
+      "by_id": "710a3a1f-7498-4137-bd9c-524c7a7bbe0f",
+      "required_columns": ["Code", "Code_Iso639_1"]
+    },
+    {
+      "name": "pop_groups",
+      "by_id": "24731300-1cb1-4d2a-902e-6454431844d9",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "religions",
+      "by_id": "ffd28f3c-b83d-47a5-8d98-faf171f1e5df",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "religion_groups",
+      "by_id": "8f97cb94-0bc5-4967-a1d3-299dd32c8507",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "religiosity",
+      "by_id": "f35bd565-8166-45a7-b749-afc99ec024a6",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "nationalities",
+      "by_id": "6a43f32a-df3c-41d5-a380-da797cc578fa",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "marital",
+      "by_id": "a4e0004e-d403-4c53-ab5b-c54acfb288d5",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "disability_types",
+      "by_id": "e3d410d1-2f7c-49be-88f8-a34b7a8dcb98",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "disability_bodies",
+      "by_id": "76d8f364-615b-4fca-ade2-a5c5f1fcf140",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "education_levels",
+      "by_id": "277afab0-8eee-42c5-877c-407088486951",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "institutions",
+      "by_id": "8cd6cfa8-56c1-4736-af0b-f890a8b599fc",
+      "required_columns": ["Code", "Description_Hebrew"]
+    },
+    {
+      "name": "study_fields",
+      "by_id": "2653ff94-0872-4979-9070-d73e0dbc9915",
+      "required_columns": ["Code", "Name_Hebrew"]
+    },
+    {
+      "name": "professions",
+      "by_id": "9907856a-ed37-450b-ba2d-c16f6b97ab9a",
+      "required_columns": ["Code", "Code_Group"]
+    },
+    {
+      "name": "employment",
+      "by_id": "44723f2b-8308-4789-a8c2-de5f86985008",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "income",
+      "by_id": "a5ee5c8d-ce92-4298-a570-f3bbcf522111",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "pets",
+      "by_id": "9fbee09f-13ba-42d3-a49d-961f9cfb5ee8",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "driving",
+      "by_id": "f2a662f4-1642-45dd-b6b7-bc6683d9d7a7",
+      "required_columns": ["Code"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

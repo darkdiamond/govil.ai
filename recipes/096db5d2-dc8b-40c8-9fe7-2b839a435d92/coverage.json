@@ -1,0 +1,13 @@
+{
+  "main.זיהוי תחנה": "map-main, chart-toparea — station number: map popup; stable tie-break key for sorts",
+  "main.שם עברית": "map-main, chart-toparea, table:newest, insight:area, insight:newest — station names (places on streams, not people)",
+  "main.שם אנגלית": "skip: English transliteration of the Hebrew name; searchable in the shell's explorer",
+  "main.תאריך הקמה": "chart-decade, kpi:span, kpi:recent, insight:era, insight:peak_decade, insight:newest, insight:water_year, table:newest, map-main — dd/mm/yyyy; mostly 01/10 (water-year start)",
+  "main.שטח היקוות (קמ''ר)": "chart-area, chart-toparea, kpi:median_area, insight:area, map-main — 99999 is a placeholder and is excluded, disclosed",
+  "main.שטח משותף": "kpi:shared, insight:shared — כן/לא, blank for about a fifth of rows",
+  "main.נ.צ. X (רוחב)": "map-main, chart-ns — ITM easting",
+  "main.נ.צ. Y (רוחב)": "map-main, chart-ns — ITM northing, 50 km bands",
+  "main.מספר קבוצה": "insight:groups — shared group number of neighbouring stations; >80% blank",
+  "main.תחום התנקזות של נחל ראשי": "chart-basins, chart-bshare, chart-ns, kpi:basins, insight:basin_lead, insight:basin_share, table:newest, map-main",
+  "main.סטטוס תחנה נוכחי": "chart-decade, chart-basins, chart-bshare, chart-ns, chart-area, chart-toparea, kpi:active, kpi:share, insight:active, insight:era, map-main"
+}

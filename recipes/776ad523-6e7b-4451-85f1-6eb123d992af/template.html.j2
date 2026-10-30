@@ -1,0 +1,633 @@
+<h1>קולות קוראים של משרד החדשנות, המדע והטכנולוגיה: מענקי מחקר ומלגות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="mt-2 mb-0 text-subtle leading-relaxed">כל רשומה במאגר היא הצעת מחקר, מלגה או פרס שזכו במימון של משרד המדע (משרד החדשנות, המדע והטכנולוגיה) במסגרת קול קורא: שם הקול הקורא, המסלול, התחום, המוסד, החוקר או החוקרת, תקופת ההתקשרות והתקציב.</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מענק מחקר לפי שם חוקר, מוסד או נושא ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם החוקר, כותרת המחקר, מוסד, קול קורא, תחום, תת-תחום ומדינה שותפה</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">מענקים במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.budget.tone }} mb-1" dir="ltr">{{ model.kpis.budget.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.budget_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median.tone }} mb-1" dir="ltr">{{ model.kpis.median.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.years.tone }} mb-1" dir="ltr">{{ model.kpis.years.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.years_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.institutions.tone }} mb-1" dir="ltr">{{ model.kpis.institutions.display }}</div>
+    <div class="text-sm text-subtle">מוסדות זוכים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.researchers.tone }} mb-1" dir="ltr">{{ model.kpis.researchers.display }}</div>
+    <div class="text-sm text-subtle">חוקרים וחוקרות (שמות שונים)</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.female.tone }} mb-1" dir="ltr">{{ model.kpis.female.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.female_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.active_kpi }}</div>
+  </div>
+</div>
+{%- if model.labels.non_ils_note or model.labels.bad_year_note %}
+<p class="text-xs text-subtle mb-6">{{ model.labels.non_ils_note }} {{ model.labels.bad_year_note }}</p>
+{%- else %}
+<div class="mb-6"></div>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מענקים ותקציב לפי שנת תקציב</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.yearly_lede }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנת תקציב</th><th scope="col">מענקים</th><th scope="col">תקציב (מיליון ₪)</th><th scope="col">מענק חציוני (אלפי ₪)</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.yearly.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.yearly.count[loop.index0] | fmt_int }}</td><td>{{ model.charts.yearly.budget_m[loop.index0] | fmt_num }}</td><td>{{ model.charts.yearly.median_k[loop.index0] | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי קולות קוראים לאורך השנים</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.cat_lede }}</p>
+  <div id="chart-cat-year" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cat_aria }}</caption>
+      <thead><tr><th scope="col">שנת תקציב</th>{% for c in model.tables.cat_names %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cat_year %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v | fmt_int }}</td>{% endfor %}<td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">לאן הולך התקציב: סוג קול קורא ומסלול</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.prog_lede }}</p>
+  <div id="chart-treemap" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.prog_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.prog_aria }}</caption>
+      <thead><tr><th scope="col">סוג קול קורא</th><th scope="col">מסלול</th><th scope="col">מענקים (בשקלים)</th><th scope="col">תקציב (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.programs %}
+        <tr><th scope="row">{{ r.cat }}</th><td>{{ r.prog }}</td><td>{{ r.count | fmt_int }}</td><td>{{ r.budget_m | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  <h3 class="mt-5 mb-2 text-base font-semibold text-ink-deep">גודל המענק לפי סוג קול קורא</h3>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">מספר המענקים, התקציב והמענק החציוני לפי סוג קול קורא</caption>
+    <thead><tr><th scope="col">סוג קול קורא</th><th scope="col">מענקים</th><th scope="col">תקציב (מיליון ₪)</th><th scope="col">מענק חציוני (אלפי ₪)</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.cats %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.budget_m | fmt_num }}</td><td>{{ r.median_k | fmt_num }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחומי מחקר</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.field_lede }}</p>
+  <div id="chart-field" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.field_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.field_aria }}</caption>
+      <thead><tr><th scope="col">תחום</th><th scope="col">מענקים</th><th scope="col">תקציב (מיליון ₪)</th><th scope="col">מענק חציוני (אלפי ₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.fields %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.budget_m | fmt_num }}</td><td>{{ r.median_k | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.has_subfield %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תתי-תחומים מובילים</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.sub_lede }}</p>
+  <div id="chart-subfield" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.sub_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.sub_aria }}</caption>
+      <thead><tr><th scope="col">תת-תחום</th><th scope="col">תחום</th><th scope="col">מענקים</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.subfield.names %}
+        <tr><th scope="row">{{ name }}</th><td>{{ model.charts.subfield.field[loop.index0] }}</td><td>{{ model.charts.subfield.count[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המוסדות הזוכים</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.inst_lede }}</p>
+  <div id="chart-inst" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.inst_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.inst_aria }}</caption>
+      <thead><tr><th scope="col">מוסד</th><th scope="col">מענקים</th><th scope="col">תקציב (מיליון ₪)</th><th scope="col">שיעור נשים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.institutions %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.budget_m | fmt_num }}</td><td>{{ r.female_share | fmt_pct }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נשים במדע: חוקרות ומלגאיות</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.gender_lede }}</p>
+  <div id="chart-gender-year" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.gender_year_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.gender_year_aria }}</caption>
+      <thead><tr><th scope="col">שנת תקציב</th><th scope="col">זוכות</th><th scope="col">זוכים</th><th scope="col">שיעור נשים (%)</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.gender_year.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.gender_year.female[loop.index0] | fmt_int }}</td><td>{{ model.charts.gender_year.male[loop.index0] | fmt_int }}</td><td>{{ model.charts.gender_year.share[loop.index0] | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיעור נשים לפי סוג קול קורא</h3>
+      <div id="chart-gender-cat" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gender_cat_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.gender_cat_aria }}</caption>
+          <thead><tr><th scope="col">סוג קול קורא</th><th scope="col">זוכות</th><th scope="col">סה״כ</th><th scope="col">שיעור (%)</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.gender_cat %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.female | fmt_int }}</td><td>{{ r.total | fmt_int }}</td><td>{{ r.share | fmt_num }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיעור נשים לפי תחום</h3>
+      <div id="chart-gender-field" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.gender_field_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.gender_field_aria }}</caption>
+          <thead><tr><th scope="col">תחום</th><th scope="col">זוכות</th><th scope="col">סה״כ</th><th scope="col">שיעור (%)</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.gender_field %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.female | fmt_int }}</td><td>{{ r.total | fmt_int }}</td><td>{{ r.share | fmt_num }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+
+{%- if model.flags.has_intl %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיתוף פעולה בינלאומי</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.country_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">מענקים לפי מדינה שותפה</h3>
+      <div id="chart-country" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.country_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.country_aria }}</caption>
+          <thead><tr><th scope="col">מדינה שותפה</th><th scope="col">מענקים</th><th scope="col">תקציב בשקלים (מיליון ₪)</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.countries %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.budget_m | fmt_num }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיעור המענקים הבינלאומיים לפי שנה</h3>
+      <div id="chart-intl-share" class="h-80 md:h-[460px]" role="img" aria-label="גרף קו: שיעור המענקים בשיתוף פעולה בינלאומי מכלל המענקים, לפי שנת תקציב."></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">שיעור המענקים בשיתוף פעולה בינלאומי לפי שנת תקציב</caption>
+          <thead><tr><th scope="col">שנת תקציב</th><th scope="col">שיעור בינלאומי (%)</th></tr></thead>
+          <tbody>
+{%- for x in model.charts.intl_share.x %}
+            <tr><th scope="row">{{ x }}</th><td>{{ model.charts.intl_share.share[loop.index0] | fmt_num }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המענקים ומשך ההתקשרות</h2>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">התפלגות גודל המענק (בשקלים)</h3>
+      <p class="text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+      <div id="chart-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.size_aria }}</caption>
+          <thead><tr><th scope="col">טווח סכום (₪)</th><th scope="col">מענקים</th><th scope="col">תקציב (מיליון ₪)</th></tr></thead>
+          <tbody>
+{%- for l in model.charts.size.labels %}
+            <tr><th scope="row">{{ l }}</th><td>{{ model.charts.size.count[loop.index0] | fmt_int }}</td><td>{{ model.charts.size.budget_m[loop.index0] | fmt_num }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">משך ההתקשרות</h3>
+      <p class="text-sm text-subtle mb-3">{{ model.labels.dur_lede }}</p>
+      <div id="chart-duration" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dur_aria }}"></div>
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.dur_aria }}</caption>
+          <thead><tr><th scope="col">משך</th><th scope="col">מענקים</th></tr></thead>
+          <tbody>
+{%- for l in model.charts.duration.labels %}
+            <tr><th scope="row">{{ l }}</th><td>{{ model.charts.duration.count[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחקרים לפי סטטוס</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.status_lede }}</p>
+  <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.status_aria }}</caption>
+      <thead><tr><th scope="col">שנת תקציב</th>{% for s in model.tables.status_names %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.status %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v | fmt_int }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקולות הקוראים הגדולים</h2>
+  </div>
+  <p class="text-sm text-subtle mb-3">{{ model.labels.calls_lede }}</p>
+  <div id="chart-calls" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.calls_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.calls_aria }}</caption>
+      <thead><tr><th scope="col">קול קורא</th><th scope="col">שנת תקציב</th><th scope="col">מענקים</th><th scope="col">תקציב בשקלים (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.calls %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.year }}</td><td>{{ r.count | fmt_int }}</td><td>{{ r.budget_m | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "מענקים", minInterval: 1 },
+        { type: "value", name: "מיליון ₪", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "מענקים", data: d.count },
+        { type: "line", name: "תקציב (מיליון ₪)", yAxisIndex: 1, data: d.budget_m, symbolSize: 8 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.cat_year | tojson }};
+    var c = echarts.init(document.getElementById("chart-cat-year"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data, emphasis: { focus: "series" } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var t = {{ model.charts.treemap | tojson }};
+    var c = echarts.init(document.getElementById("chart-treemap"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " מיליון ₪"; } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: false,
+                 breadcrumb: { show: false }, width: "100%", height: "100%",
+                 upperLabel: { show: true, height: 22, color: "#fff" },
+                 label: { show: true, formatter: "{b}\n{c}", overflow: "truncate" },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.field | tojson }};
+    var c = echarts.init(document.getElementById("chart-field"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "תקציב (מיליון ₪)", data: d.budget_m.slice().reverse() },
+        { type: "bar", name: "מענק חציוני (אלפי ₪)", data: d.median_k.slice().reverse() }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.flags.has_subfield %}
+  (function () {
+    var d = {{ model.charts.subfield | tojson }};
+    var c = echarts.init(document.getElementById("chart-subfield"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מענקים", data: d.count.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.inst | tojson }};
+    var c = echarts.init(document.getElementById("chart-inst"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "מענקים", data: d.count.slice().reverse() },
+        { type: "bar", name: "תקציב (מיליון ₪)", data: d.budget_m.slice().reverse() }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.gender_year | tojson }};
+    var c = echarts.init(document.getElementById("chart-gender-year"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "זוכים", minInterval: 1 },
+        { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", stack: "g", name: "זוכות", data: d.female },
+        { type: "bar", stack: "g", name: "זוכים", data: d.male },
+        { type: "line", name: "שיעור נשים (%)", yAxisIndex: 1, data: d.share, symbolSize: 8 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.gender_cat | tojson }};
+    var c = echarts.init(document.getElementById("chart-gender-cat"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שיעור נשים (%)", data: d.share.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.gender_field | tojson }};
+    var c = echarts.init(document.getElementById("chart-gender-field"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שיעור נשים (%)", data: d.share.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.flags.has_intl %}
+  (function () {
+    var d = {{ model.charts.country | tojson }};
+    var c = echarts.init(document.getElementById("chart-country"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מענקים", data: d.count.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.intl_share | tojson }};
+    var c = echarts.init(document.getElementById("chart-intl-share"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", min: 0, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור בינלאומי (%)", data: d.share, symbolSize: 8, areaStyle: { opacity: 0.15 } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.size | tojson }};
+    var c = echarts.init(document.getElementById("chart-size"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "מענקים", data: d.count }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.duration | tojson }};
+    var c = echarts.init(document.getElementById("chart-duration"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "מענקים", data: d.count }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var c = echarts.init(document.getElementById("chart-status"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "s", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.calls | tojson }};
+    var c = echarts.init(document.getElementById("chart-calls"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מענקים", data: d.count.slice().reverse() }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

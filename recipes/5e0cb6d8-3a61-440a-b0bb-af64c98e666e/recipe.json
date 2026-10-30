@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5e0cb6d8-3a61-440a-b0bb-af64c98e666e",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-18T17:12:54.218214+00:00",
+    "rows": { "rules": 71 }
+  },
+  "inputs": [
+    {
+      "name": "rules",
+      "by_id": "9c82b7c1-f7c1-46bd-ac6c-afe2934b8297",
+      "required_columns": ["תחום", "תת תחום", "שם כלל", "לינק לכלל"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

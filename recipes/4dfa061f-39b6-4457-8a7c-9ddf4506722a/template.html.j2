@@ -1,0 +1,306 @@
+{%- macro head(icon, title) -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro mix_table(rows, caption, head1) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th><th scope="col">מדדים</th>{% for s in model.charts.status.status %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro -%}
+{%- macro two_col(rows, caption, head1, head2) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th><th scope="col">{{ head2 }}</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+<h1>דוח ביצוע תוכניות העבודה הממשלתיות לשנת {{ model.labels.year }}</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מדד בתוכנית העבודה של משרד ממשלתי ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הדוח: שם המשרד, המטרה, היעד, המשימה ושם המדד, עם הערך המתוכנן, הערך בפועל וביאור הביצוע.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["plan_n", "key_n", "units", "goals", "plan_full", "key_full", "zero", "none"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "עמידה ביעדים: תמונה כוללת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_lede }}</p>
+  <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  {{ mix_table(model.tables.status, model.labels.status_aria, "קובץ") }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("building-2", "עמידה ביעדי תוכניות העבודה לפי משרד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ministry_lede }}{% if model.labels.ministry_cap %} {{ model.labels.ministry_cap }}{% endif %}</p>
+  <div id="chart-ministry" class="h-[640px] md:h-[680px]" role="img" aria-label="{{ model.labels.ministry_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.ministry_aria }}</caption>
+      <thead><tr><th scope="col">משרד</th><th scope="col">מדדים</th><th scope="col">עמידה מלאה מתוך המדדים שדווחו</th>{% for s in model.charts.status.status %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.ministry %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.full_txt }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("tag", "איזה סוג מדד הושג") }}
+  <p class="m-0 text-sm text-subtle mb-3">מדדי תוכניות העבודה לפי סוג (הצלחה, תוצאה, תפוקה), לפי אבן דרך מול מדד כמותי, ולפי מדד חוזר מול מדד חדש. כל מדד נספר בכל אחת משלוש החלוקות.</p>
+  <div id="chart-character" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.character_aria }}"></div>
+  {{ mix_table(model.tables.character, model.labels.character_aria, "קבוצת מדדים") }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("list", "מועדי הסיום של המדדים") }}
+  <p class="m-0 text-sm text-subtle mb-3">רוב המדדים נקבעו לסוף השנה, וחלקם הם צעד ביניים בתוכנית רב-שנתית. העמודות מציגות את מספר המדדים לפי מועד הסיום, והקו את שיעור העמידה המלאה ביעד השנתי מתוך המדדים שדווחו.{% if model.labels.deadline_note %} {{ model.labels.deadline_note }}{% endif %}</p>
+  <div id="chart-deadline" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.deadline_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.deadline_aria }}</caption>
+      <thead><tr><th scope="col">מועד סיום</th><th scope="col">מדדים</th><th scope="col">עמידה מלאה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.deadline %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.full }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- if model.charts.has_barriers %}
+
+<section class="card p-5 mb-6">
+  {{ head("triangle-alert", "מה עיכב את הביצוע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.barriers_lede }}</p>
+  <div id="chart-barriers" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.barriers_aria }}"></div>
+  {{ two_col(model.tables.barriers, model.labels.barriers_aria, "חסם", "מדדים") }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("database", "המדדים המרכזיים: היחידות שפיגרו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.key_units_lede }}</p>
+  <div id="chart-key-units" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.key_units_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.key_units_aria }}</caption>
+      <thead><tr><th scope="col">יחידה</th><th scope="col">ממוצע ביצוע</th><th scope="col">מדדים שהושגו במלואם</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.key_units %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.avg }}</td><td>{{ r.full }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "המדדים המרכזיים: עד כמה עברו את היעד או החטיאו אותו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.overshoot_lede }}</p>
+  <div id="chart-overshoot" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.overshoot_aria }}"></div>
+  {{ two_col(model.tables.overshoot, model.labels.overshoot_aria, "שיעור ביצוע", "מדדים מרכזיים") }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("tag", "המדדים המרכזיים לפי מאפיין") }}
+  <p class="m-0 text-sm text-subtle mb-3">הכיוון הרצוי של המדד (עלייה, ירידה או שמירה על הקיים), מדד קיים מול מדד שנוסף השנה, אבן דרך מול מדד כמותי, ומדד חוזר מול חד-פעמי.</p>
+  <div id="chart-key-character" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.key_character_aria }}"></div>
+  {{ mix_table(model.tables.key_character, model.labels.key_character_aria, "קבוצת מדדים") }}
+</section>
+{%- if model.charts.has_scatter %}
+
+<section class="card p-5 mb-6">
+  {{ head("building-2", "מדדים מרכזיים מול תוכנית העבודה, לפי משרד") }}
+  <p class="m-0 text-sm text-subtle mb-3">כל נקודה היא משרד. משרד מעל הקו האלכסוני עמד במדדים המרכזיים שלו בשיעור גבוה מזה של כלל תוכנית העבודה, ומשרד מתחת לקו עמד בהם בשיעור נמוך יותר.</p>
+  <div id="chart-scatter" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.scatter_aria }}</caption>
+      <thead><tr><th scope="col">משרד</th><th scope="col">עמידה מלאה, תוכנית העבודה</th><th scope="col">עמידה מלאה, מדדים מרכזיים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.scatter %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.plan }}</td><td>{{ r.key }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">תוכניות העבודה הממשלתיות הן תוצר שנתי של תהליך התכנון המתקיים במשרדי הממשלה וביחידות הסמך. תהליך זה, המובל על ידי המנכ"לים ואגפי התכנון המדיניות והאסטרטגיה במשרדים וביחידות, הינו חלק ממהלך מתמשך להטמעת תרבות תכנון מעקב ובקרה בעבודת הממשלה, לקידום החשיבה התוצאתית ולהגברת השקיפות של עבודת הממשלה לציבור. לצד תהליכי התכנון הסדורים מתקיימים במשרדים וביחידות הסמך תהליכי בקרה שנתיים על העמידה במדדים שנקבעו בתוכניות העבודה, על מנת להפיק לקחים ולשפר את תהליכי הביצוע.</p>
+</section>
+
+<script>
+  (function () {
+    const COLORS = ["#198754", "#0068f5", "#9a6700", "#dc3545", "#c3cfe7"];
+    function stack(id, d, leftPad) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option({
+        color: COLORS,
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          valueFormatter: function (v) { return v.toFixed(1) + "%"; }
+        },
+        legend: { top: 0, data: d.status },
+        grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+        xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: d.names, axisLabel: { width: leftPad, overflow: "truncate" } },
+        series: d.series.map(function (vals, i) {
+          return { name: d.status[i], type: "bar", stack: "s", data: vals, barMaxWidth: 28 };
+        })
+      }));
+      window.addEventListener("resize", function () { chart.resize(); });
+    }
+    stack("chart-status", {{ model.charts.status | tojson }}, 140);
+    stack("chart-ministry", {{ model.charts.ministry | tojson }}, 150);
+    stack("chart-character", {{ model.charts.character | tojson }}, 140);
+    stack("chart-key-character", {{ model.charts.key_character | tojson }}, 140);
+  })();
+  (function () {
+    const d = {{ model.charts.deadline | tojson }};
+    const chart = echarts.init(document.getElementById("chart-deadline"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis" },
+      legend: { top: 0, data: ["מדדים", "עמידה מלאה"] },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 80, overflow: "break" } },
+      yAxis: [
+        { type: "value", name: "מדדים" },
+        { type: "value", name: "עמידה מלאה", max: 100, axisLabel: { formatter: "{value}%" }, splitLine: { show: false } }
+      ],
+      series: [
+        { name: "מדדים", type: "bar", data: d.n, itemStyle: { color: "#0068f5" }, barMaxWidth: 48 },
+        { name: "עמידה מלאה", type: "line", yAxisIndex: 1, data: d.full, itemStyle: { color: "#198754" },
+          tooltip: { valueFormatter: function (v) { return v == null ? "" : v.toFixed(1) + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const el = document.getElementById("chart-barriers");
+    if (!el) return;
+    const d = {{ model.charts.barriers | tojson }};
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", name: "מדדים" },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ name: "מדדים", type: "bar", data: d.values, itemStyle: { color: "#0068f5" }, barMaxWidth: 26,
+                 label: { show: true, position: "insideStart", color: "#ffffff" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.key_units | tojson }};
+    const chart = echarts.init(document.getElementById("chart-key-units"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v.toFixed(1) + "%"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ name: "ממוצע ביצוע", type: "bar", barMaxWidth: 24,
+                 data: d.values.map(function (v) {
+                   return { value: v, itemStyle: { color: v < 60 ? "#dc3545" : "#0068f5" } };
+                 }) }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const d = {{ model.charts.overshoot | tojson }};
+    const chart = echarts.init(document.getElementById("chart-overshoot"));
+    const tone = ["#dc3545", "#dc3545", "#9a6700", "#0068f5", "#198754", "#198754", "#198754", "#198754"];
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: 64, overflow: "break" } },
+      yAxis: { type: "value", name: "מדדים" },
+      series: [{ name: "מדדים מרכזיים", type: "bar", barMaxWidth: 48,
+                 data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: tone[i] || "#0068f5" } }; }),
+                 label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+  (function () {
+    const el = document.getElementById("chart-scatter");
+    if (!el) return;
+    const d = {{ model.charts.scatter | tojson }};
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        const v = p.data;
+        if (!v || v.length < 5) return "";
+        return echarts.format.encodeHTML(v[2]) + "<br/>תוכנית העבודה: " + v[0].toFixed(0) + "% (" + v[3] + " מדדים)"
+          + "<br/>מדדים מרכזיים: " + v[1].toFixed(0) + "% (" + v[4] + " מדדים)";
+      } },
+      grid: { left: 16, right: 24, top: 40, bottom: 40, containLabel: true },
+      xAxis: { type: "value", name: "תוכנית העבודה", nameLocation: "middle", nameGap: 28, min: 0, max: 100,
+               axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "value", name: "מדדים מרכזיים", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "scatter", data: d.points, symbolSize: 12, itemStyle: { color: "#0068f5", opacity: 0.8 } },
+        { type: "line", data: [[0, 0], [100, 100]], symbol: "none", silent: true, tooltip: { show: false },
+          lineStyle: { color: "#6c757d", type: "dashed", width: 1 } }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>

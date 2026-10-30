@@ -1,0 +1,6 @@
+{
+  "rules.תחום": "chart-domains, chart-tree, rules-catalog, insight:top_domain — top-level branch (cars / karting / motorcycles)",
+  "rules.תת תחום": "chart-tree, chart-matrix, rules-catalog, kpi:subs, kpi:event_cov, insight:top_sub, insight:event_gap, insight:classes",
+  "rules.שם כלל": "chart-types, chart-matrix, rules-catalog, kpi:rules, kpi:technical, insight:type_mix, insight:years, insight:classes — rule type classified from keywords in the name",
+  "rules.לינק לכלל": "chart-links, rules-catalog, insight:links, insight:shared — only https gov.il links are rendered"
+}

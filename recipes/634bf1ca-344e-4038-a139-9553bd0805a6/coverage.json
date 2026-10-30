@@ -1,0 +1,5 @@
+{
+  "investigators.מספר רישיון": "chart-series, chart-blocks, kpi:largest_block, insight:series, insight:block — aggregated to numbering series (digit count) and blocks (shared prefix); individual licence numbers are never printed",
+  "investigators.שם פרטי": "chart-firsts, chart-structure, kpi:compound, insight:top_first, insight:compound — counts of common first names and compound names",
+  "investigators.שם משפחה": "chart-surnames, chart-freq, chart-structure, kpi:surnames, insight:top_surname, insight:diversity, insight:compound — counts only; full names stay in the explorer"
+}

@@ -1,0 +1,11 @@
+{
+  "main.זיהוי תחנה": "chart-region, chart-top, chart-dec, chart-mon, chart-scatter, chart-storm, kpi:stations, insight:region, insight:storm — station key (dedupes equalled records); its leading digits are the drainage-basin code that gives the region",
+  "main.שם תחנה בעברית": "chart-top, chart-streams, chart-storm, chart-scatter, kpi:max, insight:leader, insight:recent, insight:old — the stream name is the part before the first hyphen",
+  "main.שם תחנה באנגלית": "skip: transliteration of the Hebrew name (page is Hebrew-only)",
+  "main.מספר קבוצה": "skip: internal station-group code, 71% empty",
+  "main.שנה הידרולוגית": "chart-dec, chart-age, kpi:recent, insight:recent, insight:old — falls back to the date when unparseable",
+  "main.תאריך המדידה": "chart-mon, chart-storm, chart-scatter, chart-top, kpi:span, insight:season, insight:storm",
+  "main.ספיקת שיא היסטורית (מ''ק/שניה)": "chart-top, chart-region, chart-dist, chart-streams, chart-scatter, chart-storm, kpi:max, kpi:median, insight:leader, insight:big, insight:region",
+  "main.רום המים (מ')": "table:top — stage at the peak; datums are mixed (local gauge vs absolute elevation), so it is listed, not charted",
+  "main.הערות": "skip: free-text provenance notes per record"
+}

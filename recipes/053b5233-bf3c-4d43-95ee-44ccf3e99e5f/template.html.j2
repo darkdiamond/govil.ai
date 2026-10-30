@@ -1,0 +1,331 @@
+{%- macro two_col(rows, caption, head1, head2) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th><th scope="col">{{ head2 }}</th></tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+{%- endmacro -%}
+{%- macro wide(t, caption, head1) -%}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr><th scope="col">{{ head1 }}</th>{% for c in t.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in t.rows %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro -%}
+{%- macro head(icon, title) -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+<h1>עיצומים כספיים על ליקויי בטיחות בעבודה</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור עיצום בטיחות לפי שם חברה או ח.פ. ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם החברה או המבצע, מספר תאגיד, כתובת האתר וסעיף ההפרה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in ["count", "total", "settled", "corps", "final", "typical"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+{%- if model.labels.data_note %}
+  <p class="mt-3 mb-0 text-sm text-subtle">{{ model.labels.data_note }}</p>
+{%- endif %}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "עיצומים וסכומים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.partial }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">עיצומים</th><th scope="col">סך עיצומים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.n }}</td><td>{{ r.amt }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("list", "מתי מתפרסמים העיצומים") }}
+  <p class="m-0 text-sm text-subtle mb-3">מספר העיצומים בכל חודש. העיצומים נרשמים במנות, ולכן חודשים ריקים לצד חודשים עמוסים.</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "סוגי הליקויים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.theme_note }}</p>
+  <div id="chart-themes" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.themes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.themes_aria }}</caption>
+      <thead><tr><th scope="col">סוג ליקוי</th><th scope="col">עיצומים</th><th scope="col">סך עיצומים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.themes %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.amt }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "תמהיל הליקויים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">שיעור כל סוג ליקוי מתוך העיצומים של אותה שנה (באחוזים).</p>
+  <div id="chart-theme-year" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.theme_year_aria }}"></div>
+  {{ wide(model.tables.theme_year, model.labels.theme_year_aria, "שנה") }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "גובה העיצום והתעריף השנתי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tariff_note }}</p>
+  <div id="chart-tariff" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.tariff_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tariff_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">תעריף נפוץ</th>{% for c in model.tables.tier_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.tariff %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.typ }}</td>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("database", "תאגידים ומבצעים פרטיים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.entity_note }}</p>
+    <div id="chart-entity" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.entity_aria }}"></div>
+    {{ wide(model.tables.entity, model.labels.entity_aria, "שנה") }}
+  </section>
+  <section class="card p-5">
+    {{ head("database", "החלטות הממונה על העיצומים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.obj_note }}</p>
+    <div id="chart-objections" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.obj_aria }}"></div>
+    {{ wide(model.tables.objections, model.labels.obj_aria, "שנה") }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.reduction %}
+  <section class="card p-5">
+    {{ head("database", "בכמה הופחת העיצום") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.red_note }}</p>
+    <div id="chart-reduction" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.red_aria }}"></div>
+    {{ two_col(model.tables.reduction, model.labels.red_aria, "שיעור הפחתה", "עיצומים") }}
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    {{ head("database", "תאגידים חוזרים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.repeat_note }}</p>
+    <div id="chart-repeat" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.repeat_aria }}"></div>
+    {{ two_col(model.tables.repeat, model.labels.repeat_aria, "עיצומים לתאגיד", "תאגידים") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "התאגידים עם מספר העיצומים הגבוה ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_note }}</p>
+  <div id="chart-companies" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.comp_aria }}</caption>
+      <thead><tr><th scope="col">תאגיד</th><th scope="col">עיצומים</th><th scope="col">סך עיצומים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.companies %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.amt }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var y = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0, data: ["עיצומים", "סך עיצומים (מיליוני ₪)"] },
+      grid: { left: 48, right: 48, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: y.years },
+      yAxis: [{ type: "value", name: "עיצומים" }, { type: "value", name: "מיליוני ₪" }],
+      series: [
+        { type: "bar", name: "עיצומים", data: y.count },
+        { type: "line", name: "סך עיצומים (מיליוני ₪)", yAxisIndex: 1, data: y.millions }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + p.value[2] + " עיצומים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: d.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: names, inverse: true,
+                 axisLabel: { width: 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: values,
+                   label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var t = {{ model.charts.themes | tojson }};
+    hbar("chart-themes", t.names, t.values, "עיצומים");
+    var co = {{ model.charts.companies | tojson }};
+    hbar("chart-companies", co.names, co.values, "עיצומים");
+
+    var ty = {{ model.charts.theme_year | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-theme-year"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: ty.years },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: ty.series.map(function (s) {
+        return { type: "bar", stack: "all", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.tariff | tojson }};
+    var c = echarts.init(document.getElementById("chart-tariff"));
+    var series = t.series.map(function (s, i) {
+      return { type: "bar", stack: "tier", name: s.name, data: s.data };
+    });
+    series.push({ type: "line", name: "תעריף נפוץ (₪)", yAxisIndex: 1, data: t.typical });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 48, right: 56, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: t.years },
+      yAxis: [{ type: "value", name: "עיצומים" }, { type: "value", name: "₪", scale: true }],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 40, right: 16, top: 16, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.years },
+        yAxis: { type: "value" },
+        series: d.series.map(function (s, i) {
+          return { type: "bar", stack: "all", name: s.name, data: s.data };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-entity", {{ model.charts.entity | tojson }});
+    stacked("chart-objections", {{ model.charts.objections | tojson }});
+
+    function vbar(id, d, name) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis" },
+        grid: { left: 40, right: 16, top: 24, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: name, data: d.values, label: { show: true, position: "top" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+{%- if model.flags.reduction %}
+    vbar("chart-reduction", {{ model.charts.reduction | tojson }}, "עיצומים");
+{%- endif %}
+    vbar("chart-repeat", {{ model.charts.repeat | tojson }}, "תאגידים");
+  })();
+</script>

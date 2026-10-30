@@ -1,0 +1,249 @@
+{% macro head(icon, title) -%}
+<div class="flex items-center gap-2 mb-3 text-brand">
+  <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+  <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+</div>
+{%- endmacro %}
+{% macro share_table(rows, caption, col, unit="נחלים") -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ col }}</th><th scope="col">{{ unit }}</th><th scope="col">שיעור</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+</details>
+{%- endmacro %}
+
+<h1>נחלי ישראל: רשימת הנחלים, היובלים ותחומי ההתנקזות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["total", "basins", "largest", "with_area"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "נחלים לפי תחום התנקזות ראשי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.basins_note }}</p>
+  <div id="chart-basins" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.basins_aria }}"></div>
+  {{ share_table(model.tables.basins, model.labels.basins_aria, "תחום התנקזות") }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("database", "לאן הנחלים זורמים בסוף") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.water_note }}</p>
+    <div id="chart-water" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.water_aria }}"></div>
+    {{ share_table(model.tables.water, model.labels.water_aria, "גוף מים") }}
+  </section>
+  <section class="card p-5">
+    {{ head("database", "אורך שרשרת הנשפכים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hops_note }}</p>
+    <div id="chart-hops" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.hops_aria }}"></div>
+    {{ share_table(model.tables.hops, model.labels.hops_aria, "מיקום בשרשרת") }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "תחומי ההתנקזות לפי גוף המים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treemap_note }}</p>
+  <div id="chart-treemap" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.treemap_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.treemap_aria }}</caption>
+      <thead><tr><th scope="col">גוף מים</th><th scope="col">תחומי התנקזות</th><th scope="col">נחלים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.treemap %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.basins }}</td><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "אגני ההיקוות הגדולים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.largest_note }}</p>
+  <div id="chart-largest" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.largest_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.largest_aria }}</caption>
+      <thead><tr><th scope="col">נחל</th><th scope="col">שטח אגן (קמ״ר)</th><th scope="col">נשפך אל</th><th scope="col">תחום התנקזות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.largest %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.area }}</td><td>{{ r.parent }}</td><td>{{ r.basin }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("database", "התפלגות שטחי האגן") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    <div id="chart-dist" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    {{ share_table(model.tables.dist, model.labels.dist_aria, "שטח אגן (קמ״ר)") }}
+  </section>
+  <section class="card p-5">
+    {{ head("database", "הנחלים עם הכי הרבה יובלים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.parents_note }}</p>
+    <div id="chart-parents" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.parents_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.parents_aria }}</caption>
+        <thead><tr><th scope="col">נחל</th><th scope="col">יובלים ישירים</th><th scope="col">תחום התנקזות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.parents %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.basin }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("database", "שלמות הנתונים: שטח אגן לפי תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_note }}</p>
+  <div id="chart-comp" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.comp_aria }}</caption>
+      <thead><tr><th scope="col">תחום התנקזות</th><th scope="col">נחלים</th><th scope="col">עם שטח אגן</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.completeness %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.with }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<script>
+  (function () {
+    function mk(id) {
+      var c = echarts.init(document.getElementById(id));
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function hbar(id, d, unit) {
+      mk(id).setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v.toLocaleString("he-IL") + " " + unit; } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", data: d.values.slice().reverse() }]
+      }));
+    }
+    hbar("chart-basins", {{ model.charts.basins | tojson }}, "נחלים");
+    hbar("chart-largest", {{ model.charts.largest | tojson }}, "קמ״ר");
+    hbar("chart-parents", {{ model.charts.parents | tojson }}, "יובלים");
+  })();
+  (function () {
+    var w = {{ model.charts.water | tojson }};
+    var c = echarts.init(document.getElementById("chart-water"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " נחלים (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0, type: "scroll" },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: w,
+                 label: { show: false }, avoidLabelOverlap: true }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var t = {{ model.charts.treemap | tojson }};
+    var c = echarts.init(document.getElementById("chart-treemap"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (x) { return echarts.format.encodeHTML(x.name); }).join(" · ");
+        return path + ": " + p.value.toLocaleString("he-IL") + " נחלים";
+      } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: false,
+                 breadcrumb: { show: false }, width: "100%", height: "100%",
+                 upperLabel: { show: true, height: 22, color: "#fff", fontFamily: "Rubik" },
+                 label: { show: true, formatter: "{b}", overflow: "truncate" },
+                 levels: [
+                   { itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    function vbar(id, d, unit) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v.toLocaleString("he-IL") + " " + unit; } },
+        grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", data: d.values, label: { show: true, position: "top" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    vbar("chart-dist", {{ model.charts.dist | tojson }}, "נחלים");
+    vbar("chart-hops", {{ model.charts.hops | tojson }}, "נחלים");
+  })();
+  (function () {
+    var d = {{ model.charts.completeness | tojson }};
+    var c = echarts.init(document.getElementById("chart-comp"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "t", name: "עם שטח אגן", data: d["with"] },
+        { type: "bar", stack: "t", name: "בלי שטח אגן", data: d.without, itemStyle: { color: "#c3cfe7" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

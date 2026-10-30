@@ -1,0 +1,6 @@
+{
+  "main.tviaa_number": "insight:quality — title carrying the case number; compared with tik to flag mismatches (searchable in the explorer)",
+  "main.decision_date": "chart-monthly, chart-yearly, chart-heat, chart-weekday, chart-cross, chart-lag, chart-format, kpi:total, kpi:last, kpi:last12, kpi:span, insight:trend, insight:ytd, insight:peak, insight:gap, table:latest",
+  "main.tik": "chart-cross, chart-lag, chart-format, insight:lag, insight:format, insight:quality, table:latest — case id; case-opening year decoded from both numbering schemes",
+  "main.pub_link": "table:latest — gov.il PDF href extracted and validated, linked for the latest decisions"
+}

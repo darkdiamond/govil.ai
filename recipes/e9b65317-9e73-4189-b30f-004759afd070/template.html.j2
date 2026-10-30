@@ -1,0 +1,317 @@
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr>{% for c in r %}{% if loop.first %}<th scope="row">{{ c }}</th>{% else %}<td>{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, tbl, h="h-72 md:h-96") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, aria) }}
+</section>
+{%- endmacro %}
+<h1>ספריית מילוני נתונים: טרמינולוגיית נתוני נכס</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קוד במילון לפי שם או מספר קוד ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל המילונים: קוד, שם בעברית ובאנגלית, שם יישוב, נפה, מועצה, אזור סטטיסטי, שכונה ושם רחוב</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.fields.tone }} mb-1" dir="ltr">{{ model.kpis.fields.display }}</div>
+    <div class="text-sm text-subtle">שדות ברשומת הנכס המרכזית</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.lists.tone }} mb-1" dir="ltr">{{ model.kpis.lists.display }}</div>
+    <div class="text-sm text-subtle">מילוני קוד בספרייה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.documented.tone }} mb-1" dir="ltr">{{ model.kpis.documented.display }}</div>
+    <div class="text-sm text-subtle">שדות עם הערת הסבר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.localities.tone }} mb-1" dir="ltr">{{ model.kpis.localities.display }}</div>
+    <div class="text-sm text-subtle">יישובים במילון היישובים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.councils.tone }} mb-1" dir="ltr">{{ model.kpis.councils.display }}</div>
+    <div class="text-sm text-subtle">מועצות אזוריות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.stat_areas.tone }} mb-1" dir="ltr">{{ model.kpis.stat_areas.display }}</div>
+    <div class="text-sm text-subtle">אזורים סטטיסטיים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.streets.tone }} mb-1" dir="ltr">{{ model.kpis.streets.display }}</div>
+    <div class="text-sm text-subtle">רשומות במילון הרחובות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.street_names.tone }} mb-1" dir="ltr">{{ model.kpis.street_names.display }}</div>
+    <div class="text-sm text-subtle">שמות רחובות שונים</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{{ chart_section("chart-fields", "list", "מבנה רשומת הנכס המרכזית", model.labels.fields_note, model.labels.fields_aria, model.tables.fields) }}
+
+{{ chart_section("chart-lists", "tag", "גודל מילוני הקוד", model.labels.lists_note, model.labels.lists_aria, model.tables.lists) }}
+
+{{ chart_section("chart-usage", "building-2", "מילון השימושים בנכס לפי קבוצות קוד", model.labels.usage_note, model.labels.usage_aria, model.tables.usage) }}
+
+{{ chart_section("chart-infra", "database", "סוגי תשתיות ותת סוגים", model.labels.infra_note, model.labels.infra_aria, model.tables.infra, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-districts", "map-pin", "יישובים לפי מחוז ומעמד מוניציפלי", model.labels.districts_note, model.labels.districts_aria, model.tables.districts) }}
+
+{{ chart_section("chart-nafa", "map-pin", "יישובים לפי נפה", model.labels.nafa_note, model.labels.nafa_aria, model.tables.nafa, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-forms", "building-2", "צורות יישוב", model.labels.forms_note, model.labels.forms_aria, model.tables.forms, "h-80 md:h-[460px]") }}
+
+{%- if model.charts.has_sizes %}
+{{ chart_section("chart-sizes", "building-2", "יישובים עירוניים לפי טווח אוכלוסייה", model.labels.sizes_note, model.labels.sizes_aria, model.tables.sizes) }}
+{%- endif %}
+
+{{ chart_section("chart-councils", "map-pin", "המועצות האזוריות הגדולות", model.labels.councils_note, model.labels.councils_aria, model.tables.councils, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-clusters", "map-pin", "אשכולות רשויות מקומיות", model.labels.clusters_note, model.labels.clusters_aria, model.tables.clusters, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-regions", "map-pin", "אזורים טבעיים", model.labels.regions_note, model.labels.regions_aria, model.tables.regions, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-statareas", "map-pin", "אזורים סטטיסטיים: היישובים המפורטים ביותר", model.labels.statareas_note, model.labels.statareas_aria, model.tables.statareas, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-street-types", "list", "מילון הרחובות: תחיליות שמות", model.labels.street_types_note, model.labels.street_types_aria, model.tables.street_types, "h-80 md:h-[460px]") }}
+
+{{ chart_section("chart-street-names", "list", "שמות הרחובות הנפוצים בישראל", model.labels.street_names_note, model.labels.street_names_aria, model.tables.street_names, "h-80 md:h-[460px]") }}
+
+<script>
+  (function () {
+    window.__nkMk = function (id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    };
+    window.__nkFmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    window.__nkHbar = function (id, names, values, unit) {
+      var c = window.__nkMk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return window.__nkFmt(v) + " " + unit; } },
+        grid: { left: 8, right: 40, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 4 },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse(), barMaxWidth: 22,
+          label: { show: true, position: "right", fontSize: 11, formatter: function (p) { return window.__nkFmt(p.value); } } }]
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var F = {{ model.charts.fields | tojson }};
+    var c = window.__nkMk("chart-fields");
+    if (!c) { return; }
+    var series = F.kinds.map(function (k, i) {
+      return { type: "bar", name: k, stack: "f", data: F.series[i].slice().reverse(), barMaxWidth: 28 };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 8, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: F.cats.slice().reverse(), axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+      series: series
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var L = {{ model.charts.lists | tojson }};
+    window.__nkHbar("chart-lists", L.names, L.values, "ערכים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var U = {{ model.charts.usage | tojson }};
+    var c = window.__nkMk("chart-usage");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = U.names.length - 1 - p.dataIndex;
+        return "קודים " + U.ranges[i] + ": " + window.__nkFmt(U.values[i]) + " שימושים<br>" +
+          U.members[i].map(function (m) { return echarts.format.encodeHTML(m); }).join("<br>");
+      } },
+      grid: { left: 8, right: 40, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: U.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "שימושים", data: U.values.slice().reverse(), barMaxWidth: 22,
+        label: { show: true, position: "right", fontSize: 11 } }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var T = {{ model.charts.infra | tojson }};
+    var c = window.__nkMk("chart-infra");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var n = echarts.format.encodeHTML(p.name);
+        if (p.data && p.data.children) { return n + ": " + window.__nkFmt(p.value) + " תת סוגים"; }
+        return n;
+      } },
+      series: [{
+        type: "treemap", name: "סוגי תשתיות", data: T, roam: false, nodeClick: false,
+        breadcrumb: { show: false }, width: "100%", height: "100%", top: 0, left: 0,
+        label: { show: true, fontSize: 11 },
+        upperLabel: { show: true, height: 22, color: "#ffffff", fontWeight: "bold" },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 2, gapWidth: 2 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+        ]
+      }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var D = {{ model.charts.districts | tojson }};
+    var c = window.__nkMk("chart-districts");
+    if (!c) { return; }
+    var series = D.munis.map(function (m, i) {
+      return { type: "bar", name: m, stack: "d", data: D.series[i].slice().reverse(), barMaxWidth: 28 };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: D.names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate", fontSize: 11 } },
+      series: series
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var N = {{ model.charts.nafa | tojson }};
+    window.__nkHbar("chart-nafa", N.names, N.values, "יישובים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var F = {{ model.charts.forms | tojson }};
+    window.__nkHbar("chart-forms", F.names, F.values, "יישובים");
+  })();
+</script>
+{%- if model.charts.has_sizes %}
+
+<script>
+  (function () {
+    var S = {{ model.charts.sizes | tojson }};
+    var c = window.__nkMk("chart-sizes");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: S.bands, name: "תושבים", nameLocation: "middle", nameGap: 56,
+        axisLabel: { interval: 0, fontSize: 10, rotate: 35 } },
+      yAxis: { type: "value", minInterval: 1, name: "יישובים" },
+      series: S.fams.map(function (f, i) { return { type: "bar", name: f, data: S.series[i], barMaxWidth: 22 }; })
+    }));
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var R = {{ model.charts.councils | tojson }};
+    window.__nkHbar("chart-councils", R.names, R.values, "יישובים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var K = {{ model.charts.clusters | tojson }};
+    window.__nkHbar("chart-clusters", K.names, K.values, "יישובים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var G = {{ model.charts.regions | tojson }};
+    window.__nkHbar("chart-regions", G.names, G.values, "יישובים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var A = {{ model.charts.statareas | tojson }};
+    window.__nkHbar("chart-statareas", A.names, A.values, "אזורים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var P = {{ model.charts.street_types | tojson }};
+    window.__nkHbar("chart-street-types", P.names, P.values, "רשומות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var M = {{ model.charts.street_names | tojson }};
+    window.__nkHbar("chart-street-names", M.names, M.values, "מופעים");
+  })();
+</script>

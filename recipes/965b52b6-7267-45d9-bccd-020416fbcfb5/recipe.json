@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "965b52b6-7267-45d9-bccd-020416fbcfb5",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T02:25:52.952064+00:00",
+    "rows": { "main": 3800 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "761c11e2-4047-4956-89a7-c3b3131aff2b",
+      "required_columns": [
+        "שנה",
+        "חודש",
+        "בית מכס",
+        "תהליך להצהרה",
+        "סוג תהליך",
+        "האם אוטונומיה",
+        "כמות הצהרות",
+        "זמן מינימלי בדקות",
+        "זמן מקסימלי בדקות",
+        "זמן ממוצע בדקות",
+        "מספר הצהרות שהיו בתור חובה"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

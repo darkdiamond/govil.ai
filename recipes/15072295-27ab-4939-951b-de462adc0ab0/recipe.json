@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "15072295-27ab-4939-951b-de462adc0ab0",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-01T08:45:05.804167+00:00",
+    "rows": { "main": 246 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d60e5849-5d6e-468c-afe0-cf5b5a2fb987",
+      "required_columns": [
+        "זיהוי תחנה",
+        "שם תחנה בעברית",
+        "שנה הידרולוגית",
+        "תאריך המדידה",
+        "ספיקת שיא היסטורית (מ''ק/שניה)",
+        "רום המים (מ')"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

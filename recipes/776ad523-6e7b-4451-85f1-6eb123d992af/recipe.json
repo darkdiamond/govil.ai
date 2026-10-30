@@ -1,0 +1,35 @@
+{
+  "contract_version": 1,
+  "dataset_id": "776ad523-6e7b-4451-85f1-6eb123d992af",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-13T06:42:00.665285+00:00",
+    "rows": { "grants": 1649 }
+  },
+  "inputs": [
+    {
+      "name": "grants",
+      "by_id": "347114f1-1bd7-49b3-848a-582efc46f888",
+      "required_columns": [
+        "call_for_proposals",
+        "partner_country",
+        "category_of_call",
+        "call_program",
+        "budget_year",
+        "field",
+        "sub_field",
+        "proposal_status",
+        "institution",
+        "researcher_full_name",
+        "gender",
+        "project_start_date",
+        "contract_end_date",
+        "budget",
+        "currency"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,11 @@
+{
+  "main.מספר תצר": "chart-years, kpi:plans, insight:peak — plan key is number + year (numbers repeat across years)",
+  "main.שנת תצר": "chart-years, kpi:years, insight:peak, insight:backlog, insight:age",
+  "main.גוש": "kpi:blocks, chart-block — one block per plan; block number itself is an identifier searchable in the explorer",
+  "main.תת גוש": "skip: sub-block, 0 on 96% of rows; identifier only",
+  "main.סטטוס תצר": "chart-years, chart-muni, chart-orderer, chart-block, kpi:registered, kpi:pending, insight:backlog, insight:age",
+  "main.סטטוס גוש": "chart-block, insight:block — empty values shown as לא צוין",
+  "main.שם ישוב": "chart-loc, insight:open — 'שטח כללי' (open area outside localities) excluded from the locality chart, disclosed",
+  "main.שם אזור מוניציפלי": "chart-muni, chart-reach, kpi:munis, insight:muni, insight:cross",
+  "main.מזמין עבודה": "chart-orderer, insight:orderer — garbled (letter-reversed) names and orderers with fewer than 4 plans grouped as אחר, disclosed"
+}

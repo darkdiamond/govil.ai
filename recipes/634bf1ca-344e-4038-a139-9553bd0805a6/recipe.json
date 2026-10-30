@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "634bf1ca-344e-4038-a139-9553bd0805a6",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-22T08:43:14.284802+00:00",
+    "rows": { "investigators": 484 }
+  },
+  "inputs": [
+    {
+      "name": "investigators",
+      "by_id": "dcf4d85b-66ab-47b8-bd16-7cc79360fc96",
+      "required_columns": ["מספר רישיון", "שם פרטי", "שם משפחה"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

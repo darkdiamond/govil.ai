@@ -1,0 +1,139 @@
+{
+  "contract_version": 1,
+  "dataset_id": "e9b65317-9e73-4189-b30f-004759afd070",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-14T10:47:30.567895+00:00",
+    "rows": {
+      "record": 92,
+      "asset_types": 13,
+      "housing": 51,
+      "usage": 69,
+      "ownership": 10,
+      "ownership_nature": 8,
+      "operators": 8,
+      "ownership_change": 16,
+      "reg_status": 7,
+      "legal": 12,
+      "plans": 12,
+      "directions": 10,
+      "stat_areas": 2615,
+      "localities": 1285,
+      "streets": 63049,
+      "infra_types": 9,
+      "infra_subtypes": 51
+    }
+  },
+  "inputs": [
+    {
+      "name": "record",
+      "by_id": "8bbb94e0-0817-4b99-ac97-40093a192816",
+      "required_columns": [
+        "Category",
+        "Name_Hebrew",
+        "Name_English",
+        "Codelist_Name_Hebrew",
+        "Description_Hebrew"
+      ]
+    },
+    {
+      "name": "asset_types",
+      "by_id": "2c833c63-523e-4116-adf5-f57a1429fe87",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "housing",
+      "by_id": "ae7c7ed6-28df-48f1-8cf7-68ccf7577675",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "usage",
+      "by_id": "f9cff5a3-1b32-457b-80e2-4ba9d697cec4",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "ownership",
+      "by_id": "591c5dc3-4e90-4d6f-bf87-3eb3d90ef539",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "ownership_nature",
+      "by_id": "a2c11a65-c8f1-4450-b620-cf9cdcf858f8",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "operators",
+      "by_id": "86a7ffad-bce6-492a-8ae0-fd60133775c2",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "ownership_change",
+      "by_id": "4da44597-3856-4761-8d79-c66faab21ee7",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "reg_status",
+      "by_id": "ab1134f4-defd-4386-b21f-f187283685ab",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "legal",
+      "by_id": "7e9c9417-b9ec-4c36-bc61-77d038c0562a",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "plans",
+      "by_id": "10cb1a9e-b67a-48f3-84dc-7b9cd82678cd",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "directions",
+      "by_id": "4697a2e7-8fdf-4ec3-a95f-de5a363267b0",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "stat_areas",
+      "by_id": "6dcd0362-93dc-440f-86bf-ed50e96ea877",
+      "required_columns": [
+        "Name_Hebrew",
+        "Full_Statistic_Area_Code",
+        "סמל יישוב",
+        "אזורים סטטיסטיים",
+        "רחובות עיקריים",
+        "שכונות"
+      ]
+    },
+    {
+      "name": "localities",
+      "by_id": "f01dec33-b09b-482d-8413-e9b4fcbc4d7f",
+      "required_columns": [
+        "Code",
+        "Name_Hebrew",
+        "District",
+        "נפה",
+        "צורת יישוב",
+        "מעמד מוניציפלי",
+        "Natural_Region",
+        "אשכול רשויות מקומיות"
+      ]
+    },
+    {
+      "name": "streets",
+      "by_id": "68f3a45a-e74e-42b4-9576-db44b9f6bf95",
+      "required_columns": ["Code", "Name_Hebrew"]
+    },
+    {
+      "name": "infra_types",
+      "by_id": "e30371a4-9f1a-4bce-9e13-e07424fb4511",
+      "required_columns": ["Code"]
+    },
+    {
+      "name": "infra_subtypes",
+      "by_id": "be63c7a1-21a7-4e26-970d-d1ee46497482",
+      "required_columns": ["Code"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

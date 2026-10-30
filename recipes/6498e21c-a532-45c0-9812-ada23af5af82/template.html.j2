@@ -1,0 +1,363 @@
+<h1>החלטות ועדת הכופר: משרד הכלכלה והתעשייה</h1>
+
+<style>
+  .kofer-table th, .kofer-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .kofer-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .kofer-table thead th { color: #0b3668; font-weight: 600; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור החלטת ועדת כופר לפי מספר תיק ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: כותרת ההחלטה, מספר התיק ותאריך ההחלטה, עם קישור למסמך ההחלטה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last12.tone }} mb-1" dir="ltr">{{ model.kpis.last12.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last12_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last.tone }} mb-1" dir="ltr">{{ model.kpis.last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.last_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.span_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ההחלטות האחרונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.latest_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="kofer-table w-full text-sm">
+      <caption class="sr-only">{{ model.labels.latest_caption }}</caption>
+      <thead><tr><th scope="col">תאריך ההחלטה</th><th scope="col">מספר תיק</th><th scope="col">מסמך</th></tr></thead>
+      <tbody>
+{%- for r in model.latest %}
+        <tr><th scope="row" class="font-normal" dir="ltr" style="text-align: right">{{ r.date }}</th><td dir="ltr" style="text-align: right">{{ r.case }}</td><td>{% if r.url %}<a href="{{ r.url }}" class="text-brand underline" rel="noopener">מסמך ההחלטה</a>{% else %}<span class="text-subtle">–</span>{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קצב ההחלטות לאורך זמן</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">החלטות לפי שנה</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+    <div id="chart-yearly" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="kofer-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.yearly_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th><th scope="col">החלטות</th><th scope="col">חודשים במאגר</th><th scope="col">ממוצע לחודש</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.yearly %}
+          <tr><th scope="row">{{ r.year }}{% if r.partial %} (חלקית){% endif %}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.months }}</td><td>{{ r.avg }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">באיזה יום בשבוע ניתנות ההחלטות?</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.weekday_note }}</p>
+    <div id="chart-weekday" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.weekday_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="kofer-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.weekday_caption }}</caption>
+        <thead><tr><th scope="col">יום</th><th scope="col">החלטות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.weekday %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">החלטות לפי חודש ושנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="kofer-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+        <thead><tr><th scope="col">שנה</th>{% for m in model.tables.heat.months %}<th scope="col">{{ m }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat.rows %}
+          <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.cross %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי נפתחו התיקים שהוכרעו?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cross_note }}</p>
+  <div id="chart-cross" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cross_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="kofer-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cross_caption }}</caption>
+        <thead><tr><th scope="col">שנת החלטה</th>{% for c in model.tables.cross.cols %}<th scope="col">תיקי {{ c }}</th>{% endfor %}{% if model.tables.cross.has_unknown %}<th scope="col">{{ model.labels.unknown_col }}</th>{% endif %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cross.rows %}
+          <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}{% if model.tables.cross.has_unknown %}<td>{{ r.unknown }}</td>{% endif %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן עובר מפתיחת התיק ועד ההחלטה?</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_note }}</p>
+  <div id="chart-lag" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lag_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="kofer-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lag_caption }}</caption>
+      <thead><tr><th scope="col">זמן מפתיחת התיק</th><th scope="col">החלטות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lag %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count | fmt_int }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.format %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיטות מספור התיקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.format_note }}</p>
+  <div id="chart-format" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.format_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="kofer-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.format_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in model.tables.format.cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.format.rows %}
+        <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">פרסומי החלטות ועדת כופר במשרד הכלכלה והתעשייה.
+המאגר בעבודה ואין להתייחס לנתונים.</p>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const el = document.getElementById("chart-monthly");
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0, data: ["החלטות", "מצטבר"] },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "החלטות", minInterval: 1 },
+        { type: "value", name: "מצטבר", minInterval: 1, splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: [
+        { name: "החלטות", type: "bar", data: d.y, itemStyle: { color: "#0068f5" } },
+        { name: "מצטבר", type: "line", yAxisIndex: 1, data: d.cum, showSymbol: false, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.yearly | tojson }};
+    const chart = echarts.init(document.getElementById("chart-yearly"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (p) {
+          const i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.x[i]) + (d.partial[i] ? " (שנה חלקית)" : "") +
+            "<br/>החלטות: " + d.y[i] + "<br/>ממוצע לחודש: " + d.avg[i];
+        }
+      },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{
+        type: "bar",
+        data: d.y.map(function (v, i) { return d.partial[i] ? { value: v, itemStyle: { color: "#9fc2f7" } } : v; }),
+        itemStyle: { color: "#0068f5" },
+        label: { show: true, position: "top" }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.weekday | tojson }};
+    const chart = echarts.init(document.getElementById("chart-weekday"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ name: "החלטות", type: "bar", data: d.y, itemStyle: { color: "#0068f5" }, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const chart = echarts.init(document.getElementById("chart-heat"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(d.months[p.value[0]] + " " + d.years[p.value[1]]) + ": " + p.value[2] + " החלטות";
+        }
+      },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: Math.max(1, d.max), dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: true, fontFamily: "Rubik" },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.cross %}
+  (function () {
+    const d = {{ model.charts.cross | tojson }};
+    const chart = echarts.init(document.getElementById("chart-cross"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.years, name: "שנת החלטה", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) {
+        return { name: "תיקי " + s.name, type: "bar", stack: "c", data: s.data };
+      })
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.lag | tojson }};
+    const chart = echarts.init(document.getElementById("chart-lag"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ name: "החלטות", type: "bar", data: d.y, itemStyle: { color: "#0068f5" }, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.format %}
+  (function () {
+    const d = {{ model.charts.format | tojson }};
+    const chart = echarts.init(document.getElementById("chart-format"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "f", data: s.data }; })
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

@@ -1,0 +1,342 @@
+{% macro status_table(rows, caption, head, statuses) -%}
+<details class="mt-3">
+  <summary class="text-sm text-subtle">הצג כטבלה</summary>
+  <div class="overflow-x-auto">
+  <table class="mt-2 w-full text-sm">
+    <caption class="sr-only">{{ caption }}</caption>
+    <thead><tr><th scope="col">{{ head }}</th><th scope="col">סך הכול</th>{% for s in statuses %}<th scope="col">{{ s }}</th>{% endfor %}<th scope="col">שיעור פעילות</th></tr></thead>
+    <tbody>
+{%- for r in rows %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for v in r.cells %}<td>{{ v }}</td>{% endfor %}<td>{{ r.share }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{%- endmacro %}
+
+<h1>רשימת תחנות הידרומטריות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תחנה הידרומטרית לפי שם, מספר תחנה או נחל ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מספר תחנה, שם בעברית ובאנגלית, תחום התנקזות וסטטוס</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">תחנות ברשימה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.active.tone }} mb-1" dir="ltr">{{ model.kpis.active.display }}</div>
+    <div class="text-sm text-subtle">תחנות פעילות כיום</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.share.tone }} mb-1" dir="ltr">{{ model.kpis.share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.share_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.basins.tone }} mb-1" dir="ltr">{{ model.kpis.basins.display }}</div>
+    <div class="text-sm text-subtle">תחומי התנקזות</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">שנות הקמה, מהוותיקה לחדשה</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median_area.tone }} mb-1" dir="ltr">{{ model.kpis.median_area.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_area_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.shared.tone }} mb-1" dir="ltr">{{ model.kpis.shared.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.shared_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.recent.tone }} mb-1" dir="ltr">{{ model.kpis.recent.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.recent_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת התחנות ההידרומטריות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="מפה אינטראקטיבית של התחנות ההידרומטריות. גרסה נגישה: ראו את טבלת הנתונים בהמשך העמוד."></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקמת התחנות לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.decade_note }}</p>
+  <div id="chart-decade" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.decade_aria }}"></div>
+  {{ status_table(model.tables.decade, model.labels.decade_caption, "עשור", model.tables.statuses) }}
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחנות לפי תחום התנקזות (אגן ניקוז)</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.basins_note }}</p>
+  <div id="chart-basins" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.basins_aria }}"></div>
+  {{ status_table(model.tables.basins, model.labels.basins_caption, "תחום התנקזות", model.tables.statuses) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.bshare %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור התחנות הפעילות לפי אגן</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bshare_note }}</p>
+    <div id="chart-bshare" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.bshare_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.bshare_caption }}</caption>
+        <thead><tr><th scope="col">אגן</th><th scope="col">פעילות</th><th scope="col">סך הכול</th><th scope="col">שיעור פעילות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.bshare %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.active }}</td><td>{{ r.total }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.ns %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מצפון לדרום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ns_note }}</p>
+    <div id="chart-ns" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ns_aria }}"></div>
+    {{ status_table(model.tables.ns, model.labels.ns_caption, "רצועה (ק״מ צפונה)", model.tables.statuses) }}
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל אגן ההיקוות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+    <div id="chart-area" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.area_aria }}"></div>
+    {{ status_table(model.tables.area, model.labels.area_caption, "שטח היקוות (קמ״ר)", model.tables.statuses) }}
+  </section>
+{%- if model.flags.toparea %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">אגני ההיקוות הגדולים ביותר</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.toparea_note }}</p>
+    <div id="chart-toparea" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.toparea_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.toparea_caption }}</caption>
+        <thead><tr><th scope="col">תחנה</th><th scope="col">אגן</th><th scope="col">שטח היקוות (קמ״ר)</th><th scope="col">סטטוס</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.toparea %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.basin }}</td><td>{{ r.area }}</td><td>{{ r.status }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.newest %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות החדשות ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.newest_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.newest_caption }}</caption>
+    <thead><tr><th scope="col" class="text-start">תחנה</th><th scope="col" class="text-start">אגן</th><th scope="col" class="text-start">הקמה (חודש/שנה)</th><th scope="col" class="text-start">סטטוס</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.newest %}
+      <tr><th scope="row" class="text-start font-normal">{{ r.name }}</th><td>{{ r.basin }}</td><td dir="ltr" class="text-end">{{ r.date }}</td><td>{{ r.status }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת תחנות תצפית של השרות ההידרולוגי (פעילות ולא פעילות כיום), המספקות נתונים הידרולוגיים מדודים.</p>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "נ.צ. Y (רוחב)",
+    lngField: "נ.צ. X (רוחב)",
+    projection: "itm",
+    popupTitleField: "שם עברית",
+    popupFields: [
+      { field: "זיהוי תחנה", label: "מספר תחנה" },
+      { field: "תחום התנקזות של נחל ראשי", label: "תחום התנקזות" },
+      { field: "סטטוס תחנה נוכחי", label: "סטטוס" },
+      { field: "תאריך הקמה", label: "תאריך הקמה" },
+      { field: {{ model.fields.area | tojson }}, label: "שטח היקוות (קמ״ר)" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.decade | tojson }};
+    var c = echarts.init(document.getElementById("chart-decade"));
+    var series = d.series.map(function (s) { return { type: "bar", stack: "d", name: s.name, data: s.data }; });
+    series.push({ type: "line", name: "שיעור פעילות (%)", yAxisIndex: 1, data: d.share, symbolSize: 6,
+                  tooltip: { valueFormatter: function (v) { return v + "%"; } } });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 40, top: 32, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: [
+        { type: "value", name: "תחנות" },
+        { type: "value", name: "%", min: 0, max: 100, splitLine: { show: false }, axisLabel: { formatter: "{value}%" } }
+      ],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hstack(id, d) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "h", name: s.name, data: s.data }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hstack("chart-basins", {{ model.charts.basins | tojson }});
+    hstack("chart-ns", {{ model.charts.ns | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-bshare");
+    if (!el) { return; }
+    var d = {{ model.charts.bshare | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var p = ps[0];
+          return echarts.format.encodeHTML(p.name) + "<br>" + p.value + "% (" + d.active[p.dataIndex] + " מתוך " + d.total[p.dataIndex] + " תחנות)";
+        }
+      },
+      grid: { left: 8, right: 40, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 110, overflow: "truncate", interval: 0 } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: "{c}%" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.area | tojson }};
+    var c = echarts.init(document.getElementById("chart-area"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { type: "scroll", bottom: 0 },
+      grid: { left: 40, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "קמ״ר", nameLocation: "middle", nameGap: 48, axisLabel: { rotate: 30, interval: 0 } },
+      yAxis: { type: "value", name: "תחנות" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "a", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-toparea");
+    if (!el) { return; }
+    var d = {{ model.charts.toparea | tojson }};
+    var c = echarts.init(el);
+    var data = d.values.map(function (v, i) {
+      return { value: v, itemStyle: { color: d.active[i] ? "#0068f5" : "#9fbbe3" } };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var p = ps[0];
+          return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " קמ״ר (" + echarts.format.encodeHTML(d.status[p.dataIndex]) + ")";
+        }
+      },
+      grid: { left: 8, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+      series: [{ type: "bar", data: data, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

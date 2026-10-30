@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "94031fa3-c664-4d68-9980-27a29d313e72",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-21T05:54:52.974991+00:00",
+    "rows": { "main": 353 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "cd43d8af-1e20-43e9-92aa-efc89c5f44a0",
+      "required_columns": [
+        "מספר תצר",
+        "שנת תצר",
+        "גוש",
+        "סטטוס תצר",
+        "סטטוס גוש",
+        "שם ישוב",
+        "שם אזור מוניציפלי",
+        "מזמין עבודה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

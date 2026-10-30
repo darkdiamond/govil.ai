@@ -1,0 +1,58 @@
+{
+  "contract_version": 1,
+  "dataset_id": "918670ba-39c6-4b5c-b93e-3e79fb84dbe0",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T15:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-16T06:32:58.512539+00:00",
+    "rows": { "main": 173461 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "87c88ab8-3076-4422-a8fb-27bc57ce4b76",
+      "columns": [
+        "ShnatDivuach",
+        "SugPlita",
+        "MisparAtarSvivati",
+        "ShemAtarSvivatiMenifa",
+        "MisparAtarSvivatiAndShnatDivuach",
+        "AnafAtarSvivati",
+        "TchumPeilutAtarSvivati",
+        "MachozAtarSvivati",
+        "KodMezahem",
+        "MezahemBeplita",
+        "KvutzatMezahamim",
+        "KamutPlita",
+        "KamutPlitaBeTeunot",
+        "ShahamPlita",
+        "SachTipulPsoletMesukenet",
+        "SachSilukPsoletMesukenet",
+        "SachTipulPsoletLoMesukenet",
+        "SachSilukPsoletLoMesukenet"
+      ],
+      "required_columns": [
+        "ShnatDivuach",
+        "SugPlita",
+        "MisparAtarSvivati",
+        "ShemAtarSvivatiMenifa",
+        "MisparAtarSvivatiAndShnatDivuach",
+        "AnafAtarSvivati",
+        "TchumPeilutAtarSvivati",
+        "MachozAtarSvivati",
+        "KodMezahem",
+        "MezahemBeplita",
+        "KvutzatMezahamim",
+        "KamutPlita",
+        "KamutPlitaBeTeunot",
+        "ShahamPlita",
+        "SachTipulPsoletMesukenet",
+        "SachSilukPsoletMesukenet",
+        "SachTipulPsoletLoMesukenet",
+        "SachSilukPsoletLoMesukenet"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["התשע\"ב - 2012"]
+}
