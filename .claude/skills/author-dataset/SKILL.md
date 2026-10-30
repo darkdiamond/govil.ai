@@ -144,6 +144,14 @@ data explorer and download section under every page are its tabular view.
 **No links to data.gov.il** — not per chart, not at the bottom: the shell
 already renders the downloads, and `verify` rejects them.
 
+**Single-row datasets** (a registry that currently lists one clinic, one
+office): a fact card of the row's fields, not charts. Still compute
+everything from the frame (count, names, places), so the page stays true
+when a second row appears. Insights state what the data holds ("the
+registry lists one clinic, in Netanya"). Write them so they still read
+naturally at n ≥ 2. A 0-row input can't be authored: the fetch fails
+"has no rows", so block it.
+
 Constraints that don't move: every `<script>` block < 50KB (aggregate in
 `compute`, never ship rows; one IIFE per chart keeps blocks small), mobile at
 375px, RTL, Hebrew-only text, design tokens, `check.py` must pass.
@@ -391,7 +399,9 @@ sandboxed compute, sanitizer, `check.py`), then:
 - **determinism** — two runs byte-identical;
 - **robustness** — re-runs on the first 70% of rows (must still pass
   `min_insights` and produce _different_ numbers — proof they're computed)
-  and on shuffled rows (must produce the _same_ model);
+  and on shuffled rows (must produce the _same_ model). When every input
+  has ≤1 row, the 70% cut drops nothing, so verify skips the 70% run
+  (shuffle and every other check still run) and prints `robustness skipped`;
 - template numeric-literal lint, PII grep;
 - a chart-fallback check per chart section, and `coverage.json` completeness
   (every `"<input>.<column>"` mapped to element ids on the page or to
