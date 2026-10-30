@@ -170,8 +170,7 @@ class BoiSdmxProvider(SourceProvider):
     def series_names(self, resource: dict) -> dict[str, str]:
         """SERIES_CODE → BoI's Hebrew series name, for the resource's query.
         A failure fails the download: a page must not lose its labels."""
-        url = self._data_url(self._params(resource), lastNObservations="1").replace(
-            "format=csv", "format=sdmx-json")
+        url = self._data_url(self._params(resource), format="sdmx-json", lastNObservations="1")
         r = self.http_get(url, headers={"Accept-Language": "he"})
         if r.status_code != 200:
             raise ProviderError(f"{resource['id']}: HTTP {r.status_code} for series names")
@@ -207,7 +206,9 @@ class BoiSdmxProvider(SourceProvider):
             statuses.append(r.status_code)
         if all(s == 200 for s in statuses):
             return "alive"
-        if 404 in statuses:
+        # Gone only when every query is: one retired series doesn't remove a
+        # dataset (its refresh fails as schema_changed and asks for a human).
+        if all(s == 404 for s in statuses):
             return "gone"
         return "unknown"
 

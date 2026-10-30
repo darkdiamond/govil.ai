@@ -288,19 +288,22 @@ async def run_pipeline(
     # [2.5] provider sources (services/providers): recipes with a
     # source.json are non-CKAN datasets (Bank of Israel, …). Their doc and
     # version come from this step, the way the scan above feeds CKAN ones.
-    # A provider outage only leaves those pages last-good; never fatal.
+    # A provider outage only leaves those pages last-good; never fatal. A dry
+    # run skips it: it downloads every provider dataset and writes their docs,
+    # and the authoring queue it lists never includes provider datasets.
     from services.providers.sync import sync_provider_sources
 
-    try:
-        summary["providers"] = await asyncio.to_thread(
-            sync_provider_sources, store, repo,
-            only_ids=[override_id] if override_id else None,
-        )
-        if summary["providers"]["failed"]:
-            log.warning("provider sync failures: %s", summary["providers"]["failed"])
-    except Exception:
-        log.exception("provider sync failed — provider pages stay last-good this run")
-        summary["providers"] = None
+    summary["providers"] = None
+    if not dry_run:
+        try:
+            summary["providers"] = await asyncio.to_thread(
+                sync_provider_sources, store, repo,
+                only_ids=[override_id] if override_id else None,
+            )
+            if summary["providers"]["failed"]:
+                log.warning("provider sync failures: %s", summary["providers"]["failed"])
+        except Exception:
+            log.exception("provider sync failed — provider pages stay last-good this run")
 
     # [3] what to refresh: the override if it has a recipe, else everything
     # (run_refresh decides per source).

@@ -40,6 +40,8 @@ def sync_provider_sources(
     for dataset_id in ids:
         try:
             source = repo.source_config(dataset_id)
+            if source is None:
+                raise FileNotFoundError("source.json disappeared since the recipe list was read")
         except Exception as e:
             log.warning("provider sync %s: invalid source.json: %s", dataset_id, e)
             summary["failed"].append({"id": dataset_id, "reason": "invalid_config", "error": str(e)[:300]})
@@ -67,8 +69,9 @@ def sync_provider_sources(
                     "datastore_active": False,
                     "hash": v.hash, "rows": v.rows, "params": res.params,
                 })
-        except (ProviderError, ValueError) as e:  # pydantic ValidationError is a ValueError
-            log.warning("provider sync %s failed: %s", dataset_id, e)
+        except Exception as e:  # one dataset's failure never stops the others
+            expected = isinstance(e, (ProviderError, ValueError))  # ValidationError is a ValueError
+            (log.warning if expected else log.exception)("provider sync %s failed: %s", dataset_id, e)
             summary["failed"].append({"id": dataset_id, "reason": "provider_error", "error": str(e)[:300]})
             continue
         payload = {

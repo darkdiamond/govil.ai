@@ -27,6 +27,7 @@ import hashlib
 import io
 import logging
 import os
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -147,9 +148,10 @@ class ResourceVersion:
 Availability = Literal["alive", "gone", "unknown"]
 
 
-def normalize_csv(data: bytes, sort_keys: tuple[str, ...] = ()) -> bytes:
+def normalize_csv(data: bytes, sort_keys: tuple[str, ...] = (), *, count: bool = False):
     """UTF-8 (no BOM), `\\n` line ends, rows sorted by `sort_keys` (then the
-    whole row) — so the same data always hashes the same (check B)."""
+    whole row) — so the same data always hashes the same (check B). With
+    `count`, returns `(bytes, data row count)`."""
     text = data.decode("utf-8-sig")
     rows = list(csv.reader(io.StringIO(text, newline="")))
     if not rows:
@@ -161,12 +163,15 @@ def normalize_csv(data: bytes, sort_keys: tuple[str, ...] = ()) -> bytes:
     w = csv.writer(out, lineterminator="\n")
     w.writerow(header)
     w.writerows(body)
-    return out.getvalue().encode("utf-8")
+    encoded = out.getvalue().encode("utf-8")
+    return (encoded, len(body)) if count else encoded
 
 
-def _csv_rows(data: bytes) -> tuple[list[str], list[list[str]]]:
-    rows = list(csv.reader(io.StringIO(data.decode("utf-8"), newline="")))
-    return (rows[0], rows[1:]) if rows else ([], [])
+def _csv_head(data: bytes, n: int) -> tuple[list[str], list[list[str]]]:
+    """Header and the first `n` rows, without parsing the rest."""
+    reader = csv.reader(io.StringIO(data.decode("utf-8"), newline=""))
+    header = next(reader, [])
+    return header, [r for _, r in zip(range(n), reader, strict=False)]
 
 
 class SourceProvider(abc.ABC):
@@ -180,9 +185,13 @@ class SourceProvider(abc.ABC):
 
     def __init__(self, settings: ProviderSettings):
         self.settings = settings
-        self._cache: dict[str, bytes] = {}  # url → normalized CSV, for one run
+        # url → (normalized CSV, data row count), for one run.
+        self._cache: dict[str, tuple[bytes, int]] = {}
         self._last_request = 0.0
         self._healthy: Optional[bool] = None
+        # The reconcile sweep probes from several threads at once; politeness
+        # spacing and the one-per-run healthcheck must hold across them.
+        self._lock = threading.RLock()  # healthy() → healthcheck() → http_get()
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] = os.environ) -> "SourceProvider":
@@ -222,40 +231,43 @@ class SourceProvider(abc.ABC):
     def csv_bytes(self, resource: dict) -> bytes:
         """Normalized CSV, downloaded once per run: the sync step's version
         probe and the refresh share it."""
+        return self._cached(resource)[0]
+
+    def _cached(self, resource: dict) -> tuple[bytes, int]:
         url = resource["url"]
         if url not in self._cache:
-            data = normalize_csv(self.download(resource), self.sort_keys)
+            data, rows = normalize_csv(self.download(resource), self.sort_keys, count=True)
             if len(data) > self.settings.max_bytes:
                 raise ProviderError(
                     f"{resource['id']}: {len(data):,} bytes > max_bytes "
                     f"{self.settings.max_bytes:,}"
                 )
-            self._cache[url] = data
+            self._cache[url] = (data, rows)
         return self._cache[url]
 
     def clear_cache(self) -> None:
         self._cache.clear()
 
     def version(self, resource: dict) -> ResourceVersion:
-        data = self.csv_bytes(resource)
-        _, body = _csv_rows(data)
-        return ResourceVersion(hashlib.sha256(data).hexdigest(), len(data), len(body))
+        data, rows = self._cached(resource)
+        return ResourceVersion(hashlib.sha256(data).hexdigest(), len(data), rows)
 
     def preview(self, resource: dict) -> Optional[dict]:
         try:
-            header, body = _csv_rows(self.csv_bytes(resource))
+            data, rows = self._cached(resource)
         except ProviderError as e:
             log.warning("%s preview %s failed: %s", self.key, resource["id"], e)
             return None
+        header, sample = _csv_head(data, PREVIEW_SAMPLE_ROWS)
         return {
             "fields": [{"id": c, "type": "text"} for c in header],
-            "total": len(body),
-            "sample_rows": [dict(zip(header, r, strict=False)) for r in body[:PREVIEW_SAMPLE_ROWS]],
+            "total": rows,
+            "sample_rows": [dict(zip(header, r, strict=False)) for r in sample],
         }
 
     def fetch_to_file(self, resource: dict, dest: Path, *, max_bytes: int) -> Optional[FetchOutcome]:
         try:
-            data = self.csv_bytes(resource)
+            data, rows = self._cached(resource)
         except ProviderError as e:
             log.warning("%s fetch %s failed: %s", self.key, resource["id"], e)
             return None
@@ -264,8 +276,7 @@ class SourceProvider(abc.ABC):
                         len(data), max_bytes)
             return None
         Path(dest).write_bytes(data)
-        _, body = _csv_rows(data)
-        return FetchOutcome(rows=len(body), bytes=len(data), mode="full")
+        return FetchOutcome(rows=rows, bytes=len(data), mode="full")
 
     def fetch_fns(self, resources: list[dict]) -> tuple[Callable, Callable]:
         """`(preview_fn, fetch_fn)` with the signatures `refresh.fetch_inputs`
@@ -288,15 +299,16 @@ class SourceProvider(abc.ABC):
         return True
 
     def healthy(self) -> bool:
-        if self._healthy is None:
-            try:
-                self._healthy = bool(self.healthcheck())
-            except Exception:
-                log.exception("%s healthcheck crashed", self.key)
-                self._healthy = False
-            if not self._healthy:
-                log.warning("%s: healthcheck failed — provider skipped this run", self.key)
-        return self._healthy
+        with self._lock:
+            if self._healthy is None:
+                try:
+                    self._healthy = bool(self.healthcheck())
+                except Exception:
+                    log.exception("%s healthcheck crashed", self.key)
+                    self._healthy = False
+                if not self._healthy:
+                    log.warning("%s: healthcheck failed — provider skipped this run", self.key)
+            return self._healthy
 
     def probe_available(self, resources: list[dict]) -> Availability:
         """For the reconcile sweep: "gone" only on a definite answer that the
@@ -330,10 +342,11 @@ class SourceProvider(abc.ABC):
                    **(headers or {})}
         last: Optional[Exception] = None
         for attempt in range(self.settings.retries + 1):
-            wait = self.settings.min_interval_s - (time.monotonic() - self._last_request)
-            if wait > 0:
-                time.sleep(wait)
-            self._last_request = time.monotonic()
+            with self._lock:  # reserve the next slot, then sleep outside the lock
+                slot = max(time.monotonic(), self._last_request + self.settings.min_interval_s)
+                self._last_request = slot
+            if slot > time.monotonic():
+                time.sleep(slot - time.monotonic())
             try:
                 r = httpx.get(url, params=params, headers=headers,
                               timeout=self.settings.timeout_s, follow_redirects=True)

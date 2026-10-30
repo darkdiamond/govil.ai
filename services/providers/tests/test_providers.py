@@ -421,3 +421,30 @@ def test_source_url_must_be_plain_https(url):
     with pytest.raises(ValueError):
         _source(source_url=url)
     assert _source(source_url="https://www.boi.org.il/roles/").source_url
+
+
+def test_an_unexpected_error_fails_one_dataset_not_the_sync(boi, tmp_path, monkeypatch):
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
+    repo = _repo(tmp_path, {"boi-a": _source().model_dump(), "boi-b": _source().model_dump()})
+    real = boi.version
+    calls = []
+
+    def flaky(res):
+        calls.append(res["id"])
+        if len(calls) == 1:
+            raise RuntimeError("boom")  # not a ProviderError/ValueError
+        return real(res)
+
+    monkeypatch.setattr(boi, "version", flaky)
+    store = FakeStore()
+    s = sync_provider_sources(store, repo, providers={"boi_sdmx": boi})
+    assert [f["id"] for f in s["failed"]] == ["boi-a"] and s["synced"] == ["boi-b"]
+
+
+def test_one_retired_series_does_not_make_a_dataset_gone(boi):
+    a = _res(boi)
+    b = {**a, "id": "boi-other", "url": a["url"] + "&x=1",
+         "params": {**a["params"], "dataflow": "EXR"}}
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
+    boi.answers["/EXR/1.0/"] = FakeResp(404, b"<html>", "text/html")
+    assert boi.probe_available([a, b]) == "unknown"
