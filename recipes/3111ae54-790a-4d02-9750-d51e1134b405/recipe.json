@@ -1,0 +1,41 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3111ae54-790a-4d02-9750-d51e1134b405",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T19:55:46.930727+00:00",
+    "rows": { "main": 8453386 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e7266a9c-fed6-40e4-a28e-8cddc9f44842",
+      "columns": [
+        "מזהה משכון",
+        "תאריך רישום",
+        "סטטוס רישום",
+        "תאריך סיבת סטטוס",
+        "תאריך סטטוס",
+        "תאריך הסרת הנכס"
+      ],
+      "required_columns": [
+        "מזהה משכון",
+        "תאריך רישום",
+        "סטטוס רישום",
+        "תאריך סיבת סטטוס",
+        "תאריך סטטוס",
+        "תאריך הסרת הנכס"
+      ]
+    }
+  ],
+  "limits": {
+    "max_records": 12000000,
+    "max_bytes": 1000000000,
+    "total_bytes": 1000000000,
+    "wall_budget_s": 2700,
+    "compute_memory_mb": 2400
+  },
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

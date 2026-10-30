@@ -1,0 +1,440 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro kpi(k, label) -%}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro -%}
+<h1>רשימת אזורי תעשייה: מגרשים פנויים, תפוסה ואנשי קשר</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור אזור תעשייה (איזור תעשייה) ואיש הקשר שלו ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם האזור, מחוז, איש קשר, טלפון, דואר אלקטרוני ושמות מפעלים</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ kpi(model.kpis.zones, model.labels.zones_kpi) }}
+  {{ kpi(model.kpis.open, model.labels.open_kpi) }}
+  {{ kpi(model.kpis.avail, model.labels.avail_kpi) }}
+  {{ kpi(model.kpis.occ_rate, model.labels.occ_rate_kpi) }}
+  {{ kpi(model.kpis.area, model.labels.area_kpi) }}
+  {{ kpi(model.kpis.nodata, model.labels.nodata_kpi) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{% if model.flags.has_map %}
+<section class="card p-5 mb-6">
+  {{ head("מפת אזורי התעשייה", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-80 md:h-[460px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+  <div class="flex flex-wrap gap-4 mt-3 text-sm text-subtle">
+    <span class="inline-flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-gov-pill bg-brand"></span>פתוח לשיווק</span>
+    <span class="inline-flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-gov-pill bg-subtle"></span>לא פתוח לשיווק</span>
+  </div>
+</section>
+{% endif %}
+
+{% if model.flags.has_land %}
+<section class="card p-5 mb-6">
+  {{ head("מגרשים פנויים ותפוסים בכל אזור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.land_note }}</p>
+  <div id="chart-land" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.land_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.land_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">פנוי (דונם)</th><th scope="col">תפוס (דונם)</th><th scope="col">סה״כ (דונם)</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.land.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.land.avail[loop.index0] | fmt_num }}</td><td dir="ltr">{{ model.charts.land.occ[loop.index0] | fmt_num }}</td><td dir="ltr">{{ model.charts.land.total[loop.index0] | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("כמה מהשטח המשווק עדיין פנוי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.share_note }}</p>
+  <div id="chart-share" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.share_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.share_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">שטח פנוי (%)</th><th scope="col">פנוי (דונם)</th><th scope="col">מצב</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.share.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.share["values"][loop.index0] | fmt_num }}</td><td dir="ltr">{{ model.charts.share.avail[loop.index0] | fmt_num }}</td><td>{% if model.charts.share.nearly_full[loop.index0] %}כמעט מלא{% else %}יש שטח פנוי{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ head("אזורים לפי מחוז ומצב שיווק") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_aria }}</caption>
+        <thead><tr><th scope="col">מחוז</th><th scope="col">אזורים</th><th scope="col">פתוחים לשיווק</th><th scope="col">לא פתוחים</th></tr></thead>
+        <tbody>
+{%- for name in model.charts.dist.names %}
+          <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.dist.zones[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.dist.open[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.dist.closed[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    {{ head("שטחי מגרשים לפי מחוז") }}
+    <p class="m-0 text-sm text-subtle mb-3">שטח פנוי ותפוס בדונם, וגם שטח קווי המתאר של אזורי המחוז.</p>
+    <div id="chart-dist-land" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_land_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dist_land_aria }}</caption>
+        <thead><tr><th scope="col">מחוז</th><th scope="col">פנוי (דונם)</th><th scope="col">תפוס (דונם)</th><th scope="col">קווי מתאר (דונם)</th></tr></thead>
+        <tbody>
+{%- for name in model.charts.dist.names %}
+          <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.dist.avail[loop.index0] | fmt_num }}</td><td dir="ltr">{{ model.charts.dist.occ[loop.index0] | fmt_num }}</td><td dir="ltr">{{ model.charts.dist.area[loop.index0] | fmt_num }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+{% if model.flags.has_area %}
+<section class="card p-5 mb-6">
+  {{ head("גודל האזורים לפי קו המתאר", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+  <div id="chart-area" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.area_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.area_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">שטח (דונם)</th><th scope="col">שיווק</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.area.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.area["values"][loop.index0] | fmt_num }}</td><td>{% if model.charts.area.open[loop.index0] %}פתוח{% else %}לא פתוח{% endif %}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.has_scatter %}
+<section class="card p-5 mb-6">
+  {{ head("שטח האזור מול המגרשים המשווקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.scatter_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">קו מתאר (דונם)</th><th scope="col">מגרשים משווקים (דונם)</th><th scope="col">פנוי (%)</th></tr></thead>
+      <tbody>
+{%- for p in model.charts.scatter.points %}
+        <tr><th scope="row">{{ p[2] }}</th><td dir="ltr">{{ p[0] | fmt_num }}</td><td dir="ltr">{{ p[1] | fmt_num }}</td><td dir="ltr">{{ p[3] | fmt_num }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.has_fact %}
+<section class="card p-5 mb-6">
+  {{ head("מפעלים לדוגמה בכל אזור", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fact_note }}</p>
+  <div id="chart-fact" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.fact_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.fact_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">קטנים</th><th scope="col">בינוניים</th><th scope="col">גדולים</th><th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.fact.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.fact.small[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.fact.medium[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.fact.big[loop.index0] | fmt_int }}</td><td dir="ltr">{{ model.charts.fact.total[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
+
+{% if model.flags.has_big %}
+<section class="card p-5 mb-6">
+  {{ head("מפעלים גדולים באזורי התעשייה", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.big_note }}</p>
+  <div class="overflow-x-auto">
+    <table id="table-big" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.big_note }}</caption>
+      <thead><tr><th scope="col" class="text-start">אזור</th><th scope="col" class="text-start">מחוז</th><th scope="col" class="text-start">מפעלים גדולים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.big %}
+        <tr class="border-t border-rule"><th scope="row" class="text-start py-2 pe-3 align-top">{{ r.zone }}</th><td class="py-2 pe-3 align-top">{{ r.district }}</td><td class="py-2">{{ r.names }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("איזה מידע יש על כל אזור", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_note }}</p>
+  <div id="chart-comp" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.comp_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.comp_aria }}</caption>
+      <thead><tr><th scope="col">שדה</th><th scope="col">אזורים</th></tr></thead>
+      <tbody>
+{%- for name in model.charts.comp.names %}
+        <tr><th scope="row">{{ name }}</th><td dir="ltr">{{ model.charts.comp["values"][loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("תיאור מקורי", "list") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">לפניכם מידע ראשוני אודות אזורי התעשייה בהם מטפל המנהל לאזורי תעשייה (איזורי עדיפות לאומית), בין היתר תמצאו מידע על מיקום פארק התעשייה, זמינות המגרשים וגודלם ודוגמא למפעלים הקיימים.</p>
+</section>
+
+<script>
+  (function () {
+    if (!window.echarts) { return; }
+    var enc = echarts.format.encodeHTML;
+    function fmt(v) { return Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }); }
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    var hAxis = { type: "category", inverse: true, axisLabel: { interval: 0, width: 110, overflow: "truncate" } };
+
+{% if model.flags.has_land %}
+    var l = {{ model.charts.land | tojson }};
+    var cl = mk("chart-land");
+    if (cl) {
+      cl.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(l.names[i]) + "<br>פנוי: " + fmt(l.avail[i]) + " דונם<br>תפוס: " + fmt(l.occ[i]) + " דונם<br>סה״כ: " + fmt(l.total[i]) + " דונם";
+        } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+        xAxis: { type: "value", name: "דונם", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: Object.assign({}, hAxis, { data: l.names }),
+        series: [
+          { type: "bar", stack: "land", name: "תפוס", data: l.occ, itemStyle: { color: "#0b3668" } },
+          { type: "bar", stack: "land", name: "פנוי", data: l.avail, itemStyle: { color: "#6c9fd8" } }
+        ]
+      }));
+    }
+
+    var s = {{ model.charts.share | tojson }};
+    var cs = mk("chart-share");
+    if (cs) {
+      cs.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(s.names[i]) + "<br>פנוי: " + fmt(s.values[i]) + "% (" + fmt(s.avail[i]) + " דונם)" + (s.nearly_full[i] ? "<br>כמעט מלא" : "");
+        } },
+        grid: { left: 16, right: 48, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", max: 100, name: "%", splitNumber: 4 },
+        yAxis: Object.assign({}, hAxis, { data: s.names }),
+        series: [{ type: "bar", name: "שטח פנוי",
+          data: s.values.map(function (v, i) { return s.nearly_full[i] ? { value: v, itemStyle: { color: "#dc3545" } } : v; }),
+          label: { show: true, position: "right", formatter: function (p) { return fmt(p.value) + "%"; } } }]
+      }));
+    }
+{% endif %}
+
+    var d = {{ model.charts.dist | tojson }};
+    var cd = mk("chart-dist");
+    if (cd) {
+      cd.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 16, top: 16, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", name: "אזורים", minInterval: 1 },
+        series: [
+          { type: "bar", stack: "z", name: "פתוח לשיווק", data: d.open, itemStyle: { color: "#0068f5" } },
+          { type: "bar", stack: "z", name: "לא פתוח לשיווק", data: d.closed, itemStyle: { color: "#c3cfe7" } }
+        ]
+      }));
+    }
+    var cdl = mk("chart-dist-land");
+    if (cdl) {
+      cdl.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(d.names[i]) + "<br>פנוי: " + fmt(d.avail[i]) + " דונם<br>תפוס: " + fmt(d.occ[i]) + " דונם<br>קווי מתאר: " + fmt(d.area[i]) + " דונם";
+        } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", name: "דונם", splitNumber: 4 },
+        series: [
+          { type: "bar", stack: "l", name: "תפוס", data: d.occ, itemStyle: { color: "#0b3668" } },
+          { type: "bar", stack: "l", name: "פנוי", data: d.avail, itemStyle: { color: "#6c9fd8" } }
+        ]
+      }));
+    }
+
+{% if model.flags.has_area %}
+    var a = {{ model.charts.area | tojson }};
+    var ca = mk("chart-area");
+    if (ca) {
+      ca.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return enc(a.names[i]) + "<br>" + fmt(a.values[i]) + " דונם<br>" + (a.open[i] ? "פתוח לשיווק" : "לא פתוח לשיווק");
+        } },
+        grid: { left: 16, right: 56, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", name: "דונם", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: Object.assign({}, hAxis, { data: a.names }),
+        series: [{ type: "bar", name: "שטח",
+          data: a.values.map(function (v, i) { return a.open[i] ? v : { value: v, itemStyle: { color: "#c3cfe7" } }; }),
+          label: { show: true, position: "right", formatter: function (p) { return fmt(Math.round(p.value)); } } }]
+      }));
+    }
+{% endif %}
+
+{% if model.flags.has_scatter %}
+    var sc = {{ model.charts.scatter | tojson }};
+    var csc = mk("chart-scatter");
+    if (csc) {
+      csc.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "item", formatter: function (p) {
+          var v = p.value;
+          return enc(v[2]) + "<br>קו מתאר: " + fmt(v[0]) + " דונם<br>מגרשים משווקים: " + fmt(v[1]) + " דונם<br>פנוי: " + fmt(v[3]) + "%";
+        } },
+        grid: { left: 24, right: 32, top: 32, bottom: 40, containLabel: true },
+        xAxis: { type: "value", name: "קו מתאר (דונם)", nameLocation: "middle", nameGap: 28, splitNumber: 4 },
+        yAxis: { type: "value", name: "מגרשים (דונם)", splitNumber: 4 },
+        series: [{ type: "scatter", name: "אזורים", data: sc.points,
+          symbolSize: function (v) { return 8 + Math.sqrt(v[3]) * 1.6; },
+          itemStyle: { color: "#0068f5", opacity: 0.75 } }]
+      }));
+    }
+{% endif %}
+
+{% if model.flags.has_fact %}
+    var f = {{ model.charts.fact | tojson }};
+    var cf = mk("chart-fact");
+    if (cf) {
+      cf.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+        xAxis: { type: "value", name: "מפעלים", splitNumber: 3, minInterval: 1 },
+        yAxis: Object.assign({}, hAxis, { data: f.names }),
+        series: [
+          { type: "bar", stack: "f", name: "קטנים", data: f.small },
+          { type: "bar", stack: "f", name: "בינוניים", data: f.medium },
+          { type: "bar", stack: "f", name: "גדולים", data: f.big }
+        ]
+      }));
+    }
+{% endif %}
+
+    var cp = {{ model.charts.comp | tojson }};
+    var cc = mk("chart-comp");
+    if (cc) {
+      cc.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 40, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "value", name: "אזורים", minInterval: 1, splitNumber: 3 },
+        yAxis: Object.assign({}, hAxis, { data: cp.names }),
+        series: [{ type: "bar", name: "אזורים", data: cp.values,
+          label: { show: true, position: "right" } }]
+      }));
+    }
+  })();
+</script>
+
+{% if model.flags.has_map %}
+<script>
+  (function () {
+    var m = {{ model.charts.map | tojson }};
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var map = L.map(el, { center: [31.5, 35.0], zoom: 7, zoomSnap: 0.25, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: "© OpenStreetMap"
+    }).addTo(map);
+    var bounds = [];
+    m.zones.forEach(function (z) {
+      var col = z.open ? "#0068f5" : "#6c757d";
+      function popup() {
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = z.name;
+      box.appendChild(t);
+      var rows = [["מחוז", z.district], ["שיווק", z.open ? "פתוח לשיווק" : "לא פתוח לשיווק"],
+                  ["שטח לפי קו המתאר", z.area + " דונם"]];
+      if (z.avail !== "") {
+        rows.push(["פנוי", z.avail + " דונם"]);
+        rows.push(["תפוס", z.occ + " דונם"]);
+      }
+      rows.forEach(function (r) {
+        var line = document.createElement("div");
+        line.textContent = r[0] + ": " + r[1];
+        box.appendChild(line);
+      });
+      return box;
+      }
+      if (z.rings.length) {
+        L.polygon(z.rings, { color: col, weight: 2, fillColor: col, fillOpacity: 0.25 }).bindPopup(popup()).addTo(map);
+      }
+      L.circleMarker(z.c, { radius: 6, color: "#ffffff", weight: 1.5, fillColor: col, fillOpacity: 0.9 })
+        .bindPopup(popup()).addTo(map);
+      bounds.push(z.c);
+    });
+    if (bounds.length) { map.fitBounds(bounds, { padding: [20, 20] }); }
+  })();
+</script>
+{% endif %}

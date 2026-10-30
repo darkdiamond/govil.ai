@@ -1,0 +1,5 @@
+{
+  "params.ParameterKod": "chart-types, chart-series, chart-quality, kpi:codes, kpi:coded, insight:code_gap, insight:multi_code",
+  "params.ParameterName": "chart-families, chart-overlap, chart-quality, kpi:names, insight:overlap, insight:family, insight:doubled — names normalized (doubled text collapsed) and classified into chemical families by keyword",
+  "params.SamplingType": "chart-types, chart-families, chart-overlap, chart-series, kpi:rows, insight:lead_type, insight:code_gap, insight:overlap, insight:family"
+}

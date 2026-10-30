@@ -1,0 +1,9 @@
+{
+  "main.מזהה משכון": "chart-assets, kpi:pledges, insight:assets — pledge key: rows are grouped per id into unique pledges; the id itself is never printed",
+  "main.תאריך רישום": "chart-years, chart-life, chart-terms, chart-age, kpi:span, kpi:median_life, insight:lifetime, insight:terms, insight:age — registration counts are shown only as a secondary line, with the selection caveat",
+  "main.סטטוס רישום": "chart-years, chart-reasons, kpi:active, insight:active — פעיל / לא פעיל; drives the selection note",
+  "main.תאריך סיבת סטטוס": "chart-reasons, chart-mix, chart-life, chart-terms, kpi:expired, insight:reasons, insight:mix, insight:terms — holds the status REASON despite the header",
+  "main.תאריך סטטוס": "chart-years, chart-heat, chart-month, chart-weekday, chart-mix, chart-life, chart-terms, chart-age, kpi:last_year, insight:ytd, insight:trend, insight:spike, insight:weekday — cancellation date of non-active pledges",
+  "main.תאריך הסרת הנכס": "chart-removed — asset released from a pledge; about 99% empty",
+  "main.תאריך רישום נכס": "skip: about 98% identical to the pledge registration date; not fetched (columns) to keep the 8.5M-row export small; multi-asset pledges are covered by chart-assets"
+}

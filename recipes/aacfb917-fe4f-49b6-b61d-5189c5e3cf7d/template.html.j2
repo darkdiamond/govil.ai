@@ -1,0 +1,269 @@
+<h1>תחזית זיהום אוויר לפי אזור: תחזית חצי-יומית למזהמי אוויר</h1>
+
+<style>
+  .aq-tile { background-color: var(--aq); }
+  .aq-dot { background-color: var(--aq); }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="mt-2 mb-0 text-sm text-subtle leading-relaxed">תחזית איכות האוויר של המשרד להגנת הסביבה מופקת במודל CHIMERE ליומיים קדימה, לפי אזורי התחזית ולפי שעות היום (בוקר, צהריים וערב). המשרד מעדכן את הקובץ כמה פעמים ביום, והעמוד משקף את הגרסה האחרונה שנקלטה.</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.regions.tone }} mb-1" dir="ltr">{{ model.kpis.regions.display }}</div>
+    <div class="text-sm text-subtle">אזורי תחזית</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.high.tone }} mb-1" dir="ltr">{{ model.kpis.high.display }}</div>
+    <div class="text-sm text-subtle">אזורים בזיהום גבוה ומעלה</div>
+  </div>
+{%- if model.kpis.worst is defined %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.worst.tone }} mb-1" dir="ltr">{{ model.kpis.worst.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.worst_kpi }}</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.date is defined %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.date.tone }} mb-1" dir="ltr">{{ model.kpis.date.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.date_kpi }}</div>
+  </div>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.warning %}
+{%- if model.warning.active %}
+<section class="card p-5 mb-6 border-danger">
+  <div class="flex items-center gap-2 mb-3 text-danger">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התראת זיהום אוויר בתוקף</h2>
+  </div>
+  <p class="mb-2 text-sm font-semibold text-ink-deep">פורסמה {% if model.warning.dow %}ב{{ model.warning.dow }} {{ model.warning.date }}{% else %}ב-{{ model.warning.date }}{% endif %}</p>
+  <p class="m-0 text-sm leading-relaxed whitespace-pre-line">{{ model.warning.text }}</p>
+</section>
+{%- else %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התראות זיהום אוויר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle">אין כעת התראה פעילה. ההתראה האחרונה שבקובץ פורסמה {% if model.warning.dow %}ב{{ model.warning.dow }} {{ model.warning.date }}{% else %}ב-{{ model.warning.date }}{% endif %}.</p>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">נוסח ההתראה האחרונה</summary>
+    <p class="mt-2 mb-0 text-sm leading-relaxed whitespace-pre-line">{{ model.warning.text }}</p>
+  </details>
+</section>
+{%- endif %}
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רמת הזיהום הצפויה בכל אזור</h2>
+  </div>
+  <p class="mb-3 text-sm text-subtle">{{ model.labels.regions_lede }}</p>
+  <ul class="list-none m-0 ps-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+{%- for r in model.regions %}
+    <li class="flex items-center gap-3 rounded-gov border border-rule p-3">
+      <span class="aq-tile shrink-0 inline-block w-4 h-4 rounded-gov-sm border border-rule" style="--aq: {{ r.color }}" aria-hidden="true"></span>
+      <span class="flex-1 min-w-0">
+        <span class="block font-semibold text-ink-deep">{{ r.title }}</span>
+        <span class="block text-sm text-subtle">רמת זיהום: {{ r.label }}</span>
+      </span>
+{%- if r.link %}
+      <a href="{{ r.link }}" class="text-sm shrink-0" target="_blank" rel="noopener">רשימת יישובים</a>
+{%- endif %}
+    </li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.charts.map %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת התחזית</h2>
+  </div>
+  <p class="mb-3 text-sm text-subtle">כל עיגול ממוקם במרכז המשוער של אזור התחזית וצבוע בצבע שהמשרד קבע לרמת הזיהום. לחיצה על עיגול מציגה את שם האזור ואת הרמה.{% if model.labels.map_note %} {{ model.labels.map_note }}{% endif %}</p>
+  <div id="map-regions" class="h-72 md:h-[420px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה אזורים בכל רמת זיהום</h2>
+  </div>
+  <p class="mb-3 text-sm text-subtle">{{ model.labels.dist_lede }}</p>
+  <div id="chart-dist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dist_aria }}</caption>
+      <thead><tr><th scope="col">רמת זיהום</th><th scope="col">אזורים</th></tr></thead>
+      <tbody>
+{%- for lab in model.charts.dist.labels %}
+        <tr><th scope="row">{{ lab }}</th><td>{{ model.charts.dist.counts[loop.index0] | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.charts.timeline %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מהלך הזיהום הצפוי לאורך היממה</h2>
+  </div>
+  <p class="mb-3 text-sm text-subtle">{{ model.labels.timeline_lede }} כל עמודה משתרעת על טווח הרמות שנוסח התחזית מציין לאותו פרק זמן (למשל "נמוך עד בינוני"), וצבעה לפי הרמה הגבוהה שבטווח.</p>
+  <div id="chart-timeline" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.timeline_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.timeline_aria }}</caption>
+      <thead><tr><th scope="col">יום ופרק זמן</th><th scope="col">רמת זיהום צפויה</th></tr></thead>
+      <tbody>
+{%- for x in model.charts.timeline.x %}
+        <tr><th scope="row">{{ x }}</th><td>{{ model.charts.timeline.texts[loop.index0] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.days %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נוסח התחזית: היום ומחר</h2>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for d in model.days %}
+    <div class="rounded-gov border border-rule p-4">
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">{{ d.dow }} {{ d.date }}</h3>
+      <dl class="m-0 space-y-2 text-sm">
+{%- for p in d.periods %}
+        <div>
+          <dt class="font-semibold text-ink-deep">{{ p.head }}</dt>
+          <dd class="m-0 text-subtle leading-relaxed">{{ p.text }}</dd>
+        </div>
+{%- endfor %}
+      </dl>
+    </div>
+{%- endfor %}
+  </div>
+{%- if model.pollutants %}
+  <p class="mt-3 mb-0 text-sm text-subtle">מזהמים שהתחזית מזכירה:
+{%- for p in model.pollutants %} <span class="badge">{{ p.name }}</span>{% endfor %}</p>
+{%- endif %}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">תחזית יומית למזהמי אוויר המופקת על ידי מודל CHIMERE של המשרד להגנת הסביבה. התחזית כוללת מספר מזהמי אוויר ומופקת ליומיים קדימה (שישים שעות). הקובץ מתעדכן פעמיים או שלוש ביום.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var el = document.getElementById("chart-dist");
+    if (!el || !window.echarts) { return; }
+    var chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { var p = ps[0]; return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " אזורים"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", minInterval: 1, name: "אזורים" },
+      series: [{ type: "bar", barMaxWidth: 56,
+        label: { show: true, position: "top" },
+        data: d.counts.map(function (v, i) { return { value: v, itemStyle: { color: d.colors[i] } }; }) }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+
+{%- if model.charts.timeline %}
+<script>
+  (function () {
+    var d = {{ model.charts.timeline | tojson }};
+    var el = document.getElementById("chart-timeline");
+    if (!el || !window.echarts) { return; }
+    var chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { var p = ps[ps.length - 1]; return echarts.format.encodeHTML(p.name.replace("\n", ", ")) + ": " + echarts.format.encodeHTML(d.texts[p.dataIndex]); } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", min: 0.5, max: d.levels.length + 0.5, interval: 1,
+        axisLabel: { formatter: function (v) { var k = Math.round(v); return (Math.abs(v - k) < 0.01 && k >= 1) ? d.levels[k - 1] : ""; } } },
+      series: [
+        { type: "bar", stack: "lvl", silent: true, itemStyle: { color: "transparent" }, data: d.base },
+        { type: "bar", stack: "lvl", barMaxWidth: 48,
+          label: { show: true, position: "inside", color: "#0c3058", formatter: function (p) { return d.texts[p.dataIndex]; } },
+          data: d.span.map(function (v, i) { return { value: v, itemStyle: { color: d.colors[i] } }; }) }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.map %}
+<script>
+  (function () {
+    var d = {{ model.charts.map | tojson }};
+    var el = document.getElementById("map-regions");
+    if (!el || !window.L) { return; }
+    var map = L.map(el, { center: [31.5, 35.0], zoom: 7, zoomSnap: 0.25, scrollWheelZoom: false });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18, attribution: "© OpenStreetMap"
+    }).addTo(map);
+    var bounds = [];
+    d.points.forEach(function (p) {
+      var mk = L.circleMarker([p[0], p[1]], {
+        radius: 13, color: "#0b3668", weight: 1, fillColor: p[4], fillOpacity: 0.85
+      }).addTo(map);
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = p[2];
+      box.appendChild(t);
+      var line = document.createElement("div");
+      line.textContent = "רמת זיהום: " + p[3];
+      box.appendChild(line);
+      mk.bindPopup(box);
+      var tip = document.createElement("span");
+      tip.textContent = p[2] + ": " + p[3];
+      mk.bindTooltip(tip);
+      bounds.push([p[0], p[1]]);
+    });
+    if (bounds.length) { map.fitBounds(bounds, { padding: [24, 24] }); }
+  })();
+</script>
+{%- endif %}

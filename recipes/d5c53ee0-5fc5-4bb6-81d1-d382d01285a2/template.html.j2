@@ -1,0 +1,603 @@
+<h1>רשם הירושה: בקשות לצו ירושה ולצו קיום צוואה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">עיון בבקשות לרשם לענייני ירושה לפי סוג, מחוז או סטטוס ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: סוג בקשה, מחוז, סטטוס בקשה, החלטת רשם, סיבת סגירה ותאריכים. המאגר אינו כולל שמות או מספרי תיק.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[key ~ '_kpi'] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות לרשם הירושה לפי שנה וסוג</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.yearly_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">סך הכול</th><th scope="col">צו ירושה</th><th scope="col">צו קיום צוואה</th><th scope="col">העתק צו</th><th scope="col">אחרות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.yearly %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.total }}</td><td>{{ r.inh }}</td><td>{{ r.will }}</td><td>{{ r.copies }}</td><td>{{ r.other }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.share %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צו קיום צוואה מול צו ירושה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.share_note }}</p>
+  <div id="chart-share" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.share_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.share_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">בקשות לצו</th><th scope="col">מהן לצו קיום צוואה</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.share %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.core }}</td><td>{{ r.will }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות: בקשות לפי חודש ושנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יום ההגשה בשבוע</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.weekday_note }}</p>
+  <div id="chart-weekday" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.weekday_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.weekday_aria }}</caption>
+      <thead><tr><th scope="col">יום</th><th scope="col">בקשות</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.weekday %}
+        <tr><th scope="row">{{ r.day }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.district %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בקשות לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  <div id="chart-district" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.district_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.district_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">בקשות ב-{{ model.labels.last_full }}</th><th scope="col">שיעור</th>{% if model.flags.has_ref %}<th scope="col">בקשות ב-{{ model.labels.ref_year }}</th><th scope="col">שינוי</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.district %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td>{% if model.flags.has_ref %}<td>{{ r.ref }}</td><td dir="ltr">{{ r.chg }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.dshare %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">חלקו של כל מחוז לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dshare_note }}</p>
+  <div id="chart-dshare" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.dshare_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי הבקשות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+  <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+      <thead><tr><th scope="col">סוג בקשה</th><th scope="col">כל השנים</th><th scope="col">שיעור</th><th scope="col">ב-{{ model.labels.last_full }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td><td>{{ r.ly }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך מסתיימות בקשות לצו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.outcome_note }}</p>
+  <div id="chart-outcome" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.outcome_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.outcome_aria }}</caption>
+      <thead><tr><th scope="col">סיבת סגירה</th>{% for t in model.charts.outcome.types %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.outcome %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התנגדויות והעברה לבית המשפט</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.court_note }}</p>
+  <div id="chart-court" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.court_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.court_aria }}</caption>
+      <thead><tr><th scope="col">שנת הגשה</th><th scope="col">שיעור ההעברה לבית המשפט</th><th scope="col">התנגדויות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.court %}
+        <tr><th scope="row">{{ r.year }}</th><td dir="ltr">{{ r.rate }}</td><td>{{ r.obj }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה זמן לוקח לקבל צו ירושה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dur_note }}</p>
+  <div id="chart-dur" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dur_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dur_aria }}</caption>
+      <thead><tr><th scope="col">שנת הגשה</th><th scope="col">חציון (ימים)</th><th scope="col">רבעון עליון</th><th scope="col">עשירון עליון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dur %}
+        <tr><th scope="row">{{ r.year }}</th><td>{{ r.p50 }}</td><td>{{ r.p75 }}</td><td>{{ r.p90 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.box %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">זמן הטיפול לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  <div id="chart-box" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.box_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">עשירון עליון</th><th scope="col">בקשות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.p25 }}</td><td>{{ r.p50 }}</td><td>{{ r.p75 }}</td><td>{{ r.p90 }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">החלטות הרשם</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dec_note }}</p>
+    <div id="chart-dec" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.dec_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.dec_aria }}</caption>
+        <thead><tr><th scope="col">החלטה</th><th scope="col">בקשות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.dec %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">בקשות שטרם הסתיים הטיפול בהן</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    <div id="chart-status" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.status_aria }}</caption>
+        <thead><tr><th scope="col">סטטוס</th><th scope="col">בקשות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.status %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פרסום הבקשות בעיתונות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.paper_note }}</p>
+  <div id="chart-paper" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.paper_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.paper_aria }}</caption>
+      <thead><tr><th scope="col">שנת הגשה</th>{% for c in model.labels.paper_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">בקשות לצו עם תאריך פרסום</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.paper %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}<td dir="ltr">{{ r.pub }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">הרשם לענייני ירושה הוקם ב-1998 עם תיקון חוק הירושה, תשכ"ה-1965. מאז מוגשות אל הרשם לענייני ירושה כל הבקשות לצווי ירושה ולצווי קיום צוואה, פרט לאלה המוגשות לבתי הדין הדתיים.
+המאגר שלפניכם מכיל מידע על אודות הבקשות שהוגשו לרשם הירושה, סוגיהן, מועדים והחלטות של הרשמים שניתנו בבקשות אלו.</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var s = d.x[i] + (i === d.partial_index ? " (שנה חלקית)" : "") + "<br>";
+        p.forEach(function (q) { s += q.marker + q.seriesName + ": " + Number(q.value).toLocaleString("he-IL") + "<br>"; });
+        return s + "סך הכול: " + d.total[i].toLocaleString("he-IL");
+      } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4, height: 16 }],
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data.map(function (v, i) {
+          return i === d.partial_index ? { value: v, itemStyle: { opacity: 0.5 } } : v;
+        }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.share %}
+<script>
+  (function () {
+    var d = {{ model.charts.share | tojson }};
+    var c = echarts.init(document.getElementById("chart-share"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור צו קיום צוואה", data: d.y, showSymbol: false }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return d.months[p.value[1]] + " " + d.years[p.value[0]] + ": " + p.value[2].toLocaleString("he-IL") + " בקשות";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: d.months, splitArea: { show: true } },
+      visualMap: {
+        dimension: 2, min: 0, max: d.max, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", name: "בקשות", data: d.cells,
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.weekday | tojson }};
+    var c = echarts.init(document.getElementById("chart-weekday"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " בקשות"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "בקשות", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.district %}
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var c = echarts.init(document.getElementById("chart-district"));
+    var series = [{ type: "bar", name: d.year, data: d.y }];
+    if (d.ref_year) { series.unshift({ type: "bar", name: d.ref_year, data: d.ref }); }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " בקשות"; } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value" },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.dshare %}
+<script>
+  (function () {
+    var d = {{ model.charts.dshare | tojson }};
+    var c = echarts.init(document.getElementById("chart-dshare"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) { return { type: "line", name: s.name, data: s.data, showSymbol: false }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(d.names[p[0].dataIndex]) + "<br>" + p[0].value.toLocaleString("he-IL") + " בקשות";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "בקשות", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.outcome | tojson }};
+    var c = echarts.init(document.getElementById("chart-outcome"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 48, bottom: 32, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.types, axisLabel: { width: 110, overflow: "truncate" } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.court | tojson }};
+    var c = echarts.init(document.getElementById("chart-court"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", name: "התנגדויות" }, { type: "value", name: "%", splitLine: { show: false } }],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4, height: 16 }],
+      series: [
+        { type: "bar", name: "התנגדויות", data: d.obj,
+          tooltip: { valueFormatter: function (v) { return v.toLocaleString("he-IL"); } } },
+        { type: "line", name: "שיעור העברה לבית המשפט", yAxisIndex: 1, data: d.rate, showSymbol: false,
+          tooltip: { valueFormatter: function (v) { return v === null ? "" : v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dur | tojson }};
+    var c = echarts.init(document.getElementById("chart-dur"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + " ימים"; } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "ימים" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4, height: 16 }],
+      series: [
+        { type: "line", name: "חציון", data: d.p50, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "רבעון עליון", data: d.p75, showSymbol: false },
+        { type: "line", name: "עשירון עליון", data: d.p90, showSymbol: false, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.box %}
+<script>
+  (function () {
+    var d = {{ model.charts.box | tojson }};
+    var c = echarts.init(document.getElementById("chart-box"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = d.data[p.dataIndex];
+        return "מחוז " + echarts.format.encodeHTML(d.names[p.dataIndex]) + "<br>חציון: " + v[2] + " ימים<br>רבעונים: " + v[1] + " עד " + v[3] + "<br>עשירונים: " + v[0] + " עד " + v[4];
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", name: "ימים" },
+      series: [{ type: "boxplot", name: "ימי טיפול", data: d.data }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.dec | tojson }};
+    var c = echarts.init(document.getElementById("chart-dec"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(d.names[p[0].dataIndex]) + "<br>" + p[0].value.toLocaleString("he-IL") + " בקשות";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "log" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "בקשות", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var s = {{ model.charts.status | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-status"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(s.names[p[0].dataIndex]) + "<br>" + p[0].value.toLocaleString("he-IL") + " בקשות";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: s.names, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: [{ type: "bar", name: "בקשות", data: s.y }]
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.paper | tojson }};
+    var c = echarts.init(document.getElementById("chart-paper"));
+    var series = d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; });
+    series.push({ type: "line", name: "שיעור הבקשות לצו עם תאריך פרסום", yAxisIndex: 1, data: d.pub, showSymbol: false,
+      tooltip: { valueFormatter: function (v) { return v === null ? "" : v + "%"; } } });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", name: "בקשות" }, { type: "value", name: "%", max: 100, splitLine: { show: false } }],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 4, height: 16 }],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

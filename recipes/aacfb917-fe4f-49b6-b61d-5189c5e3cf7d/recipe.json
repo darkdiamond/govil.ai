@@ -1,0 +1,37 @@
+{
+  "contract_version": 1,
+  "dataset_id": "aacfb917-fe4f-49b6-b61d-5189c5e3cf7d",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-29T13:46:48.521854+00:00",
+    "rows": { "forecast": 17 }
+  },
+  "inputs": [
+    {
+      "name": "forecast",
+      "by_id": "a976089d-e8e5-4013-8f3d-777b8551c684",
+      "required_columns": [
+        "type_id",
+        "type",
+        "name",
+        "title",
+        "air_quality",
+        "file_link",
+        "fill_color",
+        "show",
+        "day_of_week",
+        "date",
+        "content",
+        "morning",
+        "morning_content",
+        "noon",
+        "noon_content",
+        "evening",
+        "evening_content"
+      ]
+    }
+  ],
+  "min_insights": 2,
+  "lint_allow_numbers": []
+}
