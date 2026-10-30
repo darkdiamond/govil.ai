@@ -123,7 +123,7 @@ def ins_largest(by_dist_local, total_local, dist_towns):
         return None
     share = top_v / total_local
     return (f"מחוז {top_n} מרכז את מספר בתי המשפט הגדול ביותר: {_int(top_v)} "
-            f"({_pct(share)} מבתי המשפט המחוזיים והאזוריים), לעומת {_int(low_v)} "
+            f"({_pct(share)} מבתי המשפט ובתי הדין שבמחוזות, מלבד הארציים), לעומת {_int(low_v)} "
             f"בלבד במחוז {low_n}. בתי המשפט של מחוז {top_n} פזורים ב-{_int(dist_towns.get(top_n, 0))} "
             f"יישובים, לעומת {_int(dist_towns.get(low_n, 0))} במחוז {low_n}.")
 

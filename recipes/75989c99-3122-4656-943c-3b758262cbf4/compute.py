@@ -27,7 +27,6 @@ FIELDS = [
 ]
 COUNT_WORDS = {2: "שני", 3: "שלושה", 4: "ארבעה", 5: "חמישה"}
 _HOST_RE = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$")
-_SWIFT_RE = re.compile(r"^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$")
 
 
 def _int(n):
@@ -178,7 +177,8 @@ def insight_shared(df):
     groups.sort()
     _, zip_code, names = groups[0]
     word = COUNT_WORDS.get(len(names), _int(len(names)))
-    extra = "" if len(groups) == 1 else f" (ועוד {_int(len(groups) - 1)} מיקודים משותפים)"
+    extra = ("" if len(groups) == 1 else " (ועוד מיקוד משותף אחד)" if len(groups) == 2
+             else f" (ועוד {_int(len(groups) - 1)} מיקודים משותפים)")
     city = df.loc[df["Zip_Code"] == zip_code, "city"].iloc[0]
     return (f"{word} תאגידים רשומים באותו מיקוד מטה ב{city}: {_join(names)}{extra}.")
 
@@ -328,7 +328,7 @@ def compute(frames):
 
     summary = (f"איתור קוד בנק, קוד SWIFT, אתר, כתובת וטלפון של {_int(n)} התאגידים הבנקאיים "
                f"בישראל: {_int(cats.iloc[0])} {cat1}" + (f", {_int(cats.iloc[1])} {cat2}" if cat2 else "")
-               + " ועוד.")
+               + (" ועוד." if len(cat_order) > 2 else "."))
     if len(summary) > 155:
         summary = (f"איתור קוד בנק, קוד SWIFT, אתר, כתובת וטלפון של {_int(n)} התאגידים "
                    f"הבנקאיים בישראל.")

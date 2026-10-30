@@ -237,7 +237,8 @@ def insight_bodies(body_counts):
 
 
 def insight_shared_address(df):
-    key = df["address"].where(df["address"] != "", None)
+    # A city-only address is not a shared street address.
+    key = df["address"].where((df["address"] != "") & (df["address"] != df["city"]), None)
     g = df[key.notna()].groupby("address")["name"].apply(lambda s: sorted(s))
     g = g[g.map(len) >= 2]
     if g.empty:
@@ -410,7 +411,7 @@ def compute(frames):
         "kpi_kids": "מרפאות שבשמן מצוין טיפול בילדים ובנוער",
         "kpi_phone": f"מהמרפאות עם מספר טלפון במאגר ({has_phone:,} מתוך {n:,})",
         "lookup_title": "איתור מרכז טראומה לפי שם או עיר ←",
-        "dir_lede": (f"כל {_n_clinics(n)} במאגר, ממוינות לפי יישוב. טלפון, דוא״ל ואתר מופיעים כפי "
+        "dir_lede": (f"כל המרפאות במאגר ({n:,}), ממוינות לפי יישוב. טלפון, דוא״ל ואתר מופיעים כפי "
                      "שפורסמו; היכן שאין פרט, הוא חסר במקור." if n <= DIR_CAP else
                      f"{DIR_CAP:,} המרפאות הראשונות מתוך {n:,}, ממוינות לפי יישוב. "
                      "הרשימה המלאה בחיפוש החי שבתחתית העמוד."),

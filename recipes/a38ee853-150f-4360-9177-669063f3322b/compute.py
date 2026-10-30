@@ -104,7 +104,10 @@ def compute(frames):
     for c in ("op", "cluster", "kind", "vtype", "vsize", "o_city", "d_city"):
         df.loc[df[c] == "", c] = "לא צוין"
 
-    year = int(df["d"].max().year)
+    # The file's year is the one most of its rows fall in, so a stray
+    # mis-dated row cannot pull the page onto a near-empty year.
+    years = df["d"].dt.year.value_counts()
+    year = int(years.sort_index(ascending=False).idxmax())
     dropped_other_years = int((df["d"].dt.year != year).sum())
     df = df[df["d"].dt.year == year]
 

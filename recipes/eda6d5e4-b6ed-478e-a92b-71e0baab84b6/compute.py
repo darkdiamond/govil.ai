@@ -11,8 +11,6 @@ and sentence is computed from the rows; nothing about the list is hardcoded.
 
 import re
 
-import pandas as pd
-
 COL = "קאדים"
 
 # Known title prefixes, longest first so "השופטת" wins over "השופט".

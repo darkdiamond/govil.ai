@@ -260,6 +260,7 @@ def compute(frames):
 
     groups = _groups(rows, d)
     group_of = {dn: g for g in groups for dn in g["districts"]}
+    n_linked = sum(len(g["districts"]) for g in groups)
 
     rules = [
         ("shared_court", insight_shared(groups, rows)),
@@ -291,7 +292,7 @@ def compute(frames):
     if groups:
         add("courts", len(groups), f"{len(groups):,}",
             "קישורים שונים לבתי דין אזוריים לעבודה",
-            "info" if len(groups) < n_dist else "brand")
+            "info" if len(groups) < n_linked else "brand")
     if rows and (len(rows) == 1 or rows[0]["n"] > rows[1]["n"]):
         add("largest", rows[0]["n"], rows[0]["n_display"],
             f"יישובים במחוז {rows[0]['district']}, הגדול ברשימה", "info")
@@ -346,8 +347,8 @@ def compute(frames):
             "שיפוט של בתי הדין לענייני עבודה (בתי הדין לעבודה). מצאו את היישוב, "
             "בדקו לאיזה מחוז הוא שייך, ועברו לפרטי בית הדין האזורי לעבודה של אותו מחוז "
             "באתר הרשות השופטת"
-            + (f": {_n_dist(n_dist)} מפנים {_pre('ל', str(len(groups)))} בתי דין שונים."
-               if groups and len(groups) < n_dist else "."))
+            + (f": {_n_dist(n_linked)} מפנים {_pre('ל', str(len(groups)))} בתי דין שונים."
+               if groups and len(groups) < n_linked else "."))
 
     dist_aria = (f"תרשים עמודות אופקי: מספר היישובים {_pre('ב', _n_dist(n_dist))} השיפוט. "
                  + (f"הגדול: {rows[0]['district']} ({rows[0]['n']:,}); "
@@ -397,7 +398,7 @@ def compute(frames):
             {"name": nm, "districts": ", ".join(ds)} for nm, ds in amb]},
         "directory": directory,
         "flags": {"has_words": len(words) >= 3, "has_districts": len(rows) >= 2,
-                  "has_groups": bool(groups) and len(groups) < n_dist,
+                  "has_groups": bool(groups) and len(groups) < n_linked,
                   "has_ambiguous": bool(amb)},
         "labels": {
             **{f"kpi_{k}": v for k, v in kl.items()},
@@ -411,7 +412,7 @@ def compute(frames):
             "dir_lede": (f"כל {_n_loc(names_unique)} ברשימה, לפי מחוז שיפוט ובסדר אלפביתי. "
                          "פתחו את המחוז כדי לראות את היישובים בו ואת הקישור לפרטי בית הדין "
                          "לעבודה שלו, או חפשו יישוב בחיפוש שבתחתית העמוד."),
-            "groups_lede": (f"{_n_dist(sum(len(g['districts']) for g in groups))} השיפוט ברשימה "
+            "groups_lede": (f"{_n_dist(n_linked)} השיפוט ברשימה "
                             f"מפנים {_pre('ל', str(len(groups)))} קישורים שונים לבתי הדין האזוריים "
                             "לעבודה. מחוזות באותה שורה חולקים את אותו בית דין."),
             "groups_caption": "מחוזות השיפוט לפי הקישור לבית הדין האזורי לעבודה ומספר היישובים.",
