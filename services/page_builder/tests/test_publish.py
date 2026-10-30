@@ -55,17 +55,10 @@ def _store_mock(records: list[SourceRecord]) -> MagicMock:
     store = MagicMock()
     store.iter_succeeded_sources.return_value = iter(records)
     store.iter_publishable_sources.return_value = iter(records)
-
-    def _set_embedding(_id, vec):
-        for r in records:
-            if r.id == _id:
-                r.embedding = list(vec)
-    store.set_embedding.side_effect = _set_embedding
     return store
 
 
 def test_publish_writes_data_json_for_every_source(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     records = [
         _src(dataset_id="aaa-with-agent", with_agent=True),
         _src(dataset_id="bbb-no-agent",   with_agent=False),
@@ -93,7 +86,6 @@ def test_publish_writes_data_json_for_every_source(tmp_path: Path, monkeypatch):
 
 
 def test_publish_skips_agent_data_when_missing(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     records = [_src(dataset_id="bbb", with_agent=False)]
     store = _store_mock(records)
 
@@ -104,7 +96,6 @@ def test_publish_skips_agent_data_when_missing(tmp_path: Path, monkeypatch):
 
 
 def test_publish_writes_agent_data_when_present(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     records = [_src(dataset_id="aaa", with_agent=True)]
     store = _store_mock(records)
 
@@ -119,7 +110,6 @@ def test_publish_writes_agent_data_when_present(tmp_path: Path, monkeypatch):
 
 
 def test_manifest_merges_scanner_and_agent_fields(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     records = [
         _src(dataset_id="aaa", with_agent=True),
         _src(dataset_id="bbb", with_agent=False),
@@ -148,7 +138,6 @@ def test_publish_passes_resource_id_and_datastore_active(tmp_path: Path, monkeyp
     data.json (they drive the shell's DatasetExplorer); legacy resources
     without the flag omit the key entirely (exclude_none) so the frontend
     can tell "unknown" apart from an authoritative False."""
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     src = _src(dataset_id="flags", with_agent=False)
     src.resources = [
         {
@@ -193,7 +182,6 @@ def test_publish_passes_resource_id_and_datastore_active(tmp_path: Path, monkeyp
 def test_publish_writes_page_slug(tmp_path: Path, monkeypatch):
     """page_slug = Hebrew title slug + id slice, written to data.json and
     carried into the manifest entry."""
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     src = _src(dataset_id="0b3e1f2a-9c4d-4e5f", with_agent=True, title="רישיונות עסק")
     store = _store_mock([src])
 
@@ -216,7 +204,6 @@ def test_publish_writes_page_slug(tmp_path: Path, monkeypatch):
 def test_page_slugs_unique_even_with_identical_titles(tmp_path: Path, monkeypatch):
     """Two datasets with the same title still get distinct page_slugs because
     the id slice disambiguates them."""
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     records = [
         _src(dataset_id="11111111-aaaa", with_agent=False, title="טבלת נתונים"),
         _src(dataset_id="22222222-bbbb", with_agent=False, title="טבלת נתונים"),
@@ -236,7 +223,6 @@ def test_publish_propagates_captured_analyzed_metadata_modified(
 ):
     """When the source doc carries a real snapshot, it flows verbatim to
     data.json + manifest.json."""
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
     src = _src(dataset_id="captured", with_agent=True)
     src.last_analyzed_at = datetime(2026, 4, 25, tzinfo=timezone.utc)
     src.analyzed_metadata_modified = datetime(2026, 4, 20, tzinfo=timezone.utc)
@@ -262,7 +248,6 @@ def test_publish_passes_through_null_snapshot_for_legacy_sources(
     flow through with no synthesized snapshot. The frontend falls back to
     last_analyzed_at for display and suppresses the "updated since analysis"
     icon — we don't have an honest snapshot to compare against."""
-    monkeypatch.setattr(publish, "embed", lambda _text: None)
 
     legacy = _src(dataset_id="legacy", with_agent=True)
     legacy.metadata_modified = datetime(2026, 5, 1, tzinfo=timezone.utc)
@@ -281,3 +266,42 @@ def test_publish_passes_through_null_snapshot_for_legacy_sources(
     manifest = json.loads((tmp_path / "data/manifest.json").read_text())
     entry = next(d for d in manifest["datasets"] if d["id"] == "legacy")
     assert "analyzed_metadata_modified" not in entry
+
+
+def test_manifest_carries_tags_index_redirects_and_related(tmp_path: Path):
+    """Curated tags win over the fallback, the tag index pages only tags with
+    ≥ min datasets, legacy raw-tag URLs redirect, and related_ids are the
+    publisher's own picks (recipe related_ids are ignored)."""
+    from services.page_builder.tags import Taxonomy
+
+    tax = Taxonomy.from_dicts(
+        {"topics": [{"id": "water", "label_he": "מים"}],
+         "tags": {"מים": {"topic": "water"}, "קידוחים": {"topic": "water", "aliases": ["קידוח"]}}},
+        {"w1": ["מים", "קידוחים"], "w2": ["מים", "קידוחים"]},
+    )
+    w1 = _src(dataset_id="w1", with_agent=True, title="איכות מים בקידוחים")
+    w2 = _src(dataset_id="w2", with_agent=True, title="מפלסי מים בקידוחים")
+    w3 = _src(dataset_id="w3", with_agent=True, title="נתוני קידוח ישנים")
+    for s in (w1, w2, w3):
+        s.tags = ["קידוח"]
+    w1.agent_data["related_ids"] = ["w3"]
+    store = _store_mock([w1, w2, w3])
+
+    publish.publish(tmp_path, store=store, taxonomy=tax)
+
+    manifest = json.loads((tmp_path / "data/manifest.json").read_text())
+    by_id = {d["id"]: d for d in manifest["datasets"]}
+    assert by_id["w1"]["tags"] == ["מים", "קידוחים"]
+    assert by_id["w3"]["tags"] == ["קידוחים"]              # fallback via alias
+    assert by_id["w1"]["tags_he"] == ["קידוח"]             # raw kept
+    assert "embedding" not in by_id["w1"]
+    assert manifest["tag_index"]["קידוחים"]["count"] == 3
+    assert manifest["tag_index"]["קידוחים"]["slug"] == "קידוחים"
+    assert manifest["topics"] == [{"id": "water", "label_he": "מים", "intro_he": ""}]
+    assert manifest["tag_redirects"]["קידוח"] == "/tags/קידוחים/"
+    assert by_id["w1"]["related_ids"][0] == "w2"            # content, not the recipe pick
+
+    index = json.loads((tmp_path / "data/search-index.json").read_text())
+    assert index["tag_index"]["קידוחים"] == manifest["tag_index"]["קידוחים"]
+    assert index["topics"] == manifest["topics"]
+    assert index["datasets"][0]["tags"]

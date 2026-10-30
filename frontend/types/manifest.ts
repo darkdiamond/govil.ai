@@ -78,13 +78,13 @@ export interface DatasetMeta {
 export interface AgentData {
   summary_he: string;
   dataset_kind: DatasetKind;
+  /** Deprecated (ignored): related datasets are publisher-computed. */
   related_ids?: string[];
   /** Optional Schema.org-aligned coverage hints; present only when the
    *  dataset clearly carries time/geo scope. Emitted into Dataset JSON-LD. */
   temporal_coverage?: string;
   spatial_coverage?: string;
-  /** 3-5 short Hebrew topic labels chosen by the agent. The shell
-   *  renders them as the chip row under the H1, linking to /tags/<slug>/. */
+  /** Deprecated: displayed tags are the manifest's canonical `tags`. */
   suggested_tags?: string[];
   version: number;
   // `extra='allow'` on the pydantic side — future fields land here.
@@ -118,9 +118,10 @@ export interface ManifestEntry {
   spatial_coverage?: string;
   suggested_tags?: string[];
 
-  // Publisher-computed
+  // Publisher-computed: canonical display tags (taxonomy/, see
+  // services/page_builder/tags.py) and content-based related datasets.
+  tags?: string[];
   related_ids: string[];
-  embedding?: number[];
   source_status?: string;
   unavailable_since?: string;
   source?: SourceInfo;
@@ -141,8 +142,7 @@ export interface SlimEntry {
   summary_he?: string;
   dataset_kind?: DatasetKind;
   formats: string[];
-  tags_he: string[];
-  suggested_tags?: string[];
+  tags?: string[];
   record_count?: number;
   spatial_coverage?: string;
   license?: string;
@@ -157,14 +157,35 @@ export interface SearchIndex {
   version: number;
   generated_at: string;
   datasets: SlimEntry[];
-  tag_slugs?: Record<string, string>;
+  tag_index?: Record<string, TagIndexEntry>;
+  topics?: Topic[];
+}
+
+/** One paged tag (≥ TAG_PAGE_MIN datasets), keyed by its canonical name.
+ *  Built by services/page_builder/tags.py::build_tag_index, count DESC. */
+export interface TagIndexEntry {
+  slug: string;
+  topic?: string;
+  count: number;
+  intro_he?: string;
+  /** organization_slug → dataset count, count DESC. */
+  ministries: Record<string, number>;
+  /** Co-occurring paged tags, most frequent first. */
+  related: string[];
+}
+
+export interface Topic {
+  id: string;
+  label_he: string;
+  intro_he?: string;
 }
 
 export interface Manifest {
   version: number;
   generated_at: string;
   datasets: ManifestEntry[];
-  // Hebrew tag → URL-safe Hebrew slug (whitespace and URL-reserved chars
-  // normalized to `-`). Built by services/page_builder/publish.py.
-  tag_slugs?: Record<string, string>;
+  tag_index?: Record<string, TagIndexEntry>;
+  topics?: Topic[];
+  /** Legacy /tags/<segment>/ → new path; consumed by scripts/gen-redirects.mjs. */
+  tag_redirects?: Record<string, string>;
 }

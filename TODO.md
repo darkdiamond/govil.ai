@@ -43,6 +43,25 @@ This repo is public: describe a security gap by what to change, never by how to 
   when the target is preview, and have the preview refresh read provider facts from there.
   (2026-10-30)
 
+## Tags, related datasets and list pages
+
+- **Topic hub pages.** Topics exist only as sections of `/tags/` (and a broad tag per topic,
+  like `/tags/תחבורה/`). A `/topics/<id>/` hub with the topic intro, its tags and its datasets
+  would be a stronger landing page than the broad tag, which three topics (ביטחון והצלה,
+  אוכלוסין והגירה, חינוך תיירות ופנאי) don't have. (2026-10-30)
+- **Intros for the busiest tags.** `taxonomy/tags.json` supports a per-tag `intro_he`; none is
+  written yet, so tag pages show their topic's intro. Write ~25 for the tags with the most
+  datasets, the same way `hub-intros.json` was written. (2026-10-30)
+- **`/datasets/` drops `?q=` (and now `?tag=`) from the URL after load.** The filter still
+  applies, but the address bar loses it, so a filtered view can't be shared or bookmarked. Seen on
+  the live site too, so it predates the tag filter. Find which watcher's `router.replace` runs on
+  hydration with an empty value. (2026-10-30)
+- **Firebase Hosting redirect count is unverified.** `gen-redirects.mjs` now writes ~550 tag
+  redirects next to ~560 dataset ones. The docs state no cap; confirm on a preview channel deploy
+  that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
+- **Stale Firestore fields.** `sources/<id>.embedding` (Voyage, removed) is still on the docs
+  that had it; nothing reads it. A one-off cleanup would shrink the docs. (2026-10-30)
+
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for

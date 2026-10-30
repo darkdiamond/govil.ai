@@ -484,10 +484,17 @@ def test_percent_conflict_skipped_only_for_recipe_renders(tmp_path):
 def _prepared(tmp_path, monkeypatch, rows):
     from services.page_builder import author
 
+    from services.page_builder import tags
+
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
     monkeypatch.setattr(author, "PREVIEW_OUT_ROOT", tmp_path / "model_test")
+    monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     data = tmp_path / "authoring" / DS / "data"
     data.mkdir(parents=True)
+    # Batch-style pending tags (author-dataset §4 Tags), real vocabulary.
+    (tmp_path / "authoring" / DS / "tags.json").write_text(
+        json.dumps(["תחבורה", "תאונות דרכים", "בטיחות בדרכים"], ensure_ascii=False)
+    )
     with open(data / "1.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(COLS)
@@ -504,6 +511,18 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
     assert author.verify(DS, FIXTURES) == 0, capsys.readouterr().out
     out = tmp_path / "model_test" / DS
     assert (out / "content.html").is_file() and (out / "agent_data.json").is_file()
+
+
+def test_author_verify_requires_valid_tags(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    pending = tmp_path / "authoring" / DS / "tags.json"
+    pending.write_text(json.dumps(["תחבורה", "רקל"], ensure_ascii=False))
+    assert author.verify(DS, FIXTURES) == 1
+    out = capsys.readouterr().out
+    assert "2 tags; use 3–6" in out and "use 'רכבת קלה'" in out
+    pending.unlink()
+    assert author.verify(DS, FIXTURES) == 1
+    assert "TAGS: no tags for" in capsys.readouterr().out
 
 
 def test_em_dash_lint(tmp_path):

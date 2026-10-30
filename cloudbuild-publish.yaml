@@ -40,10 +40,6 @@ steps:
   #     step [1]'s `-x` filter (or get re-uploaded by some future code path),
   #     this step's writes overwrite them. Belt-and-suspenders with the rsync
   #     exclusion above.
-  #     VOYAGE_API_KEY is mounted via availableSecrets so the publisher can
-  #     compute + cache embeddings on sources that don't have one yet
-  #     (services/page_builder/publish.py → embed()). Without it, related.py
-  #     falls back to ministry + shared-tag scoring only.
   - id: "publish-artifacts"
     name: "${_PUBLISHER_IMAGE}"
     entrypoint: "bash"
@@ -51,7 +47,6 @@ steps:
     env:
       - "FIRESTORE_PROJECT_ID=${_FIREBASE_PROJECT}"
       - "GOOGLE_CLOUD_PROJECT=${_FIREBASE_PROJECT}"
-    secretEnv: ["VOYAGE_API_KEY"]
     args:
       - "-c"
       - |
@@ -139,11 +134,6 @@ substitutions:
   _STAGING_BUCKET: "govdata-il-staging"
   _FIREBASE_PROJECT: "govdata-il"
   _PUBLISHER_IMAGE: "me-west1-docker.pkg.dev/govdata-il/publisher/publisher:latest"
-
-availableSecrets:
-  secretManager:
-    - versionName: "projects/${_FIREBASE_PROJECT}/secrets/voyage-api-key/versions/latest"
-      env: "VOYAGE_API_KEY"
 
 options:
   logging: CLOUD_LOGGING_ONLY

@@ -242,11 +242,16 @@ def _rows(n_years=3):
 
 
 def _prepared(tmp_path, monkeypatch, geo_size):
-    from services.page_builder import author
+    from services.page_builder import author, tags
 
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
     monkeypatch.setattr(author, "PREVIEW_OUT_ROOT", tmp_path / "model_test")
+    monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     root = tmp_path / "authoring" / DS
+    root.mkdir(parents=True)
+    (root / "tags.json").write_text(
+        json.dumps(["תחבורה", "תאונות דרכים", "בטיחות בדרכים"], ensure_ascii=False)
+    )
     (root / "data").mkdir(parents=True)
     cols = ["שנה", "חודש", "מחוז", "מספר אירועים"]
     with open(root / "data" / "1.csv", "w", newline="", encoding="utf-8") as f:
