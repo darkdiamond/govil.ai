@@ -131,7 +131,7 @@ def _hex(rgb_text):
     if not m:
         return None
     r, g, b = (min(255, int(v)) for v in m.groups())
-    return f"#{r:02x}{g:02x}{b:02x}", None
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 def _date(s):
@@ -155,11 +155,8 @@ def build_regions(df):
             continue
         label = _clean(r["air_quality"]) or "לא צוין"
         rank = level_rank(label)
-        col = _hex(r["fill_color"])
-        data_color = col[0] if col else None
-        if col is None and rank is not None:
-            col = (LEVEL_COLOR[rank], 0.5)
-        color = col[0] if col else "#c3cfe7"
+        data_color = _hex(r["fill_color"])
+        color = data_color or (LEVEL_COLOR[rank] if rank is not None else "#c3cfe7")
         link = _clean(r["file_link"])
         code = _clean(r["name"])
         centre = REGION_CENTRES.get(code)

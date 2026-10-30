@@ -35,13 +35,13 @@ TREND_CHANGE = 0.2            # ±20% counts as a real change
 FAST_DAYS = 2                 # "reported within N days"
 MULTI_DAY = 2                 # events lasting this many days or more
 
-# Cause themes, matched in the fault description + remarks. A report can
-# carry several themes; one with none is "ללא נושא מזוהה".
+# Cause themes, matched (as regexes) in the fault description + remarks. A
+# report can carry several themes; one with none is "ללא נושא מזוהה".
 THEMES = [
     ("הפסקת חשמל", ["חשמל"]),
     ("מדי LEL וכיול", ["LEL", "כיול"]),
     ("קירור וצ'ילר", ["קירור", "צ'ילר", "צילר", "מעבים"]),
-    ("ברזים ומגופים", ["ברז", "מגוף"]),
+    ("ברזים ומגופים", ["ברז(?!ל)", "מגוף"]),  # not "ברזל" (iron)
     ("אספקת מים", ["אספקת מים", "מי רשת", "מי תהליך", "מים ממקורות"]),
     ("הדממה או אחזקה מתוכננת", ["הדממ", "מתוכננ", "אחזקתי", "עבודות אחזקה"]),
     ("לפיד", ["לפיד"]),
@@ -101,7 +101,7 @@ def _pollutant(name):
 def _themes(text):
     out = []
     for label, keys in THEMES:
-        if any(k in text for k in keys):
+        if any(re.search(k, text) for k in keys):
             out.append(label)
     return out or [NO_THEME]
 
@@ -258,7 +258,11 @@ def compute(frames):
     charts["pollutants"] = {"names": p_names, "values": p_vals}
     tables["pollutants"] = [{"name": k, "count": _int(v), "share": _pct(v / n)}
                             for k, v in zip(p_names, p_vals)]
-    merged = int((d["PollutingName"] != d["pollutant"]).sum())
+    # renamed rows whose pollutant really has more than one spelling in the data
+    raw = d["PollutingName"]
+    spellings = raw[raw != ""].groupby(d["pollutant"]).nunique()
+    merged = int(((raw != "") & (raw != d["pollutant"])
+                  & d["pollutant"].map(spellings).gt(1)).sum())
     labels["pollutants_lede"] = (
         f"המזהם שהניטור הרציף שלו הושפע מהתקלה. {p_names[0]} מוביל עם {_int(p_vals[0])} דיווחים."
         + (f" שמות שונים של אותו מזהם אוחדו לפי הקיצור שבסוגריים ({_int(merged)} דיווחים)."
@@ -466,12 +470,13 @@ def compute(frames):
     if len(multi):
         lg = multi.sort_values(["dur", "event"], ascending=[False, True], kind="stable").iloc[0]
         if len(multi) == 1:
-            add("duration", f"תקלה אחת נמשכה יומיים או יותר: {_days(int(lg['dur']))} "
-                            f"{_b(lg['site'])}, מ-{_date(lg['start'])} עד {_date(lg['end'])}.")
-        else:
-            add("duration", f"{_int(len(multi))} תקלות נמשכו יומיים או יותר. הארוכה ביותר: "
+            add("duration", f"תקלה אחת התפרשה על פני יומיים קלנדריים או יותר: "
                             f"{_days(int(lg['dur']))} {_b(lg['site'])}, מ-{_date(lg['start'])} "
-                            f"עד {_date(lg['end'])}.")
+                            f"עד {_date(lg['end'])} (כולל).")
+        else:
+            add("duration", f"{_int(len(multi))} תקלות התפרשו על פני יומיים קלנדריים או יותר. "
+                            f"הארוכה ביותר: {_days(int(lg['dur']))} {_b(lg['site'])}, "
+                            f"מ-{_date(lg['start'])} עד {_date(lg['end'])} (כולל).")
 
     # ---- summary (meta description, ≤155 chars)
     summary = (f"דיווחי מפעלים על תקלות בארובות בניטור רציף של פליטות: {_int(n)} דיווחים "

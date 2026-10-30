@@ -333,8 +333,8 @@ def compute(frames):
                   for n, v, k in zip(b_names, b_vals, b_countries)]
 
     # ---- heat: body x country (share of each country's products)
-    hb = list(body_cnt["k"].head(HEAT_BODIES))
-    hc = list(country_cnt["k"].head(HEAT_COUNTRIES))
+    hb = list(real_body["k"].head(HEAT_BODIES))
+    hc = list(real_country["k"].head(HEAT_COUNTRIES))
     cells, heat_rows, hmax = [], [], 0.0
     sub = df[df["country"].isin(hc)]
     ct = pd.crosstab(sub["body"], sub["country"])
@@ -404,7 +404,7 @@ def compute(frames):
     close = dict(zip(tag_cnt["k"], tag_cnt["n"])).get("השגחה צמודה", 0)
 
     # ---- dairy / pareve mix by country
-    mix_c = list(country_cnt["k"].head(MIX_COUNTRIES))
+    mix_c = list(real_country["k"].head(MIX_COUNTRIES))
     mix_series = {k: [] for k in KIND_ORDER}
     mix_rows = []
     for c in mix_c:
@@ -514,7 +514,6 @@ def compute(frames):
     req_table = [{"name": f[0], "n": _int(f[1]), "share": f"{s:.1f}%"} for f, s in zip(fields, req_chart["share"])]
 
     # ---- KPIs
-    n_products = int(df["name4"].replace("", pd.NA).dropna().nunique())
     exp_share = n_expired / len(exp_ok) if len(exp_ok) else 0.0
     exp_tone = "danger" if exp_share >= 0.2 else ("warn" if exp_share >= 0.05 else "ok")
     kpis = {
