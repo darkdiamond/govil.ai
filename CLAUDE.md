@@ -432,16 +432,16 @@ are still read by the authoring selector.
   unconditionally on mount, which depends on no Vue hydration internals.
   After any Vue/Nuxt bump, re-check a dataset page: charts must render
   on a normal load, not just with `/_nuxt/**` blocked.
-- **CSP is two headers, on purpose** (`firebase.json`, `source: "**"`).
-  `Content-Security-Policy` enforces only directives that can't break a
-  page (`object-src 'none'`, `base-uri`, `form-action 'self'
-https://formspree.io`, `frame-ancestors`, `upgrade-insecure-requests`).
-  The full allowlist (scripts/connect/frames for GA, AdSense, Clarity,
-  data.gov.il) is `Content-Security-Policy-Report-Only` — page bodies are
-  inline scripts, so `script-src` needs `'unsafe-inline'`, and AdSense's
-  host set drifts. Promote it to enforced only after a clean console on
-  live pages with ads filling. Adding a third-party script or form target
-  means updating BOTH headers.
+- **CSP is enforced** (`firebase.json`, `source: "**"`, one
+  `Content-Security-Policy` header). It allowlists scripts/connect/frames
+  for GA, AdSense, Clarity, Cloudflare Insights and data.gov.il; page
+  bodies are inline scripts, so `script-src` needs `'unsafe-inline'`.
+  It ran report-only from PR #93 until 2026-10-30 with no violations.
+  Adding a third-party script, fetch target, frame or form target means
+  adding its host to the allowlist, or the browser blocks it. AdSense's
+  host set drifts: if ads or a page break with `Refused to …` in the
+  console, add the host, or revert the promotion (push-to-deploy re-ships
+  `firebase.json`).
 - **Chunk prefetching is disabled on purpose.** The `build:manifest`
   hook in `frontend/nuxt.config.ts` sets `chunk.prefetch = false`.
   Cloudflare Speed Brain speculatively fetches `<link rel="prefetch">`
