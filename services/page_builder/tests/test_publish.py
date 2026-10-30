@@ -302,5 +302,6 @@ def test_manifest_carries_tags_index_redirects_and_related(tmp_path: Path):
     assert by_id["w1"]["related_ids"][0] == "w2"            # content, not the recipe pick
 
     index = json.loads((tmp_path / "data/search-index.json").read_text())
-    assert index["tag_index"]["קידוחים"] == {"slug": "קידוחים", "topic": "water", "count": 3}
+    assert index["tag_index"]["קידוחים"] == manifest["tag_index"]["קידוחים"]
+    assert index["topics"] == manifest["topics"]
     assert index["datasets"][0]["tags"]

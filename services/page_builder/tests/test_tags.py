@@ -167,9 +167,9 @@ def test_tag_redirects_targets():
     assert red["אקוויפר"] == "/tags/מי-תהום/"
     assert "GIS" not in red                        # dropped: left to 404
     # A CKAN tag carrying Firebase glob syntax must never become a source.
-    tax2 = Taxonomy.from_dicts({"tags": {"מי תהום": {"aliases": ["מי*", "מי:x", "{מי}"]}}})
-    red2 = tag_redirects(["מי*", "מי:x", "{מי}"], tax2, index)
-    assert red2 == {}
+    globby = ["מי*", "מי:x", "{מי}", "מי@(a|b)", "מי+(x)", "מי!(y)"]
+    tax2 = Taxonomy.from_dicts({"tags": {"מי תהום": {"aliases": globby}}})
+    assert tag_redirects(globby, tax2, index) == {}
     assert "נדיר" not in red                       # no page: left to 404
 
 
@@ -213,3 +213,11 @@ def test_assign_cli_validates_and_writes_sorted(tmp_path, monkeypatch, capsys):
         json.dumps(["כלכלה", "בנקים", "ריבית"], ensure_ascii=False))
     assert tags_mod.main(["assign", "--from-pending", "bbb"]) == 0
     assert json.loads(target.read_text())["bbb"] == ["כלכלה", "בנקים", "ריבית"]
+
+    # A non-list pending file is rejected outright, not iterated.
+    (tmp_path / "authoring" / "ccc").mkdir()
+    (tmp_path / "authoring" / "ccc" / "tags.json").write_text(
+        json.dumps({"כלכלה": 1, "בנקים": 1, "ריבית": 1}, ensure_ascii=False))
+    assert tags_mod.main(["assign", "--from-pending", "ccc"]) == 1
+    assert "JSON list" in capsys.readouterr().err
+    assert "ccc" not in json.loads(target.read_text())

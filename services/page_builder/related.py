@@ -169,9 +169,10 @@ class RelatedIndex:
                     continue
                 same += 1
             picked.append(m)
-        # Nothing else cleared the floor: fill from the held same-ministry picks.
+        # Nothing else cleared the floor: fill from the held same-ministry picks,
+        # then restore score order (a held pick can outscore a picked one).
         picked.extend(held[: k - len(picked)])
-        return picked
+        return sorted(picked, key=lambda m: (-m.score, m.id))
 
 
 def compute_related(entries: Sequence[_Entry], k: int = TOP_K) -> dict[str, list[Match]]:

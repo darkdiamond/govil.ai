@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { loadFullManifestServer } from "~/utils/search-index";
+import { loadSearchIndex } from "~/utils/search-index";
 
 useSeo({
   title: "מאגרי מידע ממשלתיים לפי נושא",
@@ -26,9 +26,10 @@ interface TopicGroup {
 
 // Bake only the grouped [tag, slug, count] rows into the payload. Topics keep
 // the vocabulary's order; tags within a topic are count DESC (tag_index order).
+// The slim index (not the server-only manifest): with payloadExtraction off,
+// a client-side navigation here re-runs this fetcher in the browser.
 const { data } = await useAsyncData("tags-index", async () => {
-  if (!import.meta.server) return null;
-  const m = await loadFullManifestServer();
+  const m = await loadSearchIndex();
   const groups = new Map<string, TopicGroup>(
     (m.topics ?? []).map((t) => [
       t.id,

@@ -275,8 +275,10 @@ def build_tag_index(
 
 
 _LEGACY_URL_UNSAFE = re.compile(r"[\s/?#&]+")
-# Firebase Hosting `source` glob syntax.
-_GLOB_META = re.compile(r"[*:{}!?\\\[\]]")
+# A legacy segment may become a Firebase Hosting redirect `source`, which is a
+# glob (`*`, `:name`, `{a,b}`, extglob `@(a|b)`, …). Allowlist, not denylist:
+# letters, digits, `_ - . ,` and quote marks only.
+_SAFE_SEGMENT = re.compile(r"^[\w\-.,'\"״׳]+$")
 
 
 def legacy_tag_slug_map(raw_tags: Iterable[str]) -> dict[str, str]:
@@ -311,12 +313,12 @@ def tag_redirects(
     are left to 404.
 
     Segments become Firebase redirect `source` patterns, and the raw tags
-    come from CKAN: one carrying glob syntax (`*`, `:name`, `{a,b}`, …)
-    could capture live URLs, so such segments are never emitted."""
+    come from CKAN: one carrying glob syntax could capture live URLs, so
+    only segments of plain characters (`_SAFE_SEGMENT`) are emitted."""
     live = {v["slug"] for v in tag_index.values()}
     out: dict[str, str] = {}
     for raw, old in legacy_tag_slug_map(raw_tags).items():
-        if old in live or _GLOB_META.search(old):
+        if old in live or not _SAFE_SEGMENT.match(old):
             continue
         tag = taxonomy.resolve(raw, drop_names)
         if tag in tag_index:
@@ -418,7 +420,11 @@ def pending_tags_path(dataset_id: str) -> Path:
     return PENDING_ROOT / dataset_id / "tags.json"
 
 
-def validate_assignment(taxonomy: Taxonomy, tags: Sequence[str]) -> list[str]:
+def validate_assignment(taxonomy: Taxonomy, tags: object) -> list[str]:
+    # Pending files are hand/agent-written JSON: a string or object must be
+    # rejected, not iterated as characters or keys.
+    if not isinstance(tags, list) or not all(isinstance(t, str) for t in tags):
+        return [f"must be a JSON list of tag strings, got {type(tags).__name__}"]
     problems = []
     if not MIN_ASSIGNED <= len(tags) <= MAX_ASSIGNED:
         problems.append(f"{len(tags)} tags; use {MIN_ASSIGNED}–{MAX_ASSIGNED}")

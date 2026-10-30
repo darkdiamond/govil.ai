@@ -254,8 +254,10 @@ def _write_search_index(out_root: Path, manifest: Manifest) -> Path:
         include={
             "version": True,
             "generated_at": True,
-            "tag_index": {"__all__": {"slug", "topic", "count"}},
-            "topics": {"__all__": {"id", "label_he"}},
+            # Whole: tag pages are reached by client-side navigation, so
+            # they build from this index (payloadExtraction is off).
+            "tag_index": True,
+            "topics": True,
             "datasets": {"__all__": _SEARCH_INDEX_FIELDS},
         },
     ).encode("utf-8")

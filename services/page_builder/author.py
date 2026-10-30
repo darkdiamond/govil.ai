@@ -47,9 +47,11 @@ from .recipe import (
     lint_template,
 )
 from .refresh import fetch_inputs, render_page, run_compute
+from .tags import PENDING_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-AUTHORING_ROOT = REPO_ROOT / "tmp" / "authoring"
+# One definition: tags.py parks batch-authored tags here too.
+AUTHORING_ROOT = PENDING_ROOT
 PREVIEW_OUT_ROOT = REPO_ROOT / "tmp" / "model_test"
 RECIPES_ROOT = REPO_ROOT / "recipes"
 

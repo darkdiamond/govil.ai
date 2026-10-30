@@ -122,17 +122,7 @@ function ensureSearchIndex(): void {
       JSON.stringify({
         version: m.version,
         generated_at: m.generated_at,
-        tag_index: Object.fromEntries(
-          Object.entries(m.tag_index ?? {}).map(([k, v]) => {
-            // SAFETY: tag_index values are parsed JSON objects from the publisher
-            const t = v as unknown as {
-              slug: string;
-              topic?: string;
-              count: number;
-            };
-            return [k, { slug: t.slug, topic: t.topic, count: t.count }];
-          })
-        ),
+        tag_index: m.tag_index,
         topics: m.topics,
         datasets,
       })

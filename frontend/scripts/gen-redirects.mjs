@@ -109,11 +109,13 @@ for (const d of datasets) {
 let tagCount = 0;
 const seenSources = new Set();
 // Segments derive from CKAN tags; a source with Firebase glob syntax could
-// capture live URLs (the publisher already skips these — belt and braces).
-const GLOB_META = /[*:{}!?\\[\]]/;
+// capture live URLs. Allowlist plain characters only — tags.py::_SAFE_SEGMENT,
+// which already filters these (belt and braces), plus the space the fixed
+// OLD_SPACE_TAGS sources carry (not glob syntax).
+const SAFE_SEGMENT = /^[\p{L}\p{N}_\-.,'"״׳ ]+$/u;
 function addTag(source, destination) {
   if (!destination || seenSources.has(source)) return;
-  if (GLOB_META.test(source.slice("/tags/".length, -1))) return;
+  if (!SAFE_SEGMENT.test(source.slice("/tags/".length, -1))) return;
   seenSources.add(source);
   redirects.push({ source, destination, type: 301 });
   tagCount++;

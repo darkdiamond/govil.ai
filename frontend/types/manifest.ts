@@ -157,8 +157,8 @@ export interface SearchIndex {
   version: number;
   generated_at: string;
   datasets: SlimEntry[];
-  tag_index?: Record<string, Pick<TagIndexEntry, "slug" | "topic" | "count">>;
-  topics?: Pick<Topic, "id" | "label_he">[];
+  tag_index?: Record<string, TagIndexEntry>;
+  topics?: Topic[];
 }
 
 /** One paged tag (≥ TAG_PAGE_MIN datasets), keyed by its canonical name.

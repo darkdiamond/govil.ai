@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
-import { loadFullManifestServer } from "~/utils/search-index";
-import type { SlimEntry } from "~/types/manifest";
+import { loadSearchIndex } from "~/utils/search-index";
 
 const route = useRoute();
 const slug = computed(() => String(route.params.slug));
@@ -15,30 +14,17 @@ interface Chip {
 // Resolve the URL slug to its canonical tag via the publisher's tag_index
 // (paged tags only), then bake only this tag's data into the page payload
 // (the key must include the slug — colliding keys would cross-pollinate).
+// Built from the slim index, not the server-only manifest: tag chips are
+// NuxtLinks, and with payloadExtraction off a client-side navigation
+// re-runs this fetcher in the browser.
 const { data } = await useAsyncData(`tag-${slug.value}`, async () => {
-  if (!import.meta.server) return null;
-  const m = await loadFullManifestServer();
+  const m = await loadSearchIndex();
   const index = m.tag_index ?? {};
   const found = Object.entries(index).find(([, t]) => t.slug === slug.value);
   if (!found) return null;
   const [tag, info] = found;
   const topic = (m.topics ?? []).find((t) => t.id === info.topic);
-  const entries: SlimEntry[] = m.datasets
-    .filter((d) => (d.tags ?? []).includes(tag))
-    .map((d) => ({
-      id: d.id,
-      page_slug: d.page_slug,
-      title: d.title,
-      organization: d.organization,
-      organization_slug: d.organization_slug,
-      summary_he: d.summary_he,
-      dataset_kind: d.dataset_kind,
-      formats: d.formats,
-      tags: d.tags,
-      record_count: d.record_count,
-      metadata_modified: d.metadata_modified,
-      source_status: d.source_status,
-    }));
+  const entries = m.datasets.filter((d) => (d.tags ?? []).includes(tag));
   const orgTitles = new Map(
     m.datasets.map((d) => [d.organization_slug, d.organization])
   );
