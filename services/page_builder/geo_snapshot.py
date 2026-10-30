@@ -131,12 +131,19 @@ def _map_lines(geom: dict, fn) -> dict:
 
 
 def detect_crs(features: list[dict], prj: str = "") -> str:
-    """'wgs84' or 'itm', from the .prj when there is one, else the numbers."""
+    """'wgs84' or 'itm', from the .prj when there is one, else the numbers.
+    A geographic .prj (no PROJCS) is degrees whatever its datum (GCS_Israel
+    included: the datum shift is metres). Only the ITM grid is projected;
+    the old Israeli Cassini grid and anything else are refused."""
     p = prj.lower()
-    if "israel" in p or re.search(r"\bitm\b", p) or "2039" in p:
-        return "itm"
-    if p and ("gcs_wgs_1984" in p or "wgs_1984" in p or "wgs 84" in p) and "projcs" not in p:
-        return "wgs84"
+    if p:
+        if "projcs" not in p:
+            return "wgs84"
+        if "cassini" in p or "palestine" in p or "israel_cs" in p:
+            raise SnapshotError("old Israeli Cassini grid (ICS) is not supported; export as ITM or WGS84")
+        if "israel_tm" in p or "israeli tm" in p or re.search(r"\bitm\b", p) or "2039" in p:
+            return "itm"
+        raise SnapshotError(f"unsupported projection in .prj: {prj[:80]}")
     for f in features:
         for x, y, *_ in _positions(f.get("geometry")):
             if abs(x) <= 180 and abs(y) <= 90:
@@ -178,6 +185,8 @@ def simplify(points: list, tol: float) -> list:
 def _clean(points: list, is_ring: bool, tol: float, project) -> list:
     pts = [[round(v, DECIMALS) for v in project(p[0], p[1])] for p in points]
     dedup = [p for i, p in enumerate(pts) if i == 0 or p != pts[i - 1]]
+    if not dedup:
+        raise SnapshotError("a line or ring with no points")
     out = simplify(dedup, tol)
     if is_ring:
         if out[0] != out[-1]:
@@ -231,18 +240,23 @@ def _local(tag: str) -> str:
     return tag.rsplit("}", 1)[-1]
 
 
+def _coords_of(el) -> list:
+    c = next((c for c in el.iter() if _local(c.tag) == "coordinates"), None)
+    pts = _kml_coords(c.text if c is not None else "")
+    if not pts:
+        raise SnapshotError(f"KML <{_local(el.tag)}> has no coordinates")
+    return pts
+
+
 def _kml_geometry(el) -> Optional[dict]:
     name = _local(el.tag)
-    find = lambda e, n: next((c for c in e.iter() if _local(c.tag) == n), None)
     if name == "Point":
-        return {"type": "Point", "coordinates": _kml_coords(find(el, "coordinates").text)[0]}
+        return {"type": "Point", "coordinates": _coords_of(el)[0]}
     if name == "LineString":
-        return {"type": "LineString", "coordinates": _kml_coords(find(el, "coordinates").text)}
+        return {"type": "LineString", "coordinates": _coords_of(el)}
     if name == "Polygon":
-        outer = [_kml_coords(find(b, "coordinates").text)
-                 for b in el if _local(b.tag) == "outerBoundaryIs"]
-        holes = [_kml_coords(find(b, "coordinates").text)
-                 for b in el if _local(b.tag) == "innerBoundaryIs"]
+        outer = [_coords_of(b) for b in el if _local(b.tag) == "outerBoundaryIs"]
+        holes = [_coords_of(b) for b in el if _local(b.tag) == "innerBoundaryIs"]
         return {"type": "Polygon", "coordinates": [*outer, *holes]}
     if name == "MultiGeometry":
         parts = [g for g in (_kml_geometry(c) for c in el) if g]
@@ -286,6 +300,8 @@ def _shp_geometry(rec: bytes) -> Optional[dict]:
     (stype,) = struct.unpack("<i", rec[:4])
     if stype == 0:
         return None
+    if stype not in (1, 3, 5, 8, 11, 13, 15, 18, 21, 23, 25, 28):  # 31 = MultiPatch
+        raise SnapshotError(f"unsupported shapefile shape type {stype}")
     base = stype % 10
     if base == 1:  # Point / PointZ / PointM
         x, y = struct.unpack("<2d", rec[4:20])
@@ -352,15 +368,27 @@ def _read_dbf(data: bytes, enc: str) -> list[dict]:
     return rows
 
 
+def _cpg_encoding(cpg: str) -> str:
+    """The .dbf codec from a .cpg ('UTF-8', '65001', 'ANSI 1255', '1255', …).
+    No .cpg: cp1255, what Hebrew ESRI exports default to."""
+    import codecs
+
+    raw = cpg.strip().lower() or "cp1255"
+    digits = re.sub(r"^(ansi|windows|cp)[ _-]*", "", raw)
+    name = "utf-8" if digits in ("65001", "utf8") else f"cp{digits}" if digits.isdigit() else raw
+    try:
+        return codecs.lookup(name).name
+    except LookupError:
+        raise SnapshotError(f".cpg names an unknown codepage {cpg.strip()!r}") from None
+
+
 def _read_shp(shp: bytes, dbf: Optional[bytes], cpg: str) -> list[dict]:
     geoms, pos = [], 100
     while pos + 8 <= len(shp):
         (length,) = struct.unpack(">i", shp[pos + 4:pos + 8])
         geoms.append(_shp_geometry(shp[pos + 8:pos + 8 + 2 * length]))
         pos += 8 + 2 * length
-    enc = (cpg.strip() or "cp1255").lower()
-    enc = {"utf8": "utf-8", "ansi 1255": "cp1255", "1255": "cp1255"}.get(enc, enc)
-    props = _read_dbf(dbf, enc) if dbf else [{} for _ in geoms]
+    props = _read_dbf(dbf, _cpg_encoding(cpg)) if dbf else [{} for _ in geoms]
     if len(props) != len(geoms):
         raise SnapshotError(f".shp has {len(geoms)} shapes but .dbf {len(props)} records")
     return [{"type": "Feature", "properties": p, "geometry": g}

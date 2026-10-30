@@ -201,19 +201,13 @@ class GcsRecipeRepo:
         return SourceConfig.model_validate_json(blob.download_as_bytes())
 
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
-        dest = scratch / dataset_id
-        dest.mkdir(parents=True, exist_ok=True)
-        def fetch(name: str) -> None:
+        def fetch(name: str, dest: Path) -> None:
             blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{name}")
             if not blob.exists():
                 raise RecipeError(f"recipe {dataset_id} missing {name} in GCS")
-            blob.download_to_filename(str(dest / name))
+            blob.download_to_filename(str(dest))
 
-        for name in RECIPE_FILES:
-            fetch(name)
-        for name in _snapshot_files(dest):
-            fetch(name)
-        return Recipe.load(dest)
+        return _load_remote(scratch / dataset_id, fetch)
 
 
 class GithubRecipeRepo:
@@ -281,30 +275,29 @@ class GithubRecipeRepo:
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
         if self._sha is None:
             self.list_ids()
-        dest = scratch / dataset_id
-        dest.mkdir(parents=True, exist_ok=True)
-        def fetch(name: str) -> None:
+        def fetch(name: str, dest: Path) -> None:
             r = self._get(
                 f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
                 f"recipes/{dataset_id}/{name}"
             )
-            (dest / name).write_bytes(r.content)
+            dest.write_bytes(r.content)
 
-        for name in RECIPE_FILES:
-            fetch(name)
-        for name in _snapshot_files(dest):
-            fetch(name)
-        return Recipe.load(dest)
+        return _load_remote(scratch / dataset_id, fetch)
 
 
-def _snapshot_files(recipe_dir: Path) -> list[str]:
-    """The snapshot files a downloaded recipe.json declares, so remote repos
-    fetch them too. The names are validated (plain `<name>.geojson`) before
-    they become paths."""
+def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:
+    """Download a recipe with `fetch(name, path)`: the fixed files, then the
+    snapshot files its recipe.json declares. The names are validated (plain
+    `<name>.geojson`) before they become paths."""
+    dest.mkdir(parents=True, exist_ok=True)
+    for name in RECIPE_FILES:
+        fetch(name, dest / name)
     manifest = RecipeManifest.model_validate_json(
-        (recipe_dir / MANIFEST_FILENAME).read_text(encoding="utf-8")
+        (dest / MANIFEST_FILENAME).read_text(encoding="utf-8")
     )
-    return manifest.snapshot_files
+    for name in manifest.snapshot_files:
+        fetch(name, dest / name)
+    return Recipe.load(dest)
 
 
 def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo:

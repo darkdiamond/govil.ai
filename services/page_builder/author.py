@@ -46,6 +46,7 @@ from .recipe import (
     TEMPLATE_FILENAME,
     Recipe,
     RecipeError,
+    RecipeInput,
     dump_model,
     kpi_format_findings,
     lint_template,
@@ -858,19 +859,25 @@ def snapshot(dataset_id: str, map_file: Path, resource_id: str, *, name: str = "
     if res.get("size") is not None and int(res["size"]) != map_file.stat().st_size:
         print(f"warning: {map_file.name} is {map_file.stat().st_size:,} bytes but CKAN says "
               f"{int(res['size']):,} — is it the file of resource {resource_id[:8]}?", file=sys.stderr)
-    dest = recipes_root / dataset_id / f"{name}.geojson"
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_bytes(body)
     snap_of = {k: v for k, v in {
         "size": res.get("size"), "hash": res.get("hash") or None,
         "last_modified": res.get("last_modified"),
         "taken_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
     }.items() if v is not None}
+    entry = {"name": name, "by_id": resource_id, "snapshot": f"{name}.geojson",
+             "snapshot_of": snap_of, "required_columns": []}
+    # Refuse here, before writing, what recipe.json would refuse later: a bad
+    # --name, or a CKAN resource with neither size nor hash to watch.
+    try:
+        RecipeInput.model_validate(entry)
+    except ValueError as e:
+        raise SystemExit(f"can't snapshot: {e}") from None
+    dest = recipes_root / dataset_id / entry["snapshot"]
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(body)
     print(f"{dest}: {len(features)} feature(s), {crs} → WGS84, "
           f"{len(body):,} bytes, simplify tolerance {tol}°", file=sys.stderr)
-    print(json.dumps({"name": name, "by_id": resource_id, "snapshot": dest.name,
-                      "snapshot_of": snap_of, "required_columns": []},
-                     ensure_ascii=False, indent=2))
+    print(json.dumps(entry, ensure_ascii=False, indent=2))
     return 0
 
 

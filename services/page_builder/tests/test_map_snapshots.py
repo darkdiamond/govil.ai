@@ -211,6 +211,28 @@ def test_github_repo_fetches_snapshot_files(tmp_path, monkeypatch):
     assert fetched[-1] == "geo.geojson" and (recipe.root / "geo.geojson").is_file()
 
 
+def test_gcs_repo_fetches_snapshot_files(tmp_path):
+    recipes = _with_snapshot(tmp_path)
+
+    class Blob:
+        def __init__(self, name):
+            self.path = recipes / name[len("recipes/"):]
+
+        def exists(self):
+            return self.path.is_file()
+
+        def download_to_filename(self, dest):
+            shutil.copyfile(self.path, dest)
+
+    repo = rf.GcsRecipeRepo.__new__(rf.GcsRecipeRepo)
+    repo._bucket = type("B", (), {"blob": lambda self, n: Blob(n)})()
+    repo.prefix = "recipes/"
+    assert (repo.load(DS, tmp_path / "scratch").root / "geo.geojson").is_file()
+    (recipes / DS / "geo.geojson").unlink()
+    with pytest.raises(RecipeError, match=r"missing geo\.geojson"):
+        repo.load(DS, tmp_path / "scratch2")
+
+
 # ── author verify with a snapshot input ──────────────────────────────────
 
 
@@ -316,6 +338,44 @@ def test_kml_and_nested_kmz(tmp_path):
         gs.read_map_file(tmp_path / "evil.kml")
 
 
+@pytest.mark.parametrize("prj, crs", [
+    ('PROJCS["Israel_TM_Grid",GEOGCS["GCS_Israel"]]', "itm"),
+    ('PROJCS["Israel 1993 / Israeli TM Grid"]', "itm"),
+    ('GEOGCS["GCS_Israel",DATUM["D_Israel"]]', "wgs84"),     # degrees, not ITM metres
+    ('GEOGCS["GCS_WGS_1984"]', "wgs84"),
+    ('PROJCS["Palestine_1923_Israel_CS_Grid"]', None),       # old Cassini grid: refused
+    ('PROJCS["WGS_1984_UTM_Zone_36N"]', None),
+])
+def test_detect_crs_from_prj(prj, crs):
+    feats = [{"geometry": {"type": "Point", "coordinates": [35.2, 31.7]}}]
+    if crs is None:
+        with pytest.raises(gs.SnapshotError):
+            gs.detect_crs(feats, prj)
+    else:
+        assert gs.detect_crs(feats, prj) == crs
+
+
+@pytest.mark.parametrize("cpg, enc", [
+    ("", "cp1255"), ("UTF-8", "utf-8"), ("65001", "utf-8"), ("ANSI 1255", "cp1255"), ("1252", "cp1252"),
+])
+def test_cpg_encoding(cpg, enc):
+    assert gs._cpg_encoding(cpg) == enc
+
+
+def test_converter_refuses_bad_input_cleanly(tmp_path):
+    with pytest.raises(gs.SnapshotError, match="unknown codepage"):
+        gs._cpg_encoding("klingon")
+    with pytest.raises(gs.SnapshotError, match="shape type 31"):
+        gs._shp_geometry(struct.pack("<i", 31) + b"\0" * 40)
+    (tmp_path / "e.kml").write_bytes(b'<kml><Placemark><Point><coordinates> </coordinates>'
+                                     b'</Point></Placemark></kml>')
+    with pytest.raises(gs.SnapshotError, match="no coordinates"):
+        gs.read_map_file(tmp_path / "e.kml")
+    empty = [{"properties": {}, "geometry": {"type": "LineString", "coordinates": []}}]
+    with pytest.raises(gs.SnapshotError, match="no points"):
+        gs.build_snapshot(empty, crs="wgs84")
+
+
 def test_simplify_shrinks_only_as_needed():
     line = [[35 + i / 1000, 31 + (i % 2) / 1e6] for i in range(2000)]  # zig-zag below 1 m
     feats = [{"type": "Feature", "properties": {}, "geometry": {"type": "LineString", "coordinates": line}}]
@@ -342,3 +402,8 @@ def test_author_snapshot_cli(tmp_path, capsys):
     with pytest.raises(SystemExit, match="belongs to dataset"):
         author.snapshot(DS, src, GEO_RID, recipes_root=tmp_path / "recipes",
                         resource_fn=lambda rid: {**res, "package_id": "other"})
+    # Refused before anything is written: nothing to watch, or a bad input name.
+    for kw, fn in (({}, lambda rid: {**res, "size": None}), ({"name": "geo-1"}, lambda rid: res)):
+        with pytest.raises(SystemExit, match="can't snapshot"):
+            author.snapshot(DS, src, GEO_RID, recipes_root=tmp_path / "other", resource_fn=fn, **kw)
+    assert not (tmp_path / "other").exists()
