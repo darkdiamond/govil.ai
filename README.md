@@ -73,7 +73,7 @@ services/
     local_sandbox.py             compute sandbox (subprocess, private workdir)
     podman_sandbox.py            shared sandbox result types (no longer a runtime sandbox)
     publish.py                   Firestore → data.json/agent_data.json/manifest.json
-    related.py / embeddings.py   related-dataset scoring (Voyage optional)
+    tags.py / related.py         tag vocabulary (taxonomy/) + content-based related datasets
     cli/preview.py               preview an authoring build in the prod shell
 agent/
   system-prompt.md             design reference for authoring (retired agent prompt)
@@ -91,8 +91,7 @@ frontend/                      Nuxt 3 (shell + home + category pages)
 
 ## Quick start
 
-Prereqs: Python 3.12, Node 22, and optionally a `VOYAGE_API_KEY` for
-embedding-driven relatedness. Authoring a recipe uses
+Prereqs: Python 3.12 and Node 22. Authoring a recipe uses
 [Claude Code](https://claude.com/claude-code); refreshing one needs no
 model at all.
 
@@ -122,9 +121,9 @@ npx serve .output/public
 - **Recipes** produce every page (`recipes/<id>/`), re-run by the daily
   job with no LLM — the run's cost is CKAN bandwidth and a few CPU
   minutes. Models run only at authoring time, locally, in Claude Code.
-- **Voyage** (optional, `VOYAGE_ENABLED`) computes a 1024-dim embedding
-  from title + summary + org + tags. Used by `related.py` to catch
-  semantically-similar datasets that don't share a literal tag.
+- **Tags and related datasets** are computed by the publisher with no
+  model or API: a curated tag vocabulary in `taxonomy/` and a TF-IDF +
+  tag-overlap score in `related.py`.
 - **Firebase Hosting** serves everything. Nuxt-generated shell + home +
   category pages wrap the recipe-rendered bodies at generate time.
 - **Cloud Run job** runs the daily builder (`--task-timeout` 6h bounds
@@ -138,14 +137,13 @@ staging bucket `govdata-il-staging`, region `me-west1`, publish target
 your own instance, override them via environment variables. Copy
 [`.env.example`](.env.example) to `.env` and set the ones you need:
 
-| Variable                            | Purpose                                                      |
-| ----------------------------------- | ------------------------------------------------------------ |
-| `FIRESTORE_PROJECT_ID`              | Firestore project (or use `FIRESTORE_EMULATOR_HOST` locally) |
-| `GCS_STAGING_BUCKET`                | Bucket each rendered `content.html` lands in                 |
-| `FIREBASE_PROJECT`                  | Firebase Hosting / GCP project for deploys                   |
-| `PUBLISH_GITHUB_REPO`               | `owner/repo` for publish dispatch, recipes and issues        |
-| `GITHUB_DISPATCH_TOKEN`             | PAT: workflow dispatch + Issues:write + recipe reads         |
-| `VOYAGE_API_KEY` / `VOYAGE_ENABLED` | Optional embedding-driven relatedness                        |
+| Variable                | Purpose                                                      |
+| ----------------------- | ------------------------------------------------------------ |
+| `FIRESTORE_PROJECT_ID`  | Firestore project (or use `FIRESTORE_EMULATOR_HOST` locally) |
+| `GCS_STAGING_BUCKET`    | Bucket each rendered `content.html` lands in                 |
+| `FIREBASE_PROJECT`      | Firebase Hosting / GCP project for deploys                   |
+| `PUBLISH_GITHUB_REPO`   | `owner/repo` for publish dispatch, recipes and issues        |
+| `GITHUB_DISPATCH_TOKEN` | PAT: workflow dispatch + Issues:write + recipe reads         |
 
 `.env` is gitignored — never commit secrets. See
 [`infra/DEPLOY.md`](infra/DEPLOY.md) for the full provisioning runbook.

@@ -16,7 +16,7 @@
 //      with stale SRI hashes, which fails integrity and noises up the
 //      console.
 //   4. Strip the legacy tag-chip row that older agent runs emit just
-//      under the H1. The chip taxonomy moved to AgentData.suggested_tags;
+//      under the H1. The chips are now the manifest's canonical `tags`;
 //      the shell now injects the row from there as <a> links.
 //   5. Inject the new chip row from `opts.titleChips` immediately after
 //      the first <h1>. Each chip is a real <a href="/tags/<slug>/">
@@ -77,7 +77,7 @@ function escapeHtml(s: string): string {
 
 export interface TitleChip {
   label: string;
-  href: string;
+  href?: string;
 }
 
 export interface NormalizeOptions {
@@ -85,9 +85,11 @@ export interface NormalizeOptions {
 }
 
 function buildChipRow(chips: TitleChip[]): string {
-  const parts = chips.map(
-    (c) =>
-      `<a href="${escapeHtml(c.href)}" class="tag-chip hover:bg-brand-100 no-underline hover:no-underline">${escapeHtml(c.label)}</a>`
+  // A tag without a page of its own (too few datasets) renders unlinked.
+  const parts = chips.map((c) =>
+    c.href
+      ? `<a href="${escapeHtml(c.href)}" class="tag-chip hover:bg-brand-100 no-underline hover:no-underline">${escapeHtml(c.label)}</a>`
+      : `<span class="tag-chip">${escapeHtml(c.label)}</span>`
   );
   return `<div class="flex flex-wrap gap-2 mb-6">${parts.join("")}</div>`;
 }

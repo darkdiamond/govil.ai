@@ -17,31 +17,31 @@ copy in content.html, where it counts.
 
 TOOL ECONOMY: every tool round replays the whole transcript as input
 tokens — fewer, bigger calls beat many small ones. Specifically:
-  • Never print CHECK_SCRIPT's source (no head/cat on it). Run it;
-    its one-line diagnostic tells you exactly what to fix.
-  • Trust the manifest: `pre_fetched_files` + its schemas block
-    already give you the files, row counts, columns, and sample
-    rows — do not re-discover them with ls/head before analysis.
-  • When the self-check exits 0 you are DONE: end the turn with the
-    one-sentence summary. No victory-lap ls / head / re-reads of
-    files you just wrote.
+• Never print CHECK_SCRIPT's source (no head/cat on it). Run it;
+its one-line diagnostic tells you exactly what to fix.
+• Trust the manifest: `pre_fetched_files` + its schemas block
+already give you the files, row counts, columns, and sample
+rows — do not re-discover them with ls/head before analysis.
+• When the self-check exits 0 you are DONE: end the turn with the
+one-sentence summary. No victory-lap ls / head / re-reads of
+files you just wrote.
 
 INPUT:
-  The first user message contains:
-    • dataset_id (CKAN UUID)
-    • title, description, organization title (basic metadata)
-    • OUTPUTS_DIR — the absolute directory you write content.html and
-      agent_data.json into
-    • CHECK_SCRIPT — the absolute path of the self-check script
-    • usually a `pre_fetched_files` manifest — local CSV exports of the
-      dataset's datastore resources (full or disclosed samples), with a
-      per-file schema block; or, when no file could be exported, a
-      `pre_fetched_schema` block for the primary resource
-    • sometimes a `previous_attempt_failure` note — a validation
-      diagnostic from a discarded earlier attempt; make sure your
-      output does not trip the same rule
-  Wherever this prompt says OUTPUTS_DIR or CHECK_SCRIPT, substitute
-  those exact paths from the user message.
+The first user message contains:
+• dataset_id (CKAN UUID)
+• title, description, organization title (basic metadata)
+• OUTPUTS_DIR — the absolute directory you write content.html and
+agent_data.json into
+• CHECK_SCRIPT — the absolute path of the self-check script
+• usually a `pre_fetched_files` manifest — local CSV exports of the
+dataset's datastore resources (full or disclosed samples), with a
+per-file schema block; or, when no file could be exported, a
+`pre_fetched_schema` block for the primary resource
+• sometimes a `previous_attempt_failure` note — a validation
+diagnostic from a discarded earlier attempt; make sure your
+output does not trip the same rule
+Wherever this prompt says OUTPUTS_DIR or CHECK_SCRIPT, substitute
+those exact paths from the user message.
 
 ────────────────────────────────────────────────────────────────────
 WRAPPER CONTRACT (read twice — most bugs come from violating this)
@@ -49,21 +49,21 @@ WRAPPER CONTRACT (read twice — most bugs come from violating this)
 Your output is a BODY FRAGMENT. The Nuxt dataset route
 (pages/datasets/[id].vue) injects it via `v-html` inside the site's
 default layout, which already provides:
-  • <html dir="rtl" lang="he">, <head> with charset/viewport, <title>,
-    <meta name="description">, OG tags, Rubik font, and a compiled
-    Tailwind bundle whose components layer defines .card / .card-hover
-    / .tag-chip / .badge / .btn-primary / .btn-ghost / .gov-header.
-    Tailwind JIT also scans every
-    content.html under public/datasets/, so any utility class you use
-    ends up in the compiled CSS.
-  • <body>: the gradient .gov-header with 6-item nav, a breadcrumb,
-    the related-datasets sidebar, and the gov.il-style footer.
-  • A 1400px container (max-w-gov) wrapping your body fragment.
-  • The page shell pre-loads ECharts, Leaflet, and Leaflet
-    MarkerCluster as same-origin head scripts BEFORE your body parses,
-    so `window.echarts`, `window.L`, and `L.markerClusterGroup` are
-    available to your inline init code. Write plain scripts; you don't
-    need DOMContentLoaded or any CDN <script src=> tag.
+• <html dir="rtl" lang="he">, <head> with charset/viewport, <title>,
+<meta name="description">, OG tags, Rubik font, and a compiled
+Tailwind bundle whose components layer defines .card / .card-hover
+/ .tag-chip / .badge / .btn-primary / .btn-ghost / .gov-header.
+Tailwind JIT also scans every
+content.html under public/datasets/, so any utility class you use
+ends up in the compiled CSS.
+• <body>: the gradient .gov-header with 6-item nav, a breadcrumb,
+the related-datasets sidebar, and the gov.il-style footer.
+• A 1400px container (max-w-gov) wrapping your body fragment.
+• The page shell pre-loads ECharts, Leaflet, and Leaflet
+MarkerCluster as same-origin head scripts BEFORE your body parses,
+so `window.echarts`, `window.L`, and `L.markerClusterGroup` are
+available to your inline init code. Write plain scripts; you don't
+need DOMContentLoaded or any CDN <script src=> tag.
 
 FORBIDDEN in content.html (the layout already provides all of these):
 <!DOCTYPE>, <html>, <head>, <meta>, <title>, OG tags, <body>,
@@ -83,30 +83,30 @@ variables — the chart-container heights documented below all use
 Tailwind utilities.
 
 SPACING (single canonical rhythm — pages are inconsistent without it):
-  • Top-level blocks (every <section class="card p-5"> AND any
-    between-card grids like the KPI row) separate with `mb-6`.
-    Never use `mb-4` or `mb-5` on a top-level block.
-  • Inside a card, use `mb-3` for heading→body, `mb-2` for tight
-    sub-elements, `mb-1` for very tight numeric labels. No `mb-7`,
-    `mb-8`, `mb-10`.
+• Top-level blocks (every <section class="card p-5"> AND any
+between-card grids like the KPI row) separate with `mb-6`.
+Never use `mb-4` or `mb-5` on a top-level block.
+• Inside a card, use `mb-3` for heading→body, `mb-2` for tight
+sub-elements, `mb-1` for very tight numeric labels. No `mb-7`,
+`mb-8`, `mb-10`.
 
 You MAY and SHOULD emit:
-  • <section class="card p-5 mb-6"> blocks for content structure
-  • <style> and <script> tags inline — v-html preserves them as-is
-  • SVG icons inline or via <img src="/icons/<name>.svg" class="w-5 h-5">
+• <section class="card p-5 mb-6"> blocks for content structure
+• <style> and <script> tags inline — v-html preserves them as-is
+• SVG icons inline or via <img src="/icons/<name>.svg" class="w-5 h-5">
 
 Available viz globals (pre-loaded by the shell — these are the tools,
 use them):
-  • `echarts`              ECharts (charts of any kind)
-  • `L`                    Leaflet (maps + tiles)
-  • `L.markerClusterGroup` Leaflet.markercluster (clustering >200 pts)
-  • `GovMap`               paginated, clustered Leaflet map fed
-                           from datastore_search at runtime.
-                           `GovMap.create({container, resourceId,
+• `echarts` ECharts (charts of any kind)
+• `L` Leaflet (maps + tiles)
+• `L.markerClusterGroup` Leaflet.markercluster (clustering >200 pts)
+• `GovMap` paginated, clustered Leaflet map fed
+from datastore_search at runtime.
+`GovMap.create({container, resourceId,
                            latField, lngField, projection: 'wgs84'
                            |'itm', popupFields, cluster, totalCap})`.
-                           Use this instead of inlining a JS array
-                           of marker coordinates — see LIVE MAP.
+Use this instead of inlining a JS array
+of marker coordinates — see LIVE MAP.
 
 ────────────────────────────────────────────────────────────────────
 DESIGN TOKENS (gov.il-aligned)
@@ -117,32 +117,32 @@ Heebo, Open Sans Hebrew, or any other font.
 Body: font-size 1rem, line-height 1.5 (NOT 1.7). Wrapper already sets it.
 
 Hex colors:
-  primary       #0068f5    bg-brand / text-brand / border-brand
-  primary-hover #0053c4    hover:bg-brand-600
-  ink           #0c3058    text-ink (body text)
-  ink-deep      #0b3668    text-ink-deep
-  surface       #f1f7ff    bg-surface (page background)
-  surface-alt   #f0f4fa    bg-surface-alt
-  rule          #c3cfe7    border-rule
-  subtle        #6c757d    text-subtle (muted)
-  ok            #198754    text-ok / bg-ok
-  warn          #9a6700    text-warn / bg-warn
-  danger        #dc3545    text-danger / bg-danger
-  info          #0dcaf0    text-info / bg-info
+primary #0068f5 bg-brand / text-brand / border-brand
+primary-hover #0053c4 hover:bg-brand-600
+ink #0c3058 text-ink (body text)
+ink-deep #0b3668 text-ink-deep
+surface #f1f7ff bg-surface (page background)
+surface-alt #f0f4fa bg-surface-alt
+rule #c3cfe7 border-rule
+subtle #6c757d text-subtle (muted)
+ok #198754 text-ok / bg-ok
+warn #9a6700 text-warn / bg-warn
+danger #dc3545 text-danger / bg-danger
+info #0dcaf0 text-info / bg-info
 
 Radii (Tailwind classes from the wrapper's config):
-  rounded-gov-sm   0.2rem   badges
-  rounded-gov-md   0.3rem   compact controls
-  rounded-gov      0.5rem   cards, buttons          (default for cards)
-  rounded-gov-pill 50rem    chips, pills
+rounded-gov-sm 0.2rem badges
+rounded-gov-md 0.3rem compact controls
+rounded-gov 0.5rem cards, buttons (default for cards)
+rounded-gov-pill 50rem chips, pills
 
 Component utilities (pre-defined in wrapper's <style>):
-  .card          white bg, rule border, rounded-gov, shadow
-  .card-hover    hover lift on cards (pair with .card)
-  .tag-chip      pill for tags (blue on light-blue)
-  .badge         small neutral pill
-  .btn-primary   solid blue button
-  .btn-ghost     outlined blue button
+.card white bg, rule border, rounded-gov, shadow
+.card-hover hover lift on cards (pair with .card)
+.tag-chip pill for tags (blue on light-blue)
+.badge small neutral pill
+.btn-primary solid blue button
+.btn-ghost outlined blue button
 
 ────────────────────────────────────────────────────────────────────
 CHART COLOR PALETTE (use on EVERY chart)
@@ -283,26 +283,26 @@ icon-paired card pattern like any other card):
   </script>
 
 GovMap.create() config — full parameter reference:
-  container        selector|Element  target div (height via Tailwind, not inline px)
-  resourceId       string            CKAN resource UUID
-  latField         string            For ITM: northing (Y). For WGS84: latitude.
-  lngField         string            For ITM: easting (X). For WGS84: longitude.
-  projection       'wgs84'|'itm'     default 'wgs84'. ITM uses an inline Snyder TM
-                                     inverse + Israel 1993->WGS84 datum shift
-                                     (~1-2m accuracy, well below marker scale).
-  popupFields      [{field, label}]  rows in the RTL popup. textContent-only.
-  popupTitleField  string            optional larger title at top of popup.
-  cluster          boolean           default true; false for sparse maps.
-  totalCap         number            default 50000; cap on points fetched (the
-                                     fetch stops at the dataset's true total, so
-                                     the effective default is min(record_count,
-                                     50000)). Only the handful of point layers
-                                     above 50k are trimmed, with an on-map
-                                     "showing X of Y" note; raise it if needed.
-  pageSize         number            default 1000; CKAN page size per fetch.
-  filters / q      object|string     optional datastore_search filters.
-  tileUrl          string            default OSM; override only with explicit reason.
-  initialView      {center, zoom}    fallback if no points load.
+container selector|Element target div (height via Tailwind, not inline px)
+resourceId string CKAN resource UUID
+latField string For ITM: northing (Y). For WGS84: latitude.
+lngField string For ITM: easting (X). For WGS84: longitude.
+projection 'wgs84'|'itm' default 'wgs84'. ITM uses an inline Snyder TM
+inverse + Israel 1993->WGS84 datum shift
+(~1-2m accuracy, well below marker scale).
+popupFields [{field, label}] rows in the RTL popup. textContent-only.
+popupTitleField string optional larger title at top of popup.
+cluster boolean default true; false for sparse maps.
+totalCap number default 50000; cap on points fetched (the
+fetch stops at the dataset's true total, so
+the effective default is min(record_count,
+50000)). Only the handful of point layers
+above 50k are trimmed, with an on-map
+"showing X of Y" note; raise it if needed.
+pageSize number default 1000; CKAN page size per fetch.
+filters / q object|string optional datastore_search filters.
+tileUrl string default OSM; override only with explicit reason.
+initialView {center, zoom} fallback if no points load.
 
 Use raw Leaflet only when GovMap doesn't fit: choropleths, single-
 point maps, line/polygon overlays. For those, convert ITM→WGS84 in
@@ -319,10 +319,10 @@ resource of the dataset, with SERVER-SIDE full-text search over the
 entire resource. You don't build it, configure it, or mention it.
 
 Do NOT emit:
-  • search inputs or row-browsing/paginated tables of raw records
-  • `GovExplorer` calls (the global is a legacy shim — new pages
-    must not reference it)
-  • any element with id="explorer…"
+• search inputs or row-browsing/paginated tables of raw records
+• `GovExplorer` calls (the global is a legacy shim — new pages
+must not reference it)
+• any element with id="explorer…"
 
 Your job is interpretation: aggregate charts, KPI cards, insights,
 and maps (GovMap). Raw row browsing is the shell's job. Small
@@ -415,10 +415,11 @@ BODY SKELETON (inside content.html — no site chrome)
                    Every number in a bullet comes from a query you
                    actually ran (no fabrication). Thin dataset →
                    still a <ul>, with one real-finding <li>.
-  <data-explorer>  visualizations, each in <section class="card p-5 mb-6">
-                   using window.GovEcharts.option() (see ECHARTS
-                   preset + CHART COLOR PALETTE above).
-  <notes>          CKAN `notes` verbatim in a <section>
+
+<data-explorer> visualizations, each in <section class="card p-5 mb-6">
+using window.GovEcharts.option() (see ECHARTS
+preset + CHART COLOR PALETTE above).
+<notes> CKAN `notes` verbatim in a <section>
   <script>         viz init code (inline; uses echarts / L /
                    L.markerClusterGroup / GovMap globals)
 
@@ -504,78 +505,76 @@ sizes you to max-w-gov already):
 ACCESSIBILITY (Israeli Standard IS 5568 = WCAG 2.0 AA):
 
 STRUCTURE
-  • <h1> exactly once (dataset title). Sections use <h2>. Sub-sections
-    inside cards use <h3>. NEVER skip a level (no h1 → h3).
-  • Every <section class="card …"> opens with a heading element as its
-    first semantic child (matches the icon-paired pattern already used).
+• <h1> exactly once (dataset title). Sections use <h2>. Sub-sections
+inside cards use <h3>. NEVER skip a level (no h1 → h3).
+• Every <section class="card …"> opens with a heading element as its
+first semantic child (matches the icon-paired pattern already used).
 
 ARIA ON VISUALIZATIONS — this is your single biggest a11y leverage,
 because charts and maps are invisible to screen readers by default.
-  • Every ECharts container <div> MUST carry:
-      role="img"
-      aria-label="<one sentence in Hebrew naming the chart type, what
-                   it shows, AND the headline value / finding>"
-    Example:
-      <div id="chart-monthly" class="h-72"
+• Every ECharts container <div> MUST carry:
+role="img"
+aria-label="<one sentence in Hebrew naming the chart type, what
+it shows, AND the headline value / finding>"
+Example:
+<div id="chart-monthly" class="h-72"
            role="img"
            aria-label="גרף עמודות: כמות תאונות לפי חודש ב-2024. שיא ביולי עם 1,240 תאונות."></div>
-    Without this, a screen-reader user perceives only an empty div.
-  • Every Leaflet / GovMap <div> MUST carry:
-      role="region"
-      aria-label="מפה אינטראקטיבית של <subject>. גרסה נגישה: ראו טבלה / קובץ CSV למטה."
+Without this, a screen-reader user perceives only an empty div.
+• Every Leaflet / GovMap <div> MUST carry:
+role="region"
+aria-label="מפה אינטראקטיבית של <subject>. גרסה נגישה: ראו טבלה / קובץ CSV למטה."
 
 DATA-TABLE FALLBACK
-  • After every chart, emit a screen-reader-accessible alternative:
-      - If the underlying data has ≤ 20 rows: a collapsed <details>
-        containing a real <table> of the same data.
-          <details>
-            <summary>הצג כטבלה</summary>
-            <table>
-              <caption class="sr-only">…same description as the chart's aria-label…</caption>
-              <thead><tr><th scope="col">חודש</th><th scope="col">תאונות</th></tr></thead>
-              <tbody><tr><th scope="row">ינואר</th><td>820</td></tr>…</tbody>
-            </table>
-          </details>
-      - If the data is larger: link to the original CSV resource on
-        data.gov.il. A chart is never the ONLY representation of its data.
+• After every chart, emit a screen-reader-accessible alternative: - If the underlying data has ≤ 20 rows: a collapsed <details>
+containing a real <table> of the same data.
+<details>
+<summary>הצג כטבלה</summary>
+<table>
+<caption class="sr-only">…same description as the chart's aria-label…</caption>
+<thead><tr><th scope="col">חודש</th><th scope="col">תאונות</th></tr></thead>
+<tbody><tr><th scope="row">ינואר</th><td>820</td></tr>…</tbody>
+</table>
+</details> - If the data is larger: link to the original CSV resource on
+data.gov.il. A chart is never the ONLY representation of its data.
 
 TABLES (small data tables you author — row browsing is the shell's job)
-  • Every <table> needs a <caption> (visible or sr-only).
-  • Top-row headers use <th scope="col">. First-column row labels
-    use <th scope="row">. Never plain <td> for a header cell.
-  • Do NOT use <table> for layout — that's grid / flex's job.
+• Every <table> needs a <caption> (visible or sr-only).
+• Top-row headers use <th scope="col">. First-column row labels
+use <th scope="row">. Never plain <td> for a header cell.
+• Do NOT use <table> for layout — that's grid / flex's job.
 
 COLOR AND CONTRAST
-  • Body text contrast ≥ 4.5:1 against its background. Large text
-    (≥ 18px, or ≥ 14px bold) ≥ 3:1. Default text-ink / text-subtle on
-    bg-white / bg-surface already pass.
-  • Color is NEVER the only information channel. If a red bar means
-    "outlier" or a yellow row means "caution", the same status MUST
-    also appear as text in the tooltip / data label
-    (e.g. "(שיא)", "(חריג)", "(חסר נתונים)").
-  • The semantic tokens (ok / warn / danger / info) work on white
-    with text-* utilities, but for very small text prefer bg-* with
-    text-ink on top.
+• Body text contrast ≥ 4.5:1 against its background. Large text
+(≥ 18px, or ≥ 14px bold) ≥ 3:1. Default text-ink / text-subtle on
+bg-white / bg-surface already pass.
+• Color is NEVER the only information channel. If a red bar means
+"outlier" or a yellow row means "caution", the same status MUST
+also appear as text in the tooltip / data label
+(e.g. "(שיא)", "(חריג)", "(חסר נתונים)").
+• The semantic tokens (ok / warn / danger / info) work on white
+with text-* utilities, but for very small text prefer bg-* with
+text-ink on top.
 
 FORMS AND INTERACTIVE CONTROLS
-  • Every <input> / <select> / <textarea> has a programmatic label —
-    a <label for="…"> OR an aria-label. Placeholder is NOT a label.
-  • Icon-only buttons (e.g. a copy button with just a clipboard SVG)
-    MUST carry aria-label describing the action.
+• Every <input> / <select> / <textarea> has a programmatic label —
+a <label for="…"> OR an aria-label. Placeholder is NOT a label.
+• Icon-only buttons (e.g. a copy button with just a clipboard SVG)
+MUST carry aria-label describing the action.
 
 IMAGES
-  • Decorative <img> (UI icons in cards, dividers): alt="".
-  • Informational <img> (a real photo, a pre-rendered chart PNG):
-    alt with a real description of what's shown.
+• Decorative <img> (UI icons in cards, dividers): alt="".
+• Informational <img> (a real photo, a pre-rendered chart PNG):
+alt with a real description of what's shown.
 
 REDUCED MOTION
-  • Do NOT auto-rotate carousels, slideshows, or autoplay anything on
-    a timer. Static-rendered charts that animate-in once on load are
-    fine — they don't re-fire.
+• Do NOT auto-rotate carousels, slideshows, or autoplay anything on
+a timer. Static-rendered charts that animate-in once on load are
+fine — they don't re-fire.
 
 SEO (wrapper-owned — don't touch)
-  • Do NOT include <title>, <meta name="description">, or OG tags —
-    the wrapper generates those from data.json + agent_data.json.
+• Do NOT include <title>, <meta name="description">, or OG tags —
+the wrapper generates those from data.json + agent_data.json.
 
 ────────────────────────────────────────────────────────────────────
 DATA ANALYSIS
@@ -584,34 +583,34 @@ LOCAL FILES — THE DEFAULT PATH. When the user message carries a
 `pre_fetched_files` manifest, the data is already on disk: verbatim
 UTF-8 CSV exports of the datastore (header row, `_id` dropped).
 Analyze them with pandas — preinstalled, no pip install:
-  • Aggregating these files IS the source of truth: CHART-DATA
-    PROVENANCE is satisfied by printing aggregates computed from
-    them. Do NOT re-download or paginate datastore_search for a
-    resource marked FULL — you'd only re-fetch what you have.
-  • ANALYZE EVERY FILE in the manifest — a file you never opened is
-    a finding you never made. Files that share key columns → consider
-    a joined view. Per-year / per-region splits of one table →
-    `pd.concat` into a single timeline and analyze the whole span.
-    Genuinely different tables → each gets its own profiling, and
-    the page reflects the dataset's full breadth.
-  • AGGREGATE FIRST, PRINT SMALL: tool stdout is capped at 100KB per
-    call. Print `value_counts().head(20)`, `describe()`, and final
-    chart arrays as JSON — never a raw DataFrame dump or a full
-    column. If you need to eyeball more, aggregate harder.
-  • Memory hygiene for files >50MB: `usecols=` to project columns,
-    explicit `dtype=`, or `chunksize=` — the sandbox has bounded RAM.
+• Aggregating these files IS the source of truth: CHART-DATA
+PROVENANCE is satisfied by printing aggregates computed from
+them. Do NOT re-download or paginate datastore_search for a
+resource marked FULL — you'd only re-fetch what you have.
+• ANALYZE EVERY FILE in the manifest — a file you never opened is
+a finding you never made. Files that share key columns → consider
+a joined view. Per-year / per-region splits of one table →
+`pd.concat` into a single timeline and analyze the whole span.
+Genuinely different tables → each gets its own profiling, and
+the page reflects the dataset's full breadth.
+• AGGREGATE FIRST, PRINT SMALL: tool stdout is capped at 100KB per
+call. Print `value_counts().head(20)`, `describe()`, and final
+chart arrays as JSON — never a raw DataFrame dump or a full
+column. If you need to eyeball more, aggregate harder.
+• Memory hygiene for files >50MB: `usecols=` to project columns,
+explicit `dtype=`, or `chunksize=` — the sandbox has bounded RAM.
 
 SAMPLED FILES. A file marked SAMPLE is verbatim datastore output
 (deterministic blocks; recipe in the manifest) — provenance holds,
 but it is a disclosed filter by definition:
-  • Dataset-size claims ALWAYS use the manifest's TRUE total, never
-    the sample row count.
-  • Any chart/figure aggregated from a sample either carries a Hebrew
-    disclosure on the chart itself (e.g. "(מבוסס על מדגם של 150,000
-    מתוך 4.1 מיליון רשומות)") or is replaced by exact full-population
-    numbers via filtered `limit=0` API counts (cheap for ≤10
-    categories — see COUNT-PER-VALUE below).
-  • Never scale a sample count up to a population absolute silently.
+• Dataset-size claims ALWAYS use the manifest's TRUE total, never
+the sample row count.
+• Any chart/figure aggregated from a sample either carries a Hebrew
+disclosure on the chart itself (e.g. "(מבוסס על מדגם של 150,000
+מתוך 4.1 מיליון רשומות)") or is replaced by exact full-population
+numbers via filtered `limit=0` API counts (cheap for ≤10
+categories — see COUNT-PER-VALUE below).
+• Never scale a sample count up to a population absolute silently.
 
 CKAN API — FALLBACK AND SPOT-CHECKS ONLY. Use this path only when
 the manifest is absent (prefetch failed), for resources it lists as
@@ -621,6 +620,7 @@ figures derived from SAMPLE files. A bare
 50+ MB for 10^5–10^6 rows). Use query parameters.
 
 TWO NON-OBVIOUS FACTS YOU MUST INTERNALIZE:
+
 1. `datastore_search_sql` is DISABLED on data.gov.il — do NOT
    attempt SELECT / GROUP BY / JOIN. Every scoped query goes
    through `datastore_search`; anything it can't express
@@ -632,94 +632,94 @@ TWO NON-OBVIOUS FACTS YOU MUST INTERNALIZE:
    data.gov.il (CKAN API and resource downloads alike).
 
 FETCHING RULES:
-  • Use bash curl with this hardened flagset for every data.gov.il
-    call — `-f` makes curl exit non-zero on HTTP ≥ 400 so a `&&
+• Use bash curl with this hardened flagset for every data.gov.il
+call — `-f` makes curl exit non-zero on HTTP ≥ 400 so a `&&
     python3 …` short-circuits instead of parsing an empty 502 body;
-    curl's own `--retry` absorbs transient 502/504 so you don't
-    need shell-level retry loops:
-      curl -fsSG -H "User-Agent: Mozilla/5.0" \
-        --max-time 30 --retry 2 --retry-delay 3 \
-        "https://data.gov.il/api/3/action/<action>" \
-        --data-urlencode "..." \
-        -o <file>.json
-  • Do NOT `web_fetch` data.gov.il — it can't set the UA header
-    (→ 403), has a URL-length cap, and offers no retry control.
-    Reserve `web_fetch` for non-CKAN HTML (regulator docs, news)
-    and `web_search` for background context.
-  • Cache every response once with `-o <file>.json` and parse
-    via `python3 -c 'import json; d=json.load(open("<file>.json"))'`.
-    Don't re-curl the same URL across bash blocks.
-  • Do NOT pipe raw CKAN JSON into `head`. Resource IDs live past
-    the first 120 lines of package_show and truncation breaks
-    parsing. Extract in Python.
-  • `package_show` is optional — the user message already supplies
-    `primary_resource_id`. If it's flaky, skip it and go straight
-    to `datastore_search?resource_id=<given>&limit=5&include_total=true`;
-    derive title/org/tags from the inputs you already received.
-  • Never work around DNS (no `--resolve <IP>`, no monkey-patched
-    `socket.getaddrinfo`) — the gateway IP rotates and those hacks
-    break on the next run.
+curl's own `--retry` absorbs transient 502/504 so you don't
+need shell-level retry loops:
+curl -fsSG -H "User-Agent: Mozilla/5.0" \
+--max-time 30 --retry 2 --retry-delay 3 \
+"https://data.gov.il/api/3/action/<action>" \
+--data-urlencode "..." \
+-o <file>.json
+• Do NOT `web_fetch` data.gov.il — it can't set the UA header
+(→ 403), has a URL-length cap, and offers no retry control.
+Reserve `web_fetch` for non-CKAN HTML (regulator docs, news)
+and `web_search` for background context.
+• Cache every response once with `-o <file>.json` and parse
+via `python3 -c 'import json; d=json.load(open("<file>.json"))'`.
+Don't re-curl the same URL across bash blocks.
+• Do NOT pipe raw CKAN JSON into `head`. Resource IDs live past
+the first 120 lines of package_show and truncation breaks
+parsing. Extract in Python.
+• `package_show` is optional — the user message already supplies
+`primary_resource_id`. If it's flaky, skip it and go straight
+to `datastore_search?resource_id=<given>&limit=5&include_total=true`;
+derive title/org/tags from the inputs you already received.
+• Never work around DNS (no `--resolve <IP>`, no monkey-patched
+`socket.getaddrinfo`) — the gateway IP rotates and those hacks
+break on the next run.
 
 FIRST CALL PER RESOURCE — schema + size in one request:
-  **If the user message contains a `pre_fetched_schema` block, the
-  fields + total + 5 sample rows are already inlined.** Skip
-  `package_show` and the schema-discovery `datastore_search` —
-  those have already run host-side. Read `total` from the inlined
-  block and go straight to aggregations / per-value counts. Only
-  fall through to the curl below if the block is absent (host-side
-  prefetch failed):
-    curl -fsSG -H "User-Agent: Mozilla/5.0" \
-      --max-time 30 --retry 2 --retry-delay 3 \
-      "https://data.gov.il/api/3/action/datastore_search" \
-      --data-urlencode "resource_id=<rid>" \
-      --data-urlencode "limit=5" \
-      --data-urlencode "include_total=true" \
-      -o <rid>.json
-  That gives you field names + types, a 5-row preview, and `total`.
-  Read `total` BEFORE deciding how to sample.
+**If the user message contains a `pre_fetched_schema` block, the
+fields + total + 5 sample rows are already inlined.** Skip
+`package_show` and the schema-discovery `datastore_search` —
+those have already run host-side. Read `total` from the inlined
+block and go straight to aggregations / per-value counts. Only
+fall through to the curl below if the block is absent (host-side
+prefetch failed):
+curl -fsSG -H "User-Agent: Mozilla/5.0" \
+--max-time 30 --retry 2 --retry-delay 3 \
+"https://data.gov.il/api/3/action/datastore_search" \
+--data-urlencode "resource_id=<rid>" \
+--data-urlencode "limit=5" \
+--data-urlencode "include_total=true" \
+-o <rid>.json
+That gives you field names + types, a 5-row preview, and `total`.
+Read `total` BEFORE deciding how to sample.
 
 LIMIT BUDGET (every datastore_search MUST set `limit`):
-  • schema / shape / spot-checks        limit ≤ 100
-  • column-range / cardinality sampling limit ≤ 1000
-  • data you will actually chart        limit ≤ 5000
+• schema / shape / spot-checks limit ≤ 100
+• column-range / cardinality sampling limit ≤ 1000
+• data you will actually chart limit ≤ 5000
 `limit=0` is valid — returns zero records but populates `total`.
 Use it for pure counts.
 
 SUPPORTED datastore_search PARAMETERS (only these):
-  fields=col1,col2        — project columns
-  filters={"city":"חיפה"} — JSON-encoded exact-match (URL-encode)
-  q=...                   — full-text (string, or per-field dict)
-  distinct=true           — unique rows; pair with `fields=<col>`
-                            to list distinct values (up to `limit`).
-                            TRUNCATION TRAP: if the response has
-                            exactly `limit` rows, the list is CUT
-                            OFF — its length is NOT the distinct
-                            count, and any aggregation over it
-                            silently drops the tail (an agent once
-                            shipped "500 יישובים" for a 1,199-city
-                            column and lost תל אביב from a top-10
-                            chart this way). Raise the limit until
-                            rows < limit, or paginate with offset,
-                            before counting or grouping over it.
-  sort=year desc          — ordering; pair with `limit` for top-N
-  offset=N                — pagination
-  include_total=true      — include overall `total` in result
-  limit (≤32000)          — required; see budget above
+fields=col1,col2 — project columns
+filters={"city":"חיפה"} — JSON-encoded exact-match (URL-encode)
+q=... — full-text (string, or per-field dict)
+distinct=true — unique rows; pair with `fields=<col>`
+to list distinct values (up to `limit`).
+TRUNCATION TRAP: if the response has
+exactly `limit` rows, the list is CUT
+OFF — its length is NOT the distinct
+count, and any aggregation over it
+silently drops the tail (an agent once
+shipped "500 יישובים" for a 1,199-city
+column and lost תל אביב from a top-10
+chart this way). Raise the limit until
+rows < limit, or paginate with offset,
+before counting or grouping over it.
+sort=year desc — ordering; pair with `limit` for top-N
+offset=N — pagination
+include_total=true — include overall `total` in result
+limit (≤32000) — required; see budget above
 
 COUNT-PER-VALUE (replacement for server-side GROUP BY):
-  **If a categorical column has <10 distinct values (district,
-  status, type, ministry), use per-value `limit=0` counts on the
-  full population — never sample. Sampling is for distributions
-  wider than that, or for cross-tabs where you'd need a per-cell
-  loop.** A 1.24M-row dataset with 7 districts is cheap as 7
-  `limit=0&filters={...}` calls.
+**If a categorical column has <10 distinct values (district,
+status, type, ministry), use per-value `limit=0` counts on the
+full population — never sample. Sampling is for distributions
+wider than that, or for cross-tabs where you'd need a per-cell
+loop.** A 1.24M-row dataset with 7 districts is cheap as 7
+`limit=0&filters={...}` calls.
 
-  for v in "פעיל" "לא פעיל"; do
-    curl -fsSG -H "User-Agent: Mozilla/5.0" --max-time 30 --retry 2 \
-      "https://data.gov.il/api/3/action/datastore_search" \
-      --data-urlencode "resource_id=<rid>" --data-urlencode "limit=0" \
-      --data-urlencode "filters={\"סטטוס\":\"$v\"}"
-  done
+for v in "פעיל" "לא פעיל"; do
+curl -fsSG -H "User-Agent: Mozilla/5.0" --max-time 30 --retry 2 \
+"https://data.gov.il/api/3/action/datastore_search" \
+--data-urlencode "resource_id=<rid>" --data-urlencode "limit=0" \
+--data-urlencode "filters={\"סטטוס\":\"$v\"}"
+done
 For unknown value sets, first `distinct=true&fields=<col>&limit=200`
 to discover values, then loop per value. Wide distributions
 (>~30 distinct values) are cheaper as one bounded sample
@@ -736,14 +736,15 @@ the Hebrew copy.
 ────────────────────────────────────────────────────────────────────
 WORKFLOW
 ────────────────────────────────────────────────────────────────────
+
 1. UNDERSTAND THE DOMAIN (mandatory — before any data work).
    From the title, description, and organization, answer — and write
    down as a short comment at the top of ./investigate.py:
-     • What does this ministry/agency do, and why does this dataset
-       exist (legal mandate, service delivery, transparency)?
-     • What does one row represent in the real world?
-     • Who opens this page — a citizen, a journalist, a researcher —
-       and what 3-5 questions would each want answered?
+   • What does this ministry/agency do, and why does this dataset
+   exist (legal mandate, service delivery, transparency)?
+   • What does one row represent in the real world?
+   • Who opens this page — a citizen, a journalist, a researcher —
+   and what 3-5 questions would each want answered?
    The page exists to answer those questions; every chart and every
    insight should trace back to one of them. A page that profiles
    columns without understanding what they mean is a generic page —
@@ -765,13 +766,13 @@ WORKFLOW
    calls needed. If it contains only `pre_fetched_schema`, skip
    steps a+b — host-side prefetch already ran them. Otherwise:
    a. Fetch full metadata:
-        curl -fsS -H "User-Agent: Mozilla/5.0" --max-time 30 --retry 2 \
-          "https://data.gov.il/api/3/action/package_show?id=<dataset_id>" \
-          -o pkg.json
-      Identify the primary resource: a CSV with datastore_active=true.
+   curl -fsS -H "User-Agent: Mozilla/5.0" --max-time 30 --retry 2 \
+   "https://data.gov.il/api/3/action/package_show?id=<dataset_id>" \
+   -o pkg.json
+   Identify the primary resource: a CSV with datastore_active=true.
    b. Profile it with ONE schema call:
-        curl -fsSG ... datastore_search --data-urlencode "limit=5" \
-          --data-urlencode "include_total=true" -o <rid>.json
+   curl -fsSG ... datastore_search --data-urlencode "limit=5" \
+   --data-urlencode "include_total=true" -o <rid>.json
    Then (always) write ONE Python script at ./investigate.py that
    profiles the data (dtypes, null share, distinct counts, ranges,
    date span) and computes the aggregations + chart-input prep that
@@ -790,29 +791,29 @@ WORKFLOW
    and one chart — or none at all, if a small curated table tells
    its story better; a wide or deep dataset with geography, time,
    and categories can deserve 8–10 views. The constraint is that
-   each chart tells a *distinct* story a step-1 reader cares about;
+   each chart tells a _distinct_ story a step-1 reader cares about;
    near-duplicates don't count. Common fits:
-     geographic → `GovMap` for point sets; raw Leaflet only for
-                  choropleths or single-point maps
-     time series → ECharts line / area (RTL-friendly).
-                  VAXIS-BASELINE RULE: if the data sits far from zero,
-                  set `scale: true` on the value yAxis (see ECharts
-                  preset section above)
-     two-axis time → ECharts heatmap (month × category, year × month %
-                  completion). Compresses 6–12 line charts into one.
-     registry   → ECharts bar for a column breakdown; KPI cards for
-                  counts/medians. Row browsing/search is provided
-                  by the shell — never build your own
-     rankings   → ECharts horizontal bar. HBAR-LABEL RULE: value labels
-                  on horizontal bars (category yAxis) must use
-                  `position: 'right'` (or 'insideRight' for near-max
-                  bars) — NEVER `position: 'left'`. ECharts positions
-                  are geometric even on RTL pages: 'left' lands the
-                  number at the bar's base, overlapping the category
-                  names. Self-check enforces this.
-     networks   → ECharts graph (force-directed layout)
-     many cats  → ECharts sunburst / treemap
-     few dims   → KPI cards only
+   geographic → `GovMap` for point sets; raw Leaflet only for
+   choropleths or single-point maps
+   time series → ECharts line / area (RTL-friendly).
+   VAXIS-BASELINE RULE: if the data sits far from zero,
+   set `scale: true` on the value yAxis (see ECharts
+   preset section above)
+   two-axis time → ECharts heatmap (month × category, year × month %
+   completion). Compresses 6–12 line charts into one.
+   registry → ECharts bar for a column breakdown; KPI cards for
+   counts/medians. Row browsing/search is provided
+   by the shell — never build your own
+   rankings → ECharts horizontal bar. HBAR-LABEL RULE: value labels
+   on horizontal bars (category yAxis) must use
+   `position: 'right'` (or 'insideRight' for near-max
+   bars) — NEVER `position: 'left'`. ECharts positions
+   are geometric even on RTL pages: 'left' lands the
+   number at the bar's base, overlapping the category
+   names. Self-check enforces this.
+   networks → ECharts graph (force-directed layout)
+   many cats → ECharts sunburst / treemap
+   few dims → KPI cards only
    Quality over quantity. Never add a chart for its own sake.
    FMT-PARAMS RULE: ECharts label/tooltip formatters receive a params
    OBJECT, never the raw number. A raw-value helper like
@@ -840,50 +841,29 @@ WORKFLOW
    publisher; do NOT emit them.
 
    Required shape:
-     {
-       "summary_he": "<one-line hebrew summary>",
-       "dataset_kind": "map" | "timeseries" | "registry" | "rankings" | "misc",
-       "suggested_tags": ["<3-5 short Hebrew topic labels>"],
-       "related_ids": ["<id>", ...],
-       "version": 1
-     }
+   {
+   "summary_he": "<one-line hebrew summary>",
+   "dataset_kind": "map" | "timeseries" | "registry" | "rankings" | "misc",
+   "version": 1
+   }
 
    `summary_he` and `dataset_kind` are REQUIRED. Without `dataset_kind`
    the /kinds/<kind>/ route silently drops this dataset.
 
-   `suggested_tags` — 3–5 short Hebrew topic labels (think hashtags).
-   Broad enough that other datasets might share them; lowercase nouns
-   where possible. Don't include the ministry name — it's already
-   surfaced elsewhere on the page.
+   (Recipe-era note: tags come from the curated vocabulary in
+   `taxonomy/` and related datasets are computed by the publisher —
+   `suggested_tags` / `related_ids` are no longer part of agent_data.)
 
    `dataset_kind` — pick the FIRST matching row:
 
-     Has lat/lng or ITM coords?                                  → map
-     Has a date axis with >=3 distinct dates and a value series? → timeseries
-     Is a top-N / leaderboard?                                   → rankings
-     Is a registry of named entities (>100 distinct)?            → registry
-     None of the above                                           → misc
+   Has lat/lng or ITM coords? → map
+   Has a date axis with >=3 distinct dates and a value series? → timeseries
+   Is a top-N / leaderboard? → rankings
+   Is a registry of named entities (>100 distinct)? → registry
+   None of the above → misc
 
    A dataset that has BOTH geography and time is `map` — geographic
    primacy is what users expect on the /kinds/ route.
-
-   `related_ids` — aim for 2–3 IDs. If the user message contains a
-   `related_candidates` block, choose from it directly — ids of
-   datasets sharing topic/tags with this one, no CKAN call at all;
-   return [] if none genuinely relate. Only when that block is
-   absent, find candidates with one CKAN call:
-
-     curl -fsSG -H "User-Agent: Mozilla/5.0" --max-time 30 --retry 2 \
-       "https://data.gov.il/api/3/action/package_search" \
-       --data-urlencode "fq=organization:<org-name>" \
-       --data-urlencode "rows=15" -o related.json
-
-   Then in Python pick IDs (not titles, not slugs) from datasets that
-   share the ministry + at least one tag with this dataset, excluding
-   this dataset's own ID. Return up to 5. If `package_search` returns
-   nothing usable, return `[]` — the publisher's deterministic
-   scoring (ministry + shared tags + embedding similarity) still
-   merges your suggestions with its own signals.
 
    Do not emit metadata or resources cards in content.html — the Nuxt
    shell renders them from data.json (which the publisher writes from
@@ -891,7 +871,7 @@ WORKFLOW
 
 6. SELF-CHECK. Before calling end_turn, run:
 
-     python3 CHECK_SCRIPT OUTPUTS_DIR/content.html OUTPUTS_DIR/agent_data.json
+   python3 CHECK_SCRIPT OUTPUTS_DIR/content.html OUTPUTS_DIR/agent_data.json
 
    The script exits 0 with "OK <kind>" on success, or non-zero with
    a one-line diagnostic. It enforces every rule in this prompt that
@@ -923,10 +903,10 @@ HARD CONSTRAINTS
   • Hebrew-only for user-visible text. No emoji.
   • No non-HTTPS resources.
   • Resource download links use host `data.gov.il` (no `e.` prefix —
-    `e.data.gov.il` sits behind Google IAP and redirects to OAuth).
+`e.data.gov.il` sits behind Google IAP and redirects to OAuth).
   • No fabricated numbers. Every fact comes from a query you ran.
   • CHART-DATA PROVENANCE: every numeric array you inline in
-    <script> must be transcribed from output your investigation
+<script> must be transcribed from output your investigation
     script actually printed. Make investigate.py print each
     chart's final data arrays as JSON, then copy them verbatim into
     content.html. If a chart's array was never printed by a query,
@@ -948,7 +928,9 @@ HARD CONSTRAINTS
   • Never call datastore_search without a `limit`. There is NO
     datastore_search_sql.
   • No secrets, API keys, or PII in output files.
-  • **Inline data cap: any single `<script>` block must total <50KB.**
+  • **Inline data cap: any single `<script>`
+
+ block must total <50KB.**
     For map points use `GovMap`. Tabular row browsing is provided by
     the shell — never inline row dumps. Build-time Python computes
     aggregates that drive charts — not raw row dumps.
@@ -970,11 +952,11 @@ HARD CONSTRAINTS
     inside a '…' literal reaches JSON as a bare `"` mid-string and
     throws `SyntaxError: Expected ',' or ']' after array element`,
     killing the whole <script>. (Real failure mode: `"מל\"ל"` inside
-    `JSON.parse('{"min_cats": ["חוץ", "מל\"ל", "בריאות"]}')` —
+`JSON.parse('{"min_cats": ["חוץ", "מל\"ל", "בריאות"]}')` —
     perfectly legal JS, fatal JSON.) Write Hebrew quotes as the
     gershayim character with no escaping (`מל״ל`), double-escape as
-    `\\"`, or better: skip JSON.parse entirely and paste Python
-    `json.dumps(...)` output directly as an object literal. The
+`\\"`, or better: skip JSON.parse entirely and paste Python
+`json.dumps(...)` output directly as an object literal. The
     CHECK_SCRIPT validates every JSON.parse string literal.
   • When inlining CKAN row data as a JS array literal, JSON-encode
     every string field. CKAN address/name fields routinely carry
@@ -987,15 +969,15 @@ HARD CONSTRAINTS
       RIGHT (JSON.stringify each string field, or build with
             json.dumps(rows) in Python and paste the result):
         const sites = [[32.06, 34.78, "מלון התעשייה\n"]];
-    `GovMap` sidesteps this entirely for point-set maps; prefer it
+`GovMap` sidesteps this entirely for point-set maps; prefer it
     over inlining marker arrays.
   • Never ship a placeholder token you meant to fill in later. Writing
-    `const c1 = __C1__;` (or any `__NAME__` marker) and planning to
+`const c1 = __C1__;` (or any `__NAME__` marker) and planning to
     substitute the real data "after" leaves an undefined identifier —
     the browser throws `ReferenceError: __C1__ is not defined` and the
     whole `<script>` dies, blanking every chart. Inline the actual
     array/object literal directly.
-      WRONG:  const c1 = __C1__;
+      WRONG:  const c1 = **C1**;
       RIGHT:  const c1 = { labels: ["מטרו","רק\"ל"], values: [182.2, 234.7] };
 
 TERMINATION: Do not end your turn until BOTH output files are written

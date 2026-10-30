@@ -15,11 +15,15 @@ adds the dataset's line to dataset-tags.json.
 
 Only tags carried by ≥ `TAG_PAGE_MIN` datasets get a /tags/<slug>/ page
 (`build_tag_index`); the rest render as plain chips. `tag_redirects` maps
-every URL the old raw-tag scheme produced to its canonical page (or /tags/).
+every URL the old raw-tag scheme produced to its canonical page, when it has one.
 
 Dev CLI (local curation only):
     python -m services.page_builder.tags suggest --manifest <manifest.json>
     python -m services.page_builder.tags report  --manifest <manifest.json>
+
+Authoring (writes taxonomy/dataset-tags.json, validated against the vocabulary):
+    python -m services.page_builder.tags assign <id> <tag> [<tag> ...]
+    python -m services.page_builder.tags assign --from-pending <id> [<id> ...]
 """
 from __future__ import annotations
 
@@ -164,9 +168,12 @@ class Taxonomy:
     @classmethod
     def load(
         cls,
-        vocab_path: Path = VOCAB_PATH,
-        assignments_path: Path = ASSIGNMENTS_PATH,
+        vocab_path: Optional[Path] = None,
+        assignments_path: Optional[Path] = None,
     ) -> "Taxonomy":
+        # Resolved at call time (not as defaults) so tests can repoint them.
+        vocab_path = vocab_path or VOCAB_PATH
+        assignments_path = assignments_path or ASSIGNMENTS_PATH
         vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
         assignments = (
             json.loads(assignments_path.read_text(encoding="utf-8"))
@@ -293,17 +300,21 @@ def tag_redirects(
     tag_index: dict[str, dict],
     drop_names: frozenset[str] = frozenset(),
 ) -> dict[str, str]:
-    """Legacy slug → new path, for every legacy URL that no longer serves its
-    own page: a merged variant goes to its canonical page, a tag without a
-    page goes to /tags/. Legacy slugs equal to a live page are omitted."""
+    """Legacy slug → `/tags/<slug>/`, for every legacy URL whose tag now
+    lives on a different canonical page (a merged variant or alias).
+
+    Legacy slugs that are still a live page are omitted, and so are tags
+    with no page any more (dropped, or under TAG_PAGE_MIN): redirecting a
+    gone page to an index is a soft-404 search engines penalise, so those
+    are left to 404."""
     live = {v["slug"] for v in tag_index.values()}
     out: dict[str, str] = {}
     for raw, old in legacy_tag_slug_map(raw_tags).items():
         if old in live:
             continue
         tag = taxonomy.resolve(raw, drop_names)
-        target = f"/tags/{tag_index[tag]['slug']}/" if tag in tag_index else "/tags/"
-        out[old] = target
+        if tag in tag_index:
+            out[old] = f"/tags/{tag_index[tag]['slug']}/"
     return dict(sorted(out.items()))
 
 
@@ -385,11 +396,71 @@ def _cmd_report(args: argparse.Namespace) -> int:
     print(f"paged tags ≥90% one ministry (count≥5): {len(one_ministry)} {one_ministry[:30]}")
     unused = sorted(t for t in tax.tags if t not in counts)
     print(f"vocabulary tags never displayed: {len(unused)} {unused[:40]}")
-    print(f"legacy raw tags: {len(raw)}; redirects: {len(redirects)} "
-          f"(→canonical {sum(1 for v in redirects.values() if v != '/tags/')})")
+    print(f"legacy raw tags: {len(raw)}; redirects to a canonical page: {len(redirects)}")
     missing = [d["id"] for d in datasets if d["id"] not in tax.assignments]
     if args.verbose and missing:
         print("not curated:", *missing, sep="\n  ")
+    return 0
+
+
+PENDING_ROOT = REPO_ROOT / "tmp" / "authoring"
+
+
+def pending_tags_path(dataset_id: str) -> Path:
+    """Where an authoring run parks a dataset's tags until they're merged into
+    dataset-tags.json (parallel authors never write the shared file)."""
+    return PENDING_ROOT / dataset_id / "tags.json"
+
+
+def validate_assignment(taxonomy: Taxonomy, tags: Sequence[str]) -> list[str]:
+    problems = []
+    if not MIN_ASSIGNED <= len(tags) <= MAX_ASSIGNED:
+        problems.append(f"{len(tags)} tags; use {MIN_ASSIGNED}–{MAX_ASSIGNED}")
+    if len(set(tags)) != len(tags):
+        problems.append("duplicate tags")
+    for t in tags:
+        if t not in taxonomy.tags:
+            hint = taxonomy.resolve(t)
+            problems.append(
+                f"{t!r} is not a canonical tag" + (f" (use {hint!r})" if hint in taxonomy.tags else "")
+            )
+    return problems
+
+
+def write_assignments(assignments: dict[str, list[str]], path: Optional[Path] = None) -> None:
+    (path or ASSIGNMENTS_PATH).write_text(
+        json.dumps(dict(sorted(assignments.items())), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _cmd_assign(args: argparse.Namespace) -> int:
+    tax = Taxonomy.load()
+    updates: dict[str, list[str]] = {}
+    if args.from_pending:
+        for sid in args.ids:
+            p = pending_tags_path(sid)
+            if not p.is_file():
+                print(f"{sid}: no {p}", file=sys.stderr)
+                return 1
+            updates[sid] = json.loads(p.read_text(encoding="utf-8"))
+    else:
+        if len(args.ids) < 2:
+            print("usage: assign <id> <tag> [<tag> ...]  |  assign --from-pending <id> ...",
+                  file=sys.stderr)
+            return 2
+        updates[args.ids[0]] = args.ids[1:]
+    bad = {sid: validate_assignment(tax, tags) for sid, tags in updates.items()}
+    bad = {k: v for k, v in bad.items() if v}
+    for sid, problems in bad.items():
+        print(f"{sid}: " + "; ".join(problems), file=sys.stderr)
+    if bad:
+        return 1
+    raw = json.loads(ASSIGNMENTS_PATH.read_text(encoding="utf-8")) if ASSIGNMENTS_PATH.exists() else {}
+    raw.update(updates)
+    write_assignments(raw)
+    for sid, tags in updates.items():
+        print(f"{sid}: {tags}")
     return 0
 
 
@@ -400,8 +471,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         p = sub.add_parser(name)
         p.add_argument("--manifest", required=True, help="a manifest.json to read")
         p.add_argument("-v", "--verbose", action="store_true")
+    p = sub.add_parser("assign", help="validate + write a dataset's tags into dataset-tags.json")
+    p.add_argument("--from-pending", action="store_true",
+                   help="read each id's tags from tmp/authoring/<id>/tags.json")
+    p.add_argument("ids", nargs="+", help="<id> <tag>... or, with --from-pending, <id>...")
     args = ap.parse_args(argv)
-    return {"suggest": _cmd_suggest, "report": _cmd_report}[args.cmd](args)
+    return {"suggest": _cmd_suggest, "report": _cmd_report, "assign": _cmd_assign}[args.cmd](args)
 
 
 if __name__ == "__main__":

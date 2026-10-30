@@ -1,116 +1,164 @@
 <script setup lang="ts">
-import { useFacets } from '~/composables/useManifest'
-import type { SlimEntry } from '~/types/manifest'
-import { loadSearchIndex } from '~/utils/search-index'
+import { useFacets } from "~/composables/useManifest";
+import type { SlimEntry } from "~/types/manifest";
+import { loadSearchIndex } from "~/utils/search-index";
 
 useSeo({
-  title: 'כל מאגרי המידע הממשלתיים — חיפוש, סינון ותקצירים בעברית',
-  description: 'סיור, חיפוש וסינון של כל מאגרי המידע הציבוריים של ממשלת ישראל — לפי משרד, פורמט ותגיות.',
-  path: '/datasets/',
+  title: "כל מאגרי המידע הממשלתיים — חיפוש, סינון ותקצירים בעברית",
+  description:
+    "סיור, חיפוש וסינון של כל מאגרי המידע הציבוריים של ממשלת ישראל — לפי משרד, פורמט ותגיות.",
+  path: "/datasets/",
   breadcrumbs: [
-    { name: 'ראשי', url: 'https://govil.ai/' },
-    { name: 'מאגרים', url: 'https://govil.ai/datasets/' },
+    { name: "ראשי", url: "https://govil.ai/" },
+    { name: "מאגרים", url: "https://govil.ai/datasets/" },
   ],
-})
+});
 
 // This page legitimately needs every entry (full-text search + facets), so
 // its prerendered payload inlines the whole slim index — still ~1/6 the old
 // manifest chunk, and no other page pays for it.
-const { data: indexData } = await useAsyncData('search-index', () => loadSearchIndex())
-const datasets = computed<SlimEntry[]>(() => indexData.value?.datasets ?? [])
-const facets = computed(() => useFacets(datasets.value))
-const organizations = computed(() => facets.value.organizations)
-const formats = computed(() => facets.value.formats)
+const { data: indexData } = await useAsyncData("search-index", () =>
+  loadSearchIndex()
+);
+const datasets = computed<SlimEntry[]>(() => indexData.value?.datasets ?? []);
+const facets = computed(() => useFacets(datasets.value));
+const organizations = computed(() => facets.value.organizations);
+const formats = computed(() => facets.value.formats);
 
-const route = useRoute()
-const router = useRouter()
+// Paged tags grouped by topic (vocabulary order; count DESC within a topic)
+// for the tag filter. Unknown ?tag= values are ignored, not errors.
+const tagGroups = computed(() => {
+  const index = indexData.value?.tag_index ?? {};
+  const groups = (indexData.value?.topics ?? []).map((t) => ({
+    id: t.id,
+    label: t.label_he,
+    tags: [] as [string, number][],
+  }));
+  const byId = new Map(groups.map((g) => [g.id, g]));
+  const other = {
+    id: "other",
+    label: "נושאים נוספים",
+    tags: [] as [string, number][],
+  };
+  for (const [name, t] of Object.entries(index)) {
+    ((t.topic && byId.get(t.topic)) || other).tags.push([name, t.count]);
+  }
+  return [...groups, other].filter((g) => g.tags.length);
+});
 
-type SortKey = 'gov' | 'site' | 'alpha'
-const SORT_KEYS = ['gov', 'site', 'alpha'] as const
+const route = useRoute();
+const router = useRouter();
+
+type SortKey = "gov" | "site" | "alpha";
+const SORT_KEYS = ["gov", "site", "alpha"] as const;
 const isSortKey = (v: unknown): v is SortKey =>
-  typeof v === 'string' && (SORT_KEYS as readonly string[]).includes(v)
+  typeof v === "string" && (SORT_KEYS as readonly string[]).includes(v);
 
-const orgFilter = ref<string | null>(null)
-const formatFilter = ref<string | null>(null)
-const initialQ = typeof route.query.q === 'string' ? route.query.q : ''
-const query = ref(initialQ)
-const debouncedQuery = ref(initialQ)
-const sortKey = ref<SortKey>(isSortKey(route.query.sort) ? route.query.sort : 'site')
+const orgFilter = ref<string | null>(null);
+const formatFilter = ref<string | null>(null);
+const tagFilter = ref<string>(
+  typeof route.query.tag === "string" ? route.query.tag : ""
+);
+const initialQ = typeof route.query.q === "string" ? route.query.q : "";
+const query = ref(initialQ);
+const debouncedQuery = ref(initialQ);
+const sortKey = ref<SortKey>(
+  isSortKey(route.query.sort) ? route.query.sort : "site"
+);
 
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 watch(query, (q) => {
-  if (debounceTimer) clearTimeout(debounceTimer)
+  if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
-    debouncedQuery.value = q
-  }, 150)
-})
+    debouncedQuery.value = q;
+  }, 150);
+});
 onBeforeUnmount(() => {
-  if (debounceTimer) clearTimeout(debounceTimer)
-})
+  if (debounceTimer) clearTimeout(debounceTimer);
+});
 
 watch(debouncedQuery, (q) => {
-  const next = q.trim() ? { ...route.query, q: q.trim() } : { ...route.query, q: undefined }
-  router.replace({ query: next })
-})
+  const next = q.trim()
+    ? { ...route.query, q: q.trim() }
+    : { ...route.query, q: undefined };
+  router.replace({ query: next });
+});
 
 const filtered = computed<SlimEntry[]>(() => {
-  const q = debouncedQuery.value.trim().toLowerCase()
+  const q = debouncedQuery.value.trim().toLowerCase();
   return datasets.value.filter((d) => {
-    if (orgFilter.value && d.organization !== orgFilter.value) return false
-    if (formatFilter.value && !d.formats.includes(formatFilter.value)) return false
+    if (orgFilter.value && d.organization !== orgFilter.value) return false;
+    if (formatFilter.value && !d.formats.includes(formatFilter.value))
+      return false;
+    if (tagFilter.value && !(d.tags ?? []).includes(tagFilter.value))
+      return false;
     if (q) {
-      const hay = `${d.title} ${d.summary_he ?? ''} ${d.tags_he.join(' ')} ${(d.suggested_tags ?? []).join(' ')}`.toLowerCase()
-      if (!hay.includes(q)) return false
+      const hay =
+        `${d.title} ${d.summary_he ?? ""} ${(d.tags ?? []).join(" ")}`.toLowerCase();
+      if (!hay.includes(q)) return false;
     }
-    return true
-  })
-})
+    return true;
+  });
+});
 
 const tsDesc = (a?: string, b?: string) =>
-  (b ? Date.parse(b) : 0) - (a ? Date.parse(a) : 0)
+  (b ? Date.parse(b) : 0) - (a ? Date.parse(a) : 0);
 
 const sortedFiltered = computed<SlimEntry[]>(() => {
-  const list = [...filtered.value]
-  if (sortKey.value === 'site') {
-    list.sort((a, b) => tsDesc(a.last_analyzed_at, b.last_analyzed_at))
-  } else if (sortKey.value === 'alpha') {
-    list.sort((a, b) => a.title.localeCompare(b.title, 'he'))
+  const list = [...filtered.value];
+  if (sortKey.value === "site") {
+    list.sort((a, b) => tsDesc(a.last_analyzed_at, b.last_analyzed_at));
+  } else if (sortKey.value === "alpha") {
+    list.sort((a, b) => a.title.localeCompare(b.title, "he"));
   } else {
-    list.sort((a, b) => tsDesc(a.metadata_modified, b.metadata_modified))
+    list.sort((a, b) => tsDesc(a.metadata_modified, b.metadata_modified));
   }
-  return list
-})
+  return list;
+});
 
 function clear() {
-  orgFilter.value = null
-  formatFilter.value = null
-  query.value = ''
-  debouncedQuery.value = ''
+  orgFilter.value = null;
+  formatFilter.value = null;
+  tagFilter.value = "";
+  query.value = "";
+  debouncedQuery.value = "";
 }
 
 watch(
   () => route.query.q,
   (q) => {
-    const v = typeof q === 'string' ? q : ''
+    const v = typeof q === "string" ? q : "";
     if (v !== query.value) {
-      query.value = v
-      debouncedQuery.value = v
+      query.value = v;
+      debouncedQuery.value = v;
     }
-  },
-)
+  }
+);
+
+watch(tagFilter, (t) => {
+  router.replace({ query: { ...route.query, tag: t || undefined } });
+});
+
+watch(
+  () => route.query.tag,
+  (t) => {
+    const v = typeof t === "string" ? t : "";
+    if (v !== tagFilter.value) tagFilter.value = v;
+  }
+);
 
 watch(sortKey, (s) => {
-  const next = { ...route.query, sort: s === 'site' ? undefined : s }
-  router.replace({ query: next })
-})
+  const next = { ...route.query, sort: s === "site" ? undefined : s };
+  router.replace({ query: next });
+});
 
 watch(
   () => route.query.sort,
   (s) => {
-    const v = isSortKey(s) ? s : 'site'
-    if (v !== sortKey.value) sortKey.value = v
-  },
-)
+    const v = isSortKey(s) ? s : "site";
+    if (v !== sortKey.value) sortKey.value = v;
+  }
+);
 </script>
 
 <template>
@@ -121,9 +169,12 @@ watch(
       </div>
       <h1 class="font-display">כל המאגרים</h1>
       <p class="text-subtle mt-2 max-w-2xl">
-        {{ datasets.length }} מאגרים מאורגנים לפי משרד, פורמט ותגיות. לחץ על מאגר כדי לראות את דף ה-AI שנכתב עבורו.
+        {{ datasets.length }} מאגרים מאורגנים לפי משרד, פורמט ותגיות. לחץ על
+        מאגר כדי לראות את דף ה-AI שנכתב עבורו.
       </p>
-      <label class="mt-4 flex items-center gap-2 bg-white border border-rule rounded-gov px-3 py-2 max-w-xl focus-within:border-brand transition-colors">
+      <label
+        class="mt-4 flex items-center gap-2 bg-white border border-rule rounded-gov px-3 py-2 max-w-xl focus-within:border-brand transition-colors"
+      >
         <img src="/icons/search.svg" alt="" class="w-5 h-5 opacity-70" />
         <input
           v-model="query"
@@ -140,7 +191,7 @@ watch(
           <span class="text-subtle">{{ filtered.length }} מאגרים זמינים</span>
           <div class="flex items-center gap-3">
             <button
-              v-if="orgFilter || formatFilter || query"
+              v-if="orgFilter || formatFilter || tagFilter || query"
               @click="clear"
               class="text-brand hover:underline"
             >
@@ -160,8 +211,14 @@ watch(
           </div>
         </div>
 
-        <div v-if="datasets.length === 0" class="card p-6 text-center text-subtle">
-          <p class="m-0">רשימת המאגרים לא נטענה. נסו לרענן את הדף, או חזרו <NuxtLink to="/">לעמוד הראשי</NuxtLink>.</p>
+        <div
+          v-if="datasets.length === 0"
+          class="card p-6 text-center text-subtle"
+        >
+          <p class="m-0">
+            רשימת המאגרים לא נטענה. נסו לרענן את הדף, או חזרו
+            <NuxtLink to="/">לעמוד הראשי</NuxtLink>.
+          </p>
         </div>
 
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -170,6 +227,25 @@ watch(
       </div>
 
       <aside class="space-y-4">
+        <div v-if="tagGroups.length" class="card p-4">
+          <label
+            for="tag-filter"
+            class="block m-0 mb-2 text-sm text-subtle font-display"
+            >נושא</label
+          >
+          <select
+            id="tag-filter"
+            v-model="tagFilter"
+            class="w-full bg-white border border-rule rounded-gov px-2 py-1.5 text-sm text-ink focus:border-brand outline-none"
+          >
+            <option value="">כל הנושאים</option>
+            <optgroup v-for="g in tagGroups" :key="g.id" :label="g.label">
+              <option v-for="[t, n] in g.tags" :key="t" :value="t">
+                {{ t }} · {{ n }}
+              </option>
+            </optgroup>
+          </select>
+        </div>
         <div class="card p-4">
           <h3 class="m-0 mb-2 text-sm text-subtle font-display">ארגון</h3>
           <ul class="list-none m-0 p-0 space-y-1">
@@ -192,7 +268,10 @@ watch(
               v-for="[fmt, n] in formats"
               :key="fmt"
               class="badge hover:bg-brand-50"
-              :class="{ '!bg-brand-50 !text-brand-700 !border-brand-100': formatFilter === fmt }"
+              :class="{
+                '!bg-brand-50 !text-brand-700 !border-brand-100':
+                  formatFilter === fmt,
+              }"
               @click="formatFilter = formatFilter === fmt ? null : fmt"
             >
               {{ fmt }} · {{ n }}

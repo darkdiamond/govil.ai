@@ -20,6 +20,8 @@ interface RelatedEntry {
   title: string;
   organization?: string;
   summary_he?: string;
+  /** Paged tags this dataset shares with the page, most specific first. */
+  shared_tags?: string[];
 }
 
 const { data } = await useAsyncData(`dataset-${slug}`, async () => {
@@ -57,10 +59,10 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
   const agent = (agentRaw ? JSON.parse(agentRaw) : null) as AgentData | null;
 
   // Merge into a ManifestEntry-shaped object so existing template paths
-  // (entry.summary_he, entry.dataset_kind, …) keep working. related_ids is
-  // sourced from the manifest in the `related` computed below — that's the
-  // publisher's deterministic top-K (ministry + tags + cosine + agent),
-  // not the agent's raw suggestions.
+  // (entry.summary_he, entry.dataset_kind, …) keep working. `tags` and
+  // `related_ids` are publisher-computed (canonical tags from taxonomy/,
+  // content-based related picks) and come from the manifest entry, not
+  // from agent_data's deprecated suggested_tags / related_ids.
   const entry: ManifestEntry = {
     ...meta,
     summary_he: agent?.summary_he,
@@ -68,17 +70,24 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
     temporal_coverage: agent?.temporal_coverage as string | undefined,
     spatial_coverage: agent?.spatial_coverage as string | undefined,
     suggested_tags: (agent?.suggested_tags as string[] | undefined) ?? [],
+    tags: me.tags ?? [],
     related_ids: [],
   };
 
   // Resolve everything this page needs from the full manifest HERE, at
   // prerender time, so the client never ships or fetches manifest data:
   // the publisher's deterministic related_ids → 5 sidebar snippets, plus
-  // the tag→slug map for just this page's chips. Both land in the inlined
-  // payload alongside entry/rawBody.
+  // the tag→slug map for just this page's chips (paged tags only — the
+  // rest render unlinked). Both land in the inlined payload alongside
+  // entry/rawBody.
   let related: RelatedEntry[] = [];
   let tagSlugs: Record<string, string> = {};
   try {
+    const tagIndex = manifest.tag_index ?? {};
+    for (const t of entry.tags ?? []) {
+      const slug = tagIndex[t]?.slug;
+      if (slug) tagSlugs[t] = slug;
+    }
     const byId = new Map(manifest.datasets.map((d) => [d.id, d]));
     related = (me.related_ids ?? [])
       .map((rid) => byId.get(rid))
@@ -90,14 +99,13 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
         title: d.title,
         organization: d.organization,
         summary_he: d.summary_he,
+        // The most specific shared paged tags (fewest datasets) say why
+        // this one is related; the broad topic tag rarely does.
+        shared_tags: (d.tags ?? [])
+          .filter((t) => t in tagSlugs)
+          .sort((a, b) => tagIndex[a]!.count - tagIndex[b]!.count)
+          .slice(0, 2),
       }));
-    const slugMap = manifest.tag_slugs ?? {};
-    for (const t of [
-      ...(entry.suggested_tags ?? []),
-      ...(entry.tags_he ?? []),
-    ]) {
-      if (t && slugMap[t]) tagSlugs[t] = slugMap[t];
-    }
   } catch {
     // Defensive — manifest is already loaded above, so this rarely trips.
   }
@@ -127,33 +135,17 @@ useHead(buildDatasetLibTags(data.value.libs));
 
 const related = computed<RelatedEntry[]>(() => data.value!.related ?? []);
 
+// Canonical tags (services/page_builder/tags.py). Only tags carried by
+// enough datasets have a /tags/<slug>/ page; the rest render unlinked.
 const tagSlugs = computed(() => data.value!.tagSlugs ?? {});
-function tagHref(t: string): string {
-  const slug = tagSlugs.value[t] ?? t;
-  return `/tags/${encodeURI(slug)}/`;
+function tagHref(t: string): string | undefined {
+  const slug = tagSlugs.value[t];
+  return slug ? `/tags/${encodeURI(slug)}/` : undefined;
 }
 
-// Title-row chips: prefer the agent's curated suggested_tags. If a page
-// hasn't been backfilled yet (no suggested_tags), fall back to the
-// official CKAN tags_he so something still renders. Each chip resolves
-// to a real /tags/<slug>/ link via the manifest's tag_slugs map.
-// Union of agent-curated `suggested_tags` and CKAN-official `tags_he`,
-// preserving order with the agent's labels first (they're the editorial
-// pick) and dropping duplicates. Used both for the title-row chips
-// injected into the body and the sidebar "תגיות" list.
-const allTags = computed<string[]>(() => {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const t of [
-    ...(entry.value.suggested_tags ?? []),
-    ...(entry.value.tags_he ?? []),
-  ]) {
-    if (!t || seen.has(t)) continue;
-    seen.add(t);
-    out.push(t);
-  }
-  return out;
-});
+// Used both for the title-row chips injected into the body and the
+// sidebar "תגיות" list.
+const allTags = computed<string[]>(() => entry.value.tags ?? []);
 
 const titleChips = computed(() =>
   allTags.value.map((label) => ({ label, href: tagHref(label) }))
@@ -685,6 +677,17 @@ onMounted(async () => {
                 >
                   {{ r.summary_he }}
                 </div>
+                <div
+                  v-if="r.shared_tags?.length"
+                  class="mt-1.5 flex flex-wrap gap-1"
+                >
+                  <span
+                    v-for="t in r.shared_tags"
+                    :key="t"
+                    class="tag-chip text-[11px]"
+                    >{{ t }}</span
+                  >
+                </div>
               </a>
             </li>
           </ul>
@@ -693,13 +696,15 @@ onMounted(async () => {
         <section v-if="allTags.length" class="card p-4">
           <h3 class="m-0 mb-2 text-sm text-subtle font-display">תגיות</h3>
           <div class="flex flex-wrap gap-1">
-            <NuxtLink
-              v-for="t in allTags"
-              :key="t"
-              :to="tagHref(t)"
-              class="tag-chip hover:bg-brand-100"
-              >{{ t }}</NuxtLink
-            >
+            <template v-for="t in allTags" :key="t">
+              <NuxtLink
+                v-if="tagHref(t)"
+                :to="tagHref(t)"
+                class="tag-chip hover:bg-brand-100"
+                >{{ t }}</NuxtLink
+              >
+              <span v-else class="tag-chip">{{ t }}</span>
+            </template>
           </div>
         </section>
 

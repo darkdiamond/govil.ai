@@ -165,8 +165,8 @@ def test_tag_redirects_targets():
     assert legacy["מי תהום"] not in red            # still a live page
     assert red[legacy["מי-תהום"]] == "/tags/מי-תהום/"
     assert red["אקוויפר"] == "/tags/מי-תהום/"
-    assert red["GIS"] == "/tags/"                  # dropped
-    assert red["נדיר"] == "/tags/"                 # no page
+    assert "GIS" not in red                        # dropped: left to 404
+    assert "נדיר" not in red                       # no page: left to 404
 
 
 def test_committed_taxonomy_is_consistent():
@@ -180,9 +180,32 @@ def test_committed_taxonomy_is_consistent():
         assert MIN_ASSIGNED <= len(tags) <= MAX_ASSIGNED, sid
 
 
-def test_committed_assignment_file_is_sorted_one_per_line():
-    raw = ASSIGNMENTS_PATH.read_text(encoding="utf-8")
-    data = json.loads(raw)
+def test_committed_assignment_file_is_sorted():
+    data = json.loads(ASSIGNMENTS_PATH.read_text(encoding="utf-8"))
     assert list(data) == sorted(data), "keep taxonomy/dataset-tags.json sorted by id"
-    assert raw.count("\n") == len(data) + 2, "one dataset per line"
     assert json.loads(VOCAB_PATH.read_text(encoding="utf-8"))["tags"]
+
+
+def test_assign_cli_validates_and_writes_sorted(tmp_path, monkeypatch, capsys):
+    from services.page_builder import tags as tags_mod
+
+    target = tmp_path / "dataset-tags.json"
+    target.write_text(json.dumps({"zzz": ["מים", "קידוחים", "מי תהום"]}, ensure_ascii=False))
+    monkeypatch.setattr(tags_mod, "ASSIGNMENTS_PATH", target)
+
+    assert tags_mod.main(["assign", "aaa", "תחבורה", "רכבת"]) == 1   # too few
+    assert tags_mod.main(["assign", "aaa", "תחבורה", "רכבת", "רקל"]) == 1  # alias
+    assert "use 'רכבת קלה'" in capsys.readouterr().err
+    assert json.loads(target.read_text()) == {"zzz": ["מים", "קידוחים", "מי תהום"]}
+
+    assert tags_mod.main(["assign", "aaa", "תחבורה", "רכבת", "רכבת קלה"]) == 0
+    written = json.loads(target.read_text())
+    assert list(written) == ["aaa", "zzz"]
+    assert written["aaa"] == ["תחבורה", "רכבת", "רכבת קלה"]
+
+    monkeypatch.setattr(tags_mod, "PENDING_ROOT", tmp_path / "authoring")
+    (tmp_path / "authoring" / "bbb").mkdir(parents=True)
+    (tmp_path / "authoring" / "bbb" / "tags.json").write_text(
+        json.dumps(["כלכלה", "בנקים", "ריבית"], ensure_ascii=False))
+    assert tags_mod.main(["assign", "--from-pending", "bbb"]) == 0
+    assert json.loads(target.read_text())["bbb"] == ["כלכלה", "בנקים", "ריבית"]

@@ -26,9 +26,7 @@ CLI:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import logging
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable, Optional
@@ -139,39 +137,6 @@ def agent_data_from_source(src: SourceRecord) -> Optional[AgentData]:
         return None
 
 
-_TAG_URL_UNSAFE = re.compile(r"[\s/?#&]+")
-
-
-def _build_tag_slugs(entries: Iterable[ManifestEntry]) -> dict[str, str]:
-    """Map each Hebrew tag in any entry's `tags_he` or `suggested_tags`
-    to a URL-safe slug that keeps the Hebrew characters.
-
-    Whitespace runs and URL-reserved chars (`/?#&`) collapse to `-`. The
-    output is decoded Unicode (no percent-encoding) — Nitro writes those
-    as native Unicode directory names during `nuxt generate`, and the
-    link side encodes for the wire. Iterates in sorted order so the
-    output is stable across runs; on slug collision appends a short
-    sha1 suffix to disambiguate deterministically.
-    """
-    all_tags = sorted({
-        t
-        for e in entries
-        for t in (e.tags_he or []) + (e.suggested_tags or [])
-    })
-    seen: dict[str, str] = {}        # url-slug -> the Hebrew tag that owns it
-    out: dict[str, str] = {}
-    for tag in all_tags:
-        slug = _TAG_URL_UNSAFE.sub("-", tag).strip("-")
-        if not slug:
-            slug = hashlib.sha1(tag.encode("utf-8")).hexdigest()[:8]
-        if slug in seen and seen[slug] != tag:
-            digest = hashlib.sha1(tag.encode("utf-8")).hexdigest()[:6]
-            slug = f"{slug}-{digest}"
-        seen[slug] = tag
-        out[tag] = slug
-    return out
-
-
 def _build_page_slugs(metas: dict[str, DatasetMeta]) -> dict[str, str]:
     """Map each dataset id to its URL segment for /datasets/<page_slug>/.
 
@@ -264,8 +229,6 @@ _SEARCH_INDEX_FIELDS = {
     "summary_he",
     "dataset_kind",
     "formats",
-    "tags_he",
-    "suggested_tags",
     "tags",
     "record_count",
     "spatial_coverage",
@@ -291,7 +254,6 @@ def _write_search_index(out_root: Path, manifest: Manifest) -> Path:
         include={
             "version": True,
             "generated_at": True,
-            "tag_slugs": True,
             "tag_index": {"__all__": {"slug", "topic", "count"}},
             "topics": {"__all__": {"id", "label_he"}},
             "datasets": {"__all__": _SEARCH_INDEX_FIELDS},
@@ -377,7 +339,6 @@ def publish(
     manifest = Manifest(
         generated_at=datetime.now(timezone.utc),
         datasets=final_entries,
-        tag_slugs=_build_tag_slugs(final_entries),
         tag_index={t: TagIndexEntry(**v) for t, v in tag_index.items()},
         topics=[TopicEntry(**vars(t)) for t in taxonomy.topics.values()],
         tag_redirects=tag_redirects(raw_tags, taxonomy, tag_index, drop_names),

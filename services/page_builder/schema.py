@@ -225,19 +225,10 @@ class Manifest(BaseModel):
     generated_at: datetime
     datasets: list[ManifestEntry] = Field(default_factory=list)
 
-    # Hebrew tag → URL-safe slug (still Hebrew, with whitespace and
-    # URL-reserved chars normalized to `-`). The frontend builds
-    # /tags/<slug>/ from this map. Hebrew chars survive `nuxt generate`
-    # because Nitro writes Unicode-named directories from decoded routes;
-    # what previously broke on Windows/WSL was percent-encoded paths
-    # leaking literal `%` into the directory name. Built by the publisher
-    # from the union of every entry's `tags_he` and `suggested_tags`.
-    tag_slugs: dict[str, str] = Field(default_factory=dict)
-
     # Canonical tag → its page data, for paged tags only, count DESC
     # (tags.build_tag_index). Tags not in here render as plain chips.
     tag_index: dict[str, TagIndexEntry] = Field(default_factory=dict)
     topics: list[TopicEntry] = Field(default_factory=list)
-    # Legacy /tags/<slug>/ segment → new path; frontend/scripts/gen-redirects.mjs
-    # turns these into Firebase 301s.
+    # Legacy /tags/<slug>/ segment → its canonical tag page (merged variants
+    # only); frontend/scripts/gen-redirects.mjs turns these into Firebase 301s.
     tag_redirects: dict[str, str] = Field(default_factory=dict)

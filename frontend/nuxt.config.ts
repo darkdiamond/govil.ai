@@ -20,13 +20,11 @@ interface ManifestEntry {
   id: string;
   page_slug?: string;
   organization_slug?: string;
-  tags_he?: string[];
-  suggested_tags?: string[];
   dataset_kind?: string;
 }
 interface Manifest {
   datasets?: ManifestEntry[];
-  tag_slugs?: Record<string, string>;
+  tag_index?: Record<string, { slug: string }>;
 }
 
 function categoryRoutes(): string[] {
@@ -38,20 +36,15 @@ function categoryRoutes(): string[] {
     return [];
   }
 
-  const tagSlugs = data.tag_slugs ?? {};
   const routes = new Set<string>(["/ministries/", "/tags/"]);
+  // Every paged tag in the publisher's tag_index (the only tags dataset pages
+  // link). Pass the slug raw — Nitro's prerender expects decoded routes and
+  // writes Unicode-named directories from them.
+  for (const t of Object.values(data.tag_index ?? {})) {
+    routes.add(`/tags/${t.slug}/`);
+  }
   for (const d of data.datasets ?? []) {
     if (d.organization_slug) routes.add(`/ministries/${d.organization_slug}/`);
-    // Use the publisher-built tag_slugs map (Hebrew tag → URL-safe
-    // Hebrew slug, with whitespace normalized to `-`). Pass the slug
-    // raw — Nitro's prerender expects decoded routes and writes
-    // Unicode-named directories from them. Union both CKAN-official
-    // tags and the agent's suggested_tags so every chip on every
-    // dataset page resolves to a generated tag page.
-    for (const t of [...(d.tags_he ?? []), ...(d.suggested_tags ?? [])]) {
-      const slug = tagSlugs[t];
-      if (slug) routes.add(`/tags/${slug}/`);
-    }
     if (d.dataset_kind) routes.add(`/kinds/${d.dataset_kind}/`);
   }
   return [...routes];
@@ -98,18 +91,23 @@ function ensureSearchIndex(): void {
     "summary_he",
     "dataset_kind",
     "formats",
-    "tags_he",
-    "suggested_tags",
+    "tags",
     "record_count",
     "spatial_coverage",
     "license",
     "metadata_modified",
     "last_analyzed_at",
+    "source_status",
+    "unavailable_since",
   ];
   try {
     const m = JSON.parse(
       readFileSync(resolve(__dirname, "public/data/manifest.json"), "utf-8")
-    ) as Manifest & { version?: number; generated_at?: string };
+    ) as Manifest & {
+      version?: number;
+      generated_at?: string;
+      topics?: unknown;
+    };
     const datasets = (m.datasets ?? []).map((d) => {
       // SAFETY: manifest dataset entries are parsed JSON objects keyed by field name
       const rec = d as unknown as Record<string, unknown>;
@@ -124,7 +122,18 @@ function ensureSearchIndex(): void {
       JSON.stringify({
         version: m.version,
         generated_at: m.generated_at,
-        tag_slugs: m.tag_slugs,
+        tag_index: Object.fromEntries(
+          Object.entries(m.tag_index ?? {}).map(([k, v]) => {
+            // SAFETY: tag_index values are parsed JSON objects from the publisher
+            const t = v as unknown as {
+              slug: string;
+              topic?: string;
+              count: number;
+            };
+            return [k, { slug: t.slug, topic: t.topic, count: t.count }];
+          })
+        ),
+        topics: m.topics,
         datasets,
       })
     );
