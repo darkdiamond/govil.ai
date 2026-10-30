@@ -53,13 +53,6 @@ git worktree add "$WT" -b "$BR" origin/main
 cd "$WT"
 ln -s /home/zilbert/workdir/govdata/node_modules node_modules            # husky pre-commit
 ln -s /home/zilbert/workdir/govdata/frontend/node_modules frontend/node_modules
-# The .gitignore patterns are directory-only (`/node_modules/`), so the
-# symlinks would show as untracked. Git reads info/exclude from the shared
-# git dir (harmless for the main checkout, where they are real dirs).
-EXCL="$(git rev-parse --git-common-dir)/info/exclude"
-for pat in /node_modules /frontend/node_modules; do
-  grep -qxF "$pat" "$EXCL" 2>/dev/null || echo "$pat" >> "$EXCL"
-done
 source /home/zilbert/workdir/govdata/.venv/bin/activate
 ```
 

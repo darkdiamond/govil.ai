@@ -17,8 +17,11 @@ than the old cloud agent produced (see "Ambition" below). Then make it robust.
 
 ## 0. Setup
 
-- Work on a branch: `git switch -c recipe/<id8>` (from up-to-date `main`).
-- `source .venv/bin/activate` (from the main checkout if in a worktree).
+- Work in a worktree off up-to-date `origin/main` (CLAUDE.md, "Work in a worktree"), on a
+  branch like `recipe/<id8>`; never switch branches in the main checkout. Under
+  `/solve-authoring-issues` the batch worktree is already set up.
+- `source .venv/bin/activate` (a built-in worktree has a `.venv` symlink to the main
+  checkout's).
 - Firestore read access (ADC) is needed for `prepare` only.
 
 ## 1. Prepare

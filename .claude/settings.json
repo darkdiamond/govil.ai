@@ -1,0 +1,5 @@
+{
+  "worktree": {
+    "symlinkDirectories": ["node_modules", "frontend/node_modules", ".venv"]
+  }
+}

@@ -2,6 +2,49 @@
 
 This file is loaded automatically. Read it before touching code.
 
+## Work in a worktree, never in the main checkout
+
+Several sessions (yours, the user's, the 07:00 authoring routine) work in this repo at once,
+and the main checkout (`/home/zilbert/workdir/govdata`) holds the user's uncommitted work.
+Branch switches and stray edits there clobber another session's work.
+
+- **Start every task in its own worktree, using Claude Code's built-in support:**
+  `claude --worktree <topic>`, the desktop app's worktree option, or the `EnterWorktree`
+  tool mid-session. It creates `.claude/worktrees/<topic>/` on branch `worktree-<topic>`,
+  based on `origin/main` (`worktree.baseRef` default `fresh`). Claude Code does not fetch
+  first, so run `git fetch origin` beforehand, or rebase onto `origin/main` before your
+  first commit.
+- **Setup is automatic** (`.claude/settings.json` + `.worktreeinclude`): `node_modules`,
+  `frontend/node_modules` and `.venv` are **symlinked** to the main checkout's, and `.env` +
+  `.claude/settings.local.json` are copied. The symlinked dirs are shared, so never
+  `npm ci` / `npm install` / `pip install` in a worktree: it rewrites the main checkout's
+  copy. For a dependency change, remove the link itself (`rm frontend/node_modules`: no
+  `-r`, no trailing slash, either of which deletes the main checkout's files) and install a
+  private copy. Vite/Nuxt keep their build caches inside `frontend/node_modules`, so run one
+  `nuxt dev` / `npm run generate` at a time across worktrees, or use a private copy.
+- **Don't edit, stash, reset or switch branches in a checkout you didn't create.** If a
+  merge or checkout is blocked by changes you didn't make, stop and ask.
+- **The Firestore emulator uses fixed port 8080**: one run at a time across worktrees. Check
+  `ss -ltnp | grep :8080` first, or run it in a private network namespace
+  (`unshare -rn bash -c 'ip link set lo up && …'`, own loopback, no port clashes).
+- **Clean up when the branch is merged:** `git worktree remove .claude/worktrees/<topic>` (an
+  interactive session offers this at exit). That also deletes the worktree's `tmp/`, which
+  holds raw dataset rows from authoring. Open worktrees also add a duplicate of every project
+  skill to sessions in the main checkout (found under `.claude/worktrees/*/.claude/skills/`),
+  one more per worktree.
+- **Worktrees nest inside the repo, so tools that walk the tree must skip `.claude/`.**
+  `.gcloudignore` and `.dockerignore` exclude it; keep those lines, or a `--source=.` deploy
+  uploads every worktree. pytest skips dot-dirs by default; ruff and `rg` honor `.gitignore`.
+- Exception: `/solve-authoring-issues` (the unattended routine) creates its own worktree at
+  `/home/zilbert/workdir/govdata-authoring` (its SKILL.md §0).
+
+## Deferred work: TODO.md
+
+When you find something worth fixing but out of scope for your change (a review finding you
+chose not to apply, a known gap, a follow-up test), write it in `TODO.md` at the repo root
+instead of leaving it in a PR description or chat. Check `TODO.md` before starting related
+work, and delete an item in the PR that fixes it. Follow the format rules in its header.
+
 ## What this project is
 
 A pipeline that turns data.gov.il datasets into connected, Hebrew-RTL
