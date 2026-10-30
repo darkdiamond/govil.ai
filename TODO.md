@@ -19,6 +19,11 @@ This repo is public: describe a security gap by what to change, never by how to 
 - **Authoring routine cron is UTC.** The 07:00 Israel routine runs on `0 5 * * *` UTC, which is
   right only in winter time. Move it to `0 4 * * *` on 2027-03-26 (Israel switches to summer
   time), and back in October. (2026-10-30)
+- **Builder job redeploy for providers (after PR #238 merges).** The image must contain
+  `services/providers` (`Dockerfile`) and the job needs `PROVIDER_BOI_SDMX_ENABLED=true`
+  (`infra/builder-job.deploy.sh`). Until then the three `boi-*` recipes are skipped as
+  `no_source_doc`. The script uses `--set-env-vars`: diff against the live job first. Same for
+  `infra/refresh-preview.deploy.sh`. (2026-10-30)
 
 ## Recipes and refresh
 
@@ -33,6 +38,16 @@ This repo is public: describe a security gap by what to change, never by how to 
 - **`273c5e33…` (vehicle history) is blocked by `REFRESH_MAX_RECORDS`.** Its two resources hold
   2.5M and 5.55M rows, over the 2M default. Raise `REFRESH_MAX_RECORDS` on the job if memory and
   the fetch caps allow, otherwise it stays a legacy page. (2026-10-30)
+- **Provider checks are scattered over the CKAN paths.** `refresh_one`, `reconcile.probe_one`
+  and `selector._skip` each branch on `getattr(src, "provider")`. A new CKAN-shaped path that
+  forgets the branch treats a provider doc as CKAN. Add a `CkanProvider` adapter around the
+  existing CKAN fetch/probe functions and one `provider_for(src)` that always returns a provider,
+  so those paths dispatch instead of branching. (2026-10-30)
+- **The preview lane cannot render a new provider recipe.** Provider sync runs only for the prod
+  target (the preview lane reads unmerged recipes and must not write `sources/`), so a `boi-*`
+  recipe can be previewed only once its prod doc exists. Let the sync write `preview_sources/`
+  when the target is preview, and have the preview refresh read provider facts from there.
+  (2026-10-30)
 
 ## Dependencies
 
@@ -41,3 +56,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
 - **esbuild override.** `frontend/package.json` pins `esbuild` to 0.28.1 via `overrides`, outside
   vite's declared range. Drop the override once vite/nuxt depend on esbuild ^0.28. (2026-10-30)
+- **No frontend type checker.** `npx nuxi typecheck` needs `typescript` and `vue-tsc`, which are
+  not in `frontend/package.json`, so `.vue`/`.ts` type errors are caught only at runtime. Add them
+  as dev dependencies and run the check in CI. (2026-10-30)

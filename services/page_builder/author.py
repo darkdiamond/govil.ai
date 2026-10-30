@@ -6,7 +6,9 @@ drives these commands:
 
     prepare <id>   read the source doc (Firestore, read-only), fetch every
                    datastore resource IN FULL into tmp/authoring/<id>/data/,
-                   write BRIEF.md (facts, schemas, samples, related candidates)
+                   write BRIEF.md (facts, schemas, samples, related candidates).
+                   A provider source (recipes/<id>/source.json) is read from
+                   that file and fetched from its provider — no Firestore.
     verify <id>    the gate before a PR — runs the recipe exactly as the
                    nightly refresh will, then: determinism, robustness on
                    perturbed data, template lint, PII grep. Writes the page
@@ -90,12 +92,85 @@ def _source_facts(src) -> dict:
     }
 
 
+def _provider_for_recipe(dataset_id: str, recipes_root: Path = RECIPES_ROOT):
+    """`(provider, source_config)` when recipes/<id>/source.json declares a
+    non-CKAN source, else None. Authoring is local, so the provider is built
+    from env whether or not the job has it enabled."""
+    from services.providers import PROVIDER_CLASSES, SOURCE_CONFIG_FILENAME, SourceConfig
+
+    path = recipes_root / dataset_id / SOURCE_CONFIG_FILENAME
+    if not path.is_file():
+        return None
+    source = SourceConfig.model_validate_json(path.read_text(encoding="utf-8"))
+    cls = PROVIDER_CLASSES.get(source.provider)
+    if cls is None:
+        raise SystemExit(f"{path}: unknown provider {source.provider!r} "
+                         f"(known: {', '.join(PROVIDER_CLASSES)})")
+    return cls.from_env(), source
+
+
+def _prepare_provider(dataset_id: str, provider, source) -> Path:
+    """prepare() for a provider source: facts from source.json + the
+    provider, data from the provider — no Firestore needed."""
+    p = _paths(dataset_id)
+    if p["data"].exists():
+        shutil.rmtree(p["data"])
+    p["data"].mkdir(parents=True)
+    cfg = provider.parse_config(dataset_id, source)
+    pf = provider.facts(dataset_id, source, cfg)
+    resources = [r.model_dump() for r in pf.resources]
+    manifest, sections = [], {}
+    for i, res in enumerate(resources, 1):
+        preview = provider.preview(res) or {}
+        dest = p["data"] / f"{i}.csv"
+        out = provider.fetch_to_file(res, dest, max_bytes=provider.settings.max_bytes)
+        entry = {
+            "resource_id": res["id"],
+            "name": res["name"],
+            "format": res["format"],
+            "fields": [f["id"] for f in preview.get("fields") or []],
+            "field_types": {f["id"]: f.get("type") for f in preview.get("fields") or []},
+            "total": int(preview.get("total") or 0),
+            "file": dest.name if out else None,
+            "rows": out.rows if out else 0,
+        }
+        manifest.append(entry)
+        if out:
+            sections[res["id"]] = provider.brief_section(res, dest)
+        print(f"  {res['id']} {res['name'][:50]!r}: {entry['rows']:,} rows", file=sys.stderr)
+    p["manifest"].write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    facts = {
+        "id": dataset_id,
+        "title": pf.title,
+        "notes": pf.notes,
+        "organization": pf.organization,
+        "tags": pf.tags,
+        "update_frequency": pf.update_frequency,
+        "license_title": pf.license_title,
+        "record_count": sum(m["rows"] for m in manifest),
+        "metadata_modified": None,
+        "resources": resources,
+        "provider": provider.key,
+        "provider_label": provider.label,
+        "source_url": pf.source_url,
+        "provider_sections": sections,
+        "provider_notes": provider.authoring_notes(),
+    }
+    p["source"].write_text(json.dumps(facts, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    p["brief"].write_text(_brief(facts, manifest, [], p), encoding="utf-8")
+    return p["brief"]
+
+
 def prepare(dataset_id: str) -> Path:
     from services.shared.firestore import FirestoreStateStore
     from services.shared.resources import select_prefetch_resources
 
     from .agent_contract import fetch_resource_preview, fetch_resource_records_to_file
     from .refresh import _env_int, _DEFAULT_MAX_BYTES, _DEFAULT_MAX_RECORDS
+
+    provider = _provider_for_recipe(dataset_id)
+    if provider is not None:
+        return _prepare_provider(dataset_id, *provider)
 
     store = FirestoreStateStore()
     src = store.get_source(dataset_id)
@@ -161,18 +236,34 @@ def _sample_rows(path: Path, n: int = 5) -> list[dict]:
 
 
 def _brief(facts: dict, manifest: list[dict], related: list[dict], p: dict) -> str:
-    lines = [
+    provider = facts.get("provider")
+    head = [
         f"# Authoring brief — {facts['title']}",
         "",
         f"- dataset_id: `{facts['id']}`",
         f"- organization: {(facts.get('organization') or {}).get('title', '')}",
-        f"- CKAN metadata_modified: {facts['metadata_modified']}",
-        f"- update_frequency: {facts.get('update_frequency')}",
-        f"- tags: {', '.join(facts.get('tags') or [])}",
-        f"- live page: {'yes — https://govil.ai/' + (facts.get('page_path') or '') if facts.get('page_path') else 'none yet'}",
-        f"- data.gov.il: https://data.gov.il/dataset/{facts['id']}",
-        "",
-        "## CKAN notes",
+    ]
+    if provider:
+        head += [
+            f"- source: {facts.get('provider_label')} (provider `{provider}`, "
+            f"recipes/{facts['id']}/source.json)",
+            f"- source page: {facts.get('source_url')}",
+            f"- update_frequency: {facts.get('update_frequency')}",
+            f"- tags: {', '.join(facts.get('tags') or [])}",
+            "",
+            "## Source notes (source.json)",
+        ]
+    else:
+        head += [
+            f"- CKAN metadata_modified: {facts['metadata_modified']}",
+            f"- update_frequency: {facts.get('update_frequency')}",
+            f"- tags: {', '.join(facts.get('tags') or [])}",
+            f"- live page: {'yes — https://govil.ai/' + (facts.get('page_path') or '') if facts.get('page_path') else 'none yet'}",
+            f"- data.gov.il: https://data.gov.il/dataset/{facts['id']}",
+            "",
+            "## CKAN notes",
+        ]
+    lines = head + [
         "",
         (facts.get("notes") or "").strip()[:3000],
         "",
@@ -193,7 +284,13 @@ def _brief(facts: dict, manifest: list[dict], related: list[dict], p: dict) -> s
             lines += ["- sample:", "```json",
                       json.dumps(_sample_rows(p['data'] / m['file']), ensure_ascii=False, indent=1),
                       "```"]
+        section = (facts.get("provider_sections") or {}).get(m["resource_id"])
+        if section:
+            lines += ["", section]
         lines.append("")
+    if facts.get("provider_notes"):
+        lines += [f"## Source rules ({facts.get('provider_label')})", "",
+                  facts["provider_notes"], ""]
     if facts.get("existing_agent_data"):
         lines += ["## Current page's agent_data (legacy cloud agent)", "", "```json",
                   json.dumps(facts["existing_agent_data"], ensure_ascii=False, indent=1), "```", ""]
@@ -487,6 +584,16 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     recipe = Recipe.load(recipes_root / dataset_id)
     problems: list[str] = []
     notes: list[str] = []
+    provider = None
+    try:
+        provider = _provider_for_recipe(dataset_id, recipes_root)
+        if provider is not None:
+            prov, source = provider
+            prov.facts(dataset_id, source, prov.parse_config(dataset_id, source))
+            notes.append(f"source.json OK — provider {prov.key}")
+    except (SystemExit, Exception) as e:  # a bad source.json is a finding, not a crash
+        problems.append(f"SOURCE-CONFIG: recipes/{dataset_id}/source.json: {e}")
+        provider = None
 
     problems += lint_template(
         recipe.template_path.read_text(encoding="utf-8"),
@@ -520,7 +627,13 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
         problems += _source_link_findings(page.content_html)
         problems += kpi_format_findings(page.content_html)
         explorer = _explorer_marked(page.content_html)
-        if explorer:
+        if explorer and provider is not None and not provider[0].presentation().explorer:
+            problems.append(
+                "NO-EXPLORER: this source has no live data explorer under the page — "
+                "give chart(s) " + ", ".join(explorer) + " a <details><table> "
+                "(downsample) instead of data-fallback=\"explorer\""
+            )
+        elif explorer:
             # Visible opt-outs: each should be a genuinely large series.
             notes.append("explorer fallback (no table): " + ", ".join(explorer))
         cov_problems, cov_notes = _coverage_findings(

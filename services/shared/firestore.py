@@ -96,6 +96,14 @@ class SourceRecord:
     authoring_status: Optional[str] = None
     authoring_issue: Optional[int] = None
 
+    # Non-CKAN sources (services/providers): the provider key, the page
+    # shell's credit block (SourcePresentation) and the readable slug suffix.
+    # All None for data.gov.il datasets.
+    provider: Optional[str] = None
+    source_url: Optional[str] = None
+    presentation: Optional[dict] = None
+    page_slug_suffix: Optional[str] = None
+
     @classmethod
     def from_doc(cls, doc) -> "SourceRecord":
         data: dict[str, Any] = doc.to_dict() or {}
@@ -128,6 +136,10 @@ class SourceRecord:
             unavailable_since=data.get("unavailable_since"),
             authoring_status=data.get("authoring_status"),
             authoring_issue=data.get("authoring_issue"),
+            provider=data.get("provider"),
+            source_url=data.get("source_url"),
+            presentation=data.get("presentation"),
+            page_slug_suffix=data.get("page_slug_suffix"),
         )
 
 
@@ -250,6 +262,44 @@ class FirestoreStateStore:
         # clear the "removed" banner while the explorer still gets a 403.
 
         ref.set(payload, merge=True)
+
+    def save_provider_source(self, dataset_id: str, payload: dict) -> bool:
+        """Upsert a provider dataset's `sources/{id}` doc (services/providers/
+        sync.py) — the counterpart of `save_dataset` for non-CKAN sources.
+
+        `metadata_modified` is the version the refresh compares, and no
+        provider supplies one, so it moves to now only when a resource's
+        content hash changed (or a resource came or went). Returns whether it
+        moved. Analyzer/refresh fields are preserved, as in `save_dataset`.
+        """
+        now = datetime.now(timezone.utc)
+        ref = self.client.collection(SOURCES_COLL).document(dataset_id)
+        snap = ref.get()
+        old = (snap.to_dict() or {}) if snap.exists else {}
+
+        def _hashes(resources) -> dict:
+            return {r.get("id"): r.get("hash") for r in resources or []}
+
+        changed = not snap.exists or _hashes(old.get("resources")) != _hashes(payload["resources"])
+        doc: dict[str, Any] = {
+            **payload,
+            "id": dataset_id,
+            "last_scanned_at": now,
+            "change_status": ("new" if not snap.exists else "updated") if changed else "unchanged",
+            "metadata_modified": now if changed else old.get("metadata_modified"),
+        }
+        if not snap.exists:
+            doc.update(
+                metadata_created=now,
+                first_seen_at=now,
+                analysis_status="never",
+                last_analyzed_version=0,
+                last_analyzed_at=None,
+                last_error=None,
+                page_path=None,
+            )
+        ref.set(doc, merge=True)
+        return changed
 
     # ---- scan_runs -------------------------------------------------------
 

@@ -165,6 +165,30 @@ landing pages. Five layers:
    only `preview_sources/*` + `gs://…/preview/`, and `publish.yml
 target=preview` deploys the `recipes-demo` Hosting channel.
 
+   **Providers: non-CKAN sources** (`services/providers/`). A recipe dir
+   with a `source.json` is a dataset from another source. Bank of Israel
+   (`boi_sdmx`, ids `boi-*`) is the first. Each source is a
+   `SourceProvider` subclass built from its own `ProviderSettings` (env
+   `PROVIDER_<KEY>_*`; **off unless `PROVIDER_<KEY>_ENABLED=true`**, prod
+   enables `boi_sdmx`). It owns everything source-specific: id prefix,
+   `DatasetConfig` (validates source.json `config`), facts (org/license),
+   `SourcePresentation` (the page's credit block: source name, terms,
+   download label, `explorer: false`), download + content-hash versioning,
+   the reconcile probe, and BRIEF.md notes. The BoI provider adds BoI's own
+   Hebrew series name (`SERIES_NAME_HE`, from the same query as SDMX-JSON)
+   to every download; recipes select series by dimension codes and use
+   the name only as a label. BoI recipes: `boi-interest-rate`,
+   `boi-mortgage-rates`, `boi-card-spending`. The daily job runs
+   `providers.sync.sync_provider_sources` after loading the recipe list.
+   It writes `sources/<id>` (`provider`, `presentation`, `page_slug_suffix`,
+   resources stored `datastore_active: false`) and moves `metadata_modified`
+   only when a resource's content hash changed. From there the normal
+   refresh renders it through the provider's fetchers (never CKAN), and the
+   publisher copies `source` into data.json. The frontend then hides the
+   CKAN explorer and credits the source. A provider outage only leaves
+   its pages last-good. Adding a source means one subclass plus one
+   registry line. Refresh, publisher and frontend need no change.
+
 State: Firestore `sources/{id}` (per-dataset, incl. refresh state and
 `authoring_status`/`authoring_issue`), `scan_runs/{run_id}` (per
 invocation). No SQLite. The OpenRouter agent builder (2026-06-12 →
@@ -270,6 +294,7 @@ are still read by the authoring selector.
 | Pipeline orchestration  | `services/page_builder/pipeline.py`                                                        | reconcile → scan → reap → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                               |
 | Authoring queue         | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                   |
 | Recipe refresh          | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / GCS / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                            |
+| Providers (non-CKAN)    | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                      |
 | Recipe contract         | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                            |
 | GitHub issues           | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                 |
 | Authoring helpers       | `services/page_builder/author.py`                                                          | `prepare` (full fetch + BRIEF.md) and `verify` (determinism/robustness) for `/author-dataset`                                                                            |

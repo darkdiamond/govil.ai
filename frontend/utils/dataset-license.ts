@@ -5,34 +5,47 @@
 // we don't recognise the string.
 
 export interface LicenseLd {
-  '@type': 'CreativeWork'
-  name: string
-  url?: string
+  "@type": "CreativeWork";
+  name: string;
+  url?: string;
 }
 
 const LICENSE_URLS: Record<string, string> = {
-  'אחר (פתוח)': 'https://data.gov.il/about/terms',
-  'other (open)': 'https://data.gov.il/about/terms',
-  'creative commons attribution': 'https://creativecommons.org/licenses/by/4.0/',
-  'creative commons attribution-sharealike': 'https://creativecommons.org/licenses/by-sa/4.0/',
-  'ייחוס': 'https://creativecommons.org/licenses/by/4.0/',
-  'ייחוס-שיתוף זהה': 'https://creativecommons.org/licenses/by-sa/4.0/',
-  'נחלת הכלל': 'https://creativecommons.org/publicdomain/zero/1.0/',
-  'cc-by': 'https://creativecommons.org/licenses/by/4.0/',
-  'cc-by-sa': 'https://creativecommons.org/licenses/by-sa/4.0/',
-  'cc-zero': 'https://creativecommons.org/publicdomain/zero/1.0/',
-}
+  "אחר (פתוח)": "https://data.gov.il/about/terms",
+  "other (open)": "https://data.gov.il/about/terms",
+  "creative commons attribution":
+    "https://creativecommons.org/licenses/by/4.0/",
+  "creative commons attribution-sharealike":
+    "https://creativecommons.org/licenses/by-sa/4.0/",
+  ייחוס: "https://creativecommons.org/licenses/by/4.0/",
+  "ייחוס-שיתוף זהה": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "נחלת הכלל": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "cc-by": "https://creativecommons.org/licenses/by/4.0/",
+  "cc-by-sa": "https://creativecommons.org/licenses/by-sa/4.0/",
+  "cc-zero": "https://creativecommons.org/publicdomain/zero/1.0/",
+};
 
 const DEFAULT_LICENSE: LicenseLd = {
-  '@type': 'CreativeWork',
-  name: 'תנאי שימוש — data.gov.il',
-  url: 'https://data.gov.il/about/terms',
-}
+  "@type": "CreativeWork",
+  name: "תנאי שימוש — data.gov.il",
+  url: "https://data.gov.il/about/terms",
+};
 
-export function buildLicenseLd(raw?: string | null): LicenseLd {
-  const name = (raw ?? '').trim()
-  if (!name) return DEFAULT_LICENSE
-  const key = name.toLowerCase()
-  const url = LICENSE_URLS[name] ?? LICENSE_URLS[key]
-  return url ? { '@type': 'CreativeWork', name, url } : { '@type': 'CreativeWork', name }
+// `termsUrl`: a non-CKAN source's own terms page (SourceInfo.terms_url),
+// used when the license name isn't one we know.
+export function buildLicenseLd(
+  raw?: string | null,
+  termsUrl?: string
+): LicenseLd {
+  const name = (raw ?? "").trim();
+  if (!name) {
+    return termsUrl
+      ? { "@type": "CreativeWork", name: "תנאי שימוש", url: termsUrl }
+      : DEFAULT_LICENSE;
+  }
+  const key = name.toLowerCase();
+  const url = LICENSE_URLS[name] ?? LICENSE_URLS[key] ?? termsUrl;
+  return url
+    ? { "@type": "CreativeWork", name, url }
+    : { "@type": "CreativeWork", name };
 }

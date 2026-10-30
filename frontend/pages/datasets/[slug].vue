@@ -205,7 +205,24 @@ const dataVintage = computed<string | null>(
 // authoritative snapshot. Suppressed for legacy sources without a
 // snapshot — we don't know what version the agent saw, so we can't
 // honestly claim the source has been updated since.
+// Non-CKAN sources (services/providers) carry a credit block; data.gov.il
+// datasets don't, and get the defaults: data.gov.il + the live explorer.
+const sourceInfo = computed(() => entry.value.source ?? null);
+const sourceName = computed(
+  () => sourceInfo.value?.source_name_he ?? "data.gov.il"
+);
+const hasExplorer = computed(() => sourceInfo.value?.explorer ?? true);
+// Same scheme filter as the download buttons: only http(s) reaches an href.
+const sourceHref = computed(() =>
+  publicResourceUrl(sourceInfo.value?.source_url || sourceInfo.value?.home_url)
+);
+const termsHref = computed(() =>
+  publicResourceUrl(sourceInfo.value?.terms_url)
+);
+
 const sourceUpdatedSinceAnalysis = computed<boolean>(() => {
+  // The icon points at the live explorer; without one it has nothing to offer.
+  if (!hasExplorer.value) return false;
   const live = entry.value.metadata_modified;
   const snap = entry.value.analyzed_metadata_modified;
   if (!live || !snap) return false;
@@ -392,7 +409,8 @@ async function executeBodyScripts(container: HTMLElement): Promise<void> {
       if (rawSrc !== null) {
         let sameOrigin = false;
         try {
-          sameOrigin = new URL(rawSrc, location.href).origin === location.origin;
+          sameOrigin =
+            new URL(rawSrc, location.href).origin === location.origin;
         } catch {
           sameOrigin = false;
         }
@@ -517,7 +535,7 @@ onMounted(async () => {
           class="unavailable-banner"
           role="note"
         >
-          <strong>מאגר זה הוסר ממקור הנתונים (data.gov.il).</strong>
+          <strong>מאגר זה הוסר ממקור הנתונים ({{ sourceName }}).</strong>
           הנתונים המוצגים הם תמונת מצב מהסריקה האחרונה שלנו<template
             v-if="unavailableSinceHe"
             >, שנערכה עד {{ unavailableSinceHe }}</template
@@ -529,6 +547,7 @@ onMounted(async () => {
              NUXT_PUBLIC_ADSENSE_ID is set). -->
         <AdSlot />
         <DatasetExplorer
+          v-if="hasExplorer"
           :resources="entry.resources ?? []"
           :primary-resource-id="entry.primary_resource_id"
           :record-count="entry.record_count"
@@ -541,7 +560,9 @@ onMounted(async () => {
           <h3 class="m-0 mb-3 text-sm font-display text-subtle">פרטים</h3>
           <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm m-0">
             <template v-if="entry.organization">
-              <dt class="text-subtle">משרד</dt>
+              <dt class="text-subtle">
+                {{ sourceInfo ? "גוף מפרסם" : "משרד" }}
+              </dt>
               <dd class="m-0">
                 <NuxtLink
                   v-if="entry.organization_slug"
@@ -551,9 +572,31 @@ onMounted(async () => {
                 <template v-else>{{ entry.organization }}</template>
               </dd>
             </template>
+            <template v-if="sourceInfo">
+              <dt class="text-subtle">מקור</dt>
+              <dd class="m-0">
+                <a
+                  v-if="sourceHref"
+                  :href="sourceHref"
+                  target="_blank"
+                  rel="noopener"
+                  >{{ sourceInfo.source_name_he }}</a
+                >
+                <template v-else>{{ sourceInfo.source_name_he }}</template>
+              </dd>
+            </template>
             <template v-if="entry.license">
               <dt class="text-subtle">רישיון</dt>
-              <dd class="m-0">{{ entry.license }}</dd>
+              <dd class="m-0">
+                <a
+                  v-if="termsHref"
+                  :href="termsHref"
+                  target="_blank"
+                  rel="noopener"
+                  >{{ entry.license }}</a
+                >
+                <template v-else>{{ entry.license }}</template>
+              </dd>
             </template>
             <template v-if="dataVintage">
               <dt class="text-subtle">המידע נכון ל-</dt>
@@ -613,10 +656,13 @@ onMounted(async () => {
                 target="_blank"
                 rel="noopener"
                 download
-                >הורדה</a
+                >{{ sourceInfo?.download_label_he ?? "הורדה" }}</a
               >
             </div>
           </div>
+          <p v-if="sourceInfo" class="m-0 mt-3 text-xs text-subtle">
+            {{ sourceInfo.attribution_he }}
+          </p>
         </section>
 
         <section v-if="related.length" class="card p-4">

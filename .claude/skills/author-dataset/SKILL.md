@@ -57,6 +57,20 @@ itself writes is search-indexed and regenerated unattended, so:
 - Otherwise use judgment: be open when naming informs, aggregate when it
   only exposes.
 
+### Provider sources (not data.gov.il)
+
+A dataset from another source (Bank of Israel today, ids `boi-*`) is
+declared by `recipes/<id>/source.json`, written **before** `prepare`:
+`provider`, `title` (the H1 people search), `notes`, `tags`,
+`update_frequency`, `source_url`, and the provider's `config` (for
+`boi_sdmx`: `resources: [{id, name, dataflow, key?, startperiod?}]`).
+The id must start with the provider's prefix. `prepare` then needs no
+Firestore and fetches from the source. BRIEF.md ends with the provider's
+**Source rules**: follow them. Key points: no live explorer under the page,
+so every chart gets its own `<details><table>`; no GovExplorer/GovMap; no
+data.gov.il links. `recipe.json` `by_id` is the resource `id` from
+source.json. Commit `source.json` with the recipe.
+
 ## 2. Explore
 
 Write scratch scripts in `tmp/authoring/<id>/` and run them with pandas

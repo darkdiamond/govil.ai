@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "boi-card-spending",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T00:00:00Z",
+    "rows": {
+      "purchases": 135719
+    }
+  },
+  "inputs": [
+    {
+      "name": "purchases",
+      "by_id": "boi-ccp",
+      "required_columns": [
+        "SERIES_CODE",
+        "SERIES_NAME_HE",
+        "TIME_PERIOD",
+        "OBS_VALUE",
+        "UNIT_MULT"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

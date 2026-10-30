@@ -1,4 +1,5 @@
-"""Weekly reconcile sweep — detect datasets removed from data.gov.il.
+"""Weekly reconcile sweep — detect datasets removed upstream (data.gov.il,
+or a provider source's own origin).
 
 Dead datasets vanish from CKAN's public list, so the scanner's
 `iter_all_packages` never revisits them. This sweep actively probes every
@@ -17,16 +18,26 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from services.providers import provider_for_key
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
 
 log = logging.getLogger("page_builder.reconcile")
 
 
-async def probe_one(client, src: SourceRecord) -> str:
+async def probe_one(client, src: SourceRecord, providers=None) -> str:
     """Resolve one source to "gone"|"alive"|"unknown". Prefers the primary
     datastore resource; falls back to the package probe when there's no
-    primary resource id or the resource probe is inconclusive."""
+    primary resource id or the resource probe is inconclusive.
+
+    A provider source (services/providers) is asked of its own provider —
+    never of CKAN, whose 403 would wrongly mark it removed. A disabled
+    provider is "unknown" (no change)."""
+    if getattr(src, "provider", None):
+        p = provider_for_key(src.provider, providers)
+        if p is None:
+            return "unknown"
+        return await asyncio.to_thread(p.probe_available, src.resources)
     rid = pick_primary_resource_id(src.resources)
     if rid:
         status = await client.probe_resource(rid)
@@ -40,6 +51,7 @@ async def reconcile_sources(
     client,
     *,
     concurrency: int = 4,
+    providers=None,
 ) -> dict:
     sources = list(store.iter_publishable_sources())
     log.info("reconcile: probing %d publishable source(s)", len(sources))
@@ -49,7 +61,7 @@ async def reconcile_sources(
 
     async def _check(src: SourceRecord) -> None:
         async with sem:
-            status = await probe_one(client, src)
+            status = await probe_one(client, src, providers)
         if status == "gone" and src.analysis_status == "succeeded":
             await asyncio.to_thread(
                 store.mark_source_unavailable,

@@ -49,6 +49,23 @@ class ResourceEntry(BaseModel):
     datastore_active: Optional[bool] = None
 
 
+class SourceInfo(BaseModel):
+    """Where a non-CKAN dataset comes from and how the page credits it —
+    the provider's `SourcePresentation` (services/providers/base.py) plus
+    the dataset's own source page. None on data.gov.il datasets: the
+    frontend's defaults (data.gov.il, live explorer) apply."""
+    model_config = ConfigDict(extra="ignore")
+
+    provider: str
+    source_name_he: str
+    home_url: str
+    source_url: Optional[str] = None
+    terms_url: Optional[str] = None
+    attribution_he: str
+    download_label_he: str = "הורדה"
+    explorer: bool = False
+
+
 class DatasetMeta(BaseModel):
     """Scanner-derived per-dataset metadata. Written to `data.json` by the
     publisher from the Firestore `sources/<id>` document.
@@ -99,6 +116,11 @@ class DatasetMeta(BaseModel):
     source_status: str = "available"
     # UTC timestamp when the source was first detected as unavailable.
     unavailable_since: Optional[datetime] = None
+
+    # Non-CKAN sources only (services/providers): the credit block, and the
+    # readable id part of page_slug (CKAN uses 8 chars of its UUID).
+    source: Optional[SourceInfo] = None
+    page_slug_suffix: Optional[str] = None
 
     version: int = 1
 
@@ -161,6 +183,8 @@ class ManifestEntry(BaseModel):
     notes: Optional[str] = None
     last_analyzed_at: Optional[datetime] = None
     analyzed_metadata_modified: Optional[datetime] = None
+    source: Optional[SourceInfo] = None
+    page_slug_suffix: Optional[str] = None
 
     # AgentData fields (optional — a scanned-but-never-analyzed source has none)
     summary_he: Optional[str] = None

@@ -75,6 +75,9 @@ def pick_authoring_candidates(
             or src.id in exclude_ids
             or src.authoring_status == "notified"
             or src.analysis_status in _NO_DATA_STATUSES
+            # Provider docs exist only for a recipe (sync reads source.json);
+            # one whose recipe was deleted has nothing to author from.
+            or bool(getattr(src, "provider", None))
         )
 
     def _too_old(src: SourceRecord) -> bool:

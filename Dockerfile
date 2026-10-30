@@ -35,6 +35,7 @@ COPY services/__init__.py ./services/__init__.py
 COPY services/shared ./services/shared
 COPY services/scanner ./services/scanner
 COPY services/page_builder ./services/page_builder
+COPY services/providers ./services/providers
 # Host-side page gate (run on every rendered body before it is staged).
 COPY agent/skills/check.py ./agent/skills/check.py
 # Belt-and-braces: COPY keeps build-context modes, so make sure nothing

@@ -1,0 +1,33 @@
+{
+  "contract_version": 1,
+  "dataset_id": "boi-mortgage-rates",
+  "recipe_version": 1,
+  "authored_at": "2026-10-30T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-30T00:00:00Z",
+    "rows": { "loans": 19971 }
+  },
+  "inputs": [
+    {
+      "name": "loans",
+      "by_id": "boi-bir-mrtg",
+      "required_columns": [
+        "SERIES_CODE",
+        "TIME_PERIOD",
+        "OBS_VALUE",
+        "UNIT_MEASURE",
+        "UNIT_MULT",
+        "BS_ITEM",
+        "DATA_TYPE",
+        "INDEXATION_TYPE",
+        "IR_FV_TYPE",
+        "LTV",
+        "PTI",
+        "BIR_COVERAGE",
+        "PROPERTY_VALUE"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

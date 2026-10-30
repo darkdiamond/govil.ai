@@ -118,13 +118,16 @@ export function buildDatasetLd(
     name: entry.title,
     description: datasetDescription(entry),
     url: opts.canonical,
-    license: buildLicenseLd(entry.license),
+    license: buildLicenseLd(entry.license, entry.source?.terms_url),
     creator,
     publisher: creator,
     identifier: entry.id,
     inLanguage: "he",
     isAccessibleForFree: true,
-    isBasedOn: "https://data.gov.il",
+    isBasedOn:
+      entry.source?.source_url ||
+      entry.source?.home_url ||
+      "https://data.gov.il",
   };
   if (entry.tags_he?.length) ld.keywords = entry.tags_he;
   if (entry.metadata_modified) {

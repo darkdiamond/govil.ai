@@ -1,0 +1,389 @@
+<h1>ריבית משכנתא ממוצעת והיקף המשכנתאות בישראל</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in ["volume", "yoy", "rate_ni_f", "rate_cpi_f", "prime_share", "avg_loan"] %}
+{%- if model.kpis[key] is defined %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[key ~ "_kpi"] }}</div>
+  </div>
+{%- endif %}
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.volume %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף המשכנתאות החדשות בכל חודש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.volume_note }}</p>
+  <div id="chart-volume" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.year_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">סכום (מיליארד ₪)</th><th scope="col">מספר הלוואות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}{% if r.partial %} (חלקית){% endif %}</th><td dir="ltr">{{ r.total }}</td><td dir="ltr">{{ r.loans }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">ריבית משכנתא ממוצעת לפי מסלול</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rates_note }}</p>
+  <div id="chart-rates" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.rates_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rates_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th>{% for h in model.tables.rates_head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.rates %}
+        <tr><th scope="row">{{ r.month }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.mix %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל המסלולים: פריים, קבועה, צמודה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div id="chart-mix" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3" open>
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_caption }}</caption>
+      <thead><tr><th scope="col">מסלול</th><th scope="col">סכום (מיליון ₪)</th><th scope="col">חלק</th><th scope="col">שנה קודם</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.track }}</th><td dir="ltr">{{ r.amount }}</td><td dir="ltr">{{ r.share }}</td><td dir="ltr">{{ r.prev }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.ltv or model.flags.pti %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.ltv %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיעור המימון (LTV)</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ltv_note }}</p>
+    <div id="chart-ltv" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.ltv_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.ltv_caption }}</caption>
+        <thead><tr><th scope="col">שיעור מימון</th><th scope="col">סכום (מיליארד ₪)</th><th scope="col">חלק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.ltv %}
+          <tr><th scope="row">{{ r.band }}</th><td dir="ltr">{{ r.amount }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+{%- if model.flags.pti %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיעור ההחזר מההכנסה</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pti_note }}</p>
+    <div id="chart-pti" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pti_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pti_caption }}</caption>
+        <thead><tr><th scope="col">שיעור החזר</th><th scope="col">סכום (מיליארד ₪)</th><th scope="col">חלק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pti %}
+          <tr><th scope="row">{{ r.band }}</th><td dir="ltr">{{ r.amount }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+{%- endif %}
+
+{%- if model.flags.loans %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מספר המשכנתאות והמשכנתא הממוצעת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.loans_note }}</p>
+  <div id="chart-loans" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.loans_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.loans_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">משכנתאות</th><th scope="col">ממוצע (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.loans %}
+        <tr><th scope="row">{{ r.year }}</th><td dir="ltr">{{ r.n }}</td><td dir="ltr">{{ r.avg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.slices %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחזור משכנתאות, דירות להשקעה ודירה בהנחה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.slices_note }}</p>
+  <div id="chart-slices" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.slices_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.slices_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for h in model.tables.slices_head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.slices %}
+        <tr><th scope="row">{{ r.year }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.terms %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקופת המשכנתא ושיעור ההחזר הממוצע</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.terms_note }}</p>
+  <div id="chart-terms" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.terms_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.terms_caption }}</caption>
+      <thead><tr><th scope="col">מגזר הצמדה</th><th scope="col">שנים לפירעון</th><th scope="col">חודש</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.terms %}
+        <tr><th scope="row">{{ r.name }}</th><td dir="ltr">{{ r.value }}</td><td>{{ r.month }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.consumer %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הלוואה לכל מטרה בבטחון דירה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.consumer_note }}</p>
+  <div id="chart-consumer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.consumer_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה (לפי שנה)</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.consumer_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">סכום (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.consumer %}
+        <tr><th scope="row">{{ r.year }}{% if r.partial %} (חלקית){% endif %}</th><td dir="ltr">{{ r.total }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<script>
+{%- if model.flags.volume %}
+  (function () {
+    const d = {{ model.charts.volume | tojson }};
+    const chart = echarts.init(document.getElementById("chart-volume"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "" : Number(v).toFixed(2) + " מיליארד ₪") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "סכום בחודש", showSymbol: false, data: d.y },
+        { type: "line", name: "מנוכה עונתיות", showSymbol: false, data: d.sa, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.rates | tojson }};
+    const chart = echarts.init(document.getElementById("chart-rates"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "" : Number(v).toFixed(2) + "%") },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: (v) => v + "%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.series.map((s) => ({ type: "line", name: s.name, showSymbol: false, connectNulls: false, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.mix %}
+  (function () {
+    const d = {{ model.charts.mix | tojson }};
+    const chart = echarts.init(document.getElementById("chart-mix"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toFixed(1) + "%" },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: (v) => v + "%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.series.map((s) => ({ type: "line", name: s.name, stack: "mix", areaStyle: {}, showSymbol: false, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- for key in ["ltv", "pti"] %}
+{%- if model.flags[key] %}
+  (function () {
+    const d = {{ model.charts[key] | tojson }};
+    const chart = echarts.init(document.getElementById("chart-{{ key }}"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: (ps) => {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.share[i].toFixed(1) + "% · " + d.amount[i].toFixed(2) + " מיליארד ₪";
+        }
+      },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: [{ type: "bar", data: d.share }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- endfor %}
+{%- if model.flags.loans %}
+  (function () {
+    const d = {{ model.charts.loans | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-loans"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value" }, { type: "value", scale: true, axisLabel: { formatter: (v) => v.toFixed(2) } }],
+      series: [
+        { type: "bar", name: "מספר משכנתאות", data: d.n },
+        { type: "line", name: "משכנתא ממוצעת (מיליון ₪)", yAxisIndex: 1, data: d.avg }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.slices %}
+  (function () {
+    const d = {{ model.charts.slices | tojson }};
+    const chart = echarts.init(document.getElementById("chart-slices"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "" : Number(v).toFixed(1) + "%") },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.series.map((s) => ({ type: "line", name: s.name, showSymbol: false, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.terms %}
+  (function () {
+    const d = {{ model.charts.terms | tojson }};
+    const series = d.series.map((s) => ({ type: "line", name: s.name, showSymbol: false, data: s.data }));
+    if (d.pti) series.push({ type: "line", name: "שיעור החזר מהכנסה (%)", yAxisIndex: 1, showSymbol: false, data: d.pti, lineStyle: { type: "dashed" } });
+    const chart = echarts.init(document.getElementById("chart-terms"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", scale: true }, { type: "value", scale: true, axisLabel: { formatter: (v) => v + "%" } }],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: series
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.consumer %}
+  (function () {
+    const d = {{ model.charts.consumer | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-consumer"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value" }, { type: "value", scale: true, axisLabel: { formatter: (v) => v + "%" } }],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "סכום (מיליון ₪)", data: d.y },
+        { type: "line", name: "ריבית ממוצעת, לא צמודה", yAxisIndex: 1, showSymbol: false, data: d.rate }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>
