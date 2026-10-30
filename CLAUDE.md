@@ -26,7 +26,9 @@ Branch switches and stray edits there clobber another session's work.
   (`unshare -rn bash -c 'ip link set lo up && …'`, own loopback, no port clashes).
 - **Clean up when the branch is merged:** `git worktree remove .claude/worktrees/<topic>` (an
   interactive session offers this at exit). That also deletes the worktree's `tmp/`, which
-  holds raw dataset rows from authoring.
+  holds raw dataset rows from authoring. Open worktrees also add a duplicate of every project
+  skill to sessions in the main checkout (found under `.claude/worktrees/*/.claude/skills/`),
+  one more per worktree.
 - **Worktrees nest inside the repo, so tools that walk the tree must skip `.claude/`.**
   `.gcloudignore` and `.dockerignore` exclude it; keep those lines, or a `--source=.` deploy
   uploads every worktree. pytest skips dot-dirs by default; ruff and `rg` honor `.gitignore`.
