@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3c6d4061-41bf-4403-82e9-c8fae5df04dd",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-25T01:11:29.126996+00:00",
+    "rows": { "main": 1 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0bb7256a-6b60-4c38-95ed-3fdd8f724e27",
+      "required_columns": [
+        "AREA_CODE",
+        "AREA_NAME",
+        "VAAD_NAME",
+        "SHAPE_Leng",
+        "SHAPE_Area",
+        "lat",
+        "lon"
+      ]
+    }
+  ],
+  "min_insights": 2,
+  "lint_allow_numbers": ["WGS84"]
+}
