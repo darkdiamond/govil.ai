@@ -211,9 +211,12 @@
       return (meta.labels[e[0]] || e[0]) + "-" + e[1] + "X".repeat(e[4]);
     }
     function norm(s) {
-      var d = String(s).replace(/\D/g, "");
+      var raw = String(s).trim();
+      var d = raw.replace(/\D/g, "");
+      // "972" is a country code only when written as +972 or long enough to be one;
+      // a local 09 number typed without its 0 also starts with 9-7-2.
       if (d.indexOf("00972") === 0) d = d.slice(5);
-      else if (d.indexOf("972") === 0) d = d.slice(3);
+      else if (d.indexOf("972") === 0 && (raw.charAt(0) === "+" || d.length >= 11)) d = d.slice(3);
       else if (d.charAt(0) === "0") d = d.slice(1);
       return d;
     }

@@ -129,9 +129,11 @@ def compute(frames):
     ly, lq = periods[-1]
     lat = df[(df["y"] == ly) & (df["q"] == lq)].copy()
 
-    # comparator: same quarter in the latest earlier year that has it, else the previous quarter
-    same_q = [p for p in periods if p[1] == lq and p[0] < ly]
-    comp = same_q[-1] if same_q else (periods[-2] if len(periods) > 1 else None)
+    # comparator: same quarter in the latest earlier year that has it, else the previous quarter;
+    # only fully published quarters qualify, so a half-loaded one never reads as a jump
+    full_before = [p for p in full if p < (ly, lq)]
+    same_q = [p for p in full_before if p[1] == lq]
+    comp = same_q[-1] if same_q else (full_before[-1] if full_before else None)
     comp_same_q = bool(same_q)
     prev = df[(df["y"] == comp[0]) & (df["q"] == comp[1])].copy() if comp else None
 

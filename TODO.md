@@ -37,6 +37,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   referenced them (`detectDatasetLibs`). A recipe that adds charts to a map-only page (or a map
   to a chart page) looks broken in preview but is fine on the site. Fix: have the preview inject
   the libs from `detectDatasetLibs(new body)`. (2026-10-31)
+- **Three new recipes can go quietly wrong as their data moves.** 4eef54bc's `recent` input
+  matches files by `קוד`; a new yearly file named like the 2019 one (`קוד_מיפוי`) is silently
+  skipped, so the page stays on 2024 with no issue (match both names, or fail when the newest
+  CKAN resource isn't read). 4eef54bc also joins authorities across years by name only, so a
+  renamed authority splits in two. ab746a13 uses `pick: "latest"` by `last_modified`: a
+  re-upload of a closed year flips the page to that year (pick by the year in the resource
+  name instead). (2026-10-31)
 - **Explorer resource pills overflow at 375px.** A long resource name pushes `.explorer-pill`
   past the viewport (85451410: 381px scroll width). Shell CSS, not the recipe: truncate or wrap
   the pill label. (2026-10-31)

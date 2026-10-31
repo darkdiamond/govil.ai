@@ -223,8 +223,10 @@
         mk.addTo(groups[p[4]]);
       });
     }
+    // Leaflet's layer control writes names with innerHTML: escape the data-derived track names.
+    var esc = function (s) { var n = document.createElement("span"); n.textContent = s; return n.innerHTML; };
     var overlays = {};
-    meta.tracks.forEach(function (t, i) { overlays["מתחמים: " + t] = groups[i]; });
+    meta.tracks.forEach(function (t, i) { overlays["מתחמים: " + esc(t)] = groups[i]; });
     if (meta.np) { overlays["תוכניות מתאר"] = mpLayer; }
     L.control.layers(null, overlays, { collapsed: true }).addTo(map);
     var lg = document.getElementById("map-legend");
