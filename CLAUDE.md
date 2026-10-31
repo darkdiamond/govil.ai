@@ -137,8 +137,9 @@ landing pages. Five layers:
    Failures keep the last-good page live and, when a human must act
    (recipe broke, schema moved, data outgrew the fetch cap —
    `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue; a
-   transient fetch failure (network, or the fetch wall budget running out) just
-   retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget
+   transient fetch failure (network, or the fetch wall budget running out) or
+   sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort, after an in-run
+   retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget
    overruns since the last full fetch (`wall_budget_strikes` in the refresh
    state) open a `too_large` issue. Big-dataset levers in
    `recipe.json`: an input's `columns` (CKAN `fields=`, only those columns
