@@ -1,0 +1,16 @@
+{
+  "main.P_CODE": "skip: constant 0 placeholder, carries no information",
+  "main.AREA_CODE": "kpi:code, insight:code, table:table-units, map:map-main — popup",
+  "main.AREA_NAME": "insight:area, table:table-units, map:map-main — popup title; also the H1 place name and summary",
+  "main.VAAD_NAME": "table:table-units — empty today; names each unit when the layer is split into committees",
+  "main.background": "skip: constant 0.0 GIS styling flag",
+  "main.Whole_Sign": "skip: empty GIS label field",
+  "main.SHAPE_Leng": "kpi:perim, insight:shape, table:table-units",
+  "main.SHAPE_Area": "kpi:area, kpi:units, insight:area, insight:shape, table:table-units",
+  "main.lat": "insight:center, table:table-units, map:map-main — also the validity filter",
+  "main.lon": "insight:center, table:table-units, map:map-main — also the validity filter",
+  "resource:b900642a-db9d-487f-8bdc-ab057e1ae426": "skip: XLSX twin of the CSV (same row)",
+  "resource:45539f27-f569-47b8-9f25-dac8a47adecd": "skip: ITM-coordinate twin of the CSV (same row)",
+  "resource:92ab15db-fc18-421a-884a-b26a465d10d4": "skip: XLSX twin of the ITM CSV (same row)",
+  "resource:5b90909f-3ffa-4570-a413-eb24c7efa9fd": "skip: broken JSON export, ingested as a 2-row table with one column named '['"
+}
