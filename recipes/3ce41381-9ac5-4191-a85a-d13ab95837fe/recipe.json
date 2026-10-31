@@ -1,17 +1,18 @@
 {
   "contract_version": 1,
   "dataset_id": "3ce41381-9ac5-4191-a85a-d13ab95837fe",
-  "recipe_version": 1,
-  "authored_at": "2026-10-30T00:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-25T01:04:37.393892+00:00",
-    "rows": { "parks": 27 }
+    "rows": { "geo": 27 }
   },
   "inputs": [
     {
-      "name": "parks",
-      "by_id": "4b6e3408-afbe-4ea3-8b69-11d98233ffe7",
-      "required_columns": ["name", "SHAPE_Leng", "SHAPE_Area", "lat", "lon"]
+      "name": "geo",
+      "by_id": "22c45eb6-a93b-41d9-aed7-56488ad987b6",
+      "map": true,
+      "required_columns": ["name", "SHAPE_Leng", "SHAPE_Area"]
     }
   ],
   "min_insights": 3,

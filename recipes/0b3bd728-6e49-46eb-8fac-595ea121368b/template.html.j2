@@ -39,7 +39,7 @@
   <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
   <span>
     <span class="block font-semibold text-ink-deep">איתור מרכז מסחרי או קניון לפי שם ←</span>
-    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המתחם, סוג המתחם ותיאור.</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המתחם, סוג המתחם והתיאור.</span>
   </span>
 </a>
 
@@ -64,14 +64,17 @@
   </ul>
 </section>
 
+{% if model.flags.map %}
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המתחמים</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-areas" class="h-72 md:h-[420px]"></div>
+  <div id="map-areas" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
 </section>
+{% endif %}
 
 {{ chart_section("chart-types", "list", "מתחמים לפי סוג", model.labels.types_note, model.labels.types_aria, model.labels.types_cap, model.tables.types, "h-72 md:h-96") }}
 
@@ -110,18 +113,54 @@
   </div>
 </section>
 
+{% if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-areas-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-areas",
-    resourceId: {{ inputs.areas[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    cluster: false,
-    popupTitleField: "Name",
-    popupFields: [{ field: "remarks", label: "סוג המתחם" }]
-  });
+  (function () {
+    var el = document.getElementById("map-areas");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "feats": model.charts.map.feats, "fams": model.charts.map.fams, "bounds": model.charts.map.bounds} | tojson }};
+    var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#6c9fd8"];
+    var color = function (c) { return pal[c % pal.length]; };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-areas-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var s = meta.feats[f[0]];
+        var rings = f[1].map(function (r) { return r.map(function (p) { return [p[1], p[0]]; }); });
+        var poly = L.polygon(rings, {
+          color: color(s.fam), weight: 2, opacity: 0.9, fillColor: color(s.fam), fillOpacity: 0.35
+        }).addTo(map);
+        var box = document.createElement("div");
+        var title = document.createElement("strong");
+        title.textContent = s.name;
+        box.appendChild(title);
+        [["סוג", s.type], ["שטח", s.area + " דונם"]].forEach(function (row) {
+          var d = document.createElement("div");
+          d.textContent = row[0] + ": " + row[1];
+          box.appendChild(d);
+        });
+        poly.bindPopup(box);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    var legend = document.getElementById("map-legend");
+    meta.fams.forEach(function (f) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:14px;height:14px;border-radius:3px;opacity:0.8;background:" + color(f.c);
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(f.name + " (" + f.count.toLocaleString("he-IL") + ")"));
+      legend.appendChild(li);
+    });
+  })();
 </script>
+{% endif %}
 
 <script>
   (function () {

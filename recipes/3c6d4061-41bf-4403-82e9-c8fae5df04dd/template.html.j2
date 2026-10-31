@@ -12,7 +12,7 @@
 </section>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-{%- for key in ["area", "perim", "code", "units"] %}
+{%- for key in ["area", "perim", "ns", "ew"] %}
   <div class="card p-4 text-center">
     <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
     <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
@@ -29,13 +29,11 @@
   </ul>
 </section>
 
-{%- if model.flags.has_map %}
 <section class="card p-5 mb-6">
-{{ head("map-pin", "פריסה גיאוגרפית") }}
+{{ head("map-pin", "גבול תחום השיפוט על המפה") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
-  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
 </section>
-{%- endif %}
 
 <section class="card p-5 mb-6">
 {{ head("list", model.labels.table_title) }}
@@ -47,9 +45,10 @@
     <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">קוד אזור</dt><dd class="m-0" dir="ltr">{{ r.code }}</dd></div>
     <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">שטח (קמ״ר)</dt><dd class="m-0" dir="ltr">{{ r.area_km2 }}</dd></div>
     <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">שטח (דונם)</dt><dd class="m-0" dir="ltr">{{ r.dunam }}</dd></div>
+    <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">שטח מחושב מקו הגבול (קמ״ר)</dt><dd class="m-0" dir="ltr">{{ r.drawn_km2 }}</dd></div>
     <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">היקף (ק״מ)</dt><dd class="m-0" dir="ltr">{{ r.perim_km }}</dd></div>
     <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">היקף ביחס לעיגול</dt><dd class="m-0" dir="ltr">{{ r.ratio }}</dd></div>
-    <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">מרכז (רוחב, אורך)</dt><dd class="m-0" dir="ltr">{% if r.lat %}{{ r.lat }}, {{ r.lon }}{% else %}לא תקין{% endif %}</dd></div>
+    <div class="flex justify-between gap-3 border-b border-rule py-2"><dt class="text-subtle">מרכז (רוחב, אורך)</dt><dd class="m-0" dir="ltr">{{ r.center or "לא ידוע" }}</dd></div>
   </dl>
 {%- else %}
   <div class="overflow-x-auto">
@@ -61,6 +60,7 @@
           <th scope="col" class="text-start py-1 pe-3">קוד אזור</th>
           <th scope="col" class="text-start py-1 pe-3">שטח (קמ״ר)</th>
           <th scope="col" class="text-start py-1 pe-3">שטח (דונם)</th>
+          <th scope="col" class="text-start py-1 pe-3">שטח מחושב (קמ״ר)</th>
           <th scope="col" class="text-start py-1 pe-3">היקף (ק״מ)</th>
           <th scope="col" class="text-start py-1 pe-3">היקף ביחס לעיגול</th>
           <th scope="col" class="text-start py-1">מרכז (רוחב, אורך)</th>
@@ -73,9 +73,10 @@
           <td class="py-1 pe-3" dir="ltr">{{ r.code }}</td>
           <td class="py-1 pe-3" dir="ltr">{{ r.area_km2 }}</td>
           <td class="py-1 pe-3" dir="ltr">{{ r.dunam }}</td>
+          <td class="py-1 pe-3" dir="ltr">{{ r.drawn_km2 }}</td>
           <td class="py-1 pe-3" dir="ltr">{{ r.perim_km }}</td>
           <td class="py-1 pe-3" dir="ltr">{{ r.ratio }}</td>
-          <td class="py-1" dir="ltr">{% if r.lat %}{{ r.lat }}, {{ r.lon }}{% else %}לא תקין{% endif %}</td>
+          <td class="py-1" dir="ltr">{{ r.center or "לא ידוע" }}</td>
         </tr>
 {%- endfor %}
       </tbody>
@@ -87,21 +88,51 @@
 
 <section class="card p-5 mb-6">
 {{ head("info", "על המאגר") }}
-  <p class="m-0 text-sm text-subtle leading-relaxed">עיריית באר שבע מפרסמת את שכבת שטח השיפוט המוניציפלי בכמה פורמטים: טבלת מאפיינים (CSV ו-XLSX, בשתי מערכות הקואורדינטות) וקובצי גאומטריה (GeoJSON, SHP ו-KML) שבהם מצויר קו הגבול המלא. הטבלה כוללת את שם הרשות, קוד האזור, השטח וההיקף כפי שחושבו בתוכנת ה-GIS, ונקודת מרכז אחת לכל יחידה.</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">עיריית באר שבע מפרסמת את שכבת שטח השיפוט המוניציפלי בכמה פורמטים: טבלת מאפיינים (CSV ו-XLSX, בשתי מערכות הקואורדינטות) וקובצי גאומטריה (GeoJSON ו-SHP) שבהם מצויר קו הגבול המלא. המפה בעמוד זה מצוירת מקובץ ה-GeoJSON, ובו גם נבדקים השטח ונקודת המרכז הרשומים. הטבלה כוללת את שם הרשות, קוד האזור, השטח וההיקף כפי שחושבו בתוכנת ה-GIS, ונקודת מרכז אחת לכל יחידה.</p>
 </section>
-{%- if model.flags.has_map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-geo-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-main",
-    resourceId: {{ inputs.main[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    cluster: false,
-    popupTitleField: "AREA_NAME",
-    popupFields: [
-      { field: "AREA_CODE", label: "קוד אזור" }
-    ]
-  });
+  (function () {
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "units": model.charts.map.units, "bounds": model.charts.bounds} | tojson }};
+    var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#198754", "#dc3545", "#0dcaf0", "#6c757d"];
+    var color = function (u) { return u === 0 ? "#0068f5" : pal[u % pal.length]; };
+    var geo = {};
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-geo-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (p) {
+        var u = geo[p[0]] = geo[p[0]] || [];
+        var poly = u[p[1]] = u[p[1]] || [];
+        var ring = poly[p[2]] = poly[p[2]] || [];
+        var pts = ring.length ? p[3].slice(1) : p[3];
+        pts.forEach(function (q) { ring.push([q[1], q[0]]); });
+      });
+    }
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    meta.units.forEach(function (s, u) {
+      if (!geo[u]) { return; }
+      var shape = L.polygon(geo[u].filter(function (x) { return x; }), {
+        color: color(u), weight: 3, opacity: 0.9, fillColor: color(u), fillOpacity: 0.12
+      }).addTo(map);
+      var box = document.createElement("div");
+      var title = document.createElement("strong");
+      title.textContent = s.label;
+      box.appendChild(title);
+      [["קוד אזור", s.code], ["שטח", s.km2 + " קמ״ר"], ["היקף", s.km + " ק״מ"]].forEach(function (row) {
+        var d = document.createElement("div");
+        d.textContent = row[0] + ": " + row[1];
+        box.appendChild(d);
+      });
+      shape.bindPopup(box);
+      if (s.center) {
+        L.circleMarker(s.center, { radius: 5, color: "#0b3668", weight: 2, fillColor: "#ffffff", fillOpacity: 1 }).addTo(map);
+      }
+    });
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+  })();
 </script>
-{%- endif %}

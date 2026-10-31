@@ -1,4 +1,4 @@
-<h1>דיפו רק"ל: מתחמי תחזוקה ותפעול של הרכבת הקלה</h1>
+<h1>דיפו רק"ל: מפת מתחמי התחזוקה והתפעול של הרכבת הקלה</h1>
 
 <style>
   .depot-table th, .depot-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
@@ -35,8 +35,8 @@
     <div class="text-sm text-subtle">{{ model.labels.ex_share_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-{{ model.kpis.largest.tone }} mb-1" dir="ltr">{{ model.kpis.largest.display }}</div>
-    <div class="text-sm text-subtle">{{ model.labels.largest_kpi }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.metros.tone }} mb-1" dir="ltr">{{ model.kpis.metros.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.metros_kpi }}</div>
   </div>
 </div>
 
@@ -54,6 +54,57 @@
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת מתחמי הדיפו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-depots" class="h-80 md:h-[460px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+  <ul class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for s in model.status_legend %}
+    <li class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-gov-pill" style="background: {{ s.color }}; border: 1px solid #0b3668"></span>{{ s.name }}</li>
+{%- endfor %}
+  </ul>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="depot-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.map_caption }}</caption>
+        <thead><tr><th scope="col">מתחם</th><th scope="col">אזור</th><th scope="col">סטטוס</th><th scope="col">שטח (דונם)</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.depots %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.metro }}</td><td>{{ r.status }}</td><td>{{ r.area }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.metros %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שטח הדיפו לפי אזור מטרופולין</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.metros_lede }}</p>
+  <div id="chart-metros" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.metros_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="depot-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.metros_aria }}</caption>
+      <thead><tr><th scope="col">אזור</th><th scope="col">מתחמים</th><th scope="col">שטח (דונם)</th><th scope="col">שיעור מהשטח</th><th scope="col">מתחמים לפי סטטוס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.metros %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.area }}</td><td>{{ r.share }}</td><td>{{ r.parts }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">שטח כל מתחם דיפו</h2>
   </div>
@@ -64,10 +115,10 @@
     <div class="overflow-x-auto">
       <table class="depot-table mt-2 w-full text-sm">
         <caption class="sr-only">{{ model.labels.depots_aria }}</caption>
-        <thead><tr><th scope="col">מתחם</th><th scope="col">סטטוס</th><th scope="col">שטח (דונם)</th><th scope="col">שיעור מהשטח</th><th scope="col">היקף (מ׳)</th><th scope="col">עדכון</th></tr></thead>
+        <thead><tr><th scope="col">מתחם</th><th scope="col">סטטוס</th><th scope="col">אזור</th><th scope="col">שטח (דונם)</th><th scope="col">שיעור מהשטח</th><th scope="col">היקף (מ׳)</th><th scope="col">עדכון</th></tr></thead>
         <tbody>
 {%- for r in model.tables.depots %}
-          <tr><th scope="row">{{ r.name }}</th><td>{{ r.status }}</td><td>{{ r.area }}</td><td>{{ r.share }}</td><td>{{ r.perim }}</td><td>{{ r.ym }}</td></tr>
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.status }}</td><td>{{ r.metro }}</td><td>{{ r.area }}</td><td>{{ r.share }}</td><td>{{ r.perim }}</td><td>{{ r.ym }}</td></tr>
 {%- endfor %}
         </tbody>
       </table>
@@ -193,9 +244,88 @@
     <img src="/icons/list.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">על המאגר</h2>
   </div>
-  <p class="m-0 mb-2 text-sm leading-relaxed">דיפו הוא מתחם שבו חונים קרונות הרכבת הקלה בלילה ומתבצעות בו פעולות תחזוקה, ניקוי ותפעול. טבלת הנתונים כוללת לכל מתחם את שמו, סוגו, סטטוס התכנון, שטחו בדונמים, היקף ושטח הפוליגון במטרים ומועד העדכון. גבולות המתחמים עצמם נמצאים בקובצי ה-SHP וה-KML שברשימת ההורדות למטה.</p>
+  <p class="m-0 mb-2 text-sm leading-relaxed">דיפו הוא מתחם שבו חונים קרונות הרכבת הקלה בלילה ומתבצעות בו פעולות תחזוקה, ניקוי ותפעול. קובץ ה-SHP של המאגר כולל לכל מתחם את גבולותיו (פוליגון), שמו, סוגו, סטטוס התכנון, שטחו בדונמים, היקף ושטח הפוליגון במטרים ומועד העדכון. המפה והתרשימים בעמוד נבנים מהקובץ הזה, וטבלת הנתונים שבהמשך היא טבלת התכונות שלו.</p>
   <p class="m-0 text-sm text-subtle whitespace-pre-line">תיאור מקורי: מתחמי תחזוקה ותפעול, קיימים ומתוכננים, של רכבת קלה</p>
 </section>
+
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-depots-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-depots");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "depots": model.charts.map.depots, "bounds": model.charts.map.bounds} | tojson }};
+    var ZOOM_SHAPES = 13;
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    var popup = function (dp) {
+      var box = document.createElement("div");
+      var title = document.createElement("strong");
+      title.textContent = dp.name;
+      box.appendChild(title);
+      [["סטטוס", dp.status], ["אזור", dp.metro], ["שטח", dp.area + " דונם"], ["עדכון", dp.ym]].forEach(function (row) {
+        if (!row[1]) { return; }
+        var r = document.createElement("div");
+        r.textContent = row[0] + ": " + row[1];
+        box.appendChild(r);
+      });
+      return box;
+    };
+    var label = function (dp) { var t = document.createElement("span"); t.textContent = dp.name; return t; };
+    var shapes = L.featureGroup(), dots = L.featureGroup();
+    var rings = {}, order = [];
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-depots-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var key = f[0] + ":" + f[1];
+        if (!rings[key]) { rings[key] = { i: f[0], pts: [] }; order.push(key); }
+        var r = rings[key];
+        r.pts = r.pts.concat(r.pts.length ? f[2].slice(1) : f[2]);
+      });
+    }
+    order.forEach(function (key) {
+      var r = rings[key], dp = meta.depots[r.i];
+      L.polygon(r.pts.map(function (p) { return [p[1], p[0]]; }), {
+        color: "#0b3668", weight: 2, fillColor: dp.color, fillOpacity: 0.6
+      }).bindPopup(popup(dp)).addTo(shapes);
+    });
+    meta.depots.forEach(function (dp) {
+      L.circleMarker(dp.c, { radius: 8, color: "#0b3668", weight: 2, fillColor: dp.color, fillOpacity: 0.9 })
+        .bindPopup(popup(dp)).bindTooltip(label(dp)).addTo(dots);
+    });
+    shapes.addTo(map);
+    var sync = function () {
+      if (map.getZoom() >= ZOOM_SHAPES) { map.removeLayer(dots); } else if (!map.hasLayer(dots)) { dots.addTo(map); }
+    };
+    map.on("zoomend", sync);
+    map.fitBounds(meta.bounds, { padding: [16, 16] });
+    sync();
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-metros");
+    if (!el) { return; }
+    var d = {{ model.charts.metros | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 40, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "דונם", splitNumber: el.clientWidth < 500 ? 3 : 5, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: d.statuses.map(function (s, i) {
+        return { type: "bar", stack: "m", name: s, itemStyle: { color: d.colors[i] }, barMaxWidth: 40,
+                 data: d.series[i].map(function (v) { return v > 0 ? v : null; }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
 
 <script>
   (function () {
@@ -207,7 +337,7 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
         var i = p[0].dataIndex;
-        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.status[i]) +
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.status[i]) + ", " + echarts.format.encodeHTML(d.metro[i]) +
           ": " + d.area[i] + " דונם<br>חציון המתחמים: " + d.median + " דונם";
       } },
       grid: { left: 16, right: 48, top: 16, bottom: 16, containLabel: true },

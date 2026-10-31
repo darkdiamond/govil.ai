@@ -1,6 +1,7 @@
 """מתחמי מרכזים מסחריים, באר שבע: one small polygon layer of commercial,
-employment and civic areas (name, type, polygon area and perimeter, WGS84
-centroid).
+employment and civic areas, read from the uploaded WGS84 GeoJSON map file
+(one row per polygon: name, type, area and perimeter attributes, plus the
+real polygon geometry in ``__geometry``).
 
 The type column (``remarks``) spells the same class several ways ("מרכזי מסחר
 מאורגן" / "מרכז מסחרי מאורגן", "מסחר מוטה רחוב" / "מסחר מלווה רחוב"), so known
@@ -9,12 +10,17 @@ as its own type.  Each type also belongs to a broad family (commerce,
 employment, institutions) with a fallback family for new types.
 
 Everything is computed from the polygons: count and area per type, the
-largest areas, size bands, shape compactness (4*pi*A/P^2) and the distance of
-each centroid from the median centre of all areas.  The other three resources
-are format / projection twins (XLSX, ITM) and are not read.
+largest areas, size bands, shape compactness (4*pi*A/P^2), the distance of
+each polygon's centroid from the median centre of all areas, and the extent
+of the mapped layer.  Area / perimeter come from the GIS attributes
+(SHAPE_Area / SHAPE_Leng, metres in ITM) and fall back to the geometry when
+an attribute is missing; centroids come from the geometry and fall back to
+the lat/lon attributes.  The polygons themselves go to the page as compact
+[feature index, rings] pairs in JSON islands under CHUNK_BYTES.
 
-Order-independent: every sort has a full tie-break (value, then name).
+Order-independent: every sort has a full tie-break (value, name, geometry).
 """
+import json
 import math
 import re
 
@@ -55,6 +61,8 @@ FAMILY = {
 FAMILY_ORDER = ["מסחר", "תעשייה ותעסוקה", "מוסדות ומרכזים עירוניים", "אחר"]
 UNTYPED = "לא מסווג"
 WS = re.compile(r"\s+")
+CHUNK_BYTES = 40000     # JSON island budget (each <script> block < 50KB)
+FAMILY_COLOR = {"מסחר": 0, "תעשייה ותעסוקה": 1, "מוסדות ומרכזים עירוניים": 2, "אחר": 6}
 
 
 def fmt(n):
@@ -114,16 +122,131 @@ def band_index(v, edges):
     return idx
 
 
+# ---------- geometry ----------
+
+def _polys(geom):
+    """List of polygons (each a list of rings of [lon, lat]) from a GeoJSON geometry."""
+    if not isinstance(geom, dict):
+        return []
+    t, c = geom.get("type"), geom.get("coordinates")
+    if t == "Polygon" and c:
+        return [c]
+    if t == "MultiPolygon" and c:
+        return [p for p in c if p]
+    if t == "GeometryCollection":
+        return [p for g in geom.get("geometries") or [] for p in _polys(g)]
+    return []
+
+
+def _ring_stats(ring, la0):
+    """Planar (local equirectangular) signed area m², perimeter m, centroid sums."""
+    kx = M_PER_DEG * math.cos(math.radians(la0))
+    pts = [(float(p[0]) * kx, float(p[1]) * M_PER_DEG) for p in ring if len(p) >= 2]
+    if len(pts) < 3:
+        return 0.0, 0.0, 0.0, 0.0
+    a2 = cx = cy = per = 0.0
+    for (x1, y1), (x2, y2) in zip(pts, pts[1:] + pts[:1]):
+        cr = x1 * y2 - x2 * y1
+        a2 += cr
+        cx += (x1 + x2) * cr
+        cy += (y1 + y2) * cr
+        per += math.hypot(x2 - x1, y2 - y1)
+    return a2 / 2.0, per, cx / 6.0, cy / 6.0
+
+
+def geo_stats(polys):
+    """(area m², perimeter m, centroid lat, centroid lon) or Nones."""
+    pts = [p for poly in polys for ring in poly for p in ring if len(p) >= 2]
+    if not pts:
+        return None, None, None, None
+    la0 = sum(float(p[1]) for p in pts) / len(pts)
+    kx = M_PER_DEG * math.cos(math.radians(la0))
+    area = per = sx = sy = 0.0
+    for poly in polys:
+        for k, ring in enumerate(poly):
+            a, p, cx, cy = _ring_stats(ring, la0)
+            sign = 1.0 if k == 0 else -1.0       # holes subtract
+            area += sign * abs(a)
+            if a:
+                f = sign * abs(a) / a
+                sx += f * cx
+                sy += f * cy
+            per += p
+    if area <= 0:
+        return None, per or None, None, None
+    return area, per, (sy / area) / M_PER_DEG, (sx / area) / kx
+
+
+def _thin(ring, budget):
+    """Keep every k-th vertex (and the closing one) so the ring fits the budget."""
+    n = len(json.dumps(ring, separators=(",", ":")))
+    if n <= budget or len(ring) <= 8:
+        return ring
+    k = int(math.ceil(n / float(budget)))
+    out = ring[:-1:k] + [ring[-1]]
+    return out if len(out) >= 4 else ring
+
+
+def map_features(df):
+    """Polygons as [feature index, rings] in islands < CHUNK_BYTES, plus meta."""
+    feats = []
+    for i, polys in enumerate(df["polys"]):
+        for poly in polys:
+            rings = [[[round(float(p[0]), 6), round(float(p[1]), 6)] for p in ring if len(p) >= 2]
+                     for ring in poly]
+            rings = [_thin(r, CHUNK_BYTES // 2) for r in rings if len(r) >= 4]
+            if rings:
+                feats.append([i, rings])
+    chunks, cur, size = [], [], 0
+    for f in feats:
+        n = len(json.dumps(f, separators=(",", ":")))
+        if cur and size + n > CHUNK_BYTES:
+            chunks.append(cur)
+            cur, size = [], 0
+        cur.append(f)
+        size += n
+    if cur:
+        chunks.append(cur)
+    lons = [p[0] for f in feats for r in f[1] for p in r]
+    lats = [p[1] for f in feats for r in f[1] for p in r]
+    meta = [{"name": nm, "type": t, "fam": FAMILY_COLOR.get(fm, 6), "area": dun(a)}
+            for nm, t, fm, a in zip(df["name"], df["type"], df["family"], df["area"])]
+    bounds = [[min(lats), min(lons)], [max(lats), max(lons)]] if feats else None
+    return {"chunks": chunks, "feats": meta, "bounds": bounds, "n": len(feats)}
+
+
 def compute(frames):
-    raw = frames["areas"]
+    raw = frames["geo"]
+    empty = pd.Series([""] * len(raw), index=raw.index)
+    polys = []
+    for g in raw["__geometry"]:
+        try:
+            polys.append(_polys(json.loads(g or "null")))
+        except (ValueError, TypeError):
+            polys.append([])
+    gs = [geo_stats(p) for p in polys]
     df = pd.DataFrame({
         "name": raw["Name"].map(clean),
         "type": raw["remarks"].map(canon_type),
         "area": num(raw["SHAPE_Area"]),
         "perim": num(raw["SHAPE_Leng"]),
-        "la": num(raw["lat"]),
-        "lo": num(raw["lon"]),
-    })
+        "la": num(raw["lat"] if "lat" in raw.columns else empty),
+        "lo": num(raw["lon"] if "lon" in raw.columns else empty),
+        "g_area": [s[0] for s in gs],
+        "g_perim": [s[1] for s in gs],
+        "g_la": [s[2] for s in gs],
+        "g_lo": [s[3] for s in gs],
+        "gkey": [str(g) for g in raw["__geometry"]],
+    }, index=raw.index)
+    df["polys"] = polys
+    # attributes first (exact, ITM metres); the geometry fills what is missing
+    bad_a = df["area"].isna() | (df["area"] <= 0)
+    df.loc[bad_a, "area"] = pd.to_numeric(df.loc[bad_a, "g_area"], errors="coerce")
+    bad_p = df["perim"].isna() | (df["perim"] <= 0)
+    df.loc[bad_p, "perim"] = pd.to_numeric(df.loc[bad_p, "g_perim"], errors="coerce")
+    has_gc = pd.to_numeric(df["g_la"], errors="coerce").notna()
+    df.loc[has_gc, "la"] = pd.to_numeric(df.loc[has_gc, "g_la"], errors="coerce")
+    df.loc[has_gc, "lo"] = pd.to_numeric(df.loc[has_gc, "g_lo"], errors="coerce")
     n_raw = len(df)
     df = df[(df["name"] != "") & df["area"].notna() & (df["area"] > 0)].copy()
     n_bad = n_raw - len(df)
@@ -135,7 +258,7 @@ def compute(frames):
         (4 * math.pi * a / (p * p)) if (pd.notna(p) and p > 0) else float("nan")
         for a, p in zip(df["area"], df["perim"])
     ]
-    df = df.sort_values(["area", "name"], ascending=[False, True], kind="mergesort").reset_index(drop=True)
+    df = df.sort_values(["area", "name", "gkey"], ascending=[False, True, True], kind="mergesort").reset_index(drop=True)
 
     n = len(df)
     total = float(df["area"].sum())
@@ -234,6 +357,22 @@ def compute(frames):
         far = (fr["short"], float(fr["dist"]), fr["type"])
         near_share = (int((geo["dist"] < 2000).sum()), len(geo))
 
+    # ---------- map (real polygons) ----------
+    mp = map_features(df)
+    has_map = mp["n"] >= 1 and mp["bounds"] is not None
+    mp["fams"] = [{"name": f, "c": FAMILY_COLOR.get(f, 6), "count": int((df["family"] == f).sum())} for f in fams]
+    extent = None
+    if has_map:
+        (s_la, w_lo), (n_la, e_lo) = mp["bounds"]
+        mid = (s_la + n_la) / 2.0
+        ns_km = (n_la - s_la) * M_PER_DEG / 1000.0
+        ew_km = (e_lo - w_lo) * M_PER_DEG * math.cos(math.radians(mid)) / 1000.0
+        cen = df[df["la"].notna()].copy()
+        if len(cen) >= 3:
+            north = cen.sort_values(["la", "name"], ascending=[False, True], kind="mergesort").iloc[0]
+            south = cen.sort_values(["la", "name"], ascending=[True, True], kind="mergesort").iloc[0]
+            extent = (ns_km, ew_km, north["short"], south["short"])
+
     # list
     lst = df.head(LIST_CAP)
     tbl_list = {"headers": ["מתחם", "סוג", "שטח (דונם)", "מרחק מהמרכז (ק״מ)"],
@@ -302,6 +441,11 @@ def compute(frames):
                 f"מרכז מסחרי שכונתי חציוני משתרע על {dun(mn)} דונם, פי {mn / mo:,.1f} ממרכז מסחרי מאורגן חציוני "
                 f"({dun(mo)} דונם).")
 
+    if extent is not None and extent[0] >= 1 and extent[2] != extent[3]:
+        add("extent",
+            f"המתחמים הממופים פרושים על פני כ־{extent[0]:,.1f} ק״מ מצפון לדרום וכ־{extent[1]:,.1f} ק״מ "
+            f"ממערב למזרח: הצפוני ביותר הוא {extent[2]} והדרומי ביותר הוא {extent[3]}.")
+
     if n_bad:
         add("bad", f"{fmt(n_bad)} רשומות ללא שם או ללא שטח תקין אינן נכללות בחישובים.")
 
@@ -321,7 +465,9 @@ def compute(frames):
         "lede": (f"המאגר של עיריית באר שבע ממפה {fmt(n)} מתחמים של מרכזי מסחר, קניונים, אזורי תעשייה ומוקדי תעסוקה "
                  f"בעיר, על פני {total_km2:,.1f} קמ״ר. {fmt(len(comm))} מהם מתחמי מסחר (מרכזים שכונתיים, קניונים, "
                  f"שוק ומסחר לאורך רחוב), והשאר אזורי תעשייה, פארק הייטק ומוסדות עירוניים גדולים."),
-        "map_note": f"מיקום מרכז כל אחד מ־{fmt(n)} המתחמים. לחיצה על נקודה מציגה את שם המתחם ואת סוגו.",
+        "map_note": (f"גבולות {fmt(n)} המתחמים כפי שסומנו בשכבת המיפוי של העירייה, בצבע לפי משפחה. "
+                     f"לחיצה על מתחם מציגה את שמו, את סוגו ואת שטחו."),
+        "map_aria": f"מפה אינטראקטיבית של גבולות {fmt(n)} המתחמים בבאר שבע",
         "types_note": (f"{fmt(n_types)} סוגי מתחמים. {lead_c['type']} הוא הסוג הנפוץ ביותר, "
                        f"עם {fmt(lead_c['count'])} מתחמים."),
         "types_aria": f"תרשים עמודות: מספר המתחמים לפי סוג, {fmt(len(types))} סוגים",
@@ -360,14 +506,6 @@ def compute(frames):
     agent_data = {
         "summary_he": summary,
         "dataset_kind": "map",
-        "suggested_tags": ["מרכזים מסחריים", "באר שבע", "קניונים", "אזורי תעשייה", "תכנון עיר"],
-        "related_ids": [
-            "54b65747-904e-42e1-9316-0575ebbc1216",
-            "fffada0a-b021-4629-9244-bc5e301f23d5",
-            "f4a5cdab-82b2-48ad-9d95-424a035cfed8",
-            "82a30a97-01b0-4281-854c-c7931f3445c0",
-            "3c6d4061-41bf-4403-82e9-c8fae5df04dd",
-        ],
         "spatial_coverage": "באר שבע",
     }
     if temporal:
@@ -384,12 +522,13 @@ def compute(frames):
             "size": {"names": size_lbl, "series": size_series},
             "comp": chart_comp,
             "dist": chart_dist,
+            "map": mp,
         },
         "tables": {
             "types": tbl_types, "share": tbl_share, "fam": tbl_fam, "top": tbl_top,
             "size": tbl_size, "comp": tbl_comp, "dist": tbl_dist, "list": tbl_list,
         },
-        "flags": {"dist": has_geo, "comp": len(gc) >= 2},
+        "flags": {"dist": has_geo, "comp": len(gc) >= 2, "map": has_map},
         "insights": insights,
         "labels": labels,
     }

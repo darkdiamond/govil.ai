@@ -1,13 +1,21 @@
-"""Existing public-transport priority lanes (נת"צים) — Ministry of Transport GIS layer.
+"""Existing public-transport priority lanes (נת"צים): Ministry of Transport GIS layer.
 
 One row per lane segment: type, local and traffic authority, road/street,
 start/end points (ITM), operating hours per day type, permitted users,
 physical separation, paint, enforcement, start date and last change.
 
-Every number on the page comes from here. Lengths are the LENGT column
-(metres). Insight rules each return a sentence or None; a rule whose premise
+Two inputs: `main` (the datastore attribute table) drives every chart of
+attributes; `geo` (the uploaded shapefile, one row per segment with its
+line as WGS84 GeoJSON in `__geometry`) drives the line map, the north-south
+profile and the measured lengths. Both carry the same 1,008 rows; each
+section reads one input only, so they stay self-consistent.
+
+Every number on the page comes from here. Attribute lengths are the LENGT
+column (metres); map lengths are measured on the geometry. Insight rules each return a sentence or None; a rule whose premise
 no longer holds in the data drops out rather than asserting something false.
 """
+import json
+import math
 import re
 
 import pandas as pd
@@ -236,19 +244,6 @@ def insight_cancel(df):
             f"כקיימים אך צפויים להתבטל בעתיד{tail}.")
 
 
-def insight_recent(df):
-    cy = df["change_year"].dropna()
-    if cy.empty:
-        return None
-    last = int(cy.max())
-    n_last = int((cy == last).sum())
-    share = n_last / len(df)
-    if share < 0.05:
-        return None
-    return (f"{_int(n_last)} מקטעים ({_pct(share)}) עודכנו לאחרונה בשנת {last}, "
-            f"השנה המאוחרת ביותר במאגר.")
-
-
 def insight_start(df):
     sy = df.dropna(subset=["start_year"])
     if len(sy) < 20:
@@ -260,13 +255,275 @@ def insight_start(df):
             f"השנה עם הכי הרבה נתיבים חדשים היא {y}: {_km(v)} ק\"מ.")
 
 
-def insight_longest(df):
-    if df.empty:
+# ---------------------------------------------------------------- geometry (geo input)
+
+SIMPLIFY_M = (2.0, 4.0, 8.0, 16.0)   # display-only Douglas-Peucker tolerances (metres), finest first;
+MAP_BUDGET = 200_000                 # the finest one whose islands fit this many bytes is used.
+                                     # Lengths are always measured on the full line.
+QUANT = 100_000           # coordinates quantised to 1e-5 degrees (about 1 m)
+CHUNK_BYTES = 36_000      # each JSON island stays well under 50KB (tojson escaping adds a little)
+CHUNK_POINTS = 1_500      # a longer line is split into pieces of this many points
+BAND_WIDTHS = (10, 20, 25, 50, 100)   # latitude band widths, in 0.01 degrees
+MAX_BANDS = 20
+KM_PER_DEG_LAT = 111.2
+ZOOM_TOP = 4
+
+
+def _haversine_m(a, b):
+    p1, p2 = math.radians(a[1]), math.radians(b[1])
+    dp, dl = p2 - p1, math.radians(b[0] - a[0])
+    h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6_371_000 * math.asin(math.sqrt(min(1.0, h)))
+
+
+def _lines_of(geom):
+    if not isinstance(geom, dict):
+        return []
+    if geom.get("type") == "LineString":
+        parts = [geom.get("coordinates") or []]
+    elif geom.get("type") == "MultiLineString":
+        parts = geom.get("coordinates") or []
+    else:
+        return []
+    out = []
+    for p in parts:
+        pts = [(float(c[0]), float(c[1])) for c in p if isinstance(c, list) and len(c) >= 2]
+        if len(pts) >= 2:
+            out.append(pts)
+    return out
+
+
+def _simplify(pts, tol_m):
+    """Douglas-Peucker on a local metric projection; keeps both end points."""
+    if len(pts) < 3:
+        return list(pts)
+    k = math.cos(math.radians(pts[0][1]))
+    m = [(x * 111_320 * k, y * 110_574) for x, y in pts]
+    keep = {0, len(pts) - 1}
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        ax, ay = m[a]
+        dx, dy = m[b][0] - ax, m[b][1] - ay
+        ll = dx * dx + dy * dy
+        best, bi = -1.0, -1
+        for i in range(a + 1, b):
+            px, py = m[i][0] - ax, m[i][1] - ay
+            t = 0.0 if ll == 0 else max(0.0, min(1.0, (px * dx + py * dy) / ll))
+            d = math.hypot(px - t * dx, py - t * dy)
+            if d > best:
+                best, bi = d, i
+        if bi > 0 and best > tol_m:
+            keep.add(bi)
+            stack.append((a, bi))
+            stack.append((bi, b))
+    return [pts[i] for i in sorted(keep)]
+
+
+def _encode(pts):
+    """Flat [x0, y0, dx1, dy1, ...] in 1e-5 degree integers (lon, lat)."""
+    q = [(round(x * QUANT), round(y * QUANT)) for x, y in pts]
+    flat = [q[0][0], q[0][1]]
+    for (a, b), (x, y) in zip(q, q[1:]):
+        flat += [x - a, y - b]
+    return flat
+
+
+def _hours_text(r):
+    wins = []
+    for a, b in (("FRHR_WK", "TOHR_WK"), ("FRHR_WK_2", "TOHR_WK_2")):
+        f, t = str(r.get(a, "")).strip(), str(r.get(b, "")).strip()
+        if not f or not t:
+            continue
+        if (f in ("00:00", "0:00") and t in ("24:00", "00:00", "23:59")) or f == t:
+            return "כל היממה"
+        wins.append(f"{f}-{t}")
+    return ", ".join(wins) if wins else UNKNOWN
+
+
+def _geo_prepare(df):
+    rows = []
+    for r in df.to_dict("records"):
+        try:
+            geom = json.loads(r.get("__geometry") or "null")
+        except ValueError:
+            geom = None
+        parts = _lines_of(geom)
+        rec = {
+            "code": str(r.get("PTLCODE", "")).strip(),
+            "seg": str(r.get("PTLSEG", "")).strip(),
+            "name": str(r.get("PTLNAME", "")).replace('""', '"').strip(),
+            "dir": str(r.get("PTLDIR", "")).strip(),
+            "type": str(r.get("PTLTYPE", "")).replace('""', '"').strip() or UNKNOWN,
+            "auth": str(r.get("AUTHORITY", "")).replace('""', '"').strip() or UNKNOWN,
+            "hours": _hours_text(r),
+            "declared": pd.to_numeric(str(r.get("LENGT", "")).replace(",", "").strip(), errors="coerce"),
+            "parts": parts,
+            "gkey": r.get("__geometry") or "",
+        }
+        rec["m"] = sum(_haversine_m(a, b) for p in parts for a, b in zip(p, p[1:]))
+        rows.append(rec)
+    code_num = lambda s: (0, float(s), s) if re.fullmatch(r"-?\d+(\.\d+)?", s) else (1, 0.0, s)
+    rows.sort(key=lambda x: (code_num(x["code"]), code_num(x["seg"]), x["name"], x["dir"],
+                             x["type"], x["auth"], x["gkey"]))
+    return rows
+
+
+def _bounds(parts_list):
+    xs = [x for parts in parts_list for p in parts for x, _ in p]
+    ys = [y for parts in parts_list for p in parts for _, y in p]
+    if not xs:
         return None
-    r = df.sort_values(["len", "PTLNAME"], ascending=[False, True], kind="stable").iloc[0]
-    if r["len"] < 1000:
+    return [[round(min(ys), 5), round(min(xs), 5)], [round(max(ys), 5), round(max(xs), 5)]]
+
+
+def _lat_bands(drawn):
+    """km per latitude band (by each line piece's midpoint), narrowest width
+    in BAND_WIDTHS that leaves at most MAX_BANDS non-empty bands."""
+    pieces = []
+    for s in drawn:
+        for p in s["parts"]:
+            for a, b in zip(p, p[1:]):
+                pieces.append(((a[1] + b[1]) / 2, _haversine_m(a, b), s["auth"]))
+    for w in BAND_WIDTHS:
+        acc = {}
+        for lat, m, auth in pieces:
+            k = math.floor(lat * 100 / w)
+            d = acc.setdefault(k, {"m": 0.0, "auth": {}})
+            d["m"] += m
+            d["auth"][auth] = d["auth"].get(auth, 0.0) + m
+        if len(acc) <= MAX_BANDS or w == BAND_WIDTHS[-1]:
+            break
+    bands = []
+    for k in sorted(acc, reverse=True):   # north first
+        d = acc[k]
+        named = {a: v for a, v in d["auth"].items() if a != UNKNOWN} or d["auth"]
+        lead = sorted(named.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+        lo = k * w / 100
+        bands.append({"lo": lo, "hi": lo + w / 100, "m": d["m"], "lead": lead})
+    return bands, w / 100
+
+
+def insight_extent(drawn):
+    if len(drawn) < 2:
         return None
-    return f"המקטע הארוך ביותר הוא \"{r['PTLNAME']}\" ({r['PTLTYPE']}), באורך {_km(r['len'])} ק\"מ."
+    north = max(drawn, key=lambda s: (max(y for p in s["parts"] for _, y in p), s["name"]))
+    south = min(drawn, key=lambda s: (min(y for p in s["parts"] for _, y in p), s["name"]))
+    n_lat = max(y for p in north["parts"] for _, y in p)
+    s_lat = min(y for p in south["parts"] for _, y in p)
+    span = (n_lat - s_lat) * KM_PER_DEG_LAT
+    if north["auth"] == south["auth"] or span < 50 or UNKNOWN in (north["auth"], south["auth"]):
+        return None
+    return (f"על המפה, נתיבי ההעדפה נפרשים מ{north['auth']} בצפון ועד {south['auth']} בדרום, "
+            f"מרחק צפון-דרום של כ-{_int(span)} ק\"מ.")
+
+
+def _deg(v, width):
+    return f"{v:.1f}" if round(width * 100) % 10 == 0 else f"{v:.2f}"
+
+
+def insight_band(bands, width, total_m):
+    if len(bands) < 3 or total_m <= 0:
+        return None
+    ranked = sorted(bands, key=lambda b: (-b["m"], -b["lo"]))
+    top = ranked[0]
+    share = top["m"] / total_m
+    if share < 0.15:
+        return None
+    top3 = sum(b["m"] for b in ranked[:3]) / total_m
+    return (f"{_pct(share)} מאורך הקווים שבמפה ({_km(top['m'])} ק\"מ) עוברים ברצועת רוחב אחת "
+            f"של כ-{_int(width * KM_PER_DEG_LAT)} ק\"מ, בין קו רוחב {_deg(top['lo'], width)} ל-{_deg(top['hi'], width)} "
+            f"(אזור {top['lead']}); שלוש הרצועות הצפופות ביותר מחזיקות {_pct(top3)} מהאורך.")
+
+
+def _geo_section(df):
+    rows = _geo_prepare(df)
+    drawn = [s for s in rows if s["parts"] and s["m"] > 0]
+    missing = len(rows) - len(drawn)
+    total_m = sum(s["m"] for s in drawn)
+
+    by_type = {}
+    for s in drawn:
+        d = by_type.setdefault(s["type"], [0.0, 0])
+        d[0] += s["m"]
+        d[1] += 1
+    types = [t for t, _ in sorted(by_type.items(), key=lambda kv: (-kv[1][0], kv[0]))]
+    by_auth = {}
+    for s in drawn:
+        by_auth.setdefault(s["auth"], []).append(s)
+    auths = sorted(by_auth, key=lambda a: (-sum(s["m"] for s in by_auth[a]), a))
+
+    hours = sorted({s["hours"] for s in drawn})
+    for tol in SIMPLIFY_M:
+        feats = []
+        for s in drawn:
+            meta = [types.index(s["type"]), auths.index(s["auth"]), _km(s["m"]), s["name"],
+                    hours.index(s["hours"])]
+            for p in s["parts"]:
+                simp = _simplify(p, tol)
+                for a in range(0, len(simp) - 1, CHUNK_POINTS):
+                    feats.append(meta + [_encode(simp[a:a + CHUNK_POINTS + 1])])
+        chunks, cur, size, total = [], [], 0, 0
+        for f in feats:
+            n = len(json.dumps(f, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) + 1
+            if cur and size + n > CHUNK_BYTES:
+                chunks.append(cur)
+                cur, size = [], 0
+            cur.append(f)
+            size += n
+            total += n
+        if cur:
+            chunks.append(cur)
+        if total <= MAP_BUDGET:
+            break
+
+    zoom = []
+    for a in [a for a in auths if a != UNKNOWN][:ZOOM_TOP]:
+        zoom.append({"name": a, "bounds": _bounds([s["parts"] for s in by_auth[a]])})
+    legend = [{"name": t, "km": _km(by_type[t][0]), "count": _int(by_type[t][1])} for t in types]
+
+    bands, width = _lat_bands(drawn)
+    band_rows = [{"name": f"{b['lead']} {_deg(b['lo'], width)}°",
+                  "range": f"{_deg(b['lo'], width)} עד {_deg(b['hi'], width)}",
+                  "lead": b["lead"], "km": _km(b["m"]),
+                  "share": _pct(b["m"] / total_m) if total_m else "0.0%"} for b in bands]
+
+    declared = [s["declared"] for s in drawn if not pd.isna(s["declared"]) and s["declared"] > 0]
+    decl_m = float(sum(declared))
+    dev = [abs(s["m"] / s["declared"] - 1) for s in drawn
+           if not pd.isna(s["declared"]) and s["declared"] > 0]
+    far = sum(1 for d in dev if d > 0.1)
+    if decl_m > 0 and len(declared) == len(drawn):
+        match = (f" האורך הנמדד על הקווים, {_km(total_m)} ק\"מ, שונה ב-{_pct(abs(total_m / decl_m - 1))} "
+                 f"מהאורך המוצהר במאגר ({_km(decl_m)} ק\"מ)"
+                 + (f"; ב-{_int(far)} מקטעים ההפרש עולה על 10%." if far else
+                    "; בכל מקטע ההפרש קטן מ-10%."))
+    else:
+        match = f" האורך הנמדד על הקווים: {_km(total_m)} ק\"מ."
+    note = (f"{_int(len(drawn))} מקטעים מצוירים כקווים, בצבע לפי סוג הנתיב. לחיצה על קו מציגה את שם "
+            f"המקטע, הרשות ושעות הפעילות בימי חול; הכפתורים מתמקדים ב-{_int(len(zoom))} הרשויות עם "
+            f"האורך הרב ביותר." + match
+            + (f" {_int(missing)} מקטעים ללא קו במפה אינם מצוירים." if missing else ""))
+    lead_band = max(bands, key=lambda b: (b["m"], b["lo"])) if bands else None
+    lat_note = (f"אורך הקווים במפה לפי רצועות רוחב של {_deg(width, width)} מעלות (כ-{_int(width * KM_PER_DEG_LAT)} ק\"מ), "
+                f"מצפון לדרום. כל רצועה נקראת על שם הרשות עם האורך הרב ביותר בה וקו הרוחב הדרומי שלה."
+                + (f" הצפופה ביותר: {lead_band['lead']} ({_km(lead_band['m'])} ק\"מ)." if lead_band else ""))
+    model = {
+        "map": {"chunks": chunks, "types": types, "auths": auths, "hours": hours, "legend": legend,
+                "zoom": zoom, "bounds": _bounds([s["parts"] for s in drawn])},
+        "lat": {"names": [r["name"] for r in band_rows], "values": [round(b["m"] / 1000, 2) for b in bands],
+                "ranges": [r["range"] for r in band_rows]},
+    }
+    labels = {
+        "map_note": note,
+        "map_aria": (f"מפה אינטראקטיבית של {_int(len(drawn))} מקטעי נתיבי העדפה, קווים בצבע לפי סוג. "
+                     f"גרסה נגישה: טבלת הנתונים מתחת לעמוד."),
+        "lat_note": lat_note,
+        "lat_aria": (f"תרשים עמודות: ק\"מ של נתיבי העדפה במפה לפי רצועת קו רוחב, מצפון לדרום."
+                     + (f" הצפופה ביותר: {lead_band['lead']}." if lead_band else "")),
+    }
+    insights = [("extent", insight_extent(drawn)), ("band", insight_band(bands, width, total_m))]
+    return model, {"lat": band_rows}, labels, insights, bool(drawn), len(bands) >= 2
 
 
 # ---------------------------------------------------------------- compute
@@ -461,18 +718,19 @@ def compute(frames):
         ("paint", insight_paint(df)),
         ("cancel", insight_cancel(df)),
         ("start", insight_start(df)),
-        ("recent", insight_recent(df)),
-        ("longest", insight_longest(df)),
     ]
+    geo_model, geo_tables, geo_labels, geo_rules, has_map, has_lat = _geo_section(frames["geo"])
+    rules += geo_rules
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     lead_auth = by_auth[by_auth.index != UNKNOWN]
     lead_type = by_type_m.index[0] if len(by_type_m) else UNKNOWN
-    summary = (f"מפת נתיבי התחבורה הציבורית (נת\"צים) בישראל: {_int(n)} מקטעים באורך "
-               f"{_km(total_m)} ק\"מ ב-{_int(n_auth)} רשויות, לפי סוג, שעות פעילות ואכיפה.")
+    summary = (f"מפת נת\"צים ונתיבי העדפה לתחבורה ציבורית בישראל, עם איתור לפי רחוב, כביש או רשות: "
+               f"{_int(n)} מקטעים באורך {_km(total_m)} ק\"מ ב-{_int(n_auth)} רשויות.")
 
     urb_share = {u: (float(urb_vals[u]) / total_m if total_m else 0.0) for u in urb_names}
     labels = {
+        **geo_labels,
         "lede": (f"השכבה הארצית של משרד התחבורה מתעדת {_int(n)} מקטעים של נתיבי העדפה לתחבורה "
                  f"ציבורית: נת\"צים, מת\"צים, רחובות תחבורה ציבורית והעדפה בצמתים, באורך כולל של "
                  f"{_km(total_m)} ק\"מ ב-{_int(n_auth)} רשויות מקומיות. לכל מקטע מפורטים סוג הנתיב, "
@@ -486,9 +744,6 @@ def compute(frames):
         "sat_kpi": "מהאורך פעיל גם בשבת",
         "camera_kpi": "מהאורך עם אכיפה מתועדת נאכף במצלמה",
         "cancel_kpi": "מקטעים שצפויים להתבטל",
-        "map_note": (f"כל נקודה היא תחילתו של מקטע נתיב. לחיצה על נקודה מציגה את שם המקטע, סוגו, "
-                     f"הרשות ושעות הפעילות. המפה נטענת ישירות מהמאגר ({_int(n)} מקטעים)."),
-        "map_aria": "מפה אינטראקטיבית של נקודות ההתחלה של מקטעי נתיבי ההעדפה. גרסה נגישה: ראו את טבלת הנתונים מתחת לעמוד.",
         "types_note": (f"{lead_type} הוא הסוג הנפוץ ביותר ({_pct(by_type_m.iloc[0] / total_m) if total_m and len(by_type_m) else '0.0%'} "
                        f"מהאורך). העמודות מפוצלות לפי סוג הדרך: "
                        + ", ".join(f"{u} {_pct(urb_share[u])}" for u in urb_names) + " מהאורך."),
@@ -553,13 +808,6 @@ def compute(frames):
     agent_data = {
         "summary_he": summary,
         "dataset_kind": "map",
-        "suggested_tags": ["תחבורה ציבורית", "נתיבי העדפה", "נת\"צ", "אוטובוסים", "תשתית תחבורה"],
-        "related_ids": [
-            "27047419-e1fc-4f1d-bb15-7f5f0805d226",
-            "1e9d4542-97af-47ac-a780-f2a6b291b1f5",
-            "30cc4889-9bd7-4888-a66d-51ab39eb579a",
-            "0b22997e-676d-48d3-baee-c79846a1939f",
-        ],
         "spatial_coverage": "ישראל",
     }
     if temporal:
@@ -583,6 +831,7 @@ def compute(frames):
                       "values": [round(float(lane_m.get(nm, 0)) / 1000, 2) for nm in lane_names]},
             "length": {"names": [b[2] for b in LEN_BINS], "values": bin_counts},
             "time": {"x": time_x, "started": time_start, "changed": time_change},
+            **geo_model,
         },
         "tables": {
             "types": type_rows, "types_head": urb_names,
@@ -590,8 +839,10 @@ def compute(frames):
             "hours": hour_rows, "hours_head": [lbl for _, lbl, _ in DAYS], "op": op_rows,
             "users": user_rows, "infra": infra_rows, "lanes": lane_rows,
             "length": len_rows, "longest": long_rows, "time": time_rows,
+            **geo_tables,
         },
-        "flags": {"roads": bool(len(by_road)), "streets": bool(len(by_street)), "time": bool(time_x)},
+        "flags": {"roads": bool(len(by_road)), "streets": bool(len(by_street)), "time": bool(time_x),
+                  "map": has_map, "lat": has_lat},
         "insights": insights,
         "labels": labels,
     }

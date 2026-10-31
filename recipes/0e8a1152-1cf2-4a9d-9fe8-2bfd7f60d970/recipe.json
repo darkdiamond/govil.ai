@@ -1,8 +1,8 @@
 {
   "contract_version": 1,
   "dataset_id": "0e8a1152-1cf2-4a9d-9fe8-2bfd7f60d970",
-  "recipe_version": 1,
-  "authored_at": "2026-10-27T00:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T01:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-25T01:11:07.299550+00:00",
     "rows": {
@@ -15,30 +15,28 @@
   "inputs": [
     {
       "name": "buildings",
-      "by_id": "26dc3bcc-5e85-4580-b2ed-38f9f7f499f1",
-      "required_columns": [
-        "standard",
-        "cartis",
-        "year",
-        "SHAPE_Area",
-        "lat",
-        "lon"
-      ]
+      "by_id": "a235c562-2916-4c47-a757-d2bd02dfd1bd",
+      "map": true,
+      "map_max_kb": 600,
+      "required_columns": ["standard", "cartis", "year", "SHAPE_Area"]
     },
     {
       "name": "elements",
-      "by_id": "bdce1305-cab1-411c-ba22-d7df61484100",
-      "required_columns": ["standard", "Hakama", "Taba", "lat", "lon"]
+      "by_id": "397f8350-32ed-4921-9e2c-3b827ce3b219",
+      "map": true,
+      "required_columns": ["standard", "Hakama", "Taba"]
     },
     {
       "name": "complexes",
-      "by_id": "35baa827-5ede-4854-b3ce-2301aaf874d8",
-      "required_columns": ["shimur", "Taba", "SHAPE_Area", "lat", "lon"]
+      "by_id": "7426416c-4b77-417d-8dae-5184dc687636",
+      "map": true,
+      "required_columns": ["shimur", "Taba", "SHAPE_Area"]
     },
     {
       "name": "fences",
-      "by_id": "c58ae440-c19d-471e-92a7-fcef7bf8974e",
-      "required_columns": ["standard", "SHAPE_Leng", "lat", "lon"]
+      "by_id": "dad85f70-4cda-4c11-a878-c8346fb23c00",
+      "map": true,
+      "required_columns": ["standard", "SHAPE_Leng"]
     }
   ],
   "min_insights": 5

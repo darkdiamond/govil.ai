@@ -8,6 +8,14 @@
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
 
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תב״ע לפי מספר תכנית ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מספר תכנית, סטטוס ומספר פנימי. אפשר גם לחפש תכנית ישירות במפה.</span>
+  </span>
+</a>
+
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
 {%- for key in ["plans", "inforce", "deposit", "median_area"] %}
   <div class="card p-4 text-center">
@@ -29,14 +37,21 @@
   </ul>
 </section>
 
-{% if model.has_geo %}
+{% if model.map %}
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
-    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת קטעי הגבול</h2>
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת הקווים הכחולים</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-main" class="h-72 md:h-[420px]"></div>
+  <div id="map-search" class="flex flex-wrap items-center gap-2 mb-3" role="search">
+    <label for="map-search-q" class="text-sm text-subtle">איתור תכנית במפה</label>
+    <input id="map-search-q" type="search" dir="ltr" class="border border-rule rounded-gov px-3 py-1 text-sm w-44" autocomplete="off" />
+    <button type="button" id="map-search-go" class="bg-primary text-white rounded-gov px-3 py-1 text-sm">חיפוש</button>
+    <span id="map-search-msg" class="text-sm text-subtle" aria-live="polite"></span>
+  </div>
+  <div id="map-main" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
 </section>
 {% endif %}
 
@@ -231,17 +246,116 @@
 </div>
 {% endif %}
 
-{% if model.has_geo %}
+{% if model.map %}
+{%- for chunk in model.map.chunks %}
+<script type="application/json" id="map-plans-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-main",
-    resourceId: {{ inputs.plans[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    popupTitleField: "Plan",
-    popupFields: ["status"]
-  });
+  (function () {
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.map.chunks | length, "origin": model.map.origin, "q": model.map.q, "statuses": model.map.statuses, "counts": model.map.counts, "view": model.map.view, "link": model.link_prefix} | tojson }};
+    var colors = ["#0068f5", "#ffc107", "#dc3545", "#0dcaf0", "#198754"];
+    var color = function (i) { return colors[i] || "#6c757d"; };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    var renderer = L.canvas({ padding: 0.5 });
+    var groups = meta.statuses.map(function () { return L.layerGroup().addTo(map); });
+    var index = [];
+    function decode(r) {
+      var x = meta.origin[0] + r[0], y = meta.origin[1] + r[1], out = [[y / meta.q, x / meta.q]];
+      for (var i = 2; i < r.length; i += 2) {
+        x += r[i]; y += r[i + 1];
+        out.push([y / meta.q, x / meta.q]);
+      }
+      return out;
+    }
+    function popup(f) {
+      var box = document.createElement("div");
+      var title = document.createElement("strong");
+      title.textContent = "תכנית " + f[1];
+      box.appendChild(title);
+      var rows = [["סטטוס", meta.statuses[f[0]]]];
+      if (f[3] >= 0) { rows.push(["שטח קטע הגבול", f[3].toLocaleString("he-IL") + " דונם"]); }
+      if (f[2] >= 0) { rows.push(["מספר פנימי", String(f[2])]); }
+      rows.forEach(function (row) {
+        var d = document.createElement("div");
+        d.textContent = row[0] + ": " + row[1];
+        box.appendChild(d);
+      });
+      if (meta.link && f[2] >= 0) {
+        var a = document.createElement("a");
+        a.href = meta.link + String(f[2]);
+        a.target = "_blank";
+        a.rel = "noopener";
+        a.textContent = "פתיחת התכנית במערכת ההנדסית של העירייה";
+        box.appendChild(a);
+      }
+      return box;
+    }
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-plans-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var main = f[0] === 0, wide = f[5] === 1;
+        var poly = L.polygon(f[4].map(decode), wide ? {
+          renderer: renderer, color: color(f[0]), weight: 1.5, opacity: 0.8,
+          dashArray: "6 4", fill: false
+        } : {
+          renderer: renderer, color: color(f[0]), weight: main ? 1 : 1.5,
+          opacity: 0.9, fillOpacity: main ? 0.15 : 0.25
+        });
+        poly.bindPopup(function () { return popup(f); });
+        poly.addTo(groups[f[0]]);
+        index.push([f[1], poly, f[0]]);
+      });
+    }
+    map.fitBounds(meta.view, { padding: [8, 8] });
+    var legend = document.getElementById("map-legend");
+    meta.statuses.forEach(function (s, i) {
+      if (!meta.counts[i]) { return; }
+      var li = document.createElement("li");
+      var lab = document.createElement("label");
+      lab.className = "flex items-center gap-2 cursor-pointer";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = true;
+      cb.addEventListener("change", function () {
+        if (cb.checked) { groups[i].addTo(map); } else { map.removeLayer(groups[i]); }
+      });
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:14px;height:14px;border-radius:2px;border:2px solid " + color(i) + ";background:" + color(i) + "55";
+      lab.appendChild(cb);
+      lab.appendChild(sw);
+      lab.appendChild(document.createTextNode(s + " (" + meta.counts[i].toLocaleString("he-IL") + ")"));
+      li.appendChild(lab);
+      legend.appendChild(li);
+    });
+    var msg = document.getElementById("map-search-msg");
+    var input = document.getElementById("map-search-q");
+    function search() {
+      var q = input.value.trim();
+      msg.textContent = "";
+      if (!q) { return; }
+      var hits = index.filter(function (h) { return h[0] === q; });
+      if (!hits.length) { hits = index.filter(function (h) { return h[0].indexOf(q) !== -1; }); }
+      if (!hits.length) { msg.textContent = "לא נמצאה תכנית במספר הזה במפה."; return; }
+      var plan = hits[0][0];
+      hits = hits.filter(function (h) { return h[0] === plan; });
+      var b = hits[0][1].getBounds();
+      hits.forEach(function (h) {
+        if (!map.hasLayer(groups[h[2]])) { groups[h[2]].addTo(map); }
+        b.extend(h[1].getBounds());
+      });
+      legend.querySelectorAll("input").forEach(function (cb) { cb.checked = true; });
+      meta.statuses.forEach(function (s, i) { if (!map.hasLayer(groups[i])) { groups[i].addTo(map); } });
+      map.fitBounds(b, { padding: [24, 24], maxZoom: 17 });
+      hits[0][1].openPopup(b.getCenter());
+      msg.textContent = "תכנית " + plan;
+    }
+    document.getElementById("map-search-go").addEventListener("click", search);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); search(); } });
+  })();
 </script>
 {% endif %}
 

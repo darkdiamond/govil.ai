@@ -61,11 +61,14 @@
   </ul>
 </section>
 
+{% if model.flags.map %}
 <section class="card p-5 mb-6">
 {{ head("map-pin", "מפת גינות הכלבים (פינות כלבים) בעיר") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-parks" class="h-72 md:h-[420px]"></div>
+  <div id="map-parks" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
 </section>
+{% endif %}
 
 {{ chart_section("chart-area", "database", "הגינות לפי שטח", model.labels.area_note, model.labels.area_aria, model.labels.area_cap, model.tables.area, "h-80 md:h-[460px]") }}
 
@@ -107,21 +110,73 @@
   </div>
 </section>
 
+{% if model.flags.map %}
+{%- for chunk in model.map.chunks %}
+<script type="application/json" id="map-parks-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-parks",
-    resourceId: {{ inputs.parks[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    cluster: false,
-    popupTitleField: "name",
-    popupFields: [
-      { field: "SHAPE_Area", label: "שטח (מ״ר)" },
-      { field: "SHAPE_Leng", label: "היקף (מ׳)" }
-    ]
-  });
+  (function () {
+    var el = document.getElementById("map-parks");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.map.chunks | length, "parks": model.map.parks, "bands": model.map.bands, "bounds": model.map.bounds} | tojson }};
+    var lab = {{ {"area": model.labels.pop_area, "per": model.labels.pop_per, "span": model.labels.pop_span, "nn": model.labels.pop_nn} | tojson }};
+    var colors = ["#c3cfe7", "#7fb0f5", "#0068f5", "#0053c4", "#0b3668"];
+    var color = function (b) { return colors[Math.max(0, Math.min(colors.length - 1, b))]; };
+    var ZOOM_OUTLINE = 16;
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    function popup(p) {
+      var box = document.createElement("div");
+      var title = document.createElement("strong");
+      title.textContent = p.name;
+      box.appendChild(title);
+      [[lab.area, p.area], [lab.per, p.per], [lab.span, p.span], [lab.nn, p.nn]].forEach(function (row) {
+        if (!row[1]) { return; }
+        var d = document.createElement("div");
+        d.textContent = row[0] + ": " + row[1];
+        box.appendChild(d);
+      });
+      return box;
+    }
+    var outlines = L.featureGroup().addTo(map);
+    var dots = L.featureGroup();
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-parks-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var p = meta.parks[f[0]];
+        if (!p) { return; }
+        var latlngs = f[1].map(function (poly) {
+          return poly.map(function (ring) { return ring.map(function (pt) { return [pt[1], pt[0]]; }); });
+        });
+        L.polygon(latlngs, { color: "#0b3668", weight: 2, fillColor: color(p.band), fillOpacity: 0.7 })
+          .bindPopup(popup(p)).addTo(outlines);
+      });
+    }
+    meta.parks.forEach(function (p) {
+      L.circleMarker(p.c, { radius: 7, color: "#ffffff", weight: 2, fillColor: color(p.band), fillOpacity: 0.95 })
+        .bindPopup(popup(p)).addTo(dots);
+    });
+    function sync() {
+      if (map.getZoom() >= ZOOM_OUTLINE) { map.removeLayer(dots); }
+      else if (!map.hasLayer(dots)) { dots.addTo(map); }
+    }
+    map.on("zoomend", sync);
+    map.fitBounds(meta.bounds, { padding: [12, 12] });
+    sync();
+    var legend = document.getElementById("map-legend");
+    meta.bands.forEach(function (t, i) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid #0b3668;background:" + color(i);
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(t));
+      legend.appendChild(li);
+    });
+  })();
 </script>
+{% endif %}
 
 <script>
   (function () {

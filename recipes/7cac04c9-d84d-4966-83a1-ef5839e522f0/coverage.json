@@ -1,11 +1,12 @@
 {
-  "main.OID": "skip: constant placeholder (-1 on every row), not an identifier",
-  "main.NAME": "chart-depots, chart-lines, chart-shape, kpi:largest, insight:largest, insight:line_lead, insight:expansion — the line grouping is parsed from the word קו in the name",
-  "main.TYPE": "skip: constant (רכבת קלה on every row)",
-  "main.YEARMONTH": "chart-vintage, insight:vintage",
-  "main.DUNAM": "chart-depots, chart-status, chart-lines, chart-bands, chart-shape, kpi:area, kpi:ex_share, kpi:largest, insight:pipeline, insight:operational, insight:largest",
-  "main.STATUS": "chart-status, chart-depots, chart-lines, chart-bands, kpi:ex_share, insight:pipeline, insight:operational, insight:expansion",
-  "main.SHAPE_Leng": "chart-shape — fallback perimeter when Shape_Length is blank",
-  "main.Shape_Length": "chart-shape, chart-depots — perimeter and the compactness index",
-  "main.Shape_Area": "chart-depots — fallback area (m², /1000 = dunam) when DUNAM is blank"
+  "geo.NAME": "chart-depots, chart-lines, chart-shape, map-depots, insight:largest, insight:line_lead, insight:expansion — the line grouping is parsed from the word קו in the name",
+  "geo.TYPE": "skip: constant (רכבת קלה on every row)",
+  "geo.YEARMONTH": "chart-vintage, map-depots, insight:vintage",
+  "geo.DUNAM": "chart-depots, chart-status, chart-metros, chart-lines, chart-bands, chart-shape, map-depots, kpi:area, kpi:ex_share, insight:pipeline, insight:operational, insight:metro, insight:largest",
+  "geo.STATUS": "chart-status, chart-depots, chart-metros, chart-lines, chart-bands, map-depots, kpi:ex_share, insight:pipeline, insight:operational, insight:expansion",
+  "geo.SHAPE_Leng": "chart-shape — fallback perimeter only; stale on one polygon (differs from the drawn ring)",
+  "geo.Shape_Le_1": "chart-shape, chart-depots — perimeter (matches the drawn polygon) and the compactness index",
+  "geo.Shape_Area": "chart-depots — fallback area (m², /1000 = dunam) when DUNAM is blank",
+  "geo.__geometry": "map-depots, chart-metros, kpi:metros, insight:metro, chart-lines — polygons drawn; centroid places each depot in a metro area; measured perimeter is the last fallback",
+  "resource:1373a7ca-3ef8-48d4-9e11-24c80755bdd9": "skip: the datastore CSV is the shapefile's own attribute table (same 12 rows and columns, Shape_Le_1 named Shape_Length, name quotes stripped); the map file supersedes it"
 }

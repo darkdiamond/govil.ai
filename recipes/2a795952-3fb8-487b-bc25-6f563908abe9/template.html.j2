@@ -24,7 +24,7 @@
   </span>
 </a>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
   <div class="card p-4 text-center">
     <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
     <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
@@ -41,6 +41,16 @@
     <div class="text-3xl font-bold text-{{ model.kpis.lead_auth.tone }} mb-1" dir="ltr">{{ model.kpis.lead_auth.display }}</div>
     <div class="text-sm text-subtle">{{ model.labels.lead_auth_kpi }}</div>
   </div>
+{%- if model.flags.has_geo %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.nn.tone }} mb-1" dir="ltr">{{ model.kpis.nn.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.nn_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.span_kpi }}</div>
+  </div>
+{%- endif %}
 </div>
 
 <section class="card p-5 mb-6">
@@ -54,6 +64,61 @@
 {%- endfor %}
   </ul>
 </section>
+
+{% if model.flags.has_geo %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת המחלפים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-junctions" class="h-80 md:h-[460px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">פריסת המחלפים מצפון לדרום</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+    <div id="chart-lat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mih-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.lat_aria }}</caption>
+        <thead><tr><th scope="col">קו רוחב</th><th scope="col">מחלפים</th><th scope="col">הכביש הנפוץ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.lat %}
+          <tr><th scope="row" dir="ltr" class="text-start">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.road }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה רחוק המחלף הקרוב</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nn_note }}</p>
+    <div id="chart-nn" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.nn_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mih-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.nn_aria }}</caption>
+        <thead><tr><th scope="col">מרחק למחלף הקרוב</th><th scope="col">מחלפים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.nn %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{% endif %}
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
@@ -142,6 +207,29 @@
     </table>
   </details>
 </section>
+
+{% if model.flags.has_spacing %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">המרווח בין המחלפים לאורך הכבישים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spacing_note }}</p>
+  <div id="chart-spacing" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.spacing_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mih-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.spacing_aria }}</caption>
+      <thead><tr><th scope="col">כביש</th><th scope="col">מחלפים</th><th scope="col">מרחק בין הקצוות (ק״מ)</th><th scope="col">מרווח ממוצע (ק״מ)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.spacing %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.extent }}</td><td>{{ r.gap }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{% endif %}
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
@@ -320,3 +408,116 @@
     window.addEventListener("resize", function () { c.resize(); });
   })();
 </script>
+
+{% if model.flags.has_geo %}
+<script>
+  (function () {
+    function draw(id, d, name, fmt) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      var narrow = el.clientWidth < 500;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          var out = echarts.format.encodeHTML(d.names[i]) + ": " + p[0].value + " " + name;
+          if (d.roads && d.roads[i]) { out += "<br>" + echarts.format.encodeHTML(d.roads[i]); }
+          return out;
+        } },
+        grid: { left: 12, right: 36, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: !narrow } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { fontSize: narrow ? 10 : 12 } },
+        series: [{ type: "bar", name: name, data: d.values, label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    draw("chart-lat", {{ model.charts.lat | tojson }}, "מחלפים");
+    draw("chart-nn", {{ model.charts.nn | tojson }}, "מחלפים");
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.has_spacing %}
+<script>
+  (function () {
+    var el = document.getElementById("chart-spacing");
+    if (!el) { return; }
+    var d = {{ model.charts.spacing | tojson }};
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>מרווח ממוצע: " + d.gap[i] + " ק״מ"
+          + "<br>מחלפים: " + d.n[i] + "<br>מרחק בין הקצוות: " + d.extent[i] + " ק״מ";
+      } },
+      grid: { left: 12, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", name: "ק״מ", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "מרווח ממוצע (ק״מ)", data: d.gap, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.has_geo %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-points-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-junctions");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "types": model.charts.map.types, "counts": model.charts.map.counts, "auths": model.charts.map.auths, "bounds": model.charts.map.bounds} | tojson }};
+    var colors = ["#0068f5", "#ffc107", "#dc3545", "#198754", "#0b3668", "#6c757d", "#0dcaf0"];
+    var color = function (t) { return colors[t % colors.length]; };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    var groups = meta.types.map(function () { return L.layerGroup().addTo(map); });
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-points-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var m = L.circleMarker([f[1], f[0]], {
+          radius: f[2] === 0 ? 6 : 5, weight: 1, color: "#ffffff", fillColor: color(f[2]), fillOpacity: 0.9
+        });
+        var box = document.createElement("div");
+        var title = document.createElement("strong");
+        title.textContent = f[3];
+        box.appendChild(title);
+        [["קוד", f[4]], ["סוג", meta.types[f[2]]], ["כבישים", f[5]], ["רשות תמרור", meta.auths[f[6]]]].forEach(function (row) {
+          var d = document.createElement("div");
+          d.textContent = row[0] + ": " + row[1];
+          box.appendChild(d);
+        });
+        m.bindPopup(box);
+        m.addTo(groups[f[2]]);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [12, 12] });
+    var legend = document.getElementById("map-legend");
+    meta.types.forEach(function (t, i) {
+      var li = document.createElement("li");
+      var label = document.createElement("label");
+      label.className = "flex items-center gap-2 cursor-pointer";
+      var cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = true;
+      cb.addEventListener("change", function () {
+        if (cb.checked) { groups[i].addTo(map); } else { map.removeLayer(groups[i]); }
+      });
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:12px;height:12px;border-radius:50%;background:" + color(i);
+      label.appendChild(cb);
+      label.appendChild(sw);
+      label.appendChild(document.createTextNode(t + " (" + meta.counts[i] + ")"));
+      li.appendChild(label);
+      legend.appendChild(li);
+    });
+    window.addEventListener("resize", function () { map.invalidateSize(); });
+  })();
+</script>
+{% endif %}

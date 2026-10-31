@@ -56,6 +56,19 @@
   </ul>
 </section>
 
+{%- if model.charts.map %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת האשכולות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div class="flex flex-wrap gap-2 mb-3" role="group" aria-label="צביעת המפה">
+    <button type="button" id="map-mode-dens" class="rounded-gov-pill border border-rule px-3 py-1 text-sm" aria-pressed="true">צפיפות נוסעים</button>
+    <button type="button" id="map-mode-op" class="rounded-gov-pill border border-rule px-3 py-1 text-sm" aria-pressed="false">מפעיל</button>
+  </div>
+  <div id="map-clusters" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-1 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+</section>
+{%- endif %}
+
 <section class="card p-5 mb-6">
 {{ head("database", "האשכולות העמוסים ביותר") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.clusters_note }}</p>
@@ -136,6 +149,87 @@
 {{ head("list", "תיאור מקורי") }}
   <p class="m-0 text-sm text-subtle whitespace-pre-line">גבולות סכמתיים של אשכולות המייצגים פעילות תח"צ. לכל אשכול מחושבים נתוני הנסיעות בשבוע מייצג באוגוסט 2022 ונתוני מספרי נוסעים המחושבים על בסיס תיקופי רב קו בשבוע מייצג ביוני 2022.</p>
 </section>
+
+{%- if model.charts.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-polys-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-clusters");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "feats": model.charts.map.feats, "ops": model.charts.map.ops, "dens": model.charts.map.dens_labels, "bounds": model.charts.map.bounds, "opRamp": model.charts.map.op_ramp, "densRamp": model.charts.map.dens_ramp} | tojson }};
+    var ramp = window.GOVIL_PALETTE || ["#0068f5"];
+    var pal = meta.opRamp.map(function (i) { return ramp[i % ramp.length]; });
+    var seq = meta.densRamp.map(function (i) { return ramp[i % ramp.length]; });
+    var mode = "dens";
+    var colorOf = function (f) {
+      if (mode === "dens") { return f.dc < 0 ? "#c3cfe7" : seq[Math.min(f.dc, seq.length - 1)]; }
+      return f.opc < 0 ? "#6c757d" : pal[f.opc % pal.length];
+    };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    var layers = [];
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-polys-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var info = meta.feats[f[0]];
+        var latlngs = f[1].map(function (poly) {
+          return poly.map(function (ring) { return ring.map(function (p) { return [p[1], p[0]]; }); });
+        });
+        var shape = L.polygon(latlngs, { color: "#0b3668", weight: 1, fillOpacity: 0.55, fillColor: colorOf(info) }).addTo(map);
+        var box = document.createElement("div");
+        var title = document.createElement("strong");
+        title.textContent = info.name;
+        box.appendChild(title);
+        [["מפעיל", info.op], ["נוסעים בשבוע", info.riders], ["נסיעות בשבוע", info.trips],
+         ["נוסעים לנסיעה", info.rpt], ["שטח", info.area + " קמ״ר"], ["נוסעים לקמ״ר", info.dens]].forEach(function (row) {
+          var d = document.createElement("div");
+          d.textContent = row[0] + ": " + row[1];
+          box.appendChild(d);
+        });
+        shape.bindPopup(box);
+        layers.push([shape, info]);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    var legend = document.getElementById("map-legend");
+    var drawLegend = function () {
+      while (legend.firstChild) { legend.removeChild(legend.firstChild); }
+      var items = mode === "dens"
+        ? meta.dens.map(function (t, i) { return [t, seq[Math.min(i, seq.length - 1)]]; })
+        : meta.ops.map(function (t, i) { return [t, i < meta.ops.length - 1 || meta.feats.every(function (f) { return f.opc >= 0; }) ? pal[i % pal.length] : "#6c757d"]; });
+      if (mode === "dens") {
+        var cap = document.createElement("li");
+        cap.textContent = "נוסעים בשבוע לקמ״ר:";
+        legend.appendChild(cap);
+      }
+      items.forEach(function (it) {
+        var li = document.createElement("li");
+        li.className = "flex items-center gap-2";
+        var sw = document.createElement("span");
+        sw.style.cssText = "display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #c3cfe7;background:" + it[1];
+        li.appendChild(sw);
+        li.appendChild(document.createTextNode(it[0]));
+        legend.appendChild(li);
+      });
+    };
+    var setMode = function (m) {
+      mode = m;
+      layers.forEach(function (l) { l[0].setStyle({ fillColor: colorOf(l[1]) }); });
+      document.getElementById("map-mode-dens").setAttribute("aria-pressed", String(m === "dens"));
+      document.getElementById("map-mode-op").setAttribute("aria-pressed", String(m === "op"));
+      document.getElementById("map-mode-dens").style.cssText = m === "dens" ? "background:#0068f5;color:#fff" : "";
+      document.getElementById("map-mode-op").style.cssText = m === "op" ? "background:#0068f5;color:#fff" : "";
+      drawLegend();
+    };
+    document.getElementById("map-mode-dens").addEventListener("click", function () { setMode("dens"); });
+    document.getElementById("map-mode-op").addEventListener("click", function () { setMode("op"); });
+    setMode("dens");
+  })();
+</script>
+{%- endif %}
 
 <script>
   (function () {
