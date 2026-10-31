@@ -331,14 +331,15 @@ def test_compute_spawn_flake_is_retried(env, monkeypatch):
 
 
 def test_compute_spawn_flake_gives_up_after_retry(env, monkeypatch):
-    calls = _flaky_sandbox(monkeypatch, GRPC_ABORT, fail_times=2)
+    attempts = rf._COMPUTE_SPAWN_ATTEMPTS
+    calls = _flaky_sandbox(monkeypatch, GRPC_ABORT, fail_times=attempts)
     store = FakeStore(_src())
     s = _run(env, store, FakeCkan(_rows([2024, 2025])))
     # Transient: no issue, and the next run tries the same version again.
     assert s["outcomes"][0]["reason"] == "sandbox_failed" and env.issues == []
-    assert calls["n"] == 2
+    assert calls["n"] == attempts
     s = _run(env, store, FakeCkan(_rows([2024, 2025])))
-    assert s["failed"] == [] and calls["n"] == 3
+    assert s["failed"] == [] and calls["n"] == attempts + 1
 
 
 def test_bare_sigabrt_is_not_retried(env, monkeypatch):

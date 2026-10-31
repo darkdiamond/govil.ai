@@ -68,7 +68,8 @@ class RecipeError(RuntimeError):
 
     `reason` is the authoring-queue reason the failure maps to
     (`recipe_failed` / `schema_changed`) — what the human re-authoring the
-    dataset needs to know first.
+    dataset needs to know first — or a transient one (`fetch_failed`,
+    `sandbox_failed`) that opens no issue and is retried next run.
     """
 
     def __init__(self, message: str, *, reason: str = "recipe_failed"):
