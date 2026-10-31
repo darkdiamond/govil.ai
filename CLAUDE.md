@@ -136,7 +136,13 @@ landing pages. Five layers:
    `content.html` to GCS + `agent_data` and refresh state to Firestore.
    Failures keep the last-good page live and, when a human must act
    (recipe broke, schema moved, data outgrew the fetch cap —
-   `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue; a
+   `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue and
+   lock the source (`refresh.failed_version_key`: data version + recipe
+   version + a hash of the recipe files, the builder's code and its installed
+   library versions) — not retried until one of those moves, so a redeploy
+   that changes code or libraries retries a locked source once (an env- or
+   Dockerfile-only redeploy doesn't; force it with `pipeline --source`) and
+   reuses its open issue; a
    transient fetch failure (network, or the fetch wall budget running out) or
    sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort, after an in-run
    retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget

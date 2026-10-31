@@ -349,7 +349,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
     src = SimpleNamespace(id="boi-x", provider="boi_sdmx", resources=[res],
                           metadata_modified=None, title="x")
     store = SimpleNamespace(mark_refresh_failed=lambda *a, **k: None)
-    recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1))
+    recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1), files=[], root=tmp_path)
     out = rf.refresh_one(src, recipe, store=store, preview=True, staging_bucket="b",
                          work_root=tmp_path, trigger="never_refreshed", notify=False,
                          providers={"boi_sdmx": boi})

@@ -288,6 +288,63 @@ def test_too_few_insights_fails(env, tmp_path):
     assert s["failed"] == [DS] and "min_insights" in s["outcomes"][0]["error"]
 
 
+def test_failure_lock_lifts_when_the_builder_code_changes(env, monkeypatch):
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    ckan = FakeCkan(_rows([2024, 2025]), cols=renamed)
+    assert _run(env, store, ckan)["outcomes"][0]["reason"] == "schema_changed"
+    assert _run(env, store, ckan)["outcomes"][0]["reason"] == "up_to_date"
+
+    # A deploy that changed builder code gets one fresh try, then locks again.
+    monkeypatch.setattr(rf, "_builder_code_hash", lambda: "new-image")
+    assert _run(env, store, ckan)["outcomes"][0]["reason"] == "schema_changed"
+    assert _run(env, store, ckan)["outcomes"][0]["reason"] == "up_to_date"
+    assert len(env.issues) == 1  # the retry reuses the open issue
+
+
+def test_lock_key_written_before_the_code_hash_does_not_hold(env):
+    # Keys stored before the hash suffix existed retry once after the deploy.
+    recipe = Recipe.load(FIXTURES / DS)
+    src = _src()
+    legacy = rf.version_key(src.metadata_modified, recipe.manifest.recipe_version)
+    state = {"refresh_reason": "recipe_failed", "refresh_failed_version": legacy}
+    assert rf.needs_refresh(src, state, recipe) == "recipe_version"
+    state["refresh_failed_version"] = rf.failed_version_key(src, recipe)
+    assert rf.needs_refresh(src, state, recipe) is None
+
+
+def test_lock_key_falls_back_when_hashing_fails(monkeypatch):
+    # Called from the failure handlers: an unreadable file must not raise.
+    def boom():
+        raise OSError("unreadable")
+
+    monkeypatch.setattr(rf, "_builder_code_hash", boom)
+    recipe, src = Recipe.load(FIXTURES / DS), _src()
+    assert rf.failed_version_key(src, recipe) == rf.version_key(
+        src.metadata_modified, recipe.manifest.recipe_version
+    )
+
+
+def test_failure_lock_lifts_when_the_recipe_files_change(env, tmp_path):
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    compute = recipes / DS / "compute.py"
+    good = compute.read_text()
+    compute.write_text("def compute(frames):\n    raise ValueError('boom')\n")
+    store = FakeStore(_src())
+    ckan = FakeCkan(_rows([2024, 2025]))
+    assert _run(env, store, ckan, recipes=recipes)["outcomes"][0]["reason"] == "recipe_failed"
+    assert _run(env, store, ckan, recipes=recipes)["outcomes"][0]["reason"] == "up_to_date"
+
+    # Fixed in place, same recipe_version: retried and rendered.
+    compute.write_text(good)
+    s = _run(env, store, ckan, recipes=recipes)
+    assert s["failed"] == [] and s["refreshed"] == [DS]
+
+
+
 def test_compute_crash_is_a_recipe_failure(env, tmp_path):
     recipes = tmp_path / "recipes"
     shutil.copytree(FIXTURES / DS, recipes / DS)

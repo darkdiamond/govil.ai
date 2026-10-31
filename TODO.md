@@ -8,12 +8,6 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **The failed-version lock ignores builder code.** `needs_refresh` skips a source whose
-  `refresh_failed_version` (metadata_modified + recipe_version) matches after an authoring-reason
-  failure, so a host-side bug misclassified as `recipe_failed` stays locked after the fix
-  deploys, until CKAN publishes new data. That kept 3fc54b81 and 39ffaf87 on legacy pages for
-  days after #116. Fix: fold the render-code hash the precheck already computes into
-  `version_key`, so each builder deploy retries locked sources once. (2026-10-31)
 - **`sandbox_failed` never escalates.** It opens no issue and keeps no strike count, so a spawn
   abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) freezes
   every page with only log lines. Fix: count consecutive `sandbox_failed` runs like
