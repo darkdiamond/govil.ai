@@ -1,0 +1,355 @@
+<h1>מאגר מעונות יום: מעונות, משפחתונים וצהרונים מוכרים</h1>
+
+<style>
+  .daycare-table th, .daycare-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .daycare-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .daycare-table thead th { font-weight: 600; color: #0b3668; }
+  .daycare-table th[scope="row"] { font-weight: 600; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מעון יום, משפחתון או צהרון לפי שם, יישוב או סמל מעון ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המעון, סמל המעון, יישוב, רחוב, הארגון המפעיל, שם המנהל וסוג המסגרת.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.total.tone }} mb-1" dir="ltr">{{ model.kpis.total.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.total_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.seats.tone }} mb-1" dir="ltr">{{ model.kpis.seats.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.seats_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cities.tone }} mb-1" dir="ltr">{{ model.kpis.cities.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cities_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.opened.tone }} mb-1" dir="ltr">{{ model.kpis.opened.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.opened_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי המסגרות: מעון, משפחתון, צהרון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.type_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="daycare-table mt-2 w-full text-sm">
+        <caption class="sr-only">מסגרות לפי סוג</caption>
+        <thead><tr><th scope="col">סוג מסגרת</th><th scope="col">מסגרות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.types %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מסגרות לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="daycare-table mt-2 w-full text-sm">
+          <caption class="sr-only">מסגרות לפי מחוז וסוג</caption>
+          <thead><tr><th scope="col">מחוז</th><th scope="col">סה״כ</th>{% for t in model.tables.type_names %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+          <tbody>
+{%- for r in model.tables.districts %}
+            <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היישובים עם הכי הרבה מסגרות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.city_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="daycare-table mt-2 w-full text-sm">
+        <caption class="sr-only">מסגרות לפי יישוב וסוג</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">סה״כ</th>{% for t in model.tables.type_names %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.has_cap %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מקומות במעונות היום לפי יישוב וקבוצת גיל</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seat_city_note }}</p>
+  <div id="chart-seat-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.seat_city_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="daycare-table mt-2 w-full text-sm">
+        <caption class="sr-only">מקומות לפי יישוב וקבוצת גיל</caption>
+        <thead><tr><th scope="col">יישוב</th><th scope="col">מסגרות</th>{% for a in model.tables.ages %}<th scope="col">{{ a }}</th>{% endfor %}<th scope="col">סה״כ מקומות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.seat_cities %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.centres }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מקומות לפי מחוז וקבוצת גיל</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seat_dist_note }}</p>
+    <div id="chart-seat-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.seat_dist_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="daycare-table mt-2 w-full text-sm">
+          <caption class="sr-only">מקומות לפי מחוז וקבוצת גיל</caption>
+          <thead><tr><th scope="col">מחוז</th>{% for a in model.tables.ages %}<th scope="col">{{ a }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.seat_districts %}
+            <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}<td>{{ r.total }}</td></tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">גודל המעונות: כמה מקומות בכל מסגרת</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+    <div id="chart-sizes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="daycare-table mt-2 w-full text-sm">
+        <caption class="sr-only">מסגרות לפי מספר המקומות</caption>
+        <thead><tr><th scope="col">מקומות במסגרת</th><th scope="col">מסגרות</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.sizes %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td dir="ltr" class="text-start">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+{%- endif %}
+
+{%- if model.flags.has_open %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מתי נפתחו המסגרות הפעילות היום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.open_note }}</p>
+  <div id="chart-opened" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.open_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="daycare-table mt-2 w-full text-sm">
+        <caption class="sr-only">מסגרות פעילות לפי שנת פתיחה וסוג</caption>
+        <thead><tr><th scope="col">שנת פתיחה</th><th scope="col">סה״כ</th>{% for t in model.tables.type_names %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.opened %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הארגונים המפעילים הכי הרבה מסגרות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.org_note }}</p>
+  <div id="chart-orgs" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.org_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="daycare-table mt-2 w-full text-sm">
+        <caption class="sr-only">מסגרות לפי ארגון מפעיל וסוג</caption>
+        <thead><tr><th scope="col">ארגון</th><th scope="col">סה״כ</th>{% for t in model.tables.type_names %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.orgs %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר מעונות יום</p>
+</section>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-types");
+    var d = {{ model.charts.types | tojson }};
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " מסגרות (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0, type: "plain" },
+      series: [{
+        type: "pie", radius: narrow ? ["32%", "58%"] : ["40%", "70%"], center: ["50%", "45%"],
+        label: { show: true, formatter: function (p) { return p.value.toLocaleString("he-IL"); } },
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function stacked(id, d, unit) {
+      var el = document.getElementById(id);
+      if (!el || !d) { return; }
+      var c = echarts.init(el);
+      var narrow = el.clientWidth < 500;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var tot = 0;
+          p.forEach(function (s) { tot += s.value; });
+          var out = [echarts.format.encodeHTML(d.names[p[0].dataIndex]) + ": " + tot.toLocaleString("he-IL") + " " + unit];
+          p.forEach(function (s) {
+            if (s.value > 0) { out.push(echarts.format.encodeHTML(s.seriesName) + ": " + s.value.toLocaleString("he-IL")); }
+          });
+          return out.join("<br>");
+        } },
+        legend: { bottom: 0, type: "plain" },
+        grid: { left: 12, right: 16, top: 8, bottom: 36, containLabel: true },
+        xAxis: { type: "value", splitNumber: narrow ? 3 : 5 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+          axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", fontSize: narrow ? 11 : 12 } },
+        series: d.series.map(function (s) {
+          return { type: "bar", name: s.name, stack: "s", data: s.data };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stacked("chart-districts", {{ model.charts.districts | tojson }}, "מסגרות");
+    stacked("chart-cities", {{ model.charts.cities | tojson }}, "מסגרות");
+    stacked("chart-orgs", {{ model.charts.orgs | tojson }}, "מסגרות");
+    stacked("chart-seat-cities", {{ model.charts.seat_cities | tojson }}, "מקומות");
+    stacked("chart-seat-districts", {{ model.charts.seat_districts | tojson }}, "מקומות");
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-sizes");
+    if (!el) { return; }
+    var d = {{ model.charts.sizes | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 12, right: 12, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "מסגרות", data: d.values, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-opened");
+    if (!el) { return; }
+    var d = {{ model.charts.opened | tojson }};
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var out = [echarts.format.encodeHTML(d.names[i]) + ": " + d.totals[i].toLocaleString("he-IL") + " מסגרות"];
+        p.forEach(function (s) {
+          if (s.value > 0) { out.push(echarts.format.encodeHTML(s.seriesName) + ": " + s.value.toLocaleString("he-IL")); }
+        });
+        return out.join("<br>");
+      } },
+      legend: { bottom: 0, type: "plain" },
+      grid: { left: 12, right: 12, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { fontSize: narrow ? 10 : 12, rotate: narrow ? 45 : 0 } },
+      yAxis: { type: "value" },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "o", data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

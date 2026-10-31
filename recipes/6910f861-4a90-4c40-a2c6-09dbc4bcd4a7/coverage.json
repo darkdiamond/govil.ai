@@ -1,0 +1,19 @@
+{
+  "main.OID": "skip: constant (-1 on every row), no meaning",
+  "main.OBJECTID": "map-stations, chart-regions, chart-dist — join key to the snapshot geometry; also the stable tie-break in sorts",
+  "main.op": "chart-ops, chart-fastshare, chart-heat, chart-hubs, chart-fasthubs, map-stations, kpi:operators, kpi:top3, insight:concentration, insight:fast_gap, insight:long_tail, insight:fast_only",
+  "main.name": "chart-hubs, chart-fasthubs, map-stations, insight:hub, insight:nearest_fast",
+  "main.Address": "map-stations, chart-hubs, chart-fasthubs — popup and hub tables; too inconsistent (street only, mixed languages) to derive a city",
+  "main.count": "chart-ops, chart-regions, chart-size, chart-hubs, chart-heat, kpi:points, kpi:top3, insight:hub, insight:small_sites, insight:region",
+  "main.cnt_fast": "chart-ops, chart-fastshare, chart-regions, chart-types, chart-dist, chart-distreg, chart-fasthubs, map-stations, kpi:fast_share, kpi:near_fast, insight:fast_gap, insight:nearest_fast, insight:fast_only",
+  "main.cnt_slow": "chart-ops, chart-regions, chart-types, chart-hubs, map-stations, insight:fast_only",
+  "geo.__geometry": "map:map-stations, chart-regions, chart-types, chart-heat, chart-dist, chart-distreg, kpi:near_fast, insight:region, insight:nearest_fast",
+  "geo.OBJECTID": "map-stations — join key to main",
+  "geo.op": "skip: duplicate of main.op (attributes are read from the live datastore table)",
+  "geo.name": "skip: duplicate of main.name",
+  "geo.Address": "skip: duplicate of main.Address",
+  "geo.count": "skip: duplicate of main.count",
+  "geo.cnt_fast": "skip: duplicate of main.cnt_fast",
+  "geo.cnt_slow": "skip: duplicate of main.cnt_slow",
+  "resource:2ca7aa13-df5f-468f-b493-c81411d8fde2": "skip: metadata sheet (publisher, contact, field list), not data"
+}

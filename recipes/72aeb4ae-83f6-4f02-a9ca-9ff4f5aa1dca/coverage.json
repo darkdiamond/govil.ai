@@ -1,0 +1,12 @@
+{
+  "levels.זיהוי קידוח": "chart-index, chart-change, chart-yearly, chart-season, chart-oil, table-wells, table-oil, kpi:wells, kpi:wells_last, kpi:cmp_median, insight:cmp, insight:coverage — per-well grouping key; shown in the top-wells tables",
+  "levels.שם": "table-wells, table-oil — latest-dated name per well",
+  "levels.תאריך": "chart-yearly, chart-index, chart-change, chart-season, chart-inst, chart-pause, chart-oil, kpi:span, insight:wettest, insight:season — two formats (YYYY-MM-DD / DD/MM/YYYY) parsed per row",
+  "levels.מפלס (מטרים)": "chart-index, chart-change, chart-season, table-wells, kpi:cmp_median, kpi:rising_share, kpi:last_yoy, insight:cmp, insight:wettest, insight:driest, insight:index, insight:season, insight:depth — below-sea-level count",
+  "levels.משך הפסקה בשעות": "chart-pause, insight:pause — codes grouped into 6 ordered bands, unknown codes fall into the unknown band",
+  "levels.שם מוסד מודד": "chart-inst, insight:inst — spellings differing only by quote marks are merged",
+  "levels.עומק עד פני המים (מטרים)": "chart-depth, insight:depth",
+  "levels.עובי השמן (מטרים)": "chart-oil, table-oil, insight:oil",
+  "levels.הערה": "chart-notes — empty and the no-remarks value are treated as no note",
+  "levels._resource_name": "skip: synthetic file name; dates are parsed by format, not by file"
+}

@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "c2690cd7-61e4-4cab-82d2-eecfaeed69a9",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-22T13:03:14.797235+00:00",
+    "rows": { "junctions": 3241 }
+  },
+  "inputs": [
+    {
+      "name": "junctions",
+      "by_id": "77c61c20-8bcb-45d9-98b3-5623375e5b33",
+      "required_columns": [
+        "district",
+        "CITY",
+        "STREETROAD",
+        "JUNCTION",
+        "AUTHORITY",
+        "DOMAIN",
+        "NEW",
+        "X",
+        "Y"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

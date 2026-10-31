@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "df60d73b-aa60-46dc-bb76-f183d6bf055c",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-14T09:16:18.491582+00:00",
+    "rows": { "plan": 461 }
+  },
+  "inputs": [
+    {
+      "name": "plan",
+      "by_id": "caa80822-5880-4bbf-808a-06d7f53c4ae5",
+      "required_columns": [
+        "NDC",
+        "E.164 Range Format",
+        "Dialing Within Israel",
+        "Allocated To",
+        "Notes"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

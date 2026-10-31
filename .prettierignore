@@ -1,0 +1,2 @@
+# Map snapshots are written compact by `author snapshot`; prettier would inflate them ~50%.
+recipes/**/*.geojson

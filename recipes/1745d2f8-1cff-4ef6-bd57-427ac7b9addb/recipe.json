@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1745d2f8-1cff-4ef6-bd57-427ac7b9addb",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-17T13:43:43.833342+00:00",
+    "rows": { "clusters": 43 }
+  },
+  "inputs": [
+    {
+      "name": "clusters",
+      "by_id": "7b6171ba-bbe7-471f-8a03-ec49ac8ad7a4",
+      "required_columns": [
+        "CLUSTER_",
+        "OPERATOR",
+        "CLUSTERID",
+        "WEEKRIDERS",
+        "WEEKTRIPS",
+        "AREA_KMR"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["2022"]
+}

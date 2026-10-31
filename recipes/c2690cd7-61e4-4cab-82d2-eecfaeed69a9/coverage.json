@@ -1,0 +1,16 @@
+{
+  "junctions.OID": "skip: constant (-1 on every row), no content",
+  "junctions.district": "chart-districts, chart-treemap, chart-new, map-main, insight:district, insight:density, insight:new, table:districts",
+  "junctions.X": "map-main — ITM easting, drawn live by GovMap",
+  "junctions.Y": "map-main — ITM northing, drawn live by GovMap",
+  "junctions.DISTRICODE": "skip: numeric code, 1:1 with district",
+  "junctions.JUNCTION": "chart-kinds, map-main — junction name, filled for about a quarter of rows; first word classifies the kind",
+  "junctions.STREETROAD": "chart-roads, map-main, insight:road — numbered road tokens are counted per road",
+  "junctions.CITY": "chart-cities, chart-tail, chart-treemap, chart-districts, map-main, kpi:cities, kpi:top5, insight:city, insight:tail, insight:density",
+  "junctions.CITYCODE": "skip: locality code, a finer key for CITY (several cities carry 0 or blank)",
+  "junctions.AUTHORITY": "chart-bodies, map-main, insight:body, insight:domain",
+  "junctions.DOMAIN": "chart-districts, map-main, insight:domain, table:districts",
+  "junctions.AUTHCODE": "skip: numeric code, 1:1 with AUTHORITY",
+  "junctions.NEW": "chart-new, kpi:new, insight:new",
+  "resource:c47fe11b-ddf1-45db-bea8-98935a04f51b": "skip: layer metadata sheet (publisher, contact, field descriptions), not data"
+}

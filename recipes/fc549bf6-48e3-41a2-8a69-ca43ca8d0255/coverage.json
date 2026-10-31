@@ -1,0 +1,18 @@
+{
+  "wells.מספר מתקן": "skip: identifier (searchable in the explorer)",
+  "wells.שם מתקן": "skip: free-text facility name (searchable in the explorer)",
+  "wells.מספר צרכן בעל המתקן": "skip: identifier of the owner; the owner name column carries the same grouping",
+  "wells.שם צרכן בעל המתקן": "chart-owners, chart-basin, kpi:owners, insight:owner_top — Mekorot basin parsed from the Mekorot owner name",
+  "wells.בעלות המתקן": "chart-ownership, insight:owner_gap, chart-owners, chart-basin",
+  "wells.סטאטוס": "chart-status, kpi:active, kpi:active_share, kpi:inactive, insight:active, chart-ownership, chart-water, chart-aquifer, chart-region, chart-admin, map-wells",
+  "wells.קבוצת מים": "chart-water, insight:brackish, insight:dewater — water type and dewatering flag derived from the group text",
+  "wells.אקוויפר": "chart-aquifer, chart-heat, insight:aquifer",
+  "wells.ספיקה שעתית מקסימלית": "chart-flow, kpi:flow_median, insight:flow — filled for about 19% of rows, disclosed",
+  "wells.מספר הפקה": "skip: identifier (searchable in the explorer)",
+  "wells.מספר ארצי": "map-wells — decoded as the 1 km old Israeli grid square (EEE NNN + serial)",
+  "wells.אזור הפקה": "insight:national — 60% empty, three values; one insight",
+  "wells.אזור חקלאי": "chart-region, chart-heat, insight:region",
+  "wells.אזור גיאוגרפי": "skip: 47% empty and overlaps the agricultural and planning regions",
+  "wells.אזור אדמיניסטרטיבי": "chart-admin, insight:admin, map-wells",
+  "wells.אזור תכנון": "skip: overlaps the agricultural region and local authority columns (13% empty); the explorer searches it"
+}

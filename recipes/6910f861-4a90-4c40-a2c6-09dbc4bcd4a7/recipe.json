@@ -1,0 +1,38 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6910f861-4a90-4c40-a2c6-09dbc4bcd4a7",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-03-19T16:16:47.299045+00:00",
+    "rows": { "main": 2261, "geo": 2261 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "528482f2-d410-4d62-8b17-566ab23a1c52",
+      "required_columns": [
+        "OBJECTID",
+        "op",
+        "name",
+        "Address",
+        "count",
+        "cnt_fast",
+        "cnt_slow"
+      ]
+    },
+    {
+      "name": "geo",
+      "by_id": "d2433ac8-98b4-4934-a805-4ceafc871165",
+      "snapshot": "geo.geojson",
+      "snapshot_of": {
+        "size": 129168,
+        "last_modified": "2026-03-19T16:16:21.187776",
+        "taken_at": "2026-10-31"
+      },
+      "required_columns": ["OBJECTID", "__geometry"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

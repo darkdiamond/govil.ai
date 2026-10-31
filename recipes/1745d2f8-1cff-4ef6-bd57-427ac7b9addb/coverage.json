@@ -1,0 +1,16 @@
+{
+  "clusters.CLUSTER_": "chart-clusters, chart-tree, chart-busy, chart-empty, chart-scatter, chart-density, chart-cum, chart-shared, insight:top_cluster, insight:load, insight:density, insight:shared_name — whitespace and trailing commas cleaned; a name shared by several clusters is labelled with its operator",
+  "clusters.OPERATOR": "chart-tree, chart-shares, chart-shared, kpi:operators, insight:top_operator, insight:share_gap, insight:shared_name — operators ranked by weekly riders, top 10 named, the rest grouped",
+  "clusters.CLUSTERID": "chart-clusters — only a tie-break key and a disambiguator when name and operator repeat",
+  "clusters.WEEKRIDERS": "chart-clusters, chart-tree, chart-shares, chart-busy, chart-empty, chart-scatter, chart-density, chart-cum, chart-sizes, chart-shared, kpi:riders, kpi:rpt, kpi:top5, insight:top_cluster, insight:concentration, insight:top_operator, insight:share_gap, insight:load, insight:density, insight:shared_name, insight:small",
+  "clusters.WEEKTRIPS": "chart-shares, chart-busy, chart-empty, chart-scatter, chart-shared, kpi:trips, kpi:rpt, insight:share_gap, insight:load",
+  "clusters.AREA_KMR": "chart-scatter, chart-density, chart-cum, insight:concentration, insight:density — area of the schematic polygon in km2",
+  "clusters.OID": "skip: constant -1 (export artefact)",
+  "clusters.OBJECTID": "skip: GIS row identifier",
+  "clusters.ID": "skip: internal GIS feature identifier",
+  "clusters.OPERATORID": "skip: operator code, not consistent with operator names (one code maps to different operators)",
+  "clusters.Shape_Leng": "skip: perimeter of the schematic polygon, a geometry by-product duplicated by Shape_Length",
+  "clusters.Shape_Length": "skip: perimeter of the schematic polygon, duplicate of Shape_Leng",
+  "clusters.Shape_Area": "skip: polygon area in m2, duplicate of AREA_KMR",
+  "resource:205a68cf-95e3-41bb-908e-90f8b35cfd76": "skip: metadata sheet (publisher, contact, field list), not data"
+}

@@ -1,0 +1,36 @@
+{
+  "contract_version": 1,
+  "dataset_id": "72aeb4ae-83f6-4f02-a9ca-9ff4f5aa1dca",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-01-01T13:31:07.028003+00:00",
+    "rows": { "levels": 1232814 }
+  },
+  "inputs": [
+    {
+      "name": "levels",
+      "by_schema": [
+        "זיהוי קידוח",
+        "תאריך",
+        "מפלס (מטרים)",
+        "עומק עד פני המים (מטרים)",
+        "משך הפסקה בשעות"
+      ],
+      "concat": true,
+      "required_columns": [
+        "זיהוי קידוח",
+        "שם",
+        "תאריך",
+        "מפלס (מטרים)",
+        "משך הפסקה בשעות",
+        "שם מוסד מודד",
+        "עומק עד פני המים (מטרים)",
+        "עובי השמן (מטרים)",
+        "הערה"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

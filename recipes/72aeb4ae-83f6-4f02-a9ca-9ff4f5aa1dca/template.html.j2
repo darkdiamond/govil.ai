@@ -1,0 +1,479 @@
+<h1>מפלסי קידוחים: מפלס מי התהום בקידוחי הניטור</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">{{ model.labels.lookup_title }}</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.measurements.tone }} mb-1" dir="ltr">{{ model.kpis.measurements.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_measurements }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.wells.tone }} mb-1" dir="ltr">{{ model.kpis.wells.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_wells }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_span }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.wells_last.tone }} mb-1" dir="ltr">{{ model.kpis.wells_last.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_wells_last }}</div>
+  </div>
+{%- if model.kpis.cmp_median %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cmp_median.tone }} mb-1" dir="ltr">{{ model.kpis.cmp_median.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_cmp_median }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rising_share.tone }} mb-1" dir="ltr">{{ model.kpis.rising_share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_rising_share }}</div>
+  </div>
+{%- endif %}
+{%- if model.kpis.last_yoy %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.last_yoy.tone }} mb-1" dir="ltr">{{ model.kpis.last_yoy.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.kpi_last_yoy }}</div>
+  </div>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.index %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מגמת מפלס מי התהום: שינוי שנתי ומדד מצטבר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.index_note }}</p>
+  <div id="chart-index" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.index_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.flags.change %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שינוי המפלס בכל קידוח בעשור האחרון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.change_note }}</p>
+  <div id="chart-change" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.change_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.change_caption }}</caption>
+      <thead><tr><th scope="col">שינוי במפלס</th><th scope="col">קידוחים</th><th scope="col">חלק</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.change.rows %}
+        <tr><th scope="row">{{ r.band }}</th><td>{{ r.nd }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדידות וקידוחים נמדדים לפי שנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  <div id="chart-yearly" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yearly_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.season %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המחזור העונתי של המפלס</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_note }}</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_caption }}</caption>
+        <thead><tr><th scope="col">חודש</th><th scope="col">סטייה מהממוצע השנתי (מ׳)</th></tr></thead>
+        <tbody>
+{%- for r in model.charts.season.rows %}
+          <tr><th scope="row">{{ r.month }}</th><td dir="ltr">{{ r.v }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">העומק עד פני המים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.depth_note }}</p>
+    <div id="chart-depth" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.depth_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.depth_caption }}</caption>
+        <thead><tr><th scope="col">עומק</th><th scope="col">קידוחים</th><th scope="col">חלק</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.depth %}
+          <tr><th scope="row">{{ r.band }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מי מודד: הגופים המודדים לפי עשור</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inst_note }}</p>
+  <div id="chart-inst" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.inst_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.inst_caption }}</caption>
+      <thead><tr><th scope="col">עשור</th>{% for c in model.tables.inst_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.inst %}
+        <tr><th scope="row">{{ r.dec }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אמינות המדידה: משך הפסקת השאיבה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pause_note }}</p>
+  <div id="chart-pause" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.pause_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.pause_caption }}</caption>
+      <thead><tr><th scope="col">עשור</th>{% for c in model.tables.pause_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.pause %}
+        <tr><th scope="row">{{ r.dec }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.oil %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שכבת שמן מעל מי התהום</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.oil_note }}</p>
+  <div id="chart-oil" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.oil_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.oil_caption }}</caption>
+      <thead><tr><th scope="col">תקופה</th><th scope="col">קידוחים עם שכבת שמן</th></tr></thead>
+      <tbody>
+{%- for r in model.charts.oil.rows %}
+        <tr><th scope="row">{{ r.p }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+  <h3 class="mt-5 mb-2 text-base font-semibold text-ink-deep">{{ model.labels.oil_top_caption }}</h3>
+  <div class="overflow-x-auto">
+  <table id="table-oil" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.oil_top_caption }}</caption>
+    <thead><tr><th scope="col">קידוח</th><th scope="col">מספר זיהוי</th><th scope="col">עובי מרבי (מ׳)</th><th scope="col">מדידות עם שמן</th><th scope="col">שנים</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.oil_top %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.id }}</td><td>{{ r.max }}</td><td>{{ r.n }}</td><td>{{ r.span }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.notes %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הערות המודד</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.notes_note }}</p>
+  <div id="chart-notes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.notes_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.notes_caption }}</caption>
+      <thead><tr><th scope="col">הערה</th><th scope="col">מדידות</th><th scope="col">מכלל המדידות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.notes %}
+        <tr><th scope="row">{{ r.note }}</th><td>{{ r.n }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקידוחים עם הרצף הארוך ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wells_note }}</p>
+  <div class="overflow-x-auto">
+  <table id="table-wells" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.wells_caption }}</caption>
+    <thead><tr><th scope="col">קידוח</th><th scope="col">מספר זיהוי</th><th scope="col">מדידות</th><th scope="col">שנים</th><th scope="col">שינוי במפלס (מ׳)</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.wells %}
+      <tr><th scope="row">{{ r.name }}</th><td>{{ r.id }}</td><td>{{ r.n }}</td><td>{{ r.span }}</td><td dir="ltr">{{ r.chg }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">{{ model.labels.notes_text }}</p>
+</section>
+
+{%- if model.flags.index %}
+<script>
+  (function () {
+    var d = {{ model.charts.index | tojson }};
+    var c = echarts.init(document.getElementById("chart-index"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var v = d.d[i];
+        var word = v > 0 ? "עלייה" : (v < 0 ? "ירידה" : "ללא שינוי");
+        return d.x[i] + "<br>שינוי שנתי חציוני: " + v.toFixed(2) + " מ׳ (" + word + ")" +
+          "<br>מדד מצטבר: " + d.cum[i].toFixed(2) + " מ׳" +
+          "<br>קידוחים משווים: " + d.n[i].toLocaleString("he-IL");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "שינוי שנתי (מ׳)" },
+        { type: "value", name: "מצטבר (מ׳)", scale: true, splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 32, height: 18 }],
+      series: [
+        { type: "bar", name: "שינוי שנתי חציוני", data: d.d.map(function (v) {
+            return { value: v, itemStyle: { color: v >= 0 ? "#0068f5" : "#dc3545" } };
+          }) },
+        { type: "line", name: "מדד מצטבר", yAxisIndex: 1, data: d.cum, symbol: "none",
+          lineStyle: { width: 2, color: "#0b3668" }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.change %}
+<script>
+  (function () {
+    var d = {{ model.charts.change | tojson }};
+    var tones = ["#dc3545", "#6c757d", "#0068f5"];
+    var c = echarts.init(document.getElementById("chart-change"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.x[i] + ": " + d.y[i].toLocaleString("he-IL") + " קידוחים (" + d.rows[i].share + ")";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "קידוחים" },
+      yAxis: { type: "category", data: d.x },
+      series: [{ type: "bar", name: "קידוחים", data: d.y.map(function (v, i) {
+        return { value: v, itemStyle: { color: tones[d.tone[i]] } };
+      }), label: { show: true, position: "right", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "מדידות" },
+        { type: "value", name: "קידוחים", splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 32, height: 18 }],
+      series: [
+        { type: "bar", name: "מדידות", data: d.n },
+        { type: "line", name: "קידוחים נמדדים", yAxisIndex: 1, data: d.w, symbol: "none", lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.season %}
+<script>
+  (function () {
+    var d = {{ model.charts.season | tojson }};
+    var c = echarts.init(document.getElementById("chart-season"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.x[i] + ": " + d.y[i].toFixed(2) + " מ׳ " + (d.y[i] >= 0 ? "מעל" : "מתחת ל") + "ממוצע השנה";
+      } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "סטייה (מ׳)" },
+      series: [{ type: "bar", name: "סטייה חציונית", data: d.y.map(function (v) {
+        return { value: v, itemStyle: { color: v >= 0 ? "#0068f5" : "#0b3668" } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.depth | tojson }};
+    var c = echarts.init(document.getElementById("chart-depth"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return d.x[i] + ": " + d.y[i].toLocaleString("he-IL") + " קידוחים (" + d.rows[i].share + ")";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "value", name: "קידוחים" },
+      series: [{ type: "bar", name: "קידוחים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.inst | tojson }};
+    var c = echarts.init(document.getElementById("chart-inst"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "מדידות" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.pause | tojson }};
+    var c = echarts.init(document.getElementById("chart-pause"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toFixed(1) + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "אחוז מהמדידות", max: 100 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.oil %}
+<script>
+  (function () {
+    var d = {{ model.charts.oil | tojson }};
+    var c = echarts.init(document.getElementById("chart-oil"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "value", name: "קידוחים" },
+      series: [{ type: "bar", name: "קידוחים עם שכבת שמן", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.notes %}
+<script>
+  (function () {
+    var d = {{ model.charts.notes | tojson }};
+    var c = echarts.init(document.getElementById("chart-notes"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "מדידות" },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 160, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מדידות", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

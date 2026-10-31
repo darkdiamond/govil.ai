@@ -1,0 +1,330 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro tbl(caption, heads, rows, keys) %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">{% for h in heads %}<th scope="col" class="text-start py-1 pe-3">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r[keys[0]] }}</th>{% for k in keys[1:] %}<td class="py-1 pe-3">{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>קידוחי רשות המים: מאגר קידוחי מים מורשים בישראל</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }} לכל קידוח (בארות מים ומתקני הפקה): סטטוס, בעלות, קבוצת מים, אקוויפר, ספיקה שעתית מקסימלית, מספר ארצי ואזורי הפקה, חקלאות ותכנון.</p>
+</section>
+
+<a id="lookup" href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קידוח לפי שם, בעלים או מספר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם מתקן, מספר מתקן, שם צרכן בעל המתקן, מספר הפקה, מספר ארצי, אקוויפר ואזור אדמיניסטרטיבי.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת הקידוחים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-wells" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+{{ head("database", "קידוחים לפי סטטוס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_lede }}</p>
+  <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+{{ tbl(model.labels.status_aria, ["סטטוס", "קידוחים", "שיעור"], model.tables.status, ["name", "n", "share"]) }}
+</section>
+
+<section class="card p-5">
+{{ head("building-2", "מקורות מול צרכנים פרטיים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.own_lede }}</p>
+  <div id="chart-ownership" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.own_aria }}"></div>
+{{ tbl(model.labels.own_aria, ["בעלות", "קידוחים", "פעילים", "שיעור פעילים"], model.tables.ownership, ["name", "total", "active", "share"]) }}
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("tag", "סוג המים: שפיר, מליח, שפד״ן ומטויב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.water_lede }}</p>
+  <div id="chart-water" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.water_aria }}"></div>
+{{ tbl(model.labels.water_aria, ["סוג המים", "קידוחים", "פעילים", "שיעור פעילים"], model.tables.water, ["name", "total", "active", "share"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "קידוחים לפי אקוויפר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.aq_lede }}</p>
+  <div id="chart-aquifer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.aq_aria }}"></div>
+{{ tbl(model.labels.aq_aria, ["אקוויפר", "קידוחים", "פעילים", "שיעור פעילים"], model.tables.aquifer, ["name", "total", "active", "share"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("map-pin", "קידוחים לפי אזור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reg_lede }}</p>
+  <div id="chart-region" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.reg_aria }}"></div>
+{{ tbl(model.labels.reg_aria, ["אזור חקלאי", "קידוחים", "פעילים", "שיעור פעילים"], model.tables.region, ["name", "total", "active", "share"]) }}
+</section>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+{{ head("database", "אזור מול אקוויפר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "הרשויות עם הכי הרבה קידוחים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.admin_lede }}</p>
+  <div id="chart-admin" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.admin_aria }}"></div>
+{{ tbl(model.labels.admin_aria, ["רשות", "קידוחים", "פעילים"], model.tables.admin, ["name", "total", "active"]) }}
+</section>
+
+{%- if model.flags.owners or model.flags.basin %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.owners %}
+<section class="card p-5">
+{{ head("list", "בעלי הקידוחים הפרטיים הגדולים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.owners_lede }}</p>
+  <div id="chart-owners" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.owners_aria }}"></div>
+{{ tbl(model.labels.owners_aria, ["בעלים", "קידוחים", "פעילים"], model.tables.owners, ["name", "total", "active"]) }}
+</section>
+{%- endif %}
+{%- if model.flags.basin %}
+<section class="card p-5">
+{{ head("list", "קידוחי מקורות לפי אגן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.basin_lede }}</p>
+  <div id="chart-basin" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.basin_aria }}"></div>
+{{ tbl(model.labels.basin_aria, ["אגן", "קידוחים", "פעילים"], model.tables.basin, ["name", "total", "active"]) }}
+</section>
+{%- endif %}
+</div>
+{%- endif %}
+
+{%- if model.flags.flow %}
+<section class="card p-5 mb-6">
+{{ head("database", "ספיקה שעתית מקסימלית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.flow_lede }}</p>
+  <div id="chart-flow" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.flow_aria }}"></div>
+{{ tbl(model.labels.flow_aria, ["טווח (מ״ק לשעה)", "פעילים", "אחרים", "סה״כ"], model.tables.flow, ["name", "active", "other", "total"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת הקידוחים השונים שחטיבת אסדרה מנהלת, נותנת רישוי, מפקחת ומסדירה הפקה. רשימה זו מתעדכנת מדי שנה.</p>
+</section>
+
+{%- if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-pts-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-wells");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "max": model.charts.map.max, "bounds": model.charts.map.bounds, "admins": model.charts.map.admins} | tojson }};
+    var map = L.map(el, { preferCanvas: true, scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-pts-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (p) {
+        var t = Math.sqrt(p[2] / meta.max);
+        var on = p[3] > 0;
+        var mk = L.circleMarker([p[0], p[1]], {
+          radius: 3 + 11 * t, color: on ? "#0b3668" : "#6c757d", weight: 1,
+          fillColor: on ? "#0068f5" : "#adb5bd", fillOpacity: 0.55
+        }).addTo(map);
+        var box = document.createElement("div");
+        if (p[4] >= 0) {
+          var title = document.createElement("strong");
+          title.textContent = meta.admins[p[4]];
+          box.appendChild(title);
+        }
+        [["קידוחים בריבוע", fmt(p[2])], ["מתוכם פעילים", fmt(p[3])]].forEach(function (row) {
+          var line = document.createElement("div");
+          line.textContent = row[0] + ": " + row[1];
+          box.appendChild(line);
+        });
+        mk.bindPopup(box);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var el = document.getElementById("chart-status");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(p[0].name) + "<br>" + p[0].value.toLocaleString("he-IL") + " קידוחים";
+      } },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", show: false },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "קידוחים", data: d.values, barMaxWidth: 28,
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var specs = [
+      ["chart-ownership", {{ model.charts.ownership | tojson }}],
+      ["chart-water", {{ model.charts.water | tojson }}],
+      ["chart-aquifer", {{ model.charts.aquifer | tojson }}],
+      ["chart-region", {{ model.charts.region | tojson }}]
+    ];
+    specs.forEach(function (s) {
+      var el = document.getElementById(s[0]);
+      if (!el) { return; }
+      var d = s[1];
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        legend: { top: 0, type: "scroll" },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          var out = echarts.format.encodeHTML(d.cats[i]) + "<br>סה״כ " + d.total[i].toLocaleString("he-IL") + " קידוחים";
+          p.forEach(function (q) { if (q.value) { out += "<br>" + q.marker + echarts.format.encodeHTML(q.seriesName) + ": " + q.value.toLocaleString("he-IL"); } });
+          return out;
+        } },
+        grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.cats, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+        series: d.series.map(function (sr) {
+          return { type: "bar", stack: "s", name: sr.name, data: sr.data, barMaxWidth: 26 };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.x[p.value[0]]) + ": " + p.value[2].toLocaleString("he-IL") + " קידוחים";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { rotate: 35, interval: 0, width: 90, overflow: "truncate", fontSize: narrow ? 9 : 12 } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: narrow ? 10 : 12 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 100, inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontFamily: "Rubik" },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var specs = [
+      ["chart-admin", {{ model.charts.admin | tojson }}],
+      ["chart-owners", {{ model.charts.owners | tojson }}],
+      ["chart-basin", {{ model.charts.basin | tojson }}]
+    ];
+    specs.forEach(function (s) {
+      var el = document.getElementById(s[0]);
+      if (!el) { return; }
+      var d = s[1];
+      var other = d.total.map(function (v, i) { return v - d.active[i]; });
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        legend: { top: 0 },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+          var i = p[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.total[i].toLocaleString("he-IL") + " קידוחים, מתוכם " + d.active[i].toLocaleString("he-IL") + " פעילים";
+        } },
+        grid: { left: 16, right: 24, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+        series: [
+          { type: "bar", stack: "s", name: "פעילים", data: d.active, barMaxWidth: 24 },
+          { type: "bar", stack: "s", name: "לא פעילים ואחרים", data: other, barMaxWidth: 24 }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+
+{%- if model.flags.flow %}
+<script>
+  (function () {
+    var d = {{ model.charts.flow | tojson }};
+    var el = document.getElementById("chart-flow");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0 },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + " מ״ק לשעה<br>פעילים: " + d.active[i].toLocaleString("he-IL") + "<br>אחרים: " + d.other[i].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", splitNumber: 3 },
+      series: [
+        { type: "bar", stack: "s", name: "פעילים", data: d.active, barMaxWidth: 40 },
+        { type: "bar", stack: "s", name: "לא פעילים ואחרים", data: d.other, barMaxWidth: 40 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

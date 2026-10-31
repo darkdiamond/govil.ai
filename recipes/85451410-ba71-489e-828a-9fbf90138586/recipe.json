@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "85451410-ba71-489e-828a-9fbf90138586",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-07T11:36:26.635127+00:00",
+    "rows": { "items": 2804 }
+  },
+  "inputs": [
+    {
+      "name": "items",
+      "by_id": "d91a1af4-a9a5-48b1-a1a0-6be4eba1618e",
+      "required_columns": ["מספר אישור", "תוקף", "קוד דגם", "יצרן"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}
