@@ -196,11 +196,15 @@ export default defineNuxtConfig({
   },
 
   // Preview-only pieces (preview/), registered only then so no build ships
-  // them: the stamp the CLI bumps on every render, and the client plugin
-  // that reloads the page when it moves.
+  // them: the overlay's /data/*.json ahead of public/, the stamp the CLI
+  // bumps on every render, and the client plugin that reloads the page
+  // when it moves.
   plugins: PREVIEW_ROOT ? ["~/preview/reload.client.ts"] : [],
   serverHandlers: PREVIEW_ROOT
-    ? [{ route: "/__preview/stamp", handler: "~/preview/stamp.ts" }]
+    ? [
+        { middleware: true, handler: "~/preview/data.ts" },
+        { route: "/__preview/stamp", handler: "~/preview/stamp.ts" },
+      ]
     : [],
 
   components: [{ path: "~/components", pathPrefix: false }],

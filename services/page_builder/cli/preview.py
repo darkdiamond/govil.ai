@@ -59,7 +59,7 @@ from ..publish import (
 from ..recipe import RecipeError
 from ..related import TOP_K, RelatedIndex
 from ..schema import AgentData, DatasetMeta, Manifest
-from ..tags import Taxonomy, org_drop_names, pending_tags_path
+from ..tags import ASSIGNMENTS_PATH, Taxonomy, org_drop_names, pending_tags_path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PREVIEW_ROOT = REPO_ROOT / "tmp" / "preview"
@@ -105,7 +105,7 @@ def _dt(value) -> Optional[datetime]:
 def _source_record(dataset_id: str, recipes_root: Path) -> SourceRecord:
     """The sources/<id> doc the publisher would read, from prepare()'s
     source.json (plus the provider's credit block for a provider source)."""
-    path = author.AUTHORING_ROOT / dataset_id / "source.json"
+    path = author._paths(dataset_id)["source"]
     facts = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     modified = _dt(facts.get("metadata_modified"))
     title = facts.get("title") or dataset_id
@@ -223,7 +223,7 @@ def render(dataset_id: str, recipes_root: Path = author.RECIPES_ROOT,
     work = Path(tempfile.mkdtemp(prefix=f"preview-{dataset_id[:8]}-"))
     try:
         recipe, manifest, resources = author.load_local(dataset_id, recipes_root)
-        data_dir = author.AUTHORING_ROOT / dataset_id / "data"
+        data_dir = author._paths(dataset_id)["data"]
         raw, page, _ = author.render_local(recipe, manifest, resources, data_dir, work)
         stage(dataset_id, page, raw, recipes_root=recipes_root, root=root)
     except SystemExit as e:
@@ -276,10 +276,22 @@ def _pid_alive(pid: int) -> bool:
     return True
 
 
+def _is_ours(info: dict) -> bool:
+    """The recorded pid is still the nuxt dev we started on that port. A
+    server.json can outlive its process (reboot, kill -9), and a reused pid
+    must never be adopted, or killed with its whole process group."""
+    try:
+        argv = Path(f"/proc/{info['pid']}/cmdline").read_bytes().split(b"\0")
+    except OSError:
+        return False
+    return (any(a.endswith(b"nuxt") for a in argv)
+            and str(info["port"]).encode() in argv and b"dev" in argv)
+
+
 def running_server(root: Optional[Path] = None) -> Optional[dict]:
     root = root or PREVIEW_ROOT
     info = _read_server(root)
-    if not info or not _pid_alive(info["pid"]):
+    if not info or not _is_ours(info):
         return None
     if _get(f"http://{HOST}:{info['port']}/__preview/stamp", timeout=3) != 200:
         return None
@@ -314,7 +326,7 @@ def _ensure_server(root: Path) -> dict:
     if info:
         return info
     stale = _read_server(root)
-    if stale and _pid_alive(stale["pid"]):  # alive but not answering: replace it
+    if stale and _is_ours(stale):  # ours but not answering: replace it
         _kill(stale["pid"])
     nuxt = FRONTEND / "node_modules" / ".bin" / "nuxt"
     if not nuxt.exists():
@@ -370,8 +382,11 @@ def stop(root: Optional[Path] = None) -> int:
     if not info:
         print("no preview server recorded")
         return 0
-    _kill(info["pid"])
     _server_file(root).unlink(missing_ok=True)
+    if not _is_ours(info):
+        print(f"preview server (pid {info['pid']}) is already gone")
+        return 0
+    _kill(info["pid"])
     print(f"stopped preview server (pid {info['pid']}, port {info['port']})")
     return 0
 
@@ -419,12 +434,13 @@ def status(root: Optional[Path] = None) -> int:
 
 
 def _watched(dataset_id: str, recipes_root: Path) -> dict[Path, int]:
-    """mtimes of what a render reads: the recipe dir, prepare's data
-    manifest and the pending tags."""
+    """mtimes of what a render reads: the recipe dir, prepare's output and
+    the dataset's tags (pending, or assigned with `tags assign`)."""
     paths = [p for p in (recipes_root / dataset_id).rglob("*")
              if p.is_file() and "__pycache__" not in p.parts]
-    paths += [author.AUTHORING_ROOT / dataset_id / "data" / "manifest.json",
-              pending_tags_path(dataset_id)]
+    local = author._paths(dataset_id)
+    paths += [local["manifest"], local["maps"], local["source"],
+              pending_tags_path(dataset_id), ASSIGNMENTS_PATH]
     out = {}
     for p in paths:
         try:

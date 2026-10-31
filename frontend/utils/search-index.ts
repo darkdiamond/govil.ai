@@ -74,7 +74,11 @@ export function loadFullManifestServer(): Promise<Manifest> {
 /** Slim index. Server: read from public/ (falling back to slimming the full
  *  manifest). Client: one on-demand fetch of /data/search-index.json. */
 export function loadSearchIndex(): Promise<SearchIndex> {
-  if (!searchIndexCache) {
+  // As loadFullManifestServer: a preview's overlay changes under the server.
+  if (
+    !searchIndexCache ||
+    (import.meta.server && process.env.NUXT_PREVIEW_ROOT)
+  ) {
     searchIndexCache = import.meta.server
       ? readPublicJson<SearchIndex>("data/search-index.json").catch(
           async () => {

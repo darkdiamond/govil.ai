@@ -1029,7 +1029,9 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
 
     try:
         out = preview.stage(dataset_id, page, raw, recipes_root=recipes_root)
-    except Exception as e:  # the preview is a convenience; never fail verify on it
+    # The preview is a convenience; never fail verify on it. SystemExit too:
+    # a bad source.json raises it, and is already reported as SOURCE-CONFIG.
+    except (SystemExit, Exception) as e:
         out = None
         notes.append(f"preview not staged: {type(e).__name__}: {e}")
 
