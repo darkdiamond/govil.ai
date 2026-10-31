@@ -1,6 +1,6 @@
 # Minimal dependencies for services.page_builder.publish.
 # Used by .github/workflows/publish.yml to avoid installing the entire
 # builder job runtime (pandas, esprima, google-cloud-storage, etc.).
-google-cloud-firestore>=2.16
-pydantic>=2.0
+google-cloud-firestore>=2.34.1
+pydantic>=2.14.1
 httpx>=0.27.0
