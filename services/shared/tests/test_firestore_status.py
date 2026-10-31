@@ -72,3 +72,28 @@ def test_save_dataset_new_doc_initializes_never():
     p = _payload(ref)
     assert p["analysis_status"] == "never"
     assert p["first_seen_at"] is not None
+
+
+def _unchanged(reason: str, **kw) -> dict:
+    store, ref = _store_with_existing({})
+    store.mark_refresh_unchanged(
+        "ds", metadata_modified=None, input_fingerprint="fp", reason=reason, **kw
+    )
+    return _payload(ref)
+
+
+def test_content_hash_unchanged_advances_and_stamps_verified():
+    p = _unchanged("content_hash", inputs_hash="ih", inputs_hash_unordered="iu",
+                   file_fingerprint="ff", advance_version=True)
+    assert p["inputs_hash"] == "ih" and p["inputs_hash_unordered"] == "iu"
+    assert p["last_verified_at"] == p["last_unchanged_at"]
+    assert p["refresh_status"] == "succeeded" and "refreshed_metadata_modified" in p
+    # the live page's render record stays as it was
+    for k in ("last_refreshed_at", "agent_data", "last_snapshot", "content_hash"):
+        assert k not in p
+
+
+def test_fingerprint_unchanged_keeps_stored_input_hashes():
+    p = _unchanged("fingerprint", advance_version=False)
+    assert "inputs_hash" not in p and "inputs_hash_unordered" not in p
+    assert "last_verified_at" not in p and "refreshed_metadata_modified" not in p

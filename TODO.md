@@ -17,6 +17,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   e74cc3c7, ee1265d8, 360fb8b4, 00dfc38e, 03092ac8 and the existing recipe a98fbabc (Jerusalem
   metro lines, no map today) ship their shapes only in SHP/KMZ zips next to a small attribute
   table. Each needs a browser download, then `author snapshot`. (2026-10-30)
+- **Decide the next precheck lever from a week of B′ data.** The content-hash skip
+  (`unchanged … content_hash`) still pays the export and compute for a re-upload whose page
+  doesn't change. Read the `refresh precheck` lines. If `inputs_same_unordered=True` dominates
+  the identical renders (rows only reordered) and no `FALSE-SKIP candidate —
+inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute only). If it is
+  mostly `False` (an edited column the page doesn't read), declare `columns` in those recipes:
+  a smaller export, and B then only sees the columns the page uses. (2026-10-31)
 - **Verify's robustness check is all-or-nothing across inputs.** It truncates every input and
   compares the whole model, so a ≤1-row input next to a large one is never perturbed. A value
   hardcoded from that small input passes, because the large input changes the model anyway.

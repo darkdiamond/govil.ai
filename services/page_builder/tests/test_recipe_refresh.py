@@ -83,7 +83,7 @@ class FakeStore:
     def mark_refreshed(self, dataset_id, *, metadata_modified, recipe_version,
                        agent_data, page_path, snapshot=None, input_fingerprint=None,
                        inputs_hash=None, content_hash=None, file_fingerprint=None,
-                       preview=False):
+                       inputs_hash_unordered=None, preview=False):
         self._upd(dataset_id, preview, agent_data=agent_data,
                   recipe_version=recipe_version,
                   refreshed_metadata_modified=metadata_modified,
@@ -92,16 +92,19 @@ class FakeStore:
                   last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
                   content_hash=content_hash, file_fingerprint=file_fingerprint,
-                  wall_budget_strikes=None)
+                  inputs_hash_unordered=inputs_hash_unordered, wall_budget_strikes=None)
 
     def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
-                               inputs_hash=None, file_fingerprint=None, reason,
-                               advance_version, preview=False):
+                               inputs_hash=None, inputs_hash_unordered=None,
+                               file_fingerprint=None, reason, advance_version, preview=False):
         kw = {"input_fingerprint": input_fingerprint, "unchanged_reason": reason,
               "file_fingerprint": file_fingerprint}
         if inputs_hash is not None:
             kw["inputs_hash"] = inputs_hash
+            kw["inputs_hash_unordered"] = inputs_hash_unordered
             kw["wall_budget_strikes"] = None
+        if reason == "content_hash":
+            kw["last_verified_at"] = datetime.now(timezone.utc)
         if advance_version:
             kw.update(refreshed_metadata_modified=metadata_modified, refresh_status="succeeded",
                       refresh_failed_version=None, authoring_status="done",
@@ -778,7 +781,7 @@ def test_precheck_observe_reports_agreement_and_never_skips(env, monkeypatch):
     assert o["status"] == "refreshed" and ckan.fetches == 2
     assert o["precheck"] == {
         "mode": "observe", "fp_same": True, "inputs_same": True, "content_same": True,
-        "fp2_same": True,
+        "fp2_same": True, "inputs_same_unordered": True,
     }
 
 
@@ -989,6 +992,174 @@ def test_precheck_edited_recipe_without_version_bump_rerenders(env, monkeypatch,
     _bump(store, "2026-10-02")
     s = _run(env, store, ckan, preview=False, recipes=recipes)
     assert _first(s)["status"] == "refreshed"
+
+
+def _reorder(store, ckan):
+    """A re-upload with the same rows in another order: new file md5, new
+    first rows, new CSV bytes, but every aggregate the page shows holds."""
+    _reupload(store, "md5-reordered")
+    return FakeCkan(list(reversed(ckan.rows)))
+
+
+@pytest.mark.parametrize("mode", ["inputs", "full"])
+def test_precheck_identical_render_is_unchanged_and_not_staged(env, monkeypatch, mode):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, mode)
+    before = dict(store.states[(DS, False)])
+    env.staged.clear()
+    reordered = _reorder(store, ckan)
+    s = _run(env, store, reordered, preview=False)
+    o = _first(s)
+    assert (o["status"], o["reason"]) == ("unchanged", "content_hash")
+    pc = o["precheck"]
+    assert pc["inputs_same"] is False and pc["inputs_same_unordered"] is True
+    assert pc["content_same"] is True and pc["skipped"] == "content_hash"
+    assert reordered.fetches == 1 and env.staged == {}
+    assert s["refreshed"] == [] and s["unchanged"] == [DS]
+    st = store.states[(DS, False)]
+    assert st["refreshed_metadata_modified"] == store.src.metadata_modified
+    assert st["last_verified_at"] > before["last_refreshed_at"]
+    assert st["last_refreshed_at"] == before["last_refreshed_at"]
+    assert st["content_hash"] == before["content_hash"]
+    assert st["inputs_hash"] != before["inputs_hash"]          # learned the new bytes
+    assert st["file_fingerprint"] != before["file_fingerprint"]
+    assert _first(_run(env, store, reordered, preview=False))["reason"] == "up_to_date"
+
+
+def test_precheck_content_skip_teaches_the_cheaper_checks(env, monkeypatch):
+    """The same re-upload again: caught before the export (A ∧ A′) under
+    `full`, before compute (B) under `inputs` — never after the render."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    reordered = _reorder(store, ckan)
+    assert _first(_run(env, store, reordered, preview=False))["reason"] == "content_hash"
+    _bump(store, "2026-10-03")
+    assert _first(_run(env, store, reordered, preview=False))["reason"] == "fingerprint"
+    assert reordered.fetches == 1
+    _with_mode(monkeypatch, "inputs")
+    assert _first(_run(env, store, reordered, preview=False))["reason"] == "inputs_hash"
+    assert reordered.fetches == 2
+
+
+def test_precheck_observe_stages_an_identical_render(env, monkeypatch):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    env.staged.clear()
+    o = _first(_run(env, store, _reorder(store, ckan), preview=False))
+    assert o["status"] == "refreshed" and o["precheck"]["content_same"] is True
+    assert env.staged
+
+
+@pytest.mark.parametrize("how", ["force", "recipe_version"])
+def test_precheck_identical_render_still_stages_forced_and_new_recipe(env, monkeypatch, how):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    env.staged.clear()
+    kw = {"force": True} if how == "force" else {}
+    if how == "recipe_version":
+        store.states[(DS, False)]["recipe_version"] = 0
+    o = _first(_run(env, store, _reorder(store, ckan), preview=False, **kw))
+    assert o["status"] == "refreshed" and env.staged
+    assert store.states[(DS, False)]["recipe_version"] == 1
+
+
+def test_precheck_identical_render_after_a_staging_failure_stages(env, monkeypatch):
+    """A failed rollback can leave a staged body the stored hash doesn't
+    describe, so the render after a staging failure always stages."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store.mark_refresh_failed(DS, error="gcs down", reason=rf.STAGE_FAILED,
+                              failed_version="x", preview=False)
+    env.staged.clear()
+    o = _first(_run(env, store, _reorder(store, ckan), preview=False))
+    assert o["status"] == "refreshed" and env.staged
+    assert store.states[(DS, False)]["refresh_status"] == "succeeded"
+
+
+def test_precheck_content_skip_state_write_failure_is_a_stage_failure(env, monkeypatch):
+    """Firestore down on a skip fails this source alone — it must not crash
+    the batch (the identical render used to go through the staging guard)."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+
+    def _boom(*a, **kw):
+        raise RuntimeError("firestore deadline")
+
+    monkeypatch.setattr(store, "mark_refresh_unchanged", _boom)
+    o = _first(_run(env, store, _reorder(store, ckan), preview=False))
+    assert (o["status"], o["reason"]) == ("failed", rf.STAGE_FAILED)
+
+
+def test_precheck_content_skip_ignores_the_max_age(env, monkeypatch):
+    """Exact, so an old page with a no-op re-upload still isn't re-staged —
+    and the verified render restarts the max-age clock for A ∧ A′."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    env.staged.clear()
+    reordered = _reorder(store, ckan)
+    assert _first(_run(env, store, reordered, preview=False))["reason"] == "content_hash"
+    assert env.staged == {}
+    _bump(store, "2026-10-03")
+    assert _first(_run(env, store, reordered, preview=False))["reason"] == "fingerprint"
+
+
+def test_precheck_may_skip_counts_the_last_verified_render(monkeypatch):
+    old = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    assert not rf._precheck_may_skip("data_updated", {"last_refreshed_at": old})
+    assert rf._precheck_may_skip(
+        "data_updated", {"last_refreshed_at": old, "last_verified_at": now})
+    assert rf._precheck_may_skip("data_updated", {"last_verified_at": now.replace(tzinfo=None)})
+    assert not rf._precheck_may_skip("forced", {"last_verified_at": now})
+
+
+def test_precheck_unordered_hash_sees_a_real_edit(env, monkeypatch, caplog):
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "observe")
+    with caplog.at_level("WARNING", logger=rf.log.name):
+        o = _first(_run(env, store, FakeCkan(_deep_edit(ckan.rows)), preview=False))
+    assert o["precheck"]["inputs_same_unordered"] is False
+    assert "FALSE-SKIP candidate — inputs_same_unordered" not in caplog.text
+
+
+def test_precheck_flags_an_order_dependent_page(caplog):
+    """B′ is observe-only: a reorder that changed the page is the evidence
+    against ever skipping on it."""
+    pc = {"mode": "full", "inputs_same": False, "inputs_same_unordered": True,
+          "content_same": False}
+    with caplog.at_level("WARNING", logger=rf.log.name):
+        rf._log_precheck(DS, pc)
+    assert "FALSE-SKIP candidate — inputs_same_unordered" in caplog.text
+
+
+def _hashes_of(tmp_path, rows):
+    f = tmp_path / f"in{len(list(tmp_path.iterdir()))}.csv"
+    with open(f, "w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(COLS)
+        w.writerows(rows)
+    recipe = Recipe.load(FIXTURES / DS)
+    part = rf.FetchedInput(file=f, resource_id=RID, resource_name="events", rows=len(rows))
+    name = recipe.manifest.inputs[0].name
+    return rf.inputs_hashes(recipe, {name: [part]}, "identity")
+
+
+def test_inputs_hashes_unordered_is_a_row_multiset(tmp_path):
+    rows = _rows([2024, 2025])
+    ordered, unordered = _hashes_of(tmp_path, rows)
+    r_ordered, r_unordered = _hashes_of(tmp_path, list(reversed(rows)))
+    assert r_ordered != ordered and r_unordered == unordered
+    assert _hashes_of(tmp_path, _deep_edit(rows))[1] != unordered
+    assert _hashes_of(tmp_path, rows + rows[:1])[1] != unordered     # a duplicated row
+    assert _hashes_of(tmp_path, rows[1:])[1] != unordered
+
+
+def test_inputs_hash_is_unchanged_by_the_one_pass_rewrite(tmp_path):
+    """Stored prod hashes stay valid: B still hashes the file bytes as-is."""
+    import hashlib
+    rows = _rows([2024])
+    ordered, _ = _hashes_of(tmp_path, rows)
+    f = sorted(tmp_path.iterdir())[0]
+    name = Recipe.load(FIXTURES / DS).manifest.inputs[0].name
+    h = hashlib.sha256()
+    h.update(f"{name}|{RID}|".encode())
+    h.update(f.read_bytes())
+    h.update(b"\0")
+    h.update(b"identity")
+    assert ordered == h.hexdigest()
 
 
 def test_unchanged_by_fingerprint_does_not_spend_the_cap():

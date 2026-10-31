@@ -653,6 +653,7 @@ class FirestoreStateStore:
         inputs_hash: Optional[str] = None,
         content_hash: Optional[str] = None,
         file_fingerprint: Optional[str] = None,
+        inputs_hash_unordered: Optional[str] = None,
         preview: bool = False,
     ) -> None:
         """Record a successful recipe refresh.
@@ -660,7 +661,7 @@ class FirestoreStateStore:
         `snapshot` (row counts, KPI displays, insight sentences) is what the
         next refresh diffs against to report what moved.
 
-        The four hashes (REFRESH_PRECHECK) describe the render just staged.
+        The five hashes (REFRESH_PRECHECK) describe the render just staged.
         Always written — None when the precheck was off — so a stale hash from
         an earlier render can never vouch for a page it didn't produce.
 
@@ -685,6 +686,7 @@ class FirestoreStateStore:
             "inputs_hash": inputs_hash,
             "content_hash": content_hash,
             "file_fingerprint": file_fingerprint,
+            "inputs_hash_unordered": inputs_hash_unordered,
             "wall_budget_strikes": None,
         }
         if not preview:
@@ -708,26 +710,29 @@ class FirestoreStateStore:
         metadata_modified: Optional[datetime],
         input_fingerprint: str,
         inputs_hash: Optional[str] = None,
+        inputs_hash_unordered: Optional[str] = None,
         file_fingerprint: Optional[str] = None,
         reason: str,
         advance_version: bool,
         preview: bool = False,
     ) -> None:
         """Record that CKAN bumped the version but the precheck found the
-        recipe's inputs unchanged since the last render, so the live page
-        stands.
+        recipe's inputs — or, for `content_hash`, the rendered page —
+        unchanged since the last render, so the live page stands.
 
-        `advance_version` (exact input-hash match only): the page's data
-        vintage equals this version. Advance the version markers so the next
-        run doesn't re-check this bump, and settle any earlier failure or
-        authoring flag the same way `mark_refreshed` would. A fingerprint
-        match isn't proof, so the bump stays pending.
+        `advance_version` (exact input-hash or content-hash match only): the
+        page's data vintage equals this version. Advance the version markers
+        so the next run doesn't re-check this bump, and settle any earlier
+        failure or authoring flag the same way `mark_refreshed` would. A
+        fingerprint match isn't proof, so the bump stays pending.
 
         Leaves `last_refreshed_at`, `agent_data`, `last_snapshot` and
         `content_hash` alone. They describe the last render that actually
-        changed the page, and the precheck's max-age safety net is keyed on
-        that time. `inputs_hash` is None after a fingerprint skip (nothing
-        was fetched); the stored one still holds.
+        changed the page (`content_hash` is equal by definition after a
+        `content_hash` skip). That skip was a full render, so it stamps
+        `last_verified_at`, which the max-age safety net also counts.
+        `inputs_hash` is None after a fingerprint skip (nothing was fetched);
+        the stored one still holds.
         """
         payload: dict[str, Any] = {
             "last_unchanged_at": datetime.now(timezone.utc),
@@ -737,7 +742,10 @@ class FirestoreStateStore:
         }
         if inputs_hash is not None:
             payload["inputs_hash"] = inputs_hash
+            payload["inputs_hash_unordered"] = inputs_hash_unordered
             payload["wall_budget_strikes"] = None  # the full fetch completed
+        if reason == "content_hash":
+            payload["last_verified_at"] = payload["last_unchanged_at"]
         if advance_version:
             payload.update(
                 {
