@@ -8,14 +8,14 @@ skipped them. Now that the refresh downloads them, this walks every source:
            and print what `open` would do. Writes nothing.
     open   do it: an `[author] … (<id8>)` issue (reason `map_available`) for a
            recipe whose page lacks that geometry, a comment on the open issue
-           of a dataset still waiting for its first recipe. Issues go through
-           `refresh.queue_authoring`, so Firestore records them exactly like
-           the daily job's (no duplicates, no reopening).
+           of a dataset that already has one. Issues carry the daily job's
+           title and body, and Firestore records them exactly as
+           `refresh.queue_authoring` does (no duplicates, no reopening).
 
 Classes (`list` prints each):
     issue       has a recipe, its page draws no map, or draws points where
                 the file has lines/polygons
-    comment     no recipe, an open authoring issue already asks for one
+    comment     an open authoring issue already exists for the dataset
     mapped      the recipe already reads this resource (map/snapshot input),
                 or its map already shows the file's points
     no_recipe   no recipe and no open issue (a legacy page, or not queued):
@@ -23,7 +23,8 @@ Classes (`list` prints each):
     failed      the file didn't download or parse (the reason is shown)
 
 `open` refuses to open more than --max-new issues (default 50) at once.
-Needs GITHUB_DISPATCH_TOKEN (e.g. `GITHUB_DISPATCH_TOKEN=$(gh auth token)`).
+GitHub goes through the local `gh` login (the issues' author must be
+`darkdiamond` for the authoring routine to trust them).
 """
 from __future__ import annotations
 
@@ -233,17 +234,41 @@ def _comment(number: int, c: Candidate, repo: str = REPO) -> bool:
     return False
 
 
-def open_all(store, cands: list[Candidate], *, max_new: int) -> dict:
-    from .refresh import queue_authoring
+def _open_issue(c: Candidate, repo: str = REPO) -> int:
+    """The daily job's issue (same title + body as `notify.open_authoring_issue`),
+    opened with the local `gh` login, so no token is handled here."""
+    from .notify import AUTHORING_LABEL, issue_body
 
+    src = c.src
+    title = src.title or src.id
+    body = issue_body(dataset_id=src.id, title=title,
+                      org=(src.organization or {}).get("title", "") or "",
+                      reason="map_available", detail=detail_text(c), preview=False)
+    out = subprocess.run(
+        ["gh", "issue", "create", "--repo", repo, "--title", f"[author] {title[:80]} ({src.id[:8]})",
+         "--body", body, "--label", AUTHORING_LABEL],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    return int(out.strip().rsplit("/", 1)[-1])
+
+
+def open_all(store, cands: list[Candidate], *, max_new: int,
+             open_issue: Callable[[Candidate], int] = _open_issue) -> dict:
     new = [c for c in cands if c.kind == "issue"]
     if len(new) > max_new:
         raise SystemExit(f"{len(new)} issues to open > --max-new {max_new}; "
                          "review `list` and re-run with a higher cap")
     done = {"opened": [], "commented": [], "unblocked": [], "errors": []}
     for c in new:
-        n = queue_authoring(store, c.src, "map_available", detail=detail_text(c))
-        (done["opened"] if n else done["errors"]).append((c.src.id, n))
+        try:
+            n = open_issue(c)
+        except subprocess.CalledProcessError as e:
+            done["errors"].append((c.src.id, (e.stderr or "")[:200]))
+            continue
+        # Recorded exactly as queue_authoring does, so the job never re-asks.
+        store.mark_authoring_needed(c.src.id, "map_available")
+        store.set_authoring_issue(c.src.id, n)
+        done["opened"].append((c.src.id, n))
     for c in (c for c in cands if c.kind == "comment"):
         try:
             if _comment(c.issue, c):
@@ -266,8 +291,6 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     args = ap.parse_args(argv)
     floor = datetime.fromisoformat(args.floor)
     floor = floor if floor.tzinfo else floor.replace(tzinfo=timezone.utc)
-    if args.cmd == "open" and not os.environ.get("GITHUB_DISPATCH_TOKEN"):
-        raise SystemExit("set GITHUB_DISPATCH_TOKEN (e.g. $(gh auth token))")
     store = FirestoreStateStore()
     cands = find_candidates(store, floor=floor, skip_ids=frozenset(args.skip))
     _report(cands)

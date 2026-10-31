@@ -91,6 +91,19 @@ def test_open_refuses_past_the_cap():
         mb.open_all(store=None, cands=cands, max_new=2)
 
 
+def test_open_records_each_issue_like_queue_authoring():
+    calls = []
+    store = SimpleNamespace(
+        mark_authoring_needed=lambda i, r: calls.append(("needed", i, r)),
+        set_authoring_issue=lambda i, n: calls.append(("notified", i, n)),
+    )
+    c = _cand(_map({"LineString": 1}))
+    c.kind = "issue"
+    done = mb.open_all(store, [c], max_new=5, open_issue=lambda c: 401)
+    assert done["opened"] == [(DS, 401)]
+    assert calls == [("needed", DS, "map_available"), ("notified", DS, 401)]
+
+
 def test_detail_lists_only_downloadable_files():
     c = _cand(_map({"LineString": 3}), _map({}, error="SnapshotError: x"))
     text = mb.detail_text(c)
