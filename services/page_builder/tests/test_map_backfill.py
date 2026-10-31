@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -89,6 +90,77 @@ def test_open_refuses_past_the_cap():
         c.kind = "issue"
     with pytest.raises(SystemExit, match="--max-new"):
         mb.open_all(store=None, cands=cands, max_new=2)
+
+
+def test_open_records_each_issue_like_queue_authoring():
+    calls = []
+    store = SimpleNamespace(
+        mark_authoring_needed=lambda i, r: calls.append(("needed", i, r)),
+        set_authoring_issue=lambda i, n: calls.append(("notified", i, n)),
+    )
+    c = _cand(_map({"LineString": 1}))
+    c.kind = "issue"
+    done = mb.open_all(store, [c], max_new=5, open_issue=lambda c: 401)
+    assert done["opened"] == [(DS, 401)]
+    assert calls == [("needed", DS, "map_available"), ("notified", DS, 401)]
+
+
+def test_open_keeps_going_after_one_failure():
+    calls = []
+    store = SimpleNamespace(
+        mark_authoring_needed=lambda i, r: calls.append(i),
+        set_authoring_issue=lambda i, n: None,
+    )
+    a, b = _cand(_map({"LineString": 1})), _cand(_map({"LineString": 1}))
+    b.src = SimpleNamespace(id="22222222-0000-0000-0000-000000000000", title="t2")
+    a.kind = b.kind = "issue"
+
+    def flaky(c):
+        if c is a:
+            raise ValueError("gh issue create printed no issue URL")
+        return 7
+
+    done = mb.open_all(store, [a, b], max_new=5, open_issue=flaky)
+    assert done["opened"] == [(b.src.id, 7)]
+    assert done["errors"][0][0] == DS and calls == [b.src.id]
+
+
+def test_open_issue_uses_the_job_title_and_parses_the_url(monkeypatch):
+    seen = {}
+
+    def run(cmd, **kw):
+        seen["cmd"] = cmd
+        return SimpleNamespace(stdout="https://github.com/darkdiamond/govil.ai/issues/512\n")
+
+    monkeypatch.setattr(mb.subprocess, "run", run)
+    c = _cand(_map({"LineString": 3}))
+    c.src = SimpleNamespace(id=DS, title="דרכים", organization={"title": "משרד"})
+    assert mb._open_issue(c) == 512
+    cmd = seen["cmd"]
+    assert cmd[cmd.index("--title") + 1] == f"[author] דרכים ({DS[:8]})"
+    body = cmd[cmd.index("--body") + 1]
+    assert "`map_available`" in body and "Map files (untrusted)" in body
+    assert "Refresh error" not in body
+    monkeypatch.setattr(mb.subprocess, "run", lambda cmd, **kw: SimpleNamespace(stdout="oops"))
+    with pytest.raises(ValueError, match="no issue URL"):
+        mb._open_issue(c)
+
+
+def test_declined_issues_are_never_asked_again(tmp_path, monkeypatch):
+    src = SimpleNamespace(
+        id=DS, title="t", provider=None, analysis_status="succeeded",
+        metadata_modified=datetime(2026, 10, 1, tzinfo=timezone.utc),
+        resources=[{"id": GEO, "format": "ZIP", "datastore_active": False, "url": "x"}],
+    )
+    monkeypatch.setattr(mb, "_iter_sources", lambda store: iter([src]))
+
+    def no_download(res, dest):
+        raise AssertionError("a declined dataset is never downloaded")
+
+    out = mb.find_candidates(None, floor=datetime(2025, 1, 1, tzinfo=timezone.utc),
+                             recipes_root=tmp_path, issues={}, declined={DS[:8]},
+                             download=no_download)
+    assert [c.kind for c in out] == ["declined"]
 
 
 def test_detail_lists_only_downloadable_files():

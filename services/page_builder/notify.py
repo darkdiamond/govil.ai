@@ -42,8 +42,14 @@ def _fenced(text: str) -> str:
     return "```text\n" + text.replace("`", "'") + "\n```\n"
 
 
+def issue_title(title: str, dataset_id: str) -> str:
+    """`[author] <title> (<id8>)`: the authoring routine finds issues by it."""
+    return f"[author] {title[:80]} ({dataset_id[:8]})"
+
+
 def issue_body(
-    *, dataset_id: str, title: str, org: str, reason: str, detail: str, preview: bool
+    *, dataset_id: str, title: str, org: str, reason: str, detail: str, preview: bool,
+    detail_caption: str = "Refresh error",
 ) -> str:
     lane = "preview (demo lane)" if preview else "production"
     return (
@@ -54,7 +60,7 @@ def issue_body(
         f"- reason: `{reason}` — {REASON_TEXT.get(reason, reason)}\n"
         f"- lane: {lane}\n"
         f"- data.gov.il: https://data.gov.il/dataset/{dataset_id}\n\n"
-        + (f"Refresh error (untrusted):\n\n{_fenced(detail[:1500])}\n" if detail else "")
+        + (f"{detail_caption} (untrusted):\n\n{_fenced(detail[:1500])}\n" if detail else "")
         + "Author it locally:\n\n"
         f"```\n/author-dataset {dataset_id}\n```\n\n"
         f"The recipe PR should say `Closes #<this issue>`.\n"
@@ -101,7 +107,7 @@ def open_authoring_issue(
         r = httpx.post(
             f"https://api.github.com/repos/{repo}/issues",
             json={
-                "title": f"[author] {title[:80]} ({dataset_id[:8]})",
+                "title": issue_title(title, dataset_id),
                 "body": issue_body(
                     dataset_id=dataset_id, title=title, org=org,
                     reason=reason, detail=detail, preview=preview,

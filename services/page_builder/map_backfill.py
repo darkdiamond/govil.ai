@@ -8,22 +8,25 @@ skipped them. Now that the refresh downloads them, this walks every source:
            and print what `open` would do. Writes nothing.
     open   do it: an `[author] … (<id8>)` issue (reason `map_available`) for a
            recipe whose page lacks that geometry, a comment on the open issue
-           of a dataset still waiting for its first recipe. Issues go through
-           `refresh.queue_authoring`, so Firestore records them exactly like
-           the daily job's (no duplicates, no reopening).
+           of a dataset that already has one. Issues carry the daily job's
+           title and body, and Firestore records them exactly as
+           `refresh.queue_authoring` does (no duplicates, no reopening).
 
 Classes (`list` prints each):
     issue       has a recipe, its page draws no map, or draws points where
                 the file has lines/polygons
-    comment     no recipe, an open authoring issue already asks for one
+    comment     an open authoring issue already exists for the dataset
     mapped      the recipe already reads this resource (map/snapshot input),
                 or its map already shows the file's points
     no_recipe   no recipe and no open issue (a legacy page, or not queued):
                 reported only; the daily selector decides when to queue it
     failed      the file didn't download or parse (the reason is shown)
+    declined    an earlier `map_available` issue was closed as not planned:
+                never asked again
 
 `open` refuses to open more than --max-new issues (default 50) at once.
-Needs GITHUB_DISPATCH_TOKEN (e.g. `GITHUB_DISPATCH_TOKEN=$(gh auth token)`).
+GitHub goes through the local `gh` login (the issues' author must be
+`darkdiamond` for the authoring routine to trust them).
 """
 from __future__ import annotations
 
@@ -151,6 +154,24 @@ def open_issues_by_id8(repo: str = REPO) -> dict[str, tuple[int, list[str]]]:
     return found
 
 
+def declined_id8s(repo: str = REPO) -> set[str]:
+    """id8s of `map_available` issues closed as not planned: a human said no,
+    so a re-run must not ask again."""
+    out = subprocess.run(
+        ["gh", "issue", "list", "--repo", repo, "--author", "darkdiamond", "--state", "closed",
+         "--limit", "1000", "--json", "title,body,stateReason"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    found = set()
+    for it in json.loads(out):
+        m = re.search(r"\(([0-9a-f]{8})\)\s*$", it["title"])
+        if (m and it["title"].startswith("[author]")
+                and (it.get("stateReason") or "").upper() == "NOT_PLANNED"
+                and "`map_available`" in (it.get("body") or "")):
+            found.add(m.group(1))
+    return found
+
+
 def _iter_sources(store):
     from services.shared.firestore import SOURCES_COLL, SourceRecord
 
@@ -160,8 +181,10 @@ def _iter_sources(store):
 
 def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT,
                     download: Callable = download_map,
-                    issues: Optional[dict] = None, skip_ids: frozenset = frozenset()) -> list[Candidate]:
+                    issues: Optional[dict] = None, declined: Optional[set] = None,
+                    skip_ids: frozenset = frozenset()) -> list[Candidate]:
     issues = open_issues_by_id8() if issues is None else issues
+    declined = declined_id8s() if declined is None else declined
     out = []
     with tempfile.TemporaryDirectory(prefix="map-backfill-") as tmp:
         for src in _iter_sources(store):
@@ -172,6 +195,10 @@ def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT
                 continue
             files = _map_resources({"resources": src.resources})
             if not files:
+                continue
+            if src.id[:8] in declined:
+                out.append(Candidate(src, [], "declined",
+                                     "a map_available issue was closed as not planned"))
                 continue
             recipe = None
             if (recipes_root / src.id / TEMPLATE_FILENAME).is_file():
@@ -233,17 +260,48 @@ def _comment(number: int, c: Candidate, repo: str = REPO) -> bool:
     return False
 
 
-def open_all(store, cands: list[Candidate], *, max_new: int) -> dict:
-    from .refresh import queue_authoring
+def _open_issue(c: Candidate, repo: str = REPO) -> int:
+    """The daily job's issue (same title + body as `notify.open_authoring_issue`),
+    opened with the local `gh` login, so no token is handled here."""
+    from .notify import AUTHORING_LABEL, issue_body, issue_title
 
+    src = c.src
+    title = src.title or src.id
+    body = issue_body(dataset_id=src.id, title=title,
+                      org=(src.organization or {}).get("title", "") or "",
+                      reason="map_available", detail=detail_text(c), preview=False,
+                      detail_caption="Map files")
+    out = subprocess.run(
+        ["gh", "issue", "create", "--repo", repo, "--title", issue_title(title, src.id),
+         "--body", body, "--label", AUTHORING_LABEL],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    m = re.search(r"/issues/(\d+)\s*$", out.strip())
+    if not m:
+        raise ValueError(f"gh issue create printed no issue URL: {out.strip()[:200]!r}")
+    return int(m.group(1))
+
+
+def open_all(store, cands: list[Candidate], *, max_new: int,
+             open_issue: Callable[[Candidate], int] = _open_issue) -> dict:
     new = [c for c in cands if c.kind == "issue"]
     if len(new) > max_new:
         raise SystemExit(f"{len(new)} issues to open > --max-new {max_new}; "
                          "review `list` and re-run with a higher cap")
     done = {"opened": [], "commented": [], "unblocked": [], "errors": []}
     for c in new:
-        n = queue_authoring(store, c.src, "map_available", detail=detail_text(c))
-        (done["opened"] if n else done["errors"]).append((c.src.id, n))
+        n = None
+        try:
+            n = open_issue(c)
+            # Recorded exactly as queue_authoring does, so the job never re-asks.
+            store.mark_authoring_needed(c.src.id, "map_available")
+            store.set_authoring_issue(c.src.id, n)
+            done["opened"].append((c.src.id, n))
+        except Exception as e:  # one dataset's failure never stops the batch
+            err = (getattr(e, "stderr", None) or str(e))[:200]
+            # An issue that opened but wasn't recorded is still found by title
+            # on a re-run (open_issues_by_id8), so it gets a comment, not a twin.
+            done["errors"].append((c.src.id, f"issue #{n} opened, not recorded: {err}" if n else err))
     for c in (c for c in cands if c.kind == "comment"):
         try:
             if _comment(c.issue, c):
@@ -266,8 +324,6 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     args = ap.parse_args(argv)
     floor = datetime.fromisoformat(args.floor)
     floor = floor if floor.tzinfo else floor.replace(tzinfo=timezone.utc)
-    if args.cmd == "open" and not os.environ.get("GITHUB_DISPATCH_TOKEN"):
-        raise SystemExit("set GITHUB_DISPATCH_TOKEN (e.g. $(gh auth token))")
     store = FirestoreStateStore()
     cands = find_candidates(store, floor=floor, skip_ids=frozenset(args.skip))
     _report(cands)
