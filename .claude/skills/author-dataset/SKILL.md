@@ -208,45 +208,50 @@ Constraints that don't move: every `<script>` block < 50KB (aggregate in
   limits the data needs, with headroom for growth, and say why in the PR.
   To explore such a dataset, run `prepare` with the caps raised:
   `REFRESH_MAX_RECORDS=… REFRESH_MAX_BYTES=… python -m services.page_builder.author prepare <id>`.
-- `snapshot` (map geometry that exists only in an uploaded file): see
-  **Map snapshots** below.
+- `map` / `snapshot` (map geometry that exists only in an uploaded file):
+  see **Map files** below.
 - `min_insights`: below this many surviving insights the refresh fails for a
   human look. Set it to what a good page needs, usually 2–4.
 
-### Map snapshots: geometry that only exists in a file
+### Map files: geometry that only exists in a file
 
 Many GIS layers (transport plans, boundaries, routes) put their shapes only
 in an uploaded SHP/KMZ zip or GeoJSON. The datastore holds just the
-attribute table, sometimes empty or one row. BRIEF.md lists these under
-**Map files**. data.gov.il's CDN refuses scripted downloads (403), and
-getting past it is not an option. So:
+attribute table, sometimes empty or one row. `prepare` downloads every such
+file and BRIEF.md summarises it under **Map files** (features, geometry
+types, source CRS, property columns), or says why it failed.
 
-1. **Ask the user** to download the file in a browser (give them the URL
-   from BRIEF.md). In an unattended run, block the dataset instead: label
-   it `authoring-blocked` and comment with the URL and these steps.
-2. Convert it:
-   `python -m services.page_builder.author snapshot <id> <file> --resource <resource_id> [--name geo]`.
-   It reads GeoJSON, KML, KMZ or a zipped shapefile, reprojects ITM to
-   WGS84, rounds to ~1 m, simplifies only as far as `--max-kb` (150) needs,
-   and writes `recipes/<id>/<name>.geojson`. It prints the input to add to
-   `recipe.json` (`snapshot` + `snapshot_of`, CKAN's size/hash at download
-   time). Commit the `.geojson` with the recipe.
-3. `compute` gets `frames["<name>"]` like any table: one row per feature,
+1. **Add a `map` input** (the default):
+   `{"name": "geo", "by_id": "<resource_id>", "map": true, "required_columns": [...]}`.
+   The nightly refresh downloads the file on every run (a UA data.gov.il's
+   WAF accepts), reads GeoJSON, KML, KMZ or a zipped shapefile, reprojects
+   ITM to WGS84, rounds to ~1 m and simplifies only as far as 150 KB needs
+   (`"map_max_kb"` raises it). A new upload re-renders the page like any data
+   bump. A file that won't parse fails `schema_changed`; a download the WAF
+   blocks 3 runs in a row opens a `download_blocked` issue.
+2. `compute` gets `frames["<name>"]` like any table: one row per feature,
    properties as strings, plus `__geometry` (the feature's geometry as JSON;
    `json.loads` it). Compute the analysis from the properties and the
    geometry (counts and lengths per type, areas, bounds), and pass the
-   features to the template in the model.
-4. Draw it with Leaflet's built-in `L.geoJSON` (`L` is a page global), styled
-   by a property. Put the model's GeoJSON in `<script type="application/json">`
-   islands under 50KB each and `JSON.parse` them, the way
-   `recipes/d9b1e04c-426f-4e32-ba40-a1ad9d8748a7/template.html.j2` chunks its
-   points. Escape every string that goes into a popup or tooltip. Map
-   `<name>.__geometry` in `coverage.json` (`map:<id>`).
+   features to the template in the model. Feature order is not guaranteed
+   across uploads: sort explicitly (verify shuffles them).
+3. Draw it with Leaflet (`L` is a page global), styled by a property. Put the
+   geometry in `<script type="application/json">` islands under 50KB each and
+   `JSON.parse` them; split a long line into pieces in `compute` so no single
+   feature outgrows an island. `recipes/5ecf0587-21e6-411a-8f04-9f4f44a43956/`
+   is the worked example (lines, coloured by type, popups built with
+   `textContent`). Escape every string that goes into a popup or tooltip. Map
+   `<name>.__geometry` in `coverage.json` (`map-<id>`).
 
-The snapshot is fixed. Every run, the refresh compares CKAN's size/hash
-for that resource with `snapshot_of`. When the map file changes it fails
-`geometry_stale`: the last good page stays up and an issue asks for a fresh
-download. The datastore inputs next to it keep refreshing as usual.
+**Fallback: a committed snapshot**, only for a file BRIEF.md lists as
+FAILED to download. Ask the user to download it in a browser (in an
+unattended run, label the dataset `authoring-blocked` and comment with the
+URL and these steps), then
+`python -m services.page_builder.author snapshot <id> <file> --resource <resource_id> [--name geo]`
+writes `recipes/<id>/<name>.geojson` and prints a `snapshot` + `snapshot_of`
+input. Commit the `.geojson`. The snapshot is fixed: when CKAN's size/hash
+for the resource moves past `snapshot_of`, the refresh fails
+`geometry_stale` (page kept, issue opened).
 
 - Re-authoring an existing recipe: **bump `recipe_version`**.
 

@@ -1,0 +1,246 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro tbl(caption, heads, rows, keys) %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">{% for h in heads %}<th scope="col" class="text-start py-1 pe-3">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r[keys[0]] }}</th>{% for k in keys[1:] %}<td class="py-1 pe-3">{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>אסטרטגיית מתע״ן מטרופולין ירושלים 2050: רשת הרכבת הקלה והמטרו המתוכננת</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }} התוכנית האסטרטגית לתחבורה עתירת נוסעים (מתע״ן) של משרד התחבורה משרטטת את רשת הסעת ההמונים העתידית של ירושלים והיישובים סביבה. שנת היעד של כל מקטע היא השנה שהתוכנית קבעה לו, לא מועד פתיחה מאושר.</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת הרשת המתוכננת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-network" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+{{ tbl(model.labels.segments_caption, ["מקטע", "סוג", "שנת יעד", "ק״מ"], model.tables.segments, ["name", "type", "year", "km"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "אורך כל קו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lines_lede }}</p>
+  <div id="chart-lines" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.lines_aria }}"></div>
+{{ tbl(model.labels.lines_aria, ["קו", "סוג", "ק״מ", "שנות יעד", "מקטעים"], model.tables.lines, ["name", "type", "km", "years", "n"]) }}
+</section>
+
+{%- if model.flags.years %}
+<section class="card p-5 mb-6">
+{{ head("database", "איך הרשת גדלה לפי שנת יעד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+{{ tbl(model.labels.years_aria, ["שנת יעד", "מקטעים", "ק״מ שנוספים", "ק״מ מצטבר"], model.tables.years, ["year", "n", "km", "cum"]) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.types %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">הרשת לפי סוג מערכת</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+{{ tbl(model.labels.types_aria, ["סוג", "ק״מ", "שיעור מהרשת", "קווים"], model.tables.types, ["name", "km", "share", "lines"]) }}
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">ציר הזמן: מתי כל מקטע מתוכנן</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.timeline_lede }}</p>
+    <div id="chart-timeline" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.timeline_aria }}"></div>
+{{ tbl(model.labels.timeline_aria, ["מקטע", "סוג", "שנת יעד", "ק״מ"], model.tables.segments, ["name", "type", "year", "km"]) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשת הסעת המונים (רק״ל, BRT, מטרו) במטרופולין ירושלים כפי שתוכננה בתוכנית האסטרטגית לשנת 2050</p>
+</section>
+
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-lines-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-network");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "segs": model.charts.map.segs, "types": model.charts.map.types, "bounds": model.charts.map.bounds} | tojson }};
+    var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668"];
+    var colors = ["#0068f5", "#0b3668"];
+    var color = function (t) { return colors[t] || pal[(t + 2) % pal.length]; };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-lines-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var s = meta.segs[f[0]];
+        var line = L.polyline(f[1].map(function (p) { return [p[1], p[0]]; }), {
+          color: color(s.type), weight: s.type === 1 ? 5 : 4, opacity: 0.85
+        }).addTo(map);
+        var box = document.createElement("div");
+        var title = document.createElement("strong");
+        title.textContent = s.name;
+        box.appendChild(title);
+        [["סוג", meta.types[s.type]], ["שנת יעד", String(s.year)], ["אורך", s.km + " ק״מ"]].forEach(function (row) {
+          var d = document.createElement("div");
+          d.textContent = row[0] + ": " + row[1];
+          box.appendChild(d);
+        });
+        line.bindPopup(box);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    var legend = document.getElementById("map-legend");
+    meta.types.forEach(function (t, i) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:24px;height:4px;border-radius:2px;background:" + color(i);
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(t));
+      legend.appendChild(li);
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.lines | tojson }};
+    var el = document.getElementById("chart-lines");
+    if (!el) { return; }
+    var colors = ["#0068f5", "#0b3668"];
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        var t = d.type[i] >= 0 ? d.types[d.type[i]] : "";
+        return echarts.format.encodeHTML(d.names[i]) + (t ? "<br>" + echarts.format.encodeHTML(t) : "") + "<br>" + d.km[i].toLocaleString("he-IL") + " ק״מ" + (d.years[i] ? "<br>שנת יעד: " + echarts.format.encodeHTML(d.years[i]) : "");
+      } },
+      grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value}" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "ק״מ", barMaxWidth: 22,
+        data: d.km.map(function (v, i) { return { value: v, itemStyle: { color: d.type[i] >= 0 ? (colors[d.type[i]] || window.GOVIL_PALETTE[(d.type[i] + 2) % 10]) : "#6c757d" } }; }),
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.years %}
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    if (!el) { return; }
+    var colors = ["#0068f5", "#0b3668"];
+    var series = d.series.map(function (s, i) {
+      return { type: "bar", stack: "km", name: s.name, data: s.data, barMaxWidth: 40,
+        itemStyle: { color: colors[i] || window.GOVIL_PALETTE[(i + 2) % 10] } };
+    });
+    series.push({ type: "line", name: "רשת מצטברת", yAxisIndex: 1, data: d.cum, step: "end",
+      symbolSize: 6, lineStyle: { width: 2, color: "#6c757d" }, itemStyle: { color: "#6c757d" } });
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " ק״מ"; } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "ק״מ שנוספים", splitNumber: 4 },
+        { type: "value", name: "ק״מ מצטבר", splitNumber: 4, splitLine: { show: false } }
+      ],
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.types %}
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var el = document.getElementById("chart-types");
+    if (!el) { return; }
+    var colors = ["#0068f5", "#0b3668"];
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " ק״מ (" + p.percent + "%)<br>" + d.lines[p.dataIndex].toLocaleString("he-IL") + " קווים";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"],
+        data: d.names.map(function (n, i) { return { name: n, value: d.km[i], itemStyle: { color: colors[i] || window.GOVIL_PALETTE[(i + 2) % 10] } }; }),
+        label: { formatter: function (p) { return p.percent + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.timeline | tojson }};
+    var el = document.getElementById("chart-timeline");
+    if (!el) { return; }
+    var colors = ["#0068f5", "#0b3668"];
+    var series = d.types.map(function (t, k) {
+      return { type: "scatter", name: t,
+        data: d.points.filter(function (p) { return p[3] === k; }),
+        symbolSize: function (v) { return 8 + 22 * Math.sqrt(v[2] / d.max_km); },
+        itemStyle: { color: colors[k] || window.GOVIL_PALETTE[(k + 2) % 10], opacity: 0.85 } };
+    });
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(d.names[p.value[1]]) + "<br>שנת יעד: " + p.value[0] + "<br>" + p.value[2].toLocaleString("he-IL") + " ק״מ";
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 36, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "truncate", fontSize: 11 } },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

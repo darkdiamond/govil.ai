@@ -6,7 +6,9 @@ drives these commands:
 
     prepare <id>   read the source doc (Firestore, read-only), fetch every
                    datastore resource IN FULL into tmp/authoring/<id>/data/,
-                   write BRIEF.md (facts, schemas, samples, tag vocabulary).
+                   download + convert every map file (what a `map: true`
+                   input reads), write BRIEF.md (facts, schemas, samples,
+                   map summaries, tag vocabulary).
                    A provider source (recipes/<id>/source.json) is read from
                    that file and fetched from its provider — no Firestore.
     verify <id>    the gate before a PR — runs the recipe exactly as the
@@ -16,9 +18,9 @@ drives these commands:
     queue          datasets waiting for a recipe (issues the job opened);
                    --legacy adds published pages that have no recipe yet
     snapshot <id> <file> --resource <rid>
-                   a map file you downloaded in a browser (data.gov.il's CDN
-                   refuses scripted downloads) → recipes/<id>/geo.geojson,
-                   and the recipe.json input that reads it
+                   fallback for a map file the job can't download: one you
+                   downloaded in a browser → recipes/<id>/geo.geojson, and
+                   the recipe.json input that reads it
 
 tmp/authoring/ holds raw dataset content (it can include personal contact
 details) — it is gitignored and must never be committed. Only
@@ -29,6 +31,7 @@ from __future__ import annotations
 import argparse
 import ast
 import csv
+import hashlib
 import json
 import random
 import re
@@ -128,6 +131,7 @@ def _paths(dataset_id: str) -> dict[str, Path]:
         "manifest": root / "data" / "manifest.json",
         "source": root / "source.json",
         "brief": root / "BRIEF.md",
+        "maps": root / "data" / "maps.json",
         "out": PREVIEW_OUT_ROOT / dataset_id,
     }
 
@@ -374,6 +378,8 @@ def prepare(dataset_id: str) -> Path:
         print(f"  {res['id'][:8]} {entry['name'][:50]!r}: {entry['rows']:,}/{total:,} rows"
               f"{_skip_note(entry)}", file=sys.stderr)
     p["manifest"].write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    maps = _prepare_maps(facts, p["data"])
+    p["maps"].write_text(json.dumps(maps, ensure_ascii=False, indent=2), encoding="utf-8")
 
     siblings = []
     org = (src.organization or {}).get("name") or ""
@@ -407,6 +413,56 @@ def _map_resources(facts: dict) -> list[dict]:
             if not r.get("datastore_active")
             and ((r.get("format") or "").lower() in _MAP_FORMATS
                  or (r.get("format") or "").lower().startswith("geojson"))]
+
+
+def _map_suffix(r: dict) -> str:
+    fmt = (r.get("format") or "").lower()
+    return ".geojson" if fmt.startswith("geojson") else ".kml" if fmt == "kml" else ".zip"
+
+
+def download_map(res: dict, dest: Path) -> tuple[list[dict], str]:
+    """Download one map-file resource to `dest` and load it, exactly as a
+    `map` input does at refresh time. Raises what the downloader or
+    `geo_snapshot.load_map` raises."""
+    import time
+
+    from . import geo_snapshot as gs
+    from .agent_contract import fetch_resource_file
+    from .refresh import _DEFAULT_MAP_MAX_BYTES, _PAGE_TIMEOUT_S, _env_int, _map_file_name
+
+    fetch_resource_file(res.get("url") or "", dest,
+                        max_bytes=_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES),
+                        timeout_s=_PAGE_TIMEOUT_S, deadline=time.monotonic() + 300)
+    return gs.load_map(dest.read_bytes(), _map_file_name(res))
+
+
+def _prepare_maps(facts: dict, data_dir: Path) -> list[dict]:
+    """Download and convert every map-file resource exactly as a `map` input
+    would at refresh time; the file is cached for verify, the summary goes
+    into BRIEF.md. A failure is recorded, never fatal."""
+    from . import geo_snapshot as gs
+
+    out = []
+    for r in _map_resources(facts):
+        entry = {"resource_id": r["id"], "name": r.get("name") or "", "format": r.get("format"),
+                 "size": r.get("size"), "url": r.get("url"), "file": None}
+        dest = data_dir / f"map-{r['id'][:8]}{_map_suffix(r)}"
+        try:
+            feats, crs = download_map(r, dest)
+            entry.update(file=dest.name, crs=crs, **gs.summary(feats))
+            try:
+                body, tol = gs.build_snapshot(feats, crs=crs)
+                entry.update(geojson_bytes=len(body), tolerance=tol)
+            except gs.SnapshotTooLarge as e:
+                entry["note"] = f"over the default size target: set map_max_kb ({e})"
+        except Exception as e:  # recorded for the brief; the author decides
+            entry["file"] = dest.name if dest.is_file() else None
+            entry["error"] = f"{type(e).__name__}: {str(e)[:200]}"
+        out.append(entry)
+        print(f"  map {r['id'][:8]} {entry['name'][:40]!r}: "
+              + (entry.get("error") or f"{entry.get('features')} features, {entry.get('crs')}"),
+              file=sys.stderr)
+    return out
 
 
 def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> str:
@@ -469,17 +525,28 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
         if section:
             lines += ["", section]
         lines.append("")
-    maps = _map_resources(facts)
+    maps = json.loads(p["maps"].read_text(encoding="utf-8")) if p.get("maps") and p["maps"].is_file() else []
     if maps:
         lines += ["## Map files (not in the datastore)", "",
-                  "data.gov.il's CDN refuses scripted downloads, so these are NOT fetched. "
-                  "When the page needs the geometry, ask the user to download one in a "
-                  "browser, then `python -m services.page_builder.author snapshot "
-                  f"{facts['id']} <downloaded file> --resource <resource_id>` and add the "
-                  "input it prints to recipe.json.", ""]
-        for r in maps:
-            lines.append(f"- `{r['id']}` {r.get('format')} {r.get('name') or ''} "
-                         f"({r.get('size') or '?'} bytes): {r.get('url')}")
+                  "The refresh downloads these itself. To draw one, add the input "
+                  '`{"name": "geo", "by_id": "<resource_id>", "map": true}`: compute gets one '
+                  "row per feature, every property as a string plus `__geometry` (the "
+                  "feature's WGS84 GeoJSON geometry, compact JSON). Lines and rings are "
+                  "simplified to fit 150 KB (`map_max_kb` raises it). A file listed as failed "
+                  "below falls back to `author snapshot` (a browser download, committed).", ""]
+        for m in maps:
+            lines.append(f"- `{m['resource_id']}` {m.get('format')} {m.get('name')} "
+                         f"({m.get('size') or '?'} bytes): {m.get('url')}")
+            if m.get("error"):
+                lines.append(f"  - FAILED: {m['error']}")
+                continue
+            lines.append(f"  - {m['features']:,} features {json.dumps(m['geometry_types'])}, "
+                         f"source CRS {m['crs']}"
+                         + (f", {m['geojson_bytes']:,} bytes as GeoJSON (tolerance {m['tolerance']})"
+                            if "geojson_bytes" in m else ""))
+            lines.append(f"  - properties: {json.dumps(m['columns'], ensure_ascii=False)}")
+            if m.get("note"):
+                lines.append(f"  - {m['note']}")
         lines.append("")
     if facts.get("provider_notes"):
         lines += [f"## Source rules ({facts.get('provider_label')})", "",
@@ -542,6 +609,27 @@ class _LocalCkan:
             dest.unlink()
             raise FetchLimitExceeded("bytes", f"{rid[:8]}: {size:,} bytes > cap {kw['max_bytes']:,}")
         return FetchOutcome(rows=len(body), bytes=size, mode="full")
+
+
+class _LocalFiles:
+    """`fetch_file_fn` for verify: serves the map files prepare() downloaded
+    (data/maps.json), and downloads live only one it doesn't have."""
+
+    def __init__(self, data_dir: Path, maps: list[dict]):
+        self.data_dir = data_dir
+        self.by_url = {m["url"]: m["file"] for m in maps if m.get("file") and m.get("url")}
+
+    def __call__(self, url, dest, **kw):
+        from .agent_contract import FileOutcome, fetch_resource_file
+
+        name = self.by_url.get(url)
+        if name is None:
+            return fetch_resource_file(url, dest, **kw)
+        data = (self.data_dir / name).read_bytes()
+        if len(data) > kw["max_bytes"]:
+            raise FetchLimitExceeded("bytes", f"{name}: {len(data):,} bytes > cap {kw['max_bytes']:,}")
+        dest.write_bytes(data)
+        return FileOutcome(bytes=len(data), sha256=hashlib.sha256(data).hexdigest())
 
 
 def _truncate(rows: list) -> list:
@@ -728,6 +816,9 @@ def _coverage_findings(
     for i in recipe.manifest.inputs:
         if i.snapshot:  # its columns are the snapshot's properties + geometry
             fields[i.by_id] = snapshot_table(recipe.root / i.snapshot)[0]
+        elif i.map:  # …and a map file's, as this run converted it
+            with open(inputs[i.name][0].file, encoding="utf-8", newline="") as f:
+                fields[i.by_id] = next(csv.reader(f), [])
     needed = {
         f"{name}.{col}"
         for name, parts in inputs.items()
@@ -796,10 +887,10 @@ def _resources_from_manifest(manifest: list[dict]) -> list[dict]:
 
 
 def _snapshot_resources(recipe: Recipe, source_path: Path) -> list[dict]:
-    """The CKAN map-file resources the recipe's snapshots were taken from,
-    as prepare() recorded them (size/hash included), so verify runs the same
-    staleness check as the refresh."""
-    wanted = {i.by_id for i in recipe.manifest.inputs if i.snapshot}
+    """The CKAN map-file resources the recipe's snapshot and map inputs read,
+    as prepare() recorded them (size/hash/url included), so verify resolves
+    them with the same checks as the refresh."""
+    wanted = {i.by_id for i in recipe.manifest.inputs if i.snapshot or i.map}
     if not wanted:
         return []
     facts = json.loads(source_path.read_text(encoding="utf-8")) if source_path.is_file() else {}
@@ -843,13 +934,16 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     problems += _em_dash_findings(recipe)
     problems += _tag_findings(dataset_id)
 
+    maps = json.loads(p["maps"].read_text(encoding="utf-8")) if p["maps"].is_file() else []
+    files = _LocalFiles(p["data"], maps)
     work = Path(tempfile.mkdtemp(prefix=f"author-{dataset_id[:8]}-"))
     try:
         def run(transform=None, tag="full"):
             ckan = _LocalCkan(p["data"], manifest, transform)
             d = work / tag
             inputs = fetch_inputs(recipe, resources, d, preview_fn=ckan.preview, fetch_fn=ckan.fetch,
-                                  snapshot_rows=transform or (lambda rows: rows))
+                                  snapshot_rows=transform or (lambda rows: rows),
+                                  fetch_file_fn=files)
             raw = run_compute(recipe, inputs, work)
             page = render_page(recipe, raw, work, inputs)
             return raw, page, inputs

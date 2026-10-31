@@ -1,12 +1,14 @@
-"""Map file → committed recipe snapshot (`author snapshot`), authoring only.
+"""Map file → WGS84 GeoJSON, for `map` inputs and `author snapshot`.
 
-data.gov.il's CDN refuses scripted downloads of uploaded files, so the
-author downloads a dataset's map file once in a browser and this module
-turns it into the GeoJSON a `snapshot` input reads (see recipe.py):
+The refresh downloads a `map` input's uploaded file (see recipe.py) and
+converts it here on every run; `author snapshot` does the same once, for a
+file a browser downloaded, and commits the result for a `snapshot` input:
 
   - reads GeoJSON, KML, KMZ, or a zipped ESRI shapefile (.shp + .dbf, with
     .prj/.cpg when present). Pure Python: the builder image has no geo
-    libraries and the refresh never needs them; it only reads GeoJSON.
+    libraries. A downloaded file is untrusted: no DTDs, a cap on what a zip
+    may inflate to, every geometry checked before it is walked, and
+    `load_map` turns any malformed input into a SnapshotError;
   - reprojects ITM (EPSG:2039, the usual Israeli grid) to WGS84;
   - rounds to 5 decimals (~1 m), simplifies lines and rings
     (Douglas-Peucker) only as far as needed to fit the size target;
@@ -22,16 +24,23 @@ import re
 import struct
 import xml.etree.ElementTree as ET
 import zipfile
+from collections import Counter
 from pathlib import Path
 from typing import Any, Optional
 
 DECIMALS = 5
 DEFAULT_MAX_BYTES = 150_000
+# A downloaded zip is untrusted: refuse to inflate more than this.
+MAX_UNZIPPED_BYTES = 200_000_000
 _TOLERANCES = (0.0, 1e-5, 2e-5, 5e-5, 1e-4, 2e-4, 5e-4, 1e-3)
 
 
 class SnapshotError(ValueError):
     pass
+
+
+class SnapshotTooLarge(SnapshotError):
+    """The geometry doesn't fit the size target even fully simplified."""
 
 
 # ── ITM → WGS84 ──────────────────────────────────────────────────────────
@@ -104,9 +113,11 @@ def _positions(geom: Optional[dict]):
     stack = [geom.get("coordinates")]
     while stack:
         c = stack.pop()
-        if c and isinstance(c[0], (int, float)):
+        if not isinstance(c, list) or not c:
+            continue  # only lists nest; a string here would recurse forever
+        if isinstance(c[0], (int, float)):
             yield c
-        elif c:
+        else:
             stack.extend(c)
 
 
@@ -214,7 +225,7 @@ def build_snapshot(features: list[dict], *, crs: str,
         body = (data + "\n").encode("utf-8")
         if len(body) <= max_bytes:
             return body, tol
-    raise SnapshotError(
+    raise SnapshotTooLarge(
         f"{len(body):,} bytes even at tolerance {_TOLERANCES[-1]}° (> {max_bytes:,}); "
         "raise --max-kb or aggregate the features"
     )
@@ -348,6 +359,8 @@ def _dbf_value(raw: bytes, ftype: str, decimals: int, enc: str) -> Any:
 
 def _read_dbf(data: bytes, enc: str) -> list[dict]:
     nrec, hlen, rlen = struct.unpack("<IHH", data[4:12])
+    # The header's count is untrusted: never iterate past the bytes present.
+    nrec = min(nrec, max(0, len(data) - hlen) // max(rlen, 1))
     fields, pos = [], 32
     while data[pos] != 0x0D:
         d = data[pos:pos + 32]
@@ -398,21 +411,106 @@ def _read_shp(shp: bytes, dbf: Optional[bytes], cpg: str) -> list[dict]:
 def read_map_file(path: Path) -> tuple[list[dict], str]:
     """(features, prj text) from a GeoJSON / KML / KMZ / zipped shapefile."""
     path = Path(path)
-    data = path.read_bytes()
-    suffix = path.suffix.lower()
+    return read_map_bytes(path.read_bytes(), path.name)
+
+
+_DEPTH = {"Point": 0, "MultiPoint": 1, "LineString": 1,
+          "MultiLineString": 2, "Polygon": 2, "MultiPolygon": 3}
+
+
+def _check_coords(c: Any, depth: int) -> None:
+    if depth == 0:
+        if (not isinstance(c, list) or len(c) < 2
+                or not all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                           and math.isfinite(v) for v in c[:2])):
+            raise SnapshotError(f"bad position {str(c)[:40]}")
+        return
+    if not isinstance(c, list):
+        raise SnapshotError(f"bad coordinates {str(c)[:40]}")
+    for x in c:
+        _check_coords(x, depth - 1)
+
+
+def _check_geometry(geom: Any) -> None:
+    """The shape `build_snapshot` and `detect_crs` rely on: a known type with
+    numeric positions nested to that type's depth (or no geometry)."""
+    if geom is None:
+        return
+    if not isinstance(geom, dict):
+        raise SnapshotError("a geometry that is not an object")
+    t = geom.get("type")
+    if t == "GeometryCollection":
+        for g in geom.get("geometries") or []:
+            _check_geometry(g)
+        return
+    if t not in _DEPTH:
+        raise SnapshotError(f"unsupported geometry type {t!r}")
+    _check_coords(geom.get("coordinates"), _DEPTH[t])
+
+
+def load_map(data: bytes, name: str) -> tuple[list[dict], str]:
+    """(features, crs) from a downloaded file's bytes, for `map` inputs.
+    The file is untrusted: every geometry is checked before anything walks
+    it, and any failure of any reader is a SnapshotError, never a
+    struct/zip/XML/zlib exception from deep inside one."""
+    try:
+        feats, prj = read_map_bytes(data, name)
+        for f in feats:
+            if not isinstance(f, dict):
+                raise SnapshotError("a feature that is not an object")
+            _check_geometry(f.get("geometry"))
+        return feats, detect_crs(feats, prj)
+    except (SnapshotError, MemoryError):
+        raise
+    except Exception as e:  # untrusted bytes: every reader failure is the data's
+        raise SnapshotError(f"{name}: malformed map file ({type(e).__name__}: {e})") from None
+
+
+def summary(feats: list[dict]) -> dict:
+    """What an author needs to know about a map file: size, geometry types,
+    property names (capped: they are publisher-written text)."""
+    types = sorted(Counter((f.get("geometry") or {}).get("type") or "none" for f in feats).items())
+    cols = list(dict.fromkeys(k for f in feats for k in (f.get("properties") or {})))
+    return {"features": len(feats), "geometry_types": dict(types),
+            "columns": [str(c)[:60] for c in cols[:40]]}
+
+
+def _sniff(data: bytes, name: str) -> str:
+    """'.geojson' / '.kml' / '.zip' from the name, else from the bytes (a
+    downloaded file's name comes from its URL and can be anything)."""
+    suffix = Path(name).suffix.lower()
+    if suffix in (".geojson", ".json", ".kml"):
+        return suffix
+    if zipfile.is_zipfile(io.BytesIO(data)):
+        return ".zip"
+    head = data[:64].lstrip(b"\xef\xbb\xbf \t\r\n")
+    if head.startswith(b"{"):
+        return ".geojson"
+    if head.startswith(b"<"):
+        return ".kml"
+    raise SnapshotError(f"{name}: not GeoJSON, KML, or a zip")
+
+
+def _check_unzipped(z: zipfile.ZipFile, name: str) -> None:
+    if sum(i.file_size for i in z.infolist()) > MAX_UNZIPPED_BYTES:
+        raise SnapshotError(f"{name}: unzips to more than {MAX_UNZIPPED_BYTES:,} bytes")
+
+
+def read_map_bytes(data: bytes, name: str) -> tuple[list[dict], str]:
+    """(features, prj text) from a file's bytes; `name` hints the format."""
+    suffix = _sniff(data, name)
     if suffix in (".geojson", ".json"):
         return _read_geojson(data), ""
     if suffix == ".kml":
         return _read_kml(data), ""
-    if not zipfile.is_zipfile(io.BytesIO(data)):
-        raise SnapshotError(f"{path.name}: not GeoJSON, KML, or a zip")
     with zipfile.ZipFile(io.BytesIO(data)) as z:
+        _check_unzipped(z, name)
         names = {n.lower(): n for n in z.namelist() if not n.endswith("/")}
 
         def one(ext: str) -> Optional[str]:
             hits = sorted(n for n in names if n.endswith(ext))
             if len(hits) > 1:
-                raise SnapshotError(f"{path.name}: {len(hits)} {ext} files; extract the one you want")
+                raise SnapshotError(f"{name}: {len(hits)} {ext} files; extract the one you want")
             return names[hits[0]] if hits else None
 
         if shp := one(".shp"):
@@ -427,8 +525,9 @@ def read_map_file(path: Path) -> tuple[list[dict], str]:
             return _read_geojson(z.read(gj)), ""
         if kmz := one(".kmz"):  # a KMZ zipped again (data.gov.il does this)
             with zipfile.ZipFile(io.BytesIO(z.read(kmz))) as inner:
+                _check_unzipped(inner, name)
                 kmls = sorted(n for n in inner.namelist() if n.lower().endswith(".kml"))
                 if not kmls:
-                    raise SnapshotError(f"{path.name}: the KMZ holds no .kml")
+                    raise SnapshotError(f"{name}: the KMZ holds no .kml")
                 return _read_kml(inner.read(kmls[0])), ""
-    raise SnapshotError(f"{path.name}: no .shp, .kml, .kmz or .geojson inside")
+    raise SnapshotError(f"{name}: no .shp, .kml, .kmz or .geojson inside")

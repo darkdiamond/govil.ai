@@ -688,6 +688,7 @@ class FirestoreStateStore:
             "file_fingerprint": file_fingerprint,
             "inputs_hash_unordered": inputs_hash_unordered,
             "wall_budget_strikes": None,
+            "transient_strikes": None,
         }
         if not preview:
             payload.update(
@@ -744,6 +745,7 @@ class FirestoreStateStore:
             payload["inputs_hash"] = inputs_hash
             payload["inputs_hash_unordered"] = inputs_hash_unordered
             payload["wall_budget_strikes"] = None  # the full fetch completed
+            payload["transient_strikes"] = None  # …downloads included
         if reason == "content_hash":
             payload["last_verified_at"] = payload["last_unchanged_at"]
         if advance_version:
@@ -770,6 +772,7 @@ class FirestoreStateStore:
         reason: str,
         failed_version: str,
         wall_budget_strikes: Optional[int] = None,
+        transient_strikes: Optional[dict[str, int]] = None,
         preview: bool = False,
     ) -> None:
         """Record a failed refresh. Never touches `analysis_status`: the
@@ -778,8 +781,9 @@ class FirestoreStateStore:
         a hash of the recipe files, builder code and library versions) lets the next run skip
         a deterministic re-failure until the data, the recipe or the
         deployed builder moves. `wall_budget_strikes`
-        (wall-budget overruns since the last full fetch) is written only
-        when given; other failures leave the count alone."""
+        (wall-budget overruns since the last full fetch) and
+        `transient_strikes` (consecutive runs per refresh `StrikeError`
+        kind) are written only when given; other failures leave them alone."""
         payload: dict[str, Any] = {
             "refresh_status": "failed",
             "refresh_error": (error or "")[:1000],
@@ -789,7 +793,12 @@ class FirestoreStateStore:
         }
         if wall_budget_strikes is not None:
             payload["wall_budget_strikes"] = wall_budget_strikes
-        self._refresh_ref(dataset_id, preview).set(payload, merge=True)
+        if transient_strikes is not None:
+            payload["transient_strikes"] = transient_strikes or None
+        # merge= field paths, not merge=True: each listed field is replaced
+        # whole, so a key popped from `transient_strikes` is really gone
+        # (merge=True deep-merges maps). Unlisted fields are left alone.
+        self._refresh_ref(dataset_id, preview).set(payload, merge=list(payload))
 
     def mark_authoring_needed(
         self, dataset_id: str, reason: str, *, preview: bool = False

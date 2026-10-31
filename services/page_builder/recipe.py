@@ -25,15 +25,18 @@ column into object), and a recipe that silently depended on it would
 break on the very update it exists to absorb. `concat` inputs carry an
 extra `_resource_name` column naming the file each row came from.
 
-Map snapshots: data.gov.il's CDN refuses scripted downloads of uploaded
-files (SHP/KMZ/GeoJSON), so geometry that exists only in such a file can't
-be fetched at refresh time. The author downloads it once in a browser,
-`author snapshot` converts it to a committed WGS84 GeoJSON, and an input
-with `snapshot` reads that file as a table: one row per feature, its
-properties as strings plus `__geometry` (the feature's geometry as compact
-JSON). The CKAN resource it was taken from is still checked on every run:
-when its size/hash moves past `snapshot_of`, the refresh fails
-`geometry_stale` and a human re-downloads it.
+Map files: geometry that exists only in an uploaded file (SHP zip, KML/KMZ,
+GeoJSON) reaches compute as a table: one row per feature, its properties as
+strings plus `__geometry` (the feature's geometry as compact WGS84 JSON).
+Two ways in:
+  - `map: true` (preferred): the refresh downloads the file on every run
+    (`agent_contract.fetch_resource_file`, with a UA data.gov.il's WAF
+    passes) and converts it with `geo_snapshot`, so a new upload re-renders
+    the page like any data bump.
+  - `snapshot` (fallback, for a file the job can't download): the author
+    downloads it once in a browser, `author snapshot` commits it as WGS84
+    GeoJSON, and when CKAN's size/hash for it moves past `snapshot_of` the
+    refresh fails `geometry_stale` and a human re-downloads it.
 """
 from __future__ import annotations
 
@@ -115,6 +118,10 @@ class RecipeInput(BaseModel):
     `snapshot` reads a committed GeoJSON in the recipe dir instead of the
     datastore (see the module doc). `by_id` then names the CKAN map-file
     resource it was taken from, and `snapshot_of` that resource's facts then.
+
+    `map: true` downloads the `by_id` resource's uploaded map file on every
+    run and reads it like a snapshot (see the module doc). `map_max_kb` caps
+    the converted GeoJSON (lines/rings are simplified to fit).
     """
     model_config = ConfigDict(extra="forbid")
 
@@ -127,11 +134,22 @@ class RecipeInput(BaseModel):
     columns: Optional[list[str]] = Field(default=None, min_length=1)
     snapshot: Optional[str] = None
     snapshot_of: Optional[SnapshotOf] = None
+    map: bool = False
+    map_max_kb: Optional[int] = Field(default=None, ge=1, le=5000)
 
     @model_validator(mode="after")
     def _one_selector(self) -> "RecipeInput":
         if bool(self.by_id) == bool(self.by_schema):
             raise ValueError(f"input {self.name!r}: set exactly one of by_id / by_schema")
+        if self.map_max_kb is not None and not self.map:
+            raise ValueError(f"input {self.name!r}: map_max_kb needs map: true")
+        if self.map:
+            if not self.by_id:
+                raise ValueError(f"input {self.name!r}: map needs by_id (its CKAN map-file resource)")
+            if self.snapshot is not None or self.snapshot_of is not None:
+                raise ValueError(f"input {self.name!r}: map and snapshot are two ways in; pick one")
+            if self.columns is not None or self.concat or self.pick != "all":
+                raise ValueError(f"input {self.name!r}: map takes no columns / concat / pick")
         if self.snapshot is not None or self.snapshot_of is not None:
             if self.snapshot is None or self.snapshot_of is None:
                 raise ValueError(f"input {self.name!r}: snapshot and snapshot_of go together")
@@ -331,14 +349,22 @@ def snapshot_table(path: Path) -> tuple[list[str], list[list[str]]]:
         doc = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as e:
         raise RecipeError(f"snapshot {name}: unreadable ({e})") from None
+    return feature_table(doc, f"snapshot {name}")
+
+
+def feature_table(doc: Any, what: str, *,
+                  reason: str = "recipe_failed") -> tuple[list[str], list[list[str]]]:
+    """A GeoJSON FeatureCollection (parsed) as (header, rows); see
+    `snapshot_table`. `reason` is the failure's reason: a committed snapshot
+    is the recipe's fault, a downloaded map file the data's."""
     feats = doc.get("features") if isinstance(doc, dict) else None
     if not isinstance(feats, list) or doc.get("type") != "FeatureCollection":
-        raise RecipeError(f"snapshot {name}: not a GeoJSON FeatureCollection")
+        raise RecipeError(f"{what}: not a GeoJSON FeatureCollection", reason=reason)
     keys: dict[str, None] = {}
     for f in feats:
         props = (f or {}).get("properties") or {}
         if not isinstance(props, dict) or GEOMETRY_COLUMN in props:
-            raise RecipeError(f"snapshot {name}: bad feature properties")
+            raise RecipeError(f"{what}: bad feature properties", reason=reason)
         keys.update(dict.fromkeys(props))
     rows = []
     for f in feats:
@@ -410,6 +436,15 @@ def resolve_inputs(
                     f"snapshot ({why}); download it again in a browser and run "
                     "`author snapshot`",
                     reason="geometry_stale",
+                )
+            out[inp.name] = [res]
+            continue
+        if inp.map:
+            res = by_id.get(inp.by_id)
+            if res is None or not res.get("url"):
+                raise RecipeError(
+                    f"input {inp.name!r}: map file {inp.by_id} is gone from the dataset",
+                    reason="schema_changed",
                 )
             out[inp.name] = [res]
             continue

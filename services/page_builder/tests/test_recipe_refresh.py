@@ -92,7 +92,8 @@ class FakeStore:
                   last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
                   content_hash=content_hash, file_fingerprint=file_fingerprint,
-                  inputs_hash_unordered=inputs_hash_unordered, wall_budget_strikes=None)
+                  inputs_hash_unordered=inputs_hash_unordered, wall_budget_strikes=None,
+                  transient_strikes=None)
 
     def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
                                inputs_hash=None, inputs_hash_unordered=None,
@@ -103,6 +104,7 @@ class FakeStore:
             kw["inputs_hash"] = inputs_hash
             kw["inputs_hash_unordered"] = inputs_hash_unordered
             kw["wall_budget_strikes"] = None
+            kw["transient_strikes"] = None
         if reason == "content_hash":
             kw["last_verified_at"] = datetime.now(timezone.utc)
         if advance_version:
@@ -112,11 +114,13 @@ class FakeStore:
         self._upd(dataset_id, preview, **kw)
 
     def mark_refresh_failed(self, dataset_id, *, error, reason, failed_version,
-                            wall_budget_strikes=None, preview=False):
+                            wall_budget_strikes=None, transient_strikes=None, preview=False):
         self._upd(dataset_id, preview, refresh_status="failed", refresh_error=error,
                   refresh_reason=reason, refresh_failed_version=failed_version)
         if wall_budget_strikes is not None:
             self._upd(dataset_id, preview, wall_budget_strikes=wall_budget_strikes)
+        if transient_strikes is not None:
+            self._upd(dataset_id, preview, transient_strikes=transient_strikes or None)
 
     def mark_authoring_needed(self, dataset_id, reason, *, preview=False):
         self._upd(dataset_id, preview, authoring_status="needed", authoring_reason=reason)

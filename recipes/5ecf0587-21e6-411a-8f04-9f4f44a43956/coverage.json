@@ -1,0 +1,9 @@
+{
+  "geo.LINE_ID": "chart-lines, kpi:lines, insight:longest — groups segments into lines",
+  "geo.TYPE": "chart-types, chart-years, map-network, kpi:type_0, kpi:type_1, insight:type_1",
+  "geo.LINE_NAME": "chart-lines, chart-timeline, map-network — translated to Hebrew line names",
+  "geo.YEAR": "chart-years, chart-timeline, kpi:span, insight:half, insight:peak_year, insight:latest",
+  "geo.Shape_Leng": "chart-lines, chart-years, chart-types, kpi:total_km, insight:size — metres, ITM",
+  "geo.__geometry": "map-network — falls back to measured length when Shape_Leng is missing",
+  "resource:2a4ebc87-c35d-4ba0-a58f-383975a69ae2": "skip: the attribute table's datastore is empty (0 rows); the map file carries the same columns"
+}
