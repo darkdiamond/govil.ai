@@ -304,6 +304,29 @@ def test_failure_lock_lifts_when_the_builder_code_changes(env, monkeypatch):
     assert len(env.issues) == 1  # the retry reuses the open issue
 
 
+def test_lock_key_written_before_the_code_hash_does_not_hold(env):
+    # Keys stored before the hash suffix existed retry once after the deploy.
+    recipe = Recipe.load(FIXTURES / DS)
+    src = _src()
+    legacy = rf.version_key(src.metadata_modified, recipe.manifest.recipe_version)
+    state = {"refresh_reason": "recipe_failed", "refresh_failed_version": legacy}
+    assert rf.needs_refresh(src, state, recipe) == "recipe_version"
+    state["refresh_failed_version"] = rf.failed_version_key(src, recipe)
+    assert rf.needs_refresh(src, state, recipe) is None
+
+
+def test_lock_key_falls_back_when_hashing_fails(monkeypatch):
+    # Called from the failure handlers: an unreadable file must not raise.
+    def boom():
+        raise OSError("unreadable")
+
+    monkeypatch.setattr(rf, "_builder_code_hash", boom)
+    recipe, src = Recipe.load(FIXTURES / DS), _src()
+    assert rf.failed_version_key(src, recipe) == rf.version_key(
+        src.metadata_modified, recipe.manifest.recipe_version
+    )
+
+
 def test_failure_lock_lifts_when_the_recipe_files_change(env, tmp_path):
     recipes = tmp_path / "recipes"
     shutil.copytree(FIXTURES / DS, recipes / DS)
