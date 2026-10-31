@@ -1,0 +1,263 @@
+{%- macro table(tbl, cap) %}
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col" class="px-3 py-1 text-start align-bottom">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr class="border-t border-rule">{% for c in r %}{% if loop.first %}<th scope="row" class="px-3 py-1 text-start font-normal">{{ c }}</th>{% else %}<td class="px-3 py-1 text-start tabular-nums" dir="ltr">{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+{%- endmacro %}
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+{{ table(tbl, cap) }}
+  </details>
+{%- endmacro %}
+{%- macro chart_section(cid, icon, title, note, aria, tbl, h="h-64 md:h-80") %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  <div id="{{ cid }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{{ fallback(tbl, aria) }}
+</section>
+{%- endmacro %}
+<h1>רשימת הרשויות המקומיות בישראל: עיריות, מועצות מקומיות ומועצות אזוריות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור רשות מקומית לפי שם, סמל רשות או מספר ח״פ ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הרשות, השם המלא, סמל הרשות, מספר ח״פ, סוג הרשות והמחוז.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in ["total", "city", "local", "regional", "districts", "hp"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רשויות לפי סוג</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_note }}</p>
+    <div id="chart-types" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+{{ fallback(model.tables.types, model.labels.types_aria) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">רשויות לפי מחוז</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_note }}</p>
+    <div id="chart-districts" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+{{ fallback(model.tables.districts, model.labels.districts_aria) }}
+  </section>
+</div>
+
+{{ chart_section("chart-mix", "database", "סוגי הרשויות בכל מחוז", model.labels.mix_note, model.labels.mix_aria, model.tables.mix, "h-72 md:h-96") }}
+
+{{ chart_section("chart-share", "database", "הרכב השלטון המקומי במחוז (באחוזים)", model.labels.share_note, model.labels.share_aria, model.tables.share, "h-72 md:h-96") }}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת כל הרשויות: מחוז, סוג ושם</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_note }}</p>
+  <div id="chart-tree" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.tree_aria }}"></div>
+</section>
+
+<section id="lists" class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רשימת הרשויות לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lists_note }}</p>
+{%- for l in model.lists %}
+  <details class="border-t border-rule py-2">
+    <summary class="font-semibold text-ink-deep cursor-pointer">{{ l.district }} <span class="text-sm text-subtle font-normal">({{ l.count }})</span></summary>
+{%- for g in l.groups %}
+    <h3 class="text-sm font-semibold text-ink-deep mt-3 mb-2">{{ g.type }} <span class="text-subtle font-normal">({{ g.count }})</span></h3>
+    <ul class="list-none m-0 ps-0 flex flex-wrap gap-2">
+{%- for n in g.names %}
+      <li class="tag-chip">{{ n }}</li>
+{%- endfor %}
+    </ul>
+{%- endfor %}
+  </details>
+{%- endfor %}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">סמלי רשות לפי סוג</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.codes_note }}</p>
+{{ table(model.tables.codes, model.labels.codes_cap) }}
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עקביות הנתונים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+{{ table(model.tables.quality, model.labels.quality_cap) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת מידע עם רשויות מקומיות, מספר ח״פ ברשות המיסים, סטטוס מעמד ומחוז שיוך</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var total = d.values.reduce(function (a, b) { return a + b; }, 0);
+    var c = echarts.init(document.getElementById("chart-types"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return enc(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent.toFixed(1) + "%)";
+      } },
+      legend: { bottom: 0, left: "center" },
+      series: [{ type: "pie", radius: ["38%", "66%"], center: ["50%", "43%"],
+                 data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }),
+                 labelLine: { show: false },
+                 label: { position: "inside", color: "#fff", fontWeight: "bold",
+                          formatter: function (p) { return p.percent >= 4 ? p.value.toLocaleString("he-IL") : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.districts | tojson }};
+    var c = echarts.init(document.getElementById("chart-districts"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 40, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [{ type: "bar", name: "רשויות", data: d.values,
+                 label: { show: true, position: "right", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.mix | tojson }};
+    var el = document.getElementById("chart-mix");
+    var c = echarts.init(el);
+    function gb() { return el.clientWidth < 520 ? 72 : 44; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 24, top: 8, bottom: gb(), containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.districts, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "all", data: s.values,
+                 label: { show: true, formatter: function (p) { return p.value > 0 ? p.value : ""; } } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.setOption({ grid: { bottom: gb() } }); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.share | tojson }};
+    var el = document.getElementById("chart-share");
+    var c = echarts.init(el);
+    function gb() { return el.clientWidth < 520 ? 72 : 44; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v.toFixed(1) + "%"; } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 24, top: 8, bottom: gb(), containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.districts, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "all", data: s.values,
+                 label: { show: true, formatter: function (p) { return p.value >= 12 ? Math.round(p.value) + "%" : ""; } } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.setOption({ grid: { bottom: gb() } }); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.tree | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (x) { return enc(x.name); }).join(" · ");
+        var code = p.data && p.data.code ? " (סמל " + enc(p.data.code) + ")" : "";
+        var n = p.data && p.data.children ? ": " + p.value.toLocaleString("he-IL") + " רשויות" : "";
+        return path + code + n;
+      } },
+      series: [{ type: "treemap", name: "כל הרשויות", data: t, roam: false, leafDepth: 2, width: "100%", height: "86%", top: 0,
+                 breadcrumb: { show: true, bottom: 4, left: "center", height: 26,
+                               itemStyle: { color: "#f0f4fa", borderColor: "#c3cfe7", borderWidth: 1, shadowBlur: 0, textStyle: { color: "#0b3668" } },
+                               emphasis: { itemStyle: { color: "#dbe8fb", textStyle: { color: "#0b3668" } } } },
+                 label: { show: true, formatter: "{b}", overflow: "truncate" },
+                 upperLabel: { show: true, height: 22, color: "#fff" },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 2, borderWidth: 2 } },
+                   { colorSaturation: [0.35, 0.5], itemStyle: { borderColorSaturation: 0.6, gapWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

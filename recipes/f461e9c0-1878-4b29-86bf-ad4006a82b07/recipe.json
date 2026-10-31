@@ -1,0 +1,44 @@
+{
+  "contract_version": 1,
+  "dataset_id": "f461e9c0-1878-4b29-86bf-ad4006a82b07",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T06:11:39Z",
+  "authored_against": {
+    "metadata_modified": "2026-07-12T09:59:33.762072+00:00",
+    "rows": {
+      "main": 1500
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "97bfde19-81cd-4ff4-98d2-2480c47fd5b6",
+      "required_columns": [
+        "קוד מקווה מים",
+        "שם תחנה",
+        "נחל/קבוצה",
+        "תאריך",
+        "מעבדה",
+        "BODt (mg/l)",
+        "NH4 (mg/l)",
+        "Fcoli (cfu/100 ml)",
+        "Ptot (mg/l)",
+        "Ntot (mg/l)",
+        "TKN (mg/l)",
+        "NO3 (mg/l)",
+        "NO2 (mg/l)",
+        "CODt (mg/l)",
+        "Toc (mg/l)",
+        "TSS105 (mg/l)",
+        "Cl (mg/l)",
+        "pH",
+        "Temp (°C)",
+        "Do (mg/l)",
+        "Doxsat (%)",
+        "Ec (Mmho/cm)"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

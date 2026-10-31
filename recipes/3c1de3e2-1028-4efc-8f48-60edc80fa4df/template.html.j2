@@ -1,0 +1,457 @@
+<h1>מדדי איכות בשירותי האמבולנס (פרה-הוספיטל): התכנית הלאומית של משרד הבריאות</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="mt-3 mb-0 text-sm text-subtle leading-relaxed">התכנית הלאומית למדדי איכות בבריאות בודקת אם צוותי מד"א ושירותי אמבולנס פרטיים ביצעו את הפעולה הנדרשת בכל מקרה שבו היא נדרשת. המדדים במאגר: {{ model.labels.intro_measures }}. שיעור העמידה הוא מספר המקרים שבהם בוצעה הפעולה חלקי כל המקרים המתאימים.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.measures.tone }} mb-1" dir="ltr">{{ model.kpis.measures.display }}</div>
+    <div class="text-sm text-subtle">מדדי איכות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.cases.tone }} mb-1" dir="ltr">{{ model.kpis.cases.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.cases_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.years.tone }} mb-1" dir="ltr">{{ model.kpis.years.display }}</div>
+    <div class="text-sm text-subtle">שנות מדידה בנתונים</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.providers.tone }} mb-1" dir="ltr">{{ model.kpis.providers.display }}</div>
+    <div class="text-sm text-subtle">ספקי שירות (מרחבי מד"א וחברות פרטיות)</div>
+  </div>
+{%- if model.flags.has_met %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.met.tone }} mb-1" dir="ltr">{{ model.kpis.met.display }}</div>
+    <div class="text-sm text-subtle">מדדים שעומדים ביעד מתוך המדדים שנקבע להם יעד</div>
+  </div>
+{%- endif %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.private.tone }} mb-1" dir="ltr">{{ model.kpis.private.display }}</div>
+    <div class="text-sm text-subtle">שיעור המקרים שטופלו בידי חברות אמבולנס פרטיות</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כרטיס ציון: שיעור העמידה בכל מדד</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.score_lede }}</p>
+  <div id="chart-score" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.score_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.score_aria }}</caption>
+      <thead><tr><th scope="col">מדד</th><th scope="col">תחום</th><th scope="col">הגדרה</th><th scope="col">נמדד מאז</th><th scope="col">שנה</th><th scope="col">מקרים</th><th scope="col">שיעור עמידה</th><th scope="col">יעד</th><th scope="col">מצב</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.score %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.subject }}</td><td>{{ r.long }}</td><td>{{ r.start }}</td><td>{{ r.year }}</td><td dir="ltr">{{ r.n }}</td><td dir="ltr">{{ r.rate }}</td><td>{{ r.target }}</td><td>{{ r.status }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מגמה שנתית לפי מדד</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.trend_lede }}</p>
+  <div id="chart-trend" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.trend_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.trend_aria }}</caption>
+      <thead><tr><th scope="col">מדד</th>{% for y in model.tables.trend.years %}<th scope="col">{{ y }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.trend.rows %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="text-xs text-subtle mt-1">בסוגריים: מספר המקרים שנמדדו.</p>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף המקרים שנמדדו בכל שנה</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.vol_lede }}</p>
+  <div id="chart-volume" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.vol_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.vol_aria }}</caption>
+      <thead><tr><th scope="col">מדד</th>{% for y in model.charts.volume.years %}<th scope="col">{{ y }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for s in model.charts.volume.series %}
+        <tr><th scope="row">{{ s.name }}</th>{% for v in s.data %}<td dir="ltr">{% if v is not none %}{{ v | fmt_int }}{% endif %}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שיעור העמידה החודשי</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.monthly_lede }}</p>
+  <div id="chart-monthly" class="h-[560px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+{%- if model.flags.season %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות: באילו חודשים יש יותר מקרים</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.season_lede }}</p>
+  <div id="chart-season" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.season_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">השוואה בין מרחבי מד"א וספקי השירות</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.prov_lede }}</p>
+  <div id="chart-providers" class="h-[560px]" role="img" aria-label="{{ model.labels.prov_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.prov_aria }}</caption>
+      <thead><tr><th scope="col">ספק שירות</th><th scope="col">בעלות</th><th scope="col">מקרים</th>{% for n in model.tables.providers.names %}<th scope="col">{{ n }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.providers.rows %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.owner }}</td><td dir="ltr">{{ r.n }}</td>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="text-xs text-subtle mt-1">תא ריק: פחות מ-{{ model.labels.min_n }} מקרים או שהספק לא נמדד במדד.</p>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">בוקר, ערב או לילה</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.shift_lede }}</p>
+  <div id="chart-shift" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.shift_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.shift_aria }}</caption>
+      <thead><tr><th scope="col">מדד</th>{% for s in model.tables.shift.shifts %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.shift.rows %}
+        <tr><th scope="row">{{ r.name }}</th>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פערים לפי מין, גיל ויום בשבוע</h2>
+  </div>
+  <p class="mt-0 mb-3 text-sm text-subtle">{{ model.labels.gaps_lede }}</p>
+  <div id="chart-gaps" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.gaps_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.gaps_aria }}</caption>
+      <thead><tr><th scope="col">מדד</th><th scope="col">שנה</th><th scope="col">נשים</th><th scope="col">גברים</th><th scope="col">פער נשים מול גברים</th><th scope="col">קבוצות גיל</th><th scope="col">פער גיל</th><th scope="col">פער ימים {{ model.labels.day_gap }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.gaps %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.year }}</td><td dir="ltr">{{ r.female }}</td><td dir="ltr">{{ r.male }}</td><td dir="ltr">{{ r.gender_gap }}</td><td>{{ r.age }}</td><td dir="ltr">{{ r.age_gap }}</td><td dir="ltr">{{ r.day_gap }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="text-xs text-subtle mt-1">פערים בנקודות אחוז.</p>
+  </details>
+</section>
+</div>
+
+<script>
+  (function () {
+    const LRM = "‎";
+    function sgn(v, digits) {
+      if (v === null || v === undefined) { return ""; }
+      return LRM + (v > 0 ? "+" : "") + v.toFixed(digits);
+    }
+    function axisSigned(v) { return LRM + v; }
+    function narrow(el) { return (el.clientWidth || 360) < 500; }
+    // Height (px) a plain, wrapping bottom legend needs for these names.
+    function legendHeight(el, names) {
+      const avail = Math.max(160, (el.clientWidth || 360) - 24);
+      let rows = 1, used = 0;
+      names.forEach(function (n) {
+        const w = 34 + String(n).length * 7;
+        if (used > 0 && used + w > avail) { rows += 1; used = 0; }
+        used += w + 10;
+      });
+      return rows * 22 + 8;
+    }
+    function bottomLegend() {
+      return { type: "plain", bottom: 0, left: "center", itemGap: 10, itemWidth: 18, itemHeight: 10 };
+    }
+    function mount(id, build) {
+      const el = document.getElementById(id);
+      if (!el) { return; }
+      const chart = echarts.init(el);
+      chart.setOption(window.GovEcharts.option(build(el)), true);
+      window.addEventListener("resize", function () {
+        chart.resize();
+        chart.setOption(window.GovEcharts.option(build(el)), true);
+      });
+    }
+
+    mount("chart-score", function (el) {
+      const d = {{ model.charts.score | tojson }};
+      const colors = { ok: "#198754", below: "#dc3545", none: "#0068f5" };
+      const statusText = { ok: "עומד ביעד", below: "מתחת ליעד", none: "ללא יעד" };
+      const sm = narrow(el);
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "item",
+          formatter: function (p) {
+            const r = d[p.dataIndex];
+            let s = echarts.format.encodeHTML(r.name) + "<br/>שנה: " + r.year +
+              "<br/>שיעור עמידה: " + r.rate.toFixed(1) + "%<br/>מקרים: " + r.n.toLocaleString("he-IL");
+            if (r.target !== null) { s += "<br/>יעד: " + r.target.toFixed(0) + "%"; }
+            return s + "<br/>" + statusText[r.status];
+          }
+        },
+        grid: { left: 16, right: 56, top: 16, bottom: 32, containLabel: true },
+        xAxis: { type: "value", min: 0, max: 100, interval: sm ? 50 : 20,
+                 axisLabel: { formatter: "{value}%", hideOverlap: true } },
+        yAxis: { type: "category", data: d.map(function (r) { return r.name; }), inverse: true,
+                 axisLabel: { width: sm ? 100 : 150, overflow: "break" } },
+        series: [
+          {
+            type: "bar", barMaxWidth: 26,
+            data: d.map(function (r) { return { value: r.rate, itemStyle: { color: colors[r.status] } }; }),
+            label: { show: true, position: "right", color: "#0c3058", formatter: function (p) { return p.value.toFixed(1) + "%"; } }
+          },
+          {
+            type: "scatter", symbol: "path://M0,0 L1,0 L1,10 L0,10 Z", symbolSize: 28, symbolKeepAspect: true, z: 5,
+            itemStyle: { color: "#0c3058" },
+            data: d.map(function (r) { return r.target === null ? null : r.target; }),
+            tooltip: { formatter: function (p) { return "יעד: " + p.value.toFixed(0) + "%"; } }
+          }
+        ]
+      };
+    });
+
+    mount("chart-trend", function (el) {
+      const d = {{ model.charts.trend | tojson }};
+      const lh = legendHeight(el, d.series.map(function (s) { return s.name; }));
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "" : v.toFixed(1) + "%"; } },
+        legend: bottomLegend(),
+        grid: { left: 16, right: 24, top: 16, bottom: lh + 24, containLabel: true },
+        xAxis: { type: "category", data: d.years },
+        yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value}%" } },
+        series: d.series.map(function (s) {
+          return { name: s.name, type: "line", data: s.data, symbolSize: 8, connectNulls: false };
+        })
+      };
+    });
+
+    mount("chart-volume", function (el) {
+      const d = {{ model.charts.volume | tojson }};
+      const lh = legendHeight(el, d.series.map(function (s) { return s.name; }));
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "" : v.toLocaleString("he-IL"); } },
+        legend: bottomLegend(),
+        grid: { left: 16, right: 24, top: 16, bottom: lh + 24, containLabel: true },
+        xAxis: { type: "category", data: d.years },
+        yAxis: { type: "log", axisLabel: { formatter: function (v) { return v.toLocaleString("he-IL"); } } },
+        series: d.series.map(function (s) {
+          return { name: s.name, type: "bar", data: s.data };
+        })
+      };
+    });
+
+    mount("chart-monthly", function (el) {
+      const d = {{ model.charts.monthly | tojson }};
+      const lh = legendHeight(el, d.series.map(function (s) { return s.name; }));
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "" : v.toFixed(1) + "%"; } },
+        legend: bottomLegend(),
+        grid: { left: 16, right: 24, top: 16, bottom: lh + 64, containLabel: true },
+        xAxis: { type: "category", data: d.x },
+        yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value}%" } },
+        dataZoom: [{ type: "inside" }, { type: "slider", bottom: lh + 8, height: 20 }],
+        series: d.series.map(function (s) {
+          return { name: s.name, type: "line", data: s.data, showSymbol: false, connectNulls: false };
+        })
+      };
+    });
+{%- if model.flags.season %}
+
+    mount("chart-season", function (el) {
+      const d = {{ model.charts.season | tojson }};
+      const sm = narrow(el);
+      return {
+        tooltip: {
+          position: "top",
+          formatter: function (p) {
+            return echarts.format.encodeHTML(d.names[p.value[1]]) + "<br/>" + d.months[p.value[0]] +
+              ": " + p.value[2].toFixed(0) + " (ממוצע = 100)";
+          }
+        },
+        grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+        xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { rotate: 45, interval: 0 } },
+        yAxis: { type: "category", data: d.names, splitArea: { show: true }, axisLabel: { width: sm ? 90 : 140, overflow: "truncate" } },
+        visualMap: {
+          min: d.min, max: d.max, dimension: 2, calculable: true,
+          orient: "horizontal", left: "center", bottom: 0,
+          inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+          textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+        },
+        series: [{
+          type: "heatmap", data: d.cells,
+          label: { show: !sm, fontFamily: "Rubik", fontSize: 10, formatter: function (p) { return p.value[2].toFixed(0); } },
+          emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+        }]
+      };
+    });
+{%- endif %}
+
+    mount("chart-providers", function (el) {
+      const d = {{ model.charts.providers | tojson }};
+      const sm = narrow(el);
+      const lim = d.limit;
+      return {
+        tooltip: {
+          position: "top",
+          formatter: function (p) {
+            const c = p.value;
+            return echarts.format.encodeHTML(d.providers[c[1]]) + "<br/>" + echarts.format.encodeHTML(d.names[c[0]]) +
+              "<br/>שיעור עמידה: " + c[3].toFixed(1) + "%<br/>סטייה מהשיעור הארצי: " +
+              sgn(c[2], 1) + " נק׳ אחוז<br/>מקרים: " + c[4].toLocaleString("he-IL");
+          }
+        },
+        grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+        xAxis: { type: "category", data: d.names, splitArea: { show: true },
+                 axisLabel: { interval: 0, rotate: sm ? 60 : 35, width: sm ? 90 : 120, overflow: "truncate", fontSize: sm ? 10 : 12 } },
+        yAxis: { type: "category", data: d.providers, splitArea: { show: true }, inverse: true,
+                 axisLabel: { interval: 0, fontSize: sm ? 10 : 12, width: sm ? 80 : 140, overflow: "truncate" } },
+        visualMap: {
+          min: -lim, max: lim, dimension: 2, calculable: true,
+          orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+          formatter: function (v) { return sgn(v, 1); },
+          inRange: { color: ["#dc3545", "#f8d7da", "#ffffff", "#dbe8fb", "#0068f5"] },
+          textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+        },
+        series: [{
+          type: "heatmap", data: d.cells,
+          label: {
+            show: !sm, fontFamily: "Rubik", fontSize: 11,
+            formatter: function (p) { return p.value[3].toFixed(1); },
+            color: "#0c3058"
+          },
+          emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+        }]
+      };
+    });
+
+    mount("chart-shift", function (el) {
+      const d = {{ model.charts.shift | tojson }};
+      const sm = narrow(el);
+      const lh = legendHeight(el, d.shifts);
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v === null || v === undefined ? "" : sgn(v, 1) + " נק׳ אחוז"; } },
+        legend: bottomLegend(),
+        grid: { left: 16, right: 24, top: 16, bottom: lh + 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: axisSigned, hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: sm ? 100 : 120, overflow: "break" } },
+        series: d.shifts.map(function (s, i) {
+          return { name: s, type: "bar", data: d.series[i] };
+        })
+      };
+    });
+
+    mount("chart-gaps", function (el) {
+      const d = {{ model.charts.gaps | tojson }};
+      const sm = narrow(el);
+      const names = ["נשים מול גברים", "גיל מבוגר מול צעיר", d.day_label];
+      const lh = legendHeight(el, names);
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            if (!ps.length) { return ""; }
+            const i = ps[0].dataIndex;
+            let s = echarts.format.encodeHTML(d.names[i]);
+            ps.forEach(function (p) {
+              if (p.value === null || p.value === undefined) { return; }
+              let lbl = p.seriesName;
+              if (p.seriesIndex === 1 && d.age_labels[i]) { lbl += " (" + echarts.format.encodeHTML(d.age_labels[i]) + ")"; }
+              s += "<br/>" + lbl + ": " + sgn(p.value, 1) + " נק׳ אחוז";
+            });
+            return s;
+          }
+        },
+        legend: bottomLegend(),
+        grid: { left: 16, right: 24, top: 16, bottom: lh + 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: axisSigned, hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: sm ? 100 : 120, overflow: "break" } },
+        series: [
+          { name: names[0], type: "bar", data: d.gender },
+          { name: names[1], type: "bar", data: d.age },
+          { name: names[2], type: "bar", data: d.day }
+        ]
+      };
+    });
+  })();
+</script>

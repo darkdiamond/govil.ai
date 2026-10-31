@@ -1,0 +1,526 @@
+<h1>{{ model.labels.h1 }}</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תוצאות דיגום לפי תחנה, נחל או תאריך ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הניטור: שם תחנה, קוד מקווה מים, נחל, תאריך ומעבדה, עם כל ערכי הפרמטרים.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.samples.tone }} mb-1" dir="ltr">{{ model.kpis.samples.display }}</div>
+    <div class="text-sm text-subtle">דגימות במאגר</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.stations.tone }} mb-1" dir="ltr">{{ model.kpis.stations.display }}</div>
+    <div class="text-sm text-subtle">תחנות ניטור</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.span.tone }} mb-1" dir="ltr">{{ model.kpis.span.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.span_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.latest.tone }} mb-1" dir="ltr">{{ model.kpis.latest.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.latest_kpi }}</div>
+  </div>
+{%- if model.has_bod_kpis %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.bod_hi.tone }} mb-1" dir="ltr">{{ model.kpis.bod_hi.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.bod_hi_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.bod_lo.tone }} mb-1" dir="ltr">{{ model.kpis.bod_lo.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.bod_lo_kpi }}</div>
+  </div>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">היקף הדיגום לאורך השנים</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.years_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for s in model.streams %}<th scope="col">{{ s }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.years %}
+        <tr><th scope="row">{{ r.year }}</th>{% for v in r.by %}<td>{{ v | fmt_int }}</td>{% endfor %}<td>{{ r.total | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מגמות איכות המים לפי נחל</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.trend_lede }}</p>
+  <div class="flex items-center gap-2 mb-3">
+    <label for="sel-trend" class="text-sm text-ink-deep">פרמטר:</label>
+    <select id="sel-trend" class="border border-rule rounded-gov px-2 py-1 text-sm bg-white">
+{%- for o in model.opts.trend %}
+      <option value="{{ o.key }}">{{ o.label }}</option>
+{%- endfor %}
+    </select>
+  </div>
+  <p id="trend-unit" class="text-xs text-subtle mt-0 mb-1"></p>
+  <div id="chart-trend" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.trend_aria }}"></div>
+</section>
+
+{%- if model.charts.change.cells %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מה השתנה מאז תחילת הניטור</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.change_lede }}</p>
+  <div id="chart-change" class="h-80 md:h-96" role="img" aria-label="{{ model.labels.change_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.change_aria }}</caption>
+      <thead><tr><th scope="col">פרמטר</th>{% for s in model.charts.change.streams %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.change %}
+        <tr><th scope="row">{{ r.label }} ({{ r.unit }})</th>{% for c in r.cells %}<td>{% if c %}<span dir="ltr">{{ c.early }} → {{ c.recent }}</span> (<span dir="ltr">{{ c.pct }}</span>){% else %}-{% endif %}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פיזור הערכים בשנים {{ model.labels.table_recent }}</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.box_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for k in ["bod", "nh4", "fcoli", "ptot"] %}
+{%- if model.charts.box[k].names %}
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">{{ model.charts.box[k].label }} ({{ model.charts.box[k].unit }})</h3>
+      <div id="chart-box-{{ k }}" class="h-64 md:h-80" role="img" aria-label="{{ model.labels['box_' ~ k ~ '_aria'] }}"></div>
+    </div>
+{%- endif %}
+{%- endfor %}
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.box_lede }}</caption>
+      <thead><tr><th scope="col">פרמטר</th><th scope="col">נחל</th><th scope="col">דגימות</th><th scope="col">{{ model.labels.p_lo }}</th><th scope="col">רבעון תחתון</th><th scope="col">חציון</th><th scope="col">רבעון עליון</th><th scope="col">{{ model.labels.p_hi }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.box %}
+        <tr><th scope="row">{{ r.param }} ({{ r.unit }})</th><td>{{ r.stream }}</td><td>{{ r.n | fmt_int }}</td>{% for q in r.q %}<td dir="ltr">{{ q }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התחנות המזוהמות ביותר</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.stations_lede }}</p>
+  <div class="flex items-center gap-2 mb-3">
+    <label for="sel-stations" class="text-sm text-ink-deep">פרמטר:</label>
+    <select id="sel-stations" class="border border-rule rounded-gov px-2 py-1 text-sm bg-white">
+{%- for o in model.opts.stations %}
+      <option value="{{ o.key }}">{{ o.label }}</option>
+{%- endfor %}
+    </select>
+  </div>
+  <div id="chart-stations" class="h-96 md:h-[460px]" role="img" aria-label="{{ model.labels.stations_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.stations_aria }}</caption>
+      <thead><tr><th scope="col">תחנה</th><th scope="col">נחל</th><th scope="col">דגימות BOD</th>{% for c in model.tables.station_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.stations %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.stream }}</td><td>{{ r.n | fmt_int }}</td>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אביב מול סתיו</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.season_lede }}</p>
+  <div class="flex items-center gap-2 mb-3">
+    <label for="sel-season" class="text-sm text-ink-deep">פרמטר:</label>
+    <select id="sel-season" class="border border-rule rounded-gov px-2 py-1 text-sm bg-white">
+{%- for o in model.opts.season %}
+      <option value="{{ o.key }}">{{ o.label }}</option>
+{%- endfor %}
+    </select>
+  </div>
+  <p id="season-unit" class="text-xs text-subtle mt-0 mb-1"></p>
+  <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.season_aria }}</caption>
+      <thead><tr><th scope="col">פרמטר</th><th scope="col">נחל</th><th scope="col">חציון אביב</th><th scope="col">דגימות אביב</th><th scope="col">חציון סתיו</th><th scope="col">דגימות סתיו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.season %}
+        <tr><th scope="row">{{ r.param }} ({{ r.unit }})</th><td>{{ r.stream }}</td><td dir="ltr">{{ r.spring }}</td><td>{{ r.ns | fmt_int }}</td><td dir="ltr">{{ r.autumn }}</td><td>{{ r.na | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">BOD לפי תחנה ושנה</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-[640px] md:h-[680px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+{%- if model.charts.field %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מדידות שדה: חמצן, חומציות וטמפרטורה</h2>
+  </div>
+  <p class="text-sm text-subtle mt-0 mb-3">{{ model.labels.field_lede }}</p>
+  <div id="chart-field" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.field_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.field_aria }}</caption>
+      <thead><tr><th scope="col">נחל</th>{% for c in model.tables.field_cols %}<th scope="col">חציון {{ c }}</th>{% endfor %}<th scope="col">{{ model.labels.low_do_col }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.field %}
+        <tr><th scope="row">{{ r.stream }}</th>{% for v in r.vals %}<td dir="ltr">{{ v }}</td>{% endfor %}<td dir="ltr">{{ r.low }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="text-xs text-subtle mt-2 mb-0">{{ model.labels.ec_note }}</p>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">המשרד להגנת הסביבה מקיים במהלך השנה פעולות ניטור ומעקב שוטף אחר הנחלים בישראל. בנחלים מבוצעים שני סוגים של ניטור: ניטור כימי וניטור ביולוגי. ניטור כימי הינו נקודתי ומתבצע פעמיים בשנה (בסתיו ובאביב). בכל דיגום נבדקים יותר מעשרה פרמטרים קבועים, הניטור מבוצע על ידי רשות הטבע והגנים עבור המשרד להגנת הסביבה. ניטור ביולוגי בוחן את מצבם של הנחלים לאורך זמן באמצעות מעקב אחר שינויים בהרכב חברות של בעלי חיים וצמחים בנחלים. הניטור מבוצע במרכז הלאומי לאקולוגיה אקווטית, מוזיאון הטבע ע״ש שטיינהרדט, אוניברסיטת תל אביב.</p>
+</section>
+
+<script>
+  (function () {
+    var P = window.GOVIL_PALETTE;
+    window.__riverColors = [P[0], P[2], P[1], P[6], P[5], P[3], P[7], P[4], P[8], P[9]];
+    window.__riverFmt = function (v) {
+      if (v === null || v === undefined || isNaN(v)) return "-";
+      var a = Math.abs(v);
+      if (a >= 100) return Math.round(v).toLocaleString("en-US");
+      if (a >= 10) return String(Math.round(v * 10) / 10);
+      if (a >= 1) return String(Math.round(v * 100) / 100);
+      return String(Number(v.toPrecision(2)));
+    };
+    window.__riverAxis = function (v) {
+      var a = Math.abs(v);
+      if (a >= 1e6) return window.__riverFmt(v / 1e6) + "M";
+      if (a >= 1e3) return window.__riverFmt(v / 1e3) + "K";
+      return window.__riverFmt(v);
+    };
+    window.__riverNarrow = function (el) { return el.clientWidth < 500; };
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.by_year | tojson }};
+    var C = window.__riverColors;
+    var el = document.getElementById("chart-years");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: C,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "plain" },
+      grid: { left: 8, right: 16, top: window.__riverNarrow(el) ? 64 : 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var all = {{ model.charts.trend | tojson }};
+    var years = {{ model.charts.by_year.years | tojson }};
+    var C = window.__riverColors, F = window.__riverFmt, E = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-trend");
+    var c = echarts.init(el);
+    function draw(key) {
+      var d = all[key];
+      c.setOption(window.GovEcharts.option({
+        color: C,
+        tooltip: { trigger: "axis", formatter: function (ps) {
+          var out = E(String(ps[0].axisValue));
+          ps.forEach(function (p) {
+            if (p.value === null || p.value === undefined) return;
+            var n = d.series[p.seriesIndex].n[p.dataIndex];
+            out += "<br>" + p.marker + E(p.seriesName) + ": " + F(p.value) + " " + E(d.unit) + " (" + n + " דגימות)";
+          });
+          return out;
+        } },
+        legend: { top: 0, type: "plain" },
+        grid: { left: 8, right: 16, top: window.__riverNarrow(el) ? 64 : 40, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: years },
+        yAxis: { type: "log", axisLabel: { formatter: window.__riverAxis, hideOverlap: true } },
+        dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+        series: d.series.map(function (s) {
+          return { type: "line", name: s.name, data: s.data, connectNulls: true, symbolSize: 5 };
+        })
+      }), true);
+      el.setAttribute("aria-label", "גרף קווים: חציון שנתי של " + d.label + " בכל נחל, בציר לוגריתמי.");
+      document.getElementById("trend-unit").textContent = "יחידות: " + d.unit;
+    }
+    var sel = document.getElementById("sel-trend");
+    sel.addEventListener("change", function () { draw(sel.value); });
+    draw(sel.value);
+    window.addEventListener("resize", function () { draw(sel.value); c.resize(); });
+  })();
+{%- if model.charts.change.cells %}
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.change | tojson }};
+    var E = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-change");
+    var c = echarts.init(el);
+    function signed(v) { return "\u200E" + (v > 0 ? "+" : v < 0 ? "\u2212" : "") + Math.abs(v) + "%"; }
+    function draw() {
+      var narrow = window.__riverNarrow(el);
+      // narrow screens: parameters as rows, streams as columns
+      var cells = d.cells.map(function (v) {
+        var o = v.slice();
+        if (narrow) { o[0] = v[1]; o[1] = v[0]; }
+        return o;
+      });
+      var px = narrow ? d.streams : d.params, py = narrow ? d.params : d.streams;
+      c.setOption(window.GovEcharts.option({
+        tooltip: { position: "top", formatter: function (p) {
+          var v = p.data, pi = narrow ? v[1] : v[0], si = narrow ? v[0] : v[1];
+          return E(d.streams[si]) + ", " + E(d.params[pi]) + "<br>" + E(v[6]) + ": " + E(v[4]) + " (" + v[7] + " דגימות)" +
+            "<br>" + "חמש השנים האחרונות: " + E(v[5]) + " (" + v[8] + " דגימות)<br>" + "שינוי: " + signed(v[3]);
+        } },
+        grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: px, splitArea: { show: true },
+                 axisLabel: narrow ? { interval: 0, width: 48, overflow: "break", fontSize: 10, lineHeight: 12 }
+                                   : { interval: 0, rotate: 45, width: 90, overflow: "truncate" } },
+        yAxis: { type: "category", data: py, splitArea: { show: true }, axisLabel: { width: 110, overflow: "truncate" } },
+        visualMap: { min: -3, max: 3, dimension: 2, show: false,
+                     inRange: { color: ["#198754", "#d9efe2", "#ffffff", "#f7d6da", "#dc3545"] } },
+        series: [{ type: "heatmap", data: cells,
+                   label: { show: true, fontSize: 10, formatter: function (p) { return signed(p.data[3]); } } }]
+      }), true);
+    }
+    draw();
+    window.addEventListener("resize", function () { draw(); c.resize(); });
+  })();
+{%- endif %}
+</script>
+<script>
+  (function () {
+    var all = {{ model.charts.box | tojson }};
+    var F = window.__riverFmt, E = echarts.format.encodeHTML;
+    Object.keys(all).forEach(function (k) {
+      var b = all[k];
+      var el = document.getElementById("chart-box-" + k);
+      if (!el || !b.names.length) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "item", formatter: function (p) {
+          var o = p.data.slice(-5);
+          return E(p.name) + " (" + b.n[p.dataIndex] + " דגימות)<br>חציון: " + F(o[2]) + " " + E(b.unit) +
+            "<br>רבעונים: ⁦" + F(o[1]) + " - " + F(o[3]) + "⁩<br>אחוזון 5 עד 95: ⁦" + F(o[0]) + " - " + F(o[4]) + "⁩";
+        } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "log", axisLabel: { formatter: window.__riverAxis, hideOverlap: true } },
+        yAxis: { type: "category", data: b.names },
+        series: [{ type: "boxplot", name: b.label, data: b.data,
+                   itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+<script>
+  (function () {
+    var all = {{ model.charts.stations | tojson }};
+    var streams = {{ model.streams | tojson }};
+    var C = window.__riverColors, F = window.__riverFmt, E = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-stations");
+    var c = echarts.init(el);
+    function draw(key) {
+      var d = all[key];
+      var names = d.names.slice().reverse(), vals = d.values.slice().reverse();
+      var st = d.streams.slice().reverse(), ns = d.n.slice().reverse();
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "item", formatter: function (p) {
+          return E(names[p.dataIndex]) + " (" + E(st[p.dataIndex]) + ")<br>חציון: " + F(p.value) + " " + E(d.unit) +
+            "<br>" + ns[p.dataIndex] + " דגימות";
+        } },
+        legend: { show: false },
+        grid: { left: 8, right: 48, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "log", name: d.unit, nameLocation: "middle", nameGap: 28, axisLabel: { formatter: window.__riverAxis, hideOverlap: true } },
+        yAxis: { type: "category", data: names, axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", data: vals.map(function (v, i) {
+          var j = streams.indexOf(st[i]);
+          return { value: v, itemStyle: { color: C[(j < 0 ? 0 : j) % C.length] } };
+        }), label: { show: true, position: "right", formatter: function (p) { return F(p.value); } } }]
+      }), true);
+      el.setAttribute("aria-label", "גרף עמודות אופקי: התחנות עם חציון " + d.label + " הגבוה ביותר.");
+    }
+    var sel = document.getElementById("sel-stations");
+    sel.addEventListener("change", function () { draw(sel.value); });
+    draw(sel.value);
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var all = {{ model.charts.season | tojson }};
+    var F = window.__riverFmt, E = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-season");
+    var c = echarts.init(el);
+    function draw(key) {
+      var d = all[key];
+      c.setOption(window.GovEcharts.option({
+        color: ["#6c9fd8", "#0b3668"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          var out = E(d.names[i]);
+          ps.forEach(function (p) {
+            var n = p.seriesIndex === 0 ? d.ns[i] : d.na[i];
+            out += "<br>" + p.marker + E(p.seriesName) + ": " + F(p.value) + " " + E(d.unit) + " (" + n + " דגימות)";
+          });
+          return out;
+        } },
+        legend: { top: 0 },
+        grid: { left: 8, right: 16, top: 32, bottom: 8, containLabel: true },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "truncate" } },
+        xAxis: { type: "log", axisLabel: { formatter: window.__riverAxis, hideOverlap: true } },
+        series: [
+          { type: "bar", name: "אביב", data: d.spring },
+          { type: "bar", name: "סתיו", data: d.autumn }
+        ]
+      }), true);
+      el.setAttribute("aria-label", "גרף עמודות: חציון " + d.label + " באביב ובסתיו בכל נחל, בציר לוגריתמי.");
+      document.getElementById("season-unit").textContent = "יחידות: " + d.unit;
+    }
+    var sel = document.getElementById("sel-season");
+    sel.addEventListener("change", function () { draw(sel.value); });
+    draw(sel.value);
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    var d = {{ model.charts.heatmap | tojson }};
+    var E = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-heat"));
+    var cells = d.cells.map(function (v) { return [v[0], v[1], v[2] === null ? d.min - 1 : v[2], v[3], v[4]]; });
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        var v = p.data;
+        return E(d.stations[v[1]]) + " (" + E(d.streams[v[1]]) + "), " + d.years[v[0]] + "<br>" + v[3] + " דגימות" +
+          (v[4] ? "<br>חציון BOD: " + E(v[4]) + " מ״ג/ל׳" : "<br>ללא מדידת BOD");
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.years, splitArea: { show: true } },
+      yAxis: { type: "category", data: d.stations, inverse: true, axisLabel: { fontSize: 10, width: 120, overflow: "truncate" } },
+      dataZoom: [{ type: "inside", xAxisIndex: 0 }],
+      visualMap: { min: d.min, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 8,
+                   itemHeight: 120, text: ["עומס גבוה", "נמוך"],
+                   formatter: function (v) { return window.__riverFmt(Math.pow(10, v)); },
+                   inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, outOfRange: { color: "#c3cfe7" } },
+      series: [{ type: "heatmap", data: cells }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.charts.field %}
+</script>
+<script>
+  (function () {
+    var f = {{ model.charts.field | tojson }};
+    var F = window.__riverFmt, E = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-field"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        if (p.seriesType !== "boxplot") return "";
+        var o = p.data.slice(-5), i = p.dataIndex;
+        return E(p.name) + " (" + f.n[i] + " מדידות)<br>חציון רוויה: " + F(o[2]) + "%<br>רבעונים: ⁦" + F(o[1]) + "% - " + F(o[3]) +
+          "%⁩<br>אחוזון 5 עד 95: ⁦" + F(o[0]) + "% - " + F(o[4]) + "%⁩<br>מתחת לסף: ⁦" + Math.round(f.low_share[i] * 100) + "%⁩";
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "value", name: "% רוויה", nameLocation: "middle", nameGap: 24 },
+      yAxis: { type: "category", data: f.names },
+      series: [{ type: "boxplot", name: "רוויית חמצן", data: f.data,
+                 itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" },
+                 markLine: { symbol: "none", silent: true, lineStyle: { color: "#dc3545", type: "dashed" },
+                             label: { formatter: {{ model.labels.low_do | tojson }} },
+                             data: [{ xAxis: {{ model.charts.field_threshold | tojson }} }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+</script>

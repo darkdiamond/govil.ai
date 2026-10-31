@@ -1,0 +1,23 @@
+{
+  "main.subject_desc": "chart-score — clinical domain column of the scorecard table",
+  "main.provider_type": "skip: constant (פרה-הוספיטל in every row)",
+  "main.measure_code": "chart-score, chart-trend, chart-volume, chart-monthly, chart-season, chart-providers, chart-shift, chart-gaps, kpi:measures — indicator key; known codes map to short names",
+  "main.measure_description": "chart-score — fallback display name for unknown codes",
+  "main.measure_long_description": "chart-score — definition column of the scorecard table",
+  "main.measurement_start_year": "chart-score — 'measured since' column",
+  "main.measurement_year": "chart-trend, chart-volume, chart-monthly, kpi:years, insight:trend, insight:volume",
+  "main.Quarter": "skip: derived from month",
+  "main.month": "chart-monthly, chart-season — also detects partial years (fewer than 12 months)",
+  "main.provider_ownership": "kpi:private, chart-providers — ownership column of the provider table",
+  "main.provider": "chart-providers, kpi:providers, insight:spread, insight:lowest_provider",
+  "main.gender": "chart-gaps, insight:gender",
+  "main.shift": "chart-shift, insight:shift",
+  "main.day_range": "chart-gaps",
+  "main.age_range": "chart-gaps, insight:age",
+  "main.target": "chart-score, kpi:met, insight:target — 0 means no target",
+  "main.treament_duration": "skip: constant -999 (unknown) in every row",
+  "main.treament_duration_range": "skip: constant (לא ידוע) in every row",
+  "main.number_of_cases": "chart-score, chart-trend, chart-volume, chart-monthly, chart-season, chart-providers, chart-shift, chart-gaps, kpi:cases — denominator",
+  "main.number_of_cases_approved": "chart-score, chart-trend, chart-monthly, chart-providers, chart-shift, chart-gaps, insight:range — numerator; empty means zero",
+  "main.detailed_age_range_groups": "skip: identical to age_range in every row"
+}

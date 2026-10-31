@@ -1,0 +1,43 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3c1de3e2-1028-4efc-8f48-60edc80fa4df",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-09-10T11:08:44.502505+00:00",
+    "rows": { "main": 56768 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "measure_code",
+        "measurement_year",
+        "provider",
+        "number_of_cases",
+        "number_of_cases_approved"
+      ],
+      "concat": true,
+      "required_columns": [
+        "subject_desc",
+        "measure_code",
+        "measure_description",
+        "measure_long_description",
+        "measurement_start_year",
+        "measurement_year",
+        "month",
+        "provider_ownership",
+        "provider",
+        "gender",
+        "shift",
+        "day_range",
+        "age_range",
+        "target",
+        "number_of_cases",
+        "number_of_cases_approved"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

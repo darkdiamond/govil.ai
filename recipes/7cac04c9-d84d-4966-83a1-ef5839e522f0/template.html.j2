@@ -1,0 +1,350 @@
+<h1>דיפו רק"ל: מתחמי תחזוקה ותפעול של הרכבת הקלה</h1>
+
+<style>
+  .depot-table th, .depot-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .depot-table tbody tr { border-top: 1px solid #c3cfe7; }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מתחם דיפו לפי שם או סטטוס ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המתחם, סוג, סטטוס (קיים, בביצוע, מתוכנן), שטח בדונמים ומועד עדכון</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.count.tone }} mb-1" dir="ltr">{{ model.kpis.count.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.count_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.area.tone }} mb-1" dir="ltr">{{ model.kpis.area.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.area_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.ex_share.tone }} mb-1" dir="ltr">{{ model.kpis.ex_share.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.ex_share_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.largest.tone }} mb-1" dir="ltr">{{ model.kpis.largest.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.largest_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שטח כל מתחם דיפו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.depots_lede }}</p>
+  <div id="chart-depots" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.depots_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="depot-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.depots_aria }}</caption>
+        <thead><tr><th scope="col">מתחם</th><th scope="col">סטטוס</th><th scope="col">שטח (דונם)</th><th scope="col">שיעור מהשטח</th><th scope="col">היקף (מ׳)</th><th scope="col">עדכון</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.depots %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.status }}</td><td>{{ r.area }}</td><td>{{ r.share }}</td><td>{{ r.perim }}</td><td>{{ r.ym }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קיים, בביצוע או מתוכנן: מספר מתחמים מול שטח</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_lede }}</p>
+  <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="depot-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.status_aria }}</caption>
+      <thead><tr><th scope="col">סטטוס</th><th scope="col">מתחמים</th><th scope="col">שטח (דונם)</th><th scope="col">שיעור מהשטח</th><th scope="col">שטח ממוצע (דונם)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.status %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.area }}</td><td>{{ r.share }}</td><td>{{ r.avg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.lines %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שטח דיפו לפי קו רכבת קלה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lines_lede }}</p>
+  <div id="chart-lines" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.lines_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="depot-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lines_aria }}</caption>
+      <thead><tr><th scope="col">קו</th><th scope="col">מתחמים</th><th scope="col">שטח (דונם)</th><th scope="col">שיעור מהשטח</th><th scope="col">פירוט לפי סטטוס (דונם)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lines %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.area }}</td><td>{{ r.share }}</td><td>{{ r.parts }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">התפלגות גודל המתחמים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_lede }}</p>
+  <div id="chart-bands" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.bands_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="depot-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.bands_aria }}</caption>
+      <thead><tr><th scope="col">טווח גודל</th><th scope="col">מתחמים</th><th scope="col">לפי סטטוס</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.bands %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.parts }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.shape %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צורת המתחם: שטח מול היקף</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shape_lede }}</p>
+  <div id="chart-shape" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.shape_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="depot-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.shape_aria }}</caption>
+        <thead><tr><th scope="col">מתחם</th><th scope="col">שטח (דונם)</th><th scope="col">היקף (מ׳)</th><th scope="col">מדד קומפקטיות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.depots %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.area }}</td><td>{{ r.perim }}</td><td>{{ r.compact }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.vintage %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מועד עדכון הרשומות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.vintage_lede }}</p>
+  <div id="chart-vintage" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.vintage_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="depot-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.vintage_aria }}</caption>
+      <thead><tr><th scope="col">חודש עדכון</th><th scope="col">רשומות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.vintage %}
+        <tr><th scope="row">{{ r.ym }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">על המאגר</h2>
+  </div>
+  <p class="m-0 mb-2 text-sm leading-relaxed">דיפו הוא מתחם שבו חונים קרונות הרכבת הקלה בלילה ומתבצעות בו פעולות תחזוקה, ניקוי ותפעול. טבלת הנתונים כוללת לכל מתחם את שמו, סוגו, סטטוס התכנון, שטחו בדונמים, היקף ושטח הפוליגון במטרים ומועד העדכון. גבולות המתחמים עצמם נמצאים בקובצי ה-SHP וה-KML שברשימת ההורדות למטה.</p>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">תיאור מקורי: מתחמי תחזוקה ותפעול, קיימים ומתוכננים, של רכבת קלה</p>
+</section>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-depots");
+    var d = {{ model.charts.depots | tojson }};
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + echarts.format.encodeHTML(d.status[i]) +
+          ": " + d.area[i] + " דונם<br>חציון המתחמים: " + d.median + " דונם";
+      } },
+      grid: { left: 16, right: 48, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "דונם", nameLocation: "end", splitNumber: narrow ? 3 : 5,
+               axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { formatter: function (v) {
+                 var m = v.match(/^(.*) (\([^)]*\))$/);
+                 var base = m ? m[1] : v, suf = m ? " " + m[2] : "";
+                 var max = narrow ? 14 : 30;
+                 if (base.length > max) { base = base.slice(0, max - 1) + "…"; }
+                 return base + suf;
+               } } },
+      series: [{
+        type: "bar", name: "שטח (דונם)",
+        data: d.area.map(function (v, i) { return { value: v, itemStyle: { color: d.colors[i] } }; }),
+        label: { show: true, position: "right" },
+        markLine: { symbol: "none", silent: true, label: { show: false },
+                    lineStyle: { color: "#6c757d", type: "dashed" }, data: [{ xAxis: d.median }] }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var c = echarts.init(document.getElementById("chart-status"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.seriesIndex;
+        var isArea = p.dataIndex === 1;
+        return echarts.format.encodeHTML(d.names[i]) + ": " +
+          (isArea ? d.area[i] + " דונם (" + d.area_share[i] + "%)" : d.count[i] + " מתחמים (" + d.count_share[i] + "%)");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+      yAxis: { type: "category", data: ["מספר מתחמים", "שטח"] },
+      series: d.names.map(function (n, i) {
+        return { type: "bar", stack: "s", name: n, barWidth: 36,
+                 itemStyle: { color: d.colors[i] },
+                 data: [d.count_share[i], d.area_share[i]],
+                 label: { show: true, formatter: function (p) { return p.value >= 8 ? p.value + "%" : ""; },
+                          color: i === d.names.length - 1 ? "#0c3058" : "#ffffff" } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-lines");
+    if (!el) { return; }
+    var d = {{ model.charts.lines | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 40, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "value", name: "דונם", splitNumber: el.clientWidth < 500 ? 3 : 5, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: d.statuses.map(function (s, i) {
+        return { type: "bar", stack: "l", name: s, itemStyle: { color: d.colors[i] },
+                 data: d.series[i].map(function (v) { return v > 0 ? v : null; }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.bands | tojson }};
+    var c = echarts.init(document.getElementById("chart-bands"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names,
+               axisLabel: { interval: 0, fontSize: 11, lineHeight: 14,
+                            formatter: function (v) { return v.replace(" ", "\n"); } } },
+      yAxis: { type: "value", name: "מתחמים", minInterval: 1, axisLabel: { hideOverlap: true } },
+      series: d.statuses.map(function (s, i) {
+        return { type: "bar", stack: "b", name: s, itemStyle: { color: d.colors[i] }, data: d.series[i] };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-shape");
+    if (!el) { return; }
+    var d = {{ model.charts.shape | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.data;
+        return echarts.format.encodeHTML(v[3]) + "<br>" + v[1] + " דונם, היקף " + v[0] +
+          " מ׳<br>מדד קומפקטיות: " + v[2];
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 64, containLabel: true },
+      xAxis: { type: "value", name: "היקף (מ׳)", nameLocation: "middle", nameGap: 28, scale: true,
+               splitNumber: el.clientWidth < 500 ? 3 : 5, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "שטח (דונם)", axisLabel: { hideOverlap: true } },
+      series: d.statuses.map(function (s, i) {
+        return { type: "scatter", name: s, symbolSize: 14, itemStyle: { color: d.colors[i], borderColor: "#0b3668" },
+                 data: d.points.filter(function (pt) { return pt[4] === s; }) };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-vintage");
+    if (!el) { return; }
+    var d = {{ model.charts.vintage | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: d.x.length <= 6 ? 0 : "auto", hideOverlap: true } },
+      yAxis: { type: "value", name: "רשומות", minInterval: 1, axisLabel: { hideOverlap: true } },
+      series: [{ type: "bar", name: "רשומות", data: d.y, barMaxWidth: 64, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

@@ -1,0 +1,675 @@
+<h1>נתוני פשיעה בישראל: תיקי חקירה ועבירות לפי יישוב, תחנה וסוג עבירה</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור נתוני פשיעה ביישוב, בשכונה או בתחנת משטרה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות העבירה: שם היישוב או המועצה האזורית, אזור סטטיסטי (שכונה), תחנה, מרחב ומחוז משטרתי, קבוצת העבירה וסוג העבירה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיקי חקירה ועבירות בכל רבעון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quarterly_lede }} {{ model.labels.dropped }}</p>
+  <div id="chart-quarterly" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.quarterly_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.quarterly_aria }}</caption>
+      <thead><tr><th scope="col">רבעון</th><th scope="col">תיקים</th><th scope="col">עבירות</th><th scope="col">הערה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.quarterly %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.cases }}</td><td>{{ r.off }}</td><td>{{ r.note }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תמהיל העבירות לאורך השנים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_lede }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+      <thead><tr><th scope="col">קבוצת עבירה</th>{% for y in model.charts.mix.years %}<th scope="col">{{ y }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">עבירות לפי קבוצת עבירה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_lede }}</p>
+  <div id="chart-groups" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.groups_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.groups_aria }}</caption>
+      <thead><tr><th scope="col">קבוצת עבירה</th><th scope="col">{{ model.meta.L }}</th>{% if model.flags.has_prev %}<th scope="col">{{ model.meta.P }}</th><th scope="col">שינוי</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.groups %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.cur }}</td>{% if model.flags.has_prev %}<td>{{ r.prev }}</td><td dir="ltr">{{ r.chg }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">סוגי העבירה הנפוצים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.types_lede }}</p>
+  <div id="chart-types" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.types_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.types_aria }}</caption>
+      <thead><tr><th scope="col">סוג עבירה</th><th scope="col">קבוצה</th><th scope="col">{{ model.meta.L }}</th>{% if model.flags.has_prev %}<th scope="col">{{ model.meta.P }}</th><th scope="col">שינוי</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.types %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.group }}</td><td>{{ r.cur }}</td>{% if model.flags.has_prev %}<td>{{ r.prev }}</td><td dir="ltr">{{ r.chg }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.movers %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">העבירות שעלו וירדו הכי הרבה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.movers_lede }}</p>
+  <div id="chart-movers" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.movers_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.movers_aria }}</caption>
+      <thead><tr><th scope="col">סוג עבירה</th><th scope="col">{{ model.meta.P }}</th><th scope="col">{{ model.meta.L }}</th><th scope="col">שינוי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.movers %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.prev }}</td><td>{{ r.cur }}</td><td dir="ltr">{{ r.chg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיקי חקירה לפי מחוז משטרתי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_lede }}</p>
+  <div id="chart-districts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.districts_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th>{% for y in model.charts.districts.years %}<th scope="col">{{ y }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.districts %}
+        <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אופי הפשיעה בכל מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תחנות המשטרה עם הכי הרבה תיקים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stations_lede }}</p>
+  <div id="chart-stations" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.stations_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.stations_aria }}</caption>
+      <thead><tr><th scope="col">תחנה</th><th scope="col">מחוז</th><th scope="col">{{ model.meta.L }}</th>{% if model.flags.has_prev %}<th scope="col">{{ model.meta.P }}</th><th scope="col">שינוי</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.stations %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.district }}</td><td>{{ r.cur }}</td>{% if model.flags.has_prev %}<td>{{ r.prev }}</td><td dir="ltr">{{ r.chg }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחוזות, מרחבים ותחנות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_lede }}</p>
+  <div id="chart-tree" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.tree_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">פשיעה לפי יישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_lede }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_aria }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">{{ model.meta.L }}</th>{% if model.flags.has_prev %}<th scope="col">{{ model.meta.P }}</th><th scope="col">שינוי</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.cur }}</td>{% if model.flags.has_prev %}<td>{{ r.prev }}</td><td dir="ltr">{{ r.chg }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">היכן התרחשו העבירות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.place_lede }}</p>
+    <div id="chart-place" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.place_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.place_aria }}</caption>
+        <thead><tr><th scope="col">סוג מקום</th><th scope="col">תיקים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.place %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- if model.flags.councils %}
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">מועצות אזוריות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.councils_lede }}</p>
+    <div id="chart-councils" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.councils_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.councils_aria }}</caption>
+        <thead><tr><th scope="col">מועצה אזורית</th><th scope="col">תיקים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.councils %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+{%- endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה עבירות בתיק אחד</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.multi_lede }}</p>
+    <div id="chart-multi" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.multi_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.multi_aria }}</caption>
+        <thead><tr><th scope="col">עבירות בתיק</th><th scope="col">תיקים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.multi %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">עונתיות לפי רבעון</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_lede }}</p>
+    <div id="chart-season" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.season_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.season_aria }}</caption>
+        <thead><tr><th scope="col">רבעון</th>{% for s in model.charts.season.series %}<th scope="col">{{ s.name }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.season %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+{%- if model.flags.catalog %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מילון העבירות ועבירות רגישות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.catalog_lede }}</p>
+  <div id="chart-catalog" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.catalog_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.catalog_aria }}</caption>
+      <thead><tr><th scope="col">קבוצת עבירה</th><th scope="col">עבירות במילון</th><th scope="col">מתוכן רגישות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.catalog %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total }}</td><td>{{ r.sens }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איך לקרוא את הנתונים</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+    <li>כל רשומה במאגר היא עבירה אחת בתיק חקירה שבו יש חשד לעבירה פלילית. בתיק אחד יכולות להיות כמה עבירות, ולכן תיקים נספרים לפי מזהה התיק ועבירות לפי מספר הרשומות.</li>
+    <li>השיוך הגאוגרפי (תחנה, מרחב, מחוז ויישוב) הוא לפי המצב בזמן הפקת הקובץ, לא בזמן ביצוע העבירה.</li>
+    <li>לשמירה על צנעת הפרט, ביישובים כפריים המיקום מוצג רק ברמת המועצה האזורית, ועבירות רגישות מוצגות רק ברמת היישוב.</li>
+    <li>לפי משטרת ישראל, מבנה המאגר השתנה, והוא אינו זהה למאגרי נתוני הפשיעה שפורסמו עד הרבעון הראשון של 2023.</li>
+    <li>מספרי התיקים הם מוחלטים ואינם מנורמלים לגודל האוכלוסייה, ולכן יישובים ומחוזות גדולים מובילים באופן טבעי.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.quarterly | tojson }};
+    var c = echarts.init(document.getElementById("chart-quarterly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + (d.pre[i] ? " (לפני שבר בסדרה)" : "") + "<br/>" +
+          d.cases[i].toLocaleString("he-IL") + " תיקים<br/>" + d.off[i].toLocaleString("he-IL") + " עבירות";
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }],
+      series: [
+        { type: "bar", name: "תיקים", data: d.cases.map(function (v, i) {
+          return d.pre[i] ? { value: v, itemStyle: { color: "#a9c8f5" } } : v;
+        }) },
+        { type: "line", name: "עבירות", data: d.off }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.mix | tojson }};
+    var el = document.getElementById("chart-mix");
+    function legendRows(el, names) {
+      var avail = Math.max(120, el.clientWidth - 32), row = 0, rows = 1;
+      names.forEach(function (n) {
+        var w = String(n).length * 7 + 34;
+        if (row + w > avail && row > 0) { rows += 1; row = 0; }
+        row += w;
+      });
+      return rows;
+    }
+    var names = d.series.map(function (s) { return s.name; });
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, itemGap: 8 },
+      grid: { left: 16, right: 16, top: 16, bottom: 16 + legendRows(el, names) * 22, containLabel: true },
+      xAxis: { type: "category", data: d.years, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "mix", data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () {
+      c.setOption({ grid: { bottom: 16 + legendRows(el, names) * 22 } });
+      c.resize();
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, unit, curName, prevName) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      var series = [{ type: "bar", name: curName, data: d.cur }];
+      if (d.prev && d.prev.length) { series.push({ type: "bar", name: prevName, data: d.prev }); }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          var s = echarts.format.encodeHTML(d.names[i]);
+          ps.forEach(function (p) { s += "<br/>" + p.seriesName + ": " + p.value.toLocaleString("he-IL") + " " + unit; });
+          return s;
+        } },
+        legend: { top: 0 },
+        grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
+        xAxis: { type: "value", splitNumber: el.clientWidth < 560 ? 3 : 5,
+                 axisLabel: { hideOverlap: true, formatter: function (v) {
+                   return (el.clientWidth < 560 && v >= 1000) ? (v / 1000) + "K" : v.toLocaleString("he-IL"); } } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { interval: 0, fontSize: 11, width: Math.min(200, el.clientWidth * 0.45), overflow: "truncate" } },
+        series: series
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var L = {{ model.meta.L | tojson }};
+    var P = {{ model.meta.P | tojson }};
+    hbar("chart-groups", {{ model.charts.groups | tojson }}, "עבירות", String(L), String(P));
+    hbar("chart-types", {{ model.charts.types | tojson }}, "עבירות", String(L), String(P));
+    hbar("chart-stations", {{ model.charts.stations | tojson }}, "תיקים", String(L), String(P));
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "תיקים", String(L), String(P));
+    hbar("chart-councils", { names: {{ model.charts.councils.names | tojson }}, cur: {{ model.charts.councils["values"] | tojson }}, prev: [] }, "תיקים", String(L), "");
+  })();
+</script>
+
+{%- if model.flags.movers %}
+<script>
+  (function () {
+    var d = {{ model.charts.movers | tojson }};
+    var el = document.getElementById("chart-movers");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br/>" + d.prev[i].toLocaleString("he-IL") + " ← " +
+          d.cur[i].toLocaleString("he-IL") + " עבירות<br/>" + "\u200e" + (d.values[i] > 0 ? "+" : "") + d.values[i] + "%";
+      } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: el.clientWidth < 560 ? 3 : 5,
+               axisLabel: { hideOverlap: true, formatter: function (v) { return "\u200e" + v + "%"; } } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { interval: 0, fontSize: 11, width: Math.min(200, el.clientWidth * 0.45), overflow: "truncate" } },
+      series: [{ type: "bar", name: "שינוי", data: d.values.map(function (v) {
+        return { value: v, itemStyle: { color: v > 0 ? "#dc3545" : "#198754" } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.districts | tojson }};
+    var el = document.getElementById("chart-districts");
+    function legendRows(el, names) {
+      var avail = Math.max(120, el.clientWidth - 32), row = 0, rows = 1;
+      names.forEach(function (n) {
+        var w = String(n).length * 7 + 34;
+        if (row + w > avail && row > 0) { rows += 1; row = 0; }
+        row += w;
+      });
+      return rows;
+    }
+    var names = d.series.map(function (s) { return s.name; });
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v.toLocaleString("he-IL") + " תיקים"; } },
+      legend: { bottom: 0, itemGap: 8 },
+      grid: { left: 16, right: 24, top: 16, bottom: 16 + legendRows(el, names) * 22, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value", splitNumber: 4, axisLabel: { hideOverlap: true, formatter: function (v) {
+        return v >= 1000 ? (v / 1000) + "K" : v; } } },
+      series: d.series.map(function (s) { return { type: "line", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () {
+      c.setOption({ grid: { bottom: 16 + legendRows(el, names) * 22 } });
+      c.resize();
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + "<br/>" + echarts.format.encodeHTML(h.x[p.value[0]]) +
+          ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " עבירות)";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 96, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true },
+               axisLabel: { interval: 0, rotate: 45, fontSize: 10, width: 90, overflow: "truncate" } },
+      yAxis: { type: "category", data: h.y, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: {
+        min: 0, max: h.max, dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+        inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", name: "שיעור מהעבירות במחוז", data: h.cells,
+                 label: { show: el.clientWidth > 560, fontSize: 10, formatter: function (p) { return p.value[2]; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var data = {{ model.charts.tree | tojson }};
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br/>" + p.value.toLocaleString("he-IL") + " תיקים";
+      } },
+      series: [{ type: "treemap", name: "כל המחוזות", data: data, roam: false, nodeClick: "zoomToNode", leafDepth: 2,
+                 breadcrumb: { show: true, bottom: 4, height: 26,
+                               itemStyle: { color: "#f0f4fa", borderColor: "#c3cfe7", borderWidth: 1, textStyle: { color: "#0b3668" } },
+                               emphasis: { itemStyle: { color: "#e3ecf9" } } },
+                 width: "100%", top: 8, bottom: 40,
+                 upperLabel: { show: true, height: 22, color: "#fff", fontFamily: "Rubik", overflow: "truncate" },
+                 label: { show: true, formatter: "{b}", overflow: "truncate", fontFamily: "Rubik", fontSize: 11 },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } },
+                   { colorSaturation: [0.3, 0.55], itemStyle: { gapWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.place | tojson }};
+    var el = document.getElementById("chart-place");
+    function legendRows(el, names) {
+      var avail = Math.max(120, el.clientWidth - 32), row = 0, rows = 1;
+      names.forEach(function (n) {
+        var w = String(n).length * 7 + 34;
+        if (row + w > avail && row > 0) { rows += 1; row = 0; }
+        row += w;
+      });
+      return rows;
+    }
+    function layout() {
+      var rows = legendRows(el, d.names), h = el.clientHeight || 256;
+      var legendH = rows * 22 + 8, ch = Math.max(80, h - legendH);
+      return { cy: Math.round(ch / 2), r: Math.round(Math.min(ch, el.clientWidth) / 2 - 8) };
+    }
+    var c = echarts.init(el);
+    var lay = layout();
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br/>" + p.value.toLocaleString("he-IL") + " תיקים (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0, itemGap: 8 },
+      series: [{ type: "pie", radius: [Math.round(lay.r * 0.58), lay.r], center: ["50%", lay.cy], label: { show: false },
+                 data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }) }]
+    }));
+    window.addEventListener("resize", function () {
+      c.resize();
+      var l = layout();
+      c.setOption({ series: [{ radius: [Math.round(l.r * 0.58), l.r], center: ["50%", l.cy] }] });
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.multi | tojson }};
+    var c = echarts.init(document.getElementById("chart-multi"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " תיקים"; } },
+      grid: { left: 16, right: 16, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.bins, name: "עבירות בתיק", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "תיקים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+
+    var s = {{ model.charts.season | tojson }};
+    var c2 = echarts.init(document.getElementById("chart-season"));
+    c2.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: s.q },
+      yAxis: { type: "value", scale: true, axisLabel: { formatter: "{value}%" } },
+      series: s.series.map(function (x) { return { type: "line", name: x.name, data: x.data }; })
+    }));
+    window.addEventListener("resize", function () { c2.resize(); });
+  })();
+</script>
+
+{%- if model.flags.catalog %}
+<script>
+  (function () {
+    var d = {{ model.charts.catalog | tojson }};
+    var el = document.getElementById("chart-catalog");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.names[i]);
+        ps.forEach(function (p) { s += "<br/>" + p.seriesName + ": " + p.value.toLocaleString("he-IL"); });
+        return s;
+      } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: el.clientWidth < 560 ? 3 : 5, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { interval: 0, fontSize: 11, width: Math.min(200, el.clientWidth * 0.45), overflow: "truncate" } },
+      series: [
+        { type: "bar", name: "עבירות רגילות", stack: "c", data: d.plain },
+        { type: "bar", name: "עבירות רגישות", stack: "c", data: d.sens }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
