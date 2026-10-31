@@ -87,12 +87,14 @@ _COMPUTE_TIMEOUT_S = 300
 _DEFAULT_COMPUTE_MEMORY_MB = 3072
 # Sandbox-spawn flake (gRPC atfork handlers abort the forked child, SIGABRT
 # + an `ev_epoll1_linux` line on stderr): not the recipe's fault, so retry
-# in a fresh sandbox instead of opening an authoring issue.
+# in a fresh sandbox instead of opening an authoring issue. If every attempt
+# flakes, the failure is `sandbox_failed`: transient, retried next run.
 _COMPUTE_SPAWN_ATTEMPTS = 2
 _COMPUTE_SPAWN_BACKOFF_S = 1.0
 
 # Failure reasons a human must act on → open an authoring issue. Anything
-# else (`fetch_failed`) is transient and simply retried next run.
+# else (`fetch_failed`, `sandbox_failed`) is transient and simply retried
+# next run.
 # Staging (GCS upload / Firestore mark) failed after a good render. After
 # this many in a row the batch stops: the store is down, and every further
 # source would only spend a full export to fail the same way.
@@ -715,7 +717,15 @@ def _memory_guard(recipe: Recipe) -> str:
 
 
 class _SpawnFlake(RecipeError):
-    """compute() died to the known fork/gRPC abort, not to recipe code."""
+    """compute() died to the known fork/gRPC abort, not to recipe code.
+
+    Not an authoring reason: as `recipe_failed` it would open an issue and
+    lock the source out (`needs_refresh` skips a failed version) until the
+    data moved, though the same recipe renders fine on the next spawn.
+    """
+
+    def __init__(self, message: str):
+        super().__init__(message, reason="sandbox_failed")
 
 
 def _is_spawn_flake(error_value: str, stderr: str) -> bool:
