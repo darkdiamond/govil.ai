@@ -74,7 +74,7 @@ services/
     podman_sandbox.py            shared sandbox result types (no longer a runtime sandbox)
     publish.py                   Firestore → data.json/agent_data.json/manifest.json
     tags.py / related.py         tag vocabulary (taxonomy/) + content-based related datasets
-    cli/preview.py               preview an authoring build in the prod shell
+    cli/preview.py               serve a recipe's page in the real shell (nuxt dev overlay)
 agent/
   system-prompt.md             design reference for authoring (retired agent prompt)
   skills/check.py              static page gate enforcing the hard rules
@@ -214,26 +214,26 @@ python -m services.page_builder.author verify <dataset_id>    # run as the refre
                                                               # + determinism/robustness
 ```
 
-`verify` writes the rendered page to `tmp/model_test/<id>/` (gitignored;
-the directory name is historical). Two ways to see it through the real
-dataset shell:
+To see the page in the real dataset shell (layout, Tailwind, explorer, tags,
+related datasets), preview it:
 
 ```sh
-# Offline — splices the body into a fetched copy of the live govil.ai
-# page, strips Nuxt hydration so the splice survives, rewrites root-relative
-# URLs to absolute. Open the printed file:// URL.
-python -m services.page_builder.cli.preview render <id>
-
-# Full Nuxt-shell — backs up frontend/public/datasets/<id>/{content.html,
-# agent_data.json}, drops the build in their place, then `npm run dev`
-# serves it at localhost:3000. Restores the prod files when you're done.
-python -m services.page_builder.cli.preview swap <id>
-cd frontend && npm run dev
-# http://localhost:3000/datasets/<id>  vs  https://govil.ai/datasets/<id>
-python -m services.page_builder.cli.preview restore <id>
-
-python -m services.page_builder.cli.preview status   # what's swapped right now
+python -m services.page_builder.cli.preview <id>           # render + serve, prints the URL
+python -m services.page_builder.cli.preview <id> --watch   # re-render on every recipe save
+python -m services.page_builder.cli.preview status         # staged pages + server
+python -m services.page_builder.cli.preview stop           # stop the dev server
 ```
+
+It renders the recipe once over `prepare`'s local data (about a second), stages
+it in `tmp/preview/` and serves it through `nuxt dev` at
+`http://127.0.0.1:3100/datasets/<page_slug>/`. Pages that are already live get
+the govil.ai URL printed next to it for comparison. `tmp/preview/` is an
+overlay the dev server reads before `frontend/public/`, so nothing in
+`frontend/` changes and there is nothing to restore. It also works for a
+dataset with no live page yet, for provider sources and in a worktree, where
+it borrows the main checkout's manifest for tags and related datasets. The
+server starts once (a few seconds) and keeps running. The open page reloads
+itself whenever `preview` or `verify` re-renders.
 
 `tmp/` holds raw dataset rows (which can include personal contact
 details) and is never committed; only `recipes/<id>/` is.

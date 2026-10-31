@@ -20,8 +20,10 @@ Branch switches and stray edits there clobber another session's work.
   `npm ci` / `npm install` / `pip install` in a worktree: it rewrites the main checkout's
   copy. For a dependency change, remove the link itself (`rm frontend/node_modules`: no
   `-r`, no trailing slash, either of which deletes the main checkout's files) and install a
-  private copy. Vite/Nuxt keep their build caches inside `frontend/node_modules`, so run one
-  `nuxt dev` / `npm run generate` at a time across worktrees, or use a private copy.
+  private copy. Vite's dep cache is per checkout (`frontend/.cache/vite`, `vite.cacheDir`),
+  so dev servers in several worktrees can run at once. To look at a recipe's page, use
+  `python -m services.page_builder.cli.preview <id>` (a `nuxt dev` on port 3100+ reading
+  the `tmp/preview/` overlay; `preview stop` ends it). Don't hand-edit `frontend/public/`.
 - **Don't edit, stash, reset or switch branches in a checkout you didn't create.** If a
   merge or checkout is blocked by changes you didn't make, stop and ask.
 - **The Firestore emulator uses fixed port 8080**: one run at a time across worktrees. Check

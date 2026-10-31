@@ -453,17 +453,17 @@ sandboxed compute, sanitizer, `check.py`), then:
 `coverage.json` is authoring documentation only: the nightly refresh never
 reads it, so updating it can't break a live page.
 
-It also writes `tmp/model_test/<id>/{content.html,agent_data.json,model.json}`.
+It also stages the page in `tmp/preview/datasets/<id>/{content.html,agent_data.json,model.json}`
+(an open preview, §6, reloads with it).
 Read `model.json` and the truncated-run insight sentences it prints: do the
 insights still read naturally and truthfully on the smaller data? Verify the
 key numbers independently (a separate pandas one-off) — CHART-DATA
 PROVENANCE is now "compute computed it", so check compute is right.
 
 Chart heights: prefer the corpus's existing pairs (`h-64 md:h-80`,
-`h-72 md:h-96`, `h-72 md:h-[420px]`, `h-80 md:h-[460px]`). Tailwind
-compiles classes from published bodies at build time, so a new arbitrary
-value (`h-[520px]`) works on the site but is missing from the live CSS that
-`preview render` borrows — the chart then collapses to 0px in the preview.
+`h-72 md:h-96`, `h-72 md:h-[420px]`, `h-80 md:h-[460px]`), so pages stay
+consistent. Tailwind compiles classes from the page bodies at build time, so a
+new arbitrary value still works, on the site and in the preview.
 
 Heatmap cells with extra fields (`[x, y, value, count]`): set
 `visualMap.dimension: 2`. ECharts otherwise colours by the LAST element,
@@ -472,13 +472,20 @@ so a count column silently drives the colour scale.
 ## 6. Look at it
 
 ```bash
-python -m services.page_builder.cli.preview render <dataset_id>   # existing pages
+python -m services.page_builder.cli.preview <dataset_id>   # prints local + prod URLs
 ```
 
-or `preview swap <id>` + `cd frontend && npm run dev` (pages with a local
-`frontend/public/datasets/<id>/data.json`). Open it with Playwright at 375px
-and desktop width; charts must render on a normal load, console clean. Fix
-and re-verify.
+This renders the recipe over the prepared data and serves it in the real
+dataset shell through `nuxt dev`, which starts once per checkout in a few
+seconds. It works for new datasets, provider sources and worktrees. Open the
+printed `local:` URL with Playwright at 375px and at desktop width. Charts must
+render on a normal load with a clean console. The `[Vue warn] onBeforeUnmount`
+line is dev-mode noise from the shell, not the page. The open page reloads
+itself after every `preview` or `verify`. While iterating on looks, run
+`preview <id> --watch`: it re-renders on each save of `recipes/<id>/`, and a
+broken edit prints `FAIL` and keeps the last good page. Fix and re-verify.
+When done, `preview stop`. The previewed page also carries a small "תצוגה
+מקדימה מקומית" badge, which the site does not show.
 
 ## 7. Ship
 

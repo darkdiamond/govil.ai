@@ -65,6 +65,7 @@ htmlcov/
 frontend/node_modules
 frontend/.output/
 frontend/.nuxt/
+frontend/.cache/
 frontend/.data/
 # Curated viz libs copied from node_modules at build time + the
 # hand-written gov-explorer.js copied from frontend/scripts/. See

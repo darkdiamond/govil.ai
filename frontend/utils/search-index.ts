@@ -47,6 +47,14 @@ async function readPublicJson<T>(rel: string): Promise<T> {
   // same pattern as pages/datasets/[slug].vue's server-only fetcher.
   const fs = await import("node:fs/promises");
   const path = await import("node:path");
+  // Local recipe preview (nuxt.config.ts PREVIEW_ROOT): its overlay first.
+  const overlay = process.env.NUXT_PREVIEW_ROOT;
+  if (overlay) {
+    const body = await fs
+      .readFile(path.join(overlay, rel), "utf-8")
+      .catch(() => null);
+    if (body !== null) return JSON.parse(body) as T;
+  }
   const p = path.resolve(process.cwd(), "public", rel);
   return JSON.parse(await fs.readFile(p, "utf-8")) as T;
 }
@@ -56,7 +64,8 @@ export function loadFullManifestServer(): Promise<Manifest> {
   if (!import.meta.server) {
     return Promise.reject(new Error("loadFullManifestServer is server-only"));
   }
-  if (!fullManifestCache) {
+  // A preview's overlay manifest changes under the running server: re-read it.
+  if (!fullManifestCache || process.env.NUXT_PREVIEW_ROOT) {
     fullManifestCache = readPublicJson<Manifest>("data/manifest.json");
   }
   return fullManifestCache;
@@ -65,7 +74,11 @@ export function loadFullManifestServer(): Promise<Manifest> {
 /** Slim index. Server: read from public/ (falling back to slimming the full
  *  manifest). Client: one on-demand fetch of /data/search-index.json. */
 export function loadSearchIndex(): Promise<SearchIndex> {
-  if (!searchIndexCache) {
+  // As loadFullManifestServer: a preview's overlay changes under the server.
+  if (
+    !searchIndexCache ||
+    (import.meta.server && process.env.NUXT_PREVIEW_ROOT)
+  ) {
     searchIndexCache = import.meta.server
       ? readPublicJson<SearchIndex>("data/search-index.json").catch(
           async () => {

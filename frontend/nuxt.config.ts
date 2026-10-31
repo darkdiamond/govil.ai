@@ -137,9 +137,16 @@ ensureSearchIndex();
 // local builds) means the feature is fully absent from the generated site.
 // Production sets these as GitHub repo variables (see
 // .github/workflows/publish.yml and infra/github-ci.setup.sh).
-const GTAG_ID = process.env.NUXT_PUBLIC_GTAG_ID || "";
-const ADSENSE_ID = process.env.NUXT_PUBLIC_ADSENSE_ID || "";
-const CLARITY_ID = process.env.NUXT_PUBLIC_CLARITY_ID || "";
+// Local recipe preview (`python -m services.page_builder.cli.preview`): the
+// CLI runs `nuxt dev` with this set to its tmp/preview/ overlay, which the
+// server reads before public/ (utils/search-index.ts, pages/datasets/[slug].vue).
+// Unset — every build and deploy — it changes nothing.
+const PREVIEW_ROOT = process.env.NUXT_PREVIEW_ROOT || "";
+
+// A local preview never reports to analytics or ads.
+const GTAG_ID = PREVIEW_ROOT ? "" : process.env.NUXT_PUBLIC_GTAG_ID || "";
+const ADSENSE_ID = PREVIEW_ROOT ? "" : process.env.NUXT_PUBLIC_ADSENSE_ID || "";
+const CLARITY_ID = PREVIEW_ROOT ? "" : process.env.NUXT_PUBLIC_CLARITY_ID || "";
 
 // File-watcher polling is only needed when the checkout sits on WSL DrvFs
 // (/mnt/<drive>/…), where inotify doesn't cross the Windows↔Linux boundary.
@@ -187,6 +194,18 @@ export default defineNuxtConfig({
       clarityId: CLARITY_ID,
     },
   },
+
+  // Preview-only pieces (preview/), registered only then so no build ships
+  // them: the overlay's /data/*.json ahead of public/, the stamp the CLI
+  // bumps on every render, and the client plugin that reloads the page
+  // when it moves.
+  plugins: PREVIEW_ROOT ? ["~/preview/reload.client.ts"] : [],
+  serverHandlers: PREVIEW_ROOT
+    ? [
+        { middleware: true, handler: "~/preview/data.ts" },
+        { route: "/__preview/stamp", handler: "~/preview/stamp.ts" },
+      ]
+    : [],
 
   components: [{ path: "~/components", pathPrefix: false }],
 
@@ -315,6 +334,10 @@ export default defineNuxtConfig({
     chokidar: { ...pollOpts },
   },
   vite: {
+    // Per checkout, not node_modules/.cache/vite: worktrees symlink
+    // frontend/node_modules, so the default is shared and two dev servers
+    // (a preview in each worktree) overwrite each other's optimized deps.
+    cacheDir: ".cache/vite",
     server: {
       watch: { ...pollOpts, ignored: [DIST_RE] },
     },
