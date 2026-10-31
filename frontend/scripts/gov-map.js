@@ -26,6 +26,15 @@
 ;(function () {
   'use strict';
 
+  // Leaflet 1.9's default attribution prefix embeds a flag icon. Replace
+  // it for every map on the page — GovMap's and any body calling L.map
+  // directly — since this file loads after leaflet.js and before the
+  // body's inline scripts. Tile-layer credits (OSM) are unaffected.
+  if (window.L && L.Control && L.Control.Attribution) {
+    L.Control.Attribution.prototype.options.prefix =
+      '<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet</a>';
+  }
+
   // EPSG:2039 (Israeli Transverse Mercator) inverse transform parameters.
   // Source: EPSG database. Snyder/USGS Bulletin 1532 standard TM inverse,
   // GRS80 ellipsoid (the Israeli 1993 datum is GRS80-based).
