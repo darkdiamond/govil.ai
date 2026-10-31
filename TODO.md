@@ -52,7 +52,7 @@ This repo is public: describe a security gap by what to change, never by how to 
   (2026-10-30)
 - **GIS layers with no recipe could get maps now.** `map: true` reads their SHP/KMZ zips
   directly, but they have no recipe and no open issue, so nothing queues them:
-  `python -m services.page_builder.map_backfill list` reports them as `no_recipe` (66 on
+  `python -m services.page_builder.map_backfill list` reports them as `no_recipe` (63 on
   2026-10-31; the transport/Ayalon family 30cc4889, 5f6d04bf, 7fb47ed4, cdd75af3, e74cc3c7,
   ee1265d8, 360fb8b4 among them). Open `new`-style issues for the ones worth a page (the
   backfill only files issues for recipe'd pages). (2026-10-31)
