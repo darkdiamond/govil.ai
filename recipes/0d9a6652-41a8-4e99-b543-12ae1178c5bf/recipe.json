@@ -1,0 +1,73 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0d9a6652-41a8-4e99-b543-12ae1178c5bf",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-04-19T08:06:44.185508+00:00",
+    "rows": {
+      "crimes": 1637970,
+      "catalog": 5286
+    }
+  },
+  "inputs": [
+    {
+      "name": "crimes",
+      "by_schema": [
+        "FictiveIDNumber",
+        "Year",
+        "Quarter",
+        "Yeshuv",
+        "PoliceDistrict",
+        "PoliceMerhav",
+        "PoliceStation",
+        "municipalName",
+        "StatisticGroup",
+        "StatisticType"
+      ],
+      "concat": true,
+      "required_columns": [
+        "FictiveIDNumber",
+        "Year",
+        "Quarter",
+        "Yeshuv",
+        "PoliceDistrict",
+        "PoliceMerhav",
+        "PoliceStation",
+        "municipalName",
+        "StatisticGroup",
+        "StatisticType"
+      ],
+      "columns": [
+        "FictiveIDNumber",
+        "Year",
+        "Quarter",
+        "Yeshuv",
+        "PoliceDistrict",
+        "PoliceMerhav",
+        "PoliceStation",
+        "municipalName",
+        "StatisticGroup",
+        "StatisticType"
+      ]
+    },
+    {
+      "name": "catalog",
+      "by_id": "b53b64f8-57ed-4213-9191-a7401c0cf436",
+      "required_columns": [
+        "StatisticCrimeGroupName",
+        "StatisticCrimeTypeName",
+        "CrimeName",
+        "SensitivityFlag"
+      ],
+      "columns": [
+        "StatisticCrimeGroupName",
+        "StatisticCrimeTypeName",
+        "CrimeName",
+        "SensitivityFlag"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["2023"]
+}

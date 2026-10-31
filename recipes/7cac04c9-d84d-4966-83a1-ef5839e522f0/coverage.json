@@ -1,0 +1,11 @@
+{
+  "main.OID": "skip: constant placeholder (-1 on every row), not an identifier",
+  "main.NAME": "chart-depots, chart-lines, chart-shape, kpi:largest, insight:largest, insight:line_lead, insight:expansion — the line grouping is parsed from the word קו in the name",
+  "main.TYPE": "skip: constant (רכבת קלה on every row)",
+  "main.YEARMONTH": "chart-vintage, insight:vintage",
+  "main.DUNAM": "chart-depots, chart-status, chart-lines, chart-bands, chart-shape, kpi:area, kpi:ex_share, kpi:largest, insight:pipeline, insight:operational, insight:largest",
+  "main.STATUS": "chart-status, chart-depots, chart-lines, chart-bands, kpi:ex_share, insight:pipeline, insight:operational, insight:expansion",
+  "main.SHAPE_Leng": "chart-shape — fallback perimeter when Shape_Length is blank",
+  "main.Shape_Length": "chart-shape, chart-depots — perimeter and the compactness index",
+  "main.Shape_Area": "chart-depots — fallback area (m², /1000 = dunam) when DUNAM is blank"
+}

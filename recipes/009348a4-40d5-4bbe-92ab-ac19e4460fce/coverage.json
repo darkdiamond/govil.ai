@@ -1,0 +1,8 @@
+{
+  "authorities.LocalAuthorityType": "chart-types, chart-mix, chart-share, chart-tree, table:codes, table:quality, kpi:city, kpi:local, kpi:regional, insight:type_mix, insight:city_share, insight:regional, insight:hp_code, insight:gaps — three known types ordered and pluralised, unknown types flow through",
+  "authorities.LocalAuthorityCode": "chart-tree, table:codes, table:quality, insight:hp_code — code range per type, duplicate check, and whether the HP number embeds the code",
+  "authorities.LocalAuthorityName": "chart-tree, lists, insight:gaps — authority names in the treemap leaves and the per-district lists",
+  "authorities.LocalAuthorityHPNumber": "table:quality, kpi:hp, insight:hp, insight:hp_code — check-digit validation, duplicates, code embedding",
+  "authorities.LocalAuthorityLongName": "table:quality, insight:gaps — long-name prefix checked against the authority type",
+  "authorities.LocalAuthorityDistrict": "chart-districts, chart-mix, chart-share, chart-tree, lists, kpi:districts, insight:top_district, insight:city_share, insight:regional, insight:gaps — empty district bucketed as unassigned"
+}

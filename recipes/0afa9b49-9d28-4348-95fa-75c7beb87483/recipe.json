@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0afa9b49-9d28-4348-95fa-75c7beb87483",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-03-15T14:43:31.188815+00:00",
+    "rows": { "main": 25 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "a5986bdd-a920-408e-aef0-56d7b485f2e8",
+      "required_columns": ["סנקציות/שנת נתינת הסנקציות"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

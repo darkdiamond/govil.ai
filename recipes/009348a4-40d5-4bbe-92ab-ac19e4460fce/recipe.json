@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "009348a4-40d5-4bbe-92ab-ac19e4460fce",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-12-10T14:23:54.190606+00:00",
+    "rows": { "authorities": 259 }
+  },
+  "inputs": [
+    {
+      "name": "authorities",
+      "by_id": "c4916937-f5d3-4295-a22e-88a1af5cde6a",
+      "required_columns": [
+        "LocalAuthorityType",
+        "LocalAuthorityCode",
+        "LocalAuthorityName",
+        "LocalAuthorityHPNumber",
+        "LocalAuthorityLongName",
+        "LocalAuthorityDistrict"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}
