@@ -18,7 +18,9 @@ from __future__ import annotations
 import csv
 import io
 import json
+import hashlib
 import logging
+import os
 import re
 import subprocess
 import sys
@@ -88,7 +90,13 @@ class ResourceRestrictedError(Exception):
 # tight wall-clock budget. On any error we return None and the agent falls
 # back to its existing curl flow — never block the build on prefetch.
 _CKAN_DATASTORE_URL = "https://data.gov.il/api/3/action/datastore_search"
-_CKAN_BROWSER_UA = "Mozilla/5.0 (compatible; govdata-builder/1.0)"
+# The WAF passes this UA on the API and on file downloads (2026-10-31: a bare
+# `Mozilla/5.0`, curl's and python-requests' UAs all 403). CKAN_USER_AGENT
+# overrides it, so a WAF change is a job env fix, not a redeploy.
+_CKAN_BROWSER_UA = (
+    os.environ.get("CKAN_USER_AGENT", "").strip()
+    or "Mozilla/5.0 (compatible; govdata-builder/1.0)"
+)
 _PREFETCH_TIMEOUT_S = 4.0
 _PREFETCH_SAMPLE_LIMIT = 5
 _PREFETCH_VALUE_TRUNC = 80
@@ -414,6 +422,88 @@ def fetch_resource_records_to_file(
 
     dest.unlink(missing_ok=True)
     return None
+
+
+class DownloadBlocked(Exception):
+    """data.gov.il answered a file download with a 403 or an HTML page (the
+    WAF's block page, or an OAuth login screen) instead of the file."""
+
+
+@dataclass
+class FileOutcome:
+    bytes: int
+    sha256: str
+
+
+_DOWNLOAD_CHUNK = 1 << 16
+
+
+def fetch_resource_file(
+    url: str,
+    dest: Path,
+    *,
+    max_bytes: int,
+    timeout_s: float,
+    deadline: float,
+) -> FileOutcome:
+    """Download a resource's uploaded file (a map file, say) to `dest`.
+
+    The URL is rewritten to the public `data.gov.il` host first (`e.` and
+    `aws-e.` sit behind OAuth walls); any other host is a ValueError.
+    Raises DownloadBlocked on a 403 or an
+    HTML body, FetchLimitExceeded("bytes"/"wall_budget") past `max_bytes` or
+    `deadline`, and lets a network error (URLError, timeout) through after
+    one retry. `dest` is removed on any failure.
+    """
+    from services.scanner.models import _public_resource_url
+
+    url = _public_resource_url(url or "")
+    # The URL is publisher-supplied: only ever fetch data.gov.il's own files.
+    if not url.startswith("https://data.gov.il/"):
+        raise ValueError(f"not a data.gov.il file URL ({url[:80]!r})")
+    req = urllib_request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
+    for attempt in (1, 2):
+        try:
+            return _download(req, dest, max_bytes, timeout_s, deadline)
+        except urllib_error.HTTPError as e:
+            dest.unlink(missing_ok=True)
+            if e.code in (401, 403):
+                raise DownloadBlocked(f"HTTP {e.code} for {url}") from None
+            if attempt == 2 or e.code < 500:
+                raise
+        except (urllib_error.URLError, TimeoutError):
+            dest.unlink(missing_ok=True)
+            if attempt == 2:
+                raise
+        except BaseException:
+            dest.unlink(missing_ok=True)
+            raise
+    raise AssertionError("unreachable")
+
+
+def _download(req, dest: Path, max_bytes: int, timeout_s: float, deadline: float) -> FileOutcome:
+    h = hashlib.sha256()
+    n = 0
+    with urllib_request.urlopen(req, timeout=timeout_s) as resp:
+        ctype = (resp.headers.get("Content-Type") or "").lower()
+        if "text/html" in ctype:
+            raise DownloadBlocked(f"{req.full_url} answered with an HTML page ({ctype})")
+        with open(dest, "wb") as f:
+            while chunk := resp.read(_DOWNLOAD_CHUNK):
+                if n == 0 and chunk.lstrip()[:15].lower().startswith((b"<!doctype html", b"<html")):
+                    raise DownloadBlocked(f"{req.full_url} answered with an HTML page")
+                n += len(chunk)
+                if n > max_bytes:
+                    raise FetchLimitExceeded(
+                        "bytes", f"download crossed the {max_bytes:,}-byte cap"
+                    )
+                if time.monotonic() > deadline:
+                    raise FetchLimitExceeded("wall_budget", "download ran out of wall budget")
+                h.update(chunk)
+                f.write(chunk)
+    if n == 0:
+        raise DownloadBlocked(f"{req.full_url} answered with an empty body")
+    return FileOutcome(bytes=n, sha256=h.hexdigest())
 
 
 # Belt-and-braces cleanup for agent-emitted body fragments. The agent

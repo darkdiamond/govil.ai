@@ -39,15 +39,19 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Optional
+from urllib import error as urllib_error
 
 from .agent_contract import (
+    DownloadBlocked,
     ResourceRestrictedError,
+    fetch_resource_file,
     fetch_resource_preview,
     FetchLimitExceeded,
     fetch_resource_records_to_file,
     run_host_check,
     sanitize_content_html,
 )
+from . import geo_snapshot
 from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
 
 from .local_sandbox import LocalSandbox
@@ -57,6 +61,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     RecipeManifest,
+    feature_table,
     snapshot_table,
     kpi_format_findings,
     render_template,
@@ -79,6 +84,12 @@ _DEFAULT_WALL_BUDGET_S = 900.0
 # A wall-budget overrun is transient (slow CKAN); this many in a row since
 # the last full fetch means the dataset outgrew its budget → `too_large`.
 _DEFAULT_WALL_BUDGET_STRIKES = 3
+# Same idea for every `StrikeError` (a map-file download the WAF blocked):
+# this many runs in a row → its `escalate_to` reason, which opens an issue.
+_DEFAULT_TRANSIENT_STRIKES = 3
+# A `map` input's file download cap (REFRESH_MAP_MAX_BYTES): it is parsed
+# in the builder process, not the compute sandbox.
+_DEFAULT_MAP_MAX_BYTES = 50_000_000
 _DEFAULT_PAGE_SIZE = 25_000
 _PAGE_TIMEOUT_S = 60.0
 _COMPUTE_TIMEOUT_S = 300
@@ -100,7 +111,9 @@ _COMPUTE_SPAWN_BACKOFF_S = 1.0
 # source would only spend a full export to fail the same way.
 STAGE_FAILED = "stage_failed"
 MAX_CONSECUTIVE_STAGE_FAILURES = 3
-AUTHORING_REASONS = ("recipe_failed", "schema_changed", "too_large", "geometry_stale")
+AUTHORING_REASONS = (
+    "recipe_failed", "schema_changed", "too_large", "geometry_stale", "download_blocked",
+)
 
 
 def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
@@ -374,6 +387,18 @@ class WallBudgetExceeded(RecipeError):
         super().__init__(message, reason="fetch_failed")
 
 
+class StrikeError(RecipeError):
+    """A transient failure that a human must see once it keeps happening.
+    `refresh_one` counts consecutive runs per `strike` in the refresh state's
+    `transient_strikes` map and, at REFRESH_TRANSIENT_STRIKES, records it as
+    `escalate_to` instead (an AUTHORING_REASON: issue opened, count reset)."""
+
+    def __init__(self, message: str, *, reason: str, strike: str, escalate_to: str):
+        super().__init__(message, reason=reason)
+        self.strike = strike
+        self.escalate_to = escalate_to
+
+
 def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
     """A byte overrun is the dataset outgrowing its cap: a retry fetches the
     same bytes again, so a human must act (`too_large`). A wall-budget
@@ -415,6 +440,7 @@ _RENDER_CODE_FILES = (
     RECIPE_EXEC_PATH,
     Path(__file__).resolve().parent / "recipe.py",
     Path(__file__).resolve().parent / "agent_contract.py",
+    Path(__file__).resolve().parent / "geo_snapshot.py",  # `map` inputs' table
 )
 
 
@@ -487,11 +513,16 @@ def _digest(parts: list, identity: str) -> str:
 def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     """Check A: what the datastore preview says about every input — row total,
     columns, first rows (`_id` dropped) — plus `recipe_identity`. A snapshot
-    input has no datastore; its bytes are already in the identity."""
+    input has no datastore; its bytes are already in the identity. A map
+    input contributes CKAN's size/md5 of its file."""
     parts = []
     for inp in recipe.manifest.inputs:
         if inp.snapshot:
             parts.append([inp.name, inp.by_id, "snapshot"])
+            continue
+        if inp.map:
+            res = probe.resolved[inp.name][0]
+            parts.append([inp.name, inp.by_id, "map", res.get("size"), res.get("hash")])
             continue
         for res in probe.resolved[inp.name]:
             p = probe.preview(res["id"]) or {}
@@ -514,11 +545,19 @@ def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> Option
     preview's row total and columns, plus `recipe_identity`. None when any
     input has no CKAN hash (API-pushed resource, or a source doc scanned before
     the scanner kept it) — it never vouches for an input it can't see. A
-    snapshot input is exact by construction (its bytes are in the identity)."""
+    snapshot input is exact by construction (its bytes are in the identity).
+    A map input with no md5 makes it None too (size alone misses a same-size
+    edit), so its file is downloaded and check B decides."""
     parts = []
     for inp in recipe.manifest.inputs:
         if inp.snapshot:
             parts.append([inp.name, inp.by_id, "snapshot"])
+            continue
+        if inp.map:
+            res = probe.resolved[inp.name][0]
+            if not res.get("hash"):
+                return None
+            parts.append([inp.name, inp.by_id, "map", res["hash"], res.get("size")])
             continue
         for res in probe.resolved[inp.name]:
             if not res.get("hash"):
@@ -591,6 +630,7 @@ def fetch_inputs(
     fetch_fn: Callable = fetch_resource_records_to_file,
     probe: Optional[InputProbe] = None,
     snapshot_rows: Callable[[list], list] = lambda rows: rows,
+    fetch_file_fn: Callable = fetch_resource_file,
 ) -> dict[str, list[FetchedInput]]:
     """Full export of every resource the recipe reads, as CSV in `dest_dir`.
 
@@ -600,8 +640,9 @@ def fetch_inputs(
     or the wall budget ran out; transient).
 
     `probe` (from `probe_inputs`) skips the resolve + preview calls already made.
-    A snapshot input is written from its committed GeoJSON, never fetched;
-    `snapshot_rows` lets author verify truncate/shuffle its features.
+    A snapshot input is written from its committed GeoJSON, never fetched; a
+    map input downloads its file (`fetch_file_fn`) and converts it the same
+    way. `snapshot_rows` lets author verify truncate/shuffle either's features.
     """
     probe = probe or probe_inputs(recipe, resources, preview_fn)
     _preview = probe.preview
@@ -626,6 +667,14 @@ def fetch_inputs(
         if inp.snapshot:
             out[inp.name] = [_write_snapshot(recipe, inp, resolved[inp.name][0],
                                              dest_dir, snapshot_rows)]
+            continue
+        if inp.map:
+            cap = min(_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES), remaining)
+            fetched, nbytes = _fetch_map(inp, resolved[inp.name][0], dest_dir, fetch_file_fn,
+                                         max_bytes=cap, deadline=deadline,
+                                         transform=snapshot_rows)
+            remaining -= nbytes
+            out[inp.name] = [fetched]
             continue
         parts: list[FetchedInput] = []
         for i, res in enumerate(resolved[inp.name]):
@@ -689,6 +738,71 @@ def _write_snapshot(recipe: Recipe, inp, res: dict, dest_dir: Path,
     rows = transform(rows)
     if not rows:
         raise RecipeError(f"input {inp.name!r}: snapshot {inp.snapshot} has no features")
+    return _write_table(inp, res, header, rows, dest_dir)
+
+
+def _map_file_name(res: dict) -> str:
+    """The downloaded file's name, from its URL (it hints the format)."""
+    from urllib.parse import unquote, urlsplit
+
+    tail = unquote(urlsplit(res.get("url") or "").path.rsplit("/", 1)[-1])
+    return tail or f"{res.get('id', 'map')}.{(res.get('format') or 'bin').lower()}"
+
+
+def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
+               max_bytes: int, deadline: float,
+               transform: Callable[[list], list]) -> tuple[FetchedInput, int]:
+    """Download a `map` input's file and write it as the snapshot table.
+
+    The bytes are the data's, so a bad file is `schema_changed` (the upload
+    changed shape), not `recipe_failed`. A WAF block is transient until it
+    repeats (`StrikeError` → `download_blocked`)."""
+    rid = inp.by_id
+    what = f"input {inp.name!r}: map file {rid[:8]}"
+    raw = dest_dir / f"{inp.name}__map.download"
+    if max_bytes <= 0:
+        raise RecipeError(f"{what}: earlier inputs used the whole REFRESH_TOTAL_BYTES budget",
+                          reason="too_large")
+    try:
+        got = fetch_file_fn(res.get("url") or "", raw, max_bytes=max_bytes,
+                            timeout_s=_PAGE_TIMEOUT_S, deadline=deadline)
+        data = raw.read_bytes()
+    except FetchLimitExceeded as e:
+        raise _limit_error(e, f"{what}: download") from None
+    except DownloadBlocked as e:
+        raise StrikeError(f"{what}: download blocked ({e})", reason="fetch_failed",
+                          strike="download_blocked", escalate_to="download_blocked") from None
+    except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
+        raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
+    except (urllib_error.URLError, OSError) as e:  # HTTPError included; timeouts too
+        raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
+    finally:
+        raw.unlink(missing_ok=True)
+    try:
+        feats, prj = geo_snapshot.parse_map(data, _map_file_name(res))
+        crs = geo_snapshot.detect_crs(feats, prj)
+        body, tol = geo_snapshot.build_snapshot(
+            feats, crs=crs,
+            max_bytes=(inp.map_max_kb * 1000) if inp.map_max_kb else geo_snapshot.DEFAULT_MAX_BYTES,
+        )
+    except geo_snapshot.SnapshotTooLarge as e:
+        raise RecipeError(f"{what}: {e} (map_max_kb)", reason="too_large") from None
+    except geo_snapshot.SnapshotError as e:
+        raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
+    header, rows = feature_table(json.loads(body), what, reason="schema_changed")
+    lost = [c for c in inp.required_columns if c not in header]
+    if lost:
+        raise RecipeError(f"{what}: lacks column(s) {lost}", reason="schema_changed")
+    rows = transform(rows)
+    if not rows:
+        raise RecipeError(f"{what}: has no features", reason="schema_changed")
+    log.info("map %s: %s bytes → %d features (%s, tolerance %s)",
+             rid[:8], f"{got.bytes:,}", len(rows), crs, tol)
+    return _write_table(inp, res, header, rows, dest_dir), got.bytes
+
+
+def _write_table(inp, res: dict, header: list[str], rows: list[list[str]],
+                 dest_dir: Path) -> FetchedInput:
     dest = dest_dir / f"{inp.name}__1.csv"
     with open(dest, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
@@ -1149,6 +1263,15 @@ def refresh_one(
                     reason="too_large",
                 )
                 strikes = 0
+        transient = None
+        if isinstance(e, StrikeError):
+            transient = dict(state.get("transient_strikes") or {})
+            n = int(transient.get(e.strike) or 0) + 1
+            if n >= _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES):
+                transient.pop(e.strike, None)  # a fresh run of tries after the fix
+                e = RecipeError(f"{e} — {n} runs in a row", reason=e.escalate_to)
+            else:
+                transient[e.strike] = n
         log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
         store.mark_refresh_failed(
             src.id,
@@ -1156,6 +1279,7 @@ def refresh_one(
             reason=e.reason,
             failed_version=failed_version_key(src, recipe),
             wall_budget_strikes=strikes,
+            transient_strikes=transient,
             preview=preview,
         )
         outcome = RefreshOutcome(

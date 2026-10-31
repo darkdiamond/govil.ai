@@ -153,15 +153,23 @@ landing pages. Five layers:
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
    `limits` is **heavy**: `run_refresh` runs it after all others. Every
    compute runs heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, default 3072) with
-   `oom_score_adj=1000`, so an outsized recipe dies alone. **Map snapshots:**
-   data.gov.il's CDN 403s every scripted file download (only `/api/3/action`
-   answers; don't work around it), so geometry that exists only in an
-   uploaded SHP/KMZ/GeoJSON is downloaded once in a browser, converted by
-   `author snapshot` (`geo_snapshot.py`, pure Python, ITM→WGS84) and committed
-   as `recipes/<id>/<name>.geojson`. An input with `snapshot` reads it as a
-   table (properties + `__geometry`), and when CKAN's size/hash for the
-   resource moves past `snapshot_of`, the refresh fails `geometry_stale`
-   (page kept, issue opened). The refresh code
+   `oom_score_adj=1000`, so an outsized recipe dies alone. **Map files:**
+   geometry that exists only in an uploaded SHP/KMZ/GeoJSON is read by an
+   input with `map: true`. The refresh downloads the file on every run
+   (`agent_contract.fetch_resource_file`, `data.gov.il` host only) and converts
+   it (`geo_snapshot.py`, pure Python, ITM→WGS84) into a table (properties +
+   `__geometry`). data.gov.il's WAF 403s file downloads by User-Agent: curl's,
+   python's and a bare `Mozilla/5.0` are refused, the builder's
+   `Mozilla/5.0 (compatible; govdata-builder/1.0)` passes (verified from
+   Cloud Run 2026-10-31; the user approved this UA). `CKAN_USER_AGENT`
+   overrides it without a redeploy. A blocked download is transient
+   (`fetch_failed`) until it repeats `REFRESH_TRANSIENT_STRIKES` (3) runs in a
+   row (`transient_strikes` in the refresh state), then opens a
+   `download_blocked` issue. Download cap `REFRESH_MAP_MAX_BYTES` (50MB). The
+   older fallback: a file downloaded once in a browser, converted by `author
+snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
+   `snapshot` input; when CKAN's size/hash moves past `snapshot_of`, the
+   refresh fails `geometry_stale` (page kept, issue opened). The refresh code
    ships in the builder image, but recipes are read from `main` at run time:
    **redeploy the job before merging a recipe that uses a new
    `recipe.json` field**, or the old image rejects it as `recipe_invalid`. `REFRESH_CAP` (200)

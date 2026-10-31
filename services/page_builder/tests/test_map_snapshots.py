@@ -9,13 +9,21 @@ import json
 import shutil
 import struct
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
+from urllib.error import URLError
 
 import pytest
 
 from services.page_builder import geo_snapshot as gs
 from services.page_builder import refresh as rf
-from services.page_builder.agent_contract import FetchOutcome
+from services.page_builder.agent_contract import (
+    DownloadBlocked,
+    FetchLimitExceeded,
+    FetchOutcome,
+    FileOutcome,
+)
 from services.page_builder.recipe import (
     GEOMETRY_COLUMN,
     Recipe,
@@ -413,3 +421,324 @@ def test_author_snapshot_cli(tmp_path, capsys):
         with pytest.raises(SystemExit, match="can't snapshot"):
             author.snapshot(DS, src, GEO_RID, recipes_root=tmp_path / "other", resource_fn=fn, **kw)
     assert not (tmp_path / "other").exists()
+
+
+# ── live map inputs (`map: true`) ────────────────────────────────────────
+
+MAP_URL = f"https://e.data.gov.il/dataset/{DS}/resource/{GEO_RID}/download/layer.zip"
+SQ = [(200000, 600000), (200000, 601000), (201000, 601000), (201000, 600000), (200000, 600000)]
+
+
+def _map_input(**kw) -> dict:
+    return {"name": "geo", "by_id": GEO_RID, "map": True, **kw}
+
+
+def _with_map(tmp_path: Path, **kw) -> Path:
+    """The fixture recipe plus a live `geo` map input (compute ignores it)."""
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    m = json.loads((recipes / DS / "recipe.json").read_text())
+    m["inputs"].append(_map_input(**kw))
+    (recipes / DS / "recipe.json").write_text(json.dumps(m, ensure_ascii=False))
+    cov = json.loads((recipes / DS / "coverage.json").read_text())
+    cov.update({"geo.NAME": "skip: not drawn in this test",
+                f"geo.{GEOMETRY_COLUMN}": "skip: not drawn in this test"})
+    (recipes / DS / "coverage.json").write_text(json.dumps(cov, ensure_ascii=False))
+    return recipes
+
+
+def _map_resources(**geo) -> list[dict]:
+    return [{"id": RID, "name": "events", "datastore_active": True},
+            {"id": GEO_RID, "name": "map", "format": "ZIP", "datastore_active": False,
+             "size": 9000, "url": MAP_URL, **geo}]
+
+
+class FakeFiles:
+    """`fetch_file_fn`: serves `body`, or raises `error`."""
+
+    def __init__(self, body: bytes = b"", error: Exception | None = None):
+        self.body, self.error, self.urls = body, error, []
+
+    def __call__(self, url, dest, *, max_bytes, timeout_s, deadline):
+        self.urls.append(url)
+        if self.error:
+            raise self.error
+        dest.write_bytes(self.body)
+        return FileOutcome(bytes=len(self.body), sha256="x")
+
+
+def _events_ckan():
+    cols = ["שנה", "חודש", "מחוז", "מספר אירועים"]
+
+    def preview(rid):
+        assert rid == RID, "a map input never previews the datastore"
+        return {"fields": [{"id": c} for c in cols], "total": 1, "sample_rows": []}
+
+    def fetch(rid, total, dest, **kw):
+        with open(dest, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerows([cols, ["2025", "1", "צפון", "4"]])
+        return FetchOutcome(rows=1, bytes=dest.stat().st_size, mode="full")
+
+    return preview, fetch
+
+
+@pytest.mark.parametrize("bad", [
+    {"by_id": None, "by_schema": ["a"], "concat": True},     # map needs by_id
+    {"snapshot": "geo.geojson", "snapshot_of": {"size": 1}},  # two ways in
+    {"columns": ["a"]},
+    {"map": False, "map_max_kb": 100},                         # cap without map
+])
+def test_map_input_validation(bad):
+    spec = {k: v for k, v in {**_map_input(), **bad}.items() if v is not None}
+    with pytest.raises(ValueError):
+        RecipeInput.model_validate(spec)
+
+
+def test_map_input_resolves_without_datastore():
+    m = RecipeManifest.model_validate({
+        "dataset_id": DS, "recipe_version": 1, "authored_at": "2026-10-31T00:00:00Z",
+        "inputs": [_map_input()],
+    })
+
+    def no_preview(rid):
+        raise AssertionError("a map input never previews the datastore")
+
+    assert resolve_inputs(m, _map_resources(), no_preview)["geo"][0]["id"] == GEO_RID
+    for resources in ([], _map_resources(url="")):
+        with pytest.raises(RecipeError) as e:
+            resolve_inputs(m, resources, no_preview)
+        assert e.value.reason == "schema_changed"
+
+
+_KML = ('<kml><Placemark><ExtendedData><Data name="NAME"><value>באר שבע</value></Data>'
+        '</ExtendedData><Point><coordinates>34.79,31.25</coordinates></Point>'
+        '</Placemark></kml>').encode()
+_GEOJSON = json.dumps({"type": "FeatureCollection", "features": [
+    {"type": "Feature", "properties": {"NAME": "באר שבע"},
+     "geometry": {"type": "Point", "coordinates": [34.79, 31.25]}}]}).encode()
+
+
+@pytest.mark.parametrize("name, body", [
+    ("layer.zip", _shp_zip([SQ], ["באר שבע"])),
+    ("x.geojson", _GEOJSON),
+    ("download", _KML),  # no telling suffix: sniffed from the bytes
+])
+def test_fetch_inputs_downloads_and_converts_the_map(tmp_path, name, body):
+    recipe = Recipe.load(_with_map(tmp_path) / DS)
+    preview, fetch = _events_ckan()
+    files = FakeFiles(body)
+    resources = _map_resources(url=MAP_URL.replace("layer.zip", name))
+    out = rf.fetch_inputs(recipe, resources, tmp_path / "d", preview_fn=preview,
+                          fetch_fn=fetch, fetch_file_fn=files)
+    geo = out["geo"][0]
+    assert geo.rows == 1 and geo.resource_id == GEO_RID and files.urls == [resources[1]["url"]]
+    with open(geo.file, encoding="utf-8") as f:
+        header, row = list(csv.reader(f))
+    assert header == ["NAME", GEOMETRY_COLUMN] and row[0] == "באר שבע"
+    geom = json.loads(row[1])
+    lon, lat = geom["coordinates"][0][0] if geom["type"] == "Polygon" else geom["coordinates"]
+    assert 34 < lon < 36 and 30 < lat < 33                    # ITM reprojected to WGS84
+    assert not list((tmp_path / "d").glob("*.download"))      # raw file cleaned up
+
+
+@pytest.mark.parametrize("files, kw, reason", [
+    (FakeFiles(error=DownloadBlocked("HTTP 403")), {}, "fetch_failed"),
+    (FakeFiles(error=URLError("dns")), {}, "fetch_failed"),
+    (FakeFiles(error=FetchLimitExceeded("bytes", "big")), {}, "too_large"),
+    (FakeFiles(error=ValueError("not a data.gov.il file URL")), {}, "schema_changed"),
+    (FakeFiles(b"\x00\x01garbage"), {}, "schema_changed"),
+    (FakeFiles(b"PK\x03\x04truncated zip"), {}, "schema_changed"),
+    (FakeFiles(_shp_zip([SQ], ["א"])), {"required_columns": ["CODE"]}, "schema_changed"),
+    (FakeFiles(_shp_zip([SQ] * 200, ["א"] * 200)), {"map_max_kb": 1}, "too_large"),
+])
+def test_map_download_failures_are_classified(tmp_path, files, kw, reason):
+    recipe = Recipe.load(_with_map(tmp_path, **kw) / DS)
+    preview, fetch = _events_ckan()
+    with pytest.raises(RecipeError) as e:
+        rf.fetch_inputs(recipe, _map_resources(), tmp_path / "d", preview_fn=preview,
+                        fetch_fn=fetch, fetch_file_fn=files)
+    assert e.value.reason == reason, e.value
+    assert isinstance(e.value, rf.StrikeError) == isinstance(files.error, DownloadBlocked)
+
+
+def test_map_input_fingerprints(tmp_path):
+    recipe = Recipe.load(_with_map(tmp_path) / DS)
+    preview, _ = _events_ckan()
+    resources = _map_resources()
+    resources[0]["hash"] = "md5-events"
+    ident = rf.recipe_identity(recipe)
+    probe = rf.probe_inputs(recipe, resources, preview)
+    fp = rf.input_fingerprint(recipe, probe, ident)
+    # No CKAN md5 for the map file: size alone can't vouch for it → download.
+    assert rf.file_fingerprint(recipe, probe, ident) is None
+    resources[1]["hash"] = "md5-map"
+    assert rf.file_fingerprint(recipe, probe, ident) is not None
+    resources[1]["size"] = 9001
+    assert rf.input_fingerprint(recipe, rf.probe_inputs(recipe, resources, preview), ident) != fp
+
+
+# ── live map inputs, end to end through run_refresh ──────────────────────
+
+
+def _refresh_env(tmp_path, monkeypatch):
+    from services.page_builder.tests.test_recipe_refresh import FakeCkan, FakeStore, _rows
+
+    issues = []
+    monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
+                        lambda **kw: issues.append(kw) or 77)
+    staged: dict = {}
+    recipes = _with_map(tmp_path)
+
+    def src(mm):
+        return SimpleNamespace(
+            id=DS, title="t", organization={"title": "o"}, analysis_status="succeeded",
+            metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=timezone.utc),
+            resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True,
+                        "hash": "md5-v1", "size": 1000}, _map_resources()[1]],
+        )
+
+    store = FakeStore(src("2026-10-01"))
+    ckan = FakeCkan(_rows([2024, 2025]))
+
+    def run(files):
+        return rf.run_refresh(
+            store, rf.LocalRecipeRepo(recipes), preview=True, staging_bucket="bkt",
+            work_root=tmp_path / "work",
+            write_gcs=lambda d, b, r: staged.__setitem__(r, d) or r,
+            read_gcs=lambda b, r: staged.get(r),
+            preview_fn=ckan.preview, fetch_fn=ckan.fetch, fetch_file_fn=files,
+        )
+
+    def state():
+        return store.get_refresh_state(DS, preview=True)
+
+    return SimpleNamespace(store=store, src=src, run=run, state=state, issues=issues)
+
+
+def test_repeated_download_block_escalates_to_an_issue(tmp_path, monkeypatch):
+    e = _refresh_env(tmp_path, monkeypatch)
+    blocked = FakeFiles(error=DownloadBlocked("HTTP 403"))
+    for n in (1, 2):
+        s = e.run(blocked)
+        assert s["outcomes"][0]["reason"] == "fetch_failed"
+        assert e.state()["transient_strikes"] == {"download_blocked": n}
+    assert e.issues == []
+    s = e.run(blocked)
+    assert s["outcomes"][0]["reason"] == "download_blocked"
+    assert len(e.issues) == 1 and e.issues[0]["reason"] == "download_blocked"
+    assert not e.state()["transient_strikes"]  # a fresh run of tries after the fix
+
+
+def test_map_download_success_clears_strikes_and_precheck_skips_same_bytes(tmp_path, monkeypatch):
+    monkeypatch.setenv("REFRESH_PRECHECK", "full")
+    e = _refresh_env(tmp_path, monkeypatch)
+    e.run(FakeFiles(error=DownloadBlocked("HTTP 403")))
+    assert e.state()["transient_strikes"] == {"download_blocked": 1}
+    good = FakeFiles(_shp_zip([SQ], ["באר שבע"]))
+    s = e.run(good)
+    assert s["failed"] == [] and s["outcomes"][0]["status"] == "refreshed"
+    assert e.state()["transient_strikes"] is None
+    # CKAN bump, same file bytes: no md5, so it downloads again, and B proves it.
+    e.store.src = e.src("2026-10-02")
+    s = e.run(good)
+    assert len(good.urls) == 2
+    assert s["outcomes"][0]["status"] == "unchanged"
+    assert s["outcomes"][0]["reason"] == "inputs_hash"
+    # A real geometry change gets past B (the fixture page doesn't draw it, so C stops it).
+    e.store.src = e.src("2026-10-03")
+    s = e.run(FakeFiles(_shp_zip([SQ, SQ], ["באר שבע", "דימונה"])))
+    assert s["outcomes"][0]["precheck"]["inputs_same"] is False
+
+
+def test_download_blocked_opens_an_issue():
+    from services.page_builder.notify import REASON_TEXT
+
+    assert "download_blocked" in rf.AUTHORING_REASONS and "download_blocked" in REASON_TEXT
+
+
+# ── fetch_resource_file ──────────────────────────────────────────────────
+
+
+class _Resp:
+    def __init__(self, body: bytes, ctype: str = "application/zip"):
+        self._buf, self.headers = io.BytesIO(body), {"Content-Type": ctype}
+
+    def read(self, n=-1):
+        return self._buf.read(n)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _urlopen(monkeypatch, behaviour):
+    from services.page_builder import agent_contract as ac
+
+    seen = []
+
+    def fake(req, timeout):
+        seen.append(req)
+        return behaviour(req)
+
+    monkeypatch.setattr(ac.urllib_request, "urlopen", fake)
+    return ac, seen
+
+
+def test_fetch_resource_file_rewrites_host_and_sends_the_ua(tmp_path, monkeypatch):
+    import hashlib
+    import time
+
+    ac, seen = _urlopen(monkeypatch, lambda req: _Resp(b"PK\x03\x04data"))
+    got = ac.fetch_resource_file(MAP_URL, tmp_path / "f", max_bytes=100, timeout_s=5,
+                                 deadline=time.monotonic() + 60)
+    assert seen[0].full_url.startswith("https://data.gov.il/dataset/")
+    assert seen[0].get_header("User-agent") == ac._CKAN_BROWSER_UA
+    assert got.bytes == 8 and got.sha256 == hashlib.sha256(b"PK\x03\x04data").hexdigest()
+    assert (tmp_path / "f").read_bytes() == b"PK\x03\x04data"
+
+
+@pytest.mark.parametrize("behaviour, exc", [
+    ("html", "DownloadBlocked"), ("html_body", "DownloadBlocked"), ("403", "DownloadBlocked"),
+    ("empty", "DownloadBlocked"), ("big", "FetchLimitExceeded"), ("404", "HTTPError"),
+])
+def test_fetch_resource_file_refuses(tmp_path, monkeypatch, behaviour, exc):
+    import time
+    from urllib.error import HTTPError
+
+    def b(req):
+        if behaviour in ("403", "404"):
+            raise HTTPError(req.full_url, int(behaviour), "x", {}, None)
+        return {"html": _Resp(b"<p>blocked</p>", "text/html; charset=utf-8"),
+                "html_body": _Resp(b"  <!DOCTYPE html><html>", "application/octet-stream"),
+                "empty": _Resp(b""),
+                "big": _Resp(b"x" * 1000)}[behaviour]
+
+    ac, seen = _urlopen(monkeypatch, b)
+    with pytest.raises(Exception) as e:
+        ac.fetch_resource_file(MAP_URL, tmp_path / "f", max_bytes=100, timeout_s=5,
+                               deadline=time.monotonic() + 60)
+    assert type(e.value).__name__ == exc
+    assert not (tmp_path / "f").exists()
+    assert len(seen) == 1  # 4xx and blocks are not retried
+
+
+def test_fetch_resource_file_only_fetches_data_gov_il(tmp_path, monkeypatch):
+    import time
+
+    ac, seen = _urlopen(monkeypatch, lambda req: _Resp(b"x"))
+    for url in ("https://example.com/x.zip", "http://metadata.google.internal/x", ""):
+        with pytest.raises(ValueError):
+            ac.fetch_resource_file(url, tmp_path / "f", max_bytes=100, timeout_s=5,
+                                   deadline=time.monotonic() + 60)
+    assert seen == []
+
+
+def test_parse_map_refuses_a_zip_bomb(monkeypatch):
+    monkeypatch.setattr(gs, "MAX_UNZIPPED_BYTES", 1000)
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("a.geojson", b" " * 5000)
+    with pytest.raises(gs.SnapshotError, match="unzips to more"):
+        gs.parse_map(buf.getvalue(), "a.zip")

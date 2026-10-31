@@ -162,12 +162,15 @@ gh issue edit <N> --repo darkdiamond/govil.ai --add-label authoring-blocked
 
 A human removes the label to put it back in the queue.
 
-**Map files need a human.** When a page needs geometry that exists only in an
-uploaded map file (BRIEF.md "Map files"; author-dataset "Map snapshots"), or
-an issue's reason is `geometry_stale`, this routine can't fetch it: the CDN
-refuses scripted downloads, and no workaround is allowed. BLOCK the dataset.
-The comment gives the file's URL and the next step: "download it in a browser,
-then `author snapshot <id> <file> --resource <rid>` and `/author-dataset <id>`".
+**Map files.** Geometry that exists only in an uploaded map file (BRIEF.md
+"Map files"; author-dataset "Map files") is read with a `map: true` input:
+the job downloads it itself, so author it like any dataset. An issue with
+reason `geometry_stale` or `map_available` means the same: switch the input to
+`map: true` (bump `recipe_version`). Only when BRIEF.md lists the file as
+FAILED to download (or the reason is `download_blocked`) does it need a human:
+BLOCK the dataset, and the comment gives the file's URL and the next step:
+"download it in a browser, then `author snapshot <id> <file> --resource <rid>`
+and `/author-dataset <id>`".
 
 ## 6. One PR
 

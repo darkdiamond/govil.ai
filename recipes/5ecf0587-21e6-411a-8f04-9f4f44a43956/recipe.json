@@ -1,0 +1,20 @@
+{
+  "contract_version": 1,
+  "dataset_id": "5ecf0587-21e6-411a-8f04-9f4f44a43956",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T23:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-03T19:14:12.824533+00:00",
+    "rows": { "geo": 20 }
+  },
+  "inputs": [
+    {
+      "name": "geo",
+      "by_id": "dd72c058-7e92-4a1c-be85-207b7a637022",
+      "map": true,
+      "required_columns": ["LINE_ID", "TYPE", "LINE_NAME", "YEAR", "Shape_Leng"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["2050"]
+}

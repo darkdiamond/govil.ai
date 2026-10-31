@@ -10,8 +10,9 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 - **`sandbox_failed` never escalates.** It opens no issue and keeps no strike count, so a spawn
   abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) freezes
-  every page with only log lines. Fix: count consecutive `sandbox_failed` runs like
-  `wall_budget_strikes` and open an issue (or fail the run) past a threshold. (2026-10-31)
+  every page with only log lines. Fix: raise `_SpawnFlake` as a `refresh.StrikeError`
+  (`strike="sandbox_failed"`, an `escalate_to` reason added to `AUTHORING_REASONS` and
+  `notify.REASON_TEXT`); the `transient_strikes` counter does the rest. (2026-10-31)
 - **`author snapshot` keeps long float properties that trip verify's PII check.** Shapefile
   area/length fields (`Shape_STAr` 213.029377738) match the phone pattern. 1de95a22 got past it
   with a scratch step that rounds them to 0.1 before `snapshot`, so a re-snapshot after
@@ -45,11 +46,10 @@ This repo is public: describe a security gap by what to change, never by how to 
   CKAN's `hash` when both sides have one, else `size` (#184's GeoJSON has an empty `hash`), and
   ignores `last_modified` because CKAN bumps it on byte-identical re-uploads. An edit that keeps
   the byte count goes unnoticed. If that matters, also compare `last_modified` and treat a
-  bump with the same size as "re-check by hand" (a note in the issue, not a failure). (2026-10-30)
-- **Transport/Ayalon GIS layers could get maps.** 30cc4889, 5f6d04bf, 7fb47ed4, cdd75af3,
-  e74cc3c7, ee1265d8, 360fb8b4, 00dfc38e, 03092ac8 and the existing recipe a98fbabc (Jerusalem
-  metro lines, no map today) ship their shapes only in SHP/KMZ zips next to a small attribute
-  table. Each needs a browser download, then `author snapshot`. (2026-10-30)
+  bump with the same size as "re-check by hand" (a note in the issue, not a failure). Only
+  committed snapshots have this gap: a `map: true` input downloads the file on every bump and
+  check B compares the converted rows exactly, so moving a snapshot recipe to `map` closes it.
+  (2026-10-30)
 - **Decide the next precheck lever from a week of B′ data.** The content-hash skip
   (`unchanged … content_hash`) still pays the export and compute for a re-upload whose page
   doesn't change. Read the `refresh precheck` lines. If `inputs_same_unordered=True` dominates
