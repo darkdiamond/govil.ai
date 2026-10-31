@@ -522,8 +522,9 @@ def inputs_hashes(
                 for line in f:
                     ordered.update(line)
                     digest = hashlib.sha256(line.rstrip(b"\r\n")).digest()
-                    acc = (acc + int.from_bytes(digest, "big")) % _MULTISET_MOD
+                    acc += int.from_bytes(digest, "big")
             ordered.update(b"\0")
+            acc %= _MULTISET_MOD  # once per part: Python ints don't overflow
             unordered.update(tag + header.rstrip(b"\r\n") + b"\0" + acc.to_bytes(32, "big"))
     ordered.update(identity.encode())
     unordered.update(identity.encode())
@@ -1065,22 +1066,9 @@ def refresh_one(
         # pending, so it is re-probed each run (one cheap preview call) until
         # the max age forces a real render. That is what bounds A's blind spot
         # even when CKAN never bumps the dataset again.
-        pc["skipped"] = u.reason
-        store.mark_refresh_unchanged(
-            src.id,
-            metadata_modified=src.metadata_modified,
-            input_fingerprint=hashes["input_fingerprint"],
-            inputs_hash=hashes.get("inputs_hash"),
-            inputs_hash_unordered=hashes.get("inputs_hash_unordered"),
-            file_fingerprint=hashes.get("file_fingerprint"),
-            reason=u.reason,
-            advance_version=u.reason == "inputs_hash",
-            preview=preview,
-        )
-        log.info("refresh precheck %s: unchanged (%s) — skipped", src.id[:8], u.reason)
-        return RefreshOutcome(
-            src.id, "unchanged", trigger, u.reason,
-            elapsed_s=round(time.monotonic() - started, 2), precheck=pc,
+        return _mark_unchanged(
+            store, src, trigger, u.reason, pc, hashes,
+            advance_version=u.reason == "inputs_hash", preview=preview, started=started,
         )
     except ResourceRestrictedError as e:
         # Data went private upstream. Not the recipe's fault, not
@@ -1147,24 +1135,16 @@ def refresh_one(
         # C: a data bump that rendered the live page byte for byte. Exact, so
         # no max-age gate; a forced run or a recipe_version change still
         # stages (the latter must record its version through mark_refreshed).
-        if mode in ("inputs", "full") and trigger == "data_updated" and pc["content_same"]:
-            pc["skipped"] = "content_hash"
-            store.mark_refresh_unchanged(
-                src.id,
-                metadata_modified=src.metadata_modified,
-                input_fingerprint=hashes["input_fingerprint"],
-                inputs_hash=hashes.get("inputs_hash"),
-                inputs_hash_unordered=hashes.get("inputs_hash_unordered"),
-                file_fingerprint=hashes.get("file_fingerprint"),
-                reason="content_hash",
-                advance_version=True,
-                preview=preview,
-            )
-            log.info("refresh precheck %s: unchanged (content_hash) — skipped", src.id[:8])
-            return RefreshOutcome(
-                src.id, "unchanged", trigger, "content_hash",
-                elapsed_s=round(time.monotonic() - started, 2),
-                rows=snapshot["rows"], precheck=pc,
+        # After a staging failure the staged body may not be the one the
+        # stored hash describes (a failed rollback), so that render stages.
+        staging_suspect = (state.get("refresh_status") == "failed"
+                           and state.get("refresh_reason") == STAGE_FAILED)
+        if (mode in ("inputs", "full") and trigger == "data_updated"
+                and pc["content_same"] and not staging_suspect):
+            return _mark_unchanged(
+                store, src, trigger, "content_hash", pc, hashes,
+                advance_version=True, preview=preview, started=started,
+                rows=snapshot["rows"],
             )
     prefix = "preview/datasets" if preview else "datasets"
     rel = f"{prefix}/{src.id}/{CONTENT_FILENAME}"
@@ -1234,6 +1214,39 @@ def refresh_one(
     )
 
 
+def _mark_unchanged(
+    store, src, trigger: str, reason: str, pc: dict, hashes: dict, *,
+    advance_version: bool, preview: bool, started: float, rows: Optional[dict] = None,
+) -> RefreshOutcome:
+    """Record a precheck skip (the live page stands). A failed state write is
+    a staging failure like a failed `mark_refreshed`: this source only,
+    retried next run, counted toward `staging_down`."""
+    pc["skipped"] = reason
+    try:
+        store.mark_refresh_unchanged(
+            src.id,
+            metadata_modified=src.metadata_modified,
+            input_fingerprint=hashes["input_fingerprint"],
+            inputs_hash=hashes.get("inputs_hash"),
+            inputs_hash_unordered=hashes.get("inputs_hash_unordered"),
+            file_fingerprint=hashes.get("file_fingerprint"),
+            reason=reason,
+            advance_version=advance_version,
+            preview=preview,
+        )
+    except Exception as e:
+        log.exception("refresh %s: recording the unchanged state failed", src.id[:8])
+        return RefreshOutcome(
+            src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
+            round(time.monotonic() - started, 2), precheck=pc,
+        )
+    log.info("refresh precheck %s: unchanged (%s) — skipped", src.id[:8], reason)
+    return RefreshOutcome(
+        src.id, "unchanged", trigger, reason,
+        elapsed_s=round(time.monotonic() - started, 2), rows=rows or {}, precheck=pc,
+    )
+
+
 def _log_precheck(dataset_id: str, pc: dict) -> None:
     """One line per refreshed source: did the cheap checks agree with the
     rendered output? A skip predicate that held with changed content is a
@@ -1252,7 +1265,9 @@ def _log_precheck(dataset_id: str, pc: dict) -> None:
         would_skip = {
             "inputs_same": pc.get("inputs_same"),               # inputs, full
             "fp_same ∧ fp2_same": pc.get("fp_same") and pc.get("fp2_same"),  # full
-            "inputs_same_unordered": pc.get("inputs_same_unordered"),  # none yet
+            # none yet; only news when B differed (else `inputs_same` warns)
+            "inputs_same_unordered": pc.get("inputs_same_unordered")
+            and pc.get("inputs_same") is not True,
         }
         for check, held in would_skip.items():
             if held:

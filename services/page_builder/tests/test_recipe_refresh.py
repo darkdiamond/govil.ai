@@ -1059,6 +1059,31 @@ def test_precheck_identical_render_still_stages_forced_and_new_recipe(env, monke
     assert store.states[(DS, False)]["recipe_version"] == 1
 
 
+def test_precheck_identical_render_after_a_staging_failure_stages(env, monkeypatch):
+    """A failed rollback can leave a staged body the stored hash doesn't
+    describe, so the render after a staging failure always stages."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store.mark_refresh_failed(DS, error="gcs down", reason=rf.STAGE_FAILED,
+                              failed_version="x", preview=False)
+    env.staged.clear()
+    o = _first(_run(env, store, _reorder(store, ckan), preview=False))
+    assert o["status"] == "refreshed" and env.staged
+    assert store.states[(DS, False)]["refresh_status"] == "succeeded"
+
+
+def test_precheck_content_skip_state_write_failure_is_a_stage_failure(env, monkeypatch):
+    """Firestore down on a skip fails this source alone — it must not crash
+    the batch (the identical render used to go through the staging guard)."""
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+
+    def _boom(*a, **kw):
+        raise RuntimeError("firestore deadline")
+
+    monkeypatch.setattr(store, "mark_refresh_unchanged", _boom)
+    o = _first(_run(env, store, _reorder(store, ckan), preview=False))
+    assert (o["status"], o["reason"]) == ("failed", rf.STAGE_FAILED)
+
+
 def test_precheck_content_skip_ignores_the_max_age(env, monkeypatch):
     """Exact, so an old page with a no-op re-upload still isn't re-staged —
     and the verified render restarts the max-age clock for A ∧ A′."""
