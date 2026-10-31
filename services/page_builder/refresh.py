@@ -441,6 +441,34 @@ def recipe_identity(recipe: Recipe) -> str:
     return h.hexdigest()
 
 
+# Everything the image ships that a refresh runs (Dockerfile COPYs), for the
+# failure lock only. Broader than _RENDER_CODE_FILES on purpose: a deploy that
+# touches any of it retries locked sources once, but must not re-render every
+# page through the prechecks.
+_SERVICES_DIR = Path(__file__).resolve().parent.parent
+_BUILDER_EXTRA_FILES = (
+    _SERVICES_DIR / "page_builder" / "requirements.txt",
+    _SERVICES_DIR.parent / "agent" / "skills" / "check.py",
+)
+
+
+@functools.lru_cache(maxsize=1)
+def _builder_code_hash() -> str:
+    files = sorted(
+        p for p in _SERVICES_DIR.rglob("*.py")
+        if "tests" not in p.relative_to(_SERVICES_DIR).parts
+    )
+    h = hashlib.sha256()
+    for path in [*files, *_BUILDER_EXTRA_FILES]:
+        if not path.is_file():
+            continue
+        h.update(str(path.relative_to(_SERVICES_DIR.parent)).encode())
+        h.update(b"\0")
+        h.update(path.read_bytes())
+        h.update(b"\0")
+    return h.hexdigest()
+
+
 def _preview_shape(p: dict) -> list:
     return [p.get("total"), [[f.get("id"), f.get("type")] for f in p.get("fields") or []]]
 
@@ -907,6 +935,18 @@ def version_key(metadata_modified: Optional[datetime], recipe_version: int) -> s
     return f"{mm}|v{recipe_version}"
 
 
+def failed_version_key(src, recipe: Recipe) -> str:
+    """What a failure is pinned to: the data version, the recipe version, and
+    a hash of the recipe files + the builder code. The same failure is not
+    retried until one of them moves, so a builder fix (or a recipe edit that
+    kept its `recipe_version`) gets one fresh try at a locked source."""
+    code = hashlib.sha256(
+        (recipe_identity(recipe) + _builder_code_hash()).encode()
+    ).hexdigest()
+    base = version_key(src.metadata_modified, recipe.manifest.recipe_version)
+    return f"{base}|{code[:16]}"
+
+
 def needs_refresh(src, state: dict, recipe: Recipe) -> Optional[str]:
     """Why this source should be refreshed now, or None to skip it."""
     if src is None:
@@ -914,11 +954,10 @@ def needs_refresh(src, state: dict, recipe: Recipe) -> Optional[str]:
     if src.analysis_status in ("unavailable", "restricted"):
         return None  # data gone upstream; keep the frozen page
     rv = recipe.manifest.recipe_version
-    key = version_key(src.metadata_modified, rv)
-    if state.get("refresh_failed_version") == key and state.get(
-        "refresh_reason"
-    ) in AUTHORING_REASONS:
-        return None  # same data + same recipe would fail the same way
+    if state.get("refresh_reason") in AUTHORING_REASONS and state.get(
+        "refresh_failed_version"
+    ) == failed_version_key(src, recipe):
+        return None  # same data + recipe + builder would fail the same way
     if state.get("recipe_version") != rv:
         return "recipe_version"
     done = state.get("refreshed_metadata_modified")
@@ -1102,7 +1141,7 @@ def refresh_one(
             src.id,
             error=str(e),
             reason=e.reason,
-            failed_version=version_key(src.metadata_modified, rv),
+            failed_version=failed_version_key(src, recipe),
             wall_budget_strikes=strikes,
             preview=preview,
         )
@@ -1121,7 +1160,7 @@ def refresh_one(
             src.id,
             error=f"{type(e).__name__}: {e}",
             reason="error",
-            failed_version=version_key(src.metadata_modified, rv),
+            failed_version=failed_version_key(src, recipe),
             preview=preview,
         )
         return RefreshOutcome(src.id, "failed", trigger, "error", _clip(str(e)))
@@ -1202,7 +1241,7 @@ def refresh_one(
                 src.id,
                 error=f"{type(e).__name__}: {e}",
                 reason=STAGE_FAILED,
-                failed_version=version_key(src.metadata_modified, rv),
+                failed_version=failed_version_key(src, recipe),
                 preview=preview,
             )
         except Exception:

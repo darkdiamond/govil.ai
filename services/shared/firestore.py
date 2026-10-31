@@ -773,9 +773,11 @@ class FirestoreStateStore:
         preview: bool = False,
     ) -> None:
         """Record a failed refresh. Never touches `analysis_status`: the
-        last-good page stays live. `failed_version` (metadata_modified +
-        recipe_version) lets the next run skip a deterministic re-failure
-        until either the data or the recipe moves. `wall_budget_strikes`
+        last-good page stays live. `failed_version`
+        (`refresh.failed_version_key`: metadata_modified + recipe_version +
+        a hash of the recipe files and builder code) lets the next run skip
+        a deterministic re-failure until the data, the recipe or the
+        deployed builder moves. `wall_budget_strikes`
         (wall-budget overruns since the last full fetch) is written only
         when given; other failures leave the count alone."""
         payload: dict[str, Any] = {
