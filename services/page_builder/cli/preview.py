@@ -1,407 +1,492 @@
-"""CLI: preview an authoring build inside the actual dataset-page shell.
+"""CLI: preview a recipe's page in the real dataset shell, locally.
 
-`python -m services.page_builder.author verify <id>` writes the recipe's
-rendered body + agent_data to
-`tmp/model_test/<id>/{content.html,agent_data.json}` (the directory name is
-historical). Two ways to see it
-rendered through the real shell (Tailwind, layouts/default.vue, dataset-libs
-globals, related-datasets sidebar, metadata cards):
+One command renders the recipe over `author prepare`'s cached data (one run,
+the refresh's own code: compute → template → sanitizer → check.py), stages it
+in tmp/preview/, and serves it through `nuxt dev` with the real layout,
+Tailwind, explorer, tags and related sidebar:
 
-  render  — splices the harness body into the live govil.ai HTML offline.
-            No dev server needed; just open the generated file. Fastest
-            way to eyeball "does this body work in the real shell".
+    python -m services.page_builder.cli.preview <id> [<id>...]
+    #   local: http://127.0.0.1:3100/datasets/<page_slug>/
+    #   prod : https://govil.ai/datasets/<page_slug>/   (when it is live)
 
-  swap    — drops the harness files on top of `frontend/public/datasets/<id>/`
-            so `npm run dev` serves them at localhost:3000. Lets you see
-            related-datasets / sidebar / SEO meta updated to match the
-            harness build (render does not). Pair with restore.
+    python -m services.page_builder.cli.preview <id> --watch
+    # re-renders whenever recipes/<id>/ changes; the open page reloads itself
 
-Examples:
-
-    python -m services.page_builder.cli.preview render <id>
-    # -> writes tmp/model_test/<id>/preview.html, prints file:// URL
-
-    python -m services.page_builder.cli.preview swap <id>
-    cd frontend && npm run dev
-    # http://localhost:3000/datasets/<id>  vs  https://govil.ai/datasets/<id>
-    python -m services.page_builder.cli.preview restore <id>
-
+    python -m services.page_builder.cli.preview <id> --no-serve   # stage only
     python -m services.page_builder.cli.preview status
+    python -m services.page_builder.cli.preview stop
 
-`--all` applies swap/restore to every dataset under tmp/model_test/.
-This tool never touches Firestore or GCS; it is purely a local-FS swap
-plus an optional outbound fetch for `render`.
+tmp/preview/ is an overlay: the dev server (NUXT_PREVIEW_ROOT) reads a
+dataset's files and the manifest there first and falls back to
+frontend/public/, so nothing under frontend/ is touched and there is nothing to
+restore. The manifest is this checkout's frontend/public/data/manifest.json
+(else the main checkout's, so a worktree gets the full corpus) plus every
+staged dataset, with tags and related datasets computed the way the publisher
+does. `author verify` stages its page here too, so an open preview reloads on
+every verify. The server starts once per checkout and keeps running until
+`stop`. No Firestore, GCS or network (beyond localhost).
 """
 from __future__ import annotations
 
 import argparse
-import re
+import fcntl
+import json
+import os
 import shutil
+import signal
+import socket
+import subprocess
 import sys
+import tempfile
+import time
+import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Optional
+
+from services.shared.firestore import SourceRecord
+from services.shared.slug import slugify
+
+from .. import author
+from ..publish import (
+    _build_page_slugs,
+    _merged_entry,
+    _write_manifest,
+    _write_search_index,
+    dataset_meta_from_source,
+)
+from ..recipe import RecipeError
+from ..related import TOP_K, RelatedIndex
+from ..schema import AgentData, DatasetMeta, Manifest
+from ..tags import Taxonomy, org_drop_names, pending_tags_path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-HARNESS_OUT_DIR = REPO_ROOT / "tmp" / "model_test"
-PROD_DATASETS_DIR = REPO_ROOT / "frontend" / "public" / "datasets"
+PREVIEW_ROOT = REPO_ROOT / "tmp" / "preview"
+FRONTEND = REPO_ROOT / "frontend"
 PROD_URL_BASE = "https://govil.ai/datasets"
-LOCAL_URL_BASE = "http://localhost:3000/datasets"
-
-# The dataset shell renders the agent body through `<article ref="bodyEl"
-# class="dataset-body" v-html="body" />` (see frontend/pages/datasets/[id].vue).
-# In the SSG'd output it lands as exactly one `<article ... class="dataset-body"
-# data-v-...>...</article>` element, so we can locate it by the class alone.
-DATASET_BODY_OPEN_RE = re.compile(
-    r'<article\b[^>]*\bclass="[^"]*\bdataset-body\b[^"]*"[^>]*>',
-    re.IGNORECASE,
-)
-PREVIEW_BANNER_HTML = (
-    '<div style="position:fixed;top:0;left:0;right:0;z-index:99999;'
-    'background:#0c3058;color:#fff;font-family:Rubik,system-ui,sans-serif;'
-    'font-size:.85rem;padding:.4rem 1rem;text-align:center;direction:ltr">'
-    '⚙ model-harness preview — body spliced into prod shell, Vue hydration '
-    'stripped. Data explorer (עיון בנתונים) + interactive chrome are inert; '
-    'sidebar / related-datasets / SEO meta still reflect prod. '
-    'For a live shell use: preview swap + npm run dev.'
-    '</div>'
-)
-
-# Files the page-builder agent owns (per CLAUDE.md). data.json is the scanner's
-# and is identical between harness and prod runs for the same dataset, so we leave
-# it alone — that also keeps the swap minimal and the restore precise.
-SWAP_FILES = ("content.html", "agent_data.json")
-BACKUP_DIRNAME = "prod-backup"
+HOST = "127.0.0.1"
+PORTS = range(3100, 3200)        # clear of `npm run dev`'s 3000
+SERVER_READY_TIMEOUT_S = 240
+WATCH_INTERVAL_S = 0.5
 
 
-@dataclass(frozen=True)
-class Paths:
-    dataset_id: str
-    build_dir: Path
-    prod_dir: Path
-    backup_dir: Path
-
-    @classmethod
-    def for_id(cls, dataset_id: str) -> "Paths":
-        return cls(
-            dataset_id=dataset_id,
-            build_dir=HARNESS_OUT_DIR / dataset_id,
-            prod_dir=PROD_DATASETS_DIR / dataset_id,
-            backup_dir=HARNESS_OUT_DIR / dataset_id / BACKUP_DIRNAME,
-        )
-
-    def build_file(self, name: str) -> Path:
-        return self.build_dir / name
-
-    def prod_file(self, name: str) -> Path:
-        return self.prod_dir / name
-
-    def backup_file(self, name: str) -> Path:
-        return self.backup_dir / name
+# ── staging ──────────────────────────────────────────────────────────────
 
 
-def _is_swapped(p: Paths) -> bool:
-    """A dataset is 'swapped' if its prod-backup dir holds at least one of the
-    swap files — restore needs that backup to put things back."""
-    return p.backup_dir.is_dir() and any(p.backup_file(f).exists() for f in SWAP_FILES)
+def base_manifest_path() -> Optional[Path]:
+    """The published corpus to overlay: this checkout's manifest, else the
+    main checkout's (worktrees don't carry frontend/public/data/)."""
+    rel = Path("frontend/public/data/manifest.json")
+    if (REPO_ROOT / rel).is_file():
+        return REPO_ROOT / rel
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    main = Path(common).parent / rel
+    return main if main.is_file() else None
 
 
-def _all_build_ids() -> list[str]:
-    if not HARNESS_OUT_DIR.is_dir():
-        return []
-    return sorted(d.name for d in HARNESS_OUT_DIR.iterdir() if d.is_dir())
+def _load_base() -> Manifest:
+    path = base_manifest_path()
+    if path is None:
+        return Manifest(generated_at=datetime.now(timezone.utc))
+    return Manifest.model_validate_json(path.read_text(encoding="utf-8"))
 
 
-def _print_compare_links(dataset_id: str) -> None:
-    print(f"  this run : {LOCAL_URL_BASE}/{dataset_id}")
-    print(f"  prod     : {PROD_URL_BASE}/{dataset_id}")
+def _dt(value) -> Optional[datetime]:
+    return datetime.fromisoformat(value) if isinstance(value, str) and value else None
 
 
-def _swap_one(p: Paths) -> bool:
-    if not p.build_dir.is_dir():
-        print(f"[{p.dataset_id[:8]}] no harness build at {p.build_dir} — skip", file=sys.stderr)
+def _source_record(dataset_id: str, recipes_root: Path) -> SourceRecord:
+    """The sources/<id> doc the publisher would read, from prepare()'s
+    source.json (plus the provider's credit block for a provider source)."""
+    path = author.AUTHORING_ROOT / dataset_id / "source.json"
+    facts = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    modified = _dt(facts.get("metadata_modified"))
+    title = facts.get("title") or dataset_id
+    src = SourceRecord(
+        id=dataset_id,
+        title=title,
+        slug=facts.get("slug") or slugify(title, fallback=dataset_id),
+        notes=facts.get("notes"),
+        organization=facts.get("organization") or {},
+        license_title=facts.get("license_title"),
+        update_frequency=facts.get("update_frequency"),
+        tags=facts.get("tags") or [],
+        resources=facts.get("resources") or [],
+        record_count=facts.get("record_count"),
+        metadata_modified=modified,
+        analysis_status="succeeded",
+        last_analyzed_at=modified or datetime.now(timezone.utc),
+        analyzed_metadata_modified=modified,
+    )
+    provider = author._provider_for_recipe(dataset_id, recipes_root)
+    if provider is not None:
+        prov = provider[0]
+        src.provider = prov.key
+        src.source_url = facts.get("source_url")
+        src.presentation = prov.presentation().model_dump()
+        src.page_slug_suffix = prov.page_slug_suffix(dataset_id)
+    return src
+
+
+def _dataset_tags(tax: Taxonomy, meta: DatasetMeta, agent: Optional[AgentData],
+                  drop: frozenset[str]) -> list[str]:
+    """Curated tags, else the batch's pending tags.json, else the fallback."""
+    if meta.id not in tax.assignments:
+        pending = pending_tags_path(meta.id)
+        if pending.is_file():
+            try:
+                return tax.canonicalize(json.loads(pending.read_text(encoding="utf-8")))
+            except ValueError:
+                pass
+    return tax.dataset_tags(meta.id, suggested=agent.suggested_tags if agent else [],
+                            ckan=meta.tags_he, drop_names=drop)
+
+
+def _write_overlay_manifest(root: Path, base: Manifest) -> None:
+    """Base corpus + every staged dataset, with publisher tags + related."""
+    tax = Taxonomy.load()
+    entries = {e.id: e for e in base.datasets}
+    staged: list[tuple[DatasetMeta, Optional[AgentData]]] = []
+    for d in sorted((root / "datasets").iterdir()):
+        if not (d / "data.json").is_file():
+            continue
+        meta = DatasetMeta.model_validate_json((d / "data.json").read_text(encoding="utf-8"))
+        agent_path = d / "agent_data.json"
+        agent = (AgentData.model_validate_json(agent_path.read_text(encoding="utf-8"))
+                 if agent_path.is_file() else None)
+        staged.append((meta, agent))
+    drop = org_drop_names([e.organization for e in entries.values()]
+                          + [m.organization for m, _ in staged])
+    for meta, agent in staged:
+        entries[meta.id] = _merged_entry(meta, agent, _dataset_tags(tax, meta, agent, drop))
+    index = RelatedIndex(entries.values())
+    for meta, _ in staged:
+        entries[meta.id].related_ids = [m.id for m in index.top(meta.id, TOP_K)]
+    oldest = datetime.min.replace(tzinfo=timezone.utc)
+    manifest = base.model_copy(update={
+        "generated_at": datetime.now(timezone.utc),
+        "datasets": sorted(entries.values(), key=lambda e: e.metadata_modified or oldest,
+                           reverse=True),
+    })
+    # Written aside, then renamed in: the dev server never reads half a file.
+    scratch = Path(tempfile.mkdtemp(prefix=".manifest-", dir=root))
+    try:
+        (root / "data").mkdir(exist_ok=True)
+        for written in (_write_manifest(scratch, manifest), _write_search_index(scratch, manifest)):
+            os.replace(written, root / "data" / written.name)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIPES_ROOT,
+          root: Optional[Path] = None) -> Path:
+    """Write one rendered page into the preview overlay the way the publisher
+    lays out frontend/public/: datasets/<id>/{content.html,data.json,
+    agent_data.json} (+ model.json, for reading), data/manifest.json and
+    data/search-index.json. Then bump the stamp an open page polls."""
+    root = root or PREVIEW_ROOT
+    out = root / "datasets" / dataset_id
+    out.mkdir(parents=True, exist_ok=True)
+    base = _load_base()
+    meta = dataset_meta_from_source(_source_record(dataset_id, recipes_root))
+    live = next((e for e in base.datasets if e.id == dataset_id), None)
+    meta.page_slug = live.page_slug if live and live.page_slug else _build_page_slugs({dataset_id: meta})[dataset_id]
+
+    (out / "content.html").write_text(page.content_html, encoding="utf-8")
+    (out / "agent_data.json").write_text(
+        json.dumps(page.agent_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out / "model.json").write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out / "data.json").write_text(meta.model_dump_json(exclude_none=True, indent=2), encoding="utf-8")
+    (out / "preview.json").write_text(json.dumps({"live": live is not None}), encoding="utf-8")
+    # Batch authoring verifies several datasets at once; each rebuild rescans
+    # every staged dir, so serializing them is enough for the last to hold all.
+    with open(root / ".lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        _write_overlay_manifest(root, base)
+        (root / "stamp").write_text(str(time.time_ns()), encoding="utf-8")
+    return out
+
+
+def render(dataset_id: str, recipes_root: Path = author.RECIPES_ROOT,
+           root: Optional[Path] = None) -> bool:
+    """Render one recipe over the local data and stage it. A failure keeps
+    the last staged page and returns False."""
+    t0 = time.monotonic()
+    tag = f"[{dataset_id[:8]}]"
+    work = Path(tempfile.mkdtemp(prefix=f"preview-{dataset_id[:8]}-"))
+    try:
+        recipe, manifest, resources = author.load_local(dataset_id, recipes_root)
+        data_dir = author.AUTHORING_ROOT / dataset_id / "data"
+        raw, page, _ = author.render_local(recipe, manifest, resources, data_dir, work)
+        stage(dataset_id, page, raw, recipes_root=recipes_root, root=root)
+    except SystemExit as e:
+        print(f"{tag} {e}", file=sys.stderr)
         return False
-    missing = [f for f in SWAP_FILES if not p.build_file(f).exists()]
-    if missing:
-        print(
-            f"[{p.dataset_id[:8]}] build dir missing files: {missing} — skip",
-            file=sys.stderr,
-        )
+    except RecipeError as e:
+        print(f"{tag} FAIL [{e.reason}] {e}", file=sys.stderr)
         return False
-    if not p.prod_dir.is_dir():
-        print(
-            f"[{p.dataset_id[:8]}] no prod page at {p.prod_dir} — skip "
-            f"(this dataset has not been published yet)",
-            file=sys.stderr,
-        )
+    except Exception as e:  # a broken recipe mid-edit must not kill --watch
+        print(f"{tag} FAIL {type(e).__name__}: {e}", file=sys.stderr)
         return False
-    if _is_swapped(p):
-        print(
-            f"[{p.dataset_id[:8]}] already swapped — restore first to re-swap",
-            file=sys.stderr,
-        )
-        return False
-
-    p.backup_dir.mkdir(parents=True, exist_ok=True)
-    for fname in SWAP_FILES:
-        prod_f = p.prod_file(fname)
-        backup_f = p.backup_file(fname)
-        if prod_f.exists():
-            shutil.copy2(prod_f, backup_f)
-        build_f = p.build_file(fname)
-        shutil.copy2(build_f, prod_f)
-
-    print(f"[{p.dataset_id[:8]}] swapped:")
-    _print_compare_links(p.dataset_id)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    for w in page.warnings:
+        print(f"{tag} warning: {w}")
+    print(f"{tag} rendered in {time.monotonic() - t0:.1f}s")
     return True
 
 
-def _restore_one(p: Paths) -> bool:
-    if not _is_swapped(p):
-        print(f"[{p.dataset_id[:8]}] not currently swapped — skip", file=sys.stderr)
-        return False
-    if not p.prod_dir.is_dir():
-        print(
-            f"[{p.dataset_id[:8]}] prod dir gone — leaving backup at {p.backup_dir}",
-            file=sys.stderr,
-        )
-        return False
+# ── dev server ───────────────────────────────────────────────────────────
 
-    for fname in SWAP_FILES:
-        backup_f = p.backup_file(fname)
-        prod_f = p.prod_file(fname)
-        if backup_f.exists():
-            shutil.copy2(backup_f, prod_f)
-            backup_f.unlink()
-    # Remove backup dir if empty
+
+def _server_file(root: Path) -> Path:
+    return root / "server.json"
+
+
+def _read_server(root: Path) -> Optional[dict]:
     try:
-        p.backup_dir.rmdir()
-    except OSError:
+        return json.loads(_server_file(root).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _get(url: str, timeout: float) -> Optional[int]:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            r.read()
+            return r.status
+    except Exception:
+        return None
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def running_server(root: Optional[Path] = None) -> Optional[dict]:
+    root = root or PREVIEW_ROOT
+    info = _read_server(root)
+    if not info or not _pid_alive(info["pid"]):
+        return None
+    if _get(f"http://{HOST}:{info['port']}/__preview/stamp", timeout=3) != 200:
+        return None
+    return info
+
+
+def _free_port() -> int:
+    for port in PORTS:
+        with socket.socket() as s:
+            # As Node listens: a port in TIME_WAIT after `stop` is free to reuse.
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                s.bind((HOST, port))
+            except OSError:
+                continue
+            return port
+    raise SystemExit(f"no free port in {PORTS.start}-{PORTS.stop - 1}")
+
+
+def ensure_server(root: Optional[Path] = None) -> dict:
+    """The checkout's preview server, started (and waited for) if needed.
+    Locked, so parallel `preview` calls share one server."""
+    root = root or PREVIEW_ROOT
+    root.mkdir(parents=True, exist_ok=True)
+    with open(root / ".server.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _ensure_server(root)
+
+
+def _ensure_server(root: Path) -> dict:
+    info = running_server(root)
+    if info:
+        return info
+    stale = _read_server(root)
+    if stale and _pid_alive(stale["pid"]):  # alive but not answering: replace it
+        _kill(stale["pid"])
+    nuxt = FRONTEND / "node_modules" / ".bin" / "nuxt"
+    if not nuxt.exists():
+        raise SystemExit(f"{nuxt} missing — install the frontend deps in the main checkout")
+    # `npm run dev`'s predev: viz libs into public/lib/ (gitignored, per checkout).
+    subprocess.run(["node", "scripts/copy-libs.mjs"], cwd=FRONTEND, check=True,
+                   stdout=subprocess.DEVNULL)
+    port = _free_port()
+    log_path = root / "server.log"
+    env = {**os.environ, "NUXT_PREVIEW_ROOT": str(root.resolve())}
+    with open(log_path, "wb") as log:
+        proc = subprocess.Popen(
+            [str(nuxt), "dev", "--port", str(port), "--host", HOST],
+            cwd=FRONTEND, env=env, stdin=subprocess.DEVNULL, stdout=log,
+            stderr=subprocess.STDOUT, start_new_session=True,
+        )
+    info = {"pid": proc.pid, "port": port, "started_at": datetime.now(timezone.utc).isoformat()}
+    _server_file(root).write_text(json.dumps(info), encoding="utf-8")
+    print(f"starting nuxt dev on port {port} (log: {log_path.relative_to(REPO_ROOT)}) ...")
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < SERVER_READY_TIMEOUT_S:
+        if proc.poll() is not None:
+            tail = log_path.read_text(encoding="utf-8", errors="replace")[-2000:]
+            _server_file(root).unlink(missing_ok=True)
+            raise SystemExit(f"nuxt dev exited ({proc.returncode}):\n{tail}")
+        if _get(f"http://{HOST}:{port}/__preview/stamp", timeout=3) == 200:
+            print(f"server ready in {time.monotonic() - t0:.0f}s")
+            return info
+        time.sleep(1)
+    _kill(proc.pid)
+    _server_file(root).unlink(missing_ok=True)
+    raise SystemExit(f"nuxt dev not ready after {SERVER_READY_TIMEOUT_S}s — see {log_path}")
+
+
+def _kill(pid: int) -> None:
+    try:
+        os.killpg(pid, signal.SIGTERM)  # nuxt dev forks its server; take the group
+    except ProcessLookupError:
+        return
+    for _ in range(50):
+        if not _pid_alive(pid):
+            return
+        time.sleep(0.1)
+    try:
+        os.killpg(pid, signal.SIGKILL)
+    except ProcessLookupError:
         pass
 
-    print(f"[{p.dataset_id[:8]}] restored")
-    return True
 
-
-def _resolve_ids(arg_ids: list[str], all_flag: bool) -> list[str]:
-    if all_flag:
-        ids = _all_build_ids()
-        if not ids:
-            print(f"no harness builds under {HARNESS_OUT_DIR}", file=sys.stderr)
-        return ids
-    return list(arg_ids)
-
-
-def _do(action: str, ids: Iterable[str]) -> int:
-    fn = _swap_one if action == "swap" else _restore_one
-    ok = fail = 0
-    for did in ids:
-        if fn(Paths.for_id(did)):
-            ok += 1
-        else:
-            fail += 1
-    if action == "swap" and ok:
-        print(
-            "\nopen the URL pairs above to compare. when done, run:\n"
-            "  python -m services.page_builder.cli.preview restore "
-            + (" ".join(ids) if ok and not fail else "--all")
-        )
-    return 0 if fail == 0 else 1
-
-
-def _fetch_prod_html(dataset_id: str, prod_url: str | None = None) -> str:
-    # Live pages are served at /datasets/<page_slug>; the id URL only works
-    # for legacy entries. Pass --prod-url with the slug URL when the id 404s.
-    url = prod_url or f"{PROD_URL_BASE}/{dataset_id}"
-    req = urllib.request.Request(url, headers={"User-Agent": "govdata-preview/1"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return r.read().decode("utf-8")
-
-
-def _splice_body(prod_html: str, harness_body: str) -> str:
-    """Replace the article.dataset-body innerHTML in prod_html with harness_body.
-
-    Raises ValueError if the structure isn't what we expect — that means
-    the shell template changed and this needs updating.
-    """
-    open_match = DATASET_BODY_OPEN_RE.search(prod_html)
-    if not open_match:
-        raise ValueError(
-            "no <article class='dataset-body'> in prod HTML — has the "
-            "shell template changed?"
-        )
-    close_idx = prod_html.find("</article>", open_match.end())
-    if close_idx < 0:
-        raise ValueError("article.dataset-body has no </article>")
-    return (
-        prod_html[: open_match.end()]
-        + "\n"
-        + harness_body.rstrip()
-        + "\n"
-        + prod_html[close_idx:]
-    )
-
-
-def _inject_preview_banner(html: str) -> str:
-    """Inject a thin banner just after <body> so the user can never confuse a
-    spliced preview with the live page."""
-    body_open = re.search(r"<body\b[^>]*>", html, re.IGNORECASE)
-    if not body_open:
-        return html
-    end = body_open.end()
-    return html[:end] + PREVIEW_BANNER_HTML + html[end:]
-
-
-# Rewrite root-relative URLs (`/_nuxt/…`, `/lib/…`, `/icons/…`, `/datasets/…`)
-# to absolute govil.ai URLs so the spliced preview works when opened via
-# file://. We deliberately leave protocol-relative `//host/…` and
-# already-absolute `https?://…` URLs alone.
-_ROOT_RELATIVE_ATTR_RE = re.compile(
-    r'(\b(?:href|src)\s*=\s*")/(?!/)([^"]*)"',
-    re.IGNORECASE,
-)
-
-
-def _rewrite_root_relative(html: str, host: str = "https://govil.ai") -> str:
-    return _ROOT_RELATIVE_ATTR_RE.sub(rf'\1{host}/\2"', html)
-
-
-# Nuxt's client bundle hydrates the page from `_payload.json`, which would
-# re-render `<article class="dataset-body" v-html="body" />` with the *prod*
-# body and overwrite our splice. Stripping the bundle + payload preload +
-# the inlined NUXT data leaves the static SSG HTML alone — chrome still
-# displays, but Vue never runs and the splice survives. Inline <script>
-# tags inside the agent body (echarts/leaflet init) still execute on
-# browser load because they're plain global script tags, not Vue-mounted.
-_HYDRATION_TAG_RES = (
-    re.compile(r'<script\b[^>]*\bsrc="[^"]*/_nuxt/[^"]*"[^>]*>\s*</script>',
-               re.IGNORECASE),
-    re.compile(r'<link\b[^>]*\bhref="[^"]*/_nuxt/[^"]*"[^>]*/?>',
-               re.IGNORECASE),
-    re.compile(r'<link\b[^>]*\bhref="[^"]*_payload\.json[^"]*"[^>]*/?>',
-               re.IGNORECASE),
-    re.compile(r'<script\b[^>]*\bid="__NUXT_DATA__"[^>]*>.*?</script>',
-               re.IGNORECASE | re.DOTALL),
-    re.compile(r'<script\b[^>]*\bdata-nuxt-data[^>]*>.*?</script>',
-               re.IGNORECASE | re.DOTALL),
-)
-
-
-def _freeze_static(html: str) -> str:
-    """Strip Nuxt hydration so the spliced body survives in the browser."""
-    for r in _HYDRATION_TAG_RES:
-        html = r.sub("", html)
-    return html
-
-
-def _render_one(p: Paths, prod_url: str | None = None) -> bool:
-    if not p.build_file("content.html").exists():
-        print(
-            f"[{p.dataset_id[:8]}] no harness build at {p.build_dir} — skip",
-            file=sys.stderr,
-        )
-        return False
-    print(
-        f"[{p.dataset_id[:8]}] fetching "
-        f"{prod_url or f'{PROD_URL_BASE}/{p.dataset_id}'} ..."
-    )
-    try:
-        prod_html = _fetch_prod_html(p.dataset_id, prod_url=prod_url)
-    except Exception as e:
-        print(
-            f"[{p.dataset_id[:8]}] fetch failed: {type(e).__name__}: {e}",
-            file=sys.stderr,
-        )
-        return False
-    harness_body = p.build_file("content.html").read_text(encoding="utf-8")
-    try:
-        spliced = _splice_body(prod_html, harness_body)
-    except ValueError as e:
-        print(f"[{p.dataset_id[:8]}] splice failed: {e}", file=sys.stderr)
-        return False
-    spliced = _rewrite_root_relative(spliced)
-    spliced = _freeze_static(spliced)
-    spliced = _inject_preview_banner(spliced)
-    out = p.build_dir / "preview.html"
-    out.write_text(spliced, encoding="utf-8")
-    print(f"[{p.dataset_id[:8]}] wrote {out} ({out.stat().st_size:,} bytes)")
-    print(f"  open: file://{out}")
-    print(f"  prod: {prod_url or f'{PROD_URL_BASE}/{p.dataset_id}'}")
-    return True
-
-
-def _cmd_render(ids: Iterable[str], prod_url: str | None = None) -> int:
-    ids = list(ids)
-    if prod_url and len(ids) > 1:
-        print("--prod-url only works with a single dataset id", file=sys.stderr)
-        return 2
-    ok = fail = 0
-    for did in ids:
-        if _render_one(Paths.for_id(did), prod_url=prod_url):
-            ok += 1
-        else:
-            fail += 1
-    return 0 if fail == 0 else 1
-
-
-def _cmd_status() -> int:
-    swapped: list[str] = []
-    untouched: list[str] = []
-    for did in _all_build_ids():
-        if _is_swapped(Paths.for_id(did)):
-            swapped.append(did)
-        else:
-            untouched.append(did)
-    if swapped:
-        print("currently swapped (prod page replaced by harness build):")
-        for did in swapped:
-            print(f"  {did}")
-            _print_compare_links(did)
-    else:
-        print("no datasets currently swapped")
-    if untouched:
-        print(f"\nharness builds available but not swapped ({len(untouched)}):")
-        for did in untouched:
-            print(f"  {did}")
+def stop(root: Optional[Path] = None) -> int:
+    root = root or PREVIEW_ROOT
+    info = _read_server(root)
+    if not info:
+        print("no preview server recorded")
+        return 0
+    _kill(info["pid"])
+    _server_file(root).unlink(missing_ok=True)
+    print(f"stopped preview server (pid {info['pid']}, port {info['port']})")
     return 0
 
 
-def main(argv: list[str] | None = None) -> int:
+# ── urls / status ────────────────────────────────────────────────────────
+
+
+def _urls(dataset_id: str, port: Optional[int], root: Path) -> list[str]:
+    d = root / "datasets" / dataset_id
+    try:
+        slug = json.loads((d / "data.json").read_text(encoding="utf-8")).get("page_slug") or dataset_id
+        live = json.loads((d / "preview.json").read_text(encoding="utf-8")).get("live")
+    except (OSError, ValueError):
+        return []
+    lines = []
+    if port:
+        lines.append(f"  local: http://{HOST}:{port}/datasets/{slug}/")
+    lines.append(f"  prod : {PROD_URL_BASE}/{slug}/" if live else "  prod : (not live yet)")
+    return lines
+
+
+def _warm(dataset_id: str, port: int, root: Path) -> None:
+    """First request of a route compiles it; pay that here, not in the browser."""
+    urls = _urls(dataset_id, port, root)
+    if urls:
+        _get(urllib.parse.quote(urls[0].split(": ", 1)[1], safe=":/"), timeout=120)
+
+
+def status(root: Optional[Path] = None) -> int:
+    root = root or PREVIEW_ROOT
+    info = running_server(root)
+    print(f"server: http://{HOST}:{info['port']}/ (pid {info['pid']})" if info
+          else "server: not running")
+    staged = sorted(d.name for d in (root / "datasets").iterdir()) if (root / "datasets").is_dir() else []
+    for did in staged:
+        print(did)
+        for line in _urls(did, info and info["port"], root):
+            print(line)
+    if not staged:
+        print("nothing staged")
+    return 0
+
+
+# ── watch ────────────────────────────────────────────────────────────────
+
+
+def _watched(dataset_id: str, recipes_root: Path) -> dict[Path, int]:
+    """mtimes of what a render reads: the recipe dir, prepare's data
+    manifest and the pending tags."""
+    paths = [p for p in (recipes_root / dataset_id).rglob("*")
+             if p.is_file() and "__pycache__" not in p.parts]
+    paths += [author.AUTHORING_ROOT / dataset_id / "data" / "manifest.json",
+              pending_tags_path(dataset_id)]
+    out = {}
+    for p in paths:
+        try:
+            out[p] = p.stat().st_mtime_ns
+        except OSError:
+            pass
+    return out
+
+
+def watch(ids: list[str], recipes_root: Path, root: Path) -> int:
+    seen = {did: _watched(did, recipes_root) for did in ids}
+    print(f"watching {', '.join(d[:8] for d in ids)} — Ctrl-C to stop "
+          "(the server keeps running; `preview stop` ends it)")
+    try:
+        while True:
+            time.sleep(WATCH_INTERVAL_S)
+            for did in ids:
+                now = _watched(did, recipes_root)
+                if now != seen[did]:
+                    seen[did] = now
+                    render(did, recipes_root, root)
+    except KeyboardInterrupt:
+        return 0
+
+
+# ── cli ──────────────────────────────────────────────────────────────────
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    sys.stdout.reconfigure(line_buffering=True)  # --watch lines show up in a piped log
+    if argv[:1] == ["stop"]:
+        return stop()
+    if argv[:1] == ["status"]:
+        return status()
     p = argparse.ArgumentParser(
-        description="Swap harness-built dataset pages into the live Nuxt tree for preview.",
+        prog="python -m services.page_builder.cli.preview",
+        description="Render recipes over local data and serve them in the real dataset shell. "
+                    "Also: `status`, `stop`.",
     )
-    sub = p.add_subparsers(dest="cmd", required=True)
-
-    for name, help_ in (
-        ("swap", "replace prod content.html + agent_data.json with the harness build"),
-        ("restore", "put the prod files back from prod-backup/"),
-        ("render", "fetch the live govil.ai page and splice the harness body into it; "
-                   "writes a self-contained preview.html you can open offline"),
-    ):
-        sp = sub.add_parser(name, help=help_)
-        sp.add_argument("ids", nargs="*", help="dataset id(s)")
-        sp.add_argument("--all", action="store_true",
-                        help=f"apply to every harness build under {HARNESS_OUT_DIR.relative_to(REPO_ROOT)}/")
-        if name == "render":
-            sp.add_argument("--prod-url",
-                            help="full live page URL to splice into (use the "
-                                 "slug URL when the id-based URL 404s); "
-                                 "single id only")
-
-    sub.add_parser("status", help="list datasets currently swapped + available builds")
-
+    p.add_argument("ids", nargs="+", help="dataset id(s) with recipes/<id>/ and `author prepare` data")
+    p.add_argument("--watch", action="store_true", help="re-render on every recipe change")
+    p.add_argument("--no-serve", action="store_true", help="stage into tmp/preview/ only")
+    p.add_argument("--recipes", type=Path, default=author.RECIPES_ROOT)
     args = p.parse_args(argv)
 
-    if args.cmd in ("swap", "restore", "render"):
-        ids = _resolve_ids(args.ids, args.all)
-        if not ids:
-            print("nothing to do — pass dataset ids or --all", file=sys.stderr)
-            return 2
-        if args.cmd == "render":
-            return _cmd_render(ids, prod_url=getattr(args, "prod_url", None))
-        return _do(args.cmd, ids)
-    return _cmd_status()
+    root = PREVIEW_ROOT
+    ok = [did for did in args.ids if render(did, args.recipes, root)]
+    port = None
+    if not args.no_serve and (ok or args.watch):
+        port = ensure_server(root)["port"]
+        for did in ok:
+            _warm(did, port, root)
+    for did in args.ids:
+        lines = _urls(did, port, root)
+        if lines:
+            print(did)
+            for line in lines:
+                print(line)
+    if args.watch:
+        return watch(args.ids, args.recipes, root)
+    return 0 if len(ok) == len(args.ids) else 1
 
 
 if __name__ == "__main__":

@@ -98,7 +98,7 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 --json number,bo
 
 For each dataset dispatch one subagent (the Agent tool, general-purpose).
 Each works on a disjoint directory (`recipes/<id>/`, `tmp/authoring/<id>/`,
-`tmp/model_test/<id>/`), so they can run concurrently, but no more than 3 at
+`tmp/preview/datasets/<id>/`), so they can run concurrently, but no more than 3 at
 once (CKAN download bandwidth and memory). Brief each one with:
 
 - the worktree path `$WT` and the venv activation line;
@@ -134,11 +134,13 @@ or `refresh.py` to make a recipe pass.
 The Playwright browser is shared, so do this yourself, one dataset at a time:
 
 ```bash
-python -m services.page_builder.cli.preview render <id>
+python -m services.page_builder.cli.preview <id>
 ```
 
-Open the printed file with Playwright at 375px and at desktop width. Every
-chart must render on a normal load with a clean console. If it doesn't, send
+Open the printed `local:` URL with Playwright at 375px and at desktop width.
+The first call starts the dev server for this worktree (a few seconds); later
+calls only re-render. Every chart must render on a normal load with a clean
+console (ignore the dev-mode `[Vue warn] onBeforeUnmount` line). If it doesn't, send
 the subagent (or a new one) back with the finding, re-verify, look again.
 Still broken after one round → BLOCKED.
 
@@ -202,6 +204,7 @@ Never enable auto-merge.
 ## 7. Clean up and report
 
 ```bash
+python -m services.page_builder.cli.preview stop   # in the worktree: its dev server
 cd /home/zilbert/workdir/govdata
 git worktree remove --force /home/zilbert/workdir/govdata-authoring
 ```

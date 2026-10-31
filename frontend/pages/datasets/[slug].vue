@@ -42,7 +42,15 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
   const me = manifest.datasets.find((d) => (d.page_slug || d.id) === slug);
   if (!me) return null;
   const id = me.id;
-  const dir = path.resolve(process.cwd(), "public/datasets", id);
+  // A local recipe preview (nuxt.config.ts PREVIEW_ROOT) serves its staged
+  // render from the overlay; everything else reads public/.
+  const overlay = process.env.NUXT_PREVIEW_ROOT;
+  const staged = overlay && path.join(overlay, "datasets", id);
+  const dir =
+    staged &&
+    (await fs.stat(path.join(staged, "content.html")).catch(() => null))
+      ? staged
+      : path.resolve(process.cwd(), "public/datasets", id);
 
   // Three artifacts, two writers:
   //   - content.html      : agent body, synced from GCS staging

@@ -27,11 +27,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   שמירה וניקיון) and a698417e (לשכות תיווך) are `unavailable` upstream; the ministry merged them
   into 90b08091, which has a recipe. Their gone-state pages could link (or 301) to 90b08091 to
   keep the search traffic. (2026-10-31)
-- **`preview render` shows blank charts/maps when the live page didn't use those libraries.**
-  It borrows the prod page's `<head>`, which loads echarts/Leaflet only if the legacy body
-  referenced them (`detectDatasetLibs`). A recipe that adds charts to a map-only page (or a map
-  to a chart page) looks broken in preview but is fine on the site. Fix: have the preview inject
-  the libs from `detectDatasetLibs(new body)`. (2026-10-31)
 - **Three new recipes can go quietly wrong as their data moves.** 4eef54bc's `recent` input
   matches files by `קוד`; a new yearly file named like the 2019 one (`קוד_מיפוי`) is silently
   skipped, so the page stays on 2024 with no issue (match both names, or fail when the newest

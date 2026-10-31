@@ -255,7 +255,10 @@ def _prepared(tmp_path, monkeypatch, geo_size):
     from services.page_builder import author, tags
 
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
-    monkeypatch.setattr(author, "PREVIEW_OUT_ROOT", tmp_path / "model_test")
+    from services.page_builder.cli import preview
+
+    monkeypatch.setattr(preview, "PREVIEW_ROOT", tmp_path / "preview")
+    monkeypatch.setattr(preview, "base_manifest_path", lambda: None)
     monkeypatch.setattr(author, "runtime_parity_problems", lambda: [])
     monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     root = tmp_path / "authoring" / DS

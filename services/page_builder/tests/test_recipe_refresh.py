@@ -554,8 +554,11 @@ def _prepared(tmp_path, monkeypatch, rows):
 
     from services.page_builder import tags
 
+    from services.page_builder.cli import preview
+
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
-    monkeypatch.setattr(author, "PREVIEW_OUT_ROOT", tmp_path / "model_test")
+    monkeypatch.setattr(preview, "PREVIEW_ROOT", tmp_path / "preview")
+    monkeypatch.setattr(preview, "base_manifest_path", lambda: None)
     # The installed-version gate has its own test; keep these hermetic.
     monkeypatch.setattr(author, "runtime_parity_problems", lambda: [])
     monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
@@ -579,8 +582,100 @@ def _prepared(tmp_path, monkeypatch, rows):
 def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     assert author.verify(DS, FIXTURES) == 0, capsys.readouterr().out
-    out = tmp_path / "model_test" / DS
+    out = tmp_path / "preview" / "datasets" / DS
     assert (out / "content.html").is_file() and (out / "agent_data.json").is_file()
+    assert (tmp_path / "preview" / "stamp").is_file()  # an open preview reloads
+
+
+# ── cli.preview: stage into the dev-server overlay ───────────────────────
+
+
+def _base_manifest(path, entries):
+    from services.page_builder.schema import Manifest, ManifestEntry
+
+    m = Manifest(generated_at=datetime(2026, 10, 1, tzinfo=timezone.utc),
+                 datasets=[ManifestEntry(**e) for e in entries])
+    path.write_text(m.model_dump_json(exclude_none=True), encoding="utf-8")
+    return path
+
+
+def test_preview_stages_a_new_dataset_with_manifest_entry(tmp_path, monkeypatch, capsys):
+    from services.page_builder.cli import preview
+    from services.page_builder.schema import DatasetMeta
+
+    _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    (tmp_path / "authoring" / DS / "source.json").write_text(json.dumps({
+        "id": DS, "title": "תאונות דרכים לפי מחוז", "slug": "road-accidents",
+        "organization": {"name": "police", "title": "משטרת ישראל"},
+        "metadata_modified": "2026-10-20T08:00:00+00:00", "record_count": 72,
+        "resources": [{"id": RID, "url": "https://data.gov.il/x.csv", "format": "csv"}],
+    }, ensure_ascii=False))
+    other = "99999999-0000-0000-0000-000000000000"
+    # related.py drops features found in >50% of docs: unrelated filler keeps
+    # the shared words informative.
+    filler = [{"id": f"f{i}", "slug": f"f{i}", "title": t}
+              for i, t in enumerate(["מחירי דירות", "בתי ספר יסודיים", "איכות מים", "רישוי עסקים"])]
+    base = _base_manifest(tmp_path / "base.json", [{
+        "id": other, "slug": "x", "page_slug": "תאונות-99999999", "title": "תאונות דרכים בצפון",
+        "summary_he": "תאונות דרכים לפי מחוז", "tags": ["תחבורה"],
+    }, *filler])
+    monkeypatch.setattr(preview, "base_manifest_path", lambda: base)
+
+    assert preview.render(DS, FIXTURES), capsys.readouterr().err
+    root = tmp_path / "preview"
+    meta = DatasetMeta.model_validate_json((root / "datasets" / DS / "data.json").read_text())
+    assert meta.page_slug == "תאונות-דרכים-לפי-מחוז-11111111"
+    assert meta.organization == "משטרת ישראל" and meta.formats == ["CSV"]
+    manifest = json.loads((root / "data" / "manifest.json").read_text())
+    by_id = {e["id"]: e for e in manifest["datasets"]}
+    assert set(by_id) == {DS, other} | {f["id"] for f in filler}
+    assert by_id[DS]["tags"] == ["תחבורה", "תאונות דרכים", "בטיחות בדרכים"]  # pending tags.json
+    assert by_id[DS]["related_ids"][:1] == [other]
+    assert (root / "data" / "search-index.json").is_file()
+    assert json.loads((root / "datasets" / DS / "preview.json").read_text()) == {"live": False}
+
+
+def test_preview_keeps_the_live_slug_and_failures_keep_the_last_page(tmp_path, monkeypatch, capsys):
+    from services.page_builder.cli import preview
+
+    _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    base = _base_manifest(tmp_path / "base.json", [
+        {"id": DS, "slug": "old", "page_slug": "live-slug-11111111", "title": "ישן"},
+    ])
+    monkeypatch.setattr(preview, "base_manifest_path", lambda: base)
+    assert preview.render(DS, FIXTURES)
+    out = tmp_path / "preview" / "datasets" / DS
+    assert json.loads((out / "data.json").read_text())["page_slug"] == "live-slug-11111111"
+    manifest = json.loads((tmp_path / "preview" / "data" / "manifest.json").read_text())
+    assert [e["id"] for e in manifest["datasets"]] == [DS]  # replaced by id, not duplicated
+    body = (out / "content.html").read_text()
+
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    tpl = recipes / DS / "template.html.j2"
+    tpl.write_text(tpl.read_text() + "{% if %}")
+    assert not preview.render(DS, recipes)
+    assert "FAIL [recipe_failed]" in capsys.readouterr().err
+    assert (out / "content.html").read_text() == body
+
+
+def test_preview_carries_provider_presentation(tmp_path, monkeypatch):
+    from services.page_builder.cli import preview
+
+    _prepared(tmp_path, monkeypatch, _rows([2023]))
+    presentation = {"source_name_he": "בנק ישראל", "explorer": False}
+    prov = SimpleNamespace(
+        key="boi_sdmx",
+        presentation=lambda: SimpleNamespace(model_dump=lambda: presentation),
+        page_slug_suffix=lambda did: "interest",
+    )
+    monkeypatch.setattr(preview.author, "_provider_for_recipe", lambda did, root: (prov, None))
+    (tmp_path / "authoring" / DS / "source.json").write_text(json.dumps(
+        {"id": DS, "title": "ריבית", "provider": "boi_sdmx", "source_url": "https://boi.org.il/x"},
+        ensure_ascii=False))
+    src = preview._source_record(DS, FIXTURES)
+    assert (src.provider, src.presentation, src.page_slug_suffix) == ("boi_sdmx", presentation, "interest")
+    assert src.source_url == "https://boi.org.il/x"
 
 
 def test_author_verify_requires_valid_tags(tmp_path, monkeypatch, capsys):

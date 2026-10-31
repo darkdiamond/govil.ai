@@ -13,8 +13,8 @@ drives these commands:
                    that file and fetched from its provider — no Firestore.
     verify <id>    the gate before a PR — runs the recipe exactly as the
                    nightly refresh will, then: determinism, robustness on
-                   perturbed data, template lint, PII grep. Writes the page
-                   to tmp/model_test/<id>/ so `cli.preview render|swap` works.
+                   perturbed data, template lint, PII grep. Stages the page
+                   in tmp/preview/, where an open `cli.preview` reloads it.
     queue          datasets waiting for a recipe (issues the job opened);
                    --legacy adds published pages that have no recipe yet
     snapshot <id> <file> --resource <rid>
@@ -61,7 +61,6 @@ from .tags import PENDING_ROOT
 REPO_ROOT = Path(__file__).resolve().parents[2]
 # One definition: tags.py parks batch-authored tags here too.
 AUTHORING_ROOT = PENDING_ROOT
-PREVIEW_OUT_ROOT = REPO_ROOT / "tmp" / "model_test"
 RECIPES_ROOT = REPO_ROOT / "recipes"
 
 # Perturbations every recipe must survive (see `verify`).
@@ -132,7 +131,6 @@ def _paths(dataset_id: str) -> dict[str, Path]:
         "source": root / "source.json",
         "brief": root / "BRIEF.md",
         "maps": root / "data" / "maps.json",
-        "out": PREVIEW_OUT_ROOT / dataset_id,
     }
 
 
@@ -897,10 +895,36 @@ def _snapshot_resources(recipe: Recipe, source_path: Path) -> list[dict]:
     return [r for r in facts.get("resources") or [] if r.get("id") in wanted]
 
 
-def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_dependent: bool = False) -> int:
+def load_local(dataset_id: str, recipes_root: Path = RECIPES_ROOT) -> tuple[Recipe, list[dict], list[dict]]:
+    """(recipe, prepare's data manifest, resources) for a local render."""
     p = _paths(dataset_id)
     if not p["manifest"].is_file():
         raise SystemExit(f"run `author prepare {dataset_id}` first")
+    manifest = json.loads(p["manifest"].read_text(encoding="utf-8"))
+    recipe = Recipe.load(recipes_root / dataset_id)
+    resources = _resources_from_manifest(manifest) + _snapshot_resources(recipe, p["source"])
+    return recipe, manifest, resources
+
+
+def render_local(recipe: Recipe, manifest: list[dict], resources: list[dict], data_dir: Path,
+                 work: Path, *, transform=None, tag: str = "full"):
+    """One fetch → compute → render over prepare()'s cached files, with the
+    refresh's own code (sanitizer and check.py included). Returns
+    (raw model, RenderedPage, inputs); raises RecipeError like the refresh."""
+    ckan = _LocalCkan(data_dir, manifest, transform)
+    maps_path = data_dir / "maps.json"  # _paths()["maps"]
+    maps = json.loads(maps_path.read_text(encoding="utf-8")) if maps_path.is_file() else []
+    inputs = fetch_inputs(recipe, resources, work / tag, preview_fn=ckan.preview, fetch_fn=ckan.fetch,
+                          snapshot_rows=transform or (lambda rows: rows),
+                          fetch_file_fn=_LocalFiles(data_dir, maps))
+    raw = run_compute(recipe, inputs, work)
+    page = render_page(recipe, raw, work, inputs)
+    return raw, page, inputs
+
+
+def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_dependent: bool = False) -> int:
+    p = _paths(dataset_id)
+    recipe, manifest, resources = load_local(dataset_id, recipes_root)
     parity = runtime_parity_problems()
     if parity:
         raise SystemExit(
@@ -908,10 +932,6 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
             + "\n  ".join(parity)
             + f"\nupgrade the venv: pip install -r {BUILDER_REQUIREMENTS.relative_to(REPO_ROOT)}"
         )
-    manifest = json.loads(p["manifest"].read_text(encoding="utf-8"))
-    resources = _resources_from_manifest(manifest)
-    recipe = Recipe.load(recipes_root / dataset_id)
-    resources += _snapshot_resources(recipe, p["source"])
     problems: list[str] = []
     notes: list[str] = []
     provider = None
@@ -934,19 +954,11 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     problems += _em_dash_findings(recipe)
     problems += _tag_findings(dataset_id)
 
-    maps = json.loads(p["maps"].read_text(encoding="utf-8")) if p["maps"].is_file() else []
-    files = _LocalFiles(p["data"], maps)
     work = Path(tempfile.mkdtemp(prefix=f"author-{dataset_id[:8]}-"))
     try:
         def run(transform=None, tag="full"):
-            ckan = _LocalCkan(p["data"], manifest, transform)
-            d = work / tag
-            inputs = fetch_inputs(recipe, resources, d, preview_fn=ckan.preview, fetch_fn=ckan.fetch,
-                                  snapshot_rows=transform or (lambda rows: rows),
-                                  fetch_file_fn=files)
-            raw = run_compute(recipe, inputs, work)
-            page = render_page(recipe, raw, work, inputs)
-            return raw, page, inputs
+            return render_local(recipe, manifest, resources, p["data"], work,
+                                transform=transform, tag=tag)
 
         try:
             raw, page, inputs = run()
@@ -1013,21 +1025,21 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
-    p["out"].mkdir(parents=True, exist_ok=True)
-    (p["out"] / "content.html").write_text(page.content_html, encoding="utf-8")
-    (p["out"] / "agent_data.json").write_text(
-        json.dumps(page.agent_data, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
-    (p["out"] / "model.json").write_text(
-        json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    from .cli import preview
+
+    try:
+        out = preview.stage(dataset_id, page, raw, recipes_root=recipes_root)
+    except Exception as e:  # the preview is a convenience; never fail verify on it
+        out = None
+        notes.append(f"preview not staged: {type(e).__name__}: {e}")
 
     for n in notes:
         print(f"  · {n}")
     for prob in problems:
         print(f"  ✗ {prob}")
-    print(f"page → {p['out'] / 'content.html'}")
-    print(f"preview: python -m services.page_builder.cli.preview render {dataset_id}")
+    if out is not None:
+        print(f"page → {_display_path(out / 'content.html')}")
+    print(f"preview: python -m services.page_builder.cli.preview {dataset_id}")
     if problems:
         print(f"FAIL — {len(problems)} problem(s)")
         return 1
