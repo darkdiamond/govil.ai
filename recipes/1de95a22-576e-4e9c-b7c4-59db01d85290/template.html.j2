@@ -1,0 +1,476 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro subhead(title) %}
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">{{ title }}</h2>
+{%- endmacro %}
+{%- macro tbl(caption, heads, rows, keys, summary="הצג כטבלה") %}
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">{{ summary }}</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep">{% for h in heads %}<th scope="col" class="text-start py-1 pe-3">{{ h }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r[keys[0]] }}</th>{% for k in keys[1:] %}<td class="py-1 pe-3">{{ r[k] }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>מפת התחדשות עירונית: מתחמי פינוי בינוי מוכרזים ותוכניות מתאר (שכבות GIS)</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }} השכבות של משרד הבינוי והשיכון מציגות לכל מתחם את שמו, היישוב, מסלול ההכרזה (מיסוי או רשויות), סוג ההתחדשות (פינוי בינוי, עיבוי ועוד), מספר התוכנית, תאריך כניסתה לתוקף ויחידות הדיור הקיימות והמוצעות.</p>
+{%- if model.labels.dup_note %}
+  <p class="m-0 mt-2 text-sm text-subtle">{{ model.labels.dup_note }}</p>
+{%- endif %}
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in model.kpi_order %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+{{ head("map-pin", "מפת מתחמי ההתחדשות העירונית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-renewal" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+  <div id="map-legend" class="flex flex-wrap gap-3 mt-3 text-sm text-ink"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("database", "מתחמים לפי יישוב ומסלול הכרזה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_lede }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="cursor-pointer text-sm text-brand">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cities_aria }}</caption>
+        <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">יישוב</th><th scope="col" class="text-start py-1 pe-3">מתחמים</th>{% for t in model.labels.track_names %}<th scope="col" class="text-start py-1 pe-3">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.cities %}
+          <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.n }}</td>{% for v in r.by %}<td class="py-1 pe-3">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "יחידות דיור: קיימות ומוצעות לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.units_lede }}</p>
+  <div id="chart-units" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.units_aria }}"></div>
+{{ tbl(model.labels.units_aria, ["יישוב", "יח״ד קיימות", "תוספת", "יח״ד מוצעות", "מכפיל"], model.tables.units_city, ["name", "kaya", "tosa", "mutz", "mult"]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+{{ subhead("מסלול ההכרזה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.track_lede }}</p>
+  <div id="chart-track" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.track_aria }}"></div>
+{{ tbl(model.labels.track_aria, ["מסלול", "מתחמים", "שיעור", "יח״ד מוצעות", "עם תוכנית בתוקף"], model.tables.track, ["name", "n", "share", "mutz", "appr"]) }}
+</section>
+<section class="card p-5">
+{{ subhead("סוג ההתחדשות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.maslul_lede }}</p>
+  <div id="chart-maslul" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.maslul_aria }}"></div>
+{{ tbl(model.labels.maslul_aria, ["סוג", "מתחמים", "שיעור", "יח״ד מוצעות"], model.tables.maslul, ["name", "n", "share", "mutz"]) }}
+</section>
+</div>
+
+{%- if model.flags.years %}
+<section class="card p-5 mb-6">
+{{ head("database", "תוכניות שנכנסו לתוקף לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_lede }}</p>
+  <div id="chart-years" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.years_aria }}"></div>
+{{ tbl(model.labels.years_aria, ["שנה", "מתחמים", "תוספת יח״ד", "הערה"], model.tables.years, ["year", "n", "tosa", "note"]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תוכנית בתוקף לפי מסלול הכרזה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.appr_lede }}</p>
+  <div id="chart-appr" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.appr_aria }}"></div>
+{{ tbl(model.labels.appr_aria, ["מסלול", "מתחמים", "שיעור", "יח״ד מוצעות", "עם תוכנית בתוקף"], model.tables.track, ["name", "n", "share", "mutz", "appr"]) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+{{ subhead("גודל המתחמים (יחידות דיור מוצעות)") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+  <div id="chart-size" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+{{ tbl(model.labels.size_aria, ["יח״ד מוצעות", "מתחמים", "שיעור"], model.tables.size, ["name", "n", "share"]) }}
+</section>
+{%- if model.flags.mult %}
+<section class="card p-5">
+{{ subhead("מכפיל הציפוף (מוצע חלקי קיים)") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mult_lede }}</p>
+  <div id="chart-mult" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mult_aria }}"></div>
+{{ tbl(model.labels.mult_aria, ["מכפיל", "מתחמים", "שיעור"], model.tables.mult, ["name", "n", "share"]) }}
+</section>
+{%- endif %}
+</div>
+
+{%- if model.flags.mult_city %}
+<section class="card p-5 mb-6">
+{{ head("database", model.labels.mult_city_title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mult_city_lede }}</p>
+  <div id="chart-mult-city" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mult_city_aria }}"></div>
+{{ tbl(model.labels.mult_city_aria, ["יישוב", "מכפיל חציוני", "מתחמים"], model.tables.mult_city, ["name", "med", "n"]) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.mp %}
+<section class="card p-5 mb-6">
+{{ head("list", "תוכניות מתאר להתחדשות עירונית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mp_lede }}</p>
+  <div id="chart-mp" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.mp_aria }}"></div>
+{{ tbl(model.labels.mp_aria, ["סטטוס", "תוכניות", "שיעור"], model.tables.mp_status, ["name", "n", "share"]) }}
+{{ tbl("כל תוכניות המתאר להתחדשות עירונית: יישוב, שם, סטטוס, שטח ומספר המתחמים המוכרזים ביישוב", ["יישוב", "שם התוכנית", "סטטוס", "שטח (דונם)", "מתחמים מוכרזים ביישוב"], model.tables.mp, ["city", "name", "status", "dunam", "decl"], "הצג את כל תוכניות המתאר") }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+{{ head("search", "מתחמי התחדשות עירונית בכל יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">מספר המתחמים, יחידות הדיור הקיימות והמוצעות, ומספר המתחמים עם תוכנית בתוקף, בכל יישוב שבשכבה.</p>
+{{ tbl("מתחמי התחדשות עירונית לפי יישוב: מתחמים, יחידות דיור קיימות ומוצעות, מתחמים עם תוכנית בתוקף", ["יישוב", "מתחמים", "יח״ד קיימות", "יח״ד מוצעות", "עם תוכנית בתוקף"], model.tables.all_cities, ["name", "n", "kaya", "mutz", "appr"], model.labels.all_cities_summary) }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">כדי לצפות בשכבות וכדי לעיין בנתונים יש להיעזר בתוכנות לצפייה בנתונים גיאוגרפים (GIS).</p>
+</section>
+
+{%- if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-pts-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+{%- for chunk in model.charts.map.polys %}
+<script type="application/json" id="map-mp-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-renewal");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "np": model.charts.map.polys | length, "bounds": model.charts.map.bounds, "cities": model.charts.map.cities, "tracks": model.charts.map.tracks} | tojson }};
+    var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#6c9fd8"];
+    var colors = [pal[0], pal[1], pal[2], pal[5], pal[7], pal[3]];
+    var map = L.map(el, { preferCanvas: true, scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    var popup = function (title, rows) {
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = title;
+      box.appendChild(t);
+      rows.forEach(function (row) {
+        if (row[1] === "" || row[1] === null) { return; }
+        var line = document.createElement("div");
+        line.textContent = row[0] + ": " + row[1];
+        box.appendChild(line);
+      });
+      return box;
+    };
+    var mpLayer = L.featureGroup();
+    for (var j = 0; j < meta.np; j++) {
+      var pn = document.getElementById("map-mp-" + j);
+      if (!pn) { continue; }
+      JSON.parse(pn.textContent).forEach(function (p) {
+        var lyr = L.geoJSON(p.g, { style: { color: "#0b3668", weight: 2, dashArray: "6 4", fillColor: "#6c9fd8", fillOpacity: 0.12 } });
+        lyr.bindPopup(popup(p.n, [["סוג", "תוכנית מתאר להתחדשות עירונית"], ["יישוב", p.c], ["סטטוס תכנון", p.s]]));
+        lyr.addTo(mpLayer);
+      });
+    }
+    mpLayer.addTo(map);
+    var groups = meta.tracks.map(function () { return L.featureGroup().addTo(map); });
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-pts-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (p) {
+        var mk = L.circleMarker([p[0], p[1]], {
+          radius: 4 + Math.min(10, Math.sqrt(p[7]) / 5), color: "#ffffff", weight: 1,
+          fillColor: colors[p[4] % colors.length], fillOpacity: 0.85
+        });
+        mk.bindPopup(popup(p[2], [
+          ["יישוב", meta.cities[p[3]]], ["מסלול הכרזה", meta.tracks[p[4]]], ["סוג התחדשות", p[5]],
+          ["יח״ד קיימות", fmt(p[6])], ["יח״ד מוצעות", fmt(p[7])], ["מספר תוכנית", p[8]],
+          ["תוכנית בתוקף מיום", p[9]], ["שטח (דונם)", fmt(p[10])]
+        ]));
+        mk.addTo(groups[p[4]]);
+      });
+    }
+    var overlays = {};
+    meta.tracks.forEach(function (t, i) { overlays["מתחמים: " + t] = groups[i]; });
+    if (meta.np) { overlays["תוכניות מתאר"] = mpLayer; }
+    L.control.layers(null, overlays, { collapsed: true }).addTo(map);
+    var lg = document.getElementById("map-legend");
+    if (lg) {
+      meta.tracks.forEach(function (t, i) {
+        var s = document.createElement("span");
+        s.className = "inline-flex items-center gap-1";
+        var dot = document.createElement("span");
+        dot.className = "inline-block w-3 h-3 rounded-gov-pill";
+        dot.style.background = colors[i % colors.length];
+        s.appendChild(dot);
+        s.appendChild(document.createTextNode("מתחם: " + t));
+        lg.appendChild(s);
+      });
+      if (meta.np) {
+        var s2 = document.createElement("span");
+        s2.className = "inline-flex items-center gap-1";
+        var box = document.createElement("span");
+        box.className = "inline-block w-3 h-3 border-2 border-dashed border-ink-deep";
+        s2.appendChild(box);
+        s2.appendChild(document.createTextNode("תחום תוכנית מתאר"));
+        lg.appendChild(s2);
+      }
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.cities | tojson }};
+    var el = document.getElementById("chart-cities");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, data: d.series.map(function (s) { return s.name; }) },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data, barMaxWidth: 26 }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.units_city | tojson }};
+    var el = document.getElementById("chart-units");
+    if (!el) { return; }
+    var narrow = el.clientWidth < 500;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[1], window.GOVIL_PALETTE[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>קיימות: " + d.kaya[i].toLocaleString("he-IL") +
+          "<br>תוספת: " + d.tosa[i].toLocaleString("he-IL") + "<br>מוצעות: " + d.mutz[i].toLocaleString("he-IL");
+      } },
+      legend: { top: 0, data: ["יח״ד קיימות", "תוספת מתוכננת"] },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "u", name: "יח״ד קיימות", data: d.kaya, barMaxWidth: 26 },
+        { type: "bar", stack: "u", name: "תוספת מתוכננת", data: d.tosa, barMaxWidth: 26 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.track | tojson }};
+    var el = document.getElementById("chart-track");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " מתחמים (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: d,
+        label: { formatter: "{d}%" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.maslul | tojson }};
+    var el = document.getElementById("chart-maslul");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 48, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "מתחמים", data: d.n, barMaxWidth: 26,
+        label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.years %}
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    if (!el) { return; }
+    var last = d.x.length - 1;
+    var bars = d.n.map(function (v, i) {
+      return (d.partial && i === last) ? { value: v, itemStyle: { color: "#b7d2f7" } } : v;
+    });
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[1]],
+      tooltip: { trigger: "axis", formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + ((d.partial && i === last) ? " (שנה חלקית)" : "") +
+          "<br>מתחמים: " + d.n[i].toLocaleString("he-IL") + "<br>תוספת יח״ד: " + d.tosa[i].toLocaleString("he-IL");
+      } },
+      legend: { top: 0, data: ["מתחמים", "תוספת יח״ד"] },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: [{ type: "value", minInterval: 1, name: "מתחמים" }, { type: "value", name: "יח״ד", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "מתחמים", data: bars, barMaxWidth: 28 },
+        { type: "line", name: "תוספת יח״ד", yAxisIndex: 1, data: d.tosa, symbolSize: 6 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.appr_track | tojson }};
+    var el = document.getElementById("chart-appr");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[6]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, data: ["תוכנית בתוקף", "ללא תוכנית בתוקף"] },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "a", name: "תוכנית בתוקף", data: d.yes, barMaxWidth: 30 },
+        { type: "bar", stack: "a", name: "ללא תוכנית בתוקף", data: d.no, barMaxWidth: 30 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.size | tojson }};
+    var el = document.getElementById("chart-size");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "מתחמים", data: d.n, barMaxWidth: 36, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.mult %}
+<script>
+  (function () {
+    var d = {{ model.charts.mult | tojson }};
+    var el = document.getElementById("chart-mult");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[3]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "מתחמים", data: d.n, barMaxWidth: 36, label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.mult_city %}
+<script>
+  (function () {
+    var d = {{ model.charts.mult_city | tojson }};
+    var el = document.getElementById("chart-mult-city");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>מכפיל חציוני: פי " + d.med[i].toFixed(1) + "<br>מתחמים: " + d.n[i].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 48, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{ type: "bar", name: "מכפיל חציוני", data: d.med, barMaxWidth: 24,
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toFixed(1); } },
+        markLine: { symbol: "none", label: { formatter: "חציון כללי" }, lineStyle: { color: "#9a6700", type: "dashed" }, data: [{ xAxis: d.overall }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.mp %}
+<script>
+  (function () {
+    var d = {{ model.charts.mp_status | tojson }};
+    var el = document.getElementById("chart-mp");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " תוכניות (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], data: d, label: { formatter: "{c}" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

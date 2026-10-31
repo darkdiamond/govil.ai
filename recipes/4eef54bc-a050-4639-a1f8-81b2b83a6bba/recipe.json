@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "4eef54bc-a050-4639-a1f8-81b2b83a6bba",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-04T10:43:33.947400+00:00",
+    "rows": { "recent": 3011816, "y2019": 1295867 }
+  },
+  "inputs": [
+    {
+      "name": "recent",
+      "by_schema": ["שם_רשות", "שנת_נתונים", "קוד", "ערך"],
+      "concat": true,
+      "required_columns": ["שם_רשות", "שנת_נתונים", "קוד", "ערך"],
+      "columns": ["שם_רשות", "שנת_נתונים", "קוד", "ערך"]
+    },
+    {
+      "name": "y2019",
+      "by_id": "f3f39a40-8404-4179-bcee-616ab2433631",
+      "required_columns": ["שם_רשות", "שנת_נתונים", "קוד_מיפוי", "ערך"],
+      "columns": ["שם_רשות", "שנת_נתונים", "קוד_מיפוי", "ערך"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

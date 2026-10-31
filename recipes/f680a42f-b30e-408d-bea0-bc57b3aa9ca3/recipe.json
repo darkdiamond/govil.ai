@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "f680a42f-b30e-408d-bea0-bc57b3aa9ca3",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T19:51:19Z",
+  "authored_against": {
+    "metadata_modified": "2025-08-31T07:15:08.983424+00:00",
+    "rows": { "main": 12295 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0f67a263-d9f4-44d4-9816-c96e9dfbc7e5",
+      "required_columns": [
+        "סמל מעון",
+        "שנת לימוד",
+        "שנת לימוד עברי",
+        "תיאור סוג מעון",
+        "תיאור מחוז",
+        "שם עיר",
+        "שם ארגון",
+        "תאריך פתיחה",
+        "תפוסת תינוקות",
+        "תפוסת פעוטות",
+        "תפוסת בוגרים"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

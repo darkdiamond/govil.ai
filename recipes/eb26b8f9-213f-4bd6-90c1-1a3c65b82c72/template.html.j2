@@ -1,0 +1,565 @@
+<h1>נסועה בקווי אוטובוס: מספר הנוסעים בכל קו</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור קו אוטובוס לפי מספר קו, מפעיל או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מספר קו, מפעילה, אשכול, מטרופולין, יישוב מוצא ויישוב יעד, ונסועה שבועית ויומית לכל קו.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.pax.tone }} mb-1" dir="ltr">{{ model.kpis.pax.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.pax_kpi }}</div>
+  </div>
+{%- if model.flags.chg %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.chg.tone }} mb-1" dir="ltr">{{ model.kpis.chg.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.chg_kpi }}</div>
+  </div>
+{%- endif %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.rides.tone }} mb-1" dir="ltr">{{ model.kpis.rides.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rides_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.routes.tone }} mb-1" dir="ltr">{{ model.kpis.routes.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.routes_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.occ.tone }} mb-1" dir="ltr">{{ model.kpis.occ.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.occ_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.low.tone }} mb-1" dir="ltr">{{ model.kpis.low.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.low_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נסועה שבועית לפי רבעון</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  <div id="chart-trend" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.trend_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.trend_aria }}</caption>
+      <thead><tr><th scope="col">רבעון</th><th scope="col">עליות בשבוע</th><th scope="col">נסיעות בשבוע</th><th scope="col">נוסעים לנסיעה</th><th scope="col">ק״מ בשבוע</th><th scope="col">נוסעים לק״מ</th><th scope="col">עליות ביום שלישי</th><th scope="col">נסיעות ביום שלישי</th><th scope="col">כיווני קו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.trend %}
+        <tr><th scope="row">{{ r.per }}</th><td>{{ r.pax }}</td><td>{{ r.rides }}</td><td>{{ r.occ }}</td><td>{{ r.km }}</td><td>{{ r.pkm }}</td><td>{{ r.dp }}</td><td>{{ r.dr }}</td><td>{{ r.rows }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נסועה לפי מטרופולין</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.metro_note }}</p>
+  <div id="chart-metro" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.metro_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.metro_aria }}</caption>
+      <thead><tr><th scope="col">מטרופולין</th><th scope="col">כיווני קו</th><th scope="col">עליות בשבוע ({{ model.labels.lat_label }})</th><th scope="col">חלק</th>{% if model.flags.metro_comp %}<th scope="col">עליות בשבוע ({{ model.labels.comp_label }})</th><th scope="col">שינוי</th>{% endif %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.metro %}
+        <tr><th scope="row">{{ r.metro }}</th><td>{{ r.n }}</td><td>{{ r.pax }}</td><td>{{ r.share }}</td>{% if model.flags.metro_comp %}<td>{{ r.comp }}</td><td dir="ltr">{{ r.chg }}</td>{% endif %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">המפעילות הגדולות</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.agency_note }}</p>
+    <div id="chart-agency" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.agency_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.agency_aria }}</caption>
+        <thead><tr><th scope="col">מפעילה</th><th scope="col">עליות בשבוע</th><th scope="col">חלק</th><th scope="col">כיווני קו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.agency %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.pax }}</td><td>{{ r.share }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+  <section class="card p-5">
+    <div class="flex items-center gap-2 mb-3 text-brand">
+      <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+      <h2 class="m-0 text-lg font-semibold text-ink-deep">האשכולות הגדולים</h2>
+    </div>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cluster_note }}</p>
+    <div id="chart-cluster" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cluster_aria }}"></div>
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.cluster_aria }}</caption>
+        <thead><tr><th scope="col">אשכול</th><th scope="col">עליות בשבוע</th><th scope="col">חלק</th><th scope="col">כיווני קו</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.cluster %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.pax }}</td><td>{{ r.share }}</td><td>{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">הקווים העמוסים ביותר</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.top_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.top_aria }}</caption>
+      <thead><tr><th scope="col">קו</th><th scope="col">מפעילה</th><th scope="col">מטרופולין</th><th scope="col">עליות בשבוע</th><th scope="col">נסיעות בשבוע</th><th scope="col">נוסעים לנסיעה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.top %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.agency }}</td><td>{{ r.metro }}</td><td>{{ r.pax }}</td><td>{{ r.rides }}</td><td>{{ r.occ }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.movers %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קווים שהתחזקו וקווים שנחלשו</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.movers_note }}</p>
+  <div id="chart-movers" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.movers_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.movers_aria }}</caption>
+      <thead><tr><th scope="col">קו</th><th scope="col">מפעילה</th><th scope="col">{{ model.labels.comp_label }}</th><th scope="col">{{ model.labels.lat_label }}</th><th scope="col">שינוי</th><th scope="col">שינוי באחוזים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.movers %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.agency }}</td><td>{{ r.comp }}</td><td>{{ r.latest }}</td><td dir="ltr">{{ r.d }}</td><td dir="ltr">{{ r.pct }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איפה מרוכזים הנוסעים: סוג קו, שירות ורכב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for m in model.charts.mix %}
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">{{ m.title }}</h3>
+      <div id="{{ m.id }}" class="h-64 md:h-80" role="img" aria-label="{{ m.title }}: חלק בכיווני הקו וחלק בעליות"></div>
+    </div>
+{%- endfor %}
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">חלק בכיווני הקו וחלק בעליות לפי מאפיין</caption>
+      <thead><tr><th scope="col">מאפיין</th><th scope="col">ערך</th><th scope="col">כיווני קו</th><th scope="col">חלק בכיווני הקו</th><th scope="col">עליות בשבוע</th><th scope="col">חלק בעליות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr><td>{{ r.dim }}</td><th scope="row">{{ r.name }}</th><td>{{ r.n }}</td><td>{{ r.sn }}</td><td>{{ r.pax }}</td><td>{{ r.sp }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה נוסעים בכל נסיעה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.occ_note }}</p>
+  <div id="chart-occ" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.occ_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.occ_aria }}</caption>
+      <thead><tr><th scope="col">נוסעים לנסיעה</th><th scope="col">כיווני קו</th><th scope="col">חלק בכיווני הקו</th><th scope="col">חלק בנסיעות</th><th scope="col">חלק בעליות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.occ %}
+        <tr><th scope="row">{{ r.bucket }}</th><td>{{ r.n }}</td><td>{{ r.sn }}</td><td>{{ r.rides }}</td><td>{{ r.pax }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">שעות הפעילות: ימי חול, שישי ושבת</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+      <thead><tr><th scope="col">יום</th>{% for b in model.tables.heat_bands %}<th scope="col" dir="ltr">{{ b }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat %}
+        <tr><th scope="row">{{ r.day }}</th>{% for c in r.cells %}<td>{{ c }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.sc %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מהירות ועלות לנוסע לפי מטרופולין</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sc_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div id="chart-speed" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.speed_aria }}"></div>
+    <div id="chart-cost" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.cost_aria }}"></div>
+  </div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.speed_aria }}</caption>
+      <thead><tr><th scope="col">מטרופולין</th><th scope="col">כיווני קו</th><th scope="col">מהירות ממוצעת (קמ״ש)</th><th scope="col">חציון עלות לנוסע (₪)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sc %}
+        <tr><th scope="row">{{ r.metro }}</th><td>{{ r.n }}</td><td>{{ r.speed }}</td><td>{{ r.cost }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קו עירוני, בינעירוני ואזורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.prof_note }}</p>
+  <div class="overflow-x-auto">
+  <table id="table-profile" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.prof_note }}</caption>
+    <thead><tr><th scope="col">סוג קו</th><th scope="col">כיווני קו</th><th scope="col">אורך (ק״מ)</th><th scope="col">תחנות</th><th scope="col">מהירות ממוצעת (קמ״ש)</th><th scope="col">עלות לנוסע (₪)</th><th scope="col">נוסעים לנסיעה</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.prof %}
+      <tr><th scope="row">{{ r.type }}</th><td>{{ r.n }}</td><td>{{ r.len }}</td><td>{{ r.st }}</td><td>{{ r.speed }}</td><td>{{ r.cost }}</td><td>{{ r.occ }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+{%- if model.flags.review %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קווים בהמלצה לבחינה מחדש</h2>
+  </div>
+  <p id="review-note" class="m-0 text-sm text-subtle mb-3">{{ model.labels.review_note }}</p>
+  <div id="chart-review" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.review_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.review_aria }}</caption>
+      <thead><tr><th scope="col">עדיפות</th><th scope="col">כיווני קו</th><th scope="col">עליות בשבוע</th><th scope="col">נסיעות בשבוע</th><th scope="col">חציון נוסעים לנסיעה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.review %}
+        <tr><th scope="row">{{ r.prio }}</th><td>{{ r.n }}</td><td>{{ r.pax }}</td><td>{{ r.rides }}</td><td>{{ r.occ }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.trend | tojson }};
+    var c = echarts.init(document.getElementById("chart-trend"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return Number(v).toLocaleString("he-IL"); } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "עליות בשבוע", axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מיליון"; } } },
+        { type: "value", name: "נסיעות בשבוע", splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside", startValue: d.zoom_start }, { type: "slider", startValue: d.zoom_start, bottom: 28, height: 16 }],
+      series: [
+        { type: "bar", name: "עליות בשבוע", data: d.pax },
+        { type: "line", name: "נסיעות בשבוע", yAxisIndex: 1, data: d.rides, color: "#0b3668", symbolSize: 7 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.metro | tojson }};
+    var c = echarts.init(document.getElementById("chart-metro"));
+    var series = [];
+    if (d.comp_name) { series.push({ type: "bar", name: d.comp_name, data: d.comp, color: "#9ec5fe" }); }
+    series.push({ type: "bar", name: d.latest_name, data: d.latest, color: "#0068f5" });
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return v == null ? "" : Number(v).toLocaleString("he-IL"); } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } },
+      yAxis: { type: "category", data: d.y, inverse: true },
+      series: series
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function bars(id, d) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   formatter: function (ps) {
+                     var p = ps[0];
+                     return echarts.format.encodeHTML(p.name) + ": " + Number(p.value).toLocaleString("he-IL") +
+                       " עליות בשבוע (" + d.share[p.dataIndex] + "%)";
+                   } },
+        grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } },
+        yAxis: { type: "category", data: d.y, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+        series: [{ type: "bar", name: "עליות בשבוע", data: d.v.map(function (v, i) {
+          return d.y[i] === "אחר" ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+        }) }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    bars("chart-agency", {{ model.charts.agency | tojson }});
+    bars("chart-cluster", {{ model.charts.cluster | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var c = echarts.init(document.getElementById("chart-top"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 formatter: function (ps) {
+                   return echarts.format.encodeHTML(ps[0].name) + ": " + Number(ps[0].value).toLocaleString("he-IL") + " עליות בשבוע";
+                 } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.y, inverse: true, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "עליות בשבוע", data: d.v }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.movers %}
+<script>
+  (function () {
+    var d = {{ model.charts.movers | tojson }};
+    var c = echarts.init(document.getElementById("chart-movers"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 formatter: function (ps) {
+                   var v = ps[0].value;
+                   return echarts.format.encodeHTML(ps[0].name) + ": " + (v > 0 ? "+" : "−") +
+                     Math.abs(v).toLocaleString("he-IL") + " עליות בשבוע";
+                 } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שינוי", data: d.v.map(function (v) {
+        return { value: v, itemStyle: { color: v >= 0 ? "#198754" : "#dc3545" } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var mix = {{ model.charts.mix | tojson }};
+    mix.forEach(function (m) {
+      var el = document.getElementById(m.id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+        legend: { bottom: 0 },
+        grid: { left: 16, right: 24, top: 8, bottom: 36, containLabel: true },
+        xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: m.x, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+        series: [
+          { type: "bar", name: "חלק בכיווני הקו", data: m.sn, color: "#9ec5fe" },
+          { type: "bar", name: "חלק בעליות", data: m.sp, color: "#0053c4" }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.occ | tojson }};
+    var c = echarts.init(document.getElementById("chart-occ"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "נוסעים לנסיעה", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "bar", name: "חלק בנסיעות", data: d.rides, color: "#9ec5fe" },
+        { type: "bar", name: "חלק בעליות", data: d.pax, color: "#0053c4" }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    var h = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(h.y[p.value[1]]) + ", " + echarts.format.encodeHTML(h.x[p.value[0]]) + ": " +
+          p.value[2].toLocaleString("he-IL") + " כיווני קו, חציון " + p.value[3].toLocaleString("he-IL") + " נוסעים לנסיעה";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: h.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 35 } },
+      yAxis: { type: "category", data: h.y, splitArea: { show: true } },
+      visualMap: {
+        min: 0, max: h.max, calculable: true, dimension: 2,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: h.cells, label: { show: true, fontFamily: "Rubik",
+                 formatter: function (p) { return p.value[2].toLocaleString("he-IL"); } },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.sc %}
+<script>
+  (function () {
+    var d = {{ model.charts.sc | tojson }};
+    function one(id, data, unit, color) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v == null ? "" : v + " " + unit; } },
+        grid: { left: 16, right: 24, top: 24, bottom: 16, containLabel: true },
+        xAxis: { type: "value", name: unit },
+        yAxis: { type: "category", data: d.y, axisLabel: { width: 110, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: data, color: color }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    one("chart-speed", d.speed, "קמ״ש", "#0068f5");
+    one("chart-cost", d.cost, "₪ לנוסע", "#0b3668");
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.review %}
+<script>
+  (function () {
+    var d = {{ model.charts.review | tojson }};
+    var c = echarts.init(document.getElementById("chart-review"));
+    var ramp = ["#dc3545", "#e4606d", "#f0a0a8", "#9ec5fe", "#c3cfe7"];
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 valueFormatter: function (v) { return Number(v).toLocaleString("he-IL") + " כיווני קו"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 20 } },
+      yAxis: { type: "value", name: "כיווני קו" },
+      series: [{ type: "bar", name: "כיווני קו", data: d.n.map(function (v, i) {
+        return { value: v, itemStyle: { color: ramp[Math.min(i, ramp.length - 1)] } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

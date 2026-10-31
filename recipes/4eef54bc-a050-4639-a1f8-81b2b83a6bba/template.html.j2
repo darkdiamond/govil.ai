@@ -1,0 +1,577 @@
+{%- macro head(title, icon="database") -%}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro -%}
+{%- macro kpi(k, label) -%}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro -%}
+{%- set L = model.labels -%}
+{%- set C = model.charts -%}
+{%- set T = model.tables -%}
+<style>
+  .fin-tbl { border-collapse: collapse; }
+  .fin-tbl th, .fin-tbl td { border: 1px solid #c3cfe7; padding: 0.3rem 0.5rem; text-align: right; }
+  .fin-tbl thead th { background: #f1f7ff; color: #0b3668; font-weight: 600; }
+</style>
+<h1>דוחות כספיים מבוקרים של הרשויות המקומיות: הכנסות, הוצאות וגירעון לפי רשות</h1>
+
+<section class="card p-5 mb-6">
+  {{ head("תקציר", "info") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ L.lede }}</p>
+  <p class="m-0 mt-2 text-sm text-subtle">הנתונים בעמוד לקוחים מגיליון ״דוח לתושב״ שבדוח הכספי המבוקר של כל עירייה ומועצה: תמצית התקציב הרגיל, המאזן וגביית הארנונה. סכומים במיליוני או במיליארדי ש״ח, במחירים שוטפים.{% if L.gap_note %} {{ L.gap_note }}{% endif %}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור הדוח הכספי של עירייה או מועצה לפי שם הרשות ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל שורות הדוחות המבוקרים: שם רשות, גיליון, שורה ועמודה בדוח, קוד ושנה.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ kpi(model.kpis.authorities, L.authorities_kpi) }}
+  {{ kpi(model.kpis.income, L.income_kpi) }}
+  {{ kpi(model.kpis.result, L.result_kpi) }}
+  {{ kpi(model.kpis.deficit, L.deficit_kpi) }}
+  {{ kpi(model.kpis.collect, L.collect_kpi) }}
+  {{ kpi(model.kpis.acc, L.acc_kpi) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("תובנות עיקריות", "circle-check") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("הדוח של הרשות שלך", "building-2") }}
+  <p class="m-0 text-sm text-subtle mb-3">בחרו עירייה, מועצה מקומית או מועצה אזורית כדי לראות את תמצית הדוח הכספי המבוקר שלה: הכנסות והוצאות לאורך השנים, עודף או גירעון, הוצאה לתושב, גביית ארנונה, עומס מלוות וגירעון מצטבר.</p>
+  <div class="flex flex-wrap items-center gap-2 mb-3">
+    <label for="sel-auth" class="text-sm text-ink-deep">רשות:</label>
+    <select id="sel-auth" class="border border-rule rounded-gov px-2 py-1 text-sm bg-white">
+{%- for chunk in model.profiles %}{% for p in chunk %}
+      <option value="{{ p.n }}"{% if p.n == model.default_profile %} selected{% endif %}>{{ p.n }}</option>
+{%- endfor %}{% endfor %}
+    </select>
+  </div>
+  <p id="auth-year" class="text-sm font-semibold text-ink-deep mt-0 mb-2"></p>
+  <div id="auth-cards" class="grid gap-3 mb-3" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));"></div>
+  <div id="chart-auth" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ L.profile_aria }}"></div>
+  <p class="m-0 mt-2 text-xs text-subtle">המספרים כפי שדווחו בדוח המבוקר של הרשות; ערך אפס משמעו לרוב שהנתון לא דווח. טבלת השוואה של כל הרשויות מופיעה בהמשך העמוד.</p>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("הכנסות והוצאות של כל הרשויות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.national_lede }}</p>
+  <div id="chart-national" class="h-72 md:h-96" role="img" aria-label="{{ L.national_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.national_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">רשויות</th><th scope="col">הכנסות (מיליארד ₪)</th><th scope="col">הוצאות (מיליארד ₪)</th><th scope="col">עודף או גירעון מצרפי (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in T.national %}
+        <tr><th scope="row">{{ r.y }}</th><td>{{ r.n }}</td><td>{{ r.inc }}</td><td>{{ r.exp }}</td><td dir="ltr">{{ r.res }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("כמה רשויות בגירעון בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.balance_lede }}</p>
+  <div id="chart-balance" class="h-64 md:h-80" role="img" aria-label="{{ L.balance_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.balance_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">בעודף</th><th scope="col">בגירעון</th><th scope="col">מאוזנות</th></tr></thead>
+      <tbody>
+{%- for r in T.national %}
+        <tr><th scope="row">{{ r.y }}</th><td>{{ r.surplus }}</td><td>{{ r.deficit }}</td><td>{{ r.balanced }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מקורות ההכנסה</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.income_lede }}</p>
+  <div id="chart-income" class="h-72 md:h-96" role="img" aria-label="{{ L.income_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.income_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in T.income_cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">חלק ההכנסות העצמיות</th></tr></thead>
+      <tbody>
+{%- for r in T.income %}
+        <tr><th scope="row">{{ r.y }}</th>{% for v in r.v %}<td>{{ v }}</td>{% endfor %}<td>{{ r.own_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">לאן הולך הכסף</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.expense_lede }}</p>
+  <div id="chart-expense" class="h-72 md:h-96" role="img" aria-label="{{ L.expense_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.expense_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for c in T.expense_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in T.expense %}
+        <tr><th scope="row">{{ r.y }}</th>{% for v in r.v %}<td>{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("מדדי איתנות: גבייה, מלוות וגירעון מצטבר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.health_lede }}</p>
+  <div id="chart-health" class="h-64 md:h-80" role="img" aria-label="{{ L.health_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.health_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">חציון גביית ארנונה</th><th scope="col">חציון עומס מלוות</th><th scope="col">גירעון מצטבר מסך ההכנסות</th><th scope="col">גירעון מצטבר (מיליארד ₪)</th></tr></thead>
+      <tbody>
+{%- for r in T.health %}
+        <tr><th scope="row">{{ r.y }}</th><td>{{ r.collect }}</td><td>{{ r.loan }}</td><td>{{ r.acc }}</td><td>{{ r.acc_bn }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("הוצאה לתושב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.pc_lede }}</p>
+  <div id="chart-pc" class="h-64 md:h-80" role="img" aria-label="{{ L.pc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.pc_aria }}</caption>
+      <thead><tr><th scope="col">שנה</th><th scope="col">רבעון תחתון (₪)</th><th scope="col">חציון (₪)</th><th scope="col">רבעון עליון (₪)</th></tr></thead>
+      <tbody>
+{%- for r in T.pc %}
+        <tr><th scope="row">{{ r.y }}</th><td>{{ r.p25 }}</td><td>{{ r.med }}</td><td>{{ r.p75 }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">הגירעון המצטבר הגבוה ביותר ביחס להכנסה</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.acc_lede }}</p>
+  <div id="chart-acc" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.acc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.acc_aria }}</caption>
+      <thead><tr><th scope="col">רשות</th><th scope="col">גירעון מצטבר מההכנסה</th><th scope="col">גירעון מצטבר (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in T.top_acc %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.pct }}</td><td>{{ r.amt }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">התקציבים הגדולים</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.inc_lede }}</p>
+  <div id="chart-top" class="h-80 md:h-[460px]" role="img" aria-label="{{ L.inc_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.inc_aria }}</caption>
+      <thead><tr><th scope="col">רשות</th><th scope="col">הכנסות (מיליון ₪)</th><th scope="col">הוצאות (מיליון ₪)</th></tr></thead>
+      <tbody>
+{%- for r in T.top_inc %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.inc }}</td><td>{{ r.exp }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ head("גביית ארנונה לפי רשות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.hist_lede }}</p>
+  <div id="chart-hist" class="h-64 md:h-80" role="img" aria-label="{{ L.hist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.hist_aria }}</caption>
+      <thead><tr><th scope="col">שיעור גבייה</th><th scope="col">רשויות</th></tr></thead>
+      <tbody>
+{%- for r in T.hist %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">שיעורי הגבייה הנמוכים ביותר</h3>
+      <table class="fin-tbl w-full text-sm">
+        <caption class="sr-only">הרשויות עם שיעור גביית הארנונה הנמוך ביותר</caption>
+        <thead><tr><th scope="col">רשות</th><th scope="col">גבייה מהשוטף</th></tr></thead>
+        <tbody>
+{%- for r in T.low10 %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">שיעורי הגבייה הגבוהים ביותר</h3>
+      <table class="fin-tbl w-full text-sm">
+        <caption class="sr-only">הרשויות עם שיעור גביית הארנונה הגבוה ביותר</caption>
+        <thead><tr><th scope="col">רשות</th><th scope="col">גבייה מהשוטף</th></tr></thead>
+        <tbody>
+{%- for r in T.high10 %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.v }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{%- if model.flags.socio %}
+<section class="card p-5 mb-6">
+  {{ head("דירוג חברתי-כלכלי והתוצאה התקציבית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.socio_lede }}</p>
+  <div id="chart-socio" class="h-64 md:h-80" role="img" aria-label="{{ L.socio_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.socio_aria }}</caption>
+      <thead><tr><th scope="col">דירוג</th><th scope="col">רשויות</th><th scope="col">בגירעון שוטף</th><th scope="col">חציון גבייה</th><th scope="col">חציון הוצאה לתושב (₪)</th></tr></thead>
+      <tbody>
+{%- for r in T.socio %}
+        <tr><th scope="row">{{ r.rank }}</th><td>{{ r.n }}</td><td>{{ r.deficit }}</td><td>{{ r.collect }}</td><td>{{ r.pc }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ head("כל הרשויות: טבלת השוואה", "list") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.all_caption }}</p>
+  <details>
+    <summary class="text-sm text-subtle">הצג את הטבלה המלאה</summary>
+    <div class="overflow-x-auto">
+    <table class="fin-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ L.all_caption }}</caption>
+      <thead><tr><th scope="col">רשות</th><th scope="col">הכנסות</th><th scope="col">הוצאות</th><th scope="col">עודף או גירעון</th><th scope="col">הוצאה לתושב (₪)</th><th scope="col">גביית ארנונה</th><th scope="col">גירעון מצטבר מההכנסה</th><th scope="col">עומס מלוות</th></tr></thead>
+      <tbody>
+{%- for r in T.all %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.inc }}</td><td>{{ r.exp }}</td><td dir="ltr">{{ r.res }}</td><td>{{ r.pc }}</td><td>{{ r.col }}</td><td>{{ r.acc }}</td><td>{{ r.loan }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("על הנתונים", "tag") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+    <li>כל שנת דוח מתפרסמת כקובץ נפרד, וכל שורה בו היא תא אחד בדוח הכספי של רשות (רשות, גיליון, שורה, עמודה וערך). הדף מחשב את המדדים מקודי התא של גיליון ״דוח לתושב״, שנשארו קבועים בין השנים.</li>
+    <li>כל דוח כולל גם את נתוני השנה הקודמת. שנה מוצגת לפי הדוח שלה עצמה, ואם אין לה דוח, לפי עמודת ״שנה קודמת״ בדוח של השנה שאחריה.</li>
+    <li>עודף או גירעון שוטף הוא תוצאת התקציב הרגיל באותה שנה. הגירעון המצטבר הוא הגירעון שנצבר בתקציב הרגיל עד סוף השנה. עומס מלוות הוא יתרת ההלוואות ביחס להכנסה השנתית.</li>
+    <li>שיעור גביית הארנונה מהשוטף הוא הגבייה בשנת הדוח חלקי החיוב של אותה שנה (אחרי הנחות ופטורים).</li>
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ head("תיאור מקורי", "list") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">דוחות כספיים מבוקרים של כל סוגי הרשויות המקומיות המבוצעים על-ידי אגף בכיר לביקורת ברשויות - משרד הפנים.</p>
+</section>
+
+{%- for chunk in model.profiles %}
+<script type="application/json" id="auth-data-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+(function () {
+  var years = {{ model.profile_years | tojson }};
+  var byName = {};
+  document.querySelectorAll('script[id^="auth-data-"]').forEach(function (node) {
+    JSON.parse(node.textContent).forEach(function (p) { byName[p.n] = p; });
+  });
+  var M = '−';
+  function fnum(v, d) {
+    if (v === null || v === undefined) return '-';
+    var s = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+    return (v < 0 ? M : '') + s;
+  }
+  function fpct(v) { return (v === null || v === undefined) ? '-' : (v * 100).toFixed(1) + '%'; }
+  var el = document.getElementById('chart-auth');
+  var chart = echarts.init(el);
+  var cards = document.getElementById('auth-cards');
+  var yearEl = document.getElementById('auth-year');
+  function card(value, label, tone) {
+    var c = document.createElement('div');
+    c.className = 'card p-3 text-center';
+    var v = document.createElement('div');
+    v.className = 'text-xl font-bold mb-1 text-' + (tone || 'brand');
+    v.setAttribute('dir', 'ltr');
+    v.textContent = value;
+    var l = document.createElement('div');
+    l.className = 'text-xs text-subtle';
+    l.textContent = label;
+    c.appendChild(v); c.appendChild(l);
+    return c;
+  }
+  function render(name) {
+    var p = byName[name];
+    if (!p) return;
+    var i = years.indexOf(String(p.y));
+    var inc = i >= 0 ? p.inc[i] : null, exp = i >= 0 ? p.exp[i] : null, res = i >= 0 ? p.res[i] : null;
+    yearEl.textContent = p.n + ': נתוני הדוח המבוקר לשנת ' + p.y;
+    cards.innerHTML = '';
+    cards.appendChild(card(fnum(inc, 1), 'הכנסות (מיליון ₪)'));
+    cards.appendChild(card(fnum(exp, 1), 'הוצאות (מיליון ₪)'));
+    if (res !== null) cards.appendChild(card(fnum(res, 1), (res < 0 ? 'גירעון' : 'עודף') + ' שוטף (מיליון ₪)', res < 0 ? 'danger' : 'ok'));
+    if (p.pc) cards.appendChild(card(fnum(p.pc, 0), 'הוצאה לתושב (₪)'));
+    if (p.col) cards.appendChild(card(fpct(p.col), 'גביית ארנונה מהשוטף', p.col >= 0.9 ? 'ok' : (p.col < 0.8 ? 'danger' : 'warn')));
+    if (p.acc !== null) cards.appendChild(card(fpct(p.acc), 'גירעון מצטבר מההכנסה' + (p.accm ? ' (' + fnum(p.accm, 1) + ' מיליון ₪)' : ''), p.acc > 0.1 ? 'danger' : 'brand'));
+    if (p.loan !== null) cards.appendChild(card(fpct(p.loan), 'עומס מלוות מההכנסה'));
+    if (p.own !== null) cards.appendChild(card(fpct(p.own), 'חלק ההכנסות העצמיות'));
+    if (p.pop) cards.appendChild(card(fnum(p.pop, 0), 'תושבים'));
+    if (p.soc) cards.appendChild(card(fnum(p.soc, 0), 'דירוג חברתי-כלכלי'));
+    if (p.pos) cards.appendChild(card(fnum(p.pos, 0), 'משרות (ממוצע שנתי)'));
+    el.setAttribute('aria-label', 'גרף עמודות: הכנסות והוצאות של ' + p.n + ' לפי שנה, במיליוני ₪.');
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: 'axis', valueFormatter: function (v) { return v === null || v === undefined ? '-' : fnum(v, 1) + ' מיליון ₪'; } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: 'category', data: years },
+      yAxis: { type: 'value', name: 'מיליון ₪' },
+      series: [
+        { name: 'הכנסות', type: 'bar', data: p.inc },
+        { name: 'הוצאות', type: 'bar', data: p.exp },
+        { name: 'עודף או גירעון', type: 'line', data: p.res, itemStyle: { color: '#0b3668' } }
+      ]
+    }), true);
+  }
+  var sel = document.getElementById('sel-auth');
+  sel.addEventListener('change', function () { render(sel.value); });
+  render(sel.value);
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+<script>
+(function () {
+  var years = {{ C.years | tojson }};
+  var n = {{ C.national | tojson }};
+  var chart = echarts.init(document.getElementById('chart-national'));
+  chart.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0 },
+    grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: years },
+    yAxis: [
+      { type: 'value', name: 'מיליארד ₪' },
+      { type: 'value', name: 'מיליון ₪', splitLine: { show: false } }
+    ],
+    series: [
+      { name: 'הכנסות', type: 'bar', data: n.inc, tooltip: { valueFormatter: function (v) { return v + ' מיליארד ₪'; } } },
+      { name: 'הוצאות', type: 'bar', data: n.exp, tooltip: { valueFormatter: function (v) { return v + ' מיליארד ₪'; } } },
+      { name: 'עודף או גירעון מצרפי', type: 'line', yAxisIndex: 1, data: n.res.map(function (v) { return { value: v, itemStyle: { color: v < 0 ? '#dc3545' : '#198754' } }; }), lineStyle: { color: '#0b3668' }, tooltip: { valueFormatter: function (v) { return v + ' מיליון ₪' + (v < 0 ? ' (גירעון)' : ' (עודף)'); } } }
+    ]
+  }));
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+<script>
+(function () {
+  var years = {{ C.years | tojson }};
+  var b = {{ C.balance | tojson }};
+  var chart = echarts.init(document.getElementById('chart-balance'));
+  chart.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis' },
+    legend: { top: 0 },
+    grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: years },
+    yAxis: { type: 'value', name: 'רשויות' },
+    series: [
+      { name: 'בעודף', type: 'bar', stack: 's', data: b.surplus, itemStyle: { color: '#198754' } },
+      { name: 'מאוזנות', type: 'bar', stack: 's', data: b.balanced, itemStyle: { color: '#c3cfe7' } },
+      { name: 'בגירעון', type: 'bar', stack: 's', data: b.deficit, itemStyle: { color: '#dc3545' } }
+    ]
+  }));
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+<script>
+(function () {
+  var years = {{ C.years | tojson }};
+  function stacked(id, series) {
+    var chart = echarts.init(document.getElementById(id));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: 'axis', valueFormatter: function (v) { return v + ' מיליארד ₪'; } },
+      legend: { top: 0, type: 'scroll' },
+      grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: 'category', data: years },
+      yAxis: { type: 'value', name: 'מיליארד ₪' },
+      series: series.map(function (s) { return { name: s.name, type: 'bar', stack: 't', data: s.data }; })
+    }));
+    window.addEventListener('resize', function () { chart.resize(); });
+  }
+  stacked('chart-income', {{ C.income | tojson }});
+  stacked('chart-expense', {{ C.expense | tojson }});
+})();
+</script>
+<script>
+(function () {
+  var years = {{ C.years | tojson }};
+  var h = {{ C.health | tojson }};
+  var chart = echarts.init(document.getElementById('chart-health'));
+  chart.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis', valueFormatter: function (v) { return v === null || v === undefined ? '-' : v + '%'; } },
+    legend: { top: 0 },
+    grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: years },
+    yAxis: [
+      { type: 'value', name: 'גבייה %', scale: true },
+      { type: 'value', name: 'מלוות וגירעון %', splitLine: { show: false } }
+    ],
+    series: [
+      { name: 'חציון גביית ארנונה', type: 'line', data: h.collect },
+      { name: 'חציון עומס מלוות', type: 'line', yAxisIndex: 1, data: h.loan },
+      { name: 'גירעון מצטבר מסך ההכנסות', type: 'line', yAxisIndex: 1, data: h.acc }
+    ]
+  }));
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+<script>
+(function () {
+  var years = {{ C.years | tojson }};
+  var p = {{ C.pc | tojson }};
+  var chart = echarts.init(document.getElementById('chart-pc'));
+  chart.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis', valueFormatter: function (v) { return v === null || v === undefined ? '-' : Number(v).toLocaleString('en-US') + ' ₪'; } },
+    legend: { top: 0 },
+    grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: years },
+    yAxis: { type: 'value', name: '₪ לתושב', scale: true },
+    series: [
+      { name: 'רבעון עליון', type: 'line', data: p.p75, lineStyle: { type: 'dashed' } },
+      { name: 'חציון', type: 'line', data: p.med, lineStyle: { width: 3 } },
+      { name: 'רבעון תחתון', type: 'line', data: p.p25, lineStyle: { type: 'dashed' } }
+    ]
+  }));
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+<script>
+(function () {
+  function hbar(id, d, unit, color) {
+    var chart = echarts.init(document.getElementById(id));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (v) { return Number(v).toLocaleString('en-US') + unit; } },
+      grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: 'value' },
+      yAxis: { type: 'category', data: d.names.slice().reverse(), axisLabel: { width: 110, overflow: 'truncate' } },
+      series: [{ type: 'bar', data: d.v.slice().reverse(), itemStyle: { color: color } }]
+    }));
+    window.addEventListener('resize', function () { chart.resize(); });
+  }
+  hbar('chart-acc', {{ C.top_acc | tojson }}, '%', '#dc3545');
+  hbar('chart-top', {{ C.top_inc | tojson }}, ' מיליון ₪', '#0068f5');
+})();
+</script>
+<script>
+(function () {
+  var d = {{ C.hist | tojson }};
+  var chart = echarts.init(document.getElementById('chart-hist'));
+  chart.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: function (v) { return v + ' רשויות'; } },
+    grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: d.labels, axisLabel: { interval: 0, rotate: 30 } },
+    yAxis: { type: 'value', name: 'רשויות' },
+    series: [{ type: 'bar', data: d.n, label: { show: true, position: 'top' } }]
+  }));
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+{%- if model.flags.socio %}
+<script>
+(function () {
+  var s = {{ C.socio | tojson }};
+  var chart = echarts.init(document.getElementById('chart-socio'));
+  chart.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis', valueFormatter: function (v) { return v + '%'; } },
+    legend: { top: 0 },
+    grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', name: 'דירוג', data: s.map(function (r) { return String(r.rank); }) },
+    yAxis: [
+      { type: 'value', name: 'בגירעון %', max: 100 },
+      { type: 'value', name: 'גבייה %', max: 100, splitLine: { show: false } }
+    ],
+    series: [
+      { name: 'שיעור הרשויות בגירעון שוטף', type: 'bar', data: s.map(function (r) { return r.deficit_share; }) },
+      { name: 'חציון גביית ארנונה', type: 'line', yAxisIndex: 1, data: s.map(function (r) { return r.collect; }), itemStyle: { color: '#0b3668' } }
+    ]
+  }));
+  window.addEventListener('resize', function () { chart.resize(); });
+})();
+</script>
+{%- endif %}

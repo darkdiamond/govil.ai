@@ -1,0 +1,6 @@
+{
+  "items.מספר אישור": "kpi:total — the lookup key; searchable in the shell's explorer. Each row is one approval number",
+  "items.תוקף": "chart-expiry, chart-heat, kpi:first, kpi:last, insight:peak, insight:first_year",
+  "items.קוד דגם": "chart-models, kpi:models, insight:models — normalized (case, whitespace) and paired with the manufacturer",
+  "items.יצרן": "chart-makers, chart-pareto, chart-buckets, chart-heat, kpi:makers, insight:leader, insight:concentration, insight:toys — spellings grouped by a normalized key"
+}

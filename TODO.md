@@ -18,6 +18,28 @@ This repo is public: describe a security gap by what to change, never by how to 
   abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) freezes
   every page with only log lines. Fix: count consecutive `sandbox_failed` runs like
   `wall_budget_strikes` and open an issue (or fail the run) past a threshold. (2026-10-31)
+- **`author snapshot` keeps long float properties that trip verify's PII check.** Shapefile
+  area/length fields (`Shape_STAr` 213.029377738) match the phone pattern. 1de95a22 got past it
+  with a scratch step that rounds them to 0.1 before `snapshot`, so a re-snapshot after
+  `geometry_stale` needs the same step. Fix: round numeric properties in `geo_snapshot`, or make
+  the PII grep skip numeric GeoJSON values. (2026-10-31)
+- **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP),
+  גושים (1d2d0ec1, 65MB) and גבולות תצ"ר (65dafbb0, 84MB) are national layers far over a
+  committable snapshot; they'd need a pre-aggregation step (centroids or per-region dissolve).
+  הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
+  `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
+- **Removed registries still draw top-100 traffic.** 8152ebdf (קבלני כח אדם), bc0e0381 (קבלני
+  שמירה וניקיון) and a698417e (לשכות תיווך) are `unavailable` upstream; the ministry merged them
+  into 90b08091, which has a recipe. Their gone-state pages could link (or 301) to 90b08091 to
+  keep the search traffic. (2026-10-31)
+- **`preview render` shows blank charts/maps when the live page didn't use those libraries.**
+  It borrows the prod page's `<head>`, which loads echarts/Leaflet only if the legacy body
+  referenced them (`detectDatasetLibs`). A recipe that adds charts to a map-only page (or a map
+  to a chart page) looks broken in preview but is fine on the site. Fix: have the preview inject
+  the libs from `detectDatasetLibs(new body)`. (2026-10-31)
+- **Explorer resource pills overflow at 375px.** A long resource name pushes `.explorer-pill`
+  past the viewport (85451410: 381px scroll width). Shell CSS, not the recipe: truncate or wrap
+  the pill label. (2026-10-31)
 - **A map snapshot misses a same-size edit when CKAN has no md5.** `snapshot_stale` compares
   CKAN's `hash` when both sides have one, else `size` (#184's GeoJSON has an empty `hash`), and
   ignores `last_modified` because CKAN bumps it on byte-identical re-uploads. An edit that keeps

@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1de95a22-576e-4e9c-b7c4-59db01d85290",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T22:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-01T01:00:21.757385+00:00",
+    "rows": { "declared": 976, "masterplans": 42 }
+  },
+  "inputs": [
+    {
+      "name": "declared",
+      "by_id": "ceb7bbb0-e2db-4e87-8a6c-0a250f5de001",
+      "snapshot": "declared.geojson",
+      "snapshot_of": {
+        "size": 2743472,
+        "last_modified": "2026-08-01T01:00:21.729977",
+        "taken_at": "2026-10-31"
+      },
+      "required_columns": [
+        "MisparProj",
+        "ShemMitcha",
+        "Yeshuv",
+        "plan_name",
+        "TeurMaslul",
+        "TeurSugMas",
+        "taarichTok",
+        "yachadKaya",
+        "yachadMutz",
+        "YachadTosa",
+        "Shape_STAr",
+        "__geometry"
+      ]
+    },
+    {
+      "name": "masterplans",
+      "by_id": "38555a84-8523-4ab1-9fe5-df6b523c15ea",
+      "snapshot": "masterplans.geojson",
+      "snapshot_of": {
+        "size": 268455,
+        "last_modified": "2026-08-01T01:00:19.916146",
+        "taken_at": "2026-10-31"
+      },
+      "required_columns": [
+        "MisparProj",
+        "ShemMitcha",
+        "Yeshuv",
+        "statusTich",
+        "Shape_STAr",
+        "__geometry"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

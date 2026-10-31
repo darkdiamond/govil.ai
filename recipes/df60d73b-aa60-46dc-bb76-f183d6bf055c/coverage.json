@@ -1,0 +1,7 @@
+{
+  "plan.NDC": "np-q, chart-cats, chart-mix, chart-util, chart-grid, chart-span, table:directory, kpi:prefixes, insight:single, insight:shared, insight:util — the national destination code (prefix); groups blocks and drives the service-type category",
+  "plan.E.164 Range Format": "np-q, chart-ops, chart-util, chart-grid, chart-sizes, chart-notes, kpi:blocks, kpi:cap, insight:leader, insight:concentration, insight:util, insight:sizes — the digits before the X run are the lookup key; the X count gives the block size (10^X numbers)",
+  "plan.Dialing Within Israel": "np-q, table:directory, chart-mix, chart-util — the domestic prefix label (050, 02, 13) shown for each NDC",
+  "plan.Allocated To": "np-q, chart-ops, chart-mix, chart-span, chart-grid, table:directory, kpi:ops, insight:leader, insight:concentration, insight:single, insight:shared — mapped to Hebrew trade names for known operators, raw legal name otherwise",
+  "plan.Notes": "np-q, chart-notes, insight:special — special designations (Palestinian Authority, M2M, IoT, prepaid)"
+}

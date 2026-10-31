@@ -1,0 +1,452 @@
+{%- macro head(icon, title) %}
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+{%- macro details_open(caption) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle cursor-pointer">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+{%- endmacro %}
+{%- macro details_close() %}
+    </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>קידומות טלפון בישראל: לאיזו חברה שייך המספר</h1>
+
+<section class="card p-5 mb-6">
+{{ head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lead }}</p>
+  <p class="m-0 mt-2 text-subtle leading-relaxed">{{ model.labels.lead2 }}</p>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("search", "איתור החברה לפי מספר טלפון או קידומת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lookup_lede }}</p>
+  <label for="np-q" class="sr-only">חיפוש מספר טלפון או קידומת בתוכנית המספור</label>
+  <input id="np-q" type="search" inputmode="tel" autocomplete="off" dir="ltr" placeholder="{{ model.labels.lookup_placeholder }}" class="w-full border border-rule rounded-gov px-3 py-2 text-base text-start" />
+  <div id="np-out" class="mt-3" aria-live="polite"></div>
+  <a href="#data-explorer" class="mt-3 flex items-center gap-2 text-sm text-primary no-underline">
+    <img src="/icons/list.svg" alt="" class="w-4 h-4 shrink-0" />
+    <span>חיפוש לפי שם החברה (באנגלית) ברשימת הטווחים המלאה ←</span>
+  </a>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for key in ["blocks", "ops", "cap", "prefixes"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels["kpi_" ~ key] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<section class="card p-5 mb-6">
+{{ head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+{%- if model.labels.bad_note %}
+  <p class="m-0 mt-3 text-xs text-subtle">{{ model.labels.bad_note }}</p>
+{%- endif %}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("list", "רשימת הקידומות: מי מחזיק בכל קידומת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_lede }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.dir_caption }}</caption>
+    <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-2 pe-3">קידומת</th><th scope="col" class="text-start py-2 pe-3">סוג שירות</th><th scope="col" class="text-start py-2 pe-3">מפעילים</th><th scope="col" class="text-start py-2">הוקצה</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.directory %}
+      <tr class="border-b border-rule align-top"><th scope="row" class="text-start py-2 pe-3 font-semibold text-ink-deep" dir="ltr">{{ r.label }}</th><td class="py-2 pe-3">{{ r.kind }}</td><td class="py-2 pe-3">{{ r.ops }}</td><td class="py-2" dir="ltr">{{ r.util }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "מספרים לפי סוג שירות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cat_lede }}</p>
+  <div id="chart-cats" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cat_aria }}"></div>
+{{ details_open(model.labels.cat_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">סוג שירות</th><th scope="col" class="text-start py-1 pe-3">קידומות</th><th scope="col" class="text-start py-1 pe-3">טווחים</th><th scope="col" class="text-start py-1 pe-3">מפעילים</th><th scope="col" class="text-start py-1 pe-3">מספרים</th><th scope="col" class="text-start py-1">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cats %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.prefixes }}</td><td class="py-1 pe-3">{{ r.blocks | fmt_int }}</td><td class="py-1 pe-3">{{ r.ops | fmt_int }}</td><td class="py-1 pe-3">{{ r.cap_txt }}</td><td class="py-1" dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("building-2", "המפעילים עם הכי הרבה מספרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ops_lede }}</p>
+  <div id="chart-ops" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.ops_aria }}"></div>
+{{ details_open(model.labels.ops_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">מפעיל</th><th scope="col" class="text-start py-1 pe-3">מספרים</th><th scope="col" class="text-start py-1 pe-3">טווחים</th><th scope="col" class="text-start py-1">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.ops %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.cap }}</td><td class="py-1 pe-3">{{ r.blocks | fmt_int }}</td><td class="py-1" dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "חלוקת כל קידומת בין המפעילים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_lede }}</p>
+  <div id="chart-mix" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.mix_aria }}"></div>
+{{ details_open(model.labels.mix_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">קידומת</th><th scope="col" class="text-start py-1 pe-3">המחזיק הגדול</th><th scope="col" class="text-start py-1 pe-3">חלקו</th><th scope="col" class="text-start py-1 pe-3">מפעילים</th><th scope="col" class="text-start py-1">טווחים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.mix %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3" dir="ltr">{{ r.label }}</th><td class="py-1 pe-3">{{ r.leader }}</td><td class="py-1 pe-3" dir="ltr">{{ r.share }}</td><td class="py-1 pe-3">{{ r.ops | fmt_int }}</td><td class="py-1">{{ r.blocks | fmt_int }}</td></tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "כמה מכל קידומת כבר הוקצה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.util_lede }}</p>
+  <div id="chart-util" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.util_aria }}"></div>
+{{ details_open(model.labels.util_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">קידומת</th><th scope="col" class="text-start py-1 pe-3">מספרים שהוקצו</th><th scope="col" class="text-start py-1 pe-3">מרחב הקידומת</th><th scope="col" class="text-start py-1">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.util %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3" dir="ltr">{{ r.label }}</th><td class="py-1 pe-3">{{ r.cap }}</td><td class="py-1 pe-3">{{ r.space }}</td><td class="py-1" dir="ltr">{{ r.util }}</td></tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "מפת מרחב המספרים: קידומת וספרה ראשונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grid_lede }}</p>
+  <div id="chart-grid" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.grid_aria }}" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+{{ head("database", "גודל הטווחים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+  <div id="chart-sizes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.size_aria }}"></div>
+{{ details_open(model.labels.size_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">גודל טווח</th><th scope="col" class="text-start py-1 pe-3">טווחים</th><th scope="col" class="text-start py-1 pe-3">שיעור מהטווחים</th><th scope="col" class="text-start py-1">שיעור מהמספרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.sizes %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.blocks | fmt_int }}</td><td class="py-1 pe-3" dir="ltr">{{ r.block_share }}</td><td class="py-1" dir="ltr">{{ r.cap_share }}</td></tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+
+{%- if model.flags.has_notes %}
+<section class="card p-5 mb-6">
+{{ head("tag", "טווחים בייעוד מיוחד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.note_lede }}</p>
+  <div id="chart-notes" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.note_aria }}"></div>
+{{ details_open(model.labels.note_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">ייעוד</th><th scope="col" class="text-start py-1 pe-3">טווחים</th><th scope="col" class="text-start py-1 pe-3">מפעילים</th><th scope="col" class="text-start py-1 pe-3">מספרים</th><th scope="col" class="text-start py-1">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.notes %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th><td class="py-1 pe-3">{{ r.blocks | fmt_int }}</td><td class="py-1 pe-3">{{ r.ops | fmt_int }}</td><td class="py-1 pe-3">{{ r.cap_txt }}</td><td class="py-1" dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_span %}
+<section class="card p-5 mb-6">
+{{ head("building-2", "באילו סוגי שירות פועל כל מפעיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.span_lede }}</p>
+  <div id="chart-span" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.span_aria }}"></div>
+{{ details_open(model.labels.span_aria) }}
+      <thead><tr class="border-b border-rule text-ink-deep"><th scope="col" class="text-start py-1 pe-3">מפעיל</th>{% for c in model.tables.span_cols %}<th scope="col" class="text-start py-1 pe-3">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.span %}
+        <tr class="border-b border-rule"><th scope="row" class="text-start font-normal py-1 pe-3">{{ r.name }}</th>{% for v in r.cells %}<td class="py-1 pe-3">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+{{ details_close() }}
+</section>
+{%- endif %}
+
+<script type="application/json" id="np-meta">{{ {"ops": model.lookup.ops, "notes": model.lookup.notes, "labels": model.lookup.labels, "kinds": model.lookup.kinds} | tojson }}</script>
+{%- for c in model.lookup.chunks %}
+<script type="application/json" data-np-chunk>{{ c | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var q = document.getElementById("np-q");
+    var out = document.getElementById("np-out");
+    var metaEl = document.getElementById("np-meta");
+    if (!q || !out || !metaEl) return;
+    var meta = JSON.parse(metaEl.textContent);
+    var entries = [];
+    document.querySelectorAll("script[data-np-chunk]").forEach(function (el) {
+      JSON.parse(el.textContent).forEach(function (e) { entries.push(e); });
+    });
+    var nf = new Intl.NumberFormat("he-IL");
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
+    function opName(i) {
+      var o = meta.ops[i] || ["", ""];
+      return o[1] ? o[0] + " (" + o[1] + ")" : o[0];
+    }
+    function pattern(e) {
+      return (meta.labels[e[0]] || e[0]) + "-" + e[1] + "X".repeat(e[4]);
+    }
+    function norm(s) {
+      var d = String(s).replace(/\D/g, "");
+      if (d.indexOf("00972") === 0) d = d.slice(5);
+      else if (d.indexOf("972") === 0) d = d.slice(3);
+      else if (d.charAt(0) === "0") d = d.slice(1);
+      return d;
+    }
+    function render() {
+      while (out.firstChild) out.removeChild(out.firstChild);
+      var d = norm(q.value);
+      if (!d) return;
+      var hit = null;
+      entries.forEach(function (e) {
+        var k = e[0] + e[1];
+        if (d.indexOf(k) === 0 && (!hit || k.length > (hit[0] + hit[1]).length)) hit = e;
+      });
+      if (hit) {
+        var box = el("div", "border border-rule rounded-gov p-4 bg-surface");
+        box.appendChild(el("div", "text-sm text-subtle", "המספר שייך לטווח"));
+        var p = el("div", "text-lg font-semibold text-ink-deep", pattern(hit));
+        p.dir = "ltr";
+        p.style.textAlign = "right";
+        box.appendChild(p);
+        box.appendChild(el("div", "mt-2 text-base font-semibold text-primary", "הוקצה ל: " + opName(hit[2])));
+        box.appendChild(el("div", "mt-1 text-sm", "סוג שירות: " + (meta.kinds[hit[0]] || "")));
+        box.appendChild(el("div", "mt-1 text-sm", "גודל הטווח: " + nf.format(Math.pow(10, hit[4])) + " מספרים"));
+        if (meta.notes[hit[3]]) box.appendChild(el("div", "mt-1 text-sm", "ייעוד: " + meta.notes[hit[3]]));
+        box.appendChild(el("div", "mt-2 text-xs text-subtle", "זהו המפעיל שאליו הוקצה הטווח. אם המספר עבר ניוד, הוא עשוי להיות כיום אצל חברה אחרת."));
+        out.appendChild(box);
+        return;
+      }
+      var cands = entries.filter(function (e) { return (e[0] + e[1]).indexOf(d) === 0; });
+      if (!cands.length) {
+        out.appendChild(el("p", "m-0 text-sm text-subtle", "לא נמצא טווח מוקצה שמתאים למספר הזה. ייתכן שהטווח טרם הוקצה, או שזה מספר שירות מקוצר שאינו חלק מתוכנית המספור."));
+        return;
+      }
+      var byOp = {};
+      cands.forEach(function (e) {
+        var k = e[2];
+        if (!byOp[k]) byOp[k] = { n: 0, cap: 0 };
+        byOp[k].n += 1;
+        byOp[k].cap += Math.pow(10, e[4]);
+      });
+      var keys = Object.keys(byOp).sort(function (a, b) { return byOp[b].cap - byOp[a].cap || byOp[b].n - byOp[a].n || Number(a) - Number(b); });
+      out.appendChild(el("p", "m-0 text-sm text-subtle", "נמצאו " + nf.format(cands.length) + " טווחים של " + nf.format(keys.length) + " מפעילים שמתחילים כך. המשיכו להקליד ספרות כדי לאתר טווח אחד:"));
+      var ul = el("ul", "list-none m-0 ps-0 mt-2 grid gap-1 text-sm");
+      keys.slice(0, 15).forEach(function (k) {
+        var li = el("li", "flex justify-between gap-3 border-b border-rule py-1");
+        li.appendChild(el("span", "", opName(Number(k))));
+        li.appendChild(el("span", "text-subtle shrink-0", nf.format(byOp[k].n) + " טווחים"));
+        ul.appendChild(li);
+      });
+      out.appendChild(ul);
+      if (keys.length > 15) out.appendChild(el("p", "m-0 mt-1 text-xs text-subtle", "ועוד " + nf.format(keys.length - 15) + " מפעילים."));
+    }
+    q.addEventListener("input", render);
+  })();
+</script>
+<script>
+  (function () {
+    var enc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    var nf = new Intl.NumberFormat("he-IL", { maximumFractionDigits: 2 });
+    var narrow = function (el) { return el.clientWidth < 520; };
+
+    (function () {
+      var d = {{ model.charts.cats | tojson }};
+      var el = document.getElementById("chart-cats");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var p = ps[0];
+          return enc(p.name) + "<br/>" + nf.format(p.value) + " מיליון מספרים<br/>" + nf.format(d.blocks[p.dataIndex]) + " טווחים";
+        } },
+        grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, width: narrow(el) ? 70 : 140, overflow: "break", fontSize: narrow(el) ? 10 : 12 } },
+        yAxis: { type: "value", name: "מיליון מספרים" },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 56, colorBy: "data",
+          label: { show: true, position: "top", color: "#0c3058", formatter: function (p) { return nf.format(p.value); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+
+    (function () {
+      var d = {{ model.charts.ops | tojson }};
+      var el = document.getElementById("chart-ops");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var p = ps[0];
+          return enc(p.name) + "<br/>" + nf.format(p.value) + " מיליון מספרים (" + enc(d.shares[p.dataIndex]) + ")<br/>" + nf.format(d.blocks[p.dataIndex]) + " טווחים";
+        } },
+        grid: { left: 8, right: 44, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", name: "מיליון" },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: narrow(el) ? 100 : 170, overflow: "truncate", ellipsis: "…", fontSize: narrow(el) ? 11 : 12 } },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 22,
+          label: { show: true, position: "right", color: "#0c3058", formatter: function (p) { return nf.format(p.value); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+
+    (function () {
+      var d = {{ model.charts.mix | tojson }};
+      var el = document.getElementById("chart-mix");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        legend: { type: "scroll", top: 0, textStyle: { fontSize: narrow(el) ? 10 : 12 } },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var s = "קידומת " + enc(ps[0].name);
+          ps.forEach(function (p) { if (p.value > 0) s += "<br/>" + p.marker + enc(p.seriesName) + ": " + nf.format(p.value) + "%"; });
+          return s;
+        } },
+        grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+        xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: d.prefixes, inverse: true, axisLabel: { fontSize: narrow(el) ? 10 : 12 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "mix", name: s.name, data: s.data, barMaxWidth: 18 }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+
+    (function () {
+      var d = {{ model.charts.util | tojson }};
+      var el = document.getElementById("chart-util");
+      if (!el) return;
+      var c = echarts.init(el);
+      var data = d.util.map(function (v) {
+        return v >= 99.9 ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      });
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return "קידומת " + enc(d.prefixes[i]) + " (" + enc(d.kind[i]) + ")<br/>" + nf.format(d.util[i]) + "% הוקצו" + (d.util[i] >= 99.9 ? " (מלאה)" : "") +
+            "<br/>" + nf.format(d.cap[i]) + " מתוך " + nf.format(d.space[i]) + " מספרים";
+        } },
+        grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.prefixes, axisLabel: { interval: 0, rotate: narrow(el) ? 90 : 0, fontSize: narrow(el) ? 10 : 12 } },
+        yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        series: [{ type: "bar", data: data, barMaxWidth: 28,
+          label: { show: !narrow(el), position: "top", color: "#0c3058", fontSize: 10, formatter: function (p) { return Math.round(p.value) + "%"; } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+
+    (function () {
+      var d = {{ model.charts.grid | tojson }};
+      var el = document.getElementById("chart-grid");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        tooltip: { position: "top", formatter: function (p) {
+          var v = p.data;
+          return "קידומת " + enc(d.prefixes[v[1]]) + ", ספרה ראשונה " + enc(d.digits[v[0]]) + "<br/>" + nf.format(v[2]) + "% מהטווח הוקצו" +
+            (v[3] ? "<br/>" + enc(v[3]) : "<br/>(טרם הוקצה)");
+        } },
+        grid: { left: 8, right: 8, top: 24, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.digits, name: "ספרה ראשונה", nameLocation: "middle", nameGap: 22, splitArea: { show: true } },
+        yAxis: { type: "category", data: d.prefixes, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: narrow(el) ? 10 : 12 } },
+        visualMap: { min: 0, max: 100, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0, itemHeight: 120,
+          inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+        series: [{ type: "heatmap", data: d.cells, label: { show: false },
+          emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+
+    (function () {
+      var d = {{ model.charts.sizes | tojson }};
+      var el = document.getElementById("chart-sizes");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        legend: { top: 0 },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return "טווח של " + enc(d.names[i]) + "<br/>" + nf.format(d.blocks[i]) + " טווחים<br/>" + nf.format(d.cap_share[i]) + "% מכלל המספרים";
+        } },
+        grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: narrow(el) ? 9 : 12, width: narrow(el) ? 56 : 120, overflow: "break" } },
+        yAxis: [{ type: "value", name: "טווחים", minInterval: 1 }, { type: "value", name: "% מהמספרים", max: 100, splitLine: { show: false } }],
+        series: [
+          { type: "bar", name: "מספר טווחים", data: d.blocks, barMaxWidth: 48 },
+          { type: "line", name: "שיעור מהמספרים", yAxisIndex: 1, data: d.cap_share, symbolSize: 8 }
+        ]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+
+{%- if model.flags.has_notes %}
+    (function () {
+      var d = {{ model.charts.notes | tojson }};
+      var el = document.getElementById("chart-notes");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var p = ps[0];
+          return enc(p.name) + "<br/>" + nf.format(p.value) + " מיליון מספרים<br/>" + nf.format(d.blocks[p.dataIndex]) + " טווחים";
+        } },
+        grid: { left: 8, right: 44, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", name: "מיליון" },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: narrow(el) ? 110 : 200, overflow: "break", fontSize: narrow(el) ? 10 : 12 } },
+        series: [{ type: "bar", data: d.values, barMaxWidth: 22, colorBy: "data",
+          label: { show: true, position: "right", color: "#0c3058", formatter: function (p) { return nf.format(p.value); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+{%- endif %}
+
+{%- if model.flags.has_span %}
+    (function () {
+      var d = {{ model.charts.span | tojson }};
+      var el = document.getElementById("chart-span");
+      if (!el) return;
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        legend: { type: "scroll", top: 0, textStyle: { fontSize: narrow(el) ? 10 : 12 } },
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var s = enc(ps[0].name);
+          ps.forEach(function (p) { if (p.value > 0) s += "<br/>" + p.marker + enc(p.seriesName) + ": " + nf.format(p.value) + " מיליון"; });
+          return s;
+        } },
+        grid: { left: 8, right: 16, top: 40, bottom: 8, containLabel: true },
+        xAxis: { type: "value", name: "מיליון" },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: narrow(el) ? 100 : 170, overflow: "truncate", ellipsis: "…", fontSize: narrow(el) ? 10 : 12 } },
+        series: d.series.map(function (s) { return { type: "bar", stack: "span", name: s.name, data: s.data, barMaxWidth: 20 }; })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+{%- endif %}
+  })();
+</script>

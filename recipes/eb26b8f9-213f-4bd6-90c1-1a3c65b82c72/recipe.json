@@ -1,0 +1,54 @@
+{
+  "contract_version": 1,
+  "dataset_id": "eb26b8f9-213f-4bd6-90c1-1a3c65b82c72",
+  "recipe_version": 1,
+  "authored_at": "2026-10-31T20:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-16T11:04:47.591497+00:00",
+    "rows": {
+      "main": 48382
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "RouteID",
+        "RouteDirection",
+        "WeeklyPassengers",
+        "WeekyRides",
+        "year",
+        "Q"
+      ],
+      "concat": true,
+      "required_columns": [
+        "RouteID",
+        "RouteName",
+        "RouteDirection",
+        "AgencyName",
+        "ClusterName",
+        "Metropolin",
+        "OriginCityName",
+        "DestinationCityName",
+        "RouteType",
+        "ServiceType",
+        "RouteParticular",
+        "BusType",
+        "BusSize",
+        "RouteLength",
+        "WeeklyKM",
+        "StationsInRoute",
+        "OperationSince",
+        "DailyRides(Tuesday)",
+        "WeekyRides",
+        "DailyPassengers",
+        "WeeklyPassengers",
+        "AVGCommutersPerRide(Weekly)",
+        "year",
+        "Q"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

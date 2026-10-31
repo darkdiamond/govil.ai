@@ -1,0 +1,376 @@
+<h1>צמתים מרומזרים: מפת הרמזורים בישראל</h1>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} השכבה הגיאוגרפית של משרד התחבורה מסמנת כל צומת שמוצב בו רמזור, עם המחוז, היישוב, הרחובות או הכבישים הנפגשים בו והגורם האחראי עליו.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+{%- for k in ["total", "cities", "top5", "new"] %}
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis[k].tone }} mb-1" dir="ltr">{{ model.kpis[k].display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels[k ~ "_kpi"] }}</div>
+  </div>
+{%- endfor %}
+</div>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור צומת מרומזר לפי שם, רחוב, כביש או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הצומת, הרחובות או מספרי הכבישים, היישוב, המחוז והגורם האחראי.</span>
+  </span>
+</a>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת הצמתים המרומזרים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">רמזורים לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.districts_lede }}</p>
+  <div id="chart-districts" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.districts_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.districts_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">צמתים</th><th scope="col">שיעור</th>
+{%- for dn in model.tables.domains %}<th scope="col">{{ dn }}</th>{% endfor -%}
+      <th scope="col">יישובים</th><th scope="col">צמתים ליישוב</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.districts %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td>
+{%- for v in r.by_domain %}<td>{{ v }}</td>{% endfor -%}
+        <td>{{ r.cities }}</td><td>{{ r.per_city }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מחוזות ויישובים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.treemap_lede }}</p>
+  <div id="chart-treemap" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.treemap_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.cities_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_lede }}</p>
+  <div id="chart-cities" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.cities_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cities_aria }}</caption>
+      <thead><tr><th scope="col">דירוג</th><th scope="col">יישוב</th><th scope="col">מחוז</th><th scope="col">צמתים</th><th scope="col">שיעור מכלל הצמתים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.cities %}
+        <tr><td>{{ r.rank }}</td><th scope="row">{{ r.name }}</th><td>{{ r.district }}</td><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה רמזורים יש ביישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tail_lede }}</p>
+  <div id="chart-tail" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.tail_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.tail_aria }}</caption>
+      <thead><tr><th scope="col">צמתים ביישוב</th><th scope="col">יישובים</th><th scope="col">סך הצמתים בקבוצה</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.tail %}
+        <tr><th scope="row" dir="ltr">{{ r.label }}</th><td>{{ r.cities }}</td><td>{{ r.junctions }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+{%- if model.flags.roads %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/arrow-left.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.roads_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.roads_lede }}</p>
+  <div id="chart-roads" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.roads_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.roads_aria }}</caption>
+      <thead><tr><th scope="col">כביש</th><th scope="col">צמתים מרומזרים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.roads %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.bodies %}
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גורם ארצי אחראי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bodies_lede }}</p>
+  <div id="chart-bodies" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.bodies_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.bodies_aria }}</caption>
+      <thead><tr><th scope="col">גורם</th><th scope="col">צמתים</th><th scope="col">שיעור מהצמתים עם גורם ארצי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.bodies %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+{%- if model.flags.kinds %}
+<section class="card p-5">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צומת, מחלף או כניסה ליישוב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_lede }}</p>
+  <div id="chart-kinds" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.kinds_aria }}</caption>
+      <thead><tr><th scope="col">סוג</th><th scope="col">צמתים</th><th scope="col">שיעור מהצמתים עם שם</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.kinds %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+</div>
+
+{%- if model.flags.new %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">צמתים חדשים לפי מחוז</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.new_lede }}</p>
+  <div id="chart-new" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.new_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.new_aria }}</caption>
+      <thead><tr><th scope="col">מחוז</th><th scope="col">צמתים חדשים</th><th scope="col">שיעור מצמתי המחוז</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.new %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תיאור מקורי</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">השכבה מציגה צמתים בהם מוצבים רמזורים</p>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.junctions[0].id | tojson }},
+    latField: "Y",
+    lngField: "X",
+    projection: "itm",
+    popupTitleField: "CITY",
+    popupFields: [
+      { field: "JUNCTION", label: "שם הצומת" },
+      { field: "STREETROAD", label: "רחובות / כבישים" },
+      { field: "district", label: "מחוז" },
+      { field: "AUTHORITY", label: "גורם ארצי אחראי" },
+      { field: "DOMAIN", label: "תחום הצבה" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.districts | tojson }};
+    var c = echarts.init(document.getElementById("chart-districts"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "צמתים" },
+      series: d.series.map(function (s) {
+        return { type: "bar", stack: "t", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.treemap | tojson }};
+    var c = echarts.init(document.getElementById("chart-treemap"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (n) { return echarts.format.encodeHTML(n.name); }).join(" / ");
+        return path + ": " + Number(p.value).toLocaleString("he-IL") + " צמתים";
+      } },
+      series: [{
+        type: "treemap",
+        data: d,
+        roam: false,
+        nodeClick: "zoomToNode",
+        leafDepth: 2,
+        breadcrumb: { show: true, bottom: 4 },
+        label: { show: true, formatter: "{b}", fontFamily: "Rubik" },
+        upperLabel: { show: true, height: 22, color: "#fff", fontFamily: "Rubik" },
+        levels: [
+          { itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, color) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 40, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: "צמתים", data: d.values.slice().reverse(),
+                   itemStyle: color ? { color: color } : undefined,
+                   label: { show: true, position: "right", fontFamily: "Rubik" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }});
+{%- if model.flags.roads %}
+    hbar("chart-roads", {{ model.charts.roads | tojson }}, "#0b3668");
+{%- endif %}
+{%- if model.flags.bodies %}
+    hbar("chart-bodies", {{ model.charts.bodies | tojson }});
+{%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.tail | tojson }};
+    var c = echarts.init(document.getElementById("chart-tail"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.labels, name: "צמתים ביישוב", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", name: "יישובים" },
+      series: [{ type: "bar", name: "יישובים", data: d.values, label: { show: true, position: "top", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.kinds %}
+<script>
+  (function () {
+    var d = {{ model.charts.kinds | tojson }};
+    var c = echarts.init(document.getElementById("chart-kinds"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + ": " + Number(p.value).toLocaleString("he-IL") + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie",
+        radius: ["40%", "68%"],
+        center: ["50%", "45%"],
+        data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }),
+        label: { formatter: "{d}%", fontFamily: "Rubik" }
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.new %}
+<script>
+  (function () {
+    var d = {{ model.charts.new | tojson }};
+    var c = echarts.init(document.getElementById("chart-new"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "צמתים", minInterval: 1 },
+      series: [{ type: "bar", name: "צמתים חדשים", data: d.values, label: { show: true, position: "top", fontFamily: "Rubik" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
