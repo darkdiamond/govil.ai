@@ -8,6 +8,7 @@ run fails loudly.
 from __future__ import annotations
 
 import asyncio
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -237,3 +238,42 @@ def test_selector_failure_does_not_block_the_refresh(harness, monkeypatch):
     s = _run()
     assert harness.refresh_kw is not None and harness.published
     assert s["status"] == "authoring_failed"
+
+
+def _outcome(i, status, reason=None, **kw):
+    return dict(rf.RefreshOutcome(i, status, reason=reason, **kw).__dict__)
+
+
+def test_summary_log_is_compact_and_drops_up_to_date():
+    summary = {
+        "mode": "scheduled", "status": "ok", "build_id": "gh",
+        "authoring_queued": [{"id": "new1", "reason": "new", "issue": 7}],
+        "refresh": {
+            "refreshed": ["a"], "unchanged": ["b"], "failed": ["c"],
+            "outcomes": [_outcome("a", "refreshed", insights=["תובנה"]),
+                         _outcome("b", "unchanged", "content_hash"),
+                         _outcome("c", "failed", "schema_changed", error="boom", issue=9)]
+                        + [_outcome(f"u{i}", "skipped", "up_to_date") for i in range(300)],
+        },
+    }
+    lines = pipeline.summarize_for_log(summary)
+    assert len(lines) == 4 and all("\n" not in ln for ln in lines)
+    head = json.loads(lines[0])["pipeline_summary"]
+    assert head["status"] == "ok" and head["authoring_queued"][0]["issue"] == 7
+    assert "outcomes" not in head["refresh"]
+    assert head["refresh"]["counts"] == {
+        "failed:schema_changed": 1, "refreshed": 1,
+        "skipped:up_to_date": 300, "unchanged:content_hash": 1,
+    }
+    outs = [json.loads(ln)["refresh_outcome"] for ln in lines[1:]]
+    assert [o["id"] for o in outs] == ["a", "b", "c"]
+    assert outs[2]["issue"] == 9 and "kpis" not in outs[0]   # empty fields dropped
+    assert "תובנה" in lines[1]                               # readable, not \u-escaped
+    assert summary["refresh"]["outcomes"]                      # input untouched
+
+
+def test_summary_log_without_a_refresh():
+    lines = pipeline.summarize_for_log({"status": "refresh_unavailable", "refresh": None})
+    assert [json.loads(ln) for ln in lines] == [
+        {"pipeline_summary": {"status": "refresh_unavailable", "refresh": None}}
+    ]

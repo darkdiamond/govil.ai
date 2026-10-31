@@ -173,14 +173,28 @@ landing pages. Five layers:
    per-resource file md5 (`hash`, kept by the scanner) + size/total/columns;
    blind to datastore-only edits, None when any input lacks a hash. `full`
    skips the export only on A ∧ A′ (A alone false-skipped ~5/night);
-   `inputs` skips on B only. `observe` only logs
+   `inputs` skips on B only. Both `inputs` and `full` then skip on check C
+   (`content_hash`, exact): a data bump whose page rendered byte-identical
+   (the bytes moved where the page doesn't look — ~29 of 41 on 2026-10-31)
+   is `unchanged` and not staged. It stores the new A/A′/B, so the same
+   data re-uploaded again stops before the export or before compute. A
+   forced run or a `recipe_version` change always stages. Check B′
+   (`inputs_same_unordered`, a row-multiset hash from the same pass) is
+   observe-only: it tells a reordered re-upload from an edited one.
+   `observe` only logs
    `refresh precheck …` lines (`FALSE-SKIP candidate` = a "same" check but a
    changed page — the gate for promoting a mode); `unchanged` outcomes never
-   stage and never trigger a publish. Only check B advances the version
+   stage and never trigger a publish. So on a day of only no-op bumps,
+   `data.json` facts (`metadata_modified`, `record_count`) wait for the
+   next real publish. Only checks B and C advance the version
    marker. A fingerprint skip leaves the bump pending (re-probed each run),
    so pages older than `REFRESH_PRECHECK_MAX_AGE_DAYS` (14) always re-render,
-   which bounds A's blind spot. Render code (`recipe_exec.py`, `recipe.py`,
-   `agent_contract.py`) is folded into both hashes. Demo lane:
+   which bounds A's blind spot. The age runs from the last full render,
+   including a C skip (`last_verified_at`). Render code (`recipe_exec.py`, `recipe.py`,
+   `agent_contract.py`) is folded into every hash. The job prints its
+   summary as one-line JSON records: a `pipeline_summary` headline (with
+   `refresh.counts`), then one `refresh_outcome` per source that did
+   anything (`pipeline.summarize_for_log`). Demo lane:
    `infra/refresh-preview.deploy.sh` → job `govdata-refresh-preview` writes
    only `preview_sources/*` + `gs://…/preview/`, and `publish.yml
 target=preview` deploys the `recipes-demo` Hosting channel.

@@ -400,6 +400,37 @@ def _scan_summary_dict(s) -> dict:
     }
 
 
+def summarize_for_log(summary: dict) -> list[str]:
+    """The run summary as compact one-line JSON records: a headline, then one
+    line per refresh outcome that did something. The whole summary as one
+    indented block was ~4,000 lines stamped in the same millisecond, which
+    Cloud Logging reordered and partly dropped (2026-10-31). Up-to-date skips,
+    most of every run, only count in the headline."""
+    import json
+    from collections import Counter
+
+    def line(obj) -> str:
+        return json.dumps(obj, ensure_ascii=False, separators=(",", ":"), default=str)
+
+    head = dict(summary)
+    outcomes = []
+    if summary.get("refresh"):
+        refresh = dict(summary["refresh"])
+        outcomes = refresh.pop("outcomes", None) or []
+        refresh["counts"] = dict(sorted(Counter(
+            f"{o.get('status')}:{o.get('reason')}" if o.get("reason") else o.get("status")
+            for o in outcomes
+        ).items()))
+        head["refresh"] = refresh
+    lines = [line({"pipeline_summary": head})]
+    for o in outcomes:
+        if o.get("status") == "skipped" and o.get("reason") == "up_to_date":
+            continue
+        kept = {k: v for k, v in o.items() if v is not None and v != {} and v != []}
+        lines.append(line({"refresh_outcome": kept}))
+    return lines
+
+
 def _cli() -> None:
     p = argparse.ArgumentParser(description="Run the daily refresh pipeline locally.")
     p.add_argument("--source",
@@ -423,8 +454,8 @@ def _cli() -> None:
             skip_publish=args.no_trigger_publish,
         )
     )
-    import json
-    print(json.dumps(summary, indent=2, default=str))
+    for line in summarize_for_log(summary):
+        print(line, flush=True)
 
     # A run whose refresh couldn't run or broke down: exit non-zero so the
     # job execution shows up FAILED instead of green (a silently dead batch
