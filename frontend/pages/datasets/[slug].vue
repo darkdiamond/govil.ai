@@ -311,6 +311,13 @@ useSeo({
 // SPA navs and would SyntaxError on re-entry to a previously-visited page.
 const bodyEl = ref<HTMLElement | null>(null);
 
+const EXECUTABLE_SCRIPT_TYPES = new Set([
+  "",
+  "text/javascript",
+  "application/javascript",
+  "module",
+]);
+
 async function executeBodyScripts(container: HTMLElement): Promise<void> {
   // If any previous ECharts or Leaflet instances exist on elements in this
   // container, clean them up so re-executing scripts doesn't collide or throw.
@@ -393,6 +400,10 @@ async function executeBodyScripts(container: HTMLElement): Promise<void> {
     for (const old of scripts) {
       const parent = old.parentNode;
       if (!parent) continue;
+      // Data blocks (<script type="application/json"> etc.) never execute;
+      // leave them in place untouched, or the IIFE wrapper below corrupts
+      // the payload a body script later JSON.parse()s.
+      if (!EXECUTABLE_SCRIPT_TYPES.has(old.type.trim().toLowerCase())) continue;
       // The agent contract forbids <script src=> in bodies (check.py blocks
       // it at build time). Belt: never (re-)inject a cross-origin script
       // from body content, so a body that slipped past the check can't pull
