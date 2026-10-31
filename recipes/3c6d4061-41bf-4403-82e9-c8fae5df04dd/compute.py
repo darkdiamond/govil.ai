@@ -70,9 +70,16 @@ def _prepare(df):
     out["label"] = out["label"].where(out["label"] != "", "ללא שם")
     out["geo_ok"] = (out["lat"].between(*LAT_RANGE) & out["lon"].between(*LON_RANGE))
     # Every column is a sort key, so the order is total (verify shuffles rows).
-    out = out.sort_values(["area", "perim", "code", "label", "lat", "lon"],
-                          ascending=[False, False, True, True, True, True], kind="stable")
+    out = out.sort_values(["area", "perim", "code", "label", "name", "vaad", "lat", "lon"],
+                          ascending=[False, False, True, True, True, True, True, True],
+                          kind="stable")
     return out.reset_index(drop=True)
+
+
+def _codes(df):
+    """Distinct area codes, numeric codes in numeric order first."""
+    return sorted(set(c for c in df["code"] if c),
+                  key=lambda c: (0, int(c), "") if c.isdigit() else (1, 0, c))
 
 
 def _compactness(area, perim):
@@ -118,13 +125,17 @@ def insight_center(df):
     if geo.empty:
         return None
     r = geo.iloc[0]
-    who = "מרכז תחום השיפוט" if len(df) == 1 else f"מרכז היחידה הגדולה ({r['label']})"
+    if len(df) == 1:
+        who = "מרכז תחום השיפוט"
+    elif geo.index[0] == df.index[0]:
+        who = f"מרכז היחידה הגדולה ({r['label']})"
+    else:
+        who = f"מרכז היחידה הגדולה ביותר שיש לה נקודת מרכז תקינה ({r['label']})"
     return (f"{who} נמצא בקו רוחב {_coord(r['lat'])} ובקו אורך {_coord(r['lon'])} "
             "(מערכת WGS84), והוא הנקודה המוצגת במפה.")
 
 
-def insight_code(df):
-    codes = sorted(set(c for c in df["code"] if c))
+def insight_code(codes):
     if not codes:
         return None
     if len(codes) == 1:
@@ -140,15 +151,15 @@ def compute(frames):
     n = int(len(df))
     names = sorted(set(x for x in df["name"] if x))
     owner = names[0] if len(names) == 1 else "העירייה"
-    total_area = float(df["area"].sum()) if n else 0.0
-    total_perim = float(df["perim"].sum()) if n else 0.0
-    codes = sorted(set(c for c in df["code"] if c))
+    total_area = float(df["area"].sum())
+    total_perim = float(df["perim"].sum())
+    codes = _codes(df)
 
     rules = [
         ("area", insight_area(df, owner)),
         ("shape", insight_shape(df)),
         ("center", insight_center(df)),
-        ("code", insight_code(df)),
+        ("code", insight_code(codes)),
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
@@ -205,8 +216,9 @@ def compute(frames):
         "kpi_units": "יחידה בשכבה" if n == 1 else "יחידות בשכבה",
         "map_lede": ("הנקודה מציינת את מרכז תחום השיפוט כפי שרשום במאגר. קו הגבול עצמו "
                      "מופיע בקובצי GeoJSON, SHP ו-KML שבאזור ההורדות."
-                     if n_geo == 1 else
-                     f"כל נקודה היא מרכז של יחידה בשכבה ({n_geo:,} נקודות). קווי הגבול עצמם "
+                     if n == 1 else
+                     f"כל נקודה היא מרכז של יחידה בשכבה (נקודת מרכז תקינה: {n_geo:,} מתוך "
+                     f"{n:,} יחידות). קווי הגבול עצמם "
                      "מופיעים בקובצי GeoJSON, SHP ו-KML שבאזור ההורדות."),
         "map_aria": ("מפה אינטראקטיבית של מרכז תחום השיפוט. גרסה נגישה: ראו את טבלת "
                      "פרטי השכבה בהמשך העמוד."),
