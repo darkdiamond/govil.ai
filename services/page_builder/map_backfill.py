@@ -34,14 +34,13 @@ import re
 import subprocess
 import sys
 import tempfile
-import time
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
-from .author import RECIPES_ROOT, _map_resources, _map_suffix
+from .author import RECIPES_ROOT, _map_resources, _map_suffix, download_map
 from .recipe import TEMPLATE_FILENAME, Recipe, RecipeError
 
 REPO = os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
@@ -85,25 +84,16 @@ class Candidate:
     labels: list = field(default_factory=list)
 
 
-def probe_map(res: dict, fetch_file_fn: Callable, work: Path) -> MapFile:
-    """Download and parse one map file the way the refresh's `map` input does."""
+def probe_map(res: dict, work: Path, download: Callable = download_map) -> MapFile:
+    """Download and load one map file the way the refresh's `map` input does."""
     from . import geo_snapshot as gs
-    from .refresh import _DEFAULT_MAP_MAX_BYTES, _PAGE_TIMEOUT_S, _env_int
 
     m = MapFile(res["id"], res.get("name") or "", res.get("format") or "")
     dest = work / f"{res['id'][:8]}{_map_suffix(res)}"
     try:
-        fetch_file_fn(res.get("url") or "", dest,
-                      max_bytes=_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES),
-                      timeout_s=_PAGE_TIMEOUT_S, deadline=time.monotonic() + 300)
-        feats, prj = gs.parse_map(dest.read_bytes(), Path(res.get("url") or dest.name).name)
-        if not feats:
-            raise gs.SnapshotError("no features")
-        m.crs = gs.detect_crs(feats, prj)
-        m.features = len(feats)
-        m.geometry_types = dict(sorted(Counter(
-            (f.get("geometry") or {}).get("type") or "none" for f in feats).items()))
-        m.columns = list(dict.fromkeys(k for f in feats for k in (f.get("properties") or {})))
+        feats, m.crs = download(res, dest)
+        s = gs.summary(feats)
+        m.features, m.geometry_types, m.columns = s["features"], s["geometry_types"], s["columns"]
     except Exception as e:
         m.error = f"{type(e).__name__}: {str(e)[:200]}"
     finally:
@@ -125,9 +115,14 @@ def classify(c: Candidate, recipe: Optional[Recipe], open_issue: Optional[int]) 
         if has_map and all(m.points_only for m in good):
             c.kind, c.why = "mapped", "its map already draws points; the file holds only points"
             return
-        c.kind = "issue"
         c.why = ("its map draws points; the file has lines/polygons" if has_map
                  else "the page draws no map")
+        if open_issue:
+            # queue_authoring would just reuse it, without the map details.
+            c.kind, c.issue = "comment", open_issue
+            c.why += f"; open issue #{open_issue}"
+        else:
+            c.kind = "issue"
         return
     if open_issue:
         c.kind, c.why, c.issue = "comment", f"open issue #{open_issue}", open_issue
@@ -164,11 +159,8 @@ def _iter_sources(store):
 
 
 def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT,
-                    fetch_file_fn: Optional[Callable] = None,
+                    download: Callable = download_map,
                     issues: Optional[dict] = None, skip_ids: frozenset = frozenset()) -> list[Candidate]:
-    from .agent_contract import fetch_resource_file
-
-    fetch_file_fn = fetch_file_fn or fetch_resource_file
     issues = open_issues_by_id8() if issues is None else issues
     out = []
     with tempfile.TemporaryDirectory(prefix="map-backfill-") as tmp:
@@ -181,15 +173,19 @@ def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT
             files = _map_resources({"resources": src.resources})
             if not files:
                 continue
-            c = Candidate(src, [probe_map(r, fetch_file_fn, Path(tmp)) for r in files])
             recipe = None
             if (recipes_root / src.id / TEMPLATE_FILENAME).is_file():
                 try:
                     recipe = Recipe.load(recipes_root / src.id)
                 except (RecipeError, ValueError) as e:
-                    c.kind, c.why = "failed", f"recipe doesn't load: {e}"
-                    out.append(c)
+                    out.append(Candidate(src, [], "failed", f"recipe doesn't load: {e}"))
                     continue
+                read = {i.by_id for i in recipe.manifest.inputs if i.map or i.snapshot}
+                if read & {r["id"] for r in files}:
+                    # Settled by recipe.json alone: no download needed.
+                    out.append(Candidate(src, [], "mapped", "the recipe already reads the map file"))
+                    continue
+            c = Candidate(src, [probe_map(r, Path(tmp), download) for r in files])
             issue = issues.get(src.id[:8])
             classify(c, recipe, issue[0] if issue else None)
             c.labels = issue[1] if issue else []

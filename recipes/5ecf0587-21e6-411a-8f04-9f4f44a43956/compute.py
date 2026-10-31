@@ -94,8 +94,12 @@ def _prepare(df):
         shape = pd.to_numeric(str(r.get("Shape_Leng", "")).replace(",", ""), errors="coerce")
         if pd.isna(lid) or pd.isna(year) or not parts:
             continue
-        # The layer's own length (ITM metres) when it has one, else measured.
-        length = float(shape) if not pd.isna(shape) and shape > 0 else sum(map(_haversine_m, parts))
+        # The layer's own length (ITM metres) when it agrees with the measured
+        # one; its unit follows the layer's CRS, so a re-export in degrees
+        # (or any other unit) falls back to the measured length.
+        measured = sum(map(_haversine_m, parts))
+        ok = not pd.isna(shape) and measured > 0 and 0.8 <= float(shape) / measured <= 1.25
+        length = float(shape) if ok else measured
         ttype = str(r.get("TYPE", "")).strip()
         rows.append({
             "lid": int(lid), "year": int(year), "m": length,
@@ -113,10 +117,18 @@ def _name_lines(segs):
     by_line = {}
     for s in segs:
         by_line.setdefault(s["lid"], []).append(s)
-    names = {}
+    names, mains = {}, {}
     for lid, ss in by_line.items():
-        main = sorted(ss, key=lambda s: (-s["m"], s["year"], s["raw_name"]))
-        names[lid] = LINE_HE.get(_norm(main[0]["raw_name"]), f"{main[0]['type_he']} {lid}")
+        mains[lid] = sorted(ss, key=lambda s: (-s["m"], s["year"], s["raw_name"]))
+        names[lid] = LINE_HE.get(_norm(mains[lid][0]["raw_name"]), f"{mains[lid][0]['type_he']} {lid}")
+    # Two lines that translate to the same name get their LINE_ID appended.
+    taken = {}
+    for n in names.values():
+        taken[n] = taken.get(n, 0) + 1
+    for lid in names:
+        if taken[names[lid]] > 1:
+            names[lid] = f"{names[lid]} ({lid})"
+    for lid, main in mains.items():
         for k, s in enumerate(main, 1):
             s["name"] = names[lid] if k == 1 else f"{names[lid]}, מקטע {k}"
     return by_line, names

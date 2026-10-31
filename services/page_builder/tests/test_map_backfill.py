@@ -62,6 +62,12 @@ def test_recipe_already_reading_the_file_is_mapped(tmp_path):
     assert c.kind == "mapped"
 
 
+def test_recipe_with_an_open_issue_gets_a_comment(tmp_path):
+    c = _cand(_map({"LineString": 3}))
+    mb.classify(c, _recipe(tmp_path), open_issue=301)
+    assert c.kind == "comment" and c.issue == 301 and "no map" in c.why
+
+
 def test_no_recipe_routes_by_open_issue():
     c = _cand(_map({"LineString": 3}))
     mb.classify(c, None, open_issue=226)

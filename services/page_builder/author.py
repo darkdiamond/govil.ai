@@ -420,16 +420,27 @@ def _map_suffix(r: dict) -> str:
     return ".geojson" if fmt.startswith("geojson") else ".kml" if fmt == "kml" else ".zip"
 
 
+def download_map(res: dict, dest: Path) -> tuple[list[dict], str]:
+    """Download one map-file resource to `dest` and load it, exactly as a
+    `map` input does at refresh time. Raises what the downloader or
+    `geo_snapshot.load_map` raises."""
+    import time
+
+    from . import geo_snapshot as gs
+    from .agent_contract import fetch_resource_file
+    from .refresh import _DEFAULT_MAP_MAX_BYTES, _PAGE_TIMEOUT_S, _env_int, _map_file_name
+
+    fetch_resource_file(res.get("url") or "", dest,
+                        max_bytes=_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES),
+                        timeout_s=_PAGE_TIMEOUT_S, deadline=time.monotonic() + 300)
+    return gs.load_map(dest.read_bytes(), _map_file_name(res))
+
+
 def _prepare_maps(facts: dict, data_dir: Path) -> list[dict]:
     """Download and convert every map-file resource exactly as a `map` input
     would at refresh time; the file is cached for verify, the summary goes
     into BRIEF.md. A failure is recorded, never fatal."""
-    import time
-    from collections import Counter
-
     from . import geo_snapshot as gs
-    from .agent_contract import fetch_resource_file
-    from .refresh import _DEFAULT_MAP_MAX_BYTES, _PAGE_TIMEOUT_S, _env_int
 
     out = []
     for r in _map_resources(facts):
@@ -437,24 +448,16 @@ def _prepare_maps(facts: dict, data_dir: Path) -> list[dict]:
                  "size": r.get("size"), "url": r.get("url"), "file": None}
         dest = data_dir / f"map-{r['id'][:8]}{_map_suffix(r)}"
         try:
-            fetch_resource_file(r.get("url") or "", dest,
-                                max_bytes=_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES),
-                                timeout_s=_PAGE_TIMEOUT_S, deadline=time.monotonic() + 300)
-            entry["file"] = dest.name
-            feats, prj = gs.parse_map(dest.read_bytes(), Path(r.get("url") or dest.name).name)
-            entry["crs"] = gs.detect_crs(feats, prj)
-            entry["features"] = len(feats)
-            entry["geometry_types"] = dict(Counter(
-                ((f.get("geometry") or {}).get("type") or "none") for f in feats))
-            entry["columns"] = list(dict.fromkeys(
-                k for f in feats for k in (f.get("properties") or {})))
+            feats, crs = download_map(r, dest)
+            entry.update(file=dest.name, crs=crs, **gs.summary(feats))
             try:
-                body, tol = gs.build_snapshot(feats, crs=entry["crs"])
+                body, tol = gs.build_snapshot(feats, crs=crs)
                 entry.update(geojson_bytes=len(body), tolerance=tol)
             except gs.SnapshotTooLarge as e:
                 entry["note"] = f"over the default size target: set map_max_kb ({e})"
         except Exception as e:  # recorded for the brief; the author decides
-            entry["error"] = f"{type(e).__name__}: {e}"
+            entry["file"] = dest.name if dest.is_file() else None
+            entry["error"] = f"{type(e).__name__}: {str(e)[:200]}"
         out.append(entry)
         print(f"  map {r['id'][:8]} {entry['name'][:40]!r}: "
               + (entry.get("error") or f"{entry.get('features')} features, {entry.get('crs')}"),
@@ -533,7 +536,7 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
                   "below falls back to `author snapshot` (a browser download, committed).", ""]
         for m in maps:
             lines.append(f"- `{m['resource_id']}` {m.get('format')} {m.get('name')} "
-                         f"({m.get('size') or '?'} bytes)")
+                         f"({m.get('size') or '?'} bytes): {m.get('url')}")
             if m.get("error"):
                 lines.append(f"  - FAILED: {m['error']}")
                 continue

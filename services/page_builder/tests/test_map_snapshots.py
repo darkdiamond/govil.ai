@@ -11,8 +11,10 @@ import struct
 import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
+from http.client import IncompleteRead
 from types import SimpleNamespace
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
+from urllib.request import Request
 
 import pytest
 
@@ -682,7 +684,7 @@ def _urlopen(monkeypatch, behaviour):
         seen.append(req)
         return behaviour(req)
 
-    monkeypatch.setattr(ac.urllib_request, "urlopen", fake)
+    monkeypatch.setattr(ac, "_open_file", fake)
     return ac, seen
 
 
@@ -735,10 +737,89 @@ def test_fetch_resource_file_only_fetches_data_gov_il(tmp_path, monkeypatch):
     assert seen == []
 
 
-def test_parse_map_refuses_a_zip_bomb(monkeypatch):
+def test_load_map_refuses_a_zip_bomb(monkeypatch):
     monkeypatch.setattr(gs, "MAX_UNZIPPED_BYTES", 1000)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("a.geojson", b" " * 5000)
     with pytest.raises(gs.SnapshotError, match="unzips to more"):
-        gs.parse_map(buf.getvalue(), "a.zip")
+        gs.load_map(buf.getvalue(), "a.zip")
+
+
+def _fc(geometry) -> bytes:
+    return json.dumps({"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"NAME": "x"}, "geometry": geometry}]}).encode()
+
+
+@pytest.mark.parametrize("geometry", [
+    {"type": "Point", "coordinates": ["35.2", "31.7"]},          # quoted numbers: used to hang
+    {"type": "Polygon", "coordinates": [[35.2, 31.7], [35.3, 31.8]]},  # missing a nesting level
+    {"type": "LineString", "coordinates": [[35.2], [35.3, 31.8]]},     # a 1-D position
+    {"coordinates": [35.2, 31.7]},                                      # no type
+    {"type": "Curve", "coordinates": []},
+    {"type": "Point", "coordinates": [True, 31.7]},
+])
+def test_load_map_rejects_malformed_geometry_fast(geometry):
+    with pytest.raises(gs.SnapshotError):
+        gs.load_map(_fc(geometry), "x.geojson")
+
+
+def test_positions_never_descend_into_strings():
+    geom = {"type": "Point", "coordinates": ["35.2", "31.7"]}
+    assert list(gs._positions(geom)) == []
+
+
+def test_load_map_turns_any_reader_failure_into_snapshot_error(monkeypatch):
+    def boom(data, name):
+        raise NotImplementedError("That compression method is not supported")  # deflate64
+
+    monkeypatch.setattr(gs, "read_map_bytes", boom)
+    with pytest.raises(gs.SnapshotError, match="NotImplementedError"):
+        gs.load_map(b"PK", "x.zip")
+
+
+def test_dbf_record_count_is_bounded_by_the_bytes():
+    field = b"NAME".ljust(11, b"\0") + b"C" + b"\0" * 4 + bytes([4, 0]) + b"\0" * 14
+    hlen = 32 + 32 + 1
+    # The header claims 10^9 records; the body holds one.
+    dbf = struct.pack("<B3BIHH", 3, 26, 10, 30, 10**9, hlen, 5) + b"\0" * 20 + field + b"\r"
+    dbf += b" abcd"
+    assert gs._read_dbf(dbf, "ascii") == [{"NAME": "abcd"}]
+
+
+@pytest.mark.parametrize("files, reason, strike", [
+    (FakeFiles(error=HTTPError(MAP_URL, 404, "x", {}, None)), "fetch_failed", True),
+    (FakeFiles(error=HTTPError(MAP_URL, 502, "x", {}, None)), "fetch_failed", False),
+    (FakeFiles(error=IncompleteRead(b"")), "fetch_failed", False),
+    (FakeFiles(_fc({"type": "Point", "coordinates": ["35.2", "31.7"]})), "schema_changed", False),
+])
+def test_more_map_failures_are_classified(tmp_path, files, reason, strike):
+    recipe = Recipe.load(_with_map(tmp_path) / DS)
+    preview, fetch = _events_ckan()
+    with pytest.raises(RecipeError) as e:
+        rf.fetch_inputs(recipe, _map_resources(), tmp_path / "d", preview_fn=preview,
+                        fetch_fn=fetch, fetch_file_fn=files)
+    assert e.value.reason == reason, e.value
+    assert isinstance(e.value, rf.StrikeError) == strike
+    if strike:
+        assert e.value.escalate_to == "schema_changed"
+
+
+def test_redirect_off_data_gov_il_is_refused():
+    from services.page_builder import agent_contract as ac
+
+    h = ac._DataGovRedirects()
+    req = Request(MAP_URL.replace("e.data", "data"))
+    with pytest.raises(DownloadBlocked, match="redirected off"):
+        h.redirect_request(req, None, 302, "Found", {}, "http://metadata.google.internal/x")
+    ok = h.redirect_request(req, None, 302, "Found", {}, "https://data.gov.il/other.zip")
+    assert ok.full_url == "https://data.gov.il/other.zip"
+
+
+def test_geo_code_folds_only_into_map_recipes(tmp_path, monkeypatch):
+    plain = Recipe.load(FIXTURES / DS)
+    mapped = Recipe.load(_with_map(tmp_path) / DS)
+    before = (rf.recipe_identity(plain), rf.recipe_identity(mapped))
+    monkeypatch.setattr(rf, "_geo_code_hash", lambda: "changed")
+    assert rf.recipe_identity(plain) == before[0]
+    assert rf.recipe_identity(mapped) != before[1]

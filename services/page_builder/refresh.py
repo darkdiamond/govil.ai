@@ -28,6 +28,7 @@ import argparse
 import csv
 import functools
 import hashlib
+import http.client
 import json
 import logging
 import os
@@ -440,8 +441,10 @@ _RENDER_CODE_FILES = (
     RECIPE_EXEC_PATH,
     Path(__file__).resolve().parent / "recipe.py",
     Path(__file__).resolve().parent / "agent_contract.py",
-    Path(__file__).resolve().parent / "geo_snapshot.py",  # `map` inputs' table
 )
+# Builds a `map` input's table; folded only into recipes that have one, so
+# a change here doesn't re-render every other page.
+_GEO_CODE_FILE = Path(__file__).resolve().parent / "geo_snapshot.py"
 
 
 @functools.lru_cache(maxsize=1)
@@ -464,7 +467,14 @@ def recipe_identity(recipe: Recipe) -> str:
         h.update((recipe.root / name).read_bytes())
         h.update(b"\0")
     h.update(_render_code_hash().encode())
+    if any(i.map for i in recipe.manifest.inputs):
+        h.update(_geo_code_hash().encode())
     return h.hexdigest()
+
+
+@functools.lru_cache(maxsize=1)
+def _geo_code_hash() -> str:
+    return hashlib.sha256(_GEO_CODE_FILE.read_bytes()).hexdigest()
 
 
 # Everything the image ships that a refresh runs (Dockerfile COPYs) plus the
@@ -755,8 +765,9 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
     """Download a `map` input's file and write it as the snapshot table.
 
     The bytes are the data's, so a bad file is `schema_changed` (the upload
-    changed shape), not `recipe_failed`. A WAF block is transient until it
-    repeats (`StrikeError` → `download_blocked`)."""
+    changed shape), not `recipe_failed`. A WAF block, or a file CKAN lists
+    but data.gov.il no longer serves (404/410), is transient until it
+    repeats (`StrikeError` → `download_blocked` / `schema_changed`)."""
     rid = inp.by_id
     what = f"input {inp.name!r}: map file {rid[:8]}"
     raw = dest_dir / f"{inp.name}__map.download"
@@ -774,13 +785,17 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
                           strike="download_blocked", escalate_to="download_blocked") from None
     except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
         raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
-    except (urllib_error.URLError, OSError) as e:  # HTTPError included; timeouts too
+    except urllib_error.HTTPError as e:
+        if e.code in (404, 410):
+            raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason="fetch_failed",
+                              strike="download_missing", escalate_to="schema_changed") from None
         raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
+    except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
+        raise RecipeError(f"{what}: download failed ({e!r})", reason="fetch_failed") from None
     finally:
         raw.unlink(missing_ok=True)
     try:
-        feats, prj = geo_snapshot.parse_map(data, _map_file_name(res))
-        crs = geo_snapshot.detect_crs(feats, prj)
+        feats, crs = geo_snapshot.load_map(data, _map_file_name(res))
         body, tol = geo_snapshot.build_snapshot(
             feats, crs=crs,
             max_bytes=(inp.map_max_kb * 1000) if inp.map_max_kb else geo_snapshot.DEFAULT_MAX_BYTES,

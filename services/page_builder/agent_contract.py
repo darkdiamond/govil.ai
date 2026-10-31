@@ -436,6 +436,25 @@ class FileOutcome:
 
 
 _DOWNLOAD_CHUNK = 1 << 16
+_FILE_HOST = "https://data.gov.il/"
+
+
+class _DataGovRedirects(urllib_request.HTTPRedirectHandler):
+    """Follow a redirect only while it stays on data.gov.il over https: the
+    host check on the first URL is worthless if a 30x can send the builder
+    (which holds the builder SA's metadata access) anywhere."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not newurl.startswith(_FILE_HOST):
+            raise DownloadBlocked(f"redirected off data.gov.il (HTTP {code} → {newurl[:80]})")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_FILE_OPENER = urllib_request.build_opener(_DataGovRedirects)
+
+
+def _open_file(req, timeout: float):
+    return _FILE_OPENER.open(req, timeout=timeout)
 
 
 def fetch_resource_file(
@@ -449,17 +468,20 @@ def fetch_resource_file(
     """Download a resource's uploaded file (a map file, say) to `dest`.
 
     The URL is rewritten to the public `data.gov.il` host first (`e.` and
-    `aws-e.` sit behind OAuth walls); any other host is a ValueError.
-    Raises DownloadBlocked on a 403 or an
-    HTML body, FetchLimitExceeded("bytes"/"wall_budget") past `max_bytes` or
-    `deadline`, and lets a network error (URLError, timeout) through after
-    one retry. `dest` is removed on any failure.
+    `aws-e.` sit behind OAuth walls); any other host is a ValueError, and a
+    redirect off data.gov.il is DownloadBlocked. Raises DownloadBlocked on a
+    403 or an HTML body, FetchLimitExceeded("bytes"/"wall_budget") past
+    `max_bytes` or `deadline`, and lets a network error (URLError, timeout,
+    a dropped connection) through after one retry. `dest` is removed on any
+    failure.
     """
+    import http.client
+
     from services.scanner.models import _public_resource_url
 
     url = _public_resource_url(url or "")
     # The URL is publisher-supplied: only ever fetch data.gov.il's own files.
-    if not url.startswith("https://data.gov.il/"):
+    if not url.startswith(_FILE_HOST):
         raise ValueError(f"not a data.gov.il file URL ({url[:80]!r})")
     req = urllib_request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
     for attempt in (1, 2):
@@ -471,7 +493,7 @@ def fetch_resource_file(
                 raise DownloadBlocked(f"HTTP {e.code} for {url}") from None
             if attempt == 2 or e.code < 500:
                 raise
-        except (urllib_error.URLError, TimeoutError):
+        except (urllib_error.URLError, TimeoutError, http.client.HTTPException):
             dest.unlink(missing_ok=True)
             if attempt == 2:
                 raise
@@ -484,7 +506,7 @@ def fetch_resource_file(
 def _download(req, dest: Path, max_bytes: int, timeout_s: float, deadline: float) -> FileOutcome:
     h = hashlib.sha256()
     n = 0
-    with urllib_request.urlopen(req, timeout=timeout_s) as resp:
+    with _open_file(req, timeout=timeout_s) as resp:
         ctype = (resp.headers.get("Content-Type") or "").lower()
         if "text/html" in ctype:
             raise DownloadBlocked(f"{req.full_url} answered with an HTML page ({ctype})")

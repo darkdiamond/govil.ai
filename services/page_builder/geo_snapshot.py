@@ -7,8 +7,8 @@ file a browser downloaded, and commits the result for a `snapshot` input:
   - reads GeoJSON, KML, KMZ, or a zipped ESRI shapefile (.shp + .dbf, with
     .prj/.cpg when present). Pure Python: the builder image has no geo
     libraries. A downloaded file is untrusted: no DTDs, a cap on what a zip
-    may inflate to, and `parse_map` turns any malformed input into a
-    SnapshotError;
+    may inflate to, every geometry checked before it is walked, and
+    `load_map` turns any malformed input into a SnapshotError;
   - reprojects ITM (EPSG:2039, the usual Israeli grid) to WGS84;
   - rounds to 5 decimals (~1 m), simplifies lines and rings
     (Douglas-Peucker) only as far as needed to fit the size target;
@@ -24,6 +24,7 @@ import re
 import struct
 import xml.etree.ElementTree as ET
 import zipfile
+from collections import Counter
 from pathlib import Path
 from typing import Any, Optional
 
@@ -112,9 +113,11 @@ def _positions(geom: Optional[dict]):
     stack = [geom.get("coordinates")]
     while stack:
         c = stack.pop()
-        if c and isinstance(c[0], (int, float)):
+        if not isinstance(c, list) or not c:
+            continue  # only lists nest; a string here would recurse forever
+        if isinstance(c[0], (int, float)):
             yield c
-        elif c:
+        else:
             stack.extend(c)
 
 
@@ -356,6 +359,8 @@ def _dbf_value(raw: bytes, ftype: str, decimals: int, enc: str) -> Any:
 
 def _read_dbf(data: bytes, enc: str) -> list[dict]:
     nrec, hlen, rlen = struct.unpack("<IHH", data[4:12])
+    # The header's count is untrusted: never iterate past the bytes present.
+    nrec = min(nrec, max(0, len(data) - hlen) // max(rlen, 1))
     fields, pos = [], 32
     while data[pos] != 0x0D:
         d = data[pos:pos + 32]
@@ -409,16 +414,65 @@ def read_map_file(path: Path) -> tuple[list[dict], str]:
     return read_map_bytes(path.read_bytes(), path.name)
 
 
-def parse_map(data: bytes, name: str) -> tuple[list[dict], str]:
-    """`read_map_bytes` for a downloaded file: any malformed input is a
-    SnapshotError, never a struct/zip/XML exception from deep in a reader."""
+_DEPTH = {"Point": 0, "MultiPoint": 1, "LineString": 1,
+          "MultiLineString": 2, "Polygon": 2, "MultiPolygon": 3}
+
+
+def _check_coords(c: Any, depth: int) -> None:
+    if depth == 0:
+        if (not isinstance(c, list) or len(c) < 2
+                or not all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                           and math.isfinite(v) for v in c[:2])):
+            raise SnapshotError(f"bad position {str(c)[:40]}")
+        return
+    if not isinstance(c, list):
+        raise SnapshotError(f"bad coordinates {str(c)[:40]}")
+    for x in c:
+        _check_coords(x, depth - 1)
+
+
+def _check_geometry(geom: Any) -> None:
+    """The shape `build_snapshot` and `detect_crs` rely on: a known type with
+    numeric positions nested to that type's depth (or no geometry)."""
+    if geom is None:
+        return
+    if not isinstance(geom, dict):
+        raise SnapshotError("a geometry that is not an object")
+    t = geom.get("type")
+    if t == "GeometryCollection":
+        for g in geom.get("geometries") or []:
+            _check_geometry(g)
+        return
+    if t not in _DEPTH:
+        raise SnapshotError(f"unsupported geometry type {t!r}")
+    _check_coords(geom.get("coordinates"), _DEPTH[t])
+
+
+def load_map(data: bytes, name: str) -> tuple[list[dict], str]:
+    """(features, crs) from a downloaded file's bytes, for `map` inputs.
+    The file is untrusted: every geometry is checked before anything walks
+    it, and any failure of any reader is a SnapshotError, never a
+    struct/zip/XML/zlib exception from deep inside one."""
     try:
-        return read_map_bytes(data, name)
-    except SnapshotError:
+        feats, prj = read_map_bytes(data, name)
+        for f in feats:
+            if not isinstance(f, dict):
+                raise SnapshotError("a feature that is not an object")
+            _check_geometry(f.get("geometry"))
+        return feats, detect_crs(feats, prj)
+    except (SnapshotError, MemoryError):
         raise
-    except (ValueError, KeyError, IndexError, TypeError, AttributeError,
-            struct.error, zipfile.BadZipFile, ET.ParseError) as e:
+    except Exception as e:  # untrusted bytes: every reader failure is the data's
         raise SnapshotError(f"{name}: malformed map file ({type(e).__name__}: {e})") from None
+
+
+def summary(feats: list[dict]) -> dict:
+    """What an author needs to know about a map file: size, geometry types,
+    property names (capped: they are publisher-written text)."""
+    types = sorted(Counter((f.get("geometry") or {}).get("type") or "none" for f in feats).items())
+    cols = list(dict.fromkeys(k for f in feats for k in (f.get("properties") or {})))
+    return {"features": len(feats), "geometry_types": dict(types),
+            "columns": [str(c)[:60] for c in cols[:40]]}
 
 
 def _sniff(data: bytes, name: str) -> str:
