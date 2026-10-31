@@ -47,6 +47,7 @@ M_PER_DEG = 111_320.0
 MAP_TOLS_M = (2, 3, 4, 6, 8, 12, 16, 25, 40)   # simplification ladder, metres
 MAP_BUDGET = 400_000        # target bytes of all map islands (8 m today; 300 KB forces 40 m, illegible lots)
 CHUNK_BYTES = 40_000        # each island stays well under the 50KB block cap
+LINK_HOST = "handasi.complot.co.il"   # the municipality's engineering system (plan links)
 WIDE_FRAC = 0.03            # a part covering 3% of the opening view is drawn outline-only
 VIEW_PCT = 1                # opening map view trims this percentile of centroids each side
 Q = 100_000                 # coordinate quantum: 1e-5 degree (about 1 m)
@@ -310,7 +311,10 @@ def _link_prefix(d):
     if len(uniq) != 1:
         return None
     p = uniq.pop()
-    if not p or not p.startswith("https://") or "data.gov.il" in p:
+    # only ever link to the engineering system's own host: a changed upload
+    # must not turn every popup into a link to somewhere else. The trailing
+    # "/" rules out a longer host, userinfo or a port.
+    if not p or not p.startswith(f"https://{LINK_HOST}/"):
         return None
     return p
 
