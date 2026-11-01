@@ -132,13 +132,13 @@
     var el = document.getElementById("map-preservation");
     if (!el || !window.L || !window.GovMap) { return; }
     var M = {{ model.map.meta | tojson }};
-    var ox = M.origin[0], oy = M.origin[1], k = M.scale;
     var ramp = ["#0c1f3d", "#0053c4", "#3d70b0", "#6c9fd8", "#9fc0ee"];
     function color(g) { var r = M.rank[g]; return r < ramp.length ? ramp[r] : "#6c757d"; }
     function feats(key) { return GovMap.islands("map-" + key); }
-    function path(flat) { return GovMap.ring(flat, M.origin, k); }
+    function path(flat) { return GovMap.ring(flat, M.origin, M.scale); }
     function polys(p) { return p.map(function (rings) { return rings.map(path); }); }
-    function pt(x, y) { return [(y + oy) / k, (x + ox) / k]; }
+    // A point is a one-vertex ring: its [x, y] offset from the origin.
+    function pt(x, y) { return GovMap.ring([x, y], M.origin, M.scale)[0]; }
     function num(v) { return Number(v).toLocaleString("en-US"); }
     var popup = GovMap.popup;
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });

@@ -230,8 +230,9 @@ def _bbox(polys):
 
 def _enc(pts, o, closed):
     """A ring/line as a flat geo.encode delta list; no simplification (tol 0).
-    A closed ring drops its repeated closing point (Leaflet closes it)."""
-    if closed and len(pts) > 1 and pts[0] == pts[-1]:
+    A closed ring drops its repeated closing point (Leaflet closes it), compared
+    as quantized, so a start/end that differ below 1e-5 degree count as equal."""
+    if closed and len(pts) > 1 and geo.quantize(pts[:1]) == geo.quantize(pts[-1:]):
         pts = pts[:-1]
     return geo.encode([pts], o, ring=closed)[0]
 
