@@ -295,6 +295,9 @@ class FirestoreStateStore:
             "change_status": ("new" if not snap.exists else "updated") if changed else "unchanged",
             "metadata_modified": now if changed else old.get("metadata_modified"),
         }
+        # Same as save_dataset: a renamed source.json title moves the page URL.
+        if old.get("title") and old["title"] != payload.get("title"):
+            doc["previous_titles"] = firestore.ArrayUnion([old["title"]])
         if not snap.exists:
             doc.update(
                 metadata_created=now,
