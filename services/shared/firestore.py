@@ -100,6 +100,10 @@ class SourceRecord:
     presentation: Optional[dict] = None
     page_slug_suffix: Optional[str] = None
 
+    # Titles CKAN renamed this dataset away from (save_dataset). Each one was
+    # a page URL; the publisher redirects them to the current one.
+    previous_titles: list[str] = field(default_factory=list)
+
     @classmethod
     def from_doc(cls, doc) -> "SourceRecord":
         data: dict[str, Any] = doc.to_dict() or {}
@@ -135,6 +139,7 @@ class SourceRecord:
             source_url=data.get("source_url"),
             presentation=data.get("presentation"),
             page_slug_suffix=data.get("page_slug_suffix"),
+            previous_titles=data.get("previous_titles") or [],
         )
 
 
@@ -231,6 +236,13 @@ class FirestoreStateStore:
             "change_status": change_status,
         }
 
+        old = (snap.to_dict() or {}) if snap.exists else {}
+        # The page URL is built from the title (publish._build_page_slugs), so
+        # a CKAN rename moves the page. Keep every old title: the publisher
+        # 301s each one's URL to the current page (publish.dataset_slug_redirects).
+        if old.get("title") and old["title"] != dataset.title:
+            payload["previous_titles"] = firestore.ArrayUnion([old["title"]])
+
         if not snap.exists:
             payload["first_seen_at"] = now
             payload["analysis_status"] = "never"
@@ -238,7 +250,7 @@ class FirestoreStateStore:
             payload["last_analyzed_at"] = None
             payload["last_error"] = None
             payload["page_path"] = None
-        elif (snap.to_dict() or {}).get("analysis_status") == "restricted":
+        elif old.get("analysis_status") == "restricted":
             # The dataset is back in CKAN's public search after having been
             # access-restricted (a datastore 403 parked it, in the retired
             # agent builder). Re-enable it: clear the exclusion so the
@@ -283,6 +295,9 @@ class FirestoreStateStore:
             "change_status": ("new" if not snap.exists else "updated") if changed else "unchanged",
             "metadata_modified": now if changed else old.get("metadata_modified"),
         }
+        # Same as save_dataset: a renamed source.json title moves the page URL.
+        if old.get("title") and old["title"] != payload.get("title"):
+            doc["previous_titles"] = firestore.ArrayUnion([old["title"]])
         if not snap.exists:
             doc.update(
                 metadata_created=now,

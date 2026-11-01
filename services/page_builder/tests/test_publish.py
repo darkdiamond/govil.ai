@@ -305,3 +305,44 @@ def test_manifest_carries_tags_index_redirects_and_related(tmp_path: Path):
     assert index["tag_index"]["קידוחים"] == manifest["tag_index"]["קידוחים"]
     assert index["topics"] == manifest["topics"]
     assert index["datasets"][0]["tags"]
+
+
+def test_slug_redirects_map_old_titles_and_legacy_slugs(tmp_path: Path, monkeypatch):
+    """A CKAN rename moves the page (its slug is built from the title): every
+    old title's slug, and every legacy slug, 301s to the current one."""
+    renamed = _src(dataset_id="32348d0b-dc49", with_agent=True, title="סניפי בנקים פיזיים")
+    renamed.previous_titles = ["סניפים בנקים", "סניפי בנקים (ישן)"]
+    other = _src(dataset_id="0b3e1f2a-9c4d", with_agent=True, title="רישיונות עסק")
+    legacy = tmp_path / "legacy.json"
+    legacy.write_text(json.dumps({
+        "רישיונות-עסק-ישן-0b3e1f2a": "0b3e1f2a-9c4d",
+        "מאגר-שנמחק-deadbeef": "deadbeef-0000",     # not published: no redirect
+    }, ensure_ascii=False))
+    monkeypatch.setattr(publish, "LEGACY_PAGE_SLUGS_PATH", legacy)
+
+    publish.publish(tmp_path / "out", store=_store_mock([renamed, other]))
+
+    manifest = json.loads((tmp_path / "out/data/manifest.json").read_text())
+    assert manifest["slug_redirects"] == {
+        "סניפי-בנקים-ישן-32348d0b": "סניפי-בנקים-פיזיים-32348d0b",
+        "סניפים-בנקים-32348d0b": "סניפי-בנקים-פיזיים-32348d0b",
+        "רישיונות-עסק-ישן-0b3e1f2a": "רישיונות-עסק-0b3e1f2a",
+    }
+
+
+def test_slug_redirects_never_shadow_a_live_page():
+    """Firebase applies redirects before files, so an old slug that is a live
+    page's slug (a title changed back, or another dataset's) must be dropped."""
+    a = _src(dataset_id="aaaaaaaa-1", with_agent=False, title="ב")
+    a.previous_titles = ["א", "ב"]
+    page_slugs = {"aaaaaaaa-1": "ב-aaaaaaaa", "bbbbbbbb-2": "א-aaaaaaaa"}
+    assert publish.dataset_slug_redirects([a], page_slugs, {"ב-aaaaaaaa": "bbbbbbbb-2"}) == {}
+
+
+def test_legacy_page_slugs_file_is_well_formed():
+    """Every committed legacy slug is a plain slug pointing at a dataset id."""
+    import re
+
+    for old, sid in publish._load_legacy_page_slugs().items():
+        assert re.fullmatch(r"[0-9A-Za-zא-ת-]+", old), old
+        assert re.fullmatch(r"[0-9a-z-]+", sid), sid

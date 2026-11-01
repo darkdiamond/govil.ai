@@ -72,6 +72,27 @@ def test_save_dataset_new_doc_initializes_never():
     p = _payload(ref)
     assert p["analysis_status"] == "never"
     assert p["first_seen_at"] is not None
+    assert "previous_titles" not in p
+
+
+def test_save_dataset_records_previous_title_on_rename():
+    """The page URL is built from the title, so a rename keeps the old title
+    for the publisher's old-URL redirect."""
+    store, ref = _store_with_existing({"analysis_status": "succeeded", "title": "שם ישן"})
+    store.save_dataset(_dataset(), change_status="updated")
+    assert _payload(ref)["previous_titles"].values == ["שם ישן"]
+
+
+def test_save_provider_source_records_previous_title_on_rename():
+    store, ref = _store_with_existing({"title": "ריבית ישנה", "resources": []})
+    store.save_provider_source("boi-x", {"title": "ריבית בנק ישראל", "resources": []})
+    assert _payload(ref)["previous_titles"].values == ["ריבית ישנה"]
+
+
+def test_save_dataset_no_previous_title_when_title_unchanged():
+    store, ref = _store_with_existing({"title": "מאגר לדוגמה"})
+    store.save_dataset(_dataset(), change_status="updated")
+    assert "previous_titles" not in _payload(ref)
 
 
 def _unchanged(reason: str, **kw) -> dict:

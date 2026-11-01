@@ -174,6 +174,12 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   data blocks in the IIFE (PR #272's bug: blank map on d9b1e04c) would pass CI. Move the
   script-type check (or the whole function) to `frontend/utils/` and test that data blocks are
   left untouched and every JS type is re-created. (2026-10-31)
+- **`/kinds/` has no index page.** `/kinds/<kind>/` pages exist, but `/kinds/` itself 404s, so
+  a visitor who trims the URL lands on the 404 page. Nothing links to it. Add a small index (or a
+  301 to `/datasets/`). (2026-11-01)
+- **Legacy pages load icons that don't exist.** 32d9a7b7 and 2f5ff1f8 (agent-built bodies)
+  reference `/icons/calendar.svg`, `chart-bar.svg` and `trending-up.svg`, which aren't in
+  `frontend/public/icons/`; the images 404. Commit the three Lucide icons. (2026-11-01)
 
 ## Dependencies
 

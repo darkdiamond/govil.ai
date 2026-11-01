@@ -232,3 +232,7 @@ class Manifest(BaseModel):
     # Legacy /tags/<slug>/ segment → its canonical tag page (merged variants
     # only); frontend/scripts/gen-redirects.mjs turns these into Firebase 301s.
     tag_redirects: dict[str, str] = Field(default_factory=dict)
+    # Old /datasets/<page_slug>/ segment → the dataset's current page_slug
+    # (publish.dataset_slug_redirects: CKAN renames + legacy_page_slugs.json);
+    # gen-redirects.mjs turns these into Firebase 301s too.
+    slug_redirects: dict[str, str] = Field(default_factory=dict)

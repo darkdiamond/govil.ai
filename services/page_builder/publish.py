@@ -26,6 +26,7 @@ CLI:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,6 +50,12 @@ from .schema import (
 from .tags import Taxonomy, build_tag_index, org_drop_names, tag_redirects
 
 log = logging.getLogger(__name__)
+
+# Dataset URLs that were live before CKAN renames were recorded
+# (SourceRecord.previous_titles), recovered from the Firebase Hosting release
+# history: old page_slug → dataset id. Historical and fixed, like
+# gen-redirects.mjs's OLD_SPACE_TAGS; new renames need no entry here.
+LEGACY_PAGE_SLUGS_PATH = Path(__file__).with_name("legacy_page_slugs.json")
 
 
 # ---- record assembly --------------------------------------------------------
@@ -177,6 +184,43 @@ def _build_page_slugs(metas: dict[str, DatasetMeta]) -> dict[str, str]:
         seen[slug] = sid
         out[sid] = slug
     return out
+
+
+def dataset_slug_redirects(
+    sources: Iterable[SourceRecord],
+    page_slugs: dict[str, str],
+    legacy: Optional[dict[str, str]] = None,
+) -> dict[str, str]:
+    """Map every old page_slug of a published dataset to its current one.
+
+    Old slugs come from the titles CKAN renamed a dataset away from (built
+    the way `_build_page_slugs` builds them) and from `legacy` (old slug →
+    id). Shared links and search results keep pointing at an old URL long
+    after the rename, and without a redirect they land on the 404 page.
+
+    An old slug that is some dataset's live slug is dropped: Firebase applies
+    redirects before serving files, so it would take that page over.
+    """
+    live = set(page_slugs.values())
+    out: dict[str, str] = {}
+
+    def add(old: str, sid: str) -> None:
+        cur = page_slugs.get(sid)
+        if cur and old and old not in live:
+            out.setdefault(old, cur)
+
+    for src in sources:
+        suffix = src.page_slug_suffix or src.id.replace("-", "")[:8]
+        for title in src.previous_titles:
+            base = hebrew_slugify(title)
+            add(f"{base}-{suffix}" if base else suffix, src.id)
+    for old, sid in (legacy or {}).items():
+        add(old, sid)
+    return dict(sorted(out.items()))
+
+
+def _load_legacy_page_slugs() -> dict[str, str]:
+    return json.loads(LEGACY_PAGE_SLUGS_PATH.read_text(encoding="utf-8"))
 
 
 def _merged_entry(
@@ -344,6 +388,7 @@ def publish(
         tag_index={t: TagIndexEntry(**v) for t, v in tag_index.items()},
         topics=[TopicEntry(**vars(t)) for t in taxonomy.topics.values()],
         tag_redirects=tag_redirects(raw_tags, taxonomy, tag_index, drop_names),
+        slug_redirects=dataset_slug_redirects(sources, page_slugs, _load_legacy_page_slugs()),
     )
     manifest_path = _write_manifest(out_root, manifest)
     search_index_path = _write_search_index(out_root, manifest)
@@ -380,7 +425,6 @@ def _cli() -> None:
         p.error("only --from-firestore is supported")
 
     summary = publish(Path(args.out))
-    import json
     print(json.dumps(summary, indent=2))
 
 
