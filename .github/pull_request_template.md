@@ -10,7 +10,7 @@
 
 <!-- Check all that apply and add detail. -->
 
-- [ ] `pytest services/page_builder/tests/ -q` passes
+- [ ] `pytest -q` passes
 - [ ] `cd frontend && npm run generate` builds cleanly (for frontend changes)
 - [ ] Ran the relevant pipeline step locally against the Firestore emulator
 - [ ] Manual QA (describe below)

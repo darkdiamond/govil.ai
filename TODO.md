@@ -125,3 +125,20 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
+
+## Validation speed
+
+- **Every `check.py` run spends ~0.2s importing esprima.** `esprima/character.py` builds its
+  identifier tables by calling `unicodedata.category` on all 1.1M code points at import. That is
+  ~40s per nightly job and ~1s per `author verify` (one check per render, four renders). Fix: a vendored
+  esprima whose tables are precomputed literals or computed lazily, kept pinned in
+  `services/page_builder/requirements.txt`. (2026-11-01)
+- **`author verify` runs its four compute passes one after another.** The determinism, truncated
+  and shuffled passes depend only on the first (full) pass, so they could run concurrently and
+  cut verify's wall time about in half. The catch is memory: each pass may use up to
+  `REFRESH_COMPUTE_MEMORY_MB` (3GB), so a heavy recipe would need up to 3× that. Fix: a thread
+  pool sized by a flag, defaulting to serial for recipes with `limits`. (2026-11-01)
+- **No Python lint gate.** Ruff is in the venv but the repo has no config and neither CI nor the
+  pre-commit hook runs it (prettier only). Ruff with the user-level config reports 1706 findings,
+  so a gate needs a curated rule set first (E/F + a few bug-class rules) and a one-time fix-up.
+  It takes ~0.1s, so speed is no reason to skip it. (2026-11-01)

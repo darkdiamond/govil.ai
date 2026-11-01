@@ -401,8 +401,8 @@ def test_simplify_shrinks_only_as_needed():
     full, tol0 = gs.build_snapshot(feats, crs="wgs84", max_bytes=10_000_000)
     small, tol = gs.build_snapshot(feats, crs="wgs84", max_bytes=2_000)
     assert tol0 == 0.0 and tol > 0 and len(small) < 2_000 < len(full)
-    with pytest.raises(gs.SnapshotError):
-        gs.build_snapshot(feats * 400, crs="wgs84", max_bytes=100)
+    with pytest.raises(gs.SnapshotTooLarge):  # 3 features stay >100 B at the coarsest tolerance
+        gs.build_snapshot(feats * 3, crs="wgs84", max_bytes=100)
 
 
 def test_author_snapshot_cli(tmp_path, capsys):
@@ -527,7 +527,7 @@ _GEOJSON = json.dumps({"type": "FeatureCollection", "features": [
     ("layer.zip", _shp_zip([SQ], ["באר שבע"])),
     ("x.geojson", _GEOJSON),
     ("download", _KML),  # no telling suffix: sniffed from the bytes
-])
+], ids=["shp-zip", "geojson", "sniffed-kml"])  # the zip embeds its mtime: an id from the bytes differs per xdist worker
 def test_fetch_inputs_downloads_and_converts_the_map(tmp_path, name, body):
     recipe = Recipe.load(_with_map(tmp_path) / DS)
     preview, fetch = _events_ckan()
