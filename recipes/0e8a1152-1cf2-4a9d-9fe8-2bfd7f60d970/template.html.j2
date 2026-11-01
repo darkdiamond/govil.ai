@@ -22,16 +22,7 @@
   </details>
 </section>
 {%- endmacro %}
-{%- macro map_section(mid, title, note) %}
-<section class="card p-5 mb-6">
-  <div class="flex items-center gap-2 mb-3 text-brand">
-    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
-    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
-  </div>
-  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
-  <div id="{{ mid }}" class="h-72 md:h-[420px]"></div>
-</section>
-{%- endmacro %}
+
 <h1>מבנים לשימור</h1>
 
 <section class="card p-5 mb-6">
@@ -63,7 +54,15 @@
   </ul>
 </section>
 
-{{ map_section("map-buildings", "מפת המבנים לשימור", model.labels.map_b_note) }}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/map-pin.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת השימור: מבנים, מתחמים, גדרות ואלמנטים</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-preservation" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+</section>
 
 {{ chart_section("chart-layers", "database", "ארבע שכבות השימור", model.labels.layers_note, model.labels.layers_aria, model.labels.layers_cap, model.tables.layers, "h-64 md:h-80") }}
 
@@ -90,19 +89,19 @@
 {% endif %}
 
 {% if model.flags.cx %}
-{{ map_section("map-complexes", "מפת מתחמי השימור", model.labels.map_c_note) }}
 {{ chart_section("chart-cx-top", "building-2", "המתחמים הגדולים ביותר", model.labels.cx_top_note, model.labels.cx_top_aria, model.labels.cx_top_cap, model.tables.cx_top, "h-72 md:h-96") }}
 {{ chart_section("chart-cx-std", "building-2", "מתחמים לפי דרגה", model.labels.cx_std_note, model.labels.cx_std_aria, model.labels.cx_std_cap, model.tables.cx_std, "h-64 md:h-80") }}
+{% if model.flags.cx_bld %}
+{{ chart_section("chart-cx-bld", "building-2", "מבנים לשימור בתוך המתחמים", model.labels.cx_bld_note, model.labels.cx_bld_aria, model.labels.cx_bld_cap, model.tables.cx_bld, "h-72 md:h-96") }}
+{% endif %}
 {% endif %}
 
 {% if model.flags.fe %}
-{{ map_section("map-fences", "מפת הגדרות לשימור", model.labels.map_f_note) }}
 {{ chart_section("chart-fe-std", "database", "אורך הגדרות לפי דרגה", model.labels.fe_std_note, model.labels.fe_std_aria, model.labels.fe_std_cap, model.tables.fe_std, "h-64 md:h-80") }}
 {{ chart_section("chart-fe-len", "database", "אורכי קטעי הגדר", model.labels.fe_len_note, model.labels.fe_len_aria, model.labels.fe_len_cap, model.tables.fe_len, "h-72 md:h-96") }}
 {% endif %}
 
 {% if model.flags.el %}
-{{ map_section("map-elements", "מפת אלמנטי השימור", model.labels.map_e_note) }}
 {{ chart_section("chart-el-std", "database", "אלמנטי שימור לפי דרגה", model.labels.el_std_note, model.labels.el_std_aria, model.labels.el_std_cap, model.tables.el_std, "h-64 md:h-80") }}
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -123,53 +122,118 @@
 </section>
 {% endif %}
 
+{%- for key in ["c", "f", "b", "e"] %}
+{%- for chunk in model.map[key] %}
+<script type="application/json" id="map-{{ key }}-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-buildings",
-    resourceId: {{ inputs.buildings[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    popupFields: [
-      { field: "standard", label: "דרגה" },
-      { field: "year", label: "תקופה" },
-      { field: "cartis", label: "כרטיס סקר" }
-    ]
-  });
-{%- if model.flags.cx %}
-  GovMap.create({
-    container: "#map-complexes",
-    resourceId: {{ inputs.complexes[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    cluster: false,
-    popupTitleField: "Taba",
-    popupFields: [{ field: "shimur", label: "דרגה" }]
-  });
-{%- endif %}
-{%- if model.flags.fe %}
-  GovMap.create({
-    container: "#map-fences",
-    resourceId: {{ inputs.fences[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    popupFields: [{ field: "standard", label: "דרגה" }]
-  });
-{%- endif %}
-{%- if model.flags.el %}
-  GovMap.create({
-    container: "#map-elements",
-    resourceId: {{ inputs.elements[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    cluster: false,
-    popupTitleField: "Taba",
-    popupFields: [{ field: "standard", label: "דרגה" }, { field: "Hakama", label: "הערה" }]
-  });
-{%- endif %}
+  (function () {
+    var el = document.getElementById("map-preservation");
+    if (!el || !window.L) { return; }
+    var M = {{ model.map.meta | tojson }};
+    var N = {{ {"b": model.map.b | length, "c": model.map.c | length, "f": model.map.f | length, "e": model.map.e | length} | tojson }};
+    var ox = M.origin[0], oy = M.origin[1], k = M.scale;
+    var ramp = ["#0c1f3d", "#0053c4", "#3d70b0", "#6c9fd8", "#9fc0ee"];
+    function color(g) { var r = M.rank[g]; return r < ramp.length ? ramp[r] : "#6c757d"; }
+    function feats(key) {
+      var out = [];
+      for (var c = 0; c < N[key]; c++) {
+        var node = document.getElementById("map-" + key + "-" + c);
+        if (node) { out = out.concat(JSON.parse(node.textContent)); }
+      }
+      return out;
+    }
+    function path(flat) {
+      var out = [], x = ox, y = oy;
+      for (var i = 0; i + 1 < flat.length; i += 2) { x += flat[i]; y += flat[i + 1]; out.push([y / k, x / k]); }
+      return out;
+    }
+    function polys(p) { return p.map(function (rings) { return rings.map(path); }); }
+    function pt(x, y) { return [(y + oy) / k, (x + ox) / k]; }
+    function num(v) { return Number(v).toLocaleString("en-US"); }
+    function popup(title, rows) {
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = title;
+      box.appendChild(t);
+      rows.forEach(function (r) {
+        if (r[1] === "" || r[1] === null) { return; }
+        var d = document.createElement("div");
+        d.textContent = r[0] + ": " + r[1];
+        box.appendChild(d);
+      });
+      return box;
+    }
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+
+    var cx = L.featureGroup();
+    feats("c").forEach(function (f) {
+      L.polygon(polys(f[4]), { color: "#0c3058", weight: 2, dashArray: "6 4", fillColor: color(f[0]), fillOpacity: 0.12 })
+        .bindPopup(popup(f[1], [["דרגה", M.grades[f[0]]], ["שטח", f[2] + " דונם"], ["מבנים לשימור בתוכו", num(f[3])]]))
+        .addTo(cx);
+    });
+    var fe = L.featureGroup();
+    feats("f").forEach(function (f) {
+      L.polyline(f[2].map(path), { color: color(f[0]), weight: 3, opacity: 0.9 })
+        .bindPopup(popup("קטע גדר לשימור", [["דרגה", M.grades[f[0]]], ["אורך", num(f[1]) + " מ׳"]]))
+        .addTo(fe);
+    });
+    var bShapes = L.featureGroup(), bDots = L.featureGroup();
+    feats("b").forEach(function (f) {
+      var info = popup("מבנה לשימור", [
+        ["דרגה", M.grades[f[0]]],
+        ["תקופה או הערה", f[1] >= 0 ? M.years[f[1]] : ""],
+        ["כרטיס סקר", f[2] > 0 ? String(f[2]) : ""],
+        ["שטח", f[3] >= 0 ? num(f[3]) + " מ״ר" : ""]
+      ]);
+      var c = color(f[0]);
+      L.polygon(polys(f[6]), { color: c, weight: 1, fillColor: c, fillOpacity: 0.6 }).bindPopup(info).addTo(bShapes);
+      L.circleMarker(pt(f[4], f[5]), { radius: 3.5, stroke: false, fillColor: c, fillOpacity: 0.85 }).bindPopup(info).addTo(bDots);
+    });
+    var bld = L.layerGroup();
+    var el2 = L.featureGroup();
+    feats("e").forEach(function (f) {
+      L.circleMarker(pt(f[3], f[4]), { radius: 6, color: "#ffffff", weight: 2, fillColor: color(f[0]), fillOpacity: 1 })
+        .bindPopup(popup(f[1], [["דרגה", M.grades[f[0]]], ["הערה", f[2]]]))
+        .addTo(el2);
+    });
+    function syncBuildings() {
+      var near = map.getZoom() >= 16;
+      bld.clearLayers();
+      bld.addLayer(near ? bShapes : bDots);
+    }
+    cx.addTo(map);
+    fe.addTo(map);
+    bld.addTo(map);
+    el2.addTo(map);
+    var overlays = {};
+    overlays[M.layers[1]] = cx;
+    overlays[M.layers[2]] = fe;
+    overlays[M.layers[0]] = bld;
+    overlays[M.layers[3]] = el2;
+    L.control.layers(null, overlays, { collapsed: window.innerWidth < 640 }).addTo(map);
+    map.on("zoomend", syncBuildings);
+    map.fitBounds(M.bounds, { padding: [8, 8] });
+    syncBuildings();
+
+    var legend = document.getElementById("map-legend");
+    function item(css, text) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;" + css;
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(text));
+      legend.appendChild(li);
+    }
+    M.grades.forEach(function (g, i) {
+      item("width:12px;height:12px;border-radius:2px;background:" + color(i), g);
+    });
+    item("width:18px;height:12px;border:2px dashed #0c3058;border-radius:2px", M.layers[1]);
+    item("width:12px;height:12px;border-radius:50%;border:2px solid #ffffff;box-shadow:0 0 0 1px #0c3058;background:#3d70b0", M.layers[3]);
+  })();
 </script>
 
 <script>
@@ -259,6 +323,8 @@
   (function () {
     var X = {{ model.charts.cx_top | tojson }};
     window.__hbar("chart-cx-top", X, "דונם");
+    var XB = {{ model.charts.cx_bld | tojson }};
+    window.__hbar("chart-cx-bld", XB, "מבנים");
     var Y = {{ model.charts.cx_std | tojson }};
     var c = window.__mk("chart-cx-std");
     if (c) {

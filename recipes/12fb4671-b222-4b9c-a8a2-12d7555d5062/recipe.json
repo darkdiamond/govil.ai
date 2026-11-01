@@ -1,8 +1,8 @@
 {
   "contract_version": 1,
   "dataset_id": "12fb4671-b222-4b9c-a8a2-12d7555d5062",
-  "recipe_version": 1,
-  "authored_at": "2026-10-27T00:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-25T01:03:51.899162+00:00",
     "rows": {
@@ -12,15 +12,16 @@
   "inputs": [
     {
       "name": "plans",
-      "by_id": "201436f4-5699-494e-a67d-efe8acfd19fc",
+      "by_id": "dd45d273-4fc9-4717-b7bc-b5e663251f92",
+      "map": true,
+      "map_max_kb": 5000,
       "required_columns": [
         "Plan",
         "status",
         "Taba_Numer",
+        "OutSide_li",
         "SHAPE_Leng",
-        "SHAPE_Area",
-        "lat",
-        "lon"
+        "SHAPE_Area"
       ]
     }
   ],

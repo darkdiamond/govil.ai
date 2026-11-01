@@ -1,16 +1,24 @@
-"""גינות כלבים בבאר שבע: one small polygon layer exported as points.
+"""גינות כלבים בבאר שבע: the city's polygon layer of fenced dog parks.
 
-Each row is a fenced dog park: name, polygon perimeter (SHAPE_Leng, metres),
-polygon area (SHAPE_Area, square metres) and a WGS84 centroid.  The page
-covers size (ranking, size bands, concentration), shape (area vs perimeter,
-Polsby-Popper compactness 4*pi*A/P^2: 1 is a circle, a square is about
-0.79) and geography (compass sector and distance from the median centre,
-nearest neighbouring park).  The other three resources are format /
-projection twins (XLSX, ITM) and are not read.
+Read from the uploaded GeoJSON map file (one feature per park: name,
+SHAPE_Leng perimeter in metres, SHAPE_Area in square metres, a WGS84
+centroid, and the real outline as __geometry).  The page draws the outlines
+on a Leaflet map (a dot per park at city zoom, the fence outline once zoomed
+in) and covers size (ranking, size bands, concentration), shape (area vs
+perimeter, Polsby-Popper compactness 4*pi*A/P^2: 1 is a circle, a square is
+about 0.79; end-to-end span measured on the outline) and geography (compass
+sector and distance from the median centre, nearest neighbouring park).
+
+Area and perimeter come from the file's SHAPE_* attributes; a feature that
+lacks them falls back to the value measured on its outline (disclosed).
+The centre of each park is computed from its outline, so a future upload
+without lat/lon columns still places it.  The datastore CSV and XLSX are
+the same 27 rows without the outlines and are not read.
 
 Order-independent: dedup on a normalised key, then a total sort; ties broken
 by name and coordinates.
 """
+import json
 import math
 
 import pandas as pd
@@ -23,6 +31,8 @@ RANK_CAP = 30
 NN_TOP = 20
 LIST_CAP = 200
 TOP_K = 5
+CHUNK_BYTES = 40_000   # each geometry island stays well under 50KB
+SPAN_POINTS = 400      # vertices sampled per park for the end-to-end span
 
 
 def fmt(n):
@@ -61,24 +71,174 @@ def band_index(v, edges):
     return idx
 
 
+# ── geometry ─────────────────────────────────────────────────────────────
+
+
+def _polys(raw):
+    """Polygon / MultiPolygon as a list of polygons (lists of rings of
+    [lon, lat]); anything else (or junk) as []."""
+    try:
+        g = json.loads(raw or "null")
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(g, dict):
+        return []
+    if g.get("type") == "Polygon":
+        polys = [g.get("coordinates") or []]
+    elif g.get("type") == "MultiPolygon":
+        polys = g.get("coordinates") or []
+    else:
+        return []
+    out = []
+    for p in polys:
+        rings = []
+        for r in p or []:
+            pts = []
+            for pt in r or []:
+                try:
+                    x, y = float(pt[0]), float(pt[1])
+                except (TypeError, ValueError, IndexError):
+                    continue
+                if math.isfinite(x) and math.isfinite(y):
+                    pts.append((x, y))
+            if len(pts) >= 3:
+                rings.append(pts)
+        if rings:
+            out.append(rings)
+    return out
+
+
+def _measure(polys):
+    """(area m², perimeter m, centroid lat, centroid lon, span m) of a park's
+    outline, on a local equirectangular projection (parks are tens of metres
+    across, so the error is far below the data's precision)."""
+    pts = [pt for p in polys for r in p for pt in r]
+    if not pts:
+        return None
+    lat0 = sum(y for _, y in pts) / len(pts)
+    lon0 = sum(x for x, _ in pts) / len(pts)
+    kx = M_PER_DEG * math.cos(math.radians(lat0))
+    ky = M_PER_DEG
+
+    def xy(pt):
+        return ((pt[0] - lon0) * kx, (pt[1] - lat0) * ky)
+
+    area = per = cx = cy = 0.0
+    for p in polys:
+        for k, r in enumerate(p):
+            q = [xy(pt) for pt in r]
+            if q[0] != q[-1]:
+                q.append(q[0])
+            a = sx = sy = 0.0
+            for (x1, y1), (x2, y2) in zip(q, q[1:]):
+                cr = x1 * y2 - x2 * y1
+                a += cr
+                sx += (x1 + x2) * cr
+                sy += (y1 + y2) * cr
+                per += math.hypot(x2 - x1, y2 - y1)
+            a /= 2.0
+            sign = 1.0 if k == 0 else -1.0   # holes subtract
+            area += sign * abs(a)
+            if a != 0:
+                cx += sign * abs(a) * (sx / (6.0 * a))
+                cy += sign * abs(a) * (sy / (6.0 * a))
+    if area > 0:
+        cx, cy = cx / area, cy / area
+    else:
+        cx = sum(xy(pt)[0] for pt in pts) / len(pts)
+        cy = sum(xy(pt)[1] for pt in pts) / len(pts)
+    q = sorted(set(xy(pt) for pt in pts))
+    if len(q) > SPAN_POINTS:
+        step = len(q) / SPAN_POINTS
+        q = [q[int(i * step)] for i in range(SPAN_POINTS)]
+    span = 0.0
+    for i in range(len(q)):
+        for j in range(i + 1, len(q)):
+            d = math.hypot(q[i][0] - q[j][0], q[i][1] - q[j][1])
+            if d > span:
+                span = d
+    return (max(area, 0.0), per, lat0 + cy / ky, lon0 + cx / kx, span)
+
+
+def _map_model(geo, nn_map, band_names):
+    """Outlines as compact [park index, polygons] pairs chunked into JSON
+    islands under CHUNK_BYTES, plus per-park popup facts and centres."""
+    parks, feats = [], []
+    order = geo.sort_values(["name", "kla", "klo", "kar"], kind="mergesort").reset_index(drop=True)
+    for i, r in order.iterrows():
+        nn = nn_map.get((r["name"], r["kla"], r["klo"]))
+        parks.append({
+            "name": r["name"],
+            "band": int(band_index(r["area"], AREA_EDGES)),
+            "area": fmt(r["area"]),
+            "per": fmt(r["per"]) if r["per"] > 0 else "",
+            "span": fmt(r["span"]) if r["span"] > 0 else "",
+            "nn": f"{nn[0]} ({fmt(nn[1])} מ׳)" if nn else "",
+            "c": [round(float(r["la"]), 6), round(float(r["lo"]), 6)],
+        })
+        polys = [[[[round(x, 6), round(y, 6)] for x, y in ring] for ring in p] for p in r["polys"]]
+        feats.append([int(i), polys])
+    chunks, cur, size = [], [], 0
+    for f in feats:
+        n = len(json.dumps(f, separators=(",", ":")))
+        if cur and size + n > CHUNK_BYTES:
+            chunks.append(cur)
+            cur, size = [], 0
+        cur.append(f)
+        size += n
+    if cur:
+        chunks.append(cur)
+    lats = [pt[1] for f in feats for p in f[1] for ring in p for pt in ring]
+    lons = [pt[0] for f in feats for p in f[1] for ring in p for pt in ring]
+    bounds = [[min(lats), min(lons)], [max(lats), max(lons)]] if lats else None
+    return {"chunks": chunks, "parks": parks, "bands": band_names, "bounds": bounds}
+
+
 def compute(frames):
-    raw = frames["parks"].copy()
+    raw = frames["geo"].copy().reset_index(drop=True)
     n_raw = len(raw)
+    polys = [_polys(g) for g in raw["__geometry"]]
+    meas = [_measure(p) for p in polys]
+    a_attr = num(raw["SHAPE_Area"])
+    p_attr = num(raw["SHAPE_Leng"])
+    # a feature with no outline can still be placed by the file's own centroid
+    la_attr = num(raw["lat"]) if "lat" in raw.columns else pd.Series([float("nan")] * n_raw)
+    lo_attr = num(raw["lon"]) if "lon" in raw.columns else pd.Series([float("nan")] * n_raw)
+    area, per, la, lo, span, a_fb, p_fb = [], [], [], [], [], [], []
+    for i, m in enumerate(meas):
+        a, p = a_attr.iloc[i], p_attr.iloc[i]
+        a_fb.append(bool(not (a > 0) and m and m[0] > 0))
+        p_fb.append(bool(not (p > 0) and m and m[1] > 0))
+        if a_fb[-1]:
+            a = m[0]
+        if p_fb[-1]:
+            p = m[1]
+        area.append(a)
+        per.append(p)
+        la.append(m[2] if m else la_attr.iloc[i])
+        lo.append(m[3] if m else lo_attr.iloc[i])
+        span.append(m[4] if m else 0.0)
     df = pd.DataFrame({
         "name": raw["name"].astype(str).str.strip(),
-        "per": num(raw["SHAPE_Leng"]),
-        "area": num(raw["SHAPE_Area"]),
-        "la": num(raw["lat"]),
-        "lo": num(raw["lon"]),
+        "per": pd.to_numeric(pd.Series(per), errors="coerce"),
+        "area": pd.to_numeric(pd.Series(area), errors="coerce"),
+        "la": pd.to_numeric(pd.Series(la), errors="coerce"),
+        "lo": pd.to_numeric(pd.Series(lo), errors="coerce"),
+        "span": pd.to_numeric(pd.Series(span), errors="coerce").fillna(0.0),
     })
-    df["kla"] = df["la"].round(6)
-    df["klo"] = df["lo"].round(6)
+    df["polys"] = polys
+    df["a_fb"] = a_fb
+    df["p_fb"] = p_fb
+    df["kla"] = df["la"].round(5)
+    df["klo"] = df["lo"].round(5)
     df["kar"] = df["area"].round(2)
     uniq = df.drop_duplicates(subset=["name", "kla", "klo", "kar"]).copy()
     n_dup = n_raw - len(uniq)
     uniq = uniq.sort_values(["name", "kla", "klo", "kar"], kind="mergesort", na_position="last").reset_index(drop=True)
     n_parks = len(uniq)
     n_names = int(uniq["name"].nunique())
+    n_area_fb = int(uniq["a_fb"].sum())
+    n_per_fb = int(uniq["p_fb"].sum())
 
     # ---------- size ----------
     sz = uniq[uniq["area"] > 0].copy()
@@ -188,16 +348,30 @@ def compute(frames):
 
     # ---------- full list ----------
     cmp_map = {(r["name"], r["kla"], r["klo"]): r["cmp"] for _, r in shp.iterrows()}
-    nn_map = {(r["name"], r["kla"], r["klo"]): (r["nn_name"], r["nn"]) for _, r in geo.iterrows()}
+    nn_map = ({(r["name"], r["kla"], r["klo"]): (r["nn_name"], r["nn"]) for _, r in geo.iterrows()}
+              if has_nn else {})
     rows = []
     for _, r in by_area.head(LIST_CAP).iterrows():
         key = (r["name"], r["kla"], r["klo"])
         c = cmp_map.get(key)
         nn = nn_map.get(key)
         rows.append([r["name"], fmt(r["area"]), fmt(r["per"]) if r["per"] > 0 else "",
+                     fmt(r["span"]) if r["span"] > 0 else "",
                      f"{c:.2f}" if c is not None else "",
-                     f"{nn[0]} ({fmt(nn[1])} מ׳)" if (nn and has_nn) else ""])
-    tables["list"] = {"headers": ["גינה", "שטח (מ״ר)", "היקף (מ׳)", "מדד קומפקטיות", "הגינה הקרובה"], "rows": rows}
+                     f"{nn[0]} ({fmt(nn[1])} מ׳)" if nn else ""])
+    tables["list"] = {"headers": ["גינה", "שטח (מ״ר)", "היקף (מ׳)", "אורך מקצה לקצה (מ׳)", "מדד קומפקטיות",
+                                  "הגינה הקרובה"], "rows": rows}
+
+    # ---------- map ----------
+    band_names = band_labels(AREA_EDGES, "מ״ר")
+    mapm = _map_model(geo, nn_map, band_names)
+    n_drawn = sum(1 for p in geo["polys"] if p)
+    has_map = n_geo >= 1 and mapm["bounds"] is not None
+
+    # ---------- span (measured on the outline) ----------
+    sp = sz[sz["span"] > 0].sort_values(["span", "name", "kla", "klo"], ascending=[False, True, True, True],
+                                        kind="mergesort").reset_index(drop=True)
+    med_span = float(sp["span"].median()) if len(sp) else 0.0
 
     # ---------- insights ----------
     insights = []
@@ -232,6 +406,17 @@ def compute(frames):
         insights.append({"id": "fence", "text_he": (
             f"ההיקף הכולל של {fmt(len(shp))} הגינות הוא כ־{km(total_per)} ק״מ, כלומר כ־{fmt(total_per / len(shp))} מ׳ "
             f"של גבול בממוצע לגינה.")})
+
+    if len(sp) >= 3:
+        lng = sp.iloc[0]
+        if float(lng["span"]) >= med_span * 1.3:
+            insights.append({"id": "span", "text_he": (
+                f"״{lng['name']}״ היא הגינה המתוחה ביותר: {fmt(lng['span'])} מ׳ מקצה לקצה לפי קווי הגדר במפה, "
+                f"לעומת {fmt(med_span)} מ׳ בגינה החציונית.")})
+        else:
+            insights.append({"id": "span", "text_he": (
+                f"לפי קווי הגדר במפה, גינת כלבים חציונית משתרעת על {fmt(med_span)} מ׳ מקצה לקצה, "
+                f"והארוכה ביותר (״{lng['name']}״) על {fmt(lng['span'])} מ׳.")})
 
     if has_nn and n_geo >= 3:
         iso = nn_sorted.iloc[0]
@@ -277,6 +462,9 @@ def compute(frames):
     if n_names < n_parks:
         insights.append({"id": "names", "text_he": (
             f"יש {fmt(n_parks)} גינות אך רק {fmt(n_names)} שמות שונים: חלק מהשמות משמשים ליותר מגינה אחת.")})
+    if n_area_fb or n_per_fb:
+        insights.append({"id": "measured", "text_he": (
+            f"ל־{fmt(max(n_area_fb, n_per_fb))} גינות חסרים בקובץ נתוני השטח או ההיקף, והם נמדדו כאן ישירות מקווי הגדר במפה.")})
     if n_noarea or n_bad_geo:
         insights.append({"id": "badgeo", "text_he": (
             f"ל־{fmt(n_noarea)} גינות אין שטח תקין ול־{fmt(n_bad_geo)} נוספות אין מיקום תקין; הן אינן נכללות בחישובים הרלוונטיים.")})
@@ -298,12 +486,16 @@ def compute(frames):
     )
     lede = (
         f"עיריית באר שבע מפרסמת את שטחי הגינות לשחרור כלבים (פינות כלבים) ברחבי העיר: {fmt(n_parks)} גינות מגודרות "
-        f"עם שם, מיקום, שטח והיקף. השטח הכולל {fmt(total_area)} מ״ר, הגינה החציונית {fmt(med_area)} מ״ר, "
+        f"עם שם, קו גדר על המפה, שטח והיקף. השטח הכולל {fmt(total_area)} מ״ר, הגינה החציונית {fmt(med_area)} מ״ר, "
         f"ובחציון גינת הכלבים הקרובה הבאה נמצאת {fmt(med_nn)} מ׳ משם."
     )
     labels = {
         "lede": lede,
-        "map_note": "כל נקודה היא מרכז של גינת כלבים; לחיצה פותחת את שם הגינה, השטח וההיקף.",
+        "map_note": (f"קווי הגדר של {fmt(n_drawn)} גינות הכלבים כפי שהם מופיעים בקובץ המפה של העירייה, בצבע לפי גודל. "
+                     f"במבט על העיר כולה כל גינה מסומנת בעיגול; בהתקרבות מופיע קו הגדר. לחיצה פותחת את שם הגינה, השטח, "
+                     f"ההיקף והגינה הקרובה."),
+        "map_aria": "מפת גינות הכלבים בבאר שבע",
+        "pop_area": "שטח (מ״ר)", "pop_per": "היקף (מ׳)", "pop_span": "אורך מקצה לקצה (מ׳)", "pop_nn": "הגינה הקרובה",
         "area_note": (f"כל הגינות לפי שטח, מהגדולה לקטנה; הקו המקווקו מסמן את החציון ({fmt(med_area)} מ״ר)."
                       + (f" מוצגות {fmt(RANK_CAP)} הגדולות מתוך {fmt(n_sz)}." if rank_more else "")),
         "bands_note": f"כמה גינות בכל קבוצת גודל, ואיזה חלק מהשטח הכולל ({fmt(total_area)} מ״ר) כל קבוצה מחזיקה.",
@@ -315,7 +507,7 @@ def compute(frames):
         "dist_note": f"מספר הגינות ושטחן לפי מרחק ממרכז החציון של הגינות; המרחק החציוני {fmt(med_d)} מ׳.",
         "nn_note": (f"המרחק בקו אווירי מכל גינה לגינת הכלבים הקרובה אליה, מהמבודדת לצפופה; החציון {fmt(med_nn)} מ׳."
                     + (f" מוצגות {fmt(NN_TOP)} הגינות המבודדות ביותר מתוך {fmt(n_geo)}." if nn_more else "")),
-        "list_note": (f"כל {fmt(n_sz)} הגינות לפי שטח, עם ההיקף, מדד הקומפקטיות והגינה הקרובה."
+        "list_note": (f"כל {fmt(n_sz)} הגינות לפי שטח, עם ההיקף, האורך מקצה לקצה, מדד הקומפקטיות והגינה הקרובה."
                       if n_sz <= LIST_CAP else f"{fmt(LIST_CAP)} הגינות הגדולות; הרשימה המלאה בטבלת הנתונים."),
         "area_aria": "גינות כלבים לפי שטח", "area_cap": "גינות כלבים לפי שטח",
         "bands_aria": "גינות לפי קבוצת גודל", "bands_cap": "גינות לפי קבוצת גודל",
@@ -331,13 +523,6 @@ def compute(frames):
         "agent_data": {
             "summary_he": summary,
             "dataset_kind": "map",
-            "suggested_tags": ["גינות כלבים", "באר שבע", "פנאי", "מרחב ציבורי", "בעלי חיים"],
-            "related_ids": [
-                "d25f8679-13bc-4082-bf6e-6156e1d2df60",
-                "b795e2e0-491e-4040-877e-f3681917f8be",
-                "5944b454-751c-4604-94d6-e676d7d34612",
-                "947814b2-f2a8-4f4b-a8ec-a5f4bd2f0abe",
-            ],
             "spatial_coverage": "באר שבע",
         },
         "kpis": kpis,
@@ -345,5 +530,6 @@ def compute(frames):
         "tables": tables,
         "insights": insights,
         "labels": labels,
-        "flags": {"nn": has_nn, "shape": has_shape, "pareto": n_sz >= 2 * TOP_K},
+        "map": mapm,
+        "flags": {"nn": has_nn, "shape": has_shape, "pareto": n_sz >= 2 * TOP_K, "map": has_map},
     }

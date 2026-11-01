@@ -1,11 +1,12 @@
 {
-  "main.OID": "skip: constant (-1 on every row), an export artifact with no meaning",
-  "main.MIHCODE": "table:junctions, table:road_dirs — two-letter interchange code, unique per row; also searchable in the explorer",
-  "main.MIHNAME": "table:junctions, table:road_dirs, insight:triple, insight:missing — interchange name",
-  "main.MIHTYPE": "chart-types, chart-auth, kpi:full, insight:types, insight:missing, table:junctions, table:road_dirs — interchange type",
-  "main.ROAD1": "chart-roads, chart-nroads, chart-classes, chart-pairs, kpi:roads, insight:top_road, insight:single, insight:triple, table:road_dirs, table:junctions — first connecting road (0 = none)",
-  "main.ROAD2": "chart-roads, chart-nroads, chart-classes, chart-pairs, kpi:roads, insight:top_road, insight:single, insight:triple, table:road_dirs, table:junctions — second connecting road (0 = none)",
-  "main.ROAD3": "chart-roads, chart-nroads, chart-classes, chart-pairs, kpi:roads, insight:triple, table:road_dirs, table:junctions — third connecting road (0 = none)",
-  "main.TRAFAUTH": "chart-auth, kpi:lead_auth, insight:auth, insight:municipal, insight:missing, table:junctions — traffic authority",
+  "geo.MIHCODE": "map-junctions, table:junctions, table:road_dirs — two-letter interchange code, unique per row; in map popups; also searchable in the explorer",
+  "geo.MIHNAME": "map-junctions, table:junctions, table:road_dirs, insight:triple, insight:missing, insight:isolated, insight:dense, insight:band — interchange name",
+  "geo.MIHTYPE": "map-junctions, chart-types, chart-auth, kpi:full, insight:types, insight:missing, table:junctions, table:road_dirs — interchange type; map colour and legend toggles",
+  "geo.ROAD1": "chart-roads, chart-nroads, chart-classes, chart-pairs, chart-spacing, chart-lat, kpi:roads, insight:top_road, insight:single, insight:triple, insight:spacing, table:road_dirs, table:junctions — first connecting road (0 = none)",
+  "geo.ROAD2": "chart-roads, chart-nroads, chart-classes, chart-pairs, chart-spacing, chart-lat, kpi:roads, insight:top_road, insight:single, insight:triple, insight:spacing, table:road_dirs, table:junctions — second connecting road (0 = none)",
+  "geo.ROAD3": "chart-roads, chart-nroads, chart-classes, chart-pairs, chart-spacing, kpi:roads, insight:triple, table:road_dirs, table:junctions — third connecting road (0 = none)",
+  "geo.TRAFAUTH": "map-junctions, chart-auth, kpi:lead_auth, insight:auth, insight:municipal, insight:missing, table:junctions — traffic authority",
+  "geo.__geometry": "map-junctions, chart-lat, chart-nn, chart-spacing, kpi:nn, kpi:span, insight:band, insight:isolated, insight:dense, insight:spacing — WGS84 point (ITM in the file, reprojected by the refresh)",
+  "resource:b669cece-8cdd-4db9-8591-5fb6e9a7e1b9": "skip: the datastore CSV has the same 262 rows and 7 attribute columns as the shapefile but no coordinates (and doubles quotes in 4 names); the shapefile replaces it",
   "resource:481e104a-ce2a-4eab-9bd7-e7eb149e7748": "skip: metadata sheet (publisher, field descriptions); field meanings used for labels only"
 }

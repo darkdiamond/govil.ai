@@ -45,11 +45,44 @@
   </ul>
 </section>
 
+{%- if model.flags.map %}
 <section class="card p-5 mb-6">
   {{ icon_head("מפת נתיבי ההעדפה", "map-pin") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+  <div class="flex flex-wrap gap-2 mb-3" id="map-zoom">
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm text-ink bg-surface" data-zoom="-1">כל הארץ</button>
+{%- for z in model.charts.map.zoom %}
+    <button type="button" class="rounded-gov-pill border border-rule px-3 py-1 text-sm text-ink bg-surface" data-zoom="{{ loop.index0 }}">{{ z.name }}</button>
+{%- endfor %}
+  </div>
+  <div id="map-main" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for t in model.charts.map.legend %}
+    <li class="flex items-center gap-2"><span class="map-swatch" data-i="{{ loop.index0 }}" style="display:inline-block;width:24px;height:4px;border-radius:2px"></span>{{ t.name }} ({{ t.km }} ק"מ)</li>
+{%- endfor %}
+  </ul>
 </section>
+{%- endif %}
+
+{%- if model.flags.lat %}
+<section class="card p-5 mb-6">
+  {{ icon_head("מצפון לדרום: פריסת הנתיבים לפי קו רוחב", "map-pin") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_note }}</p>
+  <div id="chart-lat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.lat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.lat_aria }}</caption>
+      <thead><tr><th scope="col">קו רוחב</th><th scope="col">רשות מובילה</th><th scope="col">ק"מ</th><th scope="col">שיעור מהאורך</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.lat %}
+        <tr><th scope="row">{{ r.range }}</th><td>{{ r.lead }}</td><td>{{ r.km }}</td><td dir="ltr">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
 
 <section class="card p-5 mb-6">
   {{ icon_head("סוגי נתיבי העדפה") }}
@@ -297,26 +330,59 @@
   <p class="m-0 text-sm text-subtle whitespace-pre-line">השכבה מציגה את פריסת תשתית ההעדפה הקיימת לתחבורה ציבורית, נת"צים, נר"תים ועוד בפריסה ארצית</p>
 </section>
 
+{%- if model.flags.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-lines-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-main",
-    resourceId: {{ inputs.main[0].id | tojson }},
-    latField: "LAT_START",
-    lngField: "LON_START",
-    projection: "itm",
-    cluster: true,
-    popupTitleField: "PTLNAME",
-    popupFields: [
-      { field: "PTLTYPE", label: "סוג" },
-      { field: "AUTHORITY", label: "רשות" },
-      { field: "START_", label: "מ" },
-      { field: "FINISH", label: "עד" },
-      { field: "LENGT", label: "אורך (מטרים)" },
-      { field: "FRHR_WK", label: "ימי חול משעה" },
-      { field: "TOHR_WK", label: "ימי חול עד שעה" }
-    ]
-  });
+  (function () {
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "types": model.charts.map.types, "auths": model.charts.map.auths, "hours": model.charts.map.hours, "zoom": model.charts.map.zoom, "bounds": model.charts.map.bounds} | tojson }};
+    var P = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#198754", "#dc3545", "#6c757d"];
+    var color = function (t) { return P[t % P.length]; };
+    document.querySelectorAll("#map-legend .map-swatch").forEach(function (sw) {
+      sw.style.background = color(Number(sw.getAttribute("data-i")));
+    });
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    function decode(flat) {
+      var out = [], x = 0, y = 0;
+      for (var i = 0; i < flat.length; i += 2) {
+        x += flat[i]; y += flat[i + 1];
+        out.push([y / 1e5, x / 1e5]);
+      }
+      return out;
+    }
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-lines-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var line = L.polyline(decode(f[5]), { color: color(f[0]), weight: 4, opacity: 0.85 }).addTo(map);
+        line.bindPopup(function () {
+          var box = document.createElement("div");
+          var title = document.createElement("strong");
+          title.textContent = f[3];
+          box.appendChild(title);
+          [["סוג", meta.types[f[0]]], ["רשות", meta.auths[f[1]]], ["שעות בימי חול", meta.hours[f[4]]], ["אורך", f[2] + " ק\"מ"]].forEach(function (row) {
+            var d = document.createElement("div");
+            d.textContent = row[0] + ": " + row[1];
+            box.appendChild(d);
+          });
+          return box;
+        });
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    document.querySelectorAll("#map-zoom button").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var i = Number(b.getAttribute("data-zoom"));
+        map.fitBounds(i < 0 ? meta.bounds : meta.zoom[i].bounds, { padding: [12, 12], maxZoom: 15 });
+      });
+    });
+  })();
 </script>
+{%- endif %}
 
 <script>
   (function () {
@@ -461,5 +527,32 @@
       }));
       window.addEventListener("resize", function () { c5.resize(); });
     }
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-lat");
+    if (!el) { return; }
+    var esc = echarts.format.encodeHTML;
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }); };
+    var d = {{ model.charts.lat | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                 formatter: function (ps) {
+                   var p = ps[0];
+                   return esc(p.name) + "<br>קו רוחב " + esc(d.ranges[p.dataIndex]) + "<br>" + fmt(p.value) + " ק\"מ";
+                 } },
+      grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "ק\"מ", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { interval: 0, fontSize: 11, width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", data: d.values,
+                 label: { show: true, position: "right", fontFamily: "Rubik",
+                          formatter: function (p) { return fmt(p.value); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
   })();
 </script>

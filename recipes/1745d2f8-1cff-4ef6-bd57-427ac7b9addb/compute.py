@@ -1,16 +1,29 @@
-"""Public-transport operator clusters (אשכולות תח"צ): weekly riders and trips.
+"""Public-transport operator clusters (אשכולות תח"צ): map, weekly riders and trips.
 
-One row per cluster: the cluster's name, the operator that runs it, weekly
-riders (Rav-Kav validations in a representative week), weekly trips and the
-area of the cluster's schematic polygon. Every number on the page is computed
-here; each insight rule returns None when its premise doesn't hold.
+Reads the uploaded shapefile (a `map` input): one row per cluster, its
+attributes as strings plus `__geometry` (WGS84 GeoJSON Polygon/MultiPolygon).
+Each cluster has a name, the operator that runs it, weekly riders (Rav-Kav
+validations in a representative week), weekly trips and the area of its
+schematic polygon. The polygons are drawn on a Leaflet map; every number on
+the page is computed here; each insight rule returns None when its premise
+doesn't hold.
 """
+import json
+import math
+
 import pandas as pd
 
 TOP_CLUSTERS = 15   # bars in the cluster ranking (rest -> "אחר")
 TOP_OPERATORS = 10  # operators shown by name in share charts
 TOP_RATIO = 10      # rows in the busiest / emptiest riders-per-trip lists
 TOP_DENSITY = 15
+MAP_OPERATORS = 6   # operators with their own colour on the map (rest -> "אחר")
+DENSITY_CLASSES = 5
+# Indices into the shell's GOVIL_PALETTE (a blue ramp): well-separated shades
+# for operators, and a light-to-dark scale for the density classes.
+OP_RAMP = [0, 1, 6, 2, 8, 7]
+DENS_RAMP = [8, 6, 2, 0, 1]
+CHUNK_BYTES = 40_000  # each geometry island stays well under 50KB
 OTHER = "אחר"
 # Weekly-riders size buckets (lower bound, label). Upper bound = next lower.
 SIZE_BUCKETS = [
@@ -54,14 +67,97 @@ def _clean(s):
     return s.strip(" ,;-")
 
 
+def _polys_of(geom):
+    """Geometry -> list of polygons, each a list of rings of [lon, lat]."""
+    if not isinstance(geom, dict):
+        return []
+    t, c = geom.get("type"), geom.get("coordinates") or []
+    polys = [c] if t == "Polygon" else c if t == "MultiPolygon" else []
+    out = []
+    for poly in polys:
+        rings = [[[float(p[0]), float(p[1])] for p in ring if len(p) >= 2]
+                 for ring in (poly or [])]
+        rings = [r for r in rings if len(r) >= 3]
+        if rings:
+            out.append(rings)
+    return out
+
+
+def _ring_km2(ring, lat0):
+    kx = 111.320 * math.cos(math.radians(lat0))
+    ky = 110.574
+    s = 0.0
+    for (x1, y1), (x2, y2) in zip(ring, ring[1:] + ring[:1]):
+        s += x1 * kx * y2 * ky - x2 * kx * y1 * ky
+    return abs(s) / 2
+
+
+def _geo_stats(polys):
+    """(area km2, centroid lat, centroid lon, bounds) of a polygon set."""
+    if not polys:
+        return None, None, None, None
+    pts = [p for poly in polys for p in poly[0]]
+    lat0 = sum(p[1] for p in pts) / len(pts)
+    area, cx, cy = 0.0, 0.0, 0.0
+    for poly in polys:
+        outer = _ring_km2(poly[0], lat0)
+        a = max(0.0, outer - sum(_ring_km2(h, lat0) for h in poly[1:]))
+        ring = poly[0]
+        mx = sum(p[0] for p in ring) / len(ring)
+        my = sum(p[1] for p in ring) / len(ring)
+        area += a
+        cx += mx * a
+        cy += my * a
+    if area > 0:
+        cx, cy = cx / area, cy / area
+    else:
+        cx = sum(p[0] for p in pts) / len(pts)
+        cy = lat0
+    lons = [p[0] for p in pts]
+    lats = [p[1] for p in pts]
+    return area, cy, cx, [min(lats), min(lons), max(lats), max(lons)]
+
+
+def _km_between(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp, dl = p2 - p1, math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6371.0 * math.asin(math.sqrt(min(1.0, a)))
+
+
+def _nice(v):
+    """Round a class break to two significant digits."""
+    if v <= 0:
+        return 0
+    mag = 10 ** max(0, int(math.floor(math.log10(v))) - 1)
+    return int(round(v / mag) * mag)
+
+
 def _prepare(df):
     df = df.copy()
+    geo = []
+    for raw in df["__geometry"]:
+        try:
+            polys = _polys_of(json.loads(raw or "null"))
+        except ValueError:
+            polys = []
+        geo.append((polys,) + _geo_stats(polys))
+    df["polys"] = [g[0] for g in geo]
+    df["g_area"] = [g[1] for g in geo]
+    df["c_lat"] = [g[2] for g in geo]
+    df["c_lon"] = [g[3] for g in geo]
+    df["bounds"] = [g[4] for g in geo]
     df["name"] = df["CLUSTER_"].map(_clean)
     df["operator"] = df["OPERATOR"].map(_clean)
     df["cid"] = df["CLUSTERID"].map(_clean)
     df["riders"] = pd.to_numeric(df["WEEKRIDERS"].str.replace(",", ""), errors="coerce")
     df["trips"] = pd.to_numeric(df["WEEKTRIPS"].str.replace(",", ""), errors="coerce")
     df["area"] = pd.to_numeric(df["AREA_KMR"].str.replace(",", ""), errors="coerce")
+    # The layer's own area (km2) when it agrees with the polygon's measured
+    # area; otherwise (missing, or a re-export in other units) the measured one.
+    ratio = df["area"] / df["g_area"].where(df["g_area"] > 0)
+    bad = df["area"].isna() | (df["area"] <= 0) | ~ratio.between(0.8, 1.25)
+    df.loc[bad & (df["g_area"] > 0), "area"] = df.loc[bad & (df["g_area"] > 0), "g_area"]
     df.loc[df["name"] == "", "name"] = "ללא שם"
     df.loc[df["operator"] == "", "operator"] = "מפעיל לא ידוע"
     df = df[df["riders"].notna() & (df["riders"] >= 0)].copy()
@@ -84,8 +180,93 @@ def _table(headers, rows):
     return {"headers": headers, "rows": rows}
 
 
+def _round_ring(ring):
+    return [[round(x, 5), round(y, 5)] for x, y in ring]
+
+
+def _thin(ring, limit_bytes):
+    """Keep every k-th point (and the first) so one ring fits an island."""
+    k = 1
+    out = ring
+    while len(json.dumps(out)) > limit_bytes and len(out) > 8:
+        k += 1
+        out = ring[::k]
+    return out
+
+
+def _map_model(df, ops):
+    """Polygons as [feature index, [polygon, ...]] pairs chunked into islands
+    under CHUNK_BYTES. A multi-part feature is split per polygon when it is too
+    big for one island, and a single ring too big for an island is thinned.
+    Features are drawn largest area first, so small clusters stay on top."""
+    g = df[df["polys"].map(len) > 0].copy()
+    g["draw_area"] = g["area"].fillna(0)
+    g = g.sort_values(["draw_area", "label"], ascending=[False, True], kind="stable")
+    if not len(g):
+        return None
+    op_order = [o for o in ops["operator"] if o in set(g["operator"])][:MAP_OPERATORS]
+    dens = sorted(float(v) for v in g["dens"].dropna() if v > 0)
+    breaks = []
+    if dens:
+        for q in range(1, DENSITY_CLASSES):
+            idx = min(len(dens) - 1, int(len(dens) * q / DENSITY_CLASSES))
+            b = _nice(dens[idx])
+            if b > 0 and (not breaks or b > breaks[-1]):
+                breaks.append(b)
+    feats, meta = [], []
+    for i, (_, r) in enumerate(g.iterrows()):
+        d = r["dens"]
+        cls = -1 if pd.isna(d) else sum(1 for b in breaks if d >= b)
+        meta.append({
+            "name": r["label"], "op": r["operator"],
+            "opc": op_order.index(r["operator"]) if r["operator"] in op_order else -1,
+            "dc": cls,
+            "riders": _int(r["riders"]), "trips": _int(r["trips"]),
+            "area": _num(r["area"]) if pd.notna(r["area"]) else "לא ידוע",
+            "rpt": _num(r["rpt"]) if pd.notna(r["rpt"]) else "לא ידוע",
+            "dens": _int(d) if pd.notna(d) else "לא ידוע",
+        })
+        polys = [[_round_ring(ring) for ring in poly] for poly in r["polys"]]
+        whole = [i, polys]
+        if len(json.dumps(whole)) <= CHUNK_BYTES:
+            feats.append(whole)
+            continue
+        for poly in polys:
+            part = [i, [poly]]
+            if len(json.dumps(part)) > CHUNK_BYTES:
+                share = CHUNK_BYTES // max(1, len(poly)) - 40
+                part = [i, [[_thin(ring, share) for ring in poly]]]
+            feats.append(part)
+    chunks, cur, size = [], [], 0
+    for f in feats:
+        # sized as the template's tojson writes it (", " separators, \u escapes)
+        n = len(json.dumps(f)) + 2
+        if cur and size + n > CHUNK_BYTES:
+            chunks.append(cur)
+            cur, size = [], 0
+        cur.append(f)
+        size += n
+    if cur:
+        chunks.append(cur)
+    bs = [b for b in g["bounds"] if b]
+    bounds = [[min(b[0] for b in bs), min(b[1] for b in bs)], [max(b[2] for b in bs), max(b[3] for b in bs)]]
+    dens_labels = []
+    edges = [0] + breaks
+    for k in range(len(edges)):
+        if k == len(edges) - 1:
+            dens_labels.append(f"{edges[k]:,} ומעלה")
+        elif k == 0:
+            dens_labels.append(f"עד {edges[1]:,}")
+        else:
+            dens_labels.append(f"{edges[k]:,} עד {edges[k + 1]:,}")
+    has_other = any(m["opc"] < 0 for m in meta)
+    return {"chunks": chunks, "feats": meta, "ops": op_order + ([OTHER] if has_other else []),
+            "dens_labels": dens_labels, "bounds": bounds, "n": len(g),
+            "op_ramp": OP_RAMP, "dens_ramp": DENS_RAMP}
+
+
 def compute(frames):
-    df = _prepare(frames["clusters"])
+    df = _prepare(frames["geo"])
     n = len(df)
     tot_r = float(df["riders"].sum())
     tot_t = float(df["trips"].sum())
@@ -220,6 +401,9 @@ def compute(frames):
                                     _num(r["rpt"]) if pd.notna(r["rpt"]) else "לא ידוע"]
                                    for _, r in part.iterrows()])}
 
+    # ---- map ---------------------------------------------------------------
+    map_model = _map_model(df, ops)
+
     # ---- insights -----------------------------------------------------------
     insights = []
 
@@ -310,6 +494,25 @@ def compute(frames):
         return (f"{c} מתוך {n} האשכולות מובילים פחות מ-{_int(lim)} נוסעים בשבוע כל אחד, "
                 f"ויחד רק {_pct(df.loc[m, 'riders'].sum() / tot_r)} מכלל הנוסעים.")
 
+    def i_extent():
+        g = df[df["c_lat"].notna()]
+        if len(g) < 3:
+            return None
+        g = g.sort_values(["c_lat", "label"], ascending=[False, True], kind="stable")
+        north, south = g.iloc[0], g.iloc[-1]
+        km = _km_between(north["c_lat"], north["c_lon"], south["c_lat"], south["c_lon"])
+        if km < 50:
+            return None
+        big = df[df["area"].notna()].sort_values(["area", "label"], ascending=[False, True], kind="stable")
+        b = big.iloc[0] if len(big) else None
+        tail = ""
+        if b is not None and tot_a > 0:
+            tail = (f" האשכול הגדול בשטחו, {b['label']}, משתרע על {_int(b['area'])} קמ״ר "
+                    f"({_pct(b['area'] / tot_a)} משטח כל האשכולות) ומוביל {_pct(b['riders'] / tot_r if tot_r else 0)} "
+                    f"בלבד מהנוסעים.")
+        return (f"האשכולות פרושים לאורך כ-{_int(km)} ק״מ בקו אווירי, ממרכז האשכול {north['label']} בצפון "
+                f"ועד {south['label']} בדרום." + tail)
+
     add("top_cluster", i_top())
     add("concentration", i_conc())
     add("top_operator", i_op())
@@ -318,6 +521,7 @@ def compute(frames):
     add("density", i_dens())
     add("shared_name", i_shared())
     add("small", i_small())
+    add("extent", i_extent())
 
     # ---- KPIs ---------------------------------------------------------------
     top5 = float(cum_r.iloc[min(5, n) - 1]) if n and tot_r else 0.0
@@ -337,11 +541,20 @@ def compute(frames):
             f"שמפעיל אותו. בשבוע מייצג נרשמו {_big(tot_r)} נוסעים ו-{_big(tot_t)} נסיעות, בממוצע "
             f"{_num(avg_rpt) if avg_rpt else '0'} נוסעים לנסיעה, אצל {n_ops} מפעילים"
             + (f", כשהגדולה שבהם היא {lead_op}." if lead_op else "."))
-    summary = (f"אשכולות התחבורה הציבורית: איזה מפעיל אוטובוסים אחראי על כל אזור. {n} אשכולות, "
+    summary = (f"מפת אשכולות התחבורה הציבורית: איזה מפעיל אוטובוסים אחראי על כל אזור. {n} אשכולות, "
                f"{_big(tot_r)} נוסעים ו-{_big(tot_t)} נסיעות בשבוע.")
 
+    n_map = map_model["n"] if map_model else 0
+    n_map_ops = len([o for o in map_model["ops"] if o != OTHER]) if map_model else 0
     labels = {
         "lede": lede,
+        "map_note": (f"גבולות {n_map} האשכולות על המפה. אפשר לצבוע לפי צפיפות הנוסעים (נוסעים בשבוע לכל קמ״ר) "
+                     f"או לפי המפעיל ({n_map_ops} המפעילים הגדולים בצבע משלהם"
+                     + (", והשאר תחת אחר)." if n_map_ops < n_ops else ").")
+                     + " לחיצה על אשכול מציגה את נתוניו. הגבולות סכמתיים, "
+                     "ואשכולות של מפעילים שונים עשויים לחפוף זה לזה."
+                     + (f" {n - n_map} אשכולות ללא גבול במפה אינם מוצגים." if n - n_map else "")),
+        "map_aria": (f"מפה של {n_map} אשכולות התחבורה הציבורית, צבועים לפי צפיפות הנוסעים או לפי המפעיל."),
         "kpi_riders": "נוסעים בשבוע (מיליונים)",
         "kpi_trips": "נסיעות בשבוע",
         "kpi_rpt": "נוסעים בממוצע לנסיעה",
@@ -396,7 +609,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": summary,
-            "dataset_kind": "rankings",
+            "dataset_kind": "map",
             "spatial_coverage": "ישראל",
         },
         "kpis": kpis,
@@ -410,6 +623,7 @@ def compute(frames):
             "density": chart_density,
             "cum": chart_cum,
             "sizes": chart_sizes,
+            "map": map_model,
         },
         "tables": {
             "clusters": tbl_clusters,

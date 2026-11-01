@@ -1,12 +1,13 @@
 {
   "contract_version": 1,
   "dataset_id": "4bee0109-501e-4ae0-aa9e-a70f713b84d0",
-  "recipe_version": 1,
-  "authored_at": "2026-10-30T09:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T01:30:00Z",
   "authored_against": {
     "metadata_modified": "2026-10-25T08:28:45.066244+00:00",
     "rows": {
-      "main": 1008
+      "main": 1008,
+      "geo": 1008
     }
   },
   "inputs": [
@@ -55,6 +56,25 @@
         "TOHR_FRI_2_F",
         "FRHR_SAT_F",
         "TOHR_SAT_F"
+      ]
+    },
+    {
+      "name": "geo",
+      "by_id": "fa793198-ad02-46c5-bf17-be08fdb912b0",
+      "map": true,
+      "map_max_kb": 3000,
+      "required_columns": [
+        "PTLCODE",
+        "PTLSEG",
+        "PTLNAME",
+        "PTLDIR",
+        "PTLTYPE",
+        "AUTHORITY",
+        "FRHR_WK",
+        "TOHR_WK",
+        "FRHR_WK_2",
+        "TOHR_WK_2",
+        "LENGT"
       ]
     }
   ],

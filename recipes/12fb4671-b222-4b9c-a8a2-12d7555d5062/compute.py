@@ -1,14 +1,22 @@
-"""תכניות בניין עיר (תב"עות) בבאר שבע — one row per boundary part ("blue line")
-of a plan: plan number, status, internal serial number, perimeter, area and a
-WGS84 centroid.  A plan can have several parts, so rows != plans: the page
-counts plans (distinct plan numbers) and treats rows as boundary parts.
+"""תכניות בניין עיר (תב"עות) בבאר שבע — read from the municipality's uploaded
+GeoJSON map file (WGS84): one feature per boundary part ("blue line") of a plan,
+with plan number, status, internal serial number, perimeter, area and the real
+polygon.  A plan can have several parts, so features != plans: the page counts
+plans (distinct plan numbers) and treats features as boundary parts.
 
 Areas of different plans overlap (a city-wide plan contains local ones), so
 the page never sums areas across plans as if they were land area.
 
+The map: every polygon is simplified again here (Douglas-Peucker in local
+metres) with the smallest tolerance from MAP_TOLS_M whose encoded size fits
+MAP_BUDGET, quantised to 1e-5 degrees and delta-encoded, then chunked into
+JSON islands under CHUNK_BYTES.  As the dataset grows the tolerance grows and
+the page stays near the budget.
+
 Order-independent: rows are sorted by a total key first and float sums use
 math.fsum.  Plan numbers are public plan identifiers, not personal data.
 """
+import json
 import math
 import re
 
@@ -35,6 +43,14 @@ THIN_SHARE = 0.1
 REGNO_GAP = 1_000           # serial-number median gap to call it a pattern
 PENDING_MIN = 5
 R_KM = 6371.0088
+M_PER_DEG = 111_320.0
+MAP_TOLS_M = (2, 3, 4, 6, 8, 12, 16, 25, 40)   # simplification ladder, metres
+MAP_BUDGET = 400_000        # target bytes of all map islands (8 m today; 300 KB forces 40 m, illegible lots)
+CHUNK_BYTES = 40_000        # each island stays well under the 50KB block cap
+LINK_HOST = "handasi.complot.co.il"   # the municipality's engineering system (plan links)
+WIDE_FRAC = 0.03            # a part covering 3% of the opening view is drawn outline-only
+VIEW_PCT = 1                # opening map view trims this percentile of centroids each side
+Q = 100_000                 # coordinate quantum: 1e-5 degree (about 1 m)
 
 FAMILIES = [
     ("mavat", "פורמט 605"),
@@ -80,22 +96,227 @@ def _fsum_by(df, key, col):
     return df.groupby(key, sort=True)[col].agg(lambda s: math.fsum(sorted(s)))
 
 
+def _rings_of(geom):
+    """Every ring of a Polygon/MultiPolygon as [[lon, lat], ...]; outer
+    rings flagged."""
+    if not isinstance(geom, dict):
+        return []
+    t, c = geom.get("type"), geom.get("coordinates") or []
+    polys = [c] if t == "Polygon" else (c if t == "MultiPolygon" else [])
+    out = []
+    for poly in polys:
+        for k, ring in enumerate(poly or []):
+            pts = [(float(p[0]), float(p[1])) for p in ring or [] if len(p) >= 2]
+            if len(pts) >= 3:
+                out.append((k == 0, pts))
+    return out
+
+
+def _centroid(rings):
+    """Area-weighted centroid of the outer rings (mean of points when the
+    rings are degenerate).  Returns (lat, lon) or (nan, nan)."""
+    outer = [pts for is_outer, pts in rings if is_outer] or [pts for _, pts in rings]
+    if not outer:
+        return float("nan"), float("nan")
+    ax, ay, aa = [], [], []
+    for pts in outer:
+        for (x1, y1), (x2, y2) in zip(pts, pts[1:] + pts[:1]):
+            cr = x1 * y2 - x2 * y1
+            aa.append(cr)
+            ax.append((x1 + x2) * cr)
+            ay.append((y1 + y2) * cr)
+    area = math.fsum(aa) / 2
+    if abs(area) < 1e-14:
+        allp = [p for pts in outer for p in pts]
+        return (math.fsum(p[1] for p in allp) / len(allp),
+                math.fsum(p[0] for p in allp) / len(allp))
+    return math.fsum(ay) / (6 * area), math.fsum(ax) / (6 * area)
+
+
 def _prepare(df):
+    geoms = [json.loads(g) if g.strip() else None for g in df["__geometry"]]
+    rings = [_rings_of(g) for g in geoms]
+    cents = [_centroid(r) for r in rings]
     d = pd.DataFrame({
-        "plan": df["Plan"].str.strip(),
-        "status": df["status"].str.strip().replace("", "לא צוין"),
-        "reg": pd.to_numeric(df["Taba_Numer"].str.strip(), errors="coerce"),
-        "leng": pd.to_numeric(df["SHAPE_Leng"].str.strip(), errors="coerce"),
-        "area": pd.to_numeric(df["SHAPE_Area"].str.strip(), errors="coerce"),
-        "lat": pd.to_numeric(df["lat"].str.strip(), errors="coerce"),
-        "lon": pd.to_numeric(df["lon"].str.strip(), errors="coerce"),
+        "plan": df["Plan"].str.strip().to_numpy(),
+        "status": df["status"].str.strip().replace("", "לא צוין").to_numpy(),
+        "reg": pd.to_numeric(df["Taba_Numer"].str.strip(), errors="coerce").to_numpy(),
+        "leng": pd.to_numeric(df["SHAPE_Leng"].str.strip(), errors="coerce").to_numpy(),
+        "area": pd.to_numeric(df["SHAPE_Area"].str.strip(), errors="coerce").to_numpy(),
+        "lat": [c[0] for c in cents],
+        "lon": [c[1] for c in cents],
+        "link": df["OutSide_li"].str.strip().to_numpy(),
+        "gkey": [json.dumps(g, sort_keys=True, separators=(",", ":")) for g in geoms],
     })
+    d["rings"] = rings
     n_raw = len(d)
     d = d[d["plan"] != ""].copy()
     d["fam"] = d["plan"].map(_family)
-    d = d.sort_values(["plan", "reg", "area", "leng", "lat", "lon", "status"],
-                      kind="stable").reset_index(drop=True)
+    d = d.sort_values(["plan", "reg", "area", "leng", "lat", "lon", "status", "gkey"],
+                      kind="stable", na_position="last").reset_index(drop=True)
     return d, n_raw - len(d)
+
+
+# ── map ──────────────────────────────────────────────────────────────────
+
+
+def _perp(p, a, b):
+    (x, y), (x1, y1), (x2, y2) = p, a, b
+    dx, dy = x2 - x1, y2 - y1
+    if dx == 0 and dy == 0:
+        return math.hypot(x - x1, y - y1)
+    return abs(dy * x - dx * y + x2 * y1 - y2 * x1) / math.hypot(dx, dy)
+
+
+def _dp(pts, tol):
+    """Douglas-Peucker, iterative; pts in metres."""
+    if len(pts) < 3:
+        return pts
+    keep = [False] * len(pts)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        i, j = stack.pop()
+        best, idx = 0.0, None
+        for k in range(i + 1, j):
+            dd = _perp(pts[k], pts[i], pts[j])
+            if dd > best:
+                best, idx = dd, k
+        if idx is not None and best > tol:
+            keep[idx] = True
+            stack += [(i, idx), (idx, j)]
+    return [p for p, k in zip(pts, keep) if k]
+
+
+def _enc_ring(pts, tol_m, kx, ox, oy):
+    """One ring as a flat delta-encoded int list [x0, y0, dx1, dy1, ...] in
+    1e-5 degree from the origin (ox, oy); the closing point is dropped
+    (Leaflet closes polygons).  None when it simplifies below a triangle."""
+    if pts[0] == pts[-1]:
+        pts = pts[:-1]
+    if len(pts) < 3:
+        return None
+    m = [(x * kx * M_PER_DEG, y * M_PER_DEG) for x, y in pts]
+    # split the ring in two so DP keeps its far side (DP on a closed ring
+    # with equal end points would collapse it)
+    far = max(range(len(m)), key=lambda i: (math.hypot(m[i][0] - m[0][0], m[i][1] - m[0][1]), -i))
+    keep_a = _dp(m[:far + 1], tol_m)
+    keep_b = _dp(m[far:] + [m[0]], tol_m)
+    sm = keep_a + keep_b[1:-1]
+    if len(sm) < 3:
+        sm = m if len(m) <= 4 else [m[0], m[len(m) // 3], m[far], m[2 * len(m) // 3]]
+    q = []
+    for x, y in sm:
+        p = (int(round(x / (kx * M_PER_DEG) * Q)) - ox, int(round(y / M_PER_DEG * Q)) - oy)
+        if not q or q[-1] != p:
+            q.append(p)
+    if len(q) > 1 and q[0] == q[-1]:
+        q.pop()
+    if len(q) < 3:
+        return None
+    out = [q[0][0], q[0][1]]
+    for (x1, y1), (x2, y2) in zip(q, q[1:]):
+        out += [x2 - x1, y2 - y1]
+    return out
+
+
+def _view(f):
+    """Opening view: where the plans are (centroids, VIEW_PCT to 100-VIEW_PCT
+    percentile), so a district-wide outline doesn't zoom the city out."""
+    c = f[f["lat"].notna() & f["lon"].notna()]
+    la = np.percentile(c["lat"].to_numpy(), [VIEW_PCT, 100 - VIEW_PCT])
+    lo = np.percentile(c["lon"].to_numpy(), [VIEW_PCT, 100 - VIEW_PCT])
+    return [[round(float(la[0]), 5), round(float(lo[0]), 5)],
+            [round(float(la[1]), 5), round(float(lo[1]), 5)]]
+
+
+def _map(d, status_order):
+    """Map features, chunked into islands.  Each feature is
+    [status index, plan number, serial or -1, area in dunam, [ring, ...], wide].
+    `wide` = the part covers at least WIDE_FRAC of the opening view: drawn as an
+    outline only, first (bottom), so city-wide plans never wash over the map.
+    Then the commonest status first, larger plans under smaller ones so small
+    plans stay clickable."""
+    rank = {s: i for i, s in enumerate(status_order)}
+    f = d[d["rings"].map(len) > 0].copy()
+    if not len(f):
+        return None
+    lons = [x for rs in f["rings"] for _, pts in rs for x, _ in pts]
+    lats = [y for rs in f["rings"] for _, pts in rs for _, y in pts]
+    if f["lat"].notna().any():
+        view = _view(f)
+    else:
+        view = [[min(lats), min(lons)], [max(lats), max(lons)]]
+    kv = math.cos(math.radians((view[0][0] + view[1][0]) / 2))
+    view_m2 = ((view[1][0] - view[0][0]) * M_PER_DEG) * ((view[1][1] - view[0][1]) * M_PER_DEG * kv)
+    wide_m2 = max(view_m2 * WIDE_FRAC, 1.0)
+    f["rank"] = f["status"].map(rank)
+    f["area_k"] = f["area"].fillna(-1.0)
+    f["wide"] = f["area_k"] >= wide_m2
+    f["narrow"] = ~f["wide"]
+    f = f.sort_values(["narrow", "rank", "area_k", "plan", "reg", "gkey"],
+                      ascending=[True, True, False, True, True, True],
+                      kind="stable", na_position="last")
+    ox, oy = int(math.floor(min(lons) * Q)), int(math.floor(min(lats) * Q))
+    kx = math.cos(math.radians((min(lats) + max(lats)) / 2))
+    rows = list(zip(f["rank"], f["plan"], f["reg"], f["area"], f["rings"], f["wide"]))
+
+    def build(tol):
+        feats = []
+        for rk, plan, reg, area, rings, wide in rows:
+            enc = [e for e in (_enc_ring(pts, tol, kx, ox, oy) for _, pts in rings) if e]
+            if not enc:
+                continue
+            feats.append([int(rk), plan, int(reg) if reg == reg else -1,
+                          round(float(area) / 1000, 1) if area == area else -1, enc,
+                          1 if wide else 0])
+        return feats
+
+    feats, tol = None, MAP_TOLS_M[-1]
+    for t in MAP_TOLS_M:
+        cand = build(t)
+        if sum(len(json.dumps(x, ensure_ascii=False, separators=(",", ":"))) for x in cand) <= MAP_BUDGET:
+            feats, tol = cand, t
+            break
+    if feats is None:
+        feats = cand
+    chunks, cur, size = [], [], 0
+    for x in feats:
+        # sized as the template's tojson writes it (", " separators, \u escapes)
+        n = len(json.dumps(x)) + 2
+        if cur and size + n > CHUNK_BYTES:
+            chunks.append(cur)
+            cur, size = [], 0
+        cur.append(x)
+        size += n
+    if cur:
+        chunks.append(cur)
+    counts = [int((f["rank"] == i).sum()) for i in range(len(status_order))]
+    return {"chunks": chunks, "origin": [ox, oy], "q": Q, "statuses": status_order,
+            "counts": counts, "tol": tol, "view": view,
+            "n_wide": int(f["wide"].sum()), "wide_km2": wide_m2 / 1_000_000}
+
+
+def _link_prefix(d):
+    """The licensing-system URL is prefix + serial number on every row:
+    return that prefix (so the page builds links without shipping 4,000
+    URLs), or None when any row breaks the pattern."""
+    ok = d[d["reg"].notna()]
+    if not len(ok) or len(ok) != len(d):
+        return None
+    serial = ok["reg"].map(lambda v: str(int(v)))
+    pref = [lnk[: len(lnk) - len(sv)] if lnk.endswith(sv) else None
+            for lnk, sv in zip(ok["link"], serial)]
+    uniq = set(pref)
+    if len(uniq) != 1:
+        return None
+    p = uniq.pop()
+    # only ever link to the engineering system's own host: a changed upload
+    # must not turn every popup into a link to somewhere else. The trailing
+    # "/" rules out a longer host, userinfo or a port.
+    if not p or not p.startswith(f"https://{LINK_HOST}/"):
+        return None
+    return p
 
 
 def _plans(d):
@@ -270,6 +491,10 @@ def compute(frames):
     t_lat = [{"name": a, "count": _int(c), "share": _pct(c / len(geo), 1)} for a, c in lat_b]
     t_lon = [{"name": a, "count": _int(c), "share": _pct(c / len(geo), 1)} for a, c in lon_b]
 
+    # ---- the map (real polygons)
+    mp = _map(d, list(st_counts.index))
+    link_prefix = _link_prefix(d)
+
     # ---------------------------------------------------------------- insights
     insights = []
 
@@ -306,14 +531,14 @@ def compute(frames):
     if len(areas) >= 20:
         p90 = float(np.percentile(areas, 90))
         add("size", f"חצי מהתכניות קטנות מ-{_int(median_area)} מ״ר, ואילו 10% הגדולות ביותר "
-            f"עוברות {_int(p90)} מ״ר — התפלגות מוטה מאוד כלפי תכניות קטנות.")
+            f"עוברות {_int(p90)} מ״ר. ההתפלגות מוטה מאוד כלפי תכניות קטנות.")
         small = float((areas < SMALL_M2).mean())
         if small >= SMALL_SHARE:
             add("small", f"{_pct(small)} מהתכניות ({_int((areas < SMALL_M2).sum())}) משתרעות על פחות מ-{_int(SMALL_M2)} "
-                f"מ״ר — כלומר מגרש אחד או כמה מגרשים בודדים.")
+                f"מ״ר, כלומר מגרש אחד או כמה מגרשים בודדים.")
         g0 = big.iloc[0]
         if median_area > 0 and g0["area"] >= GIANT_RATIO * median_area:
-            add("giant", f"התכנית {g0['plan']} היא הגדולה ביותר, עם {g0['area'] / 1_000_000:.1f} ק״מ רבועים — "
+            add("giant", f"התכנית {g0['plan']} היא הגדולה ביותר, עם {g0['area'] / 1_000_000:.1f} ק״מ רבועים, "
                 f"פי {_int(g0['area'] / median_area)} מהתכנית החציונית. תכניות כאלה מקיפות שטחים רחבים "
                 f"וחופפות לתכניות מקומיות, ולכן אין לסכם את השטחים.")
 
@@ -325,7 +550,7 @@ def compute(frames):
     # thin / winding shapes
     if len(comp) >= 20 and thin_share >= THIN_SHARE:
         add("compact", f"{_pct(thin_share)} מקטעי הגבול הם מוארכים או מפותלים (מדד קומפקטיות מתחת ל-"
-            f"{THIN_COMPACT:.1f}, כאשר 1 הוא עיגול מושלם) — אופייני לדרכים ולרצועות תשתית.")
+            f"{THIN_COMPACT:.1f}, כאשר 1 הוא עיגול מושלם), דבר האופייני לדרכים ולרצועות תשתית.")
 
     # serial number pattern
     if n_force and n_dep >= PENDING_MIN:
@@ -333,7 +558,7 @@ def compute(frames):
         m_d = float(regs[regs["status"] == "בהפקדה"]["reg"].median())
         if m_d - m_f >= REGNO_GAP:
             add("regno", f"מספר התכנית הפנימי החציוני בתכניות בהפקדה הוא {_int(m_d)}, לעומת {_int(m_f)} "
-                f"בתכניות בתוקף — ככל הנראה תכניות חדשות נרשמות במספרים גבוהים יותר.")
+                f"בתכניות בתוקף. ככל הנראה תכניות חדשות נרשמות במספרים גבוהים יותר.")
 
     # geographic core
     if len(geo) >= 20:
@@ -360,11 +585,18 @@ def compute(frames):
 
     bad_note = (f" {_int(n_dropped)} רשומות בלי מספר תכנית לא נכללו." if n_dropped else "")
     labels = {
-        "lede": (f"הקווים הכחולים של {_int(n_plans)} תכניות בניין עיר בבאר שבע, ב-{_int(n_parts)} קטעי גבול: "
-                 f"מספר התכנית, הסטטוס שלה, שטח והיקף הגבול ומיקום מרכזו. תכנית אחת יכולה לכלול כמה קטעים. "
+        "lede": (f"הקווים הכחולים של {_int(n_plans)} תכניות בניין עיר (תב״ע) בבאר שבע, ב-{_int(n_parts)} קטעי גבול: "
+                 f"מספר התכנית, הסטטוס שלה, שטח והיקף הגבול, וקו הגבול עצמו על המפה. תכנית אחת יכולה לכלול כמה קטעים. "
                  f"המאגר מכיל את רוב התכניות אך לא את כולן.{bad_note}"),
-        "map_note": (f"{_int(n_parts)} קטעי הגבול על המפה, כל קטע בנקודת המרכז שלו. לחצו על סמן כדי לראות את מספר "
-                     f"התכנית והסטטוס; לחצו על אשכול כדי להתקרב."),
+        "map_note": ((f"קווי הגבול של {_int(sum(mp['counts']))} קטעי תכניות, בצבע לפי סטטוס התכנית. "
+                      f"לחצו על שטח כדי לראות את מספר התכנית, הסטטוס והשטח"
+                      + (", ולפתוח אותה במערכת ההנדסית של העירייה" if link_prefix else "")
+                      + f". הקווים מפושטים לדיוק של כ-{_int(mp['tol'])} מטרים כדי שהמפה תיטען מהר. "
+                      + (f"{_int(mp['n_wide'])} קטעים גדולים במיוחד (מעל {mp['wide_km2']:.1f} ק״מ רבועים, "
+                         f"כמו תכניות כלל עירוניות) מסומנים בקו מקווקו בלבד, בלי מילוי, כדי שהתכניות "
+                         f"המקומיות שבתוכם ייראו." if mp['n_wide'] else ""))
+                     if mp else ""),
+        "map_aria": (f"מפה של קווי הגבול של {_int(n_plans)} תכניות בניין עיר בבאר שבע, בצבע לפי סטטוס." if mp else ""),
         "family_note": ("מספר התכניות בכל תבנית ממוספרת, לפי הסטטוס. התבנית נקבעת לפי מבנה מספר התכנית, "
                         "ולכן היא מסמנת סדרת מספור ולא סוג תכנית רשמי."),
         "family_aria": f"תרשים עמודות אופקי מוערם: תכניות לפי תבנית מספור וסטטוס, {len(fam_names)} תבניות.",
@@ -401,17 +633,11 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"קווי הגבול של {_int(n_plans)} תכניות בניין עיר בבאר שבע: "
-                           f"{_pct(force_share, 1)} בתוקף ו-{_int(n_plans - n_force)} בהפקדה או בסטטוס אחר, "
-                           f"עם שטח חציוני של {_int(median_area)} מ״ר ומפה של {_int(n_parts)} קטעי גבול."),
+            "summary_he": (f"איתור תב״ע בבאר שבע לפי מספר תכנית, על מפת הקווים הכחולים של {_int(n_plans)} "
+                           f"תכניות בניין עיר: {_pct(force_share, 1)} בתוקף ו-{_int(n_plans - n_force)} "
+                           f"בהפקדה או בסטטוס אחר."),
             "dataset_kind": "map",
-            "suggested_tags": ["תכנון עיר", "תב״ע", "באר שבע", "קווים כחולים", "מפה"],
             "spatial_coverage": "באר שבע",
-            "related_ids": ["3c6d4061-41bf-4403-82e9-c8fae5df04dd",
-                            "bdf28cc0-680a-415c-af64-944a58079b2f",
-                            "727e865d-25b1-43ce-9dcb-af297851f87b",
-                            "82a30a97-01b0-4281-854c-c7931f3445c0",
-                            "b795e2e0-491e-4040-877e-f3681917f8be"],
         },
         "kpis": kpis,
         "charts": {
@@ -432,6 +658,8 @@ def compute(frames):
         "has_famarea": bool(fam_med),
         "has_regno": bool(len(regs)),
         "has_geo": bool(len(geo)),
+        "map": mp,
+        "link_prefix": link_prefix,
         "has_compact": bool(len(comp)),
         "labels": labels,
     }

@@ -1,23 +1,24 @@
 {
   "contract_version": 1,
   "dataset_id": "7cac04c9-d84d-4966-83a1-ef5839e522f0",
-  "recipe_version": 1,
-  "authored_at": "2026-10-31T00:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T00:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-06-01T06:43:00.476436+00:00",
-    "rows": { "main": 12 }
+    "rows": { "geo": 12 }
   },
   "inputs": [
     {
-      "name": "main",
-      "by_id": "1373a7ca-3ef8-48d4-9e11-24c80755bdd9",
+      "name": "geo",
+      "by_id": "fc97ea96-0e81-4221-bd91-b28a91395926",
+      "map": true,
       "required_columns": [
         "NAME",
-        "YEARMONTH",
-        "DUNAM",
         "STATUS",
+        "DUNAM",
+        "YEARMONTH",
         "SHAPE_Leng",
-        "Shape_Length",
+        "Shape_Le_1",
         "Shape_Area"
       ]
     }
