@@ -145,6 +145,11 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 - **`geo_snapshot.py` keeps its own Douglas-Peucker.** It and `govlib.geo.simplify` should be one
   implementation. Fold it in once a map input's converted table can be compared before and after.
   (2026-11-01)
+- **`govlib.geo` can't encode points that are already quantized.** d8767745 and 4bee0109 quantize
+  once, simplify per tolerance step, then divide back to floats only so `geo.encode` re-quantizes
+  them (correct, since round(x / 1e5 * 1e5) recovers x, but a wasted round trip on every step).
+  Add a `geo.deltas(points, origin)` for integer points, deploy the job, then call it from
+  those two recipes. (2026-11-01)
 
 ## Tags, related datasets and list pages
 
