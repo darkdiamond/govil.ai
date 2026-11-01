@@ -49,6 +49,7 @@ jobs:
             python:
               - 'services/**'
               - 'requirements.txt'
+              - 'pytest.ini'
               - '.github/workflows/ci.yml'
             frontend:
               - 'frontend/**'
