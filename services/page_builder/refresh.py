@@ -491,10 +491,11 @@ _USES_MACROS = re.compile(r"\{%-?\s*(?:import|from)\s+[\"']gov\.j2[\"']")
 
 
 def _uses_recipe_lib(recipe: Recipe) -> bool:
-    return bool(
-        _USES_GOVLIB.search((recipe.root / "compute.py").read_text(encoding="utf-8"))
-        or _USES_MACROS.search((recipe.root / "template.html.j2").read_text(encoding="utf-8"))
-    )
+    def text(name: str) -> str:
+        return (recipe.root / name).read_text(encoding="utf-8", errors="replace")
+
+    return bool(_USES_GOVLIB.search(text("compute.py"))
+                or _USES_MACROS.search(text("template.html.j2")))
 
 
 @functools.lru_cache(maxsize=1)
