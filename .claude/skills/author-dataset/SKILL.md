@@ -226,7 +226,9 @@ types, source CRS, property columns), or says why it failed.
    The nightly refresh downloads the file on every run (a UA data.gov.il's
    WAF accepts), reads GeoJSON, KML, KMZ or a zipped shapefile, reprojects
    ITM to WGS84, rounds to ~1 m and simplifies only as far as 150 KB needs
-   (`"map_max_kb"` raises it). A new upload re-renders the page like any data
+   (`"map_max_kb"` raises it, up to 50000). That caps the table `compute`
+   reads, not the page: for a big layer, `compute` must aggregate or subset
+   the geometry to page size. A new upload re-renders the page like any data
    bump. A file that won't parse fails `schema_changed`; a download the WAF
    blocks 3 runs in a row opens a `download_blocked` issue.
 2. `compute` gets `frames["<name>"]` like any table: one row per feature,

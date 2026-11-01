@@ -98,6 +98,12 @@ class SnapshotOf(BaseModel):
         return self
 
 
+# Ceiling for an input's `map_max_kb`, in KB of converted GeoJSON. The
+# conversion runs in the builder process (outside the compute heap cap), at
+# ~25x the result size in peak memory.
+MAP_MAX_KB_CEILING = 50_000
+
+
 class RecipeInput(BaseModel):
     """One logical table the recipe consumes.
 
@@ -121,7 +127,10 @@ class RecipeInput(BaseModel):
 
     `map: true` downloads the `by_id` resource's uploaded map file on every
     run and reads it like a snapshot (see the module doc). `map_max_kb` caps
-    the converted GeoJSON (lines/rings are simplified to fit).
+    the converted GeoJSON (lines/rings are simplified to fit), up to
+    `MAP_MAX_KB_CEILING`. It bounds the table compute reads, not the page: a
+    city layer of 26k building polygons or 129k road segments converts to
+    15-23 MB, and the recipe's compute must aggregate it to page size.
     """
     model_config = ConfigDict(extra="forbid")
 
@@ -135,7 +144,7 @@ class RecipeInput(BaseModel):
     snapshot: Optional[str] = None
     snapshot_of: Optional[SnapshotOf] = None
     map: bool = False
-    map_max_kb: Optional[int] = Field(default=None, ge=1, le=5000)
+    map_max_kb: Optional[int] = Field(default=None, ge=1, le=MAP_MAX_KB_CEILING)
 
     @model_validator(mode="after")
     def _one_selector(self) -> "RecipeInput":
