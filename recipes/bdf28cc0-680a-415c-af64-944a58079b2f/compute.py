@@ -21,6 +21,7 @@ import math
 
 import numpy as np
 import pandas as pd
+from govlib import geo
 
 LAT_RANGE = (29.0, 34.0)
 LON_RANGE = (34.0, 36.0)
@@ -50,10 +51,9 @@ ORIENT_LEAD = 1.5  # top bin share vs an even split, for the insight
 SUB_KM = 0.1  # pieces between vertices longer than this are subdivided
 # map: the longest segments drawn as real lines
 LONG_MAX = 400
-LINE_TOL_DEG = 0.00003  # ~3 m Douglas-Peucker tolerance for drawn lines
-LINE_BUDGET = 150_000  # bytes of line JSON across all islands
-ISLAND_MAX = 34_000  # compact bytes per JSON island (tojson renders ~10% larger)
-PIECE_MAX_PTS = 400  # split a drawn line into pieces of at most this many points
+LINE_TOL = 3  # Douglas-Peucker tolerance for drawn lines, in 1e-5 degree units (~3 m)
+LINE_BUDGET = 150_000  # rendered characters of line JSON across all islands
+PIECE_MAX_PTS = 2000  # a longer line part is split (sharing end points) so no item outgrows an island
 
 
 def _int(n):
@@ -131,35 +131,6 @@ def _geo(gdf):
         feats.append((int(round(v * 1000)), s, parts))
     feats.sort(key=lambda f: (-f[0], f[1]))
     return feats, n_zero, n_badgeom
-
-
-def _dp(pts, tol):
-    if len(pts) < 3:
-        return list(pts)
-    keep = [False] * len(pts)
-    keep[0] = keep[-1] = True
-    stack = [(0, len(pts) - 1)]
-    while stack:
-        a, b = stack.pop()
-        ax, ay = pts[a]
-        bx, by = pts[b]
-        dx, dy = bx - ax, by - ay
-        d2 = dx * dx + dy * dy
-        best, bi = -1.0, -1
-        for i in range(a + 1, b):
-            px, py = pts[i]
-            if d2 == 0:
-                dist = math.hypot(px - ax, py - ay)
-            else:
-                t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / d2))
-                dist = math.hypot(px - ax - t * dx, py - ay - t * dy)
-            if dist > best:
-                best, bi = dist, i
-        if best > tol:
-            keep[bi] = True
-            stack.append((a, bi))
-            stack.append((bi, b))
-    return [p for p, k in zip(pts, keep) if k]
 
 
 def _direction(dx, dy):
@@ -343,33 +314,25 @@ def _spatial(feats):
 
 
 def _lines(feats):
-    """The longest segments as simplified lines, packed into JSON islands."""
+    """The longest segments as simplified, delta-encoded lines (govlib.geo),
+    packed into JSON islands. One item per line part (or piece of a long one):
+    [rank, length m, flat deltas from `origin`]."""
+    cand = feats[:LONG_MAX]
+    org = geo.origin([x for f in cand for part in f[2] for x, _ in part],
+                     [y for f in cand for part in f[2] for _, y in part]) if cand else [0, 0]
     entries, used, n_drawn = [], 0, 0
-    for rank, (mm, _, parts) in enumerate(feats[:LONG_MAX], start=1):
-        pieces = []
-        for part in parts:
-            pts = [[round(x, 5), round(y, 5)] for x, y in _dp(part, LINE_TOL_DEG)]
-            for s in range(0, max(1, len(pts) - 1), PIECE_MAX_PTS - 1):
-                seg = pts[s:s + PIECE_MAX_PTS]
-                if len(seg) >= 2:
-                    pieces.append([rank, round(mm / 1000), seg])
-        size = sum(len(json.dumps(e, separators=(",", ":"))) + 1 for e in pieces)
+    for rank, (mm, _, parts) in enumerate(cand, start=1):
+        split = [part[a:a + PIECE_MAX_PTS + 1] for part in parts
+                 for a in range(0, max(1, len(part) - 1), PIECE_MAX_PTS)]
+        pieces = [[rank, round(mm / 1000), flat]
+                  for flat in geo.encode(split, org, tol=LINE_TOL, ring=False) if len(flat) >= 4]
+        size = sum(geo.rendered_len(e) + 2 for e in pieces)
         if used + size > LINE_BUDGET:
             break
         used += size
         n_drawn += 1
         entries.extend(pieces)
-    chunks, cur, cur_size = [], [], 2
-    for e in entries:
-        sz = len(json.dumps(e, separators=(",", ":"))) + 1
-        if cur and cur_size + sz > ISLAND_MAX:
-            chunks.append(cur)
-            cur, cur_size = [], 2
-        cur.append(e)
-        cur_size += sz
-    if cur:
-        chunks.append(cur)
-    return chunks, n_drawn
+    return geo.pack(entries), n_drawn, org
 
 
 def compute(frames):
@@ -523,7 +486,7 @@ def compute(frames):
                  "share": _pct(b["mm"] / o_total) if o_total else _pct(0)} for b in obins]
 
     # --- the longest segments, drawn as real lines on the map
-    chunks, n_drawn = _lines(feats)
+    chunks, n_drawn, line_origin = _lines(feats)
     mm_drawn = int(sum(f[0] for f in feats[:n_drawn]))
     top_long = None
     if feats:
@@ -645,7 +608,8 @@ def compute(frames):
         "charts": {"len": len_chart, "lorenz": lorenz_chart, "cells": cells_chart,
                    "ring": ring_chart, "sec": sec_chart, "orient": orient_chart,
                    "qual": qual_chart,
-                   "map": {"cells": map_cells, "meta": map_meta, "chunks": chunks}},
+                   "map": {"cells": map_cells, "meta": map_meta, "chunks": chunks,
+                           "origin": line_origin, "scale": geo.SCALE}},
         "tables": {"len": t_len, "lorenz": t_lorenz, "cells": t_cells, "ring": t_ring,
                    "sec": t_sec, "orient": t_orient, "qual": t_qual},
         "insights": insights,

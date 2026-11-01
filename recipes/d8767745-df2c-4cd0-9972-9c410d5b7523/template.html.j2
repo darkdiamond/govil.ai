@@ -455,40 +455,21 @@
 <script>
   (function () {
     var el = document.getElementById("map-main");
-    if (!el || !window.L) { return; }
-    var meta = {{ {"n": model.charts.map.chunks | length, "kinds": model.charts.map.kinds, "colors": model.charts.map.colors, "weights": model.charts.map.weights, "ramp": model.charts.map.ramp, "bounds": model.charts.map.bounds} | tojson }};
+    if (!el || !window.L || !window.GovMap) { return; }
+    var meta = {{ {"origin": model.charts.map.origin, "scale": model.charts.map.scale, "kinds": model.charts.map.kinds, "colors": model.charts.map.colors, "weights": model.charts.map.weights, "ramp": model.charts.map.ramp, "bounds": model.charts.map.bounds} | tojson }};
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
-    function decode(flat) {
-      var out = [], x = 0, y = 0;
-      for (var i = 0; i < flat.length; i += 2) {
-        x += flat[i]; y += flat[i + 1];
-        out.push([y / 1e5, x / 1e5]);
-      }
-      return out;
-    }
     function base(k) { return { color: meta.colors[k], weight: meta.weights[k], opacity: k === meta.ramp ? 0.7 : 0.9 }; }
     var byRoad = {}, ramps = [], roads = [];
-    for (var c = 0; c < meta.n; c++) {
-      var node = document.getElementById("map-lines-" + c);
-      if (!node) { continue; }
-      JSON.parse(node.textContent).forEach(function (f) {
-        var line = L.polyline(decode(f[2]), base(f[0]));
-        line._k = f[0];
-        (f[0] === meta.ramp ? ramps : roads).push(line);
-        if (f[1] > 0) { (byRoad[f[1]] = byRoad[f[1]] || []).push(line); }
-        line.bindPopup(function () {
-          var box = document.createElement("div");
-          var title = document.createElement("strong");
-          title.textContent = f[1] > 0 ? "כביש " + f[1] : meta.kinds[f[0]];
-          box.appendChild(title);
-          var d = document.createElement("div");
-          d.textContent = "סוג: " + meta.kinds[f[0]];
-          box.appendChild(d);
-          return box;
-        });
+    GovMap.islands("map-lines").forEach(function (f) {
+      var line = L.polyline(GovMap.ring(f[2], meta.origin, meta.scale), base(f[0]));
+      line._k = f[0];
+      (f[0] === meta.ramp ? ramps : roads).push(line);
+      if (f[1] > 0) { (byRoad[f[1]] = byRoad[f[1]] || []).push(line); }
+      line.bindPopup(function () {
+        return GovMap.popup(f[1] > 0 ? "כביש " + f[1] : meta.kinds[f[0]], [["סוג", meta.kinds[f[0]]]]);
       });
-    }
+    });
     ramps.concat(roads).forEach(function (l) { l.addTo(map); });
     map.fitBounds(meta.bounds, { padding: [8, 8] });
     var msg = document.getElementById("map-msg"), input = document.getElementById("map-road"), lit = [];

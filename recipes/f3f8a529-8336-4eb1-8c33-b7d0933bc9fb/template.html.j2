@@ -218,9 +218,8 @@
 <script>
   (function () {
     var el = document.getElementById("map-main");
-    if (!el || !window.L) { return; }
+    if (!el || !window.L || !window.GovMap) { return; }
     var M = {{ model.map | tojson }};
-    var NS = {{ model.map_chunks | length }};
     var G = M.grid, S = M.shapes;
     var ramp = ["#dbe8fb", "#9fc0ee", "#6c9fd8", "#0068f5", "#0b3668"];
     var bandRamp = ["#c3cfe7", "#9fc0ee", "#6c9fd8", "#3d70b0", "#0068f5", "#0053c4", "#0b3668", "#9a6700", "#dc3545"];
@@ -229,19 +228,7 @@
       return ramp[ramp.length - 1];
     }
     function num(v) { return Number(v).toLocaleString("en-US"); }
-    function popup(title, rows) {
-      var box = document.createElement("div");
-      var t = document.createElement("strong");
-      t.textContent = title;
-      box.appendChild(t);
-      rows.forEach(function (r) {
-        if (r[1] === "" || r[1] === null) { return; }
-        var d = document.createElement("div");
-        d.textContent = r[0] + ": " + r[1];
-        box.appendChild(d);
-      });
-      return box;
-    }
+    var popup = GovMap.popup;
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
     function cell(c) {
@@ -254,25 +241,16 @@
       L.rectangle(cell(c), { stroke: false, fillColor: cls(c[2], G.breaks), fillOpacity: 0.55 }).bindPopup(info).addTo(gB);
       L.rectangle(cell(c), { stroke: false, fillColor: cls(c[3], G.breaks_apts), fillOpacity: c[3] > 0 ? 0.55 : 0.08 }).bindPopup(info).addTo(gA);
     });
-    var ox = S.origin[0], oy = S.origin[1], k = S.scale;
-    function path(flat) {
-      var out = [], x = ox, y = oy;
-      for (var i = 0; i + 1 < flat.length; i += 2) { x += flat[i]; y += flat[i + 1]; out.push([y / k, x / k]); }
-      return out;
-    }
+    function path(flat) { return GovMap.ring(flat, S.origin, S.scale); }
     var shp = L.featureGroup(), used = {};
-    for (var n = 0; n < NS; n++) {
-      var node = document.getElementById("map-s-" + n);
-      if (!node) { continue; }
-      JSON.parse(node.textContent).forEach(function (f) {
-        var c = bandRamp[f[0]] || "#0b3668";
-        used[f[0]] = true;
-        L.polygon(f[7].map(path), { color: c, weight: 1, fillColor: c, fillOpacity: 0.75 })
-          .bindPopup(popup(S.uses[f[1]], [["שם", f[6]], ["קומות", num(f[2])], ["דירות", f[3] > 0 ? num(f[3]) : ""],
-                                          ["כניסות", f[4] > 0 ? num(f[4]) : ""], ["תכסית", num(f[5]) + " מ\"ר"]]))
-          .addTo(shp);
-      });
-    }
+    GovMap.islands("map-s").forEach(function (f) {
+      var c = bandRamp[f[0]] || "#0b3668";
+      used[f[0]] = true;
+      L.polygon(f[7].map(path), { color: c, weight: 1, fillColor: c, fillOpacity: 0.75 })
+        .bindPopup(popup(S.uses[f[1]], [["שם", f[6]], ["קומות", num(f[2])], ["דירות", f[3] > 0 ? num(f[3]) : ""],
+                                        ["כניסות", f[4] > 0 ? num(f[4]) : ""], ["תכסית", num(f[5]) + " מ\"ר"]]))
+        .addTo(shp);
+    });
     gB.addTo(map);
     shp.addTo(map);
     var base = {};

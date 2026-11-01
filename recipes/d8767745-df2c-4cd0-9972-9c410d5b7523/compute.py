@@ -37,6 +37,7 @@ import json
 import math
 
 import pandas as pd
+from govlib import geo
 
 TOP_N = 20                 # longest roads on the bar chart
 CLASS_ORDER = ["מהירה", "ראשית", "אזורית", "מקומית"]
@@ -115,9 +116,8 @@ def roads_he(k):
 # unsimplified geometry.
 
 SIMPLIFY_M = (10.0, 20.0, 35.0, 50.0, 80.0, 120.0, 200.0, 400.0)
-MAP_BUDGET = 200_000
-QUANT = 100_000            # 1e-5 degree integers (about 1 m)
-CHUNK_BYTES = 34_000       # compact size; tojson's spacing adds ~20%, islands stay under 50KB
+MAP_BUDGET = 245_000       # total island characters as rendered (| tojson spacing included; about
+                           # the 200,000 compact bytes v2 budgeted)
 CHUNK_POINTS = 1_500       # a longer line is split into pieces of this many points
 BAND_WIDTHS = (10, 20, 25, 50, 100)   # latitude band widths, in 0.01 degrees
 MAX_BANDS = 20
@@ -154,42 +154,6 @@ def _lines_of(geom):
         if len(pts) >= 2:
             out.append(pts)
     return out
-
-
-def _simplify(pts, tol_m):
-    """Douglas-Peucker on a local metric projection; keeps both end points."""
-    if len(pts) < 3:
-        return list(pts)
-    k = math.cos(math.radians(pts[0][1]))
-    m = [(x * 111_320 * k, y * 110_574) for x, y in pts]
-    keep = {0, len(pts) - 1}
-    stack = [(0, len(pts) - 1)]
-    while stack:
-        a, b = stack.pop()
-        ax, ay = m[a]
-        dx, dy = m[b][0] - ax, m[b][1] - ay
-        ll = dx * dx + dy * dy
-        best, bi = -1.0, -1
-        for i in range(a + 1, b):
-            px, py = m[i][0] - ax, m[i][1] - ay
-            t = 0.0 if ll == 0 else max(0.0, min(1.0, (px * dx + py * dy) / ll))
-            d = math.hypot(px - t * dx, py - t * dy)
-            if d > best:
-                best, bi = d, i
-        if bi > 0 and best > tol_m:
-            keep.add(bi)
-            stack.append((a, bi))
-            stack.append((bi, b))
-    return [pts[i] for i in sorted(keep)]
-
-
-def _encode(pts):
-    """Flat [x0, y0, dx1, dy1, ...] in 1e-5 degree integers (lon, lat)."""
-    q = [(round(x * QUANT), round(y * QUANT)) for x, y in pts]
-    flat = [q[0][0], q[0][1]]
-    for (a, b), (x, y) in zip(q, q[1:]):
-        flat += [x - a, y - b]
-    return flat
 
 
 def _chain(lines):
@@ -278,28 +242,25 @@ def geo_section(df):
         groups.setdefault((kinds.index(k), rn), []).extend(lines)
     chained = {key: _chain(v) for key, v in sorted(groups.items())}
 
-    used_tol = SIMPLIFY_M[-1]
+    # Display geometry: govlib.geo integers (1e-5 degree), each line restarting
+    # from one origin at the south-west corner of everything drawn.
+    org = geo.origin([x for ls in chained.values() for ln in ls for x, _ in ln],
+                     [y for ls in chained.values() for ln in ls for _, y in ln]) if chained else [0, 0]
+    quant = {key: [geo.quantize(ln) for ln in lines] for key, lines in chained.items()}
+    used_tol, items = SIMPLIFY_M[-1], []
     for tol in SIMPLIFY_M:
+        tol_u = tol / 1.1           # metres -> 1e-5 degree units (~1.1 m north-south)
         items = []
-        for (ki, rn), lines in chained.items():
-            for ln in lines:
-                simp = _simplify(ln, tol)
+        for (ki, rn), lines in quant.items():
+            for q in lines:
+                simp = geo.simplify(q, tol_u, ring=False)
                 for a in range(0, len(simp) - 1, CHUNK_POINTS):
-                    items.append([ki, rn, _encode(simp[a:a + CHUNK_POINTS + 1])])
-        chunks, cur, size, total = [], [], 0, 0
-        for it in items:
-            nb = len(json.dumps(it, separators=(",", ":"))) + 1
-            if cur and size + nb > CHUNK_BYTES:
-                chunks.append(cur)
-                cur, size = [], 0
-            cur.append(it)
-            size += nb
-            total += nb
-        if cur:
-            chunks.append(cur)
+                    piece = [(x / geo.SCALE, y / geo.SCALE) for x, y in simp[a:a + CHUNK_POINTS + 1]]
+                    items.append([ki, rn, geo.encode([piece], org, ring=False)[0]])
         used_tol = tol
-        if total <= MAP_BUDGET:
+        if geo.rendered_len(items) <= MAP_BUDGET:
             break
+    chunks = geo.pack(items)
 
     # lengths on the unsimplified geometry (numbered roads only)
     per_road = {}
@@ -373,7 +334,7 @@ def geo_section(df):
                     f"הצפון-דרום של הרשת."))
 
     model = {
-        "chunks": chunks, "kinds": [class_label(k) if k in CLASS_ORDER else k for k in kinds],
+        "chunks": chunks, "origin": org, "scale": geo.SCALE, "kinds": [class_label(k) if k in CLASS_ORDER else k for k in kinds],
         "colors": colors, "weights": weights, "ramp": kinds.index(RAMP_LABEL) if RAMP_LABEL in kinds else -1,
         "bounds": _bounds([ln for f in feats for ln in f[3]]),
     }

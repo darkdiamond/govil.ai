@@ -130,41 +130,17 @@
 <script>
   (function () {
     var el = document.getElementById("map-preservation");
-    if (!el || !window.L) { return; }
+    if (!el || !window.L || !window.GovMap) { return; }
     var M = {{ model.map.meta | tojson }};
-    var N = {{ {"b": model.map.b | length, "c": model.map.c | length, "f": model.map.f | length, "e": model.map.e | length} | tojson }};
-    var ox = M.origin[0], oy = M.origin[1], k = M.scale;
     var ramp = ["#0c1f3d", "#0053c4", "#3d70b0", "#6c9fd8", "#9fc0ee"];
     function color(g) { var r = M.rank[g]; return r < ramp.length ? ramp[r] : "#6c757d"; }
-    function feats(key) {
-      var out = [];
-      for (var c = 0; c < N[key]; c++) {
-        var node = document.getElementById("map-" + key + "-" + c);
-        if (node) { out = out.concat(JSON.parse(node.textContent)); }
-      }
-      return out;
-    }
-    function path(flat) {
-      var out = [], x = ox, y = oy;
-      for (var i = 0; i + 1 < flat.length; i += 2) { x += flat[i]; y += flat[i + 1]; out.push([y / k, x / k]); }
-      return out;
-    }
+    function feats(key) { return GovMap.islands("map-" + key); }
+    function path(flat) { return GovMap.ring(flat, M.origin, M.scale); }
     function polys(p) { return p.map(function (rings) { return rings.map(path); }); }
-    function pt(x, y) { return [(y + oy) / k, (x + ox) / k]; }
+    // A point is a one-vertex ring: its [x, y] offset from the origin.
+    function pt(x, y) { return GovMap.ring([x, y], M.origin, M.scale)[0]; }
     function num(v) { return Number(v).toLocaleString("en-US"); }
-    function popup(title, rows) {
-      var box = document.createElement("div");
-      var t = document.createElement("strong");
-      t.textContent = title;
-      box.appendChild(t);
-      rows.forEach(function (r) {
-        if (r[1] === "" || r[1] === null) { return; }
-        var d = document.createElement("div");
-        d.textContent = r[0] + ": " + r[1];
-        box.appendChild(d);
-      });
-      return box;
-    }
+    var popup = GovMap.popup;
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
 

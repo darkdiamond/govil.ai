@@ -105,12 +105,13 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the tolerance from a size estimate instead of the full ladder, and free the raw features
   before compute. (2026-11-01)
 
-- **Map recipes each carry their own geometry code.** bdf28cc0, d8767745, f3f8a529, fc79c091,
-  0e8a1152 and 4bee0109 re-implement delta-encoding, Douglas-Peucker, haversine and JSON-island
-  chunking, plus a JS decoder in each template, with drift (origin-relative vs absolute deltas,
-  island size measured five ways against 30–40 KB budgets). The shared versions now exist
-  (`govlib.geo`, `GovMap.islands` / `ring` / `popup`). Move these recipes onto them, with a
-  `recipe_version` bump each, once the job image that ships `govlib` is deployed. (2026-11-01)
+- **More recipes carry their own map chunking or simplification.** 1745d2f8, 2a795952, 4eef54bc,
+  5ecf0587, 12fb4671, 6910f861, 1de95a22, 3ce41381, 4acf8b98, 8f2becb2, a98fbabc, 0b3bd728,
+  3c6d4061, 6cd898c4, 7cac04c9, d9b1e04c and fc549bf6 define their own island chunking, DP or
+  coordinate encoding (grep `CHUNK|_dp\(|def _encode`), each sized its own way. Move them onto
+  `govlib.geo` + `GovMap.islands` / `ring` / `popup` as they're next touched, the way the six in
+  the map-govlib PR were: keep the non-geometry model byte-identical and bump `recipe_version`.
+  (2026-11-01)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 
@@ -144,6 +145,11 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 - **`geo_snapshot.py` keeps its own Douglas-Peucker.** It and `govlib.geo.simplify` should be one
   implementation. Fold it in once a map input's converted table can be compared before and after.
   (2026-11-01)
+- **`govlib.geo` can't encode points that are already quantized.** d8767745 and 4bee0109 quantize
+  once, simplify per tolerance step, then divide back to floats only so `geo.encode` re-quantizes
+  them (correct, since round(x / 1e5 * 1e5) recovers x, but a wasted round trip on every step).
+  Add a `geo.deltas(points, origin)` for integer points, deploy the job, then call it from
+  those two recipes. (2026-11-01)
 
 ## Tags, related datasets and list pages
 

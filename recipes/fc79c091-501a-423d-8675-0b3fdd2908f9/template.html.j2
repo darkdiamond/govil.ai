@@ -115,8 +115,8 @@
 <script>
   (function () {
     var el = document.getElementById("map-segments");
-    if (!el || !window.L) { return; }
-    var meta = {{ {"n": model.charts.map.chunks | length, "bounds": model.charts.map.bounds, "bands": model.charts.map.band_names, "k": model.charts.map.colored} | tojson }};
+    if (!el || !window.L || !window.GovMap) { return; }
+    var meta = {{ {"origin": model.charts.map.origin, "scale": model.charts.map.scale, "bounds": model.charts.map.bounds, "bands": model.charts.map.band_names, "k": model.charts.map.colored} | tojson }};
     var BAND = ["#9ec5fe", "#6ea8fe", "#3d8bfd", "#0068f5", "#0053c4", "#0b3668"];
     var P = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#198754", "#dc3545", "#ffc107", "#0dcaf0"];
     var REST = "#adb5bd";
@@ -134,35 +134,14 @@
     });
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
-    function decode(flat) {
-      var out = [], x = 0, y = 0;
-      for (var i = 0; i < flat.length; i += 2) {
-        x += flat[i]; y += flat[i + 1];
-        out.push([y / 1e5, x / 1e5]);
-      }
-      return out;
-    }
     var lines = [];
-    for (var c = 0; c < meta.n; c++) {
-      var node = document.getElementById("map-lines-" + c);
-      if (!node) { continue; }
-      JSON.parse(node.textContent).forEach(function (f) {
-        var line = L.polyline(decode(f[7]), { color: colorOf("band", f), weight: 4, opacity: 0.9 }).addTo(map);
-        line.bindPopup(function () {
-          var box = document.createElement("div");
-          var title = document.createElement("strong");
-          title.textContent = "קטע #" + f[3];
-          box.appendChild(title);
-          [["אורך", fmt(f[2]) + " מ׳"], ["טווח אורך", meta.bands[f[0]] || ""], ["רצף מחובר", "#" + f[4] + ": " + fmt(f[5]) + " ק״מ, " + fmt(f[6]) + " קטעים"]].forEach(function (row) {
-            var d = document.createElement("div");
-            d.textContent = row[0] + ": " + row[1];
-            box.appendChild(d);
-          });
-          return box;
-        });
-        lines.push([line, f]);
+    GovMap.islands("map-lines").forEach(function (f) {
+      var line = L.polyline(GovMap.ring(f[7], meta.origin, meta.scale), { color: colorOf("band", f), weight: 4, opacity: 0.9 }).addTo(map);
+      line.bindPopup(function () {
+        return GovMap.popup("קטע #" + f[3], [["אורך", fmt(f[2]) + " מ׳"], ["טווח אורך", meta.bands[f[0]] || ""], ["רצף מחובר", "#" + f[4] + ": " + fmt(f[5]) + " ק״מ, " + fmt(f[6]) + " קטעים"]]);
       });
-    }
+      lines.push([line, f]);
+    });
     map.fitBounds(meta.bounds, { padding: [8, 8] });
     var btns = document.querySelectorAll("#map-mode button");
     function setMode(mode) {

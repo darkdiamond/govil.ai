@@ -14,9 +14,12 @@ function loadGovMap(nodes = {}) {
     };
     return e;
   };
+  const head = el();
   const document = {
-    getElementById: (id) => nodes[id] || null,
+    getElementById: (id) =>
+      nodes[id] || head.children.find((c) => c.id === id) || null,
     createElement: el,
+    head,
   };
   const window = {};
   vm.runInNewContext(
@@ -68,5 +71,35 @@ test("GovMap.popup writes dataset strings as text and skips empty rows", () => {
   assert.equal(dl.children.length, 3);
   assert.equal(dl.children[0].children[1].textContent, "<img src=x>");
   assert.equal(dl.children[1].children[1].textContent, "0");
-  assert.notEqual(dl.children[2].children[0].textContent, "f3", "no internal key as a label");
+  assert.notEqual(
+    dl.children[2].children[0].textContent,
+    "f3",
+    "no internal key as a label"
+  );
+});
+
+test("GovMap.popup injects the popup CSS once, for raw-Leaflet pages", () => {
+  const styles = [];
+  const el = () => {
+    const e = { children: [], style: {}, className: "", textContent: "" };
+    e.appendChild = (c) => {
+      e.children.push(c);
+      return c;
+    };
+    return e;
+  };
+  const document = {
+    getElementById: (id) => styles.find((s) => s.id === id) || null,
+    createElement: el,
+    head: { appendChild: (s) => styles.push(s) },
+  };
+  const window = {};
+  vm.runInNewContext(
+    readFileSync(new URL("../scripts/gov-map.js", import.meta.url), "utf8"),
+    { window, document }
+  );
+  window.GovMap.popup("א", [["ב", "ג"]]);
+  window.GovMap.popup("ד", [["ה", "ו"]]);
+  assert.equal(styles.length, 1);
+  assert.match(styles[0].textContent, /\.gov-map-popup\{/);
 });

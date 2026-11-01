@@ -333,8 +333,8 @@
 <script>
   (function () {
     var el = document.getElementById("map-roads");
-    if (!el || !window.L) { return; }
-    var meta = {{ {"n": model.charts.map.chunks | length, "grid": model.charts.map.meta} | tojson }};
+    if (!el || !window.L || !window.GovMap) { return; }
+    var meta = {{ {"grid": model.charts.map.meta, "origin": model.charts.map.origin, "scale": model.charts.map.scale} | tojson }};
     var g = meta.grid;
     var shades = ["#f1f7ff", "#cfe2ff", "#9ec5fe", "#6ea8fe", "#3d8bfd", "#0068f5", "#0053c4"];
     function shade(v) {
@@ -367,18 +367,14 @@
     });
     cellLayer.addTo(map);
     var lineLayer = L.layerGroup();
-    for (var i = 0; i < meta.n; i++) {
-      var node = document.getElementById("map-lines-" + i);
-      if (!node) { continue; }
-      JSON.parse(node.textContent).forEach(function (f) {
-        L.polyline(f[2].map(function (p) { return [p[1], p[0]]; }), {
-          color: "#0c3058", weight: 3, opacity: 0.9
-        }).bindPopup(box([
-          "מקטע ארוך מספר " + f[0].toLocaleString("he-IL"),
-          "אורך: " + f[1].toLocaleString("he-IL") + " מטר"
-        ])).addTo(lineLayer);
-      });
-    }
+    GovMap.islands("map-lines").forEach(function (f) {
+      L.polyline(GovMap.ring(f[2], meta.origin, meta.scale), {
+        color: "#0c3058", weight: 3, opacity: 0.9
+      }).bindPopup(box([
+        "מקטע ארוך מספר " + f[0].toLocaleString("he-IL"),
+        "אורך: " + f[1].toLocaleString("he-IL") + " מטר"
+      ])).addTo(lineLayer);
+    });
     lineLayer.addTo(map);
     L.control.layers(null, { "צפיפות לפי משבצת": cellLayer, "המקטעים הארוכים": lineLayer }, { collapsed: true }).addTo(map);
     map.fitBounds(g.bounds, { padding: [8, 8] });
