@@ -448,7 +448,9 @@
     var record = {}, fields = [];
     (rows || []).forEach(function (r, i) {
       record['f' + i] = r[1];
-      fields.push({ field: 'f' + i, label: r[0] });
+      // makePopup shows the field key for an empty label; never 'f0'.
+      var label = r[0] == null || r[0] === '' ? ' ' : r[0];
+      fields.push({ field: 'f' + i, label: label });
     });
     record.__title = title;
     return makePopup(record, fields, '__title');

@@ -384,7 +384,8 @@ GovMap `resourceId`).
   `gov.head(icon, title)`, `gov.lede(text)`, `gov.kpi(model.kpis.x, label)`,
   `gov.insights(model.insights)`, `gov.chart(id, aria)` and
   `gov.table(caption, cols, rows, ltr=(...))` (the "הצג כטבלה" details
-  table). Prefer them over writing the markup again; it is the same markup.
+  table). Prefer them over writing the markup again: the same elements and
+  classes, only the whitespace differs.
 - The `<h1>` is the dataset title; insights section, cards, icon headers etc.
   exactly per BODY SKELETON (check.py enforces them).
 

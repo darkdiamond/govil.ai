@@ -122,11 +122,10 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   every chart page passes its own `tooltip`. Fix: deep-merge `tooltip` and `textStyle` in
   `option()`. It changes how every chart's tooltip looks, so check a sample of pages first.
   (2026-11-01)
-- **The tooltip escaping belt covers only the param label fields.** Formatters that read a
-  side array by `dataIndex` (14f2521f, 7a6cbf55, and heatmaps that look up their axis labels)
-  put dataset strings into tooltip HTML unescaped. Fix: export an escape helper from
-  gov-echarts.js and use it in those templates (about 26), and teach authoring to escape every
-  string a formatter adds. (2026-11-01)
+- **Widen tooltip escaping beyond the param label fields.** The gov-echarts.js belt escapes
+  only the params' label fields, and some formatters add other dataset strings to their HTML.
+  Fix: export an escape helper from gov-echarts.js, use it in every formatter that appends a
+  string from the model (about 26 templates), and make that an authoring rule. (2026-11-01)
 - **About 177 recipes format integers by truncating.** `_int`/`n` copies use `int(v)`, so a
   median or mean of x.5 shows x. Move them to `govlib.fmt.int_he` (half up). The builder's
   `fmt_int` filter uses `round()` (half to even), which differs at exact halves. (2026-11-01)

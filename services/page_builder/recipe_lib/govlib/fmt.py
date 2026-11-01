@@ -50,11 +50,15 @@ def pct_of(value, digits: int = 1) -> str:
 
 def signed_pct(fraction, digits: int = 1) -> str:
     """A change as a signed percent, minus as U+2212: 0.05 → '+5.0%',
-    -0.05 → '−5.0%'. A change that rounds to zero has no sign."""
-    body = f"{abs(float(fraction)) * 100:.{digits}f}"
+    -0.05 → '−5.0%'. A change that rounds to zero has no sign. NaN or inf
+    (a change from zero) raises: the insight rule should drop that sentence."""
+    f = float(fraction)
+    if not math.isfinite(f):
+        raise ValueError(f"signed_pct of {f}")
+    body = f"{abs(f) * 100:.{digits}f}"
     if float(body) == 0:
         return f"{body}%"
-    return ("+" if fraction > 0 else MINUS) + body + "%"
+    return ("+" if f > 0 else MINUS) + body + "%"
 
 
 def d_he(ts) -> str:

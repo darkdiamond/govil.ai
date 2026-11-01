@@ -61,10 +61,12 @@ test("GovMap.popup writes dataset strings as text and skips empty rows", () => {
     ["שם", "<img src=x>"],
     ["ריק", ""],
     ["קומות", 0],
+    ["", "בלי תווית"],
   ]);
   const [title, dl] = div.children;
   assert.equal(title.textContent, "<b>כותרת</b>");
-  assert.equal(dl.children.length, 2);
+  assert.equal(dl.children.length, 3);
   assert.equal(dl.children[0].children[1].textContent, "<img src=x>");
   assert.equal(dl.children[1].children[1].textContent, "0");
+  assert.notEqual(dl.children[2].children[0].textContent, "f3", "no internal key as a label");
 });

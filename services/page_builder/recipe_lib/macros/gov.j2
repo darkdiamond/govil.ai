@@ -1,6 +1,8 @@
 {#- Shared page blocks for recipe templates: {% import "gov.j2" as gov %}.
-    Markup is the corpus's most common variant (e.g. recipe 713440a1), so
-    moving a template onto a macro leaves its output unchanged. Same
+    Markup is the corpus's most common variant (e.g. recipe 713440a1): the
+    same elements and classes, but the macro's own indentation, so moving a
+    template onto it changes whitespace in content.html (bump
+    recipe_version, as for any template edit). Same
     stability rule as govlib: never change what a published macro renders;
     add a parameter (with the old behaviour as its default) or a new macro. -#}
 

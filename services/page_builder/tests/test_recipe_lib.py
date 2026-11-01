@@ -41,6 +41,9 @@ def test_signed_pct():
     assert fmt.signed_pct(0.05) == "+5.0%"
     assert fmt.signed_pct(-0.05) == "−5.0%"
     assert fmt.signed_pct(-0.0001) == "0.0%"
+    assert fmt.signed_pct("0.05") == "+5.0%"
+    with pytest.raises(ValueError):
+        fmt.signed_pct(float("nan"))
 
 
 def test_join_he_vav_before_digits_and_latin():
@@ -72,9 +75,10 @@ def test_top_other():
 
 
 def test_clean_and_num():
-    assert frame.clean(None) == "" and frame.clean(float("nan")) == ""
+    for empty in (None, float("nan"), pd.NA, pd.NaT):
+        assert frame.clean(empty) == "", empty
     assert frame.clean("  תל   אביב ") == "תל אביב"
-    got = frame.num(pd.Series(["1,234", "₪ 5", "12%", "−3", "x", ""]))
+    got = frame.num(pd.Series(["1,234", "₪ 5", "12%", "−3", "x", "", "inf", "-Infinity"]))
     assert got.iloc[:4].tolist() == [1234.0, 5.0, 12.0, -3.0]
     assert got.iloc[4:].isna().all()
 
@@ -189,10 +193,29 @@ def test_lib_hash_folds_only_into_recipes_that_use_it(tmp_path, monkeypatch):
     assert rf.recipe_identity(using) != before[1]
 
 
-def test_macro_import_counts_as_use(tmp_path):
+@pytest.mark.parametrize("compute_head, template_head", [
+    ("import math, govlib\n", ""),
+    ("from govlib.fmt import int_he\n", ""),
+    ("", '{% import "gov.j2" as gov %}\n'),
+    ("", "{%+ from 'gov.j2' import kpi %}\n"),
+])
+def test_any_import_form_counts_as_use(tmp_path, compute_head, template_head):
     recipes = tmp_path / "recipes"
     shutil.copytree(FIXTURES / DS, recipes / DS)
-    t = recipes / DS / "template.html.j2"
-    t.write_text('{% import "gov.j2" as gov %}\n' + t.read_text(), encoding="utf-8")
+    for name, head in (("compute.py", compute_head), ("template.html.j2", template_head)):
+        f = recipes / DS / name
+        f.write_text(head + f.read_text(encoding="utf-8"), encoding="utf-8")
     assert rf._uses_recipe_lib(Recipe.load(recipes / DS))
     assert not rf._uses_recipe_lib(Recipe.load(FIXTURES / DS))
+
+
+def test_macros_change_moves_the_failure_lock(monkeypatch):
+    # gov.j2 isn't .py, so only the explicit fold puts it in the lock hash.
+    rf._builder_code_hash.cache_clear()
+    before = rf._builder_code_hash()
+    monkeypatch.setattr(rf, "_recipe_lib_hash", lambda: "changed")
+    rf._builder_code_hash.cache_clear()
+    try:
+        assert rf._builder_code_hash() != before
+    finally:
+        rf._builder_code_hash.cache_clear()

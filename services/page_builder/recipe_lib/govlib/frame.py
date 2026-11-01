@@ -5,6 +5,7 @@ helpers here take str Series unless they say otherwise.
 """
 import re
 
+import numpy as np
 import pandas as pd
 
 OTHER = "אחר"
@@ -36,8 +37,8 @@ _SPACE = re.compile(r"\s+")
 
 
 def clean(s) -> str:
-    """Collapse whitespace and strip; None and NaN give ''."""
-    if s is None or (isinstance(s, float) and s != s):
+    """Collapse whitespace and strip; None, NaN, pd.NA and NaT give ''."""
+    if s is None or (pd.api.types.is_scalar(s) and pd.isna(s)):
         return ""
     return _SPACE.sub(" ", str(s)).strip()
 
@@ -52,6 +53,9 @@ _NUM_JUNK = re.compile(r"[,\s₪%‎‏⁦-⁩]")
 
 def num(series: pd.Series) -> pd.Series:
     """Parse a str Series of numbers to float: drops thousands commas, ₪, %,
-    whitespace and bidi marks; reads U+2212 as minus. Unparseable → NaN."""
+    whitespace and bidi marks; reads U+2212 as minus. Unparseable → NaN, and
+    so are 'inf' / 'Infinity' (one junk cell must not fail the model's JSON
+    dump, which refuses non-finite numbers)."""
     s = series.astype(str).str.replace(_NUM_JUNK, "", regex=True).str.replace("−", "-", regex=False)
-    return pd.to_numeric(s, errors="coerce")
+    out = pd.to_numeric(s, errors="coerce")
+    return out.where(np.isfinite(out))

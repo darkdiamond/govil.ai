@@ -486,8 +486,11 @@ def _geo_code_hash() -> str:
     return hashlib.sha256(_GEO_CODE_FILE.read_bytes()).hexdigest()
 
 
-_USES_GOVLIB = re.compile(r"^\s*(?:from|import)\s+govlib\b", re.M)
-_USES_MACROS = re.compile(r"\{%-?\s*(?:import|from)\s+[\"']gov\.j2[\"']")
+# Any mention counts (`import os, govlib`, `{%+ import "gov.j2" %}`, ...): a
+# false positive only folds one more hash, a miss would let the precheck
+# skip a page whose lib output changed.
+_USES_GOVLIB = re.compile(r"\bgovlib\b")
+_USES_MACROS = re.compile(r"\bgov\.j2\b")
 
 
 def _uses_recipe_lib(recipe: Recipe) -> bool:
