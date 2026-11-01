@@ -149,7 +149,13 @@ landing pages. Five layers:
    sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort, after an in-run
    retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget
    overruns since the last full fetch (`wall_budget_strikes` in the refresh
-   state) open a `too_large` issue. Big-dataset levers in
+   state) open a `too_large` issue. **Shared recipe code:** `compute.py` can
+   `from govlib import fmt, frame, geo` and a template can
+   `{% import "gov.j2" as gov %}` (`services/page_builder/recipe_lib/`; the
+   refresh copies `govlib` into the sandbox, and folds the lib's hash into
+   `recipe_identity` only for recipes that import it). It ships in the builder
+   image, so **deploy the job before merging a recipe that uses a new helper**,
+   and never change a published helper's output. Big-dataset levers in
    `recipe.json`: an input's `columns` (CKAN `fields=`, only those columns
    are exported), `pick: "latest"` (newest snapshot resource by
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with

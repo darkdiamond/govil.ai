@@ -105,14 +105,46 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the tolerance from a size estimate instead of the full ladder, and free the raw features
   before compute. (2026-11-01)
 
-- **Map recipes each carry their own geometry code.** bdf28cc0, d8767745, f3f8a529 and fc79c091
-  (PR #301) re-implement delta-encoding at 1e-5°, Douglas-Peucker, haversine and JSON-island
-  chunking, plus a matching JS decoder in each template, with drift already (origin-relative vs
-  absolute deltas, 30/34/38 KB island budgets, compact vs spaced size estimates). A bug or a
-  page-limit change has to be fixed in every map recipe, and each new one copies another variant.
-  Fix: a shared helper the sandboxed compute can import (encode, simplify, pack islands under one
-  budget), and one decoder in the page shell or `frontend/public/lib/`, then move the recipes onto
-  it as they're next touched. (2026-11-01)
+- **Map recipes each carry their own geometry code.** bdf28cc0, d8767745, f3f8a529, fc79c091,
+  0e8a1152 and 4bee0109 re-implement delta-encoding, Douglas-Peucker, haversine and JSON-island
+  chunking, plus a JS decoder in each template, with drift (origin-relative vs absolute deltas,
+  island size measured five ways against 30–40 KB budgets). The shared versions now exist
+  (`govlib.geo`, `GovMap.islands` / `ring` / `popup`). Move these recipes onto them, with a
+  `recipe_version` bump each, once the job image that ships `govlib` is deployed. (2026-11-01)
+
+## Shared recipe code (govlib, gov.j2, page libs)
+
+Recipes adopt the shared code as they're next touched. Each item below is a copy-pasted helper
+family found in the corpus survey of 2026-11-01, with the behaviour it should converge on.
+
+- **`GovEcharts.option` merges shallowly.** A page's own `tooltip` or `grid` object replaces
+  the shared one whole, so the shared tooltip style (Rubik, white background, RTL) never applies:
+  every chart page passes its own `tooltip`. Fix: deep-merge `tooltip` and `textStyle` in
+  `option()`. It changes how every chart's tooltip looks, so check a sample of pages first.
+  (2026-11-01)
+- **The tooltip escaping belt covers only the param label fields.** Formatters that read a
+  side array by `dataIndex` (14f2521f, 7a6cbf55, and heatmaps that look up their axis labels)
+  put dataset strings into tooltip HTML unescaped. Fix: export an escape helper from
+  gov-echarts.js and use it in those templates (about 26), and teach authoring to escape every
+  string a formatter adds. (2026-11-01)
+- **About 177 recipes format integers by truncating.** `_int`/`n` copies use `int(v)`, so a
+  median or mean of x.5 shows x. Move them to `govlib.fmt.int_he` (half up). The builder's
+  `fmt_int` filter uses `round()` (half to even), which differs at exact halves. (2026-11-01)
+- **`pct` means two things.** 204 recipe copies take a fraction, 86 a 0–100 value, under the
+  same names. Move them to `govlib.fmt.pct` / `pct_of`, whose names say the scale. (2026-11-01)
+- **`join_he` glues ו to a number** ("ו2024") in 6cf0c0e3, 505aa85e and 09f0e9ee. Use
+  `govlib.fmt.join_he`. (2026-11-01)
+- **Chart mount boilerplate in 304 templates.** Each does `echarts.init` + a window resize
+  listener. Most don't guard a missing element (`echarts.init(null)` throws and stops the rest of
+  the script), and the listeners are never removed on SPA navigation. Fix: a
+  `GovEcharts.mount(id, option)` that guards, uses one ResizeObserver and disposes with the page;
+  then move templates onto it. (2026-11-01)
+- **Template blocks repeated in every template** (section head, lede, KPI card, insights, the
+  "הצג כטבלה" table: ~35k lines; 121 templates define their own local macros for them). Move
+  them onto `gov.j2` as they're next touched. (2026-11-01)
+- **`geo_snapshot.py` keeps its own Douglas-Peucker.** It and `govlib.geo.simplify` should be one
+  implementation. Fold it in once a map input's converted table can be compared before and after.
+  (2026-11-01)
 
 ## Tags, related datasets and list pages
 

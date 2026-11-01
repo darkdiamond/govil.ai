@@ -1,0 +1,58 @@
+{#- Shared page blocks for recipe templates: {% import "gov.j2" as gov %}.
+    Markup is the corpus's most common variant (e.g. recipe 713440a1), so
+    moving a template onto a macro leaves its output unchanged. Same
+    stability rule as govlib: never change what a published macro renders;
+    add a parameter (with the old behaviour as its default) or a new macro. -#}
+
+{%- macro head(icon, title) -%}
+<div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/{{ icon }}.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ title }}</h2>
+  </div>
+{%- endmacro %}
+
+{%- macro lede(text, title="תקציר") -%}
+<section class="card p-5 mb-6">
+  {{ head("info", title) }}
+  <p class="m-0 text-subtle leading-relaxed">{{ text }}</p>
+</section>
+{%- endmacro %}
+
+{%- macro kpi(k, label) -%}
+<div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ k.tone }} mb-1" dir="ltr">{{ k.display }}</div>
+    <div class="text-sm text-subtle">{{ label }}</div>
+  </div>
+{%- endmacro %}
+
+{%- macro insights(items, title="תובנות עיקריות") -%}
+<section class="card p-5 mb-6">
+  {{ head("circle-check", title) }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in items %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+{%- endmacro %}
+
+{%- macro chart(id, aria, h="h-72 md:h-80") -%}
+<div id="{{ id }}" class="{{ h }}" role="img" aria-label="{{ aria }}"></div>
+{%- endmacro %}
+
+{#- rows: lists of cells, the first is the row header. ltr: indexes of the
+    columns (0 = the row header) whose cells get dir="ltr". -#}
+{%- macro table(caption, cols, rows, ltr=()) -%}
+<details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row"{% if 0 in ltr %} dir="ltr"{% endif %}>{{ v }}</th>{% else %}<td{% if loop.index0 in ltr %} dir="ltr"{% endif %}>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </details>
+{%- endmacro %}

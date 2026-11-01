@@ -520,14 +520,20 @@ def _fmt_pct(v: Any, digits: int = 1) -> str:
     return f"{float(v) * 100:.{digits}f}%"
 
 
+# Shared macros a template can `{% import "gov.j2" as gov %}`. Only this
+# directory is loadable: a template can't include another recipe's files.
+MACROS_DIR = Path(__file__).resolve().parent / "recipe_lib" / "macros"
+
+
 def _environment():
-    from jinja2 import StrictUndefined
+    from jinja2 import FileSystemLoader, StrictUndefined
     from jinja2.sandbox import SandboxedEnvironment
 
     env = SandboxedEnvironment(
         autoescape=True,
         undefined=StrictUndefined,
         keep_trailing_newline=True,
+        loader=FileSystemLoader(MACROS_DIR),
     )
     # Jinja's default sorts keys — that would silently reorder any
     # name→series map a chart iterates. Keep compute()'s order; emit
