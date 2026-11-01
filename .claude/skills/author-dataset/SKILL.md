@@ -380,8 +380,8 @@ GovMap `resourceId`).
 - Optional sections: `{% if model.charts.map %}…{% endif %}` driven by
   flags `compute` sets from the data.
 - Shared blocks: `{% import "gov.j2" as gov %}`
-  (`services/page_builder/recipe_lib/macros/gov.j2`) gives `gov.head(icon,
-title)`, `gov.lede(text)`, `gov.kpi(model.kpis.x, label)`,
+  (`services/page_builder/recipe_lib/macros/gov.j2`) gives
+  `gov.head(icon, title)`, `gov.lede(text)`, `gov.kpi(model.kpis.x, label)`,
   `gov.insights(model.insights)`, `gov.chart(id, aria)` and
   `gov.table(caption, cols, rows, ltr=(...))` (the "הצג כטבלה" details
   table). Prefer them over writing the markup again; it is the same markup.
