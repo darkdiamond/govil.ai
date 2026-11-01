@@ -121,7 +121,10 @@ class RecipeInput(BaseModel):
 
     `map: true` downloads the `by_id` resource's uploaded map file on every
     run and reads it like a snapshot (see the module doc). `map_max_kb` caps
-    the converted GeoJSON (lines/rings are simplified to fit).
+    the converted GeoJSON (lines/rings are simplified to fit). The ceiling
+    matches the 50 MB download cap: a city layer of 26k building polygons
+    or 129k road segments converts to 15-23 MB, which compute aggregates
+    before anything reaches the page.
     """
     model_config = ConfigDict(extra="forbid")
 
@@ -135,7 +138,7 @@ class RecipeInput(BaseModel):
     snapshot: Optional[str] = None
     snapshot_of: Optional[SnapshotOf] = None
     map: bool = False
-    map_max_kb: Optional[int] = Field(default=None, ge=1, le=5000)
+    map_max_kb: Optional[int] = Field(default=None, ge=1, le=50_000)
 
     @model_validator(mode="after")
     def _one_selector(self) -> "RecipeInput":

@@ -492,11 +492,16 @@ def _events_ckan():
     {"snapshot": "geo.geojson", "snapshot_of": {"size": 1}},  # two ways in
     {"columns": ["a"]},
     {"map": False, "map_max_kb": 100},                         # cap without map
+    {"map_max_kb": 50_001},                                    # over the ceiling
 ])
 def test_map_input_validation(bad):
     spec = {k: v for k, v in {**_map_input(), **bad}.items() if v is not None}
     with pytest.raises(ValueError):
         RecipeInput.model_validate(spec)
+
+
+def test_map_input_takes_a_city_scale_cap():
+    assert RecipeInput.model_validate({**_map_input(), "map_max_kb": 50_000}).map_max_kb == 50_000
 
 
 def test_map_input_resolves_without_datastore():
