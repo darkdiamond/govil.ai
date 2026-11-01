@@ -237,10 +237,16 @@ types, source CRS, property columns), or says why it failed.
    geometry (counts and lengths per type, areas, bounds), and pass the
    features to the template in the model. Feature order is not guaranteed
    across uploads: sort explicitly (verify shuffles them).
-3. Draw it with Leaflet (`L` is a page global), styled by a property. Put the
-   geometry in `<script type="application/json">` islands under 50KB each and
-   `JSON.parse` them; split a long line into pieces in `compute` so no single
-   feature outgrows an island. `recipes/5ecf0587-21e6-411a-8f04-9f4f44a43956/`
+3. Draw it with Leaflet (`L` is a page global), styled by a property. Encode
+   and pack the geometry with `govlib.geo` (below), never a local copy:
+   `o = geo.origin(lons, lats)`, `geo.encode(rings, o, tol=1.5)` per feature,
+   `geo.pack(features)` into chunks; put `o` and `geo.SCALE` in the model and
+   each chunk in `<script type="application/json" id="map-s-{{ loop.index0 }}">`.
+   On the page, `GovMap.islands("map-s")` returns the features,
+   `GovMap.ring(flat, origin, scale)` a Leaflet `[[lat, lng], ...]` and
+   `GovMap.popup(title, [[label, value], ...])` safe popup content. Split a
+   long line into pieces in `compute` so no single feature outgrows an island
+   (`pack` raises if one does). `recipes/5ecf0587-21e6-411a-8f04-9f4f44a43956/`
    is the worked example (lines, coloured by type, popups built with
    `textContent`). Escape every string that goes into a popup or tooltip. Map
    `<name>.__geometry` in `coverage.json` (`map-<id>`).
@@ -282,6 +288,26 @@ Return:
   # "tables" (DATA-TABLE FALLBACK rows), flags for optional sections, ...
 }
 ```
+
+**Shared helpers: `govlib`.** `from govlib import fmt, frame, geo`
+(`services/page_builder/recipe_lib/govlib/`, copied into the sandbox). Use
+them instead of writing a local copy:
+
+- `fmt`: `int_he` (rounds half up; `int(v)` truncates a median of 2.5 to 2),
+  `num_he`, `pct(fraction)`, `pct_of(value_0_100)`, `signed_pct` (U+2212
+  minus), `d_he` / `month_he`, `MONTHS_HE` / `MONTHS_SHORT_HE`, `join_he` and
+  `vav` (`ו-` before digits and Latin), `LRI` / `PDI` / `isolate`.
+- `frame`: `ranked` (value_counts with a deterministic tie order),
+  `top_other(counts, n)` → `(labels, values)` with an "אחר" bucket, `clean` /
+  `clean_series`, `num` (parses `1,234`, `₪`, `%`, U+2212 minus).
+- `geo`: `quantize`, `simplify`, `origin`, `encode`, `pack`, `rendered_len`,
+  `haversine_km` (see Map files above).
+
+A helper's output never changes once published. When you need different
+behaviour, add a keyword or a new function to `govlib` in the same PR. A PR
+that adds to `govlib` (or `gov.j2`) must be merged and the job redeployed
+before a recipe that uses the addition merges: recipes are read from main at
+run time, and the old image fails the import as `recipe_failed`.
 
 **Insight rules — the heart of the recipe.** Each insight is a small function
 that inspects the data and returns a Hebrew sentence or `None`:
@@ -353,6 +379,13 @@ GovMap `resourceId`).
   hand-built JS literals, never `| safe` on anything data-derived.
 - Optional sections: `{% if model.charts.map %}…{% endif %}` driven by
   flags `compute` sets from the data.
+- Shared blocks: `{% import "gov.j2" as gov %}`
+  (`services/page_builder/recipe_lib/macros/gov.j2`) gives
+  `gov.head(icon, title)`, `gov.lede(text)`, `gov.kpi(model.kpis.x, label)`,
+  `gov.insights(model.insights)`, `gov.chart(id, aria)` and
+  `gov.table(caption, cols, rows, ltr=(...))` (the "הצג כטבלה" details
+  table). Prefer them over writing the markup again: the same elements and
+  classes, only the whitespace differs.
 - The `<h1>` is the dataset title; insights section, cards, icon headers etc.
   exactly per BODY SKELETON (check.py enforces them).
 

@@ -305,8 +305,10 @@ tileUrl string default OSM; override only with explicit reason.
 initialView {center, zoom} fallback if no points load.
 
 Use raw Leaflet only when GovMap doesn't fit: choropleths, single-
-point maps, line/polygon overlays. For those, convert ITM→WGS84 in
-Python with pyproj and embed coords inline (small datasets only).
+point maps, line/polygon overlays. For those, encode the shapes in
+compute with `govlib.geo` (encode + pack into JSON islands) and draw
+them with `GovMap.islands(prefix)`, `GovMap.ring(flat, origin, scale)`
+and `GovMap.popup(title, rows)`; never a local decoder.
 For typical point-set maps, GovMap is the answer — never inline a
 marker array of >100 items.
 

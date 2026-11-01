@@ -413,5 +413,48 @@
     };
   }
 
-  window.GovMap = { create: create };
+  // ── Shapes from the page model (recipes using govlib.geo) ──────────────
+  // Format, written by services/page_builder/recipe_lib/govlib/geo.py:
+  // integer coordinates in 1/scale degrees; a ring is a flat
+  // [dx0, dy0, dx1, dy1, ...] of deltas (x = lng, y = lat), the first from
+  // the model's origin, each next from the previous point.
+
+  // Feature lists from <script type="application/json" id="<prefix>-0">,
+  // "-1", ... (one per govlib.geo.pack chunk), concatenated in order.
+  function islands(prefix) {
+    var out = [];
+    for (var n = 0; ; n++) {
+      var node = document.getElementById(prefix + '-' + n);
+      if (!node) return out;
+      var items = JSON.parse(node.textContent);
+      for (var i = 0; i < items.length; i++) out.push(items[i]);
+    }
+  }
+
+  // One encoded ring → Leaflet [[lat, lng], ...].
+  function ring(flat, origin, scale) {
+    var out = [], x = origin[0], y = origin[1];
+    for (var i = 0; i + 1 < flat.length; i += 2) {
+      x += flat[i];
+      y += flat[i + 1];
+      out.push([y / scale, x / scale]);
+    }
+    return out;
+  }
+
+  // Popup content from [[label, value], ...]; rows with an empty value are
+  // skipped. textContent only, so dataset strings can't inject markup.
+  function popup(title, rows) {
+    var record = {}, fields = [];
+    (rows || []).forEach(function (r, i) {
+      record['f' + i] = r[1];
+      // makePopup shows the field key for an empty label; never 'f0'.
+      var label = r[0] == null || r[0] === '' ? ' ' : r[0];
+      fields.push({ field: 'f' + i, label: label });
+    });
+    record.__title = title;
+    return makePopup(record, fields, '__title');
+  }
+
+  window.GovMap = { create: create, islands: islands, ring: ring, popup: popup };
 })();

@@ -32,6 +32,7 @@ import http.client
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import time
@@ -74,6 +75,10 @@ log = logging.getLogger("page_builder.refresh")
 
 CONTENT_FILENAME = "content.html"
 RECIPE_EXEC_PATH = Path(__file__).resolve().parent / "recipe_exec.py"
+# Shared helpers recipes import (`from govlib import fmt`) and the shared
+# Jinja macros (`{% import "gov.j2" as gov %}`); see recipe_lib/govlib.
+RECIPE_LIB_DIR = Path(__file__).resolve().parent / "recipe_lib"
+GOVLIB_DIR = RECIPE_LIB_DIR / "govlib"
 
 # Refresh fetches FULL data — a sampled frame would silently change what
 # every number means. No LLM context to protect, so the caps are about
@@ -469,12 +474,45 @@ def recipe_identity(recipe: Recipe) -> str:
     h.update(_render_code_hash().encode())
     if any(i.map for i in recipe.manifest.inputs):
         h.update(_geo_code_hash().encode())
+    # Only recipes that import the shared lib: a lib change re-renders them,
+    # not every page.
+    if _uses_recipe_lib(recipe):
+        h.update(_recipe_lib_hash().encode())
     return h.hexdigest()
 
 
 @functools.lru_cache(maxsize=1)
 def _geo_code_hash() -> str:
     return hashlib.sha256(_GEO_CODE_FILE.read_bytes()).hexdigest()
+
+
+# Any mention counts (`import os, govlib`, `{%+ import "gov.j2" %}`, ...): a
+# false positive only folds one more hash, a miss would let the precheck
+# skip a page whose lib output changed.
+_USES_GOVLIB = re.compile(r"\bgovlib\b")
+_USES_MACROS = re.compile(r"\bgov\.j2\b")
+
+
+def _uses_recipe_lib(recipe: Recipe) -> bool:
+    def text(name: str) -> str:
+        return (recipe.root / name).read_text(encoding="utf-8", errors="replace")
+
+    return bool(_USES_GOVLIB.search(text("compute.py"))
+                or _USES_MACROS.search(text("template.html.j2")))
+
+
+@functools.lru_cache(maxsize=1)
+def _recipe_lib_hash() -> str:
+    # The .j2 macros aren't .py, so _builder_code_hash's rglob misses them;
+    # it adds this hash too.
+    h = hashlib.sha256()
+    for path in sorted(p for p in RECIPE_LIB_DIR.rglob("*") if p.is_file()
+                       and "__pycache__" not in p.parts):
+        h.update(str(path.relative_to(RECIPE_LIB_DIR)).encode())
+        h.update(b"\0")
+        h.update(path.read_bytes())
+        h.update(b"\0")
+    return h.hexdigest()
 
 
 # Everything the image ships that a refresh runs (Dockerfile COPYs) plus the
@@ -506,6 +544,7 @@ def _builder_code_hash() -> str:
         f"{d.metadata['Name']}=={d.version}".lower() for d in metadata.distributions()
     )
     h.update("\n".join(dists).encode())
+    h.update(_recipe_lib_hash().encode())
     return h.hexdigest()
 
 
@@ -944,6 +983,10 @@ def _run_compute_once(
         for name in RECIPE_FILES:
             shutil.copyfile(recipe.root / name, workdir / "recipe" / name)
         shutil.copyfile(RECIPE_EXEC_PATH, workdir / "recipe_exec.py")
+        # On sys.path as the cwd ('' under `python -c`), so compute.py can
+        # `from govlib import ...`.
+        shutil.copytree(GOVLIB_DIR, workdir / "govlib",
+                        ignore=shutil.ignore_patterns("__pycache__"))
         (workdir / "data").mkdir()
         spec: dict[str, list[dict]] = {}
         input_concat = {i.name: i.concat for i in recipe.manifest.inputs}
