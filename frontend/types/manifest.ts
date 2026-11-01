@@ -188,4 +188,6 @@ export interface Manifest {
   topics?: Topic[];
   /** Legacy /tags/<segment>/ → new path; consumed by scripts/gen-redirects.mjs. */
   tag_redirects?: Record<string, string>;
+  /** Old /datasets/<page_slug>/ segment → current page_slug; consumed by scripts/gen-redirects.mjs. */
+  slug_redirects?: Record<string, string>;
 }

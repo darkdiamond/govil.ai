@@ -13,6 +13,9 @@
 //      title (hence the slug), so regenerating from the live manifest — not a
 //      one-time snapshot — is what keeps the 13-and-counting gaps from
 //      recurring. Supersedes the manual snapshot from commit 1653950.
+//      The page_slug itself is built from the CKAN title, so a rename moves
+//      the page again: every old slug -> current slug is a 301 too
+//      (`manifest.slug_redirects`, publish.py::dataset_slug_redirects).
 //
 //   2. Tag taxonomy (taxonomy/tags.json): tags are now a curated vocabulary,
 //      so every old raw-tag URL whose tag merged into a canonical tag (a
@@ -77,6 +80,7 @@ const liveTagSlugs = new Set(
   Object.values(manifest.tag_index ?? {}).map((t) => t.slug)
 );
 const tagRedirects = manifest.tag_redirects ?? {};
+const slugRedirects = manifest.slug_redirects ?? {};
 
 // Where an old dash-form tag segment lives now: itself, its canonical, or nowhere.
 function tagTarget(segment) {
@@ -96,6 +100,19 @@ for (const d of datasets) {
   if (!slug || slug === d.id) continue; // never exposed at a uuid URL
   redirects.push({
     source: `/datasets/${d.id}`,
+    destination: `/datasets/${encodeURI(slug)}/`,
+    type: 301,
+  });
+  dsCount++;
+}
+// Old page_slug -> current one. Like the tag sources below, the source is the
+// raw (decoded) Hebrew Firebase matches against; slugs are only Hebrew/ASCII
+// letters, digits and '-' (slug.py::hebrew_slugify), never glob syntax.
+const SLUG_SEGMENT = /^[\p{L}\p{N}-]+$/u;
+for (const [old, slug] of Object.entries(slugRedirects)) {
+  if (!SLUG_SEGMENT.test(old)) continue;
+  redirects.push({
+    source: `/datasets/${old}`,
     destination: `/datasets/${encodeURI(slug)}/`,
     type: 301,
   });
