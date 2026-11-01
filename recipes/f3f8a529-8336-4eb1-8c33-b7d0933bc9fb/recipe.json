@@ -1,10 +1,10 @@
 {
   "contract_version": 1,
   "dataset_id": "f3f8a529-8336-4eb1-8c33-b7d0933bc9fb",
-  "recipe_version": 1,
-  "authored_at": "2026-10-30T00:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T09:00:00Z",
   "authored_against": {
-    "metadata_modified": "2026-10-25T01:03:22.834982+00:00",
+    "metadata_modified": "2026-11-01T01:04:03.222996+00:00",
     "rows": {
       "buildings": 26350
     }
@@ -12,7 +12,9 @@
   "inputs": [
     {
       "name": "buildings",
-      "by_id": "676cfeb1-d257-4870-9d93-26c1aeced98b",
+      "by_id": "28e2201b-36ae-429a-bc60-9b618eb65e20",
+      "map": true,
+      "map_max_kb": 25000,
       "required_columns": [
         "Used",
         "Name",
@@ -20,9 +22,7 @@
         "appartment",
         "Entrances",
         "Not_reside",
-        "Shape_Area",
-        "lat",
-        "lon"
+        "Shape_Area"
       ]
     }
   ],

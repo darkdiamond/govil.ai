@@ -1,13 +1,22 @@
 """דרכים (באר שבע): the city's road-edge line layer (asphalt edge, kerb stones,
-road edge), one row per mapped line segment with its length in metres
-(Shape_Leng) and one WGS84 reference point.  The four resources (CSV, XLSX and
-the same two with ITM coordinates) are twins of one table; only the WGS84 CSV
-is read.
+road edge).
 
-Every line has a single reference point, so the spatial views attribute a
-segment's whole length to the place of that point.  Lengths are summed as
-integer millimetres so the totals do not depend on row order.
+Two inputs:
+  - `main`: the WGS84 CSV, one row per mapped line segment with its length in
+    metres (Shape_Leng) and one reference point (lat/lon). It drives the
+    length analysis, the KPIs and the row-quality checks. Its three twins
+    (XLSX, and the same two with ITM coordinates) are not read.
+  - `geo`: the uploaded shapefile (`map: true`), one row per feature with
+    Shape_Leng and the real line geometry. It drives every spatial view: each
+    segment's Shape_Leng is spread along its own line (pieces between
+    vertices, long pieces subdivided), so density, rings and compass sectors
+    follow where the road edge actually runs, not one reference point. The
+    Leaflet map draws a density grid and the longest segments' real lines.
+
+Lengths are summed as integer millimetres so totals do not depend on row
+order; feature order is never relied on (explicit, total sorts).
 """
+import json
 import math
 
 import numpy as np
@@ -24,7 +33,6 @@ MAX_COLS = 24
 RING_KM = 1
 MAX_RINGS = 6
 TOP_CELLS = 10
-TOP_LONG = 300
 LONG_M = 1000
 TINY_M = 1
 SECTORS = ["צפון", "צפון-מזרח", "מזרח", "דרום-מזרח", "דרום", "דרום-מערב", "מערב", "צפון-מערב"]
@@ -35,6 +43,17 @@ CORE_DROP = 0.5
 SECTOR_LEAD_RATIO = 1.15
 DUP_MIN_SHARE = 0.001
 DUP_WARN_SHARE = 0.005
+# orientation: line direction folded to 0-180 degrees, in bins of this width
+ORIENT_BIN = 10  # bins centred on 0, 10, ... so axis-snapped pieces sit mid-bin
+ORIENT_MIN_KM = 0.01  # only pieces this long: coordinates are rounded to ~1 m
+ORIENT_LEAD = 1.5  # top bin share vs an even split, for the insight
+SUB_KM = 0.1  # pieces between vertices longer than this are subdivided
+# map: the longest segments drawn as real lines
+LONG_MAX = 400
+LINE_TOL_DEG = 0.00003  # ~3 m Douglas-Peucker tolerance for drawn lines
+LINE_BUDGET = 150_000  # bytes of line JSON across all islands
+ISLAND_MAX = 34_000  # compact bytes per JSON island (tojson renders ~10% larger)
+PIECE_MAX_PTS = 400  # split a drawn line into pieces of at most this many points
 
 
 def _int(n):
@@ -69,9 +88,100 @@ def _prepare(df):
     return out, n_bad
 
 
+def _parts(geom_str):
+    """The line parts of one feature's geometry, or [] when unusable."""
+    try:
+        g = json.loads(geom_str)
+    except (TypeError, ValueError):
+        return []
+    if not isinstance(g, dict):
+        return []
+    t, c = g.get("type"), g.get("coordinates") or []
+    parts = c if t == "MultiLineString" else ([c] if t == "LineString" else [])
+    out = []
+    for part in parts:
+        pts = []
+        for p in part or []:
+            try:
+                x, y = float(p[0]), float(p[1])
+            except (TypeError, ValueError, IndexError):
+                return []
+            if not (LON_RANGE[0] <= x <= LON_RANGE[1] and LAT_RANGE[0] <= y <= LAT_RANGE[1]):
+                return []
+            pts.append((x, y))
+        if pts:
+            out.append(pts)
+    return out
+
+
+def _geo(gdf):
+    """Features of the map file with their line parts, sorted by
+    (length desc, geometry) so every later step is order-independent."""
+    raw_len = gdf["Shape_Leng"].str.strip()
+    sl = pd.to_numeric(raw_len.str.replace(",", "", regex=False), errors="coerce")
+    feats, n_zero, n_badgeom = [], 0, 0
+    for s, v in zip(gdf["__geometry"].tolist(), sl.tolist()):
+        if not (v > 0):
+            n_zero += 1
+            continue
+        parts = _parts(s)
+        if not parts:
+            n_badgeom += 1
+            continue
+        feats.append((int(round(v * 1000)), s, parts))
+    feats.sort(key=lambda f: (-f[0], f[1]))
+    return feats, n_zero, n_badgeom
+
+
+def _dp(pts, tol):
+    if len(pts) < 3:
+        return list(pts)
+    keep = [False] * len(pts)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        ax, ay = pts[a]
+        bx, by = pts[b]
+        dx, dy = bx - ax, by - ay
+        d2 = dx * dx + dy * dy
+        best, bi = -1.0, -1
+        for i in range(a + 1, b):
+            px, py = pts[i]
+            if d2 == 0:
+                dist = math.hypot(px - ax, py - ay)
+            else:
+                t = max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / d2))
+                dist = math.hypot(px - ax - t * dx, py - ay - t * dy)
+            if dist > best:
+                best, bi = dist, i
+        if best > tol:
+            keep[bi] = True
+            stack.append((a, bi))
+            stack.append((bi, b))
+    return [p for p, k in zip(pts, keep) if k]
+
+
 def _direction(dx, dy):
     brg = (90 - math.degrees(math.atan2(dy, dx))) % 360
     return SECTORS[int((brg + 22.5) // 45) % 8]
+
+
+def _wmedian(values, weights):
+    order = np.lexsort((weights, values))
+    cum = np.cumsum(weights[order])
+    k = int(np.searchsorted(cum, cum[-1] / 2))
+    return float(values[order][min(k, len(order) - 1)])
+
+
+def _orient_name(mid):
+    if mid < 22.5 or mid >= 157.5:
+        return "צפון-דרום"
+    if mid < 67.5:
+        return "צפון-מזרח לדרום-מערב"
+    if mid < 112.5:
+        return "מזרח-מערב"
+    return "צפון-מערב לדרום-מזרח"
 
 
 def insight_head(lorenz):
@@ -95,11 +205,11 @@ def insight_tiny(n_tiny, mm_tiny, n, mm_total):
 
 
 def insight_long(n_long, mm_long, mm_total, top):
-    if n_long == 0:
+    if n_long == 0 or top is None:
         return None
     return (f"{_int(n_long)} מקטעים ארוכים מ-{_int(LONG_M)} מטר מכילים "
-            f"{_km(mm_long):,.1f} ק״מ ({_pct(mm_long / mm_total)} מהאורך). נקודת הייחוס של הארוך "
-            f"שבהם ({top['len'] / 1000:.1f} ק״מ) נמצאת {top['dir_txt']}.")
+            f"{_km(mm_long):,.1f} ק״מ ({_pct(mm_long / mm_total)} מהאורך). מרכז הארוך שבהם "
+            f"({top['len'] / 1000:.1f} ק״מ) נמצא {top['dir_txt']}.")
 
 
 def insight_core(rings):
@@ -126,7 +236,7 @@ def insight_sector(sec):
     if total == 0 or b["mm"] == 0 or a["mm"] / b["mm"] < SECTOR_LEAD_RATIO:
         return None
     low = srt[-1]
-    return (f"הכי הרבה קווי דרך נמצאים בכיוון {a['name']} מהמרכז: {_km(a['mm']):,.0f} ק״מ "
+    return (f"הכי הרבה קווי דרך עוברים בכיוון {a['name']} מהמרכז: {_km(a['mm']):,.0f} ק״מ "
             f"({_pct(a['mm'] / total)}), מול {_km(low['mm']):,.0f} ק״מ בלבד בכיוון {low['name']}.")
 
 
@@ -135,7 +245,26 @@ def insight_cell(top_cell, cell_km):
         return None
     return (f"המשבצת הצפופה ביותר ({cell_km:.1f} על {cell_km:.1f} ק״מ) נמצאת "
             f"{top_cell['label']} מהמרכז, עם {top_cell['km']:,.1f} ק״מ קווים "
-            f"({_int(top_cell['dens'])} ק״מ לקמ״ר, בלי המקטעים הארוכים).")
+            f"({_int(top_cell['dens'])} ק״מ לקמ״ר).")
+
+
+def insight_orient(bins, total):
+    if total <= 0 or len(bins) < 4:
+        return None
+    even = 1 / len(bins)
+    srt = sorted(bins, key=lambda b: (-b["mm"], b["lo"]))
+    top = srt[0]
+    share = top["mm"] / total
+    if share < even * ORIENT_LEAD:
+        return None
+    txt = (f"הכיוון הנפוץ של קווי הדרך הוא סביב {top['lo']} מעלות מהצפון "
+           f"({top['axis']}): {_pct(share)} מהאורך, פי {share / even:.1f} מחלוקה שווה בין הכיוונים")
+    perp_lo = (top["lo"] + 90) % 180
+    perp = next((b for b in bins if b["lo"] == perp_lo), None)
+    if perp is not None and perp in srt[1:3]:
+        txt += (f". גם הכיוון הניצב לו (סביב {perp['lo']} מעלות) בולט, עם "
+                f"{_pct(perp['mm'] / total)}: סימן לרשת רחובות מאונכת")
+    return txt + "."
 
 
 def insight_dup(n_dup, mm_dup, n):
@@ -145,6 +274,104 @@ def insight_dup(n_dup, mm_dup, n):
             f"אותו אורך ואותה נקודה. הן מוסיפות {_km(mm_dup):,.1f} ק״מ לסכום האורכים.")
 
 
+def _spatial(feats):
+    """Spread each feature's length along its line. Returns per-piece arrays
+    (x, y in degrees, mm, direction or nan) and per-feature representative
+    points (length-weighted mean of piece midpoints)."""
+    xs, ys, pid, fid = [], [], [], []
+    p = 0
+    for i, (_, _, parts) in enumerate(feats):
+        for part in parts:
+            for x, y in part:
+                xs.append(x)
+                ys.append(y)
+                pid.append(p)
+                fid.append(i)
+            p += 1
+    xs = np.array(xs)
+    ys = np.array(ys)
+    pid = np.array(pid)
+    fid = np.array(fid)
+    nf = len(feats)
+    mm_f = np.array([f[0] for f in feats], dtype="int64")
+    lat_ref = float(np.median(ys))
+    kx = KM_PER_DEG * math.cos(math.radians(lat_ref))
+
+    same = pid[:-1] == pid[1:]
+    x0, y0 = xs[:-1][same], ys[:-1][same]
+    x1, y1 = xs[1:][same], ys[1:][same]
+    pf = fid[:-1][same]
+    dxk = (x1 - x0) * kx
+    dyk = (y1 - y0) * KM_PER_DEG
+    plen = np.hypot(dxk, dyk)
+    flen = np.bincount(pf, weights=plen, minlength=nf)
+
+    # subdivide long pieces so one never spans much more than SUB_KM
+    nsub = np.maximum(1, np.ceil(plen / SUB_KM)).astype(int)
+    rep = np.repeat(np.arange(len(plen)), nsub)
+    starts = np.repeat(np.cumsum(nsub) - nsub, nsub)
+    k = np.arange(len(rep)) - starts
+    t = (k + 0.5) / nsub[rep]
+    sx = x0[rep] + (x1[rep] - x0[rep]) * t
+    sy = y0[rep] + (y1[rep] - y0[rep]) * t
+    sf = pf[rep]
+    slen = plen[rep] / nsub[rep]
+    safe = np.where(flen > 0, flen, 1.0)
+    smm = np.where(flen[sf] > 0, np.round(mm_f[sf] * slen / safe[sf]), 0).astype("int64")
+    ang = np.degrees(np.arctan2(dxk, dyk)) % 180
+    brg = np.where(plen >= ORIENT_MIN_KM, ang, np.nan)[rep]
+
+    # features with no length in the geometry (collapsed by rounding): one
+    # point at their first vertex carries their whole length
+    first = np.full(nf, -1)
+    first[fid[::-1]] = np.arange(len(fid))[::-1]
+    zero = np.where(flen <= 0)[0]
+    px = np.concatenate([sx, xs[first[zero]]])
+    py = np.concatenate([sy, ys[first[zero]]])
+    pm = np.concatenate([smm, mm_f[zero]])
+    pb = np.concatenate([brg, np.full(len(zero), np.nan)])
+
+    mxp = (x0 + x1) / 2
+    myp = (y0 + y1) / 2
+    rx = np.bincount(pf, weights=plen * mxp, minlength=nf) / safe
+    ry = np.bincount(pf, weights=plen * myp, minlength=nf) / safe
+    rx = np.where(flen > 0, rx, xs[first])
+    ry = np.where(flen > 0, ry, ys[first])
+    return {"x": px, "y": py, "mm": pm, "brg": pb, "rx": rx, "ry": ry, "kx": kx,
+            "mm_f": mm_f, "xmin": float(xs.min()), "ymin": float(ys.min()),
+            "xmax": float(xs.max()), "ymax": float(ys.max())}
+
+
+def _lines(feats):
+    """The longest segments as simplified lines, packed into JSON islands."""
+    entries, used, n_drawn = [], 0, 0
+    for rank, (mm, _, parts) in enumerate(feats[:LONG_MAX], start=1):
+        pieces = []
+        for part in parts:
+            pts = [[round(x, 5), round(y, 5)] for x, y in _dp(part, LINE_TOL_DEG)]
+            for s in range(0, max(1, len(pts) - 1), PIECE_MAX_PTS - 1):
+                seg = pts[s:s + PIECE_MAX_PTS]
+                if len(seg) >= 2:
+                    pieces.append([rank, round(mm / 1000), seg])
+        size = sum(len(json.dumps(e, separators=(",", ":"))) + 1 for e in pieces)
+        if used + size > LINE_BUDGET:
+            break
+        used += size
+        n_drawn += 1
+        entries.extend(pieces)
+    chunks, cur, cur_size = [], [], 2
+    for e in entries:
+        sz = len(json.dumps(e, separators=(",", ":"))) + 1
+        if cur and cur_size + sz > ISLAND_MAX:
+            chunks.append(cur)
+            cur, cur_size = [], 2
+        cur.append(e)
+        cur_size += sz
+    if cur:
+        chunks.append(cur)
+    return chunks, n_drawn
+
+
 def compute(frames):
     df, n_bad = _prepare(frames["main"])
     n = len(df)
@@ -152,7 +379,7 @@ def compute(frames):
     med_m = float(df["len"].median())
 
     # --- length buckets: share of segments vs share of length
-    b_names, b_n, b_km, b_ns, b_ks, t_len = [], [], [], [], [], []
+    b_names, b_ns, b_ks, t_len = [], [], [], []
     for i, lo in enumerate(LEN_EDGES):
         hi = LEN_EDGES[i + 1] if i + 1 < len(LEN_EDGES) else None
         m = (df["len"] >= lo) & ((df["len"] < hi) if hi is not None else True)
@@ -160,8 +387,6 @@ def compute(frames):
         mm = int(df.loc[m, "mm"].sum())
         name = _bucket_name(lo, hi)
         b_names.append(name)
-        b_n.append(cnt)
-        b_km.append(round(_km(mm), 1))
         b_ns.append(round(cnt / n * 100, 2))
         b_ks.append(round(mm / mm_total * 100, 2))
         t_len.append({"name": name, "count": _int(cnt), "seg_share": _pct(cnt / n),
@@ -178,43 +403,54 @@ def compute(frames):
     lorenz_chart = {"x": [p for p, _ in lorenz], "y": [round(s * 100, 1) for _, s in lorenz]}
     t_lorenz = [{"name": f"{p}%", "share": _pct(s)} for p, s in lorenz]
 
-    # --- geometry around the median point
-    lat0 = float(df["latf"].median())
-    lon0 = float(df["lonf"].median())
-    kx = KM_PER_DEG * math.cos(math.radians(lat0))
-    dx = (df["lonf"] - lon0) * kx
-    dy = (df["latf"] - lat0) * KM_PER_DEG
+    # --- the map file: real geometry for every spatial view
+    feats, n_geo_zero, n_geo_bad = _geo(frames["geo"])
+    n_geo = len(feats)
+    sp = _spatial(feats)
+    kx = sp["kx"]
+    gx_mm = sp["mm"]
+    g_total = int(gx_mm.sum())
+    cx0 = _wmedian(sp["x"], gx_mm)
+    cy0 = _wmedian(sp["y"], gx_mm)
+    dx = (sp["x"] - cx0) * kx
+    dy = (sp["y"] - cy0) * KM_PER_DEG
     dist = np.hypot(dx, dy)
+    rdx = (sp["rx"] - cx0) * kx
+    rdy = (sp["ry"] - cy0) * KM_PER_DEG
+    rdist = np.hypot(rdx, rdy)
+    flen_m = sp["mm_f"] / 1000
 
-    # --- grid heatmap (km of line per cell)
-    x_km = (df["lonf"] - df["lonf"].min()) * kx
-    y_km = (df["latf"] - df["latf"].min()) * KM_PER_DEG
-    span = max(float(x_km.max()), float(y_km.max()), 0.01)
+    # --- grid (km of line per cell), from the pieces of every line
+    span = max((sp["xmax"] - sp["xmin"]) * kx, (sp["ymax"] - sp["ymin"]) * KM_PER_DEG, 0.01)
     cell = BASE_CELL_KM * max(1, math.ceil(span / BASE_CELL_KM / MAX_COLS))
-    cx = (x_km // cell).astype(int)
-    cy = (y_km // cell).astype(int)
-    local = df["len"] < cell * 1000
-    n_cross = int((~local).sum())
-    mm_cross = int(df.loc[~local, "mm"].sum())
-    cells = (pd.DataFrame({"x": cx, "y": cy, "mm": df["mm"]})[local]
-             .groupby(["x", "y"]).agg(mm=("mm", "sum"), c=("mm", "size")).reset_index())
-    nx, ny = int(cx.max()) + 1, int(cy.max()) + 1
-    grid_chart = {
-        "x": [f"{i * cell:.1f}" for i in range(nx)],
-        "y": [f"{j * cell:.1f}" for j in range(ny)],
-        "data": [[int(r.x), int(r.y), round(_km(r.mm), 1), int(r.c)] for r in cells.itertuples()],
-        "max": round(_km(int(cells["mm"].max())), 1),
+    gx = ((sp["x"] - sp["xmin"]) * kx // cell).astype(int)
+    gy = ((sp["y"] - sp["ymin"]) * KM_PER_DEG // cell).astype(int)
+    fx = ((sp["rx"] - sp["xmin"]) * kx // cell).astype(int)
+    fy = ((sp["ry"] - sp["ymin"]) * KM_PER_DEG // cell).astype(int)
+    cells = (pd.DataFrame({"x": gx, "y": gy, "mm": gx_mm}).groupby(["x", "y"])["mm"].sum()
+             .reset_index())
+    cnt_cells = pd.DataFrame({"x": fx, "y": fy}).groupby(["x", "y"]).size().rename("c").reset_index()
+    cells = cells.merge(cnt_cells, on=["x", "y"], how="left").fillna({"c": 0})
+    cells = cells[cells["mm"] > 0].sort_values(["x", "y"]).reset_index(drop=True)
+    area = cell * cell
+    map_cells = [[int(r.x), int(r.y), round(_km(r.mm), 2), int(r.c)] for r in cells.itertuples()]
+    map_meta = {
+        "x0": round(sp["xmin"], 6), "y0": round(sp["ymin"], 6),
+        "dx": round(cell / kx, 7), "dy": round(cell / KM_PER_DEG, 7),
+        "max": round(_km(int(cells["mm"].max())), 2) if len(cells) else 0,
+        "bounds": [[round(sp["ymin"], 5), round(sp["xmin"], 5)],
+                   [round(sp["ymax"], 5), round(sp["xmax"], 5)]],
+        "area": round(area, 4),
     }
 
     # --- densest cells, labelled by direction and distance from the centre
-    x0 = (lon0 - float(df["lonf"].min())) * kx
-    y0 = (lat0 - float(df["latf"].min())) * KM_PER_DEG
-    area = cell * cell
+    cxk = (cx0 - sp["xmin"]) * kx
+    cyk = (cy0 - sp["ymin"]) * KM_PER_DEG
     tc = cells.sort_values(["mm", "x", "y"], ascending=[False, True, True]).head(TOP_CELLS)
     top_cells = []
     for r in tc.itertuples():
-        ccx = (r.x + 0.5) * cell - x0
-        ccy = (r.y + 0.5) * cell - y0
+        ccx = (r.x + 0.5) * cell - cxk
+        ccy = (r.y + 0.5) * cell - cyk
         d = math.hypot(ccx, ccy)
         label = "במרכז" if d < cell else f"{_direction(ccx, ccy)}, {d:.1f} ק״מ"
         km = _km(r.mm)
@@ -230,23 +466,25 @@ def compute(frames):
         top_cell = dict(tc0, label=("במרכז העיר" if tc0["label"] == "במרכז" else
                                     "ב" + tc0["label"].replace(", ", " במרחק ")))
 
-    # --- rings: km of line, density per km², median segment length
+    # --- rings: km of line and density from the pieces; count and median
+    # segment length from each segment's representative point
     ring_idx = np.minimum((dist // RING_KM).astype(int), MAX_RINGS)
+    rring = np.minimum((rdist // RING_KM).astype(int), MAX_RINGS)
     rings = []
     for k in range(MAX_RINGS + 1):
-        m = ring_idx == k
-        cnt = int(m.sum())
-        mm = int(df.loc[m, "mm"].sum())
+        mm = int(gx_mm[ring_idx == k].sum())
+        fm = rring == k
+        cnt = int(fm.sum())
         if k < MAX_RINGS:
             name = f"{k * RING_KM}-{(k + 1) * RING_KM}"
             ar = math.pi * (((k + 1) * RING_KM) ** 2 - (k * RING_KM) ** 2)
         else:
             name = f"‎{k * RING_KM}+"
             ar = None
-        rings.append({"name": name, "count": cnt, "km": _km(mm),
+        rings.append({"name": name, "count": cnt, "mm": mm, "km": _km(mm),
                       "dens": (_km(mm) / ar) if ar else None,
-                      "med": float(df.loc[m, "len"].median()) if cnt else 0.0})
-    while len(rings) > 2 and rings[-1]["count"] == 0:
+                      "med": float(np.median(flen_m[fm])) if cnt else 0.0})
+    while len(rings) > 2 and rings[-1]["mm"] == 0 and rings[-1]["count"] == 0:
         rings.pop()
     ring_chart = {"names": [r["name"] for r in rings],
                   "km": [round(r["km"], 1) for r in rings],
@@ -259,32 +497,46 @@ def compute(frames):
     # --- compass sectors around the centre
     brg = (90 - np.degrees(np.arctan2(dy, dx))) % 360
     sidx = (((brg + 22.5) // 45).astype(int)) % 8
+    rbrg = (90 - np.degrees(np.arctan2(rdy, rdx))) % 360
+    ridx = (((rbrg + 22.5) // 45).astype(int)) % 8
     sec = []
     for i, name in enumerate(SECTORS):
-        m = sidx == i
-        sec.append({"i": i, "name": name, "count": int(m.sum()), "mm": int(df.loc[m, "mm"].sum())})
+        sec.append({"i": i, "name": name, "count": int((ridx == i).sum()),
+                    "mm": int(gx_mm[sidx == i].sum())})
     sec_chart = {"names": [s["name"] for s in sec], "values": [round(_km(s["mm"]), 1) for s in sec]}
     t_sec = [{"name": s["name"], "count": _int(s["count"]), "km": f"{_km(s['mm']):,.1f}",
-              "share": _pct(s["mm"] / mm_total)} for s in sec]
+              "share": _pct(s["mm"] / g_total)} for s in sec]
 
-    # --- the longest segments as a skeleton of the main roads
-    lg = df.assign(dist=dist, dx=dx, dy=dy).sort_values(
-        ["mm", "raw_lat", "raw_lon"], ascending=[False, True, True])
-    lg_top = lg.head(TOP_LONG)
-    long_chart = {"data": [[round(float(lo), 5), round(float(la), 5), round(float(ln))]
-                           for lo, la, ln in zip(lg_top["lonf"], lg_top["latf"], lg_top["len"])],
-                  "max": round(float(lg_top["len"].max())) if len(lg_top) else 0}
-    first = lg.iloc[0]
-    d0 = float(first["dist"])
-    top_long = {"len": float(first["len"]),
-                "dir_txt": ("במרכז העיר" if d0 < RING_KM / 2 else
-                            f"ב{_direction(float(first['dx']), float(first['dy']))} "
-                            f"במרחק {d0:.1f} ק״מ מהמרכז")}
+    # --- orientation of the lines (direction folded to 0-180 degrees)
+    ob = sp["brg"]
+    has = ~np.isnan(ob)
+    nb = 180 // ORIENT_BIN
+    oidx = ((np.nan_to_num(ob) + ORIENT_BIN / 2) // ORIENT_BIN).astype(int) % nb
+    o_total = int(gx_mm[has].sum())
+    obins = []
+    for i in range(nb):
+        mm = int(gx_mm[has & (oidx == i)].sum())
+        obins.append({"lo": i * ORIENT_BIN, "mm": mm, "axis": _orient_name(i * ORIENT_BIN)})
+    orient_chart = {"names": [f"{b['lo']}°" for b in obins],
+                    "values": [round(_km(b["mm"]), 1) for b in obins]}
+    t_orient = [{"name": f"{b['lo']}", "axis": b["axis"], "km": f"{_km(b['mm']):,.1f}",
+                 "share": _pct(b["mm"] / o_total) if o_total else _pct(0)} for b in obins]
+
+    # --- the longest segments, drawn as real lines on the map
+    chunks, n_drawn = _lines(feats)
+    mm_drawn = int(sum(f[0] for f in feats[:n_drawn]))
+    top_long = None
+    if feats:
+        d0 = float(rdist[0])
+        top_long = {"len": feats[0][0] / 1000,
+                    "dir_txt": ("במרכז העיר" if d0 < RING_KM / 2 else
+                                f"ב{_direction(float(rdx[0]), float(rdy[0]))}, "
+                                f"{d0:.1f} ק״מ מהמרכז")}
     long_m = df["len"] >= LONG_M
     n_long = int(long_m.sum())
     mm_long = int(df.loc[long_m, "mm"].sum())
 
-    # --- quality
+    # --- quality (rows of the table)
     dup = df.duplicated(["raw_len", "raw_lat", "raw_lon"])
     n_dup = int(dup.sum())
     mm_dup = int(df.loc[dup, "mm"].sum())
@@ -308,6 +560,7 @@ def compute(frames):
         ("core", insight_core(rings)),
         ("sector", insight_sector(sec)),
         ("cell", insight_cell(top_cell, cell)),
+        ("orient", insight_orient(obins, o_total)),
         ("dup", insight_dup(n_dup, mm_dup, n)),
     ]
     insights = [{"id": i, "text_he": x} for i, x in cands if x]
@@ -325,27 +578,35 @@ def compute(frames):
                  "label": "שורות כפולות במלואן"},
     }
 
+    dropped_geo = n_geo_zero + n_geo_bad
+    geo_drop_txt = (f" {_int(dropped_geo)} קווים באורך אפס או בלי קואורדינטות תקינות לא נכללו."
+                    if dropped_geo else "")
     ring_first = rings[0]
+    sec_lead = max(sec, key=lambda s: (s["mm"], -s["i"]))
     labels = {
         "lede": (f"שכבת הדרכים של עיריית באר שבע: {_int(n)} מקטעי קו של קצה אספלט, אבני שפה "
                  f"וקצה דרך, באורך כולל של כ-{total_km:,.0f} ק״מ. זה אורך הקווים הממופים ולא "
                  f"אורך הכבישים: לכל רחוב יש כמה קווים מקבילים (שני צדי האספלט, שתי שורות אבני "
                  f"שפה). המקטע החציוני ארוך {med_m:,.1f} מטר."),
-        "geo_note": ("לכל מקטע יש נקודת ייחוס אחת, ולכן התרשימים המרחביים משייכים את כל אורך "
-                     "המקטע למקום של הנקודה הזו. המרכז הוא נקודת החציון של כל הנקודות."),
+        "geo_note": (f"התרשימים המרחביים מבוססים על קובץ המפה ({_int(n_geo)} קווים): אורך כל "
+                     f"מקטע מתחלק לאורך הקו שלו, כך שקו ארוך נספר בכל האזורים שהוא עובר בהם. "
+                     f"המרכז הוא נקודת החציון של אורך הקווים.{geo_drop_txt}"),
+        "map_note": (f"כל משבצת ({cell:.1f} על {cell:.1f} ק״מ) צבועה לפי ק״מ הקווים שעוברים בה, "
+                     f"עד {map_meta['max']:,.1f} ק״מ במשבצת הצפופה. מעליהן מצוירים "
+                     f"{_int(n_drawn)} המקטעים הארוכים ביותר בקו האמיתי שלהם "
+                     f"({_km(mm_drawn):,.0f} ק״מ, {_pct(mm_drawn / g_total if g_total else 0)} "
+                     f"מהאורך). לחיצה על קו או על משבצת מציגה את הנתונים שלהם."),
+        "map_aria": (f"מפת באר שבע: צפיפות קווי הדרך ב-{_int(len(map_cells))} משבצות "
+                     f"ו-{_int(n_drawn)} המקטעים הארוכים ביותר."),
         "len_note": "כמה מהמקטעים וכמה מהאורך נמצאים בכל טווח אורך (במטרים). רוב המקטעים קצרים, אבל רוב האורך נמצא במקטעים הארוכים.",
         "len_aria": f"תרשים עמודות: שיעור המקטעים מול שיעור האורך ב-{_int(len(b_names))} טווחי אורך.",
         "len_caption": "מקטעים ואורך לפי טווח אורך המקטע.",
         "lorenz_note": "העקומה מראה כמה מהאורך הכולל נמצא במקטעים הארוכים ביותר: הנקודה על הציר האופקי היא שיעור המקטעים, מהארוך לקצר.",
         "lorenz_aria": f"תרשים קו: שיעור האורך המצטבר לפי שיעור המקטעים הארוכים, {_int(len(lorenz))} נקודות.",
         "lorenz_caption": "שיעור האורך שבמקטעים הארוכים ביותר.",
-        "grid_note": (f"ק״מ קווים בכל משבצת של {cell:.1f} ק״מ; הצירים מציגים מרחק בק״מ מהפינה "
-                      f"הדרום-מערבית של השכבה. {_int(n_cross)} מקטעים ארוכים מ-{_int(cell * 1000)} "
-                      f"מטר ({_pct(mm_cross / mm_total)} מהאורך) אינם נכללים כאן ובדירוג המשבצות, "
-                      f"כי הם חוצים כמה משבצות; הם מוצגים בתרשים המקטעים הארוכים."),
-        "grid_aria": f"מפת חום: ק״מ קווים בכל משבצת, {_int(len(cells))} משבצות.",
         "cells_note": (f"{_int(len(top_cells))} המשבצות ({cell:.1f} על {cell:.1f} ק״מ) עם הכי הרבה "
-                       f"קווים, לפי כיוון ומרחק מהמרכז; הערך הוא ק״מ קווים לקמ״ר."),
+                       f"קווים, לפי כיוון ומרחק מהמרכז; הערך הוא ק״מ קווים לקמ״ר. עמודת המקטעים "
+                       f"סופרת מקטעים שמרכזם במשבצת."),
         "cells_aria": (f"תרשים עמודות אופקיות: {_int(len(top_cells))} המשבצות הצפופות, "
                        f"המובילה עם {top_cells[0]['dens']:,.1f} ק״מ לקמ״ר." if top_cells else
                        "תרשים עמודות אופקיות: המשבצות הצפופות."),
@@ -355,14 +616,18 @@ def compute(frames):
         "ring_aria": (f"תרשים עמודות וקו: ק״מ קווים וצפיפות לפי {_int(len(rings))} טבעות מרחק, "
                       f"מ-{ring_first['km']:,.0f} ק״מ בטבעת הפנימית."),
         "ring_caption": "אורך, צפיפות ואורך חציוני לפי מרחק מהמרכז.",
-        "med_note": "האורך החציוני של מקטע בכל טבעת מרחק. מקטעים קצרים מעידים על רשת צפופה של צמתים, פינות ומפרצים.",
+        "med_note": "האורך החציוני של מקטע בכל טבעת מרחק (לפי מרכז המקטע). מקטעים קצרים מעידים על רשת צפופה של צמתים, פינות ומפרצים.",
         "med_aria": f"תרשים עמודות: אורך מקטע חציוני (מטר) לפי {_int(len(rings))} טבעות מרחק.",
         "sec_note": "ק״מ קווים בכל אחד משמונת הכיוונים סביב המרכז.",
-        "sec_aria": "תרשים רדאר: ק״מ קווים לפי כיוון מהמרכז.",
+        "sec_aria": f"תרשים רדאר: ק״מ קווים לפי כיוון מהמרכז, הכי הרבה בכיוון {sec_lead['name']}.",
         "sec_caption": "אורך הקווים לפי כיוון מהמרכז.",
-        "long_note": (f"{_int(len(lg_top))} המקטעים הארוכים ביותר, לפי נקודת הייחוס שלהם; גודל "
-                      f"העיגול לפי האורך. יחד הם משרטטים את הצירים הראשיים."),
-        "long_aria": f"תרשים פיזור גאוגרפי: {_int(len(lg_top))} המקטעים הארוכים לפי מיקום ואורך.",
+        "orient_note": (f"לאיזה כיוון פונים קווי הדרך עצמם: אורך הקווים לפי זווית הקו מהצפון, "
+                        f"בטווחים של {_int(ORIENT_BIN)} מעלות סביב כל ערך (קו מצפון לדרום הוא אפס "
+                        f"מעלות, קו ממזרח למערב הוא {_int(90)} מעלות). נספרים רק קטעים בין קודקודים "
+                        f"שארוכים מ-{_int(ORIENT_MIN_KM * 1000)} מטר ({_pct(o_total / g_total if g_total else 0)} "
+                        f"מהאורך), כי בקטעים קצרים יותר עיגול הקואורדינטות מעוות את הזווית."),
+        "orient_aria": f"תרשים עמודות: ק״מ קווים לפי כיוון הקו, {_int(len(obins))} טווחי זווית.",
+        "orient_caption": "אורך הקווים לפי כיוון הקו.",
         "qual_note": ("בדיקות על השורות: מקטעים קצרים מאוד (שאריות חיתוך), שורות שחוזרות בדיוק, "
                       "שורות עם אותה נקודה ואורך שונה, ושורות שנשמטו מהניתוח (אורך או מיקום לא תקינים)."),
         "qual_aria": f"תרשים עמודות אופקיות: {_int(len(qual))} בדיקות איכות על השורות.",
@@ -371,23 +636,18 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"שכבת הדרכים של באר שבע: {_int(n)} מקטעי קצה אספלט, אבני שפה וקצה דרך, "
-                           f"כ-{total_km:,.0f} ק״מ קווים. צפיפות לפי אזור, אורכי מקטעים ואיכות."),
+            "summary_he": (f"מפת שכבת הדרכים של באר שבע: {_int(n)} מקטעי קצה אספלט, אבני שפה וקצה "
+                           f"דרך, כ-{total_km:,.0f} ק״מ קווים. צפיפות לפי אזור, כיווני רחובות ואיכות."),
             "dataset_kind": "map",
-            "suggested_tags": ["באר שבע", "דרכים", "תשתיות", "מיפוי", "תחבורה"],
             "spatial_coverage": "באר שבע",
-            "related_ids": ["82a30a97-01b0-4281-854c-c7931f3445c0",
-                            "727e865d-25b1-43ce-9dcb-af297851f87b",
-                            "7edbd028-9704-440c-a1b6-a0ed566081bc",
-                            "001c72e3-cead-42ac-ac5c-17287aabf285",
-                            "3c6d4061-41bf-4403-82e9-c8fae5df04dd"],
         },
         "kpis": kpis,
-        "charts": {"len": len_chart, "lorenz": lorenz_chart, "grid": grid_chart,
-                   "cells": cells_chart, "ring": ring_chart, "sec": sec_chart,
-                   "long": long_chart, "qual": qual_chart},
+        "charts": {"len": len_chart, "lorenz": lorenz_chart, "cells": cells_chart,
+                   "ring": ring_chart, "sec": sec_chart, "orient": orient_chart,
+                   "qual": qual_chart,
+                   "map": {"cells": map_cells, "meta": map_meta, "chunks": chunks}},
         "tables": {"len": t_len, "lorenz": t_lorenz, "cells": t_cells, "ring": t_ring,
-                   "sec": t_sec, "qual": t_qual},
+                   "sec": t_sec, "orient": t_orient, "qual": t_qual},
         "insights": insights,
         "labels": labels,
     }

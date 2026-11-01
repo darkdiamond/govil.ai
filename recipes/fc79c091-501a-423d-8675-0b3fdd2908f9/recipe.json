@@ -1,19 +1,20 @@
 {
   "contract_version": 1,
   "dataset_id": "fc79c091-501a-423d-8675-0b3fdd2908f9",
-  "recipe_version": 1,
-  "authored_at": "2026-10-30T00:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T08:30:00Z",
   "authored_against": {
-    "metadata_modified": "2026-10-25T01:01:26.846976+00:00",
-    "rows": { "segments": 90 }
+    "metadata_modified": "2026-11-01T01:01:37.022205+00:00",
+    "rows": { "geo": 90 }
   },
   "inputs": [
     {
-      "name": "segments",
-      "by_id": "f81bd6b4-de24-4c89-b3da-4c52c4d2a37b",
-      "required_columns": ["SHAPE_Leng", "lat", "lon"]
+      "name": "geo",
+      "by_id": "f40db220-6e77-4e91-bb41-38e2ab012103",
+      "map": true,
+      "required_columns": ["SHAPE_Leng"]
     }
   ],
-  "min_insights": 3,
+  "min_insights": 4,
   "lint_allow_numbers": []
 }

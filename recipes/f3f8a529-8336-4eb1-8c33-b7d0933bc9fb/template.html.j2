@@ -37,11 +37,14 @@
   </ul>
 </section>
 
+{% if model.has_map %}
 <section class="card p-5 mb-6">
-  {{ head("map-pin", "מפת המבנים בעיר") }}
+  {{ head("map-pin", "מפת המבנים וצפיפות הבינוי בעיר") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-main" class="h-72 md:h-[420px]"></div>
+  <div id="map-main" class="h-80 md:h-[460px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="list-none p-0 m-0 mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-subtle"></ul>
 </section>
+{% endif %}
 
 <section class="card p-5 mb-6">
   {{ head("database", "שימוש עיקרי במבנים") }}
@@ -191,20 +194,6 @@
   </details>
 </section>
 
-{% if model.has_density %}
-<section class="card p-5 mb-6">
-  {{ head("map-pin", "צפיפות הבינוי בעיר") }}
-  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.density_note }}</p>
-  <div id="chart-density" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.density_aria }}" data-fallback="explorer"></div>
-</section>
-
-<section class="card p-5 mb-6">
-  {{ head("map-pin", "צפיפות הדירות בעיר") }}
-  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.housing_note }}</p>
-  <div id="chart-housing" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.housing_aria }}" data-fallback="explorer"></div>
-</section>
-{% endif %}
-
 <section class="card p-5 mb-6">
   {{ head("database", "הערות על איכות הנתונים") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
@@ -223,21 +212,120 @@
   </details>
 </section>
 
+{%- for chunk in model.map_chunks %}
+<script type="application/json" id="map-s-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-main",
-    resourceId: {{ inputs.buildings[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    popupTitleField: "Used",
-    popupFields: [
-      { field: "Name", label: "שם" },
-      { field: "floors", label: "קומות" },
-      { field: "appartment", label: "דירות" },
-      { field: "Entrances", label: "כניסות" }
-    ]
-  });
+  (function () {
+    var el = document.getElementById("map-main");
+    if (!el || !window.L) { return; }
+    var M = {{ model.map | tojson }};
+    var NS = {{ model.map_chunks | length }};
+    var G = M.grid, S = M.shapes;
+    var ramp = ["#dbe8fb", "#9fc0ee", "#6c9fd8", "#0068f5", "#0b3668"];
+    var bandRamp = ["#c3cfe7", "#9fc0ee", "#6c9fd8", "#3d70b0", "#0068f5", "#0053c4", "#0b3668", "#9a6700", "#dc3545"];
+    function cls(v, br) {
+      for (var i = 0; i < br.length; i++) { if (v <= br[i]) { return ramp[Math.min(i + ramp.length - br.length, ramp.length - 1)]; } }
+      return ramp[ramp.length - 1];
+    }
+    function num(v) { return Number(v).toLocaleString("en-US"); }
+    function popup(title, rows) {
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = title;
+      box.appendChild(t);
+      rows.forEach(function (r) {
+        if (r[1] === "" || r[1] === null) { return; }
+        var d = document.createElement("div");
+        d.textContent = r[0] + ": " + r[1];
+        box.appendChild(d);
+      });
+      return box;
+    }
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    function cell(c) {
+      var la = G.lat0 + c[1] * G.step, lo = G.lon0 + c[0] * G.step;
+      return [[la, lo], [la + G.step, lo + G.step]];
+    }
+    var gB = L.featureGroup(), gA = L.featureGroup();
+    G.cells.forEach(function (c) {
+      var info = popup(M.cell_title, [["מבנים", num(c[2])], ["דירות", num(c[3])]]);
+      L.rectangle(cell(c), { stroke: false, fillColor: cls(c[2], G.breaks), fillOpacity: 0.55 }).bindPopup(info).addTo(gB);
+      L.rectangle(cell(c), { stroke: false, fillColor: cls(c[3], G.breaks_apts), fillOpacity: c[3] > 0 ? 0.55 : 0.08 }).bindPopup(info).addTo(gA);
+    });
+    var ox = S.origin[0], oy = S.origin[1], k = S.scale;
+    function path(flat) {
+      var out = [], x = ox, y = oy;
+      for (var i = 0; i + 1 < flat.length; i += 2) { x += flat[i]; y += flat[i + 1]; out.push([y / k, x / k]); }
+      return out;
+    }
+    var shp = L.featureGroup(), used = {};
+    for (var n = 0; n < NS; n++) {
+      var node = document.getElementById("map-s-" + n);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var c = bandRamp[f[0]] || "#0b3668";
+        used[f[0]] = true;
+        L.polygon(f[7].map(path), { color: c, weight: 1, fillColor: c, fillOpacity: 0.75 })
+          .bindPopup(popup(S.uses[f[1]], [["שם", f[6]], ["קומות", num(f[2])], ["דירות", f[3] > 0 ? num(f[3]) : ""],
+                                          ["כניסות", f[4] > 0 ? num(f[4]) : ""], ["תכסית", num(f[5]) + " מ\"ר"]]))
+          .addTo(shp);
+      });
+    }
+    gB.addTo(map);
+    shp.addTo(map);
+    var base = {};
+    base["מבנים בריבוע"] = gB;
+    base["דירות בריבוע"] = gA;
+    var over = {};
+    over["מבנים גבוהים וגדולים"] = shp;
+    L.control.layers(base, over, { collapsed: window.innerWidth < 640 }).addTo(map);
+    map.fitBounds(M.bounds, { padding: [8, 8] });
+
+    var legend = document.getElementById("map-legend");
+    function item(color, text) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:12px;height:12px;border-radius:2px;background:" + color;
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(text));
+      legend.appendChild(li);
+    }
+    function head(text) {
+      var li = document.createElement("li");
+      li.className = "w-full font-semibold text-ink";
+      li.textContent = text;
+      legend.appendChild(li);
+    }
+    function classes(br, unit) {
+      var lo = 1;
+      br.forEach(function (b, i) {
+        var color = ramp[Math.min(i + ramp.length - br.length, ramp.length - 1)];
+        item(color, (lo === b ? num(b) : num(lo) + "-" + num(b)) + " " + unit);
+        lo = b + 1;
+      });
+    }
+    var showing = "b";
+    function draw() {
+      legend.textContent = "";
+      if (showing === "b") {
+        head("מבנים בריבוע");
+        classes(G.breaks, "מבנים");
+      } else {
+        head("דירות בריבוע");
+        classes(G.breaks_apts, "דירות");
+      }
+      if (map.hasLayer(shp)) {
+        head("מבנים גבוהים וגדולים, לפי קומות");
+        M.bands.forEach(function (b, i) { if (used[i]) { item(bandRamp[i] || "#0b3668", b); } });
+      }
+    }
+    map.on("baselayerchange", function (e) { showing = e.layer === gA ? "a" : "b"; draw(); });
+    map.on("overlayadd overlayremove", draw);
+    draw();
+  })();
 </script>
 
 <script>
@@ -357,26 +445,3 @@
   })();
 </script>
 
-<script>
-  (function () {
-    function heat(id, d, unit, top) {
-      var el = document.getElementById(id);
-      if (!el) { return; }
-      var c = echarts.init(el);
-      c.setOption(window.GovEcharts.option({
-        tooltip: { formatter: function (p) {
-          return "קו אורך " + echarts.format.encodeHTML(d.x[p.value[0]]) + ", קו רוחב " + echarts.format.encodeHTML(d.y[p.value[1]]) + ": " + p.value[2] + " " + unit;
-        } },
-        grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
-        xAxis: { type: "category", data: d.x, splitArea: { show: false }, axisLabel: { interval: 3 } },
-        yAxis: { type: "category", data: d.y, axisLabel: { interval: 3 } },
-        visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal",
-          left: "center", bottom: 0, inRange: { color: ["#f1f7ff", top, "#0b3668"] } },
-        series: [{ type: "heatmap", name: unit, data: d.cells, itemStyle: { borderColor: "#fff", borderWidth: 1 } }]
-      }));
-      window.addEventListener("resize", function () { c.resize(); });
-    }
-    heat("chart-density", {{ model.charts.density | tojson }}, "מבנים", "#0068f5");
-    heat("chart-housing", {{ model.charts.housing | tojson }}, "דירות", "#9a6700");
-  })();
-</script>

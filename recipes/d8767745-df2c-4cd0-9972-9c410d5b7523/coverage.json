@@ -7,5 +7,13 @@
   "main.ROADNAME": "skip: ramp code or street name (blank on 70% of segments); read only to detect exact duplicate rows, searchable in the explorer",
   "main.OID": "skip: constant -1 on every row, no information",
   "main.Shape_Length": "skip: identical to LENGT_M on every row (GIS geometry length)",
-  "resource:60796b58-877e-46f9-9f02-daa79d6aaec5": "skip: XLSX metadata sheet (publisher, contact, version, field list), not a twin of the CSV; no data rows"
+  "resource:60796b58-877e-46f9-9f02-daa79d6aaec5": "skip: XLSX metadata sheet (publisher, contact, version, field list), not a twin of the CSV; no data rows",
+  "geo.ROADNUMBER": "map-main, insight:extent — road number of each drawn segment: the popup title, the road search and the per-road north-south extent",
+  "geo.ROADCLASS": "map-main, chart-lat, insight:north — line colour and the class split of the latitude bands",
+  "geo.LINKTYPE": "map-main, chart-lat — ramps are drawn thin and grey; only numbered-road segments count in the latitude bands",
+  "geo.__geometry": "map-main, chart-lat, insight:extent, insight:north — segment lines (chained per road and simplified for display); lengths and latitudes measured on the unsimplified lines",
+  "geo.ROADNAME": "skip: same as main.ROADNAME (the shapefile carries the CSV's attributes)",
+  "geo.NUM_CHANGE": "skip: same as main.NUM_CHANGE, analysed there",
+  "geo.LENGT_M": "skip: same as main.LENGT_M, analysed there",
+  "geo.Shape_Leng": "skip: identical to LENGT_M (GIS geometry length)"
 }
