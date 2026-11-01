@@ -28,6 +28,7 @@ from services.page_builder.agent_contract import (
 )
 from services.page_builder.recipe import (
     GEOMETRY_COLUMN,
+    MAP_MAX_KB_CEILING,
     Recipe,
     RecipeError,
     RecipeInput,
@@ -492,7 +493,7 @@ def _events_ckan():
     {"snapshot": "geo.geojson", "snapshot_of": {"size": 1}},  # two ways in
     {"columns": ["a"]},
     {"map": False, "map_max_kb": 100},                         # cap without map
-    {"map_max_kb": 50_001},                                    # over the ceiling
+    {"map_max_kb": MAP_MAX_KB_CEILING + 1},                    # over the ceiling
 ])
 def test_map_input_validation(bad):
     spec = {k: v for k, v in {**_map_input(), **bad}.items() if v is not None}
@@ -501,7 +502,8 @@ def test_map_input_validation(bad):
 
 
 def test_map_input_takes_a_city_scale_cap():
-    assert RecipeInput.model_validate({**_map_input(), "map_max_kb": 50_000}).map_max_kb == 50_000
+    spec = {**_map_input(), "map_max_kb": MAP_MAX_KB_CEILING}
+    assert RecipeInput.model_validate(spec).map_max_kb == MAP_MAX_KB_CEILING
 
 
 def test_map_input_resolves_without_datastore():

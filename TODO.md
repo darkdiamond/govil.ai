@@ -96,6 +96,15 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   when the target is preview, and have the preview refresh read provider facts from there.
   (2026-10-30)
 
+- **Big map layers convert in the builder's memory, uncapped.** `_fetch_map_input` holds the raw
+  download, the feature list, each tolerance pass, the serialized body and a re-parsed copy
+  (`json.loads(body)`) at once: ~25x the result in peak RSS (540 MB for the 22.7 MB roads layer).
+  A layer near the 50 MB `map_max_kb` ceiling would take ~1.2 GB beside a 3 GB compute in the
+  4Gi job. `build_snapshot` also re-serializes every feature per tolerance step (up to 8 passes).
+  Fix: have `build_snapshot` return the simplified features with the bytes (no re-parse), pick
+  the tolerance from a size estimate instead of the full ladder, and free the raw features
+  before compute. (2026-11-01)
+
 ## Tags, related datasets and list pages
 
 - **Topic hub pages.** Topics exist only as sections of `/tags/` (and a broad tag per topic,
