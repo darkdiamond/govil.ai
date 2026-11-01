@@ -5,7 +5,7 @@ optional name, footprint area/perimeter and the footprint polygon itself
 (`__geometry`, WGS84).
 
 v2 reads the real polygons. 26k footprints are far too many for a page, so the
-map ships (a) every building aggregated into ~250 m grid cells (counts and
+map ships (a) every building aggregated into 0.0025° grid cells (counts and
 apartments) and (b) the real outlines of a capped, deterministic subset: the
 multi-storey buildings and the largest footprints. All statistics use every
 feature.
@@ -37,7 +37,7 @@ ENT_MAX = 6                   # entrances histogram: 0..5 and "6 ומעלה"
 HIGH_FLOORS = 5               # "multi-storey" threshold for the stock insight
 TOWER_FLOORS = 20             # "tower" threshold
 TINY_AREA = 10.0              # m², footprints this small are kiosks/shafts/garbage
-GRID_STEP = 0.0025            # degrees (~250 m) for the density grid on the map
+GRID_STEP = 0.0025            # degrees: ~280 m N-S x ~240 m E-W at Be'er Sheva's latitude
 MAX_GRID = 60                 # cells per axis; the step doubles beyond this
 SHAPE_FLOORS = 5              # outlines drawn for buildings this tall ...
 SHAPE_AREA = 2000.0           # ... or with a footprint this large (m²)
@@ -518,7 +518,11 @@ def compute(frames):
         bounds = []
     step = grid["step"]
     cells_n = len(grid["cells"])
-    step_m = int(round(step * 111320 / 50.0) * 50)
+    # a cell is `step` degrees on both axes, so narrower east-west; label it by
+    # the side of the square with the same area, rounded to 50 m
+    lat_mid = float(geo["latf"].median()) if len(geo) else 31.25
+    side_m = step * 111320 * math.sqrt(math.cos(math.radians(lat_mid)))
+    step_m = int(round(side_m / 50.0) * 50)
     band_names = [_band_label(lo, hi, "קומה", "קומות") for lo, hi in FLOOR_BANDS]
 
     # ---- data notes

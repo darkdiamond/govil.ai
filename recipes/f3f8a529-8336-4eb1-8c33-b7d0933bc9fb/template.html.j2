@@ -41,7 +41,7 @@
 <section class="card p-5 mb-6">
   {{ head("map-pin", "מפת המבנים וצפיפות הבינוי בעיר") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-main" class="h-80 md:h-[460px] rounded-gov" role="img" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <div id="map-main" class="h-80 md:h-[460px] rounded-gov" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
   <ul id="map-legend" class="list-none p-0 m-0 mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-subtle"></ul>
 </section>
 {% endif %}
@@ -293,7 +293,38 @@
       li.appendChild(document.createTextNode(text));
       legend.appendChild(li);
     }
-    M.bands.forEach(function (b, i) { if (used[i]) { item(bandRamp[i] || "#0b3668", b); } });
+    function head(text) {
+      var li = document.createElement("li");
+      li.className = "w-full font-semibold text-ink";
+      li.textContent = text;
+      legend.appendChild(li);
+    }
+    function classes(br, unit) {
+      var lo = 1;
+      br.forEach(function (b, i) {
+        var color = ramp[Math.min(i + ramp.length - br.length, ramp.length - 1)];
+        item(color, (lo === b ? num(b) : num(lo) + "-" + num(b)) + " " + unit);
+        lo = b + 1;
+      });
+    }
+    var showing = "b";
+    function draw() {
+      legend.textContent = "";
+      if (showing === "b") {
+        head("מבנים בריבוע");
+        classes(G.breaks, "מבנים");
+      } else {
+        head("דירות בריבוע");
+        classes(G.breaks_apts, "דירות");
+      }
+      if (map.hasLayer(shp)) {
+        head("מבנים גבוהים וגדולים, לפי קומות");
+        M.bands.forEach(function (b, i) { if (used[i]) { item(bandRamp[i] || "#0b3668", b); } });
+      }
+    }
+    map.on("baselayerchange", function (e) { showing = e.layer === gA ? "a" : "b"; draw(); });
+    map.on("overlayadd overlayremove", draw);
+    draw();
   })();
 </script>
 
