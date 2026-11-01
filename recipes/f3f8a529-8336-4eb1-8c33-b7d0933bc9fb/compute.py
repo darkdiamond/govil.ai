@@ -1,6 +1,14 @@
-"""מבנים בבאר שבע — one row per building footprint drawn by the municipality's
-GIS layer: primary use, floors, entrances, apartments, non-residential units,
-an optional name, footprint area/perimeter and a WGS84 centroid.
+"""Buildings of Be'er Sheva: one row per building footprint in the
+municipality's GIS layer, read from the uploaded GeoJSON map file (`map: true`
+input): primary use, floors, entrances, apartments, non-residential units, an
+optional name, footprint area/perimeter and the footprint polygon itself
+(`__geometry`, WGS84).
+
+v2 reads the real polygons. 26k footprints are far too many for a page, so the
+map ships (a) every building aggregated into ~250 m grid cells (counts and
+apartments) and (b) the real outlines of a capped, deterministic subset: the
+multi-storey buildings and the largest footprints. All statistics use every
+feature.
 
 The layer is a snapshot of the city's building stock (no dates), so the page is
 about composition: what the buildings are used for, how tall they are, where
@@ -9,6 +17,7 @@ Exact duplicate rows are dropped (disclosed). Every aggregate is an integer
 count or a rounded sum over rows sorted by every column, so the output does not
 depend on row order.
 """
+import json
 import math
 
 import numpy as np
@@ -28,8 +37,15 @@ ENT_MAX = 6                   # entrances histogram: 0..5 and "6 ומעלה"
 HIGH_FLOORS = 5               # "multi-storey" threshold for the stock insight
 TOWER_FLOORS = 20             # "tower" threshold
 TINY_AREA = 10.0              # m², footprints this small are kiosks/shafts/garbage
-GRID_STEP = 0.005             # degrees (~500 m) for the density grids
-MAX_GRID = 40
+GRID_STEP = 0.0025            # degrees (~250 m) for the density grid on the map
+MAX_GRID = 60                 # cells per axis; the step doubles beyond this
+SHAPE_FLOORS = 5              # outlines drawn for buildings this tall ...
+SHAPE_AREA = 2000.0           # ... or with a footprint this large (m²)
+MAX_SHAPES = 1800             # cap on drawn outlines (tallest, then largest first)
+SCALE = 100000                # coordinate integers: 1e-5° (~1 m), delta-encoded
+SIMPLIFY = 1.5                # outline simplification tolerance, in 1e-5° units (~1.5 m)
+CHUNK_BYTES = 38_000          # each JSON island stays well under the 50KB block cap
+N_CLASSES = 5                 # colour classes for the grid cells
 STOCK_GAP_PTS = 0.10          # apartments share must beat buildings share by this
 SINGLE_MIN = 0.30             # single-apartment share worth a sentence
 AREA_RATIO = 1.5              # footprint share / count share worth a sentence
@@ -73,8 +89,7 @@ def _prepare(df):
         "ent": _num(df["Entrances"]),
         "nonres": _num(df["Not_reside"]),
         "area": _num(df["Shape_Area"]),
-        "latf": _num(df["lat"]),
-        "lonf": _num(df["lon"]),
+        "geom": df["__geometry"].astype(str),
     })
     out["use"] = out["use"].where(out["use"] != "", "ללא שימוש מוגדר")
     for c in ("floors", "apts", "ent", "nonres"):
@@ -84,9 +99,113 @@ def _prepare(df):
     n_raw = len(out)
     out = out.drop_duplicates().reset_index(drop=True)
     n_dup = n_raw - len(out)
+    rings = [_rings(g) for g in out["geom"]]
+    cen = [_centroid(r) for r in rings]
+    out["rings"] = rings
+    out["lonf"] = [c[0] for c in cen]
+    out["latf"] = [c[1] for c in cen]
     out["geo"] = out["latf"].between(*LAT_RANGE) & out["lonf"].between(*LON_RANGE)
     out["res"] = out["use"].str.contains(RES_KEY, regex=False)
     return out, n_dup
+
+
+def _rings(text):
+    """Outer rings of a Polygon / MultiPolygon (holes are not drawn)."""
+    try:
+        g = json.loads(text)
+    except ValueError:
+        return []
+    if not isinstance(g, dict):
+        return []
+    c = g.get("coordinates") or []
+    if g.get("type") == "Polygon":
+        polys = [c]
+    elif g.get("type") == "MultiPolygon":
+        polys = c
+    else:
+        return []
+    out = []
+    for poly in polys:
+        if poly and len(poly[0]) >= 3:
+            out.append([(float(p[0]), float(p[1])) for p in poly[0]])
+    return out
+
+
+def _centroid(rings):
+    pts = [p for r in rings for p in (r[:-1] if len(r) > 1 and r[0] == r[-1] else r)]
+    if not pts:
+        return (float("nan"), float("nan"))
+    return (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+
+
+def _dp(pts, tol):
+    """Douglas-Peucker on integer points; keeps the ring's first/last point."""
+    if len(pts) < 5:
+        return pts
+    keep = [False] * len(pts)
+    keep[0] = keep[-1] = True
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        i, j = stack.pop()
+        (x1, y1), (x2, y2) = pts[i], pts[j]
+        dx, dy = x2 - x1, y2 - y1
+        norm = math.hypot(dx, dy)
+        best, idx = 0.0, None
+        for k in range(i + 1, j):
+            x, y = pts[k]
+            d = (math.hypot(x - x1, y - y1) if norm == 0
+                 else abs(dy * x - dx * y + x2 * y1 - y2 * x1) / norm)
+            if d > best:
+                best, idx = d, k
+        if idx is not None and best > tol:
+            keep[idx] = True
+            stack += [(i, idx), (idx, j)]
+    out = [p for p, k in zip(pts, keep) if k]
+    return out if len(out) >= 4 else pts
+
+
+def _encode(rings, ox, oy):
+    """Rings as flat integer deltas from the map origin, 1e-5° units."""
+    out = []
+    for r in rings:
+        pts = []
+        for lon, lat in r:
+            p = (int(round(lon * SCALE)), int(round(lat * SCALE)))
+            if not pts or p != pts[-1]:
+                pts.append(p)
+        flat, px, py = [], ox, oy
+        for x, y in _dp(pts, SIMPLIFY):
+            flat += [x - px, y - py]
+            px, py = x, y
+        out.append(flat)
+    return out
+
+
+def _chunks(items):
+    chunks, cur, size = [], [], 0
+    for f in items:
+        n = len(json.dumps(f)) + 2   # as the template's tojson writes it
+        if cur and size + n > CHUNK_BYTES:
+            chunks.append(cur)
+            cur, size = [], 0
+        cur.append(f)
+        size += n
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+def _breaks(values):
+    """Upper bounds of N_CLASSES quantile classes (distinct, ascending)."""
+    v = sorted(int(x) for x in values if x > 0)
+    if not v:
+        return [0]
+    out = []
+    for i in range(1, N_CLASSES + 1):
+        b = v[min(len(v) - 1, int(math.ceil(i * len(v) / N_CLASSES)) - 1)]
+        if not out or b > out[-1]:
+            out.append(b)
+    return out
 
 
 def _ranked(series):
@@ -94,26 +213,54 @@ def _ranked(series):
     return vc.sort_index().sort_values(ascending=False, kind="stable")
 
 
-def _grid(df, weight=None):
+def _grid(df):
+    """Every building in a ~GRID_STEP cell grid: [ix, iy, buildings, apartments]."""
     lat, lon = df["latf"].to_numpy(), df["lonf"].to_numpy()
     step = GRID_STEP
     while (math.ceil((lat.max() - lat.min()) / step) + 1 > MAX_GRID
            or math.ceil((lon.max() - lon.min()) / step) + 1 > MAX_GRID):
         step *= 2
-    la0, lo0 = math.floor(lat.min() / step) * step, math.floor(lon.min() / step) * step
+    la0 = math.floor(lat.min() / step) * step
+    lo0 = math.floor(lon.min() / step) * step
     iy = np.floor((lat - la0) / step + 1e-9).astype(int)
     ix = np.floor((lon - lo0) / step + 1e-9).astype(int)
     ny, nx = int(iy.max()) + 1, int(ix.max()) + 1
-    w = np.ones(len(lat), dtype=int) if weight is None else df[weight].to_numpy().astype(int)
-    counts = np.zeros((ny, nx), dtype=int)
-    np.add.at(counts, (iy, ix), w)
-    xs = [f"{lo0 + i * step:.3f}" for i in range(nx)]
-    ys = [f"{la0 + j * step:.3f}" for j in range(ny)]
-    cells = [[i, ny - 1 - j, int(counts[j, i])] for j in range(ny) for i in range(nx) if counts[j, i]]
-    best = 0
-    for c in cells:
-        best = max(best, c[2])
-    return {"x": xs, "y": ys[::-1], "cells": cells, "max": best}, step, int((counts > 0).sum())
+    cnt = np.zeros((ny, nx), dtype=int)
+    apt = np.zeros((ny, nx), dtype=int)
+    np.add.at(cnt, (iy, ix), 1)
+    np.add.at(apt, (iy, ix), df["apts"].to_numpy().astype(int))
+    cells = [[i, j, int(cnt[j, i]), int(apt[j, i])]
+             for j in range(ny) for i in range(nx) if cnt[j, i]]
+    return {"lat0": round(la0, 6), "lon0": round(lo0, 6), "step": step, "cells": cells,
+            "max": int(cnt.max()), "max_apts": int(apt.max()),
+            "breaks": _breaks(cnt.ravel()), "breaks_apts": _breaks(apt.ravel())}
+
+
+def _band_of(floors):
+    for i, (lo, hi) in enumerate(FLOOR_BANDS):
+        if floors >= lo and (hi is None or floors <= hi):
+            return i
+    return 0
+
+
+def _shapes(geo):
+    """Real outlines of the tallest / largest buildings, capped and sorted."""
+    pick = geo[(geo["floors"] >= SHAPE_FLOORS) | (geo["area"] >= SHAPE_AREA)]
+    pick = pick[pick["rings"].map(len) > 0]
+    n_pick = len(pick)
+    pick = pick.sort_values(["floors", "area", "latf", "lonf", "use", "name", "apts", "ent", "geom"],
+                            ascending=[False, False, True, True, True, True, True, True, True],
+                            kind="stable").head(MAX_SHAPES)
+    ox = int(math.floor(geo["lonf"].min() * SCALE)) - 100
+    oy = int(math.floor(geo["latf"].min() * SCALE)) - 100
+    uses = sorted(set(pick["use"]))
+    uidx = {u: i for i, u in enumerate(uses)}
+    feats = []
+    for r in pick.itertuples(index=False):
+        feats.append([_band_of(int(r.floors)), uidx[r.use], int(r.floors), int(r.apts), int(r.ent),
+                      int(round(r.area)), r.name, _encode(r.rings, ox, oy)])
+    return {"origin": [ox, oy], "scale": SCALE, "uses": uses, "chunks": _chunks(feats),
+            "n": len(feats), "eligible": n_pick}
 
 
 # ---------------------------------------------------------------- insights
@@ -218,7 +365,7 @@ def insight_named(df):
 def insight_quality(n_dup, n_tiny, n_zero, total):
     parts = []
     if n_dup:
-        parts.append("שורה כפולה אחת הוסרה" if n_dup == 1 else f"{_int(n_dup)} שורות כפולות הוסרו")
+        parts.append("מבנה כפול אחד הוסר" if n_dup == 1 else f"{_int(n_dup)} מבנים כפולים (אותה צורה ואותם נתונים) הוסרו")
     if n_tiny / max(total, 1) >= GAP_MIN_SHARE:
         parts.append(f"{_int(n_tiny)} מבנים עם תכסית קטנה מ-{_int(TINY_AREA)} מ\"ר (מחסנים, תאים ופירים)")
     if n_zero:
@@ -355,24 +502,32 @@ def compute(frames):
     units_all = int(df["nonres"].sum())
     t_units = [{"name": n, "count": _int(v), "share": _pct(v / units_all, 1)} for n, v in zip(un_names, un_vals)]
 
-    # ---- density grids
+    # ---- map: aggregated grid of every building + capped real outlines
     geo = df[df["geo"]]
     n_nogeo = total - len(geo)
     if len(geo):
-        g_b, step, cells_n = _grid(geo)
-        g_a, _, _ = _grid(geo, "apts")
+        grid = _grid(geo)
+        shapes = _shapes(geo)
+        ring_x = [p[0] for rs in geo["rings"] for r in rs for p in r] or geo["lonf"].tolist()
+        ring_y = [p[1] for rs in geo["rings"] for r in rs for p in r] or geo["latf"].tolist()
+        bounds = [[min(ring_y), min(ring_x)], [max(ring_y), max(ring_x)]]
     else:
-        g_b = g_a = {"x": [], "y": [], "cells": [], "max": 0}
-        step, cells_n = GRID_STEP, 0
+        grid = {"lat0": 0, "lon0": 0, "step": GRID_STEP, "cells": [], "max": 0, "max_apts": 0,
+                "breaks": [0], "breaks_apts": [0]}
+        shapes = {"origin": [0, 0], "scale": SCALE, "uses": [], "chunks": [], "n": 0, "eligible": 0}
+        bounds = []
+    step = grid["step"]
+    cells_n = len(grid["cells"])
     step_m = int(round(step * 111320 / 50.0) * 50)
+    band_names = [_band_label(lo, hi, "קומה", "קומות") for lo, hi in FLOOR_BANDS]
 
     # ---- data notes
     n_tiny = int((df["area"] < TINY_AREA).sum())
     n_zero = int((df["floors"] == 0).sum())
     n_nonres_apts = int(((~df["res"]) & (df["apts"] > 0)).sum())
-    quality = [("שורות כפולות שהוסרו", n_dup), (f"תכסית קטנה מ-{_int(TINY_AREA)} מ\"ר", n_tiny),
+    quality = [("מבנים כפולים שהוסרו", n_dup), (f"תכסית קטנה מ-{_int(TINY_AREA)} מ\"ר", n_tiny),
                ("אפס קומות", n_zero), ("מבנה שאינו למגורים עם דירות", n_nonres_apts),
-               ("בלי קואורדינטות תקינות", n_nogeo)]
+               ("בלי צורה גאוגרפית תקינה", n_nogeo)]
     quality = sorted([r for r in quality if r[1] > 0], key=lambda r: (-r[1], r[0]))
     quality_chart = {"names": [n for n, _ in quality], "values": [v for _, v in quality]}
     t_quality = [{"name": n, "count": _int(v)} for n, v in quality]
@@ -385,7 +540,7 @@ def compute(frames):
         ("area-gap", insight_area_gap(area_rows)),
         ("tallest", insight_tallest(df)),
         ("units", insight_units(df)),
-        ("density", insight_density(g_b, step_m, cells_n, len(geo))),
+        ("density", insight_density(grid, step_m, cells_n, len(geo))),
         ("entrances", insight_entrances(df)),
         ("named", insight_named(df)),
         ("quality", insight_quality(n_dup, n_tiny, n_zero, total)),
@@ -405,15 +560,13 @@ def compute(frames):
                       "label": "שטח תכסית בנוי (אלפי מ\"ר)"},
     }
 
-    dup_note = (" שורה כפולה אחת הוסרה מהספירה." if n_dup == 1
-                else f" {_int(n_dup)} שורות כפולות הוסרו מהספירה." if n_dup else "")
+    dup_note = (" מבנה כפול אחד (אותה צורה ואותם נתונים) הוסר מהספירה." if n_dup == 1
+                else f" {_int(n_dup)} מבנים כפולים (אותה צורה ואותם נתונים) הוסרו מהספירה." if n_dup else "")
     labels = {
         "lede": (f"שכבת המבנים של עיריית באר שבע: {_int(total)} מבנים ברחבי העיר, לכל אחד שימוש עיקרי, "
-                 f"מספר קומות, כניסות ודירות, שטח תכסית ונקודה על המפה. בסך הכול {_int(apts_all)} דירות "
+                 f"מספר קומות, כניסות ודירות, שטח תכסית וקו מתאר על המפה. בסך הכול {_int(apts_all)} דירות "
                  f"ו-{_int(units_all)} יחידות שאינן למגורים. התיחום אינדיקטיבי ואינו מחליף מדידה.{dup_note}"),
         "lookup_sub": "חיפוש חי בכל רשומות השכבה: שימוש עיקרי, שם המבנה, קומות, כניסות ודירות",
-        "map_note": (f"כל המבנים על המפה לפי נקודת המרכז שלהם. לחצו על אשכול כדי להתקרב, ועל סמן כדי לראות "
-                     f"שימוש, קומות ודירות."),
         "use_note": (f"מספר המבנים לפי השימוש העיקרי. {_int(len(uses))} סוגי שימוש שונים בשכבה; "
                      f"{_int(len(top))} הנפוצים מוצגים, והשאר מקובצים."),
         "use_aria": f"תרשים עמודות אופקי: מבנים לפי שימוש עיקרי, {len(u_names)} קבוצות.",
@@ -447,12 +600,15 @@ def compute(frames):
                        f"סך הכול {_int(units_all)} יחידות."),
         "units_aria": f"תרשים עמודות אופקי: יחידות שאינן למגורים לפי שימוש, {len(un_names)} קבוצות.",
         "units_caption": "יחידות שאינן למגורים לפי שימוש המבנה.",
-        "density_note": (f"מפת חום של מספר המבנים בריבועים של כ-{_int(step_m)} מטרים. הצפון למעלה; "
-                         f"הכהים צפופים יותר."),
-        "density_aria": f"מפת חום: מבנים ב-{_int(cells_n)} ריבועים.",
-        "housing_note": (f"אותה רשת, הפעם לפי מספר הדירות בכל ריבוע: כאן רואים איפה מתגוררים, "
-                         f"לא רק איפה בנוי. בריבוע הצפוף ביותר {_int(g_a['max'])} דירות."),
-        "housing_aria": f"מפת חום: דירות ב-{_int(cells_n)} ריבועים.",
+        "map_note": (f"כל {_int(len(geo))} המבנים מקובצים בריבועים של כ-{_int(step_m)} מטרים: "
+                     f"ככל שהריבוע כהה יותר, יש בו יותר מבנים. בשכבה \"דירות בריבוע\" הצבע לפי מספר הדירות. "
+                     f"בשכבה \"מבנים גבוהים וגדולים\" מצוירים קווי המתאר האמיתיים של "
+                     f"{_int(shapes['n'])} מבנים, בני {_int(SHAPE_FLOORS)} קומות ומעלה או עם תכסית של "
+                     f"{_int(SHAPE_AREA)} מ\"ר ומעלה, בצבע לפי מספר הקומות."
+                     + (f" מתוך {_int(shapes['eligible'])} מבנים כאלה מוצגים {_int(shapes['n'])}, "
+                        f"הגבוהים והגדולים ביותר." if shapes["eligible"] > shapes["n"] else "")
+                     + " לחצו על ריבוע או על מבנה לפרטים."),
+        "map_aria": (f"מפת באר שבע: {_int(cells_n)} ריבועי צפיפות ו-{_int(shapes['n'])} קווי מתאר של מבנים."),
         "quality_note": "רשומות חריגות בשכבה. ככל שהעמודה קצרה, הנתונים נקיים יותר.",
         "quality_aria": f"תרשים עמודות אופקי: {len(quality)} סוגי חריגות.",
         "quality_caption": "מספר הרשומות לפי סוג החריגה.",
@@ -463,26 +619,24 @@ def compute(frames):
             "summary_he": (f"איתור מבנים בבאר שבע לפי שימוש, קומות ודירות: {_int(total)} מבנים "
                            f"ו-{_int(apts_all)} דירות על מפה, עם גובה, תכסית וצפיפות."),
             "dataset_kind": "map",
-            "suggested_tags": ["מבנים", "באר שבע", "תכנון עיר", "דיור", "שימושי קרקע", "GIS"],
             "spatial_coverage": "באר שבע",
-            "related_ids": ["3c6d4061-41bf-4403-82e9-c8fae5df04dd",
-                            "82a30a97-01b0-4281-854c-c7931f3445c0",
-                            "947814b2-f2a8-4f4b-a8ec-a5f4bd2f0abe",
-                            "bdf28cc0-680a-415c-af64-944a58079b2f",
-                            "5944b454-751c-4604-94d6-e676d7d34612"],
         },
         "kpis": kpis,
         "charts": {"use": {"names": u_names, "values": u_vals}, "area": area_chart,
                    "floors": floors_chart, "stock": stock_chart, "apts": apt_chart,
                    "box": box_chart, "ent": {"names": ent_names, "values": ent_vals},
                    "units": {"names": un_names, "values": un_vals},
-                   "density": g_b, "housing": g_a, "quality": quality_chart},
+                   "quality": quality_chart},
         "tables": {"use": t_use, "area": t_area, "floors": t_floors, "stock": t_stock,
                    "apts": t_apts, "box": t_box, "ent": t_ent, "units": t_units,
                    "quality": t_quality},
         "insights": insights,
         "has_units": bool(un_vals),
         "has_box": bool(box_rows),
-        "has_density": bool(g_b["cells"]),
+        "has_map": bool(grid["cells"]),
+        "map": {"grid": grid, "shapes": {k: v for k, v in shapes.items() if k != "chunks"},
+                "bounds": bounds, "bands": band_names,
+                "cell_title": f"ריבוע של כ-{_int(step_m)} מטרים"},
+        "map_chunks": shapes["chunks"],
         "labels": labels,
     }

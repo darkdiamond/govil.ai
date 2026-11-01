@@ -35,8 +35,8 @@
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-{%- for key in ["total_km", "segments", "median", "long_share"] %}
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+{%- for key in ["total_km", "segments", "stretches", "big_km", "median", "long_share"] %}
   <div class="card p-4 text-center">
     <div class="text-3xl font-bold text-{{ model.kpis[key].tone }} mb-1" dir="ltr">{{ model.kpis[key].display }}</div>
     <div class="text-sm text-subtle">{{ model.kpis[key].label }}</div>
@@ -62,8 +62,24 @@
     <h2 class="m-0 text-lg font-semibold text-ink-deep">מפת שבילי האופניים</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
-  <div id="map-segments" class="h-72 md:h-[420px]"></div>
+  <div class="flex flex-wrap gap-2 mb-3" id="map-mode" role="group" aria-label="צביעת המפה">
+    <button type="button" class="px-3 py-1 rounded-gov-pill border border-rule text-sm" data-mode="band" aria-pressed="true">לפי אורך הקטע</button>
+    <button type="button" class="px-3 py-1 rounded-gov-pill border border-rule text-sm" data-mode="comp" aria-pressed="false">לפי רצף מחובר</button>
+  </div>
+  <div id="map-segments" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="legend-band" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for t in model.charts.map.bands %}
+    <li class="flex items-center gap-2"><span class="map-swatch" data-i="{{ loop.index0 }}" style="display:inline-block;width:24px;height:4px;border-radius:2px"></span>{{ t.name }} ({{ t.km }} ק״מ)</li>
+{%- endfor %}
+  </ul>
+  <ul id="legend-comp" hidden class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+{%- for t in model.charts.map.comps %}
+    <li class="flex items-center gap-2"><span class="map-swatch" data-i="{{ loop.index0 }}" style="display:inline-block;width:24px;height:4px;border-radius:2px"></span>{{ t.name }} ({{ t.km }} ק״מ)</li>
+{%- endfor %}
+  </ul>
 </section>
+
+{{ chart_section("chart-stretches", "list", "רצפים מחוברים: כמה מהרשת רציפה", model.labels.stretches_note, model.labels.stretches_aria, model.labels.stretches_cap, model.tables.stretches, "h-80 md:h-[460px]") }}
 
 {{ chart_section("chart-bands", "list", "קטעים לפי אורך", model.labels.bands_note, model.labels.bands_aria, model.labels.bands_cap, model.tables.bands) }}
 
@@ -93,16 +109,76 @@
   <div id="chart-scatter" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}"></div>
 </section>
 
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-lines-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
 <script>
-  GovMap.create({
-    container: "#map-segments",
-    resourceId: {{ inputs.segments[0].id | tojson }},
-    latField: "lat",
-    lngField: "lon",
-    projection: "wgs84",
-    cluster: false,
-    popupFields: [{ field: "SHAPE_Leng", label: "אורך הקטע (מ׳)" }]
-  });
+  (function () {
+    var el = document.getElementById("map-segments");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "bounds": model.charts.map.bounds, "bands": model.charts.map.band_names, "k": model.charts.map.colored} | tojson }};
+    var BAND = ["#9ec5fe", "#6ea8fe", "#3d8bfd", "#0068f5", "#0053c4", "#0b3668"];
+    var P = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#198754", "#dc3545", "#ffc107", "#0dcaf0"];
+    var REST = "#adb5bd";
+    var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+    var colorOf = function (mode, f) {
+      if (mode === "band") { return BAND[Math.min(f[0], BAND.length - 1)]; }
+      return f[1] < meta.k && f[1] < P.length ? P[f[1]] : REST;
+    };
+    document.querySelectorAll("#legend-band .map-swatch").forEach(function (sw) {
+      sw.style.background = BAND[Math.min(Number(sw.getAttribute("data-i")), BAND.length - 1)];
+    });
+    document.querySelectorAll("#legend-comp .map-swatch").forEach(function (sw) {
+      var i = Number(sw.getAttribute("data-i"));
+      sw.style.background = i < meta.k && i < P.length ? P[i] : REST;
+    });
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    function decode(flat) {
+      var out = [], x = 0, y = 0;
+      for (var i = 0; i < flat.length; i += 2) {
+        x += flat[i]; y += flat[i + 1];
+        out.push([y / 1e5, x / 1e5]);
+      }
+      return out;
+    }
+    var lines = [];
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("map-lines-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        var line = L.polyline(decode(f[7]), { color: colorOf("band", f), weight: 4, opacity: 0.9 }).addTo(map);
+        line.bindPopup(function () {
+          var box = document.createElement("div");
+          var title = document.createElement("strong");
+          title.textContent = "קטע #" + f[3];
+          box.appendChild(title);
+          [["אורך", fmt(f[2]) + " מ׳"], ["טווח אורך", meta.bands[f[0]] || ""], ["רצף מחובר", "#" + f[4] + ": " + fmt(f[5]) + " ק״מ, " + fmt(f[6]) + " קטעים"]].forEach(function (row) {
+            var d = document.createElement("div");
+            d.textContent = row[0] + ": " + row[1];
+            box.appendChild(d);
+          });
+          return box;
+        });
+        lines.push([line, f]);
+      });
+    }
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    var btns = document.querySelectorAll("#map-mode button");
+    function setMode(mode) {
+      lines.forEach(function (lf) { lf[0].setStyle({ color: colorOf(mode, lf[1]) }); });
+      document.getElementById("legend-band").hidden = mode !== "band";
+      document.getElementById("legend-comp").hidden = mode !== "comp";
+      btns.forEach(function (b) {
+        var on = b.getAttribute("data-mode") === mode;
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+        b.classList.toggle("bg-brand", on);
+        b.classList.toggle("text-white", on);
+      });
+    }
+    btns.forEach(function (b) { b.addEventListener("click", function () { setMode(b.getAttribute("data-mode")); }); });
+    setMode("band");
+  })();
 </script>
 
 <script>
@@ -116,6 +192,22 @@
     }
     window.__bsMk = mk;
     window.__bsFmt = function (v) { return Number(v).toLocaleString("he-IL"); };
+  })();
+</script>
+
+<script>
+  (function () {
+    var B = {{ model.charts.stretches | tojson }};
+    var c = window.__bsMk("chart-stretches");
+    if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return window.__bsFmt(v) + " ק״מ"; } },
+      grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 4 },
+      yAxis: { type: "category", data: B.names.slice().reverse(), axisLabel: { width: 150, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "אורך הרצף", data: B.values.slice().reverse() }]
+    }));
   })();
 </script>
 
@@ -224,7 +316,7 @@
     c.setOption(window.GovEcharts.option({
       tooltip: { trigger: "item", formatter: function (p) {
         var v = p.value;
-        return G.y[v[1]] + ", " + G.x[v[0]] + "<br>" + window.__bsFmt(v[2]) + " ק״מ, " + window.__bsFmt(v[3]) + " קטעים";
+        return echarts.format.encodeHTML(G.y[v[1]] + ", " + G.x[v[0]]) + "<br>" + window.__bsFmt(v[2]) + " ק״מ, " + window.__bsFmt(v[3]) + " קטעים";
       } },
       grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
       xAxis: { type: "category", data: G.x, splitArea: { show: true }, axisLabel: { fontSize: 10, rotate: 45 } },

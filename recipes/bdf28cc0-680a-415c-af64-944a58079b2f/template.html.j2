@@ -30,6 +30,17 @@
 </section>
 
 <section class="card p-5 mb-6">
+  {{ head("map-pin", "מפת קווי הדרך: צפיפות והמקטעים הארוכים") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.labels.map_note }}</p>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.geo_note }}</p>
+  <div id="map-roads" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle">
+    <li class="flex items-center gap-2"><span class="inline-block w-12 h-3 rounded-gov-sm" style="background:linear-gradient(to left,#0053c4,#9ec5fe,#f1f7ff)"></span>ק״מ קווים במשבצת (כהה יותר: צפוף יותר)</li>
+    <li class="flex items-center gap-2"><span class="inline-block w-6 h-1 rounded-gov-sm" style="background:#0c3058"></span>מקטע ארוך, בקו האמיתי שלו</li>
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
   {{ head("database", "אורכי המקטעים") }}
   <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.len_note }}</p>
   <div id="chart-len" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.len_aria }}"></div>
@@ -63,13 +74,6 @@
       </tbody>
     </table>
   </details>
-</section>
-
-<section class="card p-5 mb-6">
-  {{ head("map-pin", "צפיפות קווי הדרך לפי אזור") }}
-  <p class="m-0 text-sm text-subtle mb-2">{{ model.labels.grid_note }}</p>
-  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.geo_note }}</p>
-  <div id="chart-grid" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.grid_aria }}" data-fallback="explorer"></div>
 </section>
 
 <section class="card p-5 mb-6">
@@ -145,9 +149,21 @@
 </section>
 
 <section class="card p-5 mb-6">
-  {{ head("map-pin", "המקטעים הארוכים: שלד הצירים הראשיים") }}
-  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.long_note }}</p>
-  <div id="chart-long" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.long_aria }}" data-fallback="explorer"></div>
+  {{ head("map-pin", "לאן פונים הרחובות: כיוון קווי הדרך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orient_note }}</p>
+  <div id="chart-orient" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.orient_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.orient_caption }}</caption>
+      <thead><tr><th scope="col">זווית מהצפון (מעלות)</th><th scope="col">ציר</th><th scope="col">ק״מ קווים</th><th scope="col">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.orient %}
+        <tr><th scope="row" dir="ltr">{{ r.name }}</th><td>{{ r.axis }}</td><td>{{ r.km }}</td><td>{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
 </section>
 
 <section class="card p-5 mb-6">
@@ -234,24 +250,6 @@
   })();
 </script>
 
-<script>
-  (function () {
-    var g = {{ model.charts.grid | tojson }};
-    var el = document.getElementById("chart-grid");
-    if (!el) { return; }
-    var c = echarts.init(el);
-    c.setOption(window.GovEcharts.option({
-      tooltip: { position: "top", formatter: function (p) { return p.data[2] + " ק״מ קווים, " + p.data[3] + " מקטעים"; } },
-      grid: { left: 8, right: 16, top: 16, bottom: 72, containLabel: true },
-      xAxis: { type: "category", data: g.x, splitArea: { show: true }, name: "ק״מ ממערב", nameLocation: "middle", nameGap: 28 },
-      yAxis: { type: "category", data: g.y, splitArea: { show: true }, name: "ק״מ מדרום" },
-      visualMap: { min: 0, max: g.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0,
-                   inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] } },
-      series: [{ type: "heatmap", name: "ק״מ קווים", data: g.data, label: { show: false } }]
-    }));
-    window.addEventListener("resize", function () { c.resize(); });
-  })();
-</script>
 
 <script>
   (function () {
@@ -312,19 +310,77 @@
 
 <script>
   (function () {
-    var d = {{ model.charts.long | tojson }};
-    var el = document.getElementById("chart-long");
+    var d = {{ model.charts.orient | tojson }};
+    var el = document.getElementById("chart-orient");
     if (!el) { return; }
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "item", formatter: function (p) { return p.data[2].toLocaleString("he-IL") + " מטר"; } },
-      grid: { left: 8, right: 16, top: 16, bottom: 36, containLabel: true },
-      xAxis: { type: "value", scale: true, name: "קו אורך", nameLocation: "middle", nameGap: 26, axisLabel: { hideOverlap: true } },
-      yAxis: { type: "value", scale: true, name: "קו רוחב" },
-      series: [{ type: "scatter", name: "מקטעים", data: d.data,
-                 symbolSize: function (v) { return 4 + 14 * Math.sqrt(v[2] / d.max); }, itemStyle: { opacity: 0.6 } }]
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + " ק״מ"; } },
+      grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "זווית הקו מהצפון", nameLocation: "middle", nameGap: 28, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "ק״מ" },
+      series: [{ type: "bar", name: "ק״מ קווים", data: d.values }]
     }));
     window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-lines-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script type="application/json" id="map-cells">{{ model.charts.map.cells | tojson }}</script>
+<script>
+  (function () {
+    var el = document.getElementById("map-roads");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "grid": model.charts.map.meta} | tojson }};
+    var g = meta.grid;
+    var shades = ["#f1f7ff", "#cfe2ff", "#9ec5fe", "#6ea8fe", "#3d8bfd", "#0068f5", "#0053c4"];
+    function shade(v) {
+      var r = g.max > 0 ? Math.sqrt(v / g.max) : 0;
+      return shades[Math.min(shades.length - 1, Math.floor(r * shades.length))];
+    }
+    function box(rows) {
+      var b = document.createElement("div");
+      rows.forEach(function (t, i) {
+        var e = document.createElement(i === 0 ? "strong" : "div");
+        e.textContent = t;
+        b.appendChild(e);
+      });
+      return b;
+    }
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    var cellsNode = document.getElementById("map-cells");
+    var cells = cellsNode ? JSON.parse(cellsNode.textContent) : [];
+    var cellLayer = L.layerGroup();
+    cells.forEach(function (c) {
+      var s = g.y0 + c[1] * g.dy, w = g.x0 + c[0] * g.dx;
+      L.rectangle([[s, w], [s + g.dy, w + g.dx]], {
+        stroke: false, fillColor: shade(c[2]), fillOpacity: 0.55
+      }).bindPopup(box([
+        c[2].toLocaleString("he-IL") + " ק״מ קווים במשבצת",
+        (c[2] / g.area).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " ק״מ לקמ״ר",
+        c[3].toLocaleString("he-IL") + " מקטעים שמרכזם כאן"
+      ])).addTo(cellLayer);
+    });
+    cellLayer.addTo(map);
+    var lineLayer = L.layerGroup();
+    for (var i = 0; i < meta.n; i++) {
+      var node = document.getElementById("map-lines-" + i);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).forEach(function (f) {
+        L.polyline(f[2].map(function (p) { return [p[1], p[0]]; }), {
+          color: "#0c3058", weight: 3, opacity: 0.9
+        }).bindPopup(box([
+          "מקטע ארוך מספר " + f[0].toLocaleString("he-IL"),
+          "אורך: " + f[1].toLocaleString("he-IL") + " מטר"
+        ])).addTo(lineLayer);
+      });
+    }
+    lineLayer.addTo(map);
+    L.control.layers(null, { "צפיפות לפי משבצת": cellLayer, "המקטעים הארוכים": lineLayer }, { collapsed: true }).addTo(map);
+    map.fitBounds(g.bounds, { padding: [8, 8] });
   })();
 </script>

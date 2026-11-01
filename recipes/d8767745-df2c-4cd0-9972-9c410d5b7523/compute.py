@@ -25,7 +25,17 @@ flow through (known classes are ordered, unknown ones are appended), the
 longest-roads chart is top-N, the regional list grows only up to the
 three-digit space, and numbering-change codes are bucketed by month (an
 unparseable code gets its own disclosed bucket).
+
+v2 adds the `geo` input: the uploaded shapefile (ROADNUMBERS_SHP), which the
+refresh downloads on every run. It draws every segment on a Leaflet map,
+coloured by class, with a road-number search, and adds a north-south view
+(km per latitude band) plus two geometry insights. The map size is bounded by
+chaining and simplifying lines in compute (MAP_BUDGET), so a bigger upload
+only coarsens the drawing.
 """
+import json
+import math
+
 import pandas as pd
 
 TOP_N = 20                 # longest roads on the bar chart
@@ -94,6 +104,308 @@ def segs_he(k):
 
 def roads_he(k):
     return "דרך אחת" if k == 1 else f"-{n(k)} דרכים"
+
+
+# ---------------------------------------------------------------- geometry (geo input)
+# `geo` is the uploaded shapefile: one row per segment, the same attributes as
+# the CSV plus `__geometry` (WGS84 GeoJSON). It drives the line map and the
+# north-south views. For display, segments of the same road (and kind) that
+# share an end point are chained into one line, then simplified with the
+# finest tolerance whose islands fit MAP_BUDGET. Lengths are measured on the
+# unsimplified geometry.
+
+SIMPLIFY_M = (10.0, 20.0, 35.0, 50.0, 80.0, 120.0, 200.0, 400.0)
+MAP_BUDGET = 200_000
+QUANT = 100_000            # 1e-5 degree integers (about 1 m)
+CHUNK_BYTES = 34_000       # compact size; tojson's spacing adds ~20%, islands stay under 50KB
+CHUNK_POINTS = 1_500       # a longer line is split into pieces of this many points
+BAND_WIDTHS = (10, 20, 25, 50, 100)   # latitude band widths, in 0.01 degrees
+MAX_BANDS = 20
+KM_PER_DEG_LAT = 111.2
+CLASS_COLOR = {"מהירה": "#0b3668", "ראשית": "#0068f5", "אזורית": "#198754",
+               "מקומית": "#f59f00"}
+CLASS_WEIGHT = {"מהירה": 4, "ראשית": 3.5, "אזורית": 2.5, "מקומית": 1.8}
+OTHER_COLORS = ["#0dcaf0", "#0053c4", "#c3cfe7"]
+RAMP_COLOR = "#6c757d"
+RAMP_LABEL = "רמפות"
+EXTENT_SHARE = 0.5         # "a road crosses the country" needs >= this share of the N-S span
+
+
+def _haversine_m(a, b):
+    p1, p2 = math.radians(a[1]), math.radians(b[1])
+    dp, dl = p2 - p1, math.radians(b[0] - a[0])
+    h = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * 6_371_000 * math.asin(math.sqrt(min(1.0, h)))
+
+
+def _lines_of(geom):
+    if not isinstance(geom, dict):
+        return []
+    if geom.get("type") == "LineString":
+        parts = [geom.get("coordinates") or []]
+    elif geom.get("type") == "MultiLineString":
+        parts = geom.get("coordinates") or []
+    else:
+        return []
+    out = []
+    for part in parts:
+        pts = tuple((float(c[0]), float(c[1])) for c in part
+                    if isinstance(c, list) and len(c) >= 2)
+        if len(pts) >= 2:
+            out.append(pts)
+    return out
+
+
+def _simplify(pts, tol_m):
+    """Douglas-Peucker on a local metric projection; keeps both end points."""
+    if len(pts) < 3:
+        return list(pts)
+    k = math.cos(math.radians(pts[0][1]))
+    m = [(x * 111_320 * k, y * 110_574) for x, y in pts]
+    keep = {0, len(pts) - 1}
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        a, b = stack.pop()
+        ax, ay = m[a]
+        dx, dy = m[b][0] - ax, m[b][1] - ay
+        ll = dx * dx + dy * dy
+        best, bi = -1.0, -1
+        for i in range(a + 1, b):
+            px, py = m[i][0] - ax, m[i][1] - ay
+            t = 0.0 if ll == 0 else max(0.0, min(1.0, (px * dx + py * dy) / ll))
+            d = math.hypot(px - t * dx, py - t * dy)
+            if d > best:
+                best, bi = d, i
+        if bi > 0 and best > tol_m:
+            keep.add(bi)
+            stack.append((a, bi))
+            stack.append((bi, b))
+    return [pts[i] for i in sorted(keep)]
+
+
+def _encode(pts):
+    """Flat [x0, y0, dx1, dy1, ...] in 1e-5 degree integers (lon, lat)."""
+    q = [(round(x * QUANT), round(y * QUANT)) for x, y in pts]
+    flat = [q[0][0], q[0][1]]
+    for (a, b), (x, y) in zip(q, q[1:]):
+        flat += [x - a, y - b]
+    return flat
+
+
+def _chain(lines):
+    """Join lines that share an end point into longer lines. Deterministic:
+    the lines are sorted first and the lowest-ranked free neighbour wins."""
+    lines = sorted(set(lines))
+    used = [False] * len(lines)
+    ends = {}
+    for i, ln in enumerate(lines):
+        ends.setdefault(ln[0], []).append(i)
+        ends.setdefault(ln[-1], []).append(i)
+    out = []
+    for i in range(len(lines)):
+        if used[i]:
+            continue
+        used[i] = True
+        cur = list(lines[i])
+        for at_end in (True, False):
+            while True:
+                pt = cur[-1] if at_end else cur[0]
+                free = [j for j in ends.get(pt, []) if not used[j]]
+                if not free:
+                    break
+                j = min(free)
+                used[j] = True
+                ln = lines[j]
+                if at_end:
+                    cur += list(ln[1:]) if ln[0] == pt else list(ln[::-1][1:])
+                else:
+                    cur = (list(ln[:-1]) if ln[-1] == pt else list(ln[::-1][:-1])) + cur
+        out.append(cur)
+    return out
+
+
+def _bounds(lines):
+    xs = [x for ln in lines for x, _ in ln]
+    ys = [y for ln in lines for _, y in ln]
+    if not xs:
+        return None
+    return [[round(min(ys), 5), round(min(xs), 5)], [round(max(ys), 5), round(max(xs), 5)]]
+
+
+def _deg(v, width):
+    return f"{v:.1f}" if round(width * 100) % 10 == 0 else f"{v:.2f}"
+
+
+def geo_section(df):
+    """Map model, latitude-band chart, labels and geometry insights."""
+    recs = {}
+    for r in df.to_dict("records"):
+        num = pd.to_numeric(clean(r.get("ROADNUMBER", "")), errors="coerce")
+        rn = int(num) if not pd.isna(num) and num > 0 else 0
+        cls = clean(r.get("ROADCLASS", ""))
+        cls = "" if cls == "<Null>" else cls
+        lt = clean(r.get("LINKTYPE", ""))
+        if lt == RAMP:
+            kind = RAMP_LABEL
+        elif lt == NUMBERED and rn > 0:
+            kind = cls or NO_CLASS
+        else:
+            kind = lt or "לא צוין"
+        try:
+            geom = json.loads(r.get("__geometry") or "null")
+        except ValueError:
+            geom = None
+        lines = tuple(_lines_of(geom))
+        recs[(kind, rn, cls, lines)] = (kind, rn, cls, lines)   # exact duplicates count once
+    feats = [v for v in recs.values() if v[3]]
+    missing = len(recs) - len(feats)
+
+    road_kinds = sorted({k for k, rn, _, _ in feats if rn > 0 and k != RAMP_LABEL}, key=class_key)
+    other = sorted({k for k, rn, _, _ in feats if k not in road_kinds and k != RAMP_LABEL})
+    kinds = road_kinds + other + ([RAMP_LABEL] if any(f[0] == RAMP_LABEL for f in feats) else [])
+    extra = iter(OTHER_COLORS * 4)
+    colors, weights = [], []
+    for k in kinds:
+        if k == RAMP_LABEL:
+            colors.append(RAMP_COLOR)
+            weights.append(1.5)
+        else:
+            colors.append(CLASS_COLOR.get(k) or next(extra, RAMP_COLOR))
+            weights.append(CLASS_WEIGHT.get(k, 2))
+
+    groups = {}
+    for k, rn, _, lines in feats:
+        groups.setdefault((kinds.index(k), rn), []).extend(lines)
+    chained = {key: _chain(v) for key, v in sorted(groups.items())}
+
+    used_tol = SIMPLIFY_M[-1]
+    for tol in SIMPLIFY_M:
+        items = []
+        for (ki, rn), lines in chained.items():
+            for ln in lines:
+                simp = _simplify(ln, tol)
+                for a in range(0, len(simp) - 1, CHUNK_POINTS):
+                    items.append([ki, rn, _encode(simp[a:a + CHUNK_POINTS + 1])])
+        chunks, cur, size, total = [], [], 0, 0
+        for it in items:
+            nb = len(json.dumps(it, separators=(",", ":"))) + 1
+            if cur and size + nb > CHUNK_BYTES:
+                chunks.append(cur)
+                cur, size = [], 0
+            cur.append(it)
+            size += nb
+            total += nb
+        if cur:
+            chunks.append(cur)
+        used_tol = tol
+        if total <= MAP_BUDGET:
+            break
+
+    # lengths on the unsimplified geometry (numbered roads only)
+    per_road = {}
+    pieces = []
+    for k, rn, _, lines in feats:
+        if rn <= 0 or k == RAMP_LABEL:
+            continue
+        lo_hi = per_road.setdefault(rn, [90.0, -90.0])
+        for ln in lines:
+            for a, b in zip(ln, ln[1:]):
+                pieces.append(((a[1] + b[1]) / 2, _haversine_m(a, b), k))
+            ys = [y for _, y in ln]
+            lo_hi[0], lo_hi[1] = min(lo_hi[0], min(ys)), max(lo_hi[1], max(ys))
+    total_m = sum(p[1] for p in pieces)
+
+    acc, width = {}, BAND_WIDTHS[-1] / 100
+    for w in BAND_WIDTHS:
+        acc = {}
+        for lat, m, k in pieces:
+            key = math.floor(lat * 100 / w)
+            d = acc.setdefault(key, {})
+            d[k] = d.get(k, 0.0) + m
+        width = w / 100
+        if len(acc) <= MAX_BANDS:
+            break
+    bands = []
+    for key in sorted(acc, reverse=True):       # north first
+        lo = key * width
+        bands.append({"lo": lo, "hi": lo + width, "by": acc[key], "m": sum(acc[key].values())})
+    band_names = [f"{_deg(b['lo'], width)} עד {_deg(b['hi'], width)}" for b in bands]
+    lat_chart = {
+        "names": band_names,
+        "series": [{"name": class_label(k) if k in CLASS_ORDER else k,
+                    "color": colors[kinds.index(k)],
+                    "data": [round(b["by"].get(k, 0.0) / 1000, 1) for b in bands]}
+                   for k in road_kinds + other if any(k in b["by"] for b in bands)],
+    }
+    lat_table = [{"name": band_names[i], "km": km(b["m"] / 1000),
+                  "share": pct(b["m"] / total_m if total_m else 0)} for i, b in enumerate(bands)]
+
+    insights = []
+    # extent: the road that spans most of the network's north-south range
+    if per_road and len(per_road) >= 2:
+        net_lo = min(v[0] for v in per_road.values())
+        net_hi = max(v[1] for v in per_road.values())
+        span_net = (net_hi - net_lo) * KM_PER_DEG_LAT
+        rn_x, (lo_x, hi_x) = sorted(per_road.items(), key=lambda kv: (kv[1][0] - kv[1][1], kv[0]))[0]
+        span_x = (hi_x - lo_x) * KM_PER_DEG_LAT
+        if span_net > 0 and span_x / span_net >= EXTENT_SHARE:
+            insights.append(("extent",
+                f"על המפה, כביש {rn_x} נפרש על פני כ-{n(span_x)} ק\"מ מצפון לדרום, "
+                f"{pct(span_x / span_net, 0)} ממרחק הצפון-דרום של כל רשת הדרכים הממוספרות "
+                f"(כ-{n(span_net)} ק\"מ)."))
+    # concentration in the north: where half the road length lies
+    if total_m > 0 and len(bands) >= 3:
+        pts = sorted(pieces, key=lambda p: (-p[0], p[1], p[2]))
+        run, med = 0.0, None
+        for lat, m, _ in pts:
+            run += m
+            if run >= total_m / 2:
+                med = lat
+                break
+        lat_hi = max(p[0] for p in pieces)
+        lat_lo = min(p[0] for p in pieces)
+        if med is not None and lat_hi > lat_lo:
+            north_part = (lat_hi - med) / (lat_hi - lat_lo)
+            if north_part <= 0.4:
+                insights.append(("north",
+                    f"חצי מאורך הדרכים הממוספרות ({km(total_m / 2000, 0)} ק\"מ) עובר בחלק הצפוני "
+                    f"של הארץ, מצפון לקו רוחב {med:.2f}°, שהוא רק {pct(north_part, 0)} ממרחק "
+                    f"הצפון-דרום של הרשת."))
+
+    model = {
+        "chunks": chunks, "kinds": [class_label(k) if k in CLASS_ORDER else k for k in kinds],
+        "colors": colors, "weights": weights, "ramp": kinds.index(RAMP_LABEL) if RAMP_LABEL in kinds else -1,
+        "bounds": _bounds([ln for f in feats for ln in f[3]]),
+    }
+    n_kind = {k: 0 for k in kinds}
+    for k, rn, _, _ in feats:
+        n_kind[k] += 1
+    legend = [{"name": model["kinds"][i], "color": colors[i], "segs": n(n_kind[k])}
+              for i, k in enumerate(kinds)]
+    lead_band = max(bands, key=lambda b: (b["m"], b["lo"])) if bands else None
+    labels = {
+        "map_note": (f"{n(len(feats))} מקטעים מצוירים כקווים, בצבע לפי דרגת הדרך; רמפות במחלפים "
+                     "באפור דק. הקלידו מספר כביש כדי להדגיש אותו ולהתמקד בו, או לחצו על קו כדי "
+                     f"לראות את מספרו ודרגתו. לתצוגה הקווים פושטו (סטייה של עד כ-{n(used_tol)} מ׳)."
+                     + ("" if not missing else " מקטע אחד ללא קו בקובץ אינו מצויר." if missing == 1
+                        else f" {n(missing)} מקטעים ללא קו בקובץ אינם מצוירים.")),
+        "map_aria": (f"מפה אינטראקטיבית של {n(len(feats))} מקטעי דרכים ארציות, קווים בצבע לפי דרגת "
+                     "הדרך. גרסה נגישה: רשימת הכבישים בעמוד וטבלת הנתונים מתחתיו."),
+        "lat_note": (f"אורך הדרכים הממוספרות לפי רצועות קו רוחב של {_deg(width, width)} מעלות "
+                     f"(כ-{n(width * KM_PER_DEG_LAT)} ק\"מ), מצפון לדרום, מחולק לפי דרגת הדרך. "
+                     "האורך נמדד על קווי המפה."
+                     + (f" הרצועה הצפופה: {_deg(lead_band['lo'], width)} עד "
+                        f"{_deg(lead_band['hi'], width)} ({km(lead_band['m'] / 1000, 0)} ק\"מ)."
+                        if lead_band else "")),
+        "lat_aria": ("גרף עמודות אופקי מוערם: ק\"מ של דרכים ממוספרות לפי רצועת קו רוחב, מצפון "
+                     "לדרום, לפי דרגת דרך."
+                     + (f" הצפופה ביותר: {_deg(lead_band['lo'], width)} עד "
+                        f"{_deg(lead_band['hi'], width)}." if lead_band else "")),
+        "lat_caption": "ק\"מ של דרכים ממוספרות לפי רצועת קו רוחב, מצפון לדרום",
+    }
+    return {"map": model, "legend": legend, "lat": lat_chart, "lat_table": lat_table,
+            "labels": labels, "insights": insights, "has_map": bool(feats),
+            "has_lat": len(bands) >= 2}
 
 
 def compute(frames):
@@ -276,6 +588,10 @@ def compute(frames):
         add("mixed", f"{n(len(mixed))} דרכים משנות דרגה לאורכן, למשל כבישים {ex}: "
             "מקטעים שונים של אותו כביש מסווגים בדרגות שונות.")
 
+    geo = geo_section(frames["geo"])
+    for iid, text in geo["insights"]:
+        add(iid, text)
+
     if ch_segs >= 5 and months:
         last = months[-1]
         last_segs = int((ch_valid["chg"] == last).sum())
@@ -301,7 +617,8 @@ def compute(frames):
                  f"ממוספרים באורך מקטעים כולל של {km(road_km, 0)} ק\"מ, מכבישים ראשיים חד- ודו-ספרתיים "
                  f"ועד דרכים מקומיות בנות ארבע ספרות, ועוד {n(ramp_segs)} מקטעי רמפה. "
                  f"הארוך ביותר: {lead_txt}. לכל דרך מופיעים דרגתה (מהירה, ראשית, אזורית או מקומית) "
-                 "ואורכה, וגם מקטעים שמספרם שונה לאחרונה."),
+                 "ואורכה, וגם מקטעים שמספרם שונה לאחרונה. מפת הדרכים מציגה כל כביש לפי דרגתו, "
+                 "עם חיפוש לפי מספר כביש."),
         "roads_kpi": "כבישים ממוספרים",
         "km_kpi": "ק\"מ מקטעים בדרכים ממוספרות",
         "ramps_kpi": "מקטעי רמפה במחלפים",
@@ -357,32 +674,29 @@ def compute(frames):
                    + ". שכבת ה-GIS המלאה (קבצי SHP ו-KMZ) זמינה להורדה מתחת לעמוד."),
     }
 
+    labels.update(geo["labels"])
     flags = {"changes": bool(months), "regional": bool(regional_list),
-             "mixed_any": bool(len(mixed))}
+             "mixed_any": bool(len(mixed)), "map": geo["has_map"], "lat": geo["has_lat"]}
 
     return {
         "agent_data": {
-            "summary_he": (f"רשימת מספרי הדרכים הארציות: איתור כביש לפי מספר, דרגה ואורך. "
+            "summary_he": (f"רשימת מספרי הדרכים הארציות ומפה: איתור כביש לפי מספר, דרגה ואורך. "
                            f"{n(n_roads)} כבישים ממוספרים, {km(road_km, 0)} ק\"מ, "
                            f"הארוך כביש {int(top.iloc[0].rn)}." if n_roads else
-                           "רשימת מספרי הדרכים הארציות: איתור כביש לפי מספר, דרגה ואורך."),
-            "dataset_kind": "registry",
-            "suggested_tags": ["דרכים", "כבישים", "מספרי דרכים", "תחבורה", "תשתית", "מחלפים"],
-            "related_ids": ["2a795952-3fb8-487b-bc25-6f563908abe9",
-                            "09cbcff5-64fc-429b-96e5-881cbcab96af",
-                            "0b22997e-676d-48d3-baee-c79846a1939f",
-                            "27047419-e1fc-4f1d-bb15-7f5f0805d226"],
+                           "רשימת מספרי הדרכים הארציות ומפה: איתור כביש לפי מספר, דרגה ואורך."),
+            "dataset_kind": "map",
             "spatial_coverage": "ארצי",
         },
         "kpis": kpis,
         "charts": {"top": top_chart, "cls": class_chart, "digits": digit_chart,
                    "len": len_chart, "space": space_chart, "link": link,
-                   "change": change_chart},
+                   "change": change_chart, "map": geo["map"], "lat": geo["lat"]},
         "tables": {"top": top_table, "cls": class_table, "digits": digit_table,
                    "len": len_table, "space": space_table, "space_x": space_chart["x"],
                    "link": [{"name": a, "segs": n(b), "km": km(c)} for a, b, c in
                             zip(link["names"], link["segs"], link["km"])],
-                   "change": change_table, "main": main_list, "regional": regional_list},
+                   "change": change_table, "main": main_list, "regional": regional_list,
+                   "legend": geo["legend"], "lat": geo["lat_table"]},
         "insights": insights,
         "labels": labels,
         "flags": flags,

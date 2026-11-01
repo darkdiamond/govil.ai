@@ -1,17 +1,31 @@
 {
   "contract_version": 1,
   "dataset_id": "d8767745-df2c-4cd0-9972-9c410d5b7523",
-  "recipe_version": 1,
-  "authored_at": "2026-10-29T21:00:00Z",
+  "recipe_version": 2,
+  "authored_at": "2026-11-01T09:00:00Z",
   "authored_against": {
     "metadata_modified": "2026-07-22T05:16:36.710562+00:00",
-    "rows": { "main": 3865 }
+    "rows": { "main": 3865, "geo": 3865 }
   },
   "inputs": [
     {
       "name": "main",
       "by_id": "0476bc99-21c2-4e26-b353-94a7782ea90b",
-      "required_columns": ["ROADNUMBER", "ROADCLASS", "LINKTYPE", "NUM_CHANGE", "LENGT_M", "ROADNAME"]
+      "required_columns": [
+        "ROADNUMBER",
+        "ROADCLASS",
+        "LINKTYPE",
+        "NUM_CHANGE",
+        "LENGT_M",
+        "ROADNAME"
+      ]
+    },
+    {
+      "name": "geo",
+      "by_id": "7851c742-47fc-41ea-ae7d-b1eee0f0eac4",
+      "map": true,
+      "map_max_kb": 3000,
+      "required_columns": ["ROADNUMBER", "ROADCLASS", "LINKTYPE"]
     }
   ],
   "min_insights": 4,
