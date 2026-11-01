@@ -22,6 +22,7 @@ import math
 
 import numpy as np
 import pandas as pd
+from govlib import geo as geolib  # "geo" is the geolocated-rows frame below
 
 LAT_RANGE = (29.0, 34.0)
 LON_RANGE = (34.0, 36.0)
@@ -42,9 +43,7 @@ MAX_GRID = 60                 # cells per axis; the step doubles beyond this
 SHAPE_FLOORS = 5              # outlines drawn for buildings this tall ...
 SHAPE_AREA = 2000.0           # ... or with a footprint this large (m²)
 MAX_SHAPES = 1800             # cap on drawn outlines (tallest, then largest first)
-SCALE = 100000                # coordinate integers: 1e-5° (~1 m), delta-encoded
 SIMPLIFY = 1.5                # outline simplification tolerance, in 1e-5° units (~1.5 m)
-CHUNK_BYTES = 38_000          # each JSON island stays well under the 50KB block cap
 N_CLASSES = 5                 # colour classes for the grid cells
 STOCK_GAP_PTS = 0.10          # apartments share must beat buildings share by this
 SINGLE_MIN = 0.30             # single-apartment share worth a sentence
@@ -138,63 +137,6 @@ def _centroid(rings):
     return (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
 
 
-def _dp(pts, tol):
-    """Douglas-Peucker on integer points; keeps the ring's first/last point."""
-    if len(pts) < 5:
-        return pts
-    keep = [False] * len(pts)
-    keep[0] = keep[-1] = True
-    stack = [(0, len(pts) - 1)]
-    while stack:
-        i, j = stack.pop()
-        (x1, y1), (x2, y2) = pts[i], pts[j]
-        dx, dy = x2 - x1, y2 - y1
-        norm = math.hypot(dx, dy)
-        best, idx = 0.0, None
-        for k in range(i + 1, j):
-            x, y = pts[k]
-            d = (math.hypot(x - x1, y - y1) if norm == 0
-                 else abs(dy * x - dx * y + x2 * y1 - y2 * x1) / norm)
-            if d > best:
-                best, idx = d, k
-        if idx is not None and best > tol:
-            keep[idx] = True
-            stack += [(i, idx), (idx, j)]
-    out = [p for p, k in zip(pts, keep) if k]
-    return out if len(out) >= 4 else pts
-
-
-def _encode(rings, ox, oy):
-    """Rings as flat integer deltas from the map origin, 1e-5° units."""
-    out = []
-    for r in rings:
-        pts = []
-        for lon, lat in r:
-            p = (int(round(lon * SCALE)), int(round(lat * SCALE)))
-            if not pts or p != pts[-1]:
-                pts.append(p)
-        flat, px, py = [], ox, oy
-        for x, y in _dp(pts, SIMPLIFY):
-            flat += [x - px, y - py]
-            px, py = x, y
-        out.append(flat)
-    return out
-
-
-def _chunks(items):
-    chunks, cur, size = [], [], 0
-    for f in items:
-        n = len(json.dumps(f)) + 2   # as the template's tojson writes it
-        if cur and size + n > CHUNK_BYTES:
-            chunks.append(cur)
-            cur, size = [], 0
-        cur.append(f)
-        size += n
-    if cur:
-        chunks.append(cur)
-    return chunks
-
-
 def _breaks(values):
     """Upper bounds of N_CLASSES quantile classes (distinct, ascending)."""
     v = sorted(int(x) for x in values if x > 0)
@@ -251,15 +193,14 @@ def _shapes(geo):
     pick = pick.sort_values(["floors", "area", "latf", "lonf", "use", "name", "apts", "ent", "geom"],
                             ascending=[False, False, True, True, True, True, True, True, True],
                             kind="stable").head(MAX_SHAPES)
-    ox = int(math.floor(geo["lonf"].min() * SCALE)) - 100
-    oy = int(math.floor(geo["latf"].min() * SCALE)) - 100
+    o = geolib.origin(geo["lonf"], geo["latf"])
     uses = sorted(set(pick["use"]))
     uidx = {u: i for i, u in enumerate(uses)}
     feats = []
     for r in pick.itertuples(index=False):
         feats.append([_band_of(int(r.floors)), uidx[r.use], int(r.floors), int(r.apts), int(r.ent),
-                      int(round(r.area)), r.name, _encode(r.rings, ox, oy)])
-    return {"origin": [ox, oy], "scale": SCALE, "uses": uses, "chunks": _chunks(feats),
+                      int(round(r.area)), r.name, geolib.encode(r.rings, o, tol=SIMPLIFY)])
+    return {"origin": o, "scale": geolib.SCALE, "uses": uses, "chunks": geolib.pack(feats),
             "n": len(feats), "eligible": n_pick}
 
 
@@ -514,7 +455,7 @@ def compute(frames):
     else:
         grid = {"lat0": 0, "lon0": 0, "step": GRID_STEP, "cells": [], "max": 0, "max_apts": 0,
                 "breaks": [0], "breaks_apts": [0]}
-        shapes = {"origin": [0, 0], "scale": SCALE, "uses": [], "chunks": [], "n": 0, "eligible": 0}
+        shapes = {"origin": [0, 0], "scale": geolib.SCALE, "uses": [], "chunks": [], "n": 0, "eligible": 0}
         bounds = []
     step = grid["step"]
     cells_n = len(grid["cells"])

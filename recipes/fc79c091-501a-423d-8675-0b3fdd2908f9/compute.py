@@ -22,6 +22,7 @@ import json
 import math
 
 import pandas as pd
+from govlib import geo as geolib  # `geo` is the list of segments with geometry below
 
 M_PER_DEG = 111320.0
 LEN_EDGES = [0, 100, 250, 500, 1000, 1500]
@@ -35,8 +36,6 @@ LONG_M = 1000
 CONNECT_M = 15.0            # an end point this close to another segment's line counts as connected
 RING_CAP = 6
 NEAR_KM = 2
-QUANT = 100_000             # map coordinates quantised to 1e-5 degrees (about 1 m)
-CHUNK_BYTES = 30_000        # each JSON island stays well under the 40KB budget
 
 
 def fmt(n):
@@ -125,15 +124,6 @@ def lines_of(raw):
         if len(pts) >= 2:
             out.append(pts)
     return out
-
-
-def encode(pts):
-    """Flat [x0, y0, dx1, dy1, ...] in 1e-5 degree integers (lon, lat)."""
-    q = [(round(x * QUANT), round(y * QUANT)) for x, y in pts]
-    flat = [q[0][0], q[0][1]]
-    for (a, b), (x, y) in zip(q, q[1:]):
-        flat += [x - a, y - b]
-    return flat
 
 
 def seg_dist(p, a, b):
@@ -391,32 +381,24 @@ def compute(frames):
     charts["scatter"] = {"points": sorted([round(s["d"] / 1000, 2), int(round(s["len"]))] for s in geo)}
     rho = spearman([s["d"] for s in geo], [s["len"] for s in geo])
 
-    # ---- map: real lines, delta-encoded, chunked into JSON islands ----
-    # [band, colour slot, length m, rank, stretch #, stretch km, stretch segments, flat coords]
-    feats = []
-    for s in geo:
-        for p in s["parts"]:
-            feats.append([s["lb"], min(s["comp"], STRETCH_COLORS), int(round(s["len"])), s["rank"],
-                          s["comp"] + 1, round(s["comp_m"] / 1000, 2), s["comp_n"], encode(p)])
-    feats.sort(key=lambda f: (f[3], f[7]))
-    chunks, cur, cur_b = [], [], 2
-    for f in feats:
-        b = len(json.dumps(f, separators=(",", ":"))) + 1
-        if cur and cur_b + b > CHUNK_BYTES:
-            chunks.append(cur)
-            cur, cur_b = [], 2
-        cur.append(f)
-        cur_b += b
-    if cur:
-        chunks.append(cur)
+    # ---- map: real lines, delta-encoded from an origin (govlib.geo), packed into JSON islands ----
+    # [band, colour slot, length m, rank, stretch #, stretch km, stretch segments, flat deltas]
     allx = [x for s in geo for p in s["parts"] for x, _ in p]
     ally = [y for s in geo for p in s["parts"] for _, y in p]
+    origin = geolib.origin(allx, ally)
+    feats = []
+    for s in geo:
+        for flat in geolib.encode(s["parts"], origin, ring=False):
+            feats.append([s["lb"], min(s["comp"], STRETCH_COLORS), int(round(s["len"])), s["rank"],
+                          s["comp"] + 1, round(s["comp_m"] / 1000, 2), s["comp_n"], flat])
+    feats.sort(key=lambda f: (f[3], f[7]))
+    chunks = geolib.pack(feats)
     bounds = [[round(min(ally), 5), round(min(allx), 5)], [round(max(ally), 5), round(max(allx), 5)]]
     comp_legend = [{"name": f"רצף #{c['id']}", "km": km1(c["m"])} for c in comps[:STRETCH_COLORS]]
     if n_comp > STRETCH_COLORS:
         rest = sum(c["m"] for c in comps[STRETCH_COLORS:])
         comp_legend.append({"name": f"{fmt(n_comp - STRETCH_COLORS)} רצפים נוספים", "km": km1(rest)})
-    charts["map"] = {"chunks": chunks, "bounds": bounds,
+    charts["map"] = {"chunks": chunks, "bounds": bounds, "origin": origin, "scale": geolib.SCALE,
                      "bands": [{"name": l, "km": km1(m)} for l, m in zip(bl, b_m)],
                      "comps": comp_legend, "band_names": bl, "colored": STRETCH_COLORS}
 

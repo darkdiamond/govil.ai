@@ -19,6 +19,7 @@ import math
 import re
 
 import pandas as pd
+from govlib import geo
 
 UNKNOWN = "לא צוין"
 
@@ -258,10 +259,9 @@ def insight_start(df):
 # ---------------------------------------------------------------- geometry (geo input)
 
 SIMPLIFY_M = (2.0, 4.0, 8.0, 16.0)   # display-only Douglas-Peucker tolerances (metres), finest first;
-MAP_BUDGET = 200_000                 # the finest one whose islands fit this many bytes is used.
+MAP_BUDGET = 200_000                 # the finest one whose islands fit this many characters
+                                     # (as rendered by | tojson) is used.
                                      # Lengths are always measured on the full line.
-QUANT = 100_000           # coordinates quantised to 1e-5 degrees (about 1 m)
-CHUNK_BYTES = 36_000      # each JSON island stays well under 50KB (tojson escaping adds a little)
 CHUNK_POINTS = 1_500      # a longer line is split into pieces of this many points
 BAND_WIDTHS = (10, 20, 25, 50, 100)   # latitude band widths, in 0.01 degrees
 MAX_BANDS = 20
@@ -291,42 +291,6 @@ def _lines_of(geom):
         if len(pts) >= 2:
             out.append(pts)
     return out
-
-
-def _simplify(pts, tol_m):
-    """Douglas-Peucker on a local metric projection; keeps both end points."""
-    if len(pts) < 3:
-        return list(pts)
-    k = math.cos(math.radians(pts[0][1]))
-    m = [(x * 111_320 * k, y * 110_574) for x, y in pts]
-    keep = {0, len(pts) - 1}
-    stack = [(0, len(pts) - 1)]
-    while stack:
-        a, b = stack.pop()
-        ax, ay = m[a]
-        dx, dy = m[b][0] - ax, m[b][1] - ay
-        ll = dx * dx + dy * dy
-        best, bi = -1.0, -1
-        for i in range(a + 1, b):
-            px, py = m[i][0] - ax, m[i][1] - ay
-            t = 0.0 if ll == 0 else max(0.0, min(1.0, (px * dx + py * dy) / ll))
-            d = math.hypot(px - t * dx, py - t * dy)
-            if d > best:
-                best, bi = d, i
-        if bi > 0 and best > tol_m:
-            keep.add(bi)
-            stack.append((a, bi))
-            stack.append((bi, b))
-    return [pts[i] for i in sorted(keep)]
-
-
-def _encode(pts):
-    """Flat [x0, y0, dx1, dy1, ...] in 1e-5 degree integers (lon, lat)."""
-    q = [(round(x * QUANT), round(y * QUANT)) for x, y in pts]
-    flat = [q[0][0], q[0][1]]
-    for (a, b), (x, y) in zip(q, q[1:]):
-        flat += [x - a, y - b]
-    return flat
 
 
 def _hours_text(r):
@@ -454,28 +418,24 @@ def _geo_section(df):
     auths = sorted(by_auth, key=lambda a: (-sum(s["m"] for s in by_auth[a]), a))
 
     hours = sorted({s["hours"] for s in drawn})
+    # Display geometry: govlib.geo integers (1e-5 degree), each line restarting
+    # from one origin at the south-west corner of everything drawn.
+    org = geo.origin([x for s in drawn for p in s["parts"] for x, _ in p],
+                     [y for s in drawn for p in s["parts"] for _, y in p]) if drawn else [0, 0]
     for tol in SIMPLIFY_M:
+        tol_u = tol / 1.1           # metres -> 1e-5 degree units (~1.1 m north-south)
         feats = []
         for s in drawn:
             meta = [types.index(s["type"]), auths.index(s["auth"]), _km(s["m"]), s["name"],
                     hours.index(s["hours"])]
             for p in s["parts"]:
-                simp = _simplify(p, tol)
+                simp = geo.simplify(geo.quantize(p), tol_u, ring=False)
                 for a in range(0, len(simp) - 1, CHUNK_POINTS):
-                    feats.append(meta + [_encode(simp[a:a + CHUNK_POINTS + 1])])
-        chunks, cur, size, total = [], [], 0, 0
-        for f in feats:
-            n = len(json.dumps(f, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) + 1
-            if cur and size + n > CHUNK_BYTES:
-                chunks.append(cur)
-                cur, size = [], 0
-            cur.append(f)
-            size += n
-            total += n
-        if cur:
-            chunks.append(cur)
-        if total <= MAP_BUDGET:
+                    piece = [(x / geo.SCALE, y / geo.SCALE) for x, y in simp[a:a + CHUNK_POINTS + 1]]
+                    feats.append(meta + [geo.encode([piece], org, ring=False)[0]])
+        if geo.rendered_len(feats) <= MAP_BUDGET:
             break
+    chunks = geo.pack(feats)
 
     zoom = []
     for a in [a for a in auths if a != UNKNOWN][:ZOOM_TOP]:
@@ -509,7 +469,7 @@ def _geo_section(df):
                 f"מצפון לדרום. כל רצועה נקראת על שם הרשות עם האורך הרב ביותר בה וקו הרוחב הדרומי שלה."
                 + (f" הצפופה ביותר: {lead_band['lead']} ({_km(lead_band['m'])} ק\"מ)." if lead_band else ""))
     model = {
-        "map": {"chunks": chunks, "types": types, "auths": auths, "hours": hours, "legend": legend,
+        "map": {"chunks": chunks, "origin": org, "scale": geo.SCALE, "types": types, "auths": auths, "hours": hours, "legend": legend,
                 "zoom": zoom, "bounds": _bounds([s["parts"] for s in drawn])},
         "lat": {"names": [r["name"] for r in band_rows], "values": [round(b["m"] / 1000, 2) for b in bands],
                 "ranges": [r["range"] for r in band_rows]},

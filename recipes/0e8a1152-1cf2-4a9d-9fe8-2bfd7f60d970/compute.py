@@ -11,7 +11,7 @@ grade, era bucket, footprint band, distance from the layer's median centre,
 survey-card coverage, compound areas, buildings and elements that fall
 inside a compound (point in polygon on each building's centroid), fence
 lengths. The map ships every feature's real outline, delta-encoded at
-~1 m (1e-5 degree) and split into JSON islands under CHUNK_BYTES.
+~1 m (1e-5 degree) and split into JSON islands with govlib.geo.pack.
 
 Order-independent: every list is sorted on a total key, sums use fsum over
 sorted values. The assets are public heritage sites, not people.
@@ -22,6 +22,7 @@ import re
 
 import numpy as np
 import pandas as pd
+from govlib import geo
 
 STD_ORDER = ["א", "ב1", "ב2", "ג", "ד", "טנטטיבי", "ללא", ""]
 ERAS = ["1900-1918", "1918-1935", "1935-1945", "מאוחר מ-1945"]
@@ -30,8 +31,6 @@ DIST_EDGES = [0, 250, 500, 1000, 2000]
 FENCE_EDGES = [0, 10, 25, 50, 100]
 DECLARED_RE = re.compile(r"(הוכרז|מוכרז)")
 WELL_RE = re.compile(r"באר|בור מים")
-CHUNK_BYTES = 40_000   # each GeoJSON island stays well under the 50KB block cap
-SCALE = 100_000        # page coordinates in 1e-5 degree (~1 m) integer steps
 TOP_CX = 12
 
 
@@ -229,34 +228,12 @@ def _bbox(polys):
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def _enc(pts, ox, oy, closed):
-    """A ring/line as a flat delta list of 1e-5 degree integers from the origin."""
-    q = [(int(round(x * SCALE)) - ox, int(round(y * SCALE)) - oy) for x, y in pts]
-    if closed and len(q) > 1 and q[0] == q[-1]:
-        q = q[:-1]
-    flat, px, py = [], 0, 0
-    for x, y in q:
-        if flat and x == px and y == py:
-            continue
-        flat += [x - px, y - py]
-        px, py = x, y
-    return flat
-
-
-def _chunks(feats):
-    chunks, cur, size = [], [], 0
-    for f in feats:
-        # Measured as the template's `tojson` writes it (ASCII escapes, ", "
-        # separators), so an island never outgrows the measurement.
-        n = len(json.dumps(f)) + 2
-        if cur and size + n > CHUNK_BYTES:
-            chunks.append(cur)
-            cur, size = [], 0
-        cur.append(f)
-        size += n
-    if cur:
-        chunks.append(cur)
-    return chunks
+def _enc(pts, o, closed):
+    """A ring/line as a flat geo.encode delta list; no simplification (tol 0).
+    A closed ring drops its repeated closing point (Leaflet closes it)."""
+    if closed and len(pts) > 1 and pts[0] == pts[-1]:
+        pts = pts[:-1]
+    return geo.encode([pts], o, ring=closed)[0]
 
 
 def _unique(names):
@@ -539,34 +516,34 @@ def compute(frames):
             ys += [p[1] for p in line]
     xs += el["x"].tolist()
     ys += el["y"].tolist()
-    ox = int(math.floor(min(xs) * SCALE))
-    oy = int(math.floor(min(ys) * SCALE))
+    o = geo.origin(xs, ys)
+    ox, oy = o
     year_vals = sorted({y.strip() for y in b["year"] if y.strip()})
     yi = {y: i for i, y in enumerate(year_vals)}
 
     bfeat = []
     for s, y, card, area, x, yy, polys in zip(b["std"], b["year"], b["card"], b["area"],
                                               b["cx"], b["cy"], b["polys"]):
-        enc = [[_enc(r, ox, oy, True) for r in rings] for rings in polys]
+        enc = [[_enc(r, o, True) for r in rings] for rings in polys]
         bfeat.append([gi[s], yi.get(y.strip(), -1), int(card),
                       int(round(area)) if not pd.isna(area) else -1,
-                      int(round(x * SCALE)) - ox, int(round(yy * SCALE)) - oy, enc])
+                      int(round(x * geo.SCALE)) - ox, int(round(yy * geo.SCALE)) - oy, enc])
     bfeat.sort(key=lambda f: (f[0], -f[3], f[4], f[5], f[1], f[2], json.dumps(f[6])))
     cfeat = []
     for i in range(ncx):
         cfeat.append([gi[cx_sd[i]], cx_nm[i], f"{cx.at[i, 'area'] / 1000:,.1f}", per_cx[i],
-                      [[_enc(r, ox, oy, True) for r in rings] for rings in cx_polys[i]]])
+                      [[_enc(r, o, True) for r in rings] for rings in cx_polys[i]]])
     ffeat = []
     for s, ln, parts in zip(fe["std"], fe["len"], fe["parts"]):
-        ffeat.append([gi[s], int(round(ln)), [_enc(p, ox, oy, False) for p in parts]])
+        ffeat.append([gi[s], int(round(ln)), [_enc(p, o, False) for p in parts]])
     efeat = []
     for s, k, n, x, y in zip(el["std"], el["k"], el["note"], el["x"], el["y"]):
         efeat.append([gi[s], k if k else "ללא שם", n,
-                      int(round(x * SCALE)) - ox, int(round(y * SCALE)) - oy])
+                      int(round(x * geo.SCALE)) - ox, int(round(y * geo.SCALE)) - oy])
     map_model = {
-        "b": _chunks(bfeat), "c": _chunks(cfeat), "f": _chunks(ffeat), "e": _chunks(efeat),
+        "b": geo.pack(bfeat), "c": geo.pack(cfeat), "f": geo.pack(ffeat), "e": geo.pack(efeat),
         "meta": {
-            "origin": [ox, oy], "scale": SCALE,
+            "origin": o, "scale": geo.SCALE,
             "grades": [std_label(s) for s in grades],
             "rank": [std_key(s)[0] for s in grades],
             "years": year_vals,

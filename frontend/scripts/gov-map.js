@@ -444,7 +444,9 @@
 
   // Popup content from [[label, value], ...]; rows with an empty value are
   // skipped. textContent only, so dataset strings can't inject markup.
+  // Raw-Leaflet pages never call create(), so inject the popup CSS here.
   function popup(title, rows) {
+    ensureStyles();
     var record = {}, fields = [];
     (rows || []).forEach(function (r, i) {
       record['f' + i] = r[1];
