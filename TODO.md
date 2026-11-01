@@ -105,6 +105,15 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   the tolerance from a size estimate instead of the full ladder, and free the raw features
   before compute. (2026-11-01)
 
+- **Map recipes each carry their own geometry code.** bdf28cc0, d8767745, f3f8a529 and fc79c091
+  (PR #301) re-implement delta-encoding at 1e-5°, Douglas-Peucker, haversine and JSON-island
+  chunking, plus a matching JS decoder in each template, with drift already (origin-relative vs
+  absolute deltas, 30/34/38 KB island budgets, compact vs spaced size estimates). A bug or a
+  page-limit change has to be fixed in every map recipe, and each new one copies another variant.
+  Fix: a shared helper the sandboxed compute can import (encode, simplify, pack islands under one
+  budget), and one decoder in the page shell or `frontend/public/lib/`, then move the recipes onto
+  it as they're next touched. (2026-11-01)
+
 ## Tags, related datasets and list pages
 
 - **Topic hub pages.** Topics exist only as sections of `/tags/` (and a broad tag per topic,
