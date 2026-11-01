@@ -51,7 +51,9 @@ writing and previewing a dataset page without touching the live pipeline.
 
 ```sh
 source .venv/bin/activate
-pytest services/page_builder/tests/ -q
+pytest -q        # whole suite, one worker per core (pytest.ini)
+pytest -q path/to/test_x.py::test_y   # named tests only: runs in-process (services/conftest.py)
+pytest -n0 -q path/to/dir   # force serial, e.g. for breakpoint()/print debugging
 ```
 
 The page gate (`agent/skills/check.py`) runs host-side on every rendered
