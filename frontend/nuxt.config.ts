@@ -250,12 +250,14 @@ export default defineNuxtConfig({
           ? [{ name: "google-adsense-account", content: ADSENSE_ID }]
           : []),
       ],
-      // AdSense (Auto Ads) is injected post-hydration by
-      // plugins/adsense.client.ts — NOT from head. Auto Ads mutates the DOM
-      // (inserts <ins> slots) as soon as the script runs; doing that during
-      // Vue hydration produced "Hydration completed but contains mismatches"
-      // on production dataset pages. Deferring also keeps its ~54KB off the
-      // first-paint critical path.
+      // Ad insertion is off (2026-11-02): the Auto Ads loader
+      // (plugins/adsense.client.ts) and the dataset-page slot
+      // (components/AdSlot.vue) were removed; restore them from git to
+      // re-enable. The account meta tag above and ads.txt stay so the
+      // AdSense account remains verified. If restored, load adsbygoogle.js
+      // post-hydration (app:mounted), never from head: Auto Ads mutating the
+      // DOM during hydration caused "Hydration completed but contains
+      // mismatches" on production dataset pages.
     },
   },
 

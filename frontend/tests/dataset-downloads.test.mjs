@@ -63,7 +63,7 @@ async function renderPage(
       formatBytes: String,
     }),
   });
-  for (const name of ["NuxtLink", "AdSlot", "ReportIssue"]) {
+  for (const name of ["NuxtLink", "ReportIssue"]) {
     app.component(name, { render: () => null });
   }
   app.component("DatasetExplorer", {

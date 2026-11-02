@@ -1,22 +1,21 @@
 <script setup lang="ts">
-const lastUpdated = "3 בספטמבר 2026";
+const lastUpdated = "2 בנובמבר 2026";
 
-// Deployment-specific analytics IDs (empty in forks/local builds — the
-// services aren't loaded then either; see plugins/*.client.ts).
-const { gtag, adsenseId } = useRuntimeConfig().public;
+// Deployment-specific analytics ID (empty in forks/local builds — the
+// service isn't loaded then either).
+const { gtag } = useRuntimeConfig().public;
 // nuxt-gtag fills `public.gtag` only when an id is set, so its type is `{}`.
 const gtagId = (gtag as { id?: string } | undefined)?.id || "";
 
 useSeo({
   title: "מדיניות פרטיות באתר govil.ai",
   description:
-    "מדיניות הפרטיות של govil.ai — אילו נתונים אנו אוספים, באילו שירותי צד שלישי אנו משתמשים (Google Analytics, Google AdSense), ואילו זכויות עומדות לכם.",
+    "מדיניות הפרטיות של govil.ai — אילו נתונים אנו אוספים, באילו שירותי צד שלישי אנו משתמשים (Google Analytics), ואילו זכויות עומדות לכם.",
   path: "/privacy/",
   keywords: [
     "מדיניות פרטיות",
     "cookies",
     "Google Analytics",
-    "Google AdSense",
     "חוק הגנת הפרטיות",
   ],
   breadcrumbs: [
@@ -56,7 +55,7 @@ useSeo({
         לצורך אבטחה ותפעול בלבד.
       </p>
       <p class="text-ink/85 leading-relaxed">
-        בנוסף אנו משתמשים בשני שירותי צד שלישי של Google שמציבים cookies בדפדפן:
+        בנוסף אנו משתמשים בשירות צד שלישי של Google שמציב cookies בדפדפן:
       </p>
       <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
@@ -67,15 +66,6 @@ useSeo({
           >
           — לצורך הבנת דפוסי שימוש מצרפיים: כמה מבקרים, אילו עמודים נצפים, ממה
           הם הגיעו לאתר. הנתונים מצרפיים ואינם משויכים לשם.
-        </li>
-        <li>
-          <strong>Google AdSense</strong
-          ><template v-if="adsenseId">
-            (מזהה <code>{{ adsenseId }}</code
-            >)</template
-          >
-          — להצגת פרסומות שמממנות את התפעול של האתר. AdSense עשוי להציג פרסומות
-          מותאמות אישית בהתאם לעדפות המבקר אצל Google.
         </li>
       </ul>
       <p class="text-ink/85 leading-relaxed">
@@ -99,7 +89,7 @@ useSeo({
 
       <h2 class="font-display mt-8">3. Cookies וטכנולוגיות דומות</h2>
       <p class="text-ink/85 leading-relaxed">
-        כתוצאה משירותי הצד השלישי שלעיל מוצבות בדפדפן שלכם cookies מהמשפחות
+        כתוצאה משירות הצד השלישי שלעיל מוצבות בדפדפן שלכם cookies מהמשפחות
         הבאות:
       </p>
       <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
@@ -107,21 +97,9 @@ useSeo({
           <code>_ga</code>, <code>_ga_*</code> — Google Analytics, מזהה ביקורים
           מצרפי.
         </li>
-        <li>
-          <code>__gads</code>, <code>__gpi</code>, <code>IDE</code>,
-          <code>NID</code> — Google AdSense / DoubleClick, התאמת פרסומות ומדידת
-          ביצועים.
-        </li>
       </ul>
       <p class="text-ink/85 leading-relaxed">
-        ניתן לשלוט במידת ההתאמה האישית של פרסומות Google דרך
-        <a
-          href="https://adssettings.google.com"
-          target="_blank"
-          rel="noopener"
-          class="text-brand-700 underline"
-          >הגדרות הפרסום של Google</a
-        >, ולהפסיק לחלוטין את שליחת הנתונים ל-Google Analytics באמצעות
+        ניתן להפסיק לחלוטין את שליחת הנתונים ל-Google Analytics באמצעות
         <a
           href="https://tools.google.com/dlpage/gaoptout"
           target="_blank"
@@ -145,7 +123,7 @@ useSeo({
             class="text-brand-700 underline"
             >Google</a
           >
-          — חל על Firebase Hosting, Google Analytics ו-Google AdSense.
+          — חל על Firebase Hosting ו-Google Analytics.
         </li>
         <li>
           <a
@@ -163,8 +141,8 @@ useSeo({
       <p class="text-ink/85 leading-relaxed">
         עיבוד הנתונים נעשה במסגרת חוק הגנת הפרטיות, התשמ״א-1981, ובהתאם להוראות
         רשם מאגרי המידע. למבקרים מהאיחוד האירופי או מהממלכה המאוחדת, הבסיס
-        המשפטי לעיבוד הוא הסכמה (סעיף 6(1)(a) ל-GDPR) לעיבוד הקשור בפרסום מותאם
-        אישית, ואינטרס לגיטימי (סעיף 6(1)(f)) למדידת שימוש כללית באתר.
+        המשפטי לעיבוד הוא אינטרס לגיטימי (סעיף 6(1)(f) ל-GDPR) למדידת שימוש
+        כללית באתר.
       </p>
 
       <h2 class="font-display mt-8">6. זכויות המשתמש</h2>
