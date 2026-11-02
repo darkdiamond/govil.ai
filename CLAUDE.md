@@ -149,7 +149,10 @@ landing pages. Five layers:
    sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort, after an in-run
    retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget
    overruns since the last full fetch (`wall_budget_strikes` in the refresh
-   state) open a `too_large` issue. **Shared recipe code:** `compute.py` can
+   state) open a `too_large` issue. A datastore preview that fails (CKAN
+   timeout/5xx) is transient too, never a lost column: `preview_unavailable`
+   escalates to `schema_changed` only after `REFRESH_TRANSIENT_STRIKES` (3)
+   runs in a row (a slow CKAN falsely locked 16 sources on 2026-11-02). **Shared recipe code:** `compute.py` can
    `from govlib import fmt, frame, geo` and a template can
    `{% import "gov.j2" as gov %}` (`services/page_builder/recipe_lib/`; the
    refresh copies `govlib` into the sandbox, and folds the lib's hash into
