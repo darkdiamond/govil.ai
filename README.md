@@ -152,12 +152,12 @@ your own instance, override them via environment variables. Copy
 
 A fork builds clean by default, but a few things are govil.ai-specific:
 
-- **Analytics/ads are off unless you opt in.** GA4, AdSense, and
-  Microsoft Clarity load only when `NUXT_PUBLIC_GTAG_ID` /
-  `NUXT_PUBLIC_ADSENSE_ID` / `NUXT_PUBLIC_CLARITY_ID` are set at
-  `nuxt generate` time (in CI they come from GitHub repo variables —
-  see `.github/workflows/publish.yml`). `ads.txt` is generated from the
-  AdSense ID, never committed.
+- **Analytics are off unless you opt in.** GA4 and Microsoft Clarity
+  load only when `NUXT_PUBLIC_GTAG_ID` / `NUXT_PUBLIC_CLARITY_ID` are
+  set at `nuxt generate` time (in CI they come from GitHub repo
+  variables — see `.github/workflows/publish.yml`). The site shows no
+  ads; `NUXT_PUBLIC_ADSENSE_ID` only emits the AdSense account-verification
+  meta tag and `ads.txt` (generated from the ID, never committed).
 - **Replace the site identity.** The canonical URL `https://govil.ai`
   is hardcoded in `frontend/composables/useSeo.ts`,
   `frontend/public/robots.txt`, `frontend/public/site.webmanifest`, and

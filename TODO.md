@@ -181,6 +181,19 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   reference `/icons/calendar.svg`, `chart-bar.svg` and `trending-up.svg`, which aren't in
   `frontend/public/icons/`; the images 404. Commit the three Lucide icons. (2026-11-01)
 
+## Site shell (ads off since 2026-11-02)
+
+- **The CSP still allowlists the ad hosts.** With ad insertion removed, `firebase.json` keeps
+  `*.googlesyndication.com`, `*.googleadservices.com` and `*.adtrafficquality.google` in
+  `script-src`, `connect-src` and `frame-src`; nothing on the site loads from them, so they only
+  widen the script allowlist. Fix: drop them (check GA4 first: it can send to
+  `stats.g.doubleclick.net`, so keep `*.doubleclick.net` in `connect-src` if it does), and
+  update the CSP paragraph in CLAUDE.md "Gotchas", which still describes AdSense host drift. If
+  ads come back, restore both together. (2026-11-02)
+- **The privacy policy doesn't disclose Microsoft Clarity.** `plugins/clarity.client.ts` loads
+  it when `NUXT_PUBLIC_CLARITY_ID` is set, and it sets cookies, but `/privacy/` lists only
+  Google Analytics. Add a Clarity entry (service, cookies, Microsoft's privacy link). (2026-11-02)
+
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
