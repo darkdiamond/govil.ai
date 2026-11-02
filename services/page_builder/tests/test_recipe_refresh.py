@@ -97,7 +97,8 @@ class FakeStore:
 
     def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
                                inputs_hash=None, inputs_hash_unordered=None,
-                               file_fingerprint=None, reason, advance_version, preview=False):
+                               file_fingerprint=None, reason, advance_version,
+                               transient_strikes=None, preview=False):
         kw = {"input_fingerprint": input_fingerprint, "unchanged_reason": reason,
               "file_fingerprint": file_fingerprint}
         if inputs_hash is not None:
@@ -105,6 +106,8 @@ class FakeStore:
             kw["inputs_hash_unordered"] = inputs_hash_unordered
             kw["wall_budget_strikes"] = None
             kw["transient_strikes"] = None
+        elif transient_strikes is not None:
+            kw["transient_strikes"] = transient_strikes or None
         if reason == "content_hash":
             kw["last_verified_at"] = datetime.now(timezone.utc)
         if advance_version:
@@ -320,6 +323,49 @@ def test_preview_that_never_comes_back_escalates_to_schema_changed(env, monkeypa
     reasons = [_run(env, store, ckan)["outcomes"][0]["reason"] for _ in range(3)]
     assert reasons == ["fetch_failed", "fetch_failed", "schema_changed"]
     assert len(env.issues) == 1 and env.issues[0]["reason"] == "schema_changed"
+
+
+def test_fingerprint_skip_breaks_a_run_of_preview_strikes(env, monkeypatch):
+    # Slow CKAN on non-consecutive nights must not add up to an issue.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "2")
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store.states[(DS, False)]["transient_strikes"] = {"preview_unavailable": 1, "other": 1}
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "fingerprint"
+    assert store.states[(DS, False)]["transient_strikes"] == {"other": 1}
+    o = _first(_run(env, store, TimeoutCkan(ckan.rows), preview=False))
+    assert o["reason"] == "fetch_failed" and env.issues == []
+
+
+def test_a_failure_after_the_previews_answered_breaks_the_run(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    _run(env, store, TimeoutCkan(_rows([2024, 2025])))
+    assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
+
+    class NoExport(FakeCkan):
+        def fetch(self, *a, **kw):
+            return None
+
+    s = _run(env, store, NoExport(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "fetch_failed"
+    assert store.states[(DS, True)]["transient_strikes"] is None
+
+
+def test_by_id_without_columns_missing_preview_is_a_strike(env, tmp_path, monkeypatch):
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    rj = recipes / DS / "recipe.json"
+    m = json.loads(rj.read_text(encoding="utf-8"))
+    m["inputs"][0]["required_columns"] = []
+    rj.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+    store = FakeStore(_src())
+    s = _run(env, store, TimeoutCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["outcomes"][0]["reason"] == "fetch_failed"
+    assert "no preview" in s["outcomes"][0]["error"]
+    assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
 
 
 def test_too_few_insights_fails(env, tmp_path):

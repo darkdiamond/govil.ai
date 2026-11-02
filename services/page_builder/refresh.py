@@ -428,7 +428,8 @@ def probe_inputs(
     preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
 ) -> InputProbe:
     """Resolve the recipe's inputs. Raises RecipeError `schema_changed` when
-    they no longer resolve; ResourceRestrictedError passes through."""
+    they no longer resolve, StrikeError `preview_unavailable` when a preview
+    they needed didn't answer; ResourceRestrictedError passes through."""
     previews: dict[str, Optional[dict]] = {}
     probe = InputProbe({}, previews, preview_fn)
 
@@ -439,11 +440,29 @@ def probe_inputs(
     try:
         probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
     except PreviewUnavailable as e:
-        # Slow CKAN, not a schema change: retried next run; an issue opens
-        # only once it repeats (e.g. a resource dropped from the datastore).
-        raise StrikeError(str(e), reason="fetch_failed", strike="preview_unavailable",
-                          escalate_to="schema_changed") from None
+        raise _preview_strike(str(e)) from None
     return probe
+
+
+_PREVIEW_STRIKE = "preview_unavailable"
+
+
+def _preview_strike(message: str) -> StrikeError:
+    """A datastore preview that didn't answer. Slow CKAN, not a schema change:
+    retried next run; an issue opens only once it repeats (e.g. a resource
+    dropped from the datastore)."""
+    return StrikeError(message, reason="fetch_failed", strike=_PREVIEW_STRIKE,
+                       escalate_to="schema_changed")
+
+
+def _strikes_after_probe(state: dict, probe: Optional["InputProbe"]) -> Optional[dict]:
+    """The `transient_strikes` to write once this run's input probe answered:
+    a run of preview failures is broken, so that count restarts. None = leave
+    the stored map alone."""
+    strikes = state.get("transient_strikes") or {}
+    if probe is None or _PREVIEW_STRIKE not in strikes:
+        return None
+    return {k: v for k, v in strikes.items() if k != _PREVIEW_STRIKE}
 
 
 # Shared code between the data and the page: the compute runner, template
@@ -735,7 +754,11 @@ def fetch_inputs(
         parts: list[FetchedInput] = []
         for i, res in enumerate(resolved[inp.name]):
             rid = res["id"]
-            total = int((_preview(rid) or {}).get("total") or 0)
+            p = _preview(rid)
+            if p is None:
+                # A by_id input with no column check meets its preview here.
+                raise _preview_strike(f"input {inp.name!r}: no preview for resource {rid[:8]}")
+            total = int(p.get("total") or 0)
             if total <= 0:
                 raise RecipeError(
                     f"input {inp.name!r}: resource {rid[:8]} has no rows",
@@ -1276,11 +1299,13 @@ def refresh_one(
     try:
         probe = None
         after_fetch = None
+        # Up front in every mode (fetch_inputs reuses it): a probe that
+        # answered breaks a run of `preview_unavailable` strikes.
+        probe = probe_inputs(
+            recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
+        )
         if mode != "off":
             identity = recipe_identity(recipe)
-            probe = probe_inputs(
-                recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
-            )
             fp = hashes["input_fingerprint"] = input_fingerprint(recipe, probe, identity)
             pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
             ff = hashes["file_fingerprint"] = file_fingerprint(recipe, probe, identity)
@@ -1310,6 +1335,7 @@ def refresh_one(
         return _mark_unchanged(
             store, src, trigger, u.reason, pc, hashes,
             advance_version=u.reason == "inputs_hash", preview=preview, started=started,
+            transient_strikes=_strikes_after_probe(state, probe),
         )
     except ResourceRestrictedError as e:
         # Data went private upstream. Not the recipe's fault, not
@@ -1328,9 +1354,11 @@ def refresh_one(
                     reason="too_large",
                 )
                 strikes = 0
-        transient = None
+        transient = _strikes_after_probe(state, probe)
         if isinstance(e, StrikeError):
-            transient = dict(state.get("transient_strikes") or {})
+            # A preview strike (even one in fetch_inputs) continues the run.
+            if transient is None or e.strike == _PREVIEW_STRIKE:
+                transient = dict(state.get("transient_strikes") or {})
             n = int(transient.get(e.strike) or 0) + 1
             if n >= _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES):
                 transient.pop(e.strike, None)  # a fresh run of tries after the fix
@@ -1468,10 +1496,13 @@ def refresh_one(
 def _mark_unchanged(
     store, src, trigger: str, reason: str, pc: dict, hashes: dict, *,
     advance_version: bool, preview: bool, started: float, rows: Optional[dict] = None,
+    transient_strikes: Optional[dict] = None,
 ) -> RefreshOutcome:
     """Record a precheck skip (the live page stands). A failed state write is
     a staging failure like a failed `mark_refreshed`: this source only,
-    retried next run, counted toward `staging_down`."""
+    retried next run, counted toward `staging_down`. `transient_strikes`
+    (from `_strikes_after_probe`) matters only after a fingerprint skip: an
+    input-hash skip fetched everything, so the store clears them all."""
     pc["skipped"] = reason
     try:
         store.mark_refresh_unchanged(
@@ -1483,6 +1514,7 @@ def _mark_unchanged(
             file_fingerprint=hashes.get("file_fingerprint"),
             reason=reason,
             advance_version=advance_version,
+            transient_strikes=transient_strikes,
             preview=preview,
         )
     except Exception as e:

@@ -730,6 +730,7 @@ class FirestoreStateStore:
         file_fingerprint: Optional[str] = None,
         reason: str,
         advance_version: bool,
+        transient_strikes: Optional[dict[str, int]] = None,
         preview: bool = False,
     ) -> None:
         """Record that CKAN bumped the version but the precheck found the
@@ -748,7 +749,9 @@ class FirestoreStateStore:
         `content_hash` skip). That skip was a full render, so it stamps
         `last_verified_at`, which the max-age safety net also counts.
         `inputs_hash` is None after a fingerprint skip (nothing was fetched);
-        the stored one still holds.
+        the stored one still holds. `transient_strikes`, when given, replaces
+        the stored map after a fingerprint skip (the previews answered, so a
+        run of `preview_unavailable` strikes restarts).
         """
         payload: dict[str, Any] = {
             "last_unchanged_at": datetime.now(timezone.utc),
@@ -761,6 +764,8 @@ class FirestoreStateStore:
             payload["inputs_hash_unordered"] = inputs_hash_unordered
             payload["wall_budget_strikes"] = None  # the full fetch completed
             payload["transient_strikes"] = None  # …downloads included
+        elif transient_strikes is not None:
+            payload["transient_strikes"] = transient_strikes or None
         if reason == "content_hash":
             payload["last_verified_at"] = payload["last_unchanged_at"]
         if advance_version:
@@ -777,7 +782,9 @@ class FirestoreStateStore:
             )
             if not preview:
                 payload["analyzed_metadata_modified"] = metadata_modified
-        self._refresh_ref(dataset_id, preview).set(payload, merge=True)
+        # merge= field paths: `transient_strikes` is replaced whole (merge=True
+        # would deep-merge the map and keep a popped key).
+        self._refresh_ref(dataset_id, preview).set(payload, merge=list(payload))
 
     def mark_refresh_failed(
         self,
