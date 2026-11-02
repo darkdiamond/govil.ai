@@ -368,6 +368,18 @@ def test_by_id_without_columns_missing_preview_is_a_strike(env, tmp_path, monkey
     assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
 
 
+def test_preview_strike_resets_only_once_a_preview_answered():
+    # A by_id input with no column check asks its preview only in fetch_inputs;
+    # a failure before that must not break a run of preview strikes.
+    state = {"transient_strikes": {"preview_unavailable": 2, "other": 1}}
+    probe = rf.InputProbe({}, {}, lambda rid: None)
+    assert rf._strikes_after_probe(state, probe) is None  # nothing asked
+    probe._previews["r1"] = None
+    assert rf._strikes_after_probe(state, probe) is None  # one didn't answer
+    probe._previews["r1"] = {"fields": []}
+    assert rf._strikes_after_probe(state, probe) == {"other": 1}
+
+
 class FlakyCkan(FakeCkan):
     """The first `misses` previews time out, then CKAN answers."""
 

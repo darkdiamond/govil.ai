@@ -401,6 +401,13 @@ class InputProbe:
                 raise _limit_error(e, f"preview of {rid[:8]}") from None
         return self._previews[rid]
 
+    def answered(self) -> bool:
+        """Every datastore preview asked so far this run came back (and at
+        least one was asked)."""
+        return bool(self._previews) and all(
+            p is not None for p in self._previews.values()
+        )
+
 
 class WallBudgetExceeded(RecipeError):
     """A fetch ran out of wall budget. Transient (`fetch_failed`) on its
@@ -472,11 +479,12 @@ def _preview_strike(message: str) -> StrikeError:
 
 
 def _strikes_after_probe(state: dict, probe: Optional["InputProbe"]) -> Optional[dict]:
-    """The `transient_strikes` to write once this run's input probe answered:
+    """The `transient_strikes` to write once this run's previews answered:
     a run of preview failures is broken, so that count restarts. None = leave
-    the stored map alone."""
+    the stored map alone (also when no preview was asked yet, e.g. a `by_id`
+    input with no column check, whose preview comes only in `fetch_inputs`)."""
     strikes = state.get("transient_strikes") or {}
-    if probe is None or _PREVIEW_STRIKE not in strikes:
+    if probe is None or _PREVIEW_STRIKE not in strikes or not probe.answered():
         return None
     return {k: v for k, v in strikes.items() if k != _PREVIEW_STRIKE}
 
@@ -1221,7 +1229,7 @@ def _read_gcs(bucket: str, relpath: str) -> Optional[bytes]:
 @dataclass
 class RefreshOutcome:
     id: str
-    status: str                      # refreshed | unchanged | failed | skipped
+    status: str                      # refreshed | unchanged | failed | skipped | retry_later
     trigger: Optional[str] = None
     reason: Optional[str] = None
     error: Optional[str] = None
@@ -1654,7 +1662,8 @@ def _retry_later(e: RecipeError) -> bool:
 
 
 def _spends_cap(o: RefreshOutcome) -> bool:
-    return o.status not in ("skipped", "retry_later") and not (
+    # A `retry_later` slot keeps its place: the retry pass refreshes it.
+    return o.status != "skipped" and not (
         o.status == "unchanged" and o.reason == "fingerprint"
     )
 
@@ -1690,7 +1699,8 @@ def run_refresh(
     # outgrows the container, every other page is already staged.
     heavy: list[tuple[str, Recipe]] = []
     retry_cap = max(0, _env_int("REFRESH_RETRY_CAP", _DEFAULT_RETRY_CAP))
-    deferred: list[tuple[int, object, Recipe, str]] = []  # outcome index, src, recipe, trigger
+    # outcome index, src, recipe, trigger, refresh state (the deferral wrote nothing)
+    deferred: list[tuple[int, object, Recipe, str, dict]] = []
     last_deferred_at = 0.0
 
     def _count_staging(outcome: RefreshOutcome) -> None:
@@ -1757,11 +1767,11 @@ def run_refresh(
                 defer_transient=len(deferred) < retry_cap, **kwargs,
             )
             if outcome.status == "retry_later":
-                deferred.append((len(outcomes), src, recipe, trigger))
+                deferred.append((len(outcomes), src, recipe, trigger, state))
                 last_deferred_at = time.monotonic()
             outcomes.append(outcome)
             _count_staging(outcome)
-        if deferred:
+        if deferred and not staging_down:
             wait = _env_float("REFRESH_RETRY_DELAY_S", _DEFAULT_RETRY_DELAY_S) - (
                 time.monotonic() - last_deferred_at
             )
@@ -1769,15 +1779,11 @@ def run_refresh(
                      f" in {wait:.0f}s" if wait > 0 else "")
             if wait > 0:
                 sleep(wait)
-        for i, src, recipe, trigger in deferred:
+        # Each deferred slot already counted toward the cap, so no cap check.
+        for i, src, recipe, trigger, state in deferred:
             if staging_down:
                 outcomes[i] = RefreshOutcome(src.id, "skipped", reason="staging_down")
                 continue
-            if len([o for o in outcomes if _spends_cap(o)]) >= cap:
-                outcomes[i] = RefreshOutcome(src.id, "skipped", reason="cap")
-                continue
-            # The deferral wrote nothing, so the stored state is still current.
-            state = store.get_refresh_state(src.id, preview=preview)
             outcome = refresh_one(
                 src, recipe, store=store, preview=preview,
                 staging_bucket=staging_bucket, work_root=work_root,
