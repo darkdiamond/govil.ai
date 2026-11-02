@@ -68,3 +68,10 @@ def _memoize_host_check(tmp_path_factory, worker_id):
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(refresh, "run_host_check", memoized)
         yield
+
+
+@pytest.fixture(autouse=True)
+def _no_retry_pass_wait(monkeypatch):
+    """The refresh's end-of-run retry pass waits REFRESH_RETRY_DELAY_S (120s)
+    for CKAN to recover; tests that want the wait inject `sleep`."""
+    monkeypatch.setenv("REFRESH_RETRY_DELAY_S", "0")

@@ -368,6 +368,71 @@ def test_by_id_without_columns_missing_preview_is_a_strike(env, tmp_path, monkey
     assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
 
 
+class FlakyCkan(FakeCkan):
+    """The first `misses` previews time out, then CKAN answers."""
+
+    def __init__(self, rows, misses):
+        super().__init__(rows)
+        self.misses = misses
+
+    def preview(self, rid):
+        if self.misses > 0:
+            self.misses -= 1
+            return None
+        return super().preview(rid)
+
+
+def test_retry_pass_renders_a_source_ckan_was_slow_for(env):
+    store = FakeStore(_src())
+    slept = []
+    s = _run(env, store, FlakyCkan(_rows([2024, 2025]), misses=1), sleep=slept.append)
+    assert s["refreshed"] == [DS] and s["failed"] == []
+    out = s["outcomes"][0]
+    assert out["status"] == "refreshed" and out["retried"] is True
+    st = store.states[(DS, True)]
+    assert st.get("transient_strikes") is None and env.issues == []
+    assert slept == []  # REFRESH_RETRY_DELAY_S=0 in the suite
+
+
+def test_retry_pass_failing_again_counts_one_strike(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    s = _run(env, store, TimeoutCkan(_rows([2024, 2025])))
+    out = s["outcomes"][0]
+    assert out["status"] == "failed" and out["reason"] == "fetch_failed"
+    assert out["retried"] is True
+    # The deferred first try wrote nothing: one run, one strike.
+    assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
+
+
+def test_retry_pass_waits_for_ckan_to_recover(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_RETRY_DELAY_S", "120")
+    slept = []
+    _run(env, FakeStore(_src()), FlakyCkan(_rows([2024, 2025]), misses=1),
+         sleep=slept.append)
+    assert len(slept) == 1 and 100 < slept[0] <= 120
+
+
+def test_retry_cap_zero_disables_the_retry_pass(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_RETRY_CAP", "0")
+    s = _run(env, FakeStore(_src()), FlakyCkan(_rows([2024, 2025]), misses=1))
+    out = s["outcomes"][0]
+    assert out["reason"] == "fetch_failed" and out["retried"] is None
+
+
+@pytest.mark.parametrize("err, retry", [
+    (RecipeError("x", reason="fetch_failed"), True),
+    (rf._preview_strike("x"), True),
+    (rf.WallBudgetExceeded("x"), False),
+    (rf.StrikeError("x", reason="fetch_failed", strike="download_blocked",
+                    escalate_to="download_blocked"), False),
+    (RecipeError("x", reason="schema_changed"), False),
+    (RecipeError("x", reason="sandbox_failed"), False),
+])
+def test_what_the_retry_pass_retries(err, retry):
+    assert rf._retry_later(err) is retry
+
+
 def test_too_few_insights_fails(env, tmp_path):
     recipes = tmp_path / "recipes"
     shutil.copytree(FIXTURES / DS, recipes / DS)

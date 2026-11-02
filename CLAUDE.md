@@ -152,7 +152,14 @@ landing pages. Five layers:
    state) open a `too_large` issue. A datastore preview that fails (CKAN
    timeout/5xx) is transient too, never a lost column: `preview_unavailable`
    escalates to `schema_changed` only after `REFRESH_TRANSIENT_STRIKES` (3)
-   runs in a row (a slow CKAN falsely locked 16 sources on 2026-11-02). **Shared recipe code:** `compute.py` can
+   runs in a row (a slow CKAN falsely locked 16 sources on 2026-11-02). Before
+   any of that is recorded, a CKAN/network `fetch_failed` or a missing preview
+   gets one more try at the end of the same run (`run_refresh`'s retry pass,
+   ≥ `REFRESH_RETRY_DELAY_S` (120) after the last such failure, at most
+   `REFRESH_RETRY_CAP` (20) sources a run; later ones fail as before). The
+   deferred try writes nothing; only the retry's outcome counts (`retried` in
+   its `refresh_outcome` log line). Wall-budget overruns and map-download
+   strikes aren't retried. **Shared recipe code:** `compute.py` can
    `from govlib import fmt, frame, geo` and a template can
    `{% import "gov.j2" as gov %}` (`services/page_builder/recipe_lib/`; the
    refresh copies `govlib` into the sandbox, and folds the lib's hash into

@@ -94,6 +94,15 @@ _DEFAULT_WALL_BUDGET_STRIKES = 3
 # Same idea for every `StrikeError` (a map-file download the WAF blocked):
 # this many runs in a row → its `escalate_to` reason, which opens an issue.
 _DEFAULT_TRANSIENT_STRIKES = 3
+# In-run second pass: a source whose CKAN fetch/preview failed transiently is
+# retried once at the end of the run instead of waiting a day (CKAN slowness
+# comes in bursts — 2026-11-02 lost 16 previews in a 40-minute window while
+# other sources fetched fine). At most this many sources are deferred per run
+# (REFRESH_RETRY_CAP; later ones fail as before), so an outage can't double
+# the run, and the pass starts at least REFRESH_RETRY_DELAY_S after the last
+# deferral.
+_DEFAULT_RETRY_CAP = 20
+_DEFAULT_RETRY_DELAY_S = 120.0
 # A `map` input's file download cap (REFRESH_MAP_MAX_BYTES): it is parsed
 # in the builder process, not the compute sandbox.
 _DEFAULT_MAP_MAX_BYTES = 50_000_000
@@ -131,6 +140,13 @@ def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
 def _env_int(name: str, default: int) -> int:
     try:
         return int(os.environ.get(name, "") or default)
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, "") or default)
     except ValueError:
         return default
 
@@ -1219,6 +1235,8 @@ class RefreshOutcome:
     # inputs_same_unordered, content_same, skipped}
     # (True/False; None = no stored hash to compare against yet).
     precheck: dict = field(default_factory=dict)
+    # True on the outcome of the end-of-run second pass (see _DEFAULT_RETRY_CAP).
+    retried: Optional[bool] = None
 
 
 class _Unchanged(Exception):
@@ -1274,8 +1292,13 @@ def refresh_one(
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
     read_gcs: Callable[[str, str], Optional[bytes]] = _read_gcs,
     providers=None,
+    defer_transient: bool = False,
     **fetch_kwargs,
 ) -> RefreshOutcome:
+    """Refresh one recipe'd source. With `defer_transient`, a failure worth
+    retrying later in the run (`_retry_later`) writes nothing — no state, no
+    strike, no issue — and returns status `retry_later`; `run_refresh` calls
+    again without the flag, which records the outcome as usual."""
     started = time.monotonic()
     rv = recipe.manifest.recipe_version
     resources = src.resources
@@ -1343,6 +1366,12 @@ def refresh_one(
         log.warning("refresh %s: restricted upstream: %s", src.id[:8], e)
         return RefreshOutcome(src.id, "failed", trigger, "restricted", str(e))
     except RecipeError as e:
+        if defer_transient and _retry_later(e):
+            log.warning("refresh %s: %s — retrying at the end of the run", src.id[:8], e)
+            return RefreshOutcome(
+                src.id, "retry_later", trigger, e.reason, _clip(str(e)),
+                round(time.monotonic() - started, 2),
+            )
         strikes = None
         if isinstance(e, WallBudgetExceeded):
             strikes = int(state.get("wall_budget_strikes") or 0) + 1
@@ -1614,8 +1643,18 @@ def _queue_authoring_safely(store, src, reason: str, **kw) -> Optional[int]:
         return None
 
 
+def _retry_later(e: RecipeError) -> bool:
+    """A failure a second try minutes later may not hit: CKAN/network
+    trouble. Not a wall-budget overrun (the dataset is slow; a retry doubles
+    the time) nor a map download strike (a WAF block or a 404 won't clear
+    within the run)."""
+    if e.reason != "fetch_failed" or isinstance(e, WallBudgetExceeded):
+        return False
+    return not isinstance(e, StrikeError) or e.strike == _PREVIEW_STRIKE
+
+
 def _spends_cap(o: RefreshOutcome) -> bool:
-    return o.status != "skipped" and not (
+    return o.status not in ("skipped", "retry_later") and not (
         o.status == "unchanged" and o.reason == "fingerprint"
     )
 
@@ -1631,10 +1670,12 @@ def run_refresh(
     force: bool = False,
     notify: bool = True,
     work_root: Optional[Path] = None,
+    sleep: Callable[[float], None] = time.sleep,
     **kwargs,
 ) -> dict:
     """Refresh every eligible recipe'd source (sequentially — a refresh is
-    CKAN-bound and cheap; there is no model latency to hide)."""
+    CKAN-bound and cheap; there is no model latency to hide), then retry the
+    transient fetch failures once (see `_DEFAULT_RETRY_CAP`)."""
     cap = cap if cap is not None else _env_int("REFRESH_CAP", 200)
     work_root = work_root or Path(os.environ.get("SESSIONS_ROOT", "/tmp/sessions"))
     work_root.mkdir(parents=True, exist_ok=True)
@@ -1648,6 +1689,22 @@ def run_refresh(
     # Heavy recipes (`limits` set) run after all the others: if one still
     # outgrows the container, every other page is already staged.
     heavy: list[tuple[str, Recipe]] = []
+    retry_cap = max(0, _env_int("REFRESH_RETRY_CAP", _DEFAULT_RETRY_CAP))
+    deferred: list[tuple[int, object, Recipe, str]] = []  # outcome index, src, recipe, trigger
+    last_deferred_at = 0.0
+
+    def _count_staging(outcome: RefreshOutcome) -> None:
+        nonlocal stage_failures, staging_down
+        if outcome.reason == STAGE_FAILED:
+            stage_failures += 1
+            if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
+                log.error(
+                    "refresh: %d staging failures in a row — stopping the batch",
+                    stage_failures,
+                )
+                staging_down = True
+        elif outcome.status == "refreshed":
+            stage_failures = 0
 
     def _queue():
         for dataset_id in ids:
@@ -1696,19 +1753,39 @@ def run_refresh(
             outcome = refresh_one(
                 src, recipe, store=store, preview=preview,
                 staging_bucket=staging_bucket, work_root=work_root,
+                trigger=trigger, previous_state=state, notify=notify,
+                defer_transient=len(deferred) < retry_cap, **kwargs,
+            )
+            if outcome.status == "retry_later":
+                deferred.append((len(outcomes), src, recipe, trigger))
+                last_deferred_at = time.monotonic()
+            outcomes.append(outcome)
+            _count_staging(outcome)
+        if deferred:
+            wait = _env_float("REFRESH_RETRY_DELAY_S", _DEFAULT_RETRY_DELAY_S) - (
+                time.monotonic() - last_deferred_at
+            )
+            log.info("refresh: retrying %d transient failure(s)%s", len(deferred),
+                     f" in {wait:.0f}s" if wait > 0 else "")
+            if wait > 0:
+                sleep(wait)
+        for i, src, recipe, trigger in deferred:
+            if staging_down:
+                outcomes[i] = RefreshOutcome(src.id, "skipped", reason="staging_down")
+                continue
+            if len([o for o in outcomes if _spends_cap(o)]) >= cap:
+                outcomes[i] = RefreshOutcome(src.id, "skipped", reason="cap")
+                continue
+            # The deferral wrote nothing, so the stored state is still current.
+            state = store.get_refresh_state(src.id, preview=preview)
+            outcome = refresh_one(
+                src, recipe, store=store, preview=preview,
+                staging_bucket=staging_bucket, work_root=work_root,
                 trigger=trigger, previous_state=state, notify=notify, **kwargs,
             )
-            outcomes.append(outcome)
-            if outcome.reason == STAGE_FAILED:
-                stage_failures += 1
-                if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
-                    log.error(
-                        "refresh: %d staging failures in a row — stopping the batch",
-                        stage_failures,
-                    )
-                    staging_down = True
-            elif outcome.status == "refreshed":
-                stage_failures = 0
+            outcome.retried = True
+            outcomes[i] = outcome
+            _count_staging(outcome)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     refreshed = [o.id for o in outcomes if o.status == "refreshed"]
