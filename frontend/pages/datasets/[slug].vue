@@ -569,10 +569,6 @@ onMounted(async () => {
           >.
         </div>
         <article ref="bodyEl" class="dataset-body" v-html="body" />
-        <!-- AdSense responsive slot between the agent's analysis and the
-             data explorer — see components/AdSlot.vue (no-op unless
-             NUXT_PUBLIC_ADSENSE_ID is set). -->
-        <AdSlot />
         <DatasetExplorer
           v-if="hasExplorer"
           :resources="entry.resources ?? []"
