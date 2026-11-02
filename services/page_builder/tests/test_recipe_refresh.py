@@ -97,7 +97,8 @@ class FakeStore:
 
     def mark_refresh_unchanged(self, dataset_id, *, metadata_modified, input_fingerprint,
                                inputs_hash=None, inputs_hash_unordered=None,
-                               file_fingerprint=None, reason, advance_version, preview=False):
+                               file_fingerprint=None, reason, advance_version,
+                               transient_strikes=None, preview=False):
         kw = {"input_fingerprint": input_fingerprint, "unchanged_reason": reason,
               "file_fingerprint": file_fingerprint}
         if inputs_hash is not None:
@@ -105,6 +106,8 @@ class FakeStore:
             kw["inputs_hash_unordered"] = inputs_hash_unordered
             kw["wall_budget_strikes"] = None
             kw["transient_strikes"] = None
+        elif transient_strikes is not None:
+            kw["transient_strikes"] = transient_strikes or None
         if reason == "content_hash":
             kw["last_verified_at"] = datetime.now(timezone.utc)
         if advance_version:
@@ -280,6 +283,166 @@ def test_schema_change_keeps_page_and_opens_issue_once(env):
     s = _run(env, store, FakeCkan(_rows([2024, 2025]), cols=renamed))
     assert s["outcomes"][0]["reason"] == "up_to_date"
     assert len(env.issues) == 1
+
+
+class TimeoutCkan(FakeCkan):
+    """CKAN's datastore_search timing out: fetch_resource_preview → None."""
+
+    def preview(self, rid):
+        return None
+
+
+def test_preview_timeout_is_transient_not_schema_changed(env, monkeypatch):
+    # 2026-11-02: a slow CKAN made 16 healthy recipes "lose" every column.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    staged_before = dict(env.staged)
+
+    store.src = _src("2026-11-01")
+    for n in (1, 2):
+        s = _run(env, store, TimeoutCkan(_rows([2024, 2025])))
+        assert s["outcomes"][0]["reason"] == "fetch_failed", s
+        assert "no preview" in s["outcomes"][0]["error"]
+        assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": n}
+    assert env.staged == staged_before and env.issues == []
+
+    # CKAN recovers: the bump renders and the strike count resets.
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["refreshed"] == [DS]
+    assert store.states[(DS, True)]["transient_strikes"] is None
+
+
+def test_preview_that_never_comes_back_escalates_to_schema_changed(env, monkeypatch):
+    # A resource dropped from the datastore answers `success: false` forever.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    ckan = TimeoutCkan(_rows([2024, 2025]))
+    reasons = [_run(env, store, ckan)["outcomes"][0]["reason"] for _ in range(3)]
+    assert reasons == ["fetch_failed", "fetch_failed", "schema_changed"]
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "schema_changed"
+
+
+def test_fingerprint_skip_breaks_a_run_of_preview_strikes(env, monkeypatch):
+    # Slow CKAN on non-consecutive nights must not add up to an issue.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "2")
+    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store.states[(DS, False)]["transient_strikes"] = {"preview_unavailable": 1, "other": 1}
+    assert _first(_run(env, store, ckan, preview=False))["reason"] == "fingerprint"
+    assert store.states[(DS, False)]["transient_strikes"] == {"other": 1}
+    o = _first(_run(env, store, TimeoutCkan(ckan.rows), preview=False))
+    assert o["reason"] == "fetch_failed" and env.issues == []
+
+
+def test_a_failure_after_the_previews_answered_breaks_the_run(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    _run(env, store, TimeoutCkan(_rows([2024, 2025])))
+    assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
+
+    class NoExport(FakeCkan):
+        def fetch(self, *a, **kw):
+            return None
+
+    s = _run(env, store, NoExport(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "fetch_failed"
+    assert store.states[(DS, True)]["transient_strikes"] is None
+
+
+def test_by_id_without_columns_missing_preview_is_a_strike(env, tmp_path, monkeypatch):
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    rj = recipes / DS / "recipe.json"
+    m = json.loads(rj.read_text(encoding="utf-8"))
+    m["inputs"][0]["required_columns"] = []
+    rj.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+    store = FakeStore(_src())
+    s = _run(env, store, TimeoutCkan(_rows([2024, 2025])), recipes=recipes)
+    assert s["outcomes"][0]["reason"] == "fetch_failed"
+    assert "no preview" in s["outcomes"][0]["error"]
+    assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
+
+
+def test_preview_strike_resets_only_once_a_preview_answered():
+    # A by_id input with no column check asks its preview only in fetch_inputs;
+    # a failure before that must not break a run of preview strikes.
+    state = {"transient_strikes": {"preview_unavailable": 2, "other": 1}}
+    probe = rf.InputProbe({}, {}, lambda rid: None)
+    assert rf._strikes_after_probe(state, probe) is None  # nothing asked
+    probe._previews["r1"] = None
+    assert rf._strikes_after_probe(state, probe) is None  # one didn't answer
+    probe._previews["r1"] = {"fields": []}
+    assert rf._strikes_after_probe(state, probe) == {"other": 1}
+
+
+class FlakyCkan(FakeCkan):
+    """The first `misses` previews time out, then CKAN answers."""
+
+    def __init__(self, rows, misses):
+        super().__init__(rows)
+        self.misses = misses
+
+    def preview(self, rid):
+        if self.misses > 0:
+            self.misses -= 1
+            return None
+        return super().preview(rid)
+
+
+def test_retry_pass_renders_a_source_ckan_was_slow_for(env):
+    store = FakeStore(_src())
+    slept = []
+    s = _run(env, store, FlakyCkan(_rows([2024, 2025]), misses=1), sleep=slept.append)
+    assert s["refreshed"] == [DS] and s["failed"] == []
+    out = s["outcomes"][0]
+    assert out["status"] == "refreshed" and out["retried"] is True
+    st = store.states[(DS, True)]
+    assert st.get("transient_strikes") is None and env.issues == []
+    assert slept == []  # REFRESH_RETRY_DELAY_S=0 in the suite
+
+
+def test_retry_pass_failing_again_counts_one_strike(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    s = _run(env, store, TimeoutCkan(_rows([2024, 2025])))
+    out = s["outcomes"][0]
+    assert out["status"] == "failed" and out["reason"] == "fetch_failed"
+    assert out["retried"] is True
+    # The deferred first try wrote nothing: one run, one strike.
+    assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": 1}
+
+
+def test_retry_pass_waits_for_ckan_to_recover(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_RETRY_DELAY_S", "120")
+    slept = []
+    _run(env, FakeStore(_src()), FlakyCkan(_rows([2024, 2025]), misses=1),
+         sleep=slept.append)
+    assert len(slept) == 1 and 100 < slept[0] <= 120
+
+
+def test_retry_cap_zero_disables_the_retry_pass(env, monkeypatch):
+    monkeypatch.setenv("REFRESH_RETRY_CAP", "0")
+    s = _run(env, FakeStore(_src()), FlakyCkan(_rows([2024, 2025]), misses=1))
+    out = s["outcomes"][0]
+    assert out["reason"] == "fetch_failed" and out["retried"] is None
+
+
+@pytest.mark.parametrize("err, retry", [
+    (RecipeError("x", reason="fetch_failed"), True),
+    (rf._preview_strike("x"), True),
+    (rf.WallBudgetExceeded("x"), False),
+    (rf.StrikeError("x", reason="fetch_failed", strike="download_blocked",
+                    escalate_to="download_blocked"), False),
+    (RecipeError("x", reason="schema_changed"), False),
+    (RecipeError("x", reason="sandbox_failed"), False),
+])
+def test_what_the_retry_pass_retries(err, retry):
+    assert rf._retry_later(err) is retry
 
 
 def test_too_few_insights_fails(env, tmp_path):

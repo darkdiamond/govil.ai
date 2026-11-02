@@ -20,6 +20,7 @@ from services.page_builder import refresh as rf
 from services.page_builder.recipe import (
     Recipe,
     RecipeError,
+    PreviewUnavailable,
     RecipeManifest,
     resolve_inputs,
 )
@@ -402,3 +403,23 @@ def test_brief_names_the_byte_cap_skip(tmp_path):
          "total": 9, "file": None, "rows": 0, "skipped": "bytes"}
     brief = author._brief(facts, [m], [], {"data": tmp_path})
     assert "over the byte cap" in brief and "REFRESH_MAX_RECORDS" not in brief
+
+
+@pytest.mark.parametrize("fields", [
+    # r-new (the newest match) didn't answer: picking r-old would be a guess.
+    {"r-old": ["a"], "r-new": None, "r-none": ["a"], "r-other": ["z"]},
+    # Nothing answered: not "no resource has columns".
+    {},
+])
+def test_by_schema_with_a_missing_preview_is_transient(fields):
+    m = _manifest([{"name": "main", "by_schema": ["a"], "pick": "latest"}])
+    with pytest.raises(PreviewUnavailable) as e:
+        resolve_inputs(m, _snapshots(), fields.get)
+    assert e.value.reason == "fetch_failed"
+
+
+def test_by_id_with_a_missing_preview_is_transient():
+    m = _manifest([{"name": "x", "by_id": RID, "required_columns": ["a"]}])
+    res = [{"id": RID, "name": "x", "format": "CSV", "datastore_active": True}]
+    with pytest.raises(PreviewUnavailable):
+        resolve_inputs(m, res, lambda rid: None)

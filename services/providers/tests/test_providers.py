@@ -335,10 +335,10 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
 
     monkeypatch.setattr(rf, "fetch_resource_preview", ckan)
     monkeypatch.setattr(rf, "fetch_resource_records_to_file", ckan)
-    monkeypatch.setattr(rf, "probe_inputs",
-                        lambda recipe, resources, preview_fn: (_ for _ in ()).throw(
-                            RecipeError("stop", reason="schema_changed")))
     seen = {}
+    # The probe runs in every precheck mode; it must get the provider's preview.
+    monkeypatch.setattr(rf, "probe_inputs",
+                        lambda recipe, resources, preview_fn: seen.update(probe_fn=preview_fn))
 
     def build_page(recipe, resources, work_root, *, probe=None, after_fetch=None, **kw):
         seen.update(kw, resources=resources)
@@ -356,6 +356,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
     assert out.reason == "fetch_failed"
     assert seen["resources"][0]["datastore_active"] is True
     assert seen["preview_fn"].__qualname__.endswith("preview_fn")
+    assert seen["probe_fn"] is seen["preview_fn"]
 
 
 def test_refresh_skips_a_doc_whose_provider_is_disabled(tmp_path):

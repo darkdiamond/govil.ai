@@ -63,6 +63,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     RecipeManifest,
+    PreviewUnavailable,
     feature_table,
     snapshot_table,
     kpi_format_findings,
@@ -93,6 +94,15 @@ _DEFAULT_WALL_BUDGET_STRIKES = 3
 # Same idea for every `StrikeError` (a map-file download the WAF blocked):
 # this many runs in a row → its `escalate_to` reason, which opens an issue.
 _DEFAULT_TRANSIENT_STRIKES = 3
+# In-run second pass: a source whose CKAN fetch/preview failed transiently is
+# retried once at the end of the run instead of waiting a day (CKAN slowness
+# comes in bursts — 2026-11-02 lost 16 previews in a 40-minute window while
+# other sources fetched fine). At most this many sources are deferred per run
+# (REFRESH_RETRY_CAP; later ones fail as before), so an outage can't double
+# the run, and the pass starts at least REFRESH_RETRY_DELAY_S after the last
+# deferral.
+_DEFAULT_RETRY_CAP = 20
+_DEFAULT_RETRY_DELAY_S = 120.0
 # A `map` input's file download cap (REFRESH_MAP_MAX_BYTES): it is parsed
 # in the builder process, not the compute sandbox.
 _DEFAULT_MAP_MAX_BYTES = 50_000_000
@@ -130,6 +140,13 @@ def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
 def _env_int(name: str, default: int) -> int:
     try:
         return int(os.environ.get(name, "") or default)
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, "") or default)
     except ValueError:
         return default
 
@@ -384,6 +401,13 @@ class InputProbe:
                 raise _limit_error(e, f"preview of {rid[:8]}") from None
         return self._previews[rid]
 
+    def answered(self) -> bool:
+        """Every datastore preview asked so far this run came back (and at
+        least one was asked)."""
+        return bool(self._previews) and all(
+            p is not None for p in self._previews.values()
+        )
+
 
 class WallBudgetExceeded(RecipeError):
     """A fetch ran out of wall budget. Transient (`fetch_failed`) on its
@@ -427,7 +451,8 @@ def probe_inputs(
     preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
 ) -> InputProbe:
     """Resolve the recipe's inputs. Raises RecipeError `schema_changed` when
-    they no longer resolve; ResourceRestrictedError passes through."""
+    they no longer resolve, StrikeError `preview_unavailable` when a preview
+    they needed didn't answer; ResourceRestrictedError passes through."""
     previews: dict[str, Optional[dict]] = {}
     probe = InputProbe({}, previews, preview_fn)
 
@@ -435,8 +460,33 @@ def probe_inputs(
         p = probe.preview(rid)
         return [f["id"] for f in (p or {}).get("fields") or []] if p else None
 
-    probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
+    try:
+        probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
+    except PreviewUnavailable as e:
+        raise _preview_strike(str(e)) from None
     return probe
+
+
+_PREVIEW_STRIKE = "preview_unavailable"
+
+
+def _preview_strike(message: str) -> StrikeError:
+    """A datastore preview that didn't answer. Slow CKAN, not a schema change:
+    retried next run; an issue opens only once it repeats (e.g. a resource
+    dropped from the datastore)."""
+    return StrikeError(message, reason="fetch_failed", strike=_PREVIEW_STRIKE,
+                       escalate_to="schema_changed")
+
+
+def _strikes_after_probe(state: dict, probe: Optional["InputProbe"]) -> Optional[dict]:
+    """The `transient_strikes` to write once this run's previews answered:
+    a run of preview failures is broken, so that count restarts. None = leave
+    the stored map alone (also when no preview was asked yet, e.g. a `by_id`
+    input with no column check, whose preview comes only in `fetch_inputs`)."""
+    strikes = state.get("transient_strikes") or {}
+    if probe is None or _PREVIEW_STRIKE not in strikes or not probe.answered():
+        return None
+    return {k: v for k, v in strikes.items() if k != _PREVIEW_STRIKE}
 
 
 # Shared code between the data and the page: the compute runner, template
@@ -728,7 +778,11 @@ def fetch_inputs(
         parts: list[FetchedInput] = []
         for i, res in enumerate(resolved[inp.name]):
             rid = res["id"]
-            total = int((_preview(rid) or {}).get("total") or 0)
+            p = _preview(rid)
+            if p is None:
+                # A by_id input with no column check meets its preview here.
+                raise _preview_strike(f"input {inp.name!r}: no preview for resource {rid[:8]}")
+            total = int(p.get("total") or 0)
             if total <= 0:
                 raise RecipeError(
                     f"input {inp.name!r}: resource {rid[:8]} has no rows",
@@ -1175,7 +1229,7 @@ def _read_gcs(bucket: str, relpath: str) -> Optional[bytes]:
 @dataclass
 class RefreshOutcome:
     id: str
-    status: str                      # refreshed | unchanged | failed | skipped
+    status: str                      # refreshed | unchanged | failed | skipped | retry_later
     trigger: Optional[str] = None
     reason: Optional[str] = None
     error: Optional[str] = None
@@ -1189,6 +1243,8 @@ class RefreshOutcome:
     # inputs_same_unordered, content_same, skipped}
     # (True/False; None = no stored hash to compare against yet).
     precheck: dict = field(default_factory=dict)
+    # True on the outcome of the end-of-run second pass (see _DEFAULT_RETRY_CAP).
+    retried: Optional[bool] = None
 
 
 class _Unchanged(Exception):
@@ -1244,8 +1300,13 @@ def refresh_one(
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
     read_gcs: Callable[[str, str], Optional[bytes]] = _read_gcs,
     providers=None,
+    defer_transient: bool = False,
     **fetch_kwargs,
 ) -> RefreshOutcome:
+    """Refresh one recipe'd source. With `defer_transient`, a failure worth
+    retrying later in the run (`_retry_later`) writes nothing — no state, no
+    strike, no issue — and returns status `retry_later`; `run_refresh` calls
+    again without the flag, which records the outcome as usual."""
     started = time.monotonic()
     rv = recipe.manifest.recipe_version
     resources = src.resources
@@ -1269,11 +1330,13 @@ def refresh_one(
     try:
         probe = None
         after_fetch = None
+        # Up front in every mode (fetch_inputs reuses it): a probe that
+        # answered breaks a run of `preview_unavailable` strikes.
+        probe = probe_inputs(
+            recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
+        )
         if mode != "off":
             identity = recipe_identity(recipe)
-            probe = probe_inputs(
-                recipe, resources, fetch_kwargs.get("preview_fn", fetch_resource_preview)
-            )
             fp = hashes["input_fingerprint"] = input_fingerprint(recipe, probe, identity)
             pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
             ff = hashes["file_fingerprint"] = file_fingerprint(recipe, probe, identity)
@@ -1303,6 +1366,7 @@ def refresh_one(
         return _mark_unchanged(
             store, src, trigger, u.reason, pc, hashes,
             advance_version=u.reason == "inputs_hash", preview=preview, started=started,
+            transient_strikes=_strikes_after_probe(state, probe),
         )
     except ResourceRestrictedError as e:
         # Data went private upstream. Not the recipe's fault, not
@@ -1310,6 +1374,12 @@ def refresh_one(
         log.warning("refresh %s: restricted upstream: %s", src.id[:8], e)
         return RefreshOutcome(src.id, "failed", trigger, "restricted", str(e))
     except RecipeError as e:
+        if defer_transient and _retry_later(e):
+            log.warning("refresh %s: %s — retrying at the end of the run", src.id[:8], e)
+            return RefreshOutcome(
+                src.id, "retry_later", trigger, e.reason, _clip(str(e)),
+                round(time.monotonic() - started, 2),
+            )
         strikes = None
         if isinstance(e, WallBudgetExceeded):
             strikes = int(state.get("wall_budget_strikes") or 0) + 1
@@ -1321,9 +1391,11 @@ def refresh_one(
                     reason="too_large",
                 )
                 strikes = 0
-        transient = None
+        transient = _strikes_after_probe(state, probe)
         if isinstance(e, StrikeError):
-            transient = dict(state.get("transient_strikes") or {})
+            # A preview strike (even one in fetch_inputs) continues the run.
+            if transient is None or e.strike == _PREVIEW_STRIKE:
+                transient = dict(state.get("transient_strikes") or {})
             n = int(transient.get(e.strike) or 0) + 1
             if n >= _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES):
                 transient.pop(e.strike, None)  # a fresh run of tries after the fix
@@ -1461,10 +1533,13 @@ def refresh_one(
 def _mark_unchanged(
     store, src, trigger: str, reason: str, pc: dict, hashes: dict, *,
     advance_version: bool, preview: bool, started: float, rows: Optional[dict] = None,
+    transient_strikes: Optional[dict] = None,
 ) -> RefreshOutcome:
     """Record a precheck skip (the live page stands). A failed state write is
     a staging failure like a failed `mark_refreshed`: this source only,
-    retried next run, counted toward `staging_down`."""
+    retried next run, counted toward `staging_down`. `transient_strikes`
+    (from `_strikes_after_probe`) matters only after a fingerprint skip: an
+    input-hash skip fetched everything, so the store clears them all."""
     pc["skipped"] = reason
     try:
         store.mark_refresh_unchanged(
@@ -1476,6 +1551,7 @@ def _mark_unchanged(
             file_fingerprint=hashes.get("file_fingerprint"),
             reason=reason,
             advance_version=advance_version,
+            transient_strikes=transient_strikes,
             preview=preview,
         )
     except Exception as e:
@@ -1575,7 +1651,18 @@ def _queue_authoring_safely(store, src, reason: str, **kw) -> Optional[int]:
         return None
 
 
+def _retry_later(e: RecipeError) -> bool:
+    """A failure a second try minutes later may not hit: CKAN/network
+    trouble. Not a wall-budget overrun (the dataset is slow; a retry doubles
+    the time) nor a map download strike (a WAF block or a 404 won't clear
+    within the run)."""
+    if e.reason != "fetch_failed" or isinstance(e, WallBudgetExceeded):
+        return False
+    return not isinstance(e, StrikeError) or e.strike == _PREVIEW_STRIKE
+
+
 def _spends_cap(o: RefreshOutcome) -> bool:
+    # A `retry_later` slot keeps its place: the retry pass refreshes it.
     return o.status != "skipped" and not (
         o.status == "unchanged" and o.reason == "fingerprint"
     )
@@ -1592,10 +1679,12 @@ def run_refresh(
     force: bool = False,
     notify: bool = True,
     work_root: Optional[Path] = None,
+    sleep: Callable[[float], None] = time.sleep,
     **kwargs,
 ) -> dict:
     """Refresh every eligible recipe'd source (sequentially — a refresh is
-    CKAN-bound and cheap; there is no model latency to hide)."""
+    CKAN-bound and cheap; there is no model latency to hide), then retry the
+    transient fetch failures once (see `_DEFAULT_RETRY_CAP`)."""
     cap = cap if cap is not None else _env_int("REFRESH_CAP", 200)
     work_root = work_root or Path(os.environ.get("SESSIONS_ROOT", "/tmp/sessions"))
     work_root.mkdir(parents=True, exist_ok=True)
@@ -1609,6 +1698,23 @@ def run_refresh(
     # Heavy recipes (`limits` set) run after all the others: if one still
     # outgrows the container, every other page is already staged.
     heavy: list[tuple[str, Recipe]] = []
+    retry_cap = max(0, _env_int("REFRESH_RETRY_CAP", _DEFAULT_RETRY_CAP))
+    # outcome index, src, recipe, trigger, refresh state (the deferral wrote nothing)
+    deferred: list[tuple[int, object, Recipe, str, dict]] = []
+    last_deferred_at = 0.0
+
+    def _count_staging(outcome: RefreshOutcome) -> None:
+        nonlocal stage_failures, staging_down
+        if outcome.reason == STAGE_FAILED:
+            stage_failures += 1
+            if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
+                log.error(
+                    "refresh: %d staging failures in a row — stopping the batch",
+                    stage_failures,
+                )
+                staging_down = True
+        elif outcome.status == "refreshed":
+            stage_failures = 0
 
     def _queue():
         for dataset_id in ids:
@@ -1657,19 +1763,35 @@ def run_refresh(
             outcome = refresh_one(
                 src, recipe, store=store, preview=preview,
                 staging_bucket=staging_bucket, work_root=work_root,
+                trigger=trigger, previous_state=state, notify=notify,
+                defer_transient=len(deferred) < retry_cap, **kwargs,
+            )
+            if outcome.status == "retry_later":
+                deferred.append((len(outcomes), src, recipe, trigger, state))
+                last_deferred_at = time.monotonic()
+            outcomes.append(outcome)
+            _count_staging(outcome)
+        if deferred and not staging_down:
+            wait = _env_float("REFRESH_RETRY_DELAY_S", _DEFAULT_RETRY_DELAY_S) - (
+                time.monotonic() - last_deferred_at
+            )
+            log.info("refresh: retrying %d transient failure(s)%s", len(deferred),
+                     f" in {wait:.0f}s" if wait > 0 else "")
+            if wait > 0:
+                sleep(wait)
+        # Each deferred slot already counted toward the cap, so no cap check.
+        for i, src, recipe, trigger, state in deferred:
+            if staging_down:
+                outcomes[i] = RefreshOutcome(src.id, "skipped", reason="staging_down")
+                continue
+            outcome = refresh_one(
+                src, recipe, store=store, preview=preview,
+                staging_bucket=staging_bucket, work_root=work_root,
                 trigger=trigger, previous_state=state, notify=notify, **kwargs,
             )
-            outcomes.append(outcome)
-            if outcome.reason == STAGE_FAILED:
-                stage_failures += 1
-                if stage_failures >= MAX_CONSECUTIVE_STAGE_FAILURES:
-                    log.error(
-                        "refresh: %d staging failures in a row — stopping the batch",
-                        stage_failures,
-                    )
-                    staging_down = True
-            elif outcome.status == "refreshed":
-                stage_failures = 0
+            outcome.retried = True
+            outcomes[i] = outcome
+            _count_staging(outcome)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
     refreshed = [o.id for o in outcomes if o.status == "refreshed"]

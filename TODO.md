@@ -8,6 +8,15 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **One broken datastore resource blocks every `by_schema` input of its dataset.**
+  `resolve_inputs` raises `PreviewUnavailable` when any datastore-active resource's preview fails,
+  even one that never had the input's columns. A resource whose datastore answers
+  `success: false` for good (it used to be skipped) now fails the page and, after
+  `REFRESH_TRANSIENT_STRIKES` runs, opens a `schema_changed` issue that re-authoring with
+  `by_schema` can't clear. Fix: let a recipe exclude resource ids from `by_schema` matching,
+  or ignore an unanswered resource whose CKAN name/format can't be a match. Also, `author
+prepare` records a failed preview as `fields: []`, so verify reports "no resource has
+  columns" where prod would report "no preview". (2026-11-02)
 - **`sandbox_failed` never escalates.** It opens no issue and keeps no strike count, so a spawn
   abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) freezes
   every page with only log lines. Fix: raise `_SpawnFlake` as a `refresh.StrikeError`
