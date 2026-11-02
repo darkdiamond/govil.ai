@@ -80,6 +80,15 @@ class RecipeError(RuntimeError):
         self.reason = reason
 
 
+class PreviewUnavailable(RecipeError):
+    """A resource's datastore preview could not be read (CKAN timeout, 5xx,
+    `success: false`), so its columns are unknown. Transient: it says nothing
+    about the data's shape, so it must never pass for a lost column."""
+
+    def __init__(self, message: str):
+        super().__init__(message, reason="fetch_failed")
+
+
 class SnapshotOf(BaseModel):
     """The CKAN resource facts a snapshot was taken from. `hash` is CKAN's
     md5 of the upload (often empty); `size` is the fallback. `last_modified`
@@ -425,10 +434,11 @@ def resolve_inputs(
 
     `resources` is the scanner's `sources/<id>.resources` list;
     `fields_of(resource_id) -> list[str] | None` returns a resource's
-    datastore column names (CKAN preview in prod, a stub in tests). Raises
-    RecipeError(reason="schema_changed") when the data no longer has the
-    shape the recipe was written for — a missing resource, a vanished
-    column — so the page is kept and a human re-authors it.
+    datastore column names (CKAN preview in prod, a stub in tests), or None
+    when the preview failed. Raises RecipeError(reason="schema_changed") when
+    the data no longer has the shape the recipe was written for — a missing
+    resource, a vanished column — so the page is kept and a human re-authors
+    it; PreviewUnavailable when a column check needed a preview it didn't get.
     """
     from services.shared.resources import select_prefetch_resources
 
@@ -468,10 +478,19 @@ def resolve_inputs(
             matched = [res]
         else:
             matched = []
+            unknown = []
             for res in active:
-                cols = fields_of(res["id"]) or []
-                if set(inp.by_schema or []) <= set(cols):
+                cols = fields_of(res["id"])
+                if cols is None:
+                    unknown.append(res["id"][:8])
+                elif set(inp.by_schema or []) <= set(cols):
                     matched.append(res)
+            if unknown:
+                # The match set would be incomplete (and `pick: "latest"`
+                # could pick the wrong one), so don't resolve on a guess.
+                raise PreviewUnavailable(
+                    f"input {inp.name!r}: no preview for resource(s) {unknown}"
+                )
             if not matched:
                 raise RecipeError(
                     f"input {inp.name!r}: no resource has columns {inp.by_schema}",
@@ -492,7 +511,12 @@ def resolve_inputs(
         needed = inp.columns_needed
         if needed:
             for res in matched:
-                cols = set(fields_of(res["id"]) or [])
+                got = fields_of(res["id"])
+                if got is None:
+                    raise PreviewUnavailable(
+                        f"input {inp.name!r}: no preview for resource {res['id'][:8]}"
+                    )
+                cols = set(got)
                 lost = [c for c in needed if c not in cols]
                 if lost:
                     raise RecipeError(

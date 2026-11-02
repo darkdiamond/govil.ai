@@ -63,6 +63,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     RecipeManifest,
+    PreviewUnavailable,
     feature_table,
     snapshot_table,
     kpi_format_findings,
@@ -435,7 +436,13 @@ def probe_inputs(
         p = probe.preview(rid)
         return [f["id"] for f in (p or {}).get("fields") or []] if p else None
 
-    probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
+    try:
+        probe.resolved = resolve_inputs(recipe.manifest, resources, _fields)
+    except PreviewUnavailable as e:
+        # Slow CKAN, not a schema change: retried next run; an issue opens
+        # only once it repeats (e.g. a resource dropped from the datastore).
+        raise StrikeError(str(e), reason="fetch_failed", strike="preview_unavailable",
+                          escalate_to="schema_changed") from None
     return probe
 
 

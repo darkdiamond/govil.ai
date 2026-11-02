@@ -282,6 +282,46 @@ def test_schema_change_keeps_page_and_opens_issue_once(env):
     assert len(env.issues) == 1
 
 
+class TimeoutCkan(FakeCkan):
+    """CKAN's datastore_search timing out: fetch_resource_preview → None."""
+
+    def preview(self, rid):
+        return None
+
+
+def test_preview_timeout_is_transient_not_schema_changed(env, monkeypatch):
+    # 2026-11-02: a slow CKAN made 16 healthy recipes "lose" every column.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    staged_before = dict(env.staged)
+
+    store.src = _src("2026-11-01")
+    for n in (1, 2):
+        s = _run(env, store, TimeoutCkan(_rows([2024, 2025])))
+        assert s["outcomes"][0]["reason"] == "fetch_failed", s
+        assert "no preview" in s["outcomes"][0]["error"]
+        assert store.states[(DS, True)]["transient_strikes"] == {"preview_unavailable": n}
+    assert env.staged == staged_before and env.issues == []
+
+    # CKAN recovers: the bump renders and the strike count resets.
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["refreshed"] == [DS]
+    assert store.states[(DS, True)]["transient_strikes"] is None
+
+
+def test_preview_that_never_comes_back_escalates_to_schema_changed(env, monkeypatch):
+    # A resource dropped from the datastore answers `success: false` forever.
+    monkeypatch.setenv("REFRESH_TRANSIENT_STRIKES", "3")
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    ckan = TimeoutCkan(_rows([2024, 2025]))
+    reasons = [_run(env, store, ckan)["outcomes"][0]["reason"] for _ in range(3)]
+    assert reasons == ["fetch_failed", "fetch_failed", "schema_changed"]
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "schema_changed"
+
+
 def test_too_few_insights_fails(env, tmp_path):
     recipes = tmp_path / "recipes"
     shutil.copytree(FIXTURES / DS, recipes / DS)
