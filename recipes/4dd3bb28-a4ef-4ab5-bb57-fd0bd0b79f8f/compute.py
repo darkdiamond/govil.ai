@@ -322,7 +322,9 @@ def compute(frames):
                     "hi": fmt_price(r["hi"]), "hi_m": mshort(r["hi_m"]), "cur": fmt_price(r["cur"]),
                     "pos": f"{r['pos'] * 100:.0f}%"} for r in rng]
     at_peak = [r for r in rng if r["cur"] >= r["hi"]]
-    range_lede = (f"0% = המחיר הנמוך ביותר מאז {mlabel(first)}, 100% = הגבוה ביותר. "
+    full_hist = all(series[k]["first"] == first for k in rep_active)
+    range_lede = (f"0% = המחיר הנמוך ביותר {f'מאז {mlabel(first)}' if full_hist else 'מאז תחילת הפרסום'}, "
+                  f"100% = הגבוה ביותר. "
                   f"הערך מראה היכן נמצא מחיר {mlabel(latest)} בטווח של כל מוצר.")
     if at_peak:
         range_lede += f" {len(at_peak)} מתוך {len(rng)} המוצרים נמצאים החודש בשיא התקופה."
@@ -447,7 +449,7 @@ def compute(frames):
         top_r = rng[0]
         tone = "danger" if top_r["pos"] >= NEAR_PEAK else "brand"
         kpis["range"] = {"value": round(top_r["pos"] * 100, 1), "display": f"{top_r['pos'] * 100:.0f}%", "tone": tone}
-        labels["range_kpi"] = f"מיקום {top_r['label']} בטווח מאז {mshort(first)} (100% = שיא)"
+        labels["range_kpi"] = f"מיקום {top_r['label']} בטווח {f'מאז {mshort(first)}' if full_hist else 'מאז תחילת הפרסום'} (100% = שיא)"
     kpis["months"] = {"value": len(months), "display": f"{len(months):,}", "tone": "info"}
     labels["months_kpi"] = f"חודשי מחירים, {mshort(first)} עד {mshort(latest)}, {len(active)} סדרות"
 
@@ -533,7 +535,7 @@ def compute(frames):
             return None
         who = "יקר" if b > 0 else "זול"
         txt = (f"סולר לתחבורה {who} מבנזין 95 ב-{fmt.int_he(abs(b))} ש״ח לקו״ל ב{mlabel(spread['last_m'])}")
-        if abs(b - a) >= 50:
+        if abs(b - a) >= 50 or a * b < 0:
             if a * b > 0:
                 dirw = "התרחב" if abs(b) > abs(a) else "הצטמצם"
                 txt += f"; ב{mlabel(spread['first_m'])} הפער היה {fmt.int_he(abs(a))} ש״ח, כלומר הוא {dirw} מאז."
@@ -572,7 +574,8 @@ def compute(frames):
             return None
         r = hs[0]
         if r["max"] < 0 and abs(r["avg"]) >= 0.5:
-            return (f"סולר להסקה זול מסולר לתחבורה בכל החודשים, בממוצע ב-{abs(r['avg']):.1f}% "
+            span = "בכל החודשים" if r["n"] == len(months) else f"בכל {r['n']} החודשים שבהם פורסמו שתי הסדרות"
+            return (f"סולר להסקה זול מסולר לתחבורה {span}, בממוצע ב-{abs(r['avg']):.1f}% "
                     f"(בין {abs(r['max']):.1f}% ל-{abs(r['min']):.1f}%).")
         return None
 
