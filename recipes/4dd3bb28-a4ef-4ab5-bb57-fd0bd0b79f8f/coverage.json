@@ -1,0 +1,6 @@
+{
+  "main.תאריך": "chart-unit-1, chart-unit-2, chart-index, chart-change, chart-heat, chart-moves, chart-spread, chart-rel, kpi:months, insight:main_yoy, insight:mom, insight:shock — first of month; keyed by YYYY-MM (some months are dated the 2nd/3rd)",
+  "main.מוצר": "chart-unit-1, chart-unit-2, chart-index, chart-change, chart-range, chart-heat, chart-moves, chart-rel, insight:range, insight:fixed, insight:quote, insight:heat — family = name without delivery mode (pipeline / tanker / by quote)",
+  "main.יחידת מידה": "chart-unit-1, chart-unit-2, table:change, table:range — one line chart per unit (kilolitre / metric ton); kerosene is published in both",
+  "main.מחיר": "chart-unit-1, chart-unit-2, chart-index, chart-change, chart-range, chart-heat, chart-moves, chart-spread, chart-rel, kpi:main, kpi:main_yoy, kpi:gas, kpi:gas_mom, kpi:range, insight:main_yoy, insight:mom, insight:range, insight:shock, insight:spread, insight:fixed, insight:quote, insight:heat — NIS per unit"
+}

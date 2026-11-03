@@ -1,0 +1,324 @@
+{% import "gov.j2" as gov %}
+<h1>מחירים מרביים למוצרי נפט בשער בית הזיקוק: מחירים מחושבים לפי צו הפיקוח</h1>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "תקציר") }}
+  <p class="m-0 mb-2 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
+  <p class="m-0 text-subtle leading-relaxed">משרד האנרגיה מפרסם מדי חודש את המחיר המחושב לפי צו פיקוח על מחירי מצרכים ושירותים (מחירים מרביים למוצרי נפט בשער בית זיקוק): בנזין 95 נטול עופרת, סולר לתחבורה ולהסקה, קרוסין ודלק סילוני (דס״ל) ונפטא, בשקלים לקילו-ליטר או לטון מטרי, לפני מיסים ומרווחי שיווק. לכל מוצר מתפרסם מחיר במסירה בהזרמה (צנרת) ובמכלית, ולקרוסין גם מחיר לפי ציטוט. הדף עוקב אחר מחיר הדלק בבית הזיקוק לאורך זמן, משווה בין המוצרים ומראה היכן עומד כל מחיר ביחס לשיאיו.</p>
+</section>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+{%- if model.kpis.main is defined %}
+  {{ gov.kpi(model.kpis.main, model.labels.main_kpi) }}
+{%- endif %}
+{%- if model.kpis.main_yoy is defined %}
+  {{ gov.kpi(model.kpis.main_yoy, model.labels.main_yoy_kpi) }}
+{%- endif %}
+{%- if model.kpis.gas is defined %}
+  {{ gov.kpi(model.kpis.gas, model.labels.gas_kpi) }}
+{%- endif %}
+{%- if model.kpis.gas_mom is defined %}
+  {{ gov.kpi(model.kpis.gas_mom, model.labels.gas_mom_kpi) }}
+{%- endif %}
+{%- if model.kpis.range is defined %}
+  {{ gov.kpi(model.kpis.range, model.labels.range_kpi) }}
+{%- endif %}
+  {{ gov.kpi(model.kpis.months, model.labels.months_kpi) }}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "תובנות עיקריות") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+{%- if model.labels.dropped %}
+  <p class="m-0 mt-3 text-xs text-subtle">{{ model.labels.dropped }}</p>
+{%- endif %}
+</section>
+
+{%- for u in model.charts.units %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מחיר חודשי: " ~ u.title) }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ u.lede }}</p>
+  <div id="chart-unit-{{ loop.index }}" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ u.aria }}"></div>
+</section>
+{%- endfor %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כל המוצרים על סקלה אחת: מדד מחיר") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.index_lede }}</p>
+  <div id="chart-index" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.index_aria }}"></div>
+</section>
+
+{%- if model.charts.change.names %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שינוי במחיר: החודש האחרון מול החודש הקודם ומול לפני שנה") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.change_lede }}</p>
+  <div id="chart-change" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.change_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.change_aria }}</caption>
+      <thead><tr><th scope="col">סדרה</th><th scope="col">יחידה</th><th scope="col">{{ model.labels.change_head_price }}</th><th scope="col">{{ model.labels.change_head_mom }}</th><th scope="col">{{ model.labels.change_head_yoy }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.change %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.unit }}</td><td dir="ltr">{{ r.price }}</td><td dir="ltr">{{ r.mom }}</td><td dir="ltr">{{ r.yoy }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.charts.range.names %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "איפה המחיר היום ביחס לשפל ולשיא") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.range_lede }}</p>
+  <div id="chart-range" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.range_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.range_aria }}</caption>
+      <thead><tr><th scope="col">מוצר</th><th scope="col">יחידה</th><th scope="col">שפל</th><th scope="col">חודש השפל</th><th scope="col">שיא</th><th scope="col">חודש השיא</th><th scope="col">אחרון</th><th scope="col">מיקום בטווח</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.range %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.unit }}</td><td dir="ltr">{{ r.lo }}</td><td dir="ltr">{{ r.lo_m }}</td><td dir="ltr">{{ r.hi }}</td><td dir="ltr">{{ r.hi_m }}</td><td dir="ltr">{{ r.cur }}</td><td dir="ltr">{{ r.pos }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.charts.heat.cells %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מפת חום: שינוי חודשי לפי מוצר") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.charts.moves.names %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הקפיצות והצניחות החדות ביותר") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.moves_lede }}</p>
+  <div id="chart-moves" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.moves_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.moves_aria }}</caption>
+      <thead><tr><th scope="col">מוצר</th><th scope="col">חודש</th><th scope="col">שינוי מהחודש הקודם</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.moves %}
+        <tr><th scope="row">{{ r.label }}</th><td>{{ r.month }}</td><td dir="ltr">{{ r.chg }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.charts.spread %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הפער בין סולר לבנזין") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.sections.spread.lede }}</p>
+  <div id="chart-spread" class="h-64 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.sections.spread.aria }}"></div>
+</section>
+{%- endif %}
+
+{%- if model.charts.rel %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מכלית, הזרמה, ציטוט והסקה: ההפרשים בין הסדרות") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.rel_lede }}</p>
+  <div id="chart-rel" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.rel_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rel_aria }}</caption>
+      <thead><tr><th scope="col">השוואה</th><th scope="col">הנמוך ביותר</th><th scope="col">ממוצע</th><th scope="col">הגבוה ביותר</th><th scope="col">אחרון</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.rel %}
+        <tr><th scope="row">{{ r.label }}</th><td dir="ltr">{{ r.min }}</td><td dir="ltr">{{ r.avg }}</td><td dir="ltr">{{ r.max }}</td><td dir="ltr">{{ r.last }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">{{ model.labels.notes }}</p>
+</section>
+
+<script>
+(function () {
+  const units = {{ model.charts.units | tojson }};
+  units.forEach(function (u, i) {
+    const el = document.getElementById("chart-unit-" + (i + 1));
+    if (!el) return;
+    const chart = echarts.init(el);
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "-" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " " + u.ytitle; } },
+      legend: { type: "scroll", top: 0, selected: u.selected },
+      grid: { left: 16, right: 16, top: 56, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: u.x, boundaryGap: false },
+      yAxis: { type: "value", scale: true, name: u.ytitle, nameTextStyle: { align: "right" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+      series: u.series.map(function (s) { return { name: s.name, type: "line", data: s.data, symbolSize: 5, connectNulls: false }; })
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.index | tojson }};
+  const el = document.getElementById("chart-index");
+  if (!el) return;
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "-" : Number(v).toFixed(1); } },
+    legend: { type: "scroll", top: 0 },
+    grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+    xAxis: { type: "category", data: d.x, boundaryGap: false },
+    yAxis: { type: "value", scale: true },
+    dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+    series: d.series.map(function (s) {
+      return { name: s.name, type: "line", data: s.data, symbolSize: 5,
+        markLine: { symbol: "none", silent: true, data: [{ yAxis: 100 }], lineStyle: { color: "#6c757d", type: "dashed" }, label: { show: false } } };
+    })
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.change | tojson }};
+  const el = document.getElementById("chart-change");
+  if (!el || !d.names.length) return;
+  const sig = function (v) { return v == null ? "-" : (v > 0 ? "+" : "") + v + "%"; };
+  const series = [];
+  if (d.mom) series.push({ type: "bar", name: d.mom_name, data: d.mom, itemStyle: { color: "#0068f5" } });
+  if (d.yoy) series.push({ type: "bar", name: d.yoy_name, data: d.yoy, itemStyle: { color: "#0c3058" } });
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: sig },
+    legend: { top: 0 },
+    grid: { left: 16, right: 24, top: 36, bottom: 16, containLabel: true },
+    xAxis: { type: "value", splitNumber: el.clientWidth < 500 ? 3 : 5, axisLabel: { formatter: "\u200e{value}%", hideOverlap: true } },
+    yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+    series: series
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.range | tojson }};
+  const el = document.getElementById("chart-range");
+  if (!el) return;
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "% מהטווח"; } },
+    grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },
+    xAxis: { type: "value", min: 0, max: 100, splitNumber: el.clientWidth < 500 ? 4 : 5, axisLabel: { formatter: "{value}%", hideOverlap: true } },
+    yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+    series: [{ type: "bar", name: "מיקום בטווח", data: d.values, label: { show: true, position: "right", formatter: "{c}%" } }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.heat | tojson }};
+  const el = document.getElementById("chart-heat");
+  if (!el) return;
+  const enc = echarts.format.encodeHTML;
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { position: "top", formatter: function (p) {
+      const v = p.value[2];
+      return enc(d.y[p.value[1]]) + "<br>" + enc(d.x[p.value[0]]) + ": " + (v > 0 ? "+" : "") + v + "%";
+    } },
+    grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+    xAxis: { type: "category", data: d.x, splitArea: { show: true } },
+    yAxis: { type: "category", data: d.y, splitArea: { show: true }, axisLabel: { width: 110, overflow: "truncate" } },
+    visualMap: { min: -d.max, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 8,
+      inRange: { color: ["#0068f5", "#f1f7ff", "#dc3545"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" }, formatter: function (v) { return "\u200e" + Math.round(v) + "%"; } },
+    series: [{ type: "heatmap", data: d.cells, label: { show: false },
+      emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.moves | tojson }};
+  const el = document.getElementById("chart-moves");
+  if (!el) return;
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return (v > 0 ? "+" : "") + v + "%"; } },
+    grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+    xAxis: { type: "value", splitNumber: el.clientWidth < 500 ? 3 : 5, axisLabel: { formatter: "\u200e{value}%", hideOverlap: true } },
+    yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+    series: [{ type: "bar", name: "שינוי חודשי", data: d.values.map(function (v) {
+      return { value: v, itemStyle: { color: v >= 0 ? "#dc3545" : "#0068f5" } };
+    }), label: { show: true, position: "right", formatter: function (p) { return "\u200e" + (p.value > 0 ? "+" : "") + p.value + "%"; } } }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.spread | tojson }};
+  const el = document.getElementById("chart-spread");
+  if (!d || !el) return;
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "-" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 0 }) + " ש״ח לקו״ל"; } },
+    grid: { left: 16, right: 16, top: 24, bottom: 56, containLabel: true },
+    xAxis: { type: "category", data: d.x, boundaryGap: false },
+    yAxis: { type: "value", axisLabel: { formatter: "\u200e{value}" } },
+    dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+    series: [{ type: "line", name: "סולר פחות בנזין", data: d.y, symbolSize: 5, areaStyle: { opacity: 0.15 },
+      markLine: { symbol: "none", silent: true, data: [{ yAxis: 0 }], lineStyle: { color: "#0c3058", type: "dashed" }, label: { show: false } } }]
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  const d = {{ model.charts.rel | tojson }};
+  const el = document.getElementById("chart-rel");
+  if (!d || !el) return;
+  const chart = echarts.init(el);
+  chart.setOption(window.GovEcharts.option({
+    tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "-" : (v > 0 ? "+" : "") + Number(v).toFixed(2) + "%"; } },
+    legend: { type: "scroll", top: 0 },
+    grid: { left: 16, right: 16, top: 48, bottom: 56, containLabel: true },
+    xAxis: { type: "category", data: d.x, boundaryGap: false },
+    yAxis: { type: "value", axisLabel: { formatter: "\u200e{value}%" } },
+    dataZoom: [{ type: "inside" }, { type: "slider", height: 18, bottom: 8 }],
+    series: d.series.map(function (s) { return { name: s.name, type: "line", data: s.data, symbolSize: 5,
+      markLine: { symbol: "none", silent: true, data: [{ yAxis: 0 }], lineStyle: { color: "#6c757d", type: "dashed" }, label: { show: false } } }; })
+  }));
+  window.addEventListener("resize", function () { chart.resize(); });
+})();
+</script>
