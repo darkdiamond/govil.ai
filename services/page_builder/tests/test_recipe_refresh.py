@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import json
 import shutil
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -905,9 +906,14 @@ def test_em_dash_lint(tmp_path):
                          for k in (4, 6)), findings
 
 
-def test_ruff_findings_flag_recipe_lint(tmp_path):
+@pytest.mark.parametrize("under_cwd", [False, True])
+def test_ruff_findings_flag_recipe_lint(tmp_path, monkeypatch, under_cwd):
     from services.page_builder import author
 
+    # under_cwd: verify runs from the repo root, where ruff's text output would
+    # print cwd-relative paths; the findings must survive either way.
+    if under_cwd:
+        monkeypatch.chdir(tmp_path)
     shutil.copytree(FIXTURES / DS, tmp_path / DS)
     assert author._ruff_findings(Recipe.load(tmp_path / DS)) == []
 
@@ -918,6 +924,17 @@ def test_ruff_findings_flag_recipe_lint(tmp_path):
     assert any(f.startswith("RUFF: compute.py:1:") and "F401" in f for f in findings), findings
     assert any("F841" in f for f in findings), findings
     assert all(f.startswith("RUFF: compute.py:") for f in findings), findings
+
+
+def test_ruff_findings_report_a_missing_ruff(tmp_path, monkeypatch):
+    from services.page_builder import author
+
+    shutil.copytree(FIXTURES / DS, tmp_path / DS)
+    # `python -m ruff` without ruff exits 1, the same code as "findings".
+    monkeypatch.setattr(author.subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(
+        a[0], 1, stdout="", stderr="/usr/bin/python: No module named ruff\n"))
+    assert author._ruff_findings(Recipe.load(tmp_path / DS)) == [
+        "RUFF: ruff is not installed — pip install -r requirements-dev.txt"]
 
 
 def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):

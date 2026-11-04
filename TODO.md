@@ -220,6 +220,11 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
+- **Nothing bumps the ruff pin.** Dependabot's pip entry watches only `/services/page_builder`,
+  so `requirements-dev.txt` (and the root `requirements.txt`) never get update PRs, and
+  `ruff==0.17.2` ages. Fix: a Dependabot pip entry for `/`, and keep `required-version` in
+  `ruff.toml` in step in the same PR (CI fails until both match and new findings are fixed).
+  (2026-11-04)
 
 ## Validation speed
 

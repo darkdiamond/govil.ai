@@ -494,7 +494,8 @@ def compute(frames):
     def ins_wills():
         if len(will_share) < 2:
             return None
-        y0, y1 = next(iter(will_share)), list(will_share)[-1]
+        keys = list(will_share)
+        y0, y1 = keys[0], keys[-1]
         a, b = will_share[y0], will_share[y1]
         if abs(b - a) < 0.02:
             return (f"היחס בין בקשות לצו ירושה (ללא צוואה) לבקשות לצו קיום צוואה ב-{y1} דומה לזה של {y0}: "
@@ -506,7 +507,8 @@ def compute(frames):
     def ins_district():
         if len(dist_share) < 2 or not dist_names:
             return None
-        y0, y1 = next(iter(dist_share)), list(dist_share)[-1]
+        keys = list(dist_share)
+        y0, y1 = keys[0], keys[-1]
         ranked = sorted(dist_names, key=lambda d: (-dist_share[y1][d], d))
         lead = ranked[0]
         a, b = dist_share[y0][lead], dist_share[y1][lead]

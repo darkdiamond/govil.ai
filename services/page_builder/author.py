@@ -717,20 +717,30 @@ RUFF_CONFIG = REPO_ROOT / "ruff.toml"
 def _ruff_findings(recipe: Recipe) -> list[str]:
     """`ruff check` over the recipe's Python, with the repo's ruff.toml (CI
     runs the same check, so a finding here would fail the PR anyway)."""
-    cmd = [sys.executable, "-m", "ruff", "check", "--no-cache", "--output-format", "concise",
+    # JSON, not text: its filenames are absolute (text output is cwd-relative),
+    # and anything that isn't a JSON list means ruff never ran, never "clean".
+    cmd = [sys.executable, "-m", "ruff", "check", "--no-cache", "--output-format", "json",
            "--config", str(RUFF_CONFIG), str(recipe.root)]
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+        found = json.loads(proc.stdout) if proc.returncode in (0, 1) else None
     except (OSError, subprocess.TimeoutExpired) as e:
         return [f"RUFF: could not run ruff ({type(e).__name__}: {e})"]
-    if proc.returncode not in (0, 1):  # 0 clean, 1 findings, 2 ruff itself failed
+    except json.JSONDecodeError:
+        found = None
+    if not isinstance(found, list):
         err = (proc.stderr or proc.stdout).strip()
         if "No module named ruff" in err:
             return ["RUFF: ruff is not installed — pip install -r requirements-dev.txt"]
-        return [f"RUFF: ruff failed: {err[:300]}"]
-    root = str(recipe.root) + "/"
-    return [f"RUFF: {line.removeprefix(root)}" for line in proc.stdout.splitlines()
-            if line.startswith(root)]
+        return [f"RUFF: ruff failed (exit {proc.returncode}): {err[:300]}"]
+    root = recipe.root.resolve()
+    out = []
+    for f in found:
+        path = Path(f["filename"])
+        where = path.relative_to(root) if path.is_relative_to(root) else path
+        loc = f.get("location") or {}
+        out.append(f"RUFF: {where}:{loc.get('row')}:{loc.get('column')}: {f.get('code')} {f.get('message')}")
+    return out
 
 
 # House style: no em dash (U+2014) in anything a visitor reads. Checked on the

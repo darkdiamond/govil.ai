@@ -12,6 +12,10 @@ tenacity>=9.1.4
 # Every recipe's compute.py (and recipe_exec.py) is pandas-based; the
 # sandboxed compute subprocess shares this container's Python.
 pandas>=3.0.5,<4
+# Recipes rely on numpy 2 scalar semantics: round(np.float64) returns a Python
+# int (numpy 1.x returned np.float64, which formats as "2.0"). Already what
+# pandas 3 resolves to; pinned so it can't silently regress.
+numpy>=2,<3
 
 # Google Cloud
 google-cloud-firestore>=2.28.0
