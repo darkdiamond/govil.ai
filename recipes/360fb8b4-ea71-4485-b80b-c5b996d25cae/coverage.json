@@ -1,0 +1,8 @@
+{
+  "geo.__geometry": "map-cvfr, chart-bands, chart-mesh, chart-sizes, chart-cells, kpi:area, kpi:boundary, kpi:ns, kpi:width, kpi:cells, insight:size, insight:width, insight:band, insight:south, insight:envelope, insight:cells, insight:mesh — areas on an equal-area projection, holes = enclosed cells",
+  "geo.YEARMONTH": "kpi:updated — the layer's as-of month, also in the lede",
+  "geo.Shape_Area": "skip: the layer's own ITM area; the page measures area from the geometry (agrees within 0.1%)",
+  "geo.Shape_Leng": "skip: the layer's own ITM boundary length; the page measures it from the geometry (agrees within 0.1%)",
+  "resource:3811ad6d-ee91-4d18-87b4-c2f672f03a6a": "skip: one-row attribute table (OID, Shape_Length, Shape_Area, YEARMONTH) duplicating the shapefile's properties",
+  "resource:014a091d-e85c-4ba0-b4f4-dbf621c65b9d": "skip: key/value metadata sheet (publisher, contact, file list), not data"
+}

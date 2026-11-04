@@ -16,6 +16,12 @@ This repo is public: describe a security gap by what to change, never by how to 
   (the import sibling of 3e4e79f7), f4a5cdab, 023b7883; bump each `recipe_version`. Compare
   batch 1's CTR in GSC about 4 weeks after it ships before spending on the long tail.
   (2026-11-04)
+- **The map reader can't open a zip of zips.** ee626064 (משרד הבינוי והשיכון GIS layers)
+  ships its fourth layer, מחיר למשתכן (`gis_dira.zip`, 9.2MB), as a zip holding
+  `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`.
+  `geo_snapshot` reads only top-level shapefiles, so the recipe skips that layer and says so in
+  fixed copy. Fix: let `geo_snapshot` descend one level into nested zips (with the same size
+  caps), then add a `mehir` map input to ee626064 and bump its `recipe_version`. (2026-11-04)
 - **`author verify` doesn't check the h1 against `seo.name`.** It only prints the h1 next to
   the SERP preview, so a recipe whose template hardcodes a different h1 passes, and the
   JSON-LD name / breadcrumb then disagree with the visible heading. Batch-1 templates render

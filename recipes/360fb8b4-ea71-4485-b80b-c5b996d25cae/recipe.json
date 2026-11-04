@@ -1,0 +1,20 @@
+{
+  "contract_version": 1,
+  "dataset_id": "360fb8b4-ea71-4485-b80b-c5b996d25cae",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T23:45:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-03-22T10:56:48.560707+00:00",
+    "rows": { "geo": 1 }
+  },
+  "inputs": [
+    {
+      "name": "geo",
+      "by_id": "e5436712-2829-4079-982f-576195277766",
+      "map": true,
+      "required_columns": ["YEARMONTH"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

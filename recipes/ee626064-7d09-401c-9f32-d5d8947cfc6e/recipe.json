@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ee626064-7d09-401c-9f32-d5d8947cfc6e",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T23:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-01T07:00:29.040496+00:00",
+    "rows": { "hoods": 106, "reno": 618, "districts": 5 }
+  },
+  "inputs": [
+    {
+      "name": "hoods",
+      "by_id": "3738b4fb-55c9-4d91-8e96-832f566364b8",
+      "map": true,
+      "map_max_kb": 400,
+      "required_columns": [
+        "ID",
+        "NAME",
+        "SETTLEME_1",
+        "DISTRICT_C",
+        "TYPE",
+        "ACTIVITY",
+        "EMERGENCY",
+        "SHAPE_STAr"
+      ]
+    },
+    {
+      "name": "reno",
+      "by_id": "6a52e766-76b7-4de2-b767-dc6caf12ae1f",
+      "map": true,
+      "map_max_kb": 700,
+      "required_columns": [
+        "PROJECT_ID",
+        "PROJECT_NA",
+        "SUBPROJECT",
+        "STREET_NAM",
+        "HOUSE_NUMB",
+        "HOUSE_STAT",
+        "HOUSE_ST_1",
+        "APT",
+        "APT_RENTED",
+        "NUM_KOMOT",
+        "NUM_KNISSO",
+        "LAST_BITSU"
+      ]
+    },
+    {
+      "name": "districts",
+      "by_id": "a179fd6a-c493-49d8-ad7c-d225e99b416f",
+      "map": true,
+      "required_columns": ["CODE", "NAME", "SHAPE_STAr"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

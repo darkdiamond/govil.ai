@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "64e0a1f4-f0cd-4e7e-9813-6b8cd0987a24",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T21:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-11-10T08:09:00.343285+00:00",
+    "rows": {
+      "sites": 41
+    }
+  },
+  "inputs": [
+    {
+      "name": "sites",
+      "by_id": "bcc719c8-3c4d-4ac0-b72a-c26145fe9b08",
+      "required_columns": [
+        "מס' מחצבה",
+        "שם מחצבה",
+        "חברה",
+        "(אורך) Y",
+        "(רוחב) X",
+        "מסלע",
+        "מחוז משרד הפנים"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

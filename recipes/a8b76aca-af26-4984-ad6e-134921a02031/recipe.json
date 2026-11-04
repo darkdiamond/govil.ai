@@ -1,0 +1,55 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a8b76aca-af26-4984-ad6e-134921a02031",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T23:45:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-09-10T11:04:57.955606+00:00",
+    "rows": { "main": 4965812 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "measurement_year",
+        "provider",
+        "station_city",
+        "number_of_cases",
+        "number_of_cases_approved"
+      ],
+      "concat": true,
+      "columns": [
+        "measurement_year",
+        "month",
+        "provider",
+        "Socio Economic Group",
+        "sector",
+        "age_range",
+        "target",
+        "number_of_cases",
+        "number_of_cases_approved",
+        "station_city"
+      ],
+      "required_columns": [
+        "measurement_year",
+        "month",
+        "provider",
+        "Socio Economic Group",
+        "sector",
+        "age_range",
+        "target",
+        "number_of_cases",
+        "number_of_cases_approved",
+        "station_city"
+      ]
+    }
+  ],
+  "limits": {
+    "max_records": 8000000,
+    "total_bytes": 900000000,
+    "wall_budget_s": 1800,
+    "compute_memory_mb": 2560
+  },
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

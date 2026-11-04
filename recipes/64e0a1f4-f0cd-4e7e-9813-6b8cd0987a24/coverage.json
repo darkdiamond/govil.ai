@@ -1,0 +1,9 @@
+{
+  "sites.מס' מחצבה": "map-main — the site's licence number, shown in the map popup; used as the sort key",
+  "sites.שם מחצבה": "map-main, insight:span",
+  "sites.חברה": "chart-companies, kpi:companies, insight:operator, insight:footprint — quote styles and spaces normalised",
+  "sites.(אורך) Y": "map-main, insight:span — ITM northing despite the label",
+  "sites.(רוחב) X": "map-main — ITM easting despite the label",
+  "sites.מסלע": "chart-rocks, chart-components, chart-dist-rock, kpi:rocks, insight:component, insight:exclusive — compound types split into components for chart-components",
+  "sites.מחוז משרד הפנים": "chart-districts, chart-dist-rock, chart-companies, kpi:top_share, insight:district, insight:footprint"
+}

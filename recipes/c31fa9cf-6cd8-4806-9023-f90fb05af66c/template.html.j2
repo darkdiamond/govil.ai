@@ -1,0 +1,379 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }} המפה, שנקראת גם מפת הקרקעות של דן ורז, מראה אילו סוגי קרקע מכסים כל אזור בארץ: מטרה רוסה ורנדזינה בהרים, דרך גרומוסול בעמקים ולס בצפון הנגב, ועד רג וסלעים חשופים במדבר.</p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ gov.kpi(model.kpis.polys, "פוליגונים במפה") }}
+  {{ gov.kpi(model.kpis.units, "יחידות מיפוי (קודי קרקע)") }}
+  {{ gov.kpi(model.kpis.area, "שטח ממופה (קמ״ר)") }}
+  {{ gov.kpi(model.kpis.lead, model.labels.kpi_lead) }}
+  {{ gov.kpi(model.kpis.median, "חציון שטח פוליגון (קמ״ר)") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.charts.map %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת סוגי הקרקע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_lede }}</p>
+  <div id="map-soils" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השטח לפי משפחת קרקע עיקרית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.soils_lede }}</p>
+  {{ gov.chart("chart-soils", model.labels.soils_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.soils_aria, ["משפחת קרקע", "קמ״ר", "שיעור מהשטח", "פוליגונים", "יחידות"], model.tables.soils) }}
+</section>
+
+{%- if model.charts.bands %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מצפון לדרום: הקרקע לפי קו רוחב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_lede }}</p>
+  {{ gov.chart("chart-bands", model.labels.bands_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.bands_aria, ["קו רוחב (מעלות)", "קמ״ר", "קרקע מובילה", "שיעור ברצועה"], model.tables.bands, ltr=(0,)) }}
+</section>
+{%- endif %}
+
+{%- if model.charts.lat %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "איפה נמצאת כל קרקע לאורך הארץ") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lat_lede }}</p>
+  {{ gov.chart("chart-lat", model.labels.lat_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.lat_aria, ["משפחת קרקע", "עשירון דרומי", "חציון", "עשירון צפוני"], model.tables.lat, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "יחידות המיפוי לפי אות הקוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_lede }}</p>
+  {{ gov.chart("chart-tree", model.labels.tree_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.tree_aria, ["אות", "יחידות", "פוליגונים", "קמ״ר", "היחידה הגדולה"], model.tables.tree, ltr=(0, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יחידות המיפוי הגדולות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.units_lede }}</p>
+  {{ gov.chart("chart-units", model.labels.units_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.units_aria, ["קוד", "תיאור", "קמ״ר", "שיעור מהשטח", "פוליגונים"], model.tables.units, ltr=(0,)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גודל הפוליגונים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sizes_lede }}</p>
+    {{ gov.chart("chart-sizes", model.labels.sizes_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.sizes_aria, ["שטח (קמ״ר)", "פוליגונים", "קמ״ר", "שיעור מהשטח"], model.tables.sizes, ltr=(0,)) }}
+  </section>
+{%- if model.charts.assoc %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">קרקע אחת או צירוף קרקעות</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.assoc_lede }}</p>
+    {{ gov.chart("chart-assoc", model.labels.assoc_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.assoc_aria, ["הרכב היחידה", "קמ״ר", "שיעור מהשטח", "יחידות"], model.tables.assoc) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.charts.slope or model.charts.compact %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.charts.slope %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">קרקעות ההר: מדרונות תלולים ומתונים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.slope_lede }}</p>
+    {{ gov.chart("chart-slope", model.labels.slope_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.slope_aria, ["משפחת קרקע", "תלול (קמ״ר)", "מתון (קמ״ר)", "שיעור התלול"], model.tables.slope) }}
+  </section>
+{%- endif %}
+{%- if model.charts.compact %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">צורת הפוליגונים לפי קרקע</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.compact_lede }}</p>
+    {{ gov.chart("chart-compact", model.labels.compact_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.compact_aria, ["משפחת קרקע", "קומפקטיות חציונית", "פוליגונים"], model.tables.compact) }}
+  </section>
+{%- endif %}
+</div>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">שכבת חבורות הקרקע מתבססת על מפת חבורות הקרקע של ישראל שנערכה על ידי יואל דן וצבי רז, מטעם האגף לשימור קרקע משרד החקלאות והאגף לקרקע ומים במכון וולקני לחקר החקלאות. מיפוי חבורות הקרקע של ישראל נערך בקנה מידה 1:250,000 והמפה התפרסמה בשנת 1970. המפה מתבססת על חוקיות תפוצת הקרקעות באזורי הארץ השונים.</p>
+</section>
+
+<script>
+  window.__soilColor = function (names, i) {
+    if (names[i] === {{ "אחר" | tojson }}) { return "#6c757d"; }
+    var pal = window.GOVIL_PALETTE || ["#0068f5"];
+    return pal[i % pal.length];
+  };
+</script>
+
+{%- if model.charts.map %}
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-s-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-soils");
+    if (!el || !window.L || !window.GovMap) { return; }
+    var meta = {{ {"origin": model.charts.map.origin, "scale": model.charts.map.scale, "units": model.charts.map.units, "soils": model.charts.map.soils, "bounds": model.charts.map.bounds} | tojson }};
+    var color = function (i) { return window.__soilColor(meta.soils, i); };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    GovMap.islands("map-s").forEach(function (f) {
+      var u = meta.units[f[1]] || ["", ""];
+      var latlngs = f[3].map(function (poly) {
+        return poly.map(function (r) { return GovMap.ring(r, meta.origin, meta.scale); });
+      });
+      var shape = L.polygon(latlngs, { color: "#ffffff", weight: 0.6, fillColor: color(f[0]), fillOpacity: 0.75 }).addTo(map);
+      shape.bindPopup(GovMap.popup(u[0], [["תיאור", u[1]], ["קרקע עיקרית", meta.soils[f[0]]], ["שטח", f[2].toLocaleString("he-IL") + " קמ״ר"]]));
+    });
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    var legend = document.getElementById("map-legend");
+    meta.soils.forEach(function (s, i) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:14px;height:14px;border-radius:3px;background:" + color(i);
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(s));
+      legend.appendChild(li);
+    });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.soils | tojson }};
+    var el = document.getElementById("chart-soils");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>" + d.km2[i].toLocaleString("he-IL") + " קמ״ר (" + d.share[i] + "%)<br>" + d.polys[i].toLocaleString("he-IL") + " פוליגונים";
+      } },
+      grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "קמ״ר", barMaxWidth: 22,
+        data: d.km2.map(function (v, i) { return { value: v, itemStyle: { color: window.__soilColor(d.names, i) } }; }),
+        label: { show: true, position: "right", formatter: function (p) { return d.share[p.dataIndex] + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.charts.bands %}
+<script>
+  (function () {
+    var d = {{ model.charts.bands | tojson }};
+    var el = document.getElementById("chart-bands");
+    if (!el) { return; }
+    var names = d.series.map(function (s) { return s.name; });
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " קמ״ר"; } },
+      legend: { type: "scroll", top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { fontSize: 11 } },
+      series: d.series.map(function (s, i) {
+        return { type: "bar", stack: "km", name: s.name, data: s.data, barMaxWidth: 26, itemStyle: { color: window.__soilColor(names, i) } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.lat %}
+<script>
+  (function () {
+    var d = {{ model.charts.lat | tojson }};
+    var el = document.getElementById("chart-lat");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var i = p.dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>חציון: " + d.p50[i] + "°<br>טווח: " + d.p10[i] + "° עד " + d.p90[i] + "°";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 45, width: 100, overflow: "truncate", fontSize: 11 } },
+      yAxis: { type: "value", scale: true, name: "קו רוחב", axisLabel: { formatter: "{value}°" } },
+      series: [
+        { type: "custom", name: "טווח", data: d.names.map(function (n, i) { return [i, d.p10[i], d.p90[i]]; }),
+          encode: { x: 0, y: [1, 2] },
+          renderItem: function (params, api) {
+            var a = api.coord([api.value(0), api.value(1)]);
+            var b = api.coord([api.value(0), api.value(2)]);
+            var w = api.size([1, 0])[0] * 0.4;
+            return { type: "rect", shape: { x: a[0] - w / 2, y: Math.min(a[1], b[1]), width: w, height: Math.max(2, Math.abs(a[1] - b[1])) },
+              style: { fill: "#6c9fd8", opacity: 0.6 } };
+          } },
+        { type: "scatter", name: "חציון", data: d.names.map(function (n, i) { return [i, d.p50[i]]; }), symbolSize: 10, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.tree | tojson }};
+    var el = document.getElementById("chart-tree");
+    if (!el) { return; }
+    var pal = window.GOVIL_PALETTE;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { formatter: function (p) {
+        var x = p.data || {};
+        var s = "<strong>" + echarts.format.encodeHTML(x.name || "") + "</strong>";
+        if (x.desc) { s += "<br>" + echarts.format.encodeHTML(x.desc); }
+        s += "<br>" + (x.value || 0).toLocaleString("he-IL") + " קמ״ר";
+        if (x.n) { s += "<br>" + x.n.toLocaleString("he-IL") + " פוליגונים"; }
+        return s;
+      } },
+      series: [{ type: "treemap", data: d.map(function (g, i) { return Object.assign({}, g, { itemStyle: { color: pal[i % pal.length] } }); }),
+        roam: false, nodeClick: false, breadcrumb: { show: false }, width: "100%", height: "100%", top: 0, left: 0,
+        upperLabel: { show: true, height: 20, color: "#ffffff", fontFamily: "Rubik" },
+        label: { show: true, fontFamily: "Rubik", formatter: "{b}" },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 2, gapWidth: 2 } },
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 1, gapWidth: 1 }, colorSaturation: [0.35, 0.6] }
+        ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.units | tojson }};
+    var el = document.getElementById("chart-units");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return "<strong>" + echarts.format.encodeHTML(d.codes[i]) + "</strong><br>" + echarts.format.encodeHTML(d.desc[i]) + "<br>" + d.km2[i].toLocaleString("he-IL") + " קמ״ר, " + d.n[i].toLocaleString("he-IL") + " פוליגונים";
+      } },
+      grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.codes, inverse: true },
+      series: [{ type: "bar", name: "קמ״ר", barMaxWidth: 20, data: d.km2, itemStyle: { color: "#0068f5" },
+        label: { show: true, position: "right", formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.sizes | tojson }};
+    var el = document.getElementById("chart-sizes");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, name: "קמ״ר", axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: [
+        { type: "value", name: "פוליגונים", splitNumber: 4 },
+        { type: "value", name: "% מהשטח", splitNumber: 4, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "פוליגונים", data: d.count, barMaxWidth: 32, itemStyle: { color: "#0068f5" } },
+        { type: "line", name: "% מהשטח", yAxisIndex: 1, data: d.share, symbolSize: 7, lineStyle: { width: 2, color: "#0b3668" }, itemStyle: { color: "#0b3668" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.charts.assoc %}
+<script>
+  (function () {
+    var d = {{ model.charts.assoc | tojson }};
+    var el = document.getElementById("chart-assoc");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " קמ״ר (" + p.percent + "%)<br>" + d.units[p.dataIndex].toLocaleString("he-IL") + " יחידות";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "44%"],
+        data: d.names.map(function (n, i) { return { name: n, value: d.km2[i] }; }),
+        label: { formatter: function (p) { return p.percent + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.slope %}
+<script>
+  (function () {
+    var d = {{ model.charts.slope | tojson }};
+    var el = document.getElementById("chart-slope");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " קמ״ר"; } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [
+        { type: "bar", stack: "s", name: "מדרון תלול", data: d.steep, barMaxWidth: 24, itemStyle: { color: "#0b3668" } },
+        { type: "bar", stack: "s", name: "מדרון מתון", data: d.moderate, barMaxWidth: 24, itemStyle: { color: "#6c9fd8" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.charts.compact %}
+<script>
+  (function () {
+    var d = {{ model.charts.compact | tojson }};
+    var el = document.getElementById("chart-compact");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.names[i]) + "<br>קומפקטיות חציונית: " + d.med[i] + "<br>" + d.n[i].toLocaleString("he-IL") + " פוליגונים";
+      } },
+      grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", min: 0, max: 1, splitNumber: 4 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "קומפקטיות", data: d.med, barMaxWidth: 20, itemStyle: { color: "#0068f5" },
+        markLine: { symbol: "none", label: { formatter: "חציון כללי" }, lineStyle: { color: "#6c757d", type: "dashed" }, data: [{ xAxis: d.overall }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

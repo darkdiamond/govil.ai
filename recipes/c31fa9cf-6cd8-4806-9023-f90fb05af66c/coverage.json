@@ -1,0 +1,7 @@
+{
+  "geo.CODE": "map-soils, chart-tree, chart-units, kpi:units, insight:conc, insight:unit_frag — the map unit code; its leading letter groups the treemap",
+  "geo.DESCRIPTIO": "map-soils, chart-soils, chart-bands, chart-lat, chart-assoc, chart-slope, chart-compact, kpi:lead, insight:lead, insight:assoc, insight:slope — soil names parsed from it give each unit's primary soil family, its number of soils and its slope class",
+  "geo.SHAPE_Area": "chart-soils, chart-bands, chart-sizes, chart-units, chart-compact, kpi:area, kpi:median, insight:frag — m², ITM; the polygon geometry's own area is the fallback when missing",
+  "geo.SHAPE_Leng": "chart-compact, insight:compact — perimeter in m, for the 4πA/P² compactness index",
+  "geo.__geometry": "map-soils, chart-bands, chart-lat, insight:north_south — drawn polygons; polygon centroids give the latitude bands and ranges"
+}

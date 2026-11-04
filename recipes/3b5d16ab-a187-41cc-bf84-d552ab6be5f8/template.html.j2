@@ -1,0 +1,131 @@
+{% import "gov.j2" as gov %}
+{%- macro rtable(tbl, cap) %}
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ cap }}</caption>
+      <thead><tr>{% for h_ in tbl.headers %}<th scope="col" class="px-3 py-1 text-start align-bottom">{{ h_ }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in tbl.rows %}
+        <tr class="border-t border-rule">{% for c in r %}{% if loop.first %}<th scope="row" class="px-3 py-1 text-start font-normal">{{ c }}</th>{% else %}<td class="px-3 py-1 text-start">{{ c }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+{%- endmacro %}
+{%- macro fallback(tbl, cap) %}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+{{ rtable(tbl, cap) }}
+  </details>
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור נספחות כלכלית לפי מדינה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר לפי שם המדינה או הארגון, וקישור לעמוד הנספחות עם דרכי יצירת הקשר.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+{%- for key in ["total", "countries", "served", "multi", "regions"] %}
+  {{ gov.kpi(model.kpis[key], model.labels["kpi_" ~ key]) }}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("map-pin", "נספחויות לפי אזור") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regions_note }}</p>
+    <div id="chart-regions" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.regions_aria }}"></div>
+{{ fallback(model.tables.regions, model.labels.regions_aria) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "סוגי הנציגויות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_note }}</p>
+    <div id="chart-kinds" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.kinds_aria }}"></div>
+{{ fallback(model.tables.kinds, model.labels.kinds_aria) }}
+  </section>
+</div>
+
+<section id="directory" class="card p-5 mb-6">
+  {{ gov.head("list", "רשימת הנספחויות הכלכליות ופרטי הקשר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.directory_note }}</p>
+{%- for g in model.directory %}
+  <h3 class="text-base font-semibold text-ink-deep mt-4 mb-2">{{ g.region }} <span class="text-sm text-subtle font-normal">({{ g.count }})</span></h3>
+  <ul class="list-none m-0 ps-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+{%- for it in g.entries %}
+    <li class="flex items-center gap-3 border border-rule rounded-gov p-3 bg-surface">
+{%- if it.flag %}
+      <img src="{{ it.flag }}" alt="" loading="lazy" class="w-10 h-7 shrink-0 object-cover rounded-gov-sm border border-rule" />
+{%- endif %}
+      <span class="min-w-0">
+        <span class="block font-semibold text-ink-deep">{{ it.name }}</span>
+{%- if it.note %}
+        <span class="block text-xs text-subtle">{{ it.note }}</span>
+{%- endif %}
+{%- if it.link %}
+        <a href="{{ it.link }}" target="_blank" rel="noopener" class="text-sm">לעמוד הנספחות ופרטי הקשר ←</a>
+{%- endif %}
+      </span>
+    </li>
+{%- endfor %}
+  </ul>
+{%- endfor %}
+</section>
+
+{%- if model.tables.hubs.rows %}
+<section id="hubs" class="card p-5 mb-6">
+  {{ gov.head("arrow-left", "נספחויות המשרתות מדינות נוספות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hubs_note }}</p>
+{{ rtable(model.tables.hubs, model.labels.hubs_cap) }}
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.regions | tojson }};
+    var el = document.getElementById("chart-regions");
+    var c = echarts.init(el);
+    function gb() { return el.clientWidth < 520 ? 72 : 44; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 24, top: 8, bottom: gb(), containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 3 },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, stack: "all", data: s.values,
+                 label: { show: true, formatter: function (p) { return p.value > 0 ? p.value : ""; } } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.setOption({ grid: { bottom: gb() } }); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.kinds | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-kinds"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return enc(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent.toFixed(1) + "%)";
+      } },
+      legend: { bottom: 0, left: "center" },
+      series: [{ type: "pie", radius: ["38%", "66%"], center: ["50%", "43%"],
+                 data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }),
+                 labelLine: { show: false },
+                 label: { position: "inside", color: "#fff", fontWeight: "bold",
+                          formatter: function (p) { return p.percent >= 4 ? p.value.toLocaleString("he-IL") : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

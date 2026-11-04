@@ -1,0 +1,42 @@
+{
+  "contract_version": 1,
+  "dataset_id": "e4a5e2d7-6668-42d0-b6c8-4a64f246242a",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T21:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-16T10:58:24.982499+00:00",
+    "rows": { "trips": 242985 }
+  },
+  "inputs": [
+    {
+      "name": "trips",
+      "by_schema": [
+        "OperatorId",
+        "OfficeLineId",
+        "trip_year",
+        "trip_month",
+        "rishui",
+        "takin"
+      ],
+      "concat": true,
+      "required_columns": [
+        "OperatorId",
+        "operator_nm",
+        "ClusterId",
+        "cluster_nm",
+        "OperatorLineId",
+        "OfficeLineId",
+        "trip_year",
+        "trip_month",
+        "rishui",
+        "eibizua",
+        "hakdama",
+        "eihurim",
+        "takin",
+        "loberishui"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
