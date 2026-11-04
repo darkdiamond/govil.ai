@@ -37,6 +37,7 @@ import shutil
 import tempfile
 import time
 import uuid
+import weakref
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -306,26 +307,34 @@ class GithubRecipeRepo:
             sha = self._get(
                 f"https://api.github.com/repos/{self.repo}/commits/{self.ref}"
             ).json()["sha"]
-            tree = self._get(
-                f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
-                params={"recursive": "1"},
-            ).json()
-            if tree.get("truncated"):
-                raise RuntimeError("git tree listing truncated — recipe list incomplete")
-            ids, with_source = set(), set()
-            for node in tree.get("tree") or []:
-                parts = node.get("path", "").split("/")
-                if len(parts) == 3 and parts[0] == "recipes" and parts[2] == MANIFEST_FILENAME:
-                    ids.add(parts[1])
-                elif len(parts) == 3 and parts[0] == "recipes" and parts[2] == SOURCE_CONFIG_FILENAME:
-                    with_source.add(parts[1])
             self._sha = sha
+            ids, with_source = set(), set()
             if self.fetch == "tarball":
-                # Eagerly, here: the pipeline's recipe-list step turns a
-                # failure into `refresh_unavailable`. Lazily (first load) it
-                # would fail every recipe as `recipe_invalid` and open an
-                # authoring issue for each.
-                self._extracted()
+                # The list comes from the archive itself, eagerly, here: the
+                # pipeline's recipe-list step turns a failure into
+                # `refresh_unavailable`. Lazily (first load) it would fail
+                # every recipe as `recipe_invalid` and open an authoring
+                # issue for each.
+                tree = self._extracted()
+                for d in tree.iterdir():
+                    if (d / MANIFEST_FILENAME).is_file():
+                        ids.add(d.name)
+                    if (d / SOURCE_CONFIG_FILENAME).is_file():
+                        with_source.add(d.name)
+            else:
+                listing = self._get(
+                    f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
+                    params={"recursive": "1"},
+                ).json()
+                if listing.get("truncated"):
+                    raise RuntimeError("git tree listing truncated — recipe list incomplete")
+                for node in listing.get("tree") or []:
+                    parts = node.get("path", "").split("/")
+                    if len(parts) == 3 and parts[0] == "recipes" and parts[2] == MANIFEST_FILENAME:
+                        ids.add(parts[1])
+                    elif (len(parts) == 3 and parts[0] == "recipes"
+                          and parts[2] == SOURCE_CONFIG_FILENAME):
+                        with_source.add(parts[1])
             self._ids = sorted(ids)
             self._with_source = with_source & ids
         return list(self._ids)
@@ -366,12 +375,26 @@ class GithubRecipeRepo:
         caller treats it like a failed recipe list."""
         if self._tree is not None:
             return self._tree
+        started = time.monotonic()
+        root = Path(tempfile.mkdtemp(prefix="recipes-tar-"))
+        try:
+            size, n = self._download_and_extract(root)
+        except BaseException:
+            shutil.rmtree(root, ignore_errors=True)
+            raise
+        # Removed with this repo object, or at interpreter exit: local runs
+        # would otherwise leave a copy of every recipe in /tmp each time.
+        weakref.finalize(self, shutil.rmtree, root, True)
+        log.info("recipes: %d files from the %s archive (%d bytes) in %.1fs",
+                 n, self._sha[:12], size, time.monotonic() - started)
+        self._tree = root / "tree"
+        return self._tree
+
+    def _download_and_extract(self, root: Path) -> tuple[int, int]:
         import tarfile
 
         import httpx
 
-        started = time.monotonic()
-        root = Path(tempfile.mkdtemp(prefix="recipes-tar-"))
         archive = root / "repo.tar.gz"
         # The API answers with a redirect to codeload.github.com (httpx drops
         # the Authorization header on the cross-host hop; a private repo's
@@ -391,23 +414,25 @@ class GithubRecipeRepo:
                         )
                     f.write(chunk)
         out = root / "tree"
+        out.mkdir()
         with tarfile.open(archive, "r:gz") as tar:
             # Every member sits under one top dir (`<owner>-<repo>-<sha>/`);
             # keep only regular files at recipes/<id>/<name>. The `data`
             # filter also refuses absolute paths, `..` and links.
-            members = []
+            members, tops = [], set()
             for m in tar.getmembers():
                 parts = m.name.split("/")
+                if len(parts) > 1:
+                    tops.add(parts[0])
                 if (m.isfile() and len(parts) == 4 and parts[1] == "recipes"
                         and parts[2] and parts[3]):
                     m.name = f"{parts[2]}/{parts[3]}"
                     members.append(m)
+            if len(tops) != 1:
+                raise RuntimeError(f"repo archive has {len(tops)} top-level dirs, expected 1")
             tar.extractall(out, members=members, filter="data")
         archive.unlink()
-        log.info("recipes: %d files from the %s archive (%d bytes) in %.1fs",
-                 len(members), self._sha[:12], size, time.monotonic() - started)
-        self._tree = out
-        return out
+        return size, len(members)
 
 
 def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:

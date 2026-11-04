@@ -104,6 +104,7 @@ def test_tarball_loads_byte_identical_recipes_with_one_download(github, tmp_path
     tar_calls = list(github["calls"])
     assert sum("/tarball/" in c for c in tar_calls) == 1
     assert not any("raw.githubusercontent.com" in c for c in tar_calls)
+    assert not any("/git/trees/" in c for c in tar_calls)  # the archive lists recipes
 
     files_repo = rf.GithubRecipeRepo("o/r", "main", fetch="files")
     b = files_repo.load(DS, tmp_path / "b")
@@ -155,10 +156,41 @@ def test_tarball_failure_fails_the_recipe_list_not_each_recipe(github):
         repo.list_ids()
 
 
-def test_tarball_size_fuse(github, monkeypatch):
+@pytest.fixture
+def tmpdirs(monkeypatch, tmp_path):
+    """mkdtemp under tmp_path, so the test can see what's left behind."""
+    base = tmp_path / "tmp"
+    base.mkdir()
+    real = rf.tempfile.mkdtemp
+    monkeypatch.setattr(rf.tempfile, "mkdtemp", lambda **kw: real(dir=base, **kw))
+    return base
+
+
+def test_tarball_size_fuse_leaves_nothing_behind(github, monkeypatch, tmpdirs):
     monkeypatch.setattr(rf.GithubRecipeRepo, "TARBALL_MAX_BYTES", 100)
     with pytest.raises(RuntimeError, match="exceeds"):
         rf.GithubRecipeRepo("o/r", "main", fetch="tarball").list_ids()
+    assert list(tmpdirs.iterdir()) == []
+
+
+def test_tarball_tree_is_removed_with_the_repo(github, tmpdirs):
+    import gc
+
+    repo = rf.GithubRecipeRepo("o/r", "main", fetch="tarball")
+    repo.list_ids()
+    assert len(list(tmpdirs.iterdir())) == 1
+    del repo
+    gc.collect()
+    assert list(tmpdirs.iterdir()) == []
+
+
+def test_tarball_with_two_top_dirs_is_refused(github, tmpdirs):
+    github["tarball"] = _tarball(github["recipes"], extra=[
+        (f"other-top/recipes/{DS}/compute.py", b"print('not the pinned commit')"),
+    ])
+    with pytest.raises(RuntimeError, match="2 top-level dirs"):
+        rf.GithubRecipeRepo("o/r", "main", fetch="tarball").list_ids()
+    assert list(tmpdirs.iterdir()) == []
 
 
 def test_tarball_missing_file_is_a_recipe_error(github, tmp_path):
