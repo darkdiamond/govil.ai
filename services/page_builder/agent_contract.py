@@ -577,6 +577,10 @@ def _canonical_number(raw: str, float_only: bool) -> str:
         raise _FileMismatch(f"non-numeric value {v[:20]!r} in a numeric column") from None
     if not d.is_finite():
         raise _FileMismatch(f"non-finite value {v[:20]!r}")
+    # The file is publisher-supplied: `1e999999999` would make int() build a
+    # billion-digit number. The datastore never holds such a value anyway.
+    if abs(d.adjusted()) > 30:
+        raise _FileMismatch(f"out-of-range value {v[:20]!r}")
     if not float_only and d == d.to_integral_value():
         return str(int(d))
     return str(float(d))

@@ -261,3 +261,10 @@ def test_an_input_that_fits_one_page_never_downloads_the_file(monkeypatch, tmp_p
 ])
 def test_canonical_number(raw, float_only, want):
     assert ac._canonical_number(raw, float_only) == want
+
+
+@pytest.mark.parametrize("raw", ["1e999999999", "1E-999999999", "abc", "1,000", "inf"])
+def test_canonical_number_refuses(raw):
+    # A huge exponent must be refused before int() expands it.
+    with pytest.raises(ac._FileMismatch):
+        ac._canonical_number(raw, False)
