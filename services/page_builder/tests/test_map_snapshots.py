@@ -634,7 +634,8 @@ def _refresh_env(tmp_path, monkeypatch):
 def test_repeated_download_block_escalates_to_an_issue(tmp_path, monkeypatch):
     e = _refresh_env(tmp_path, monkeypatch)
     blocked = FakeFiles(error=DownloadBlocked("HTTP 403"))
-    for n in (1, 2):
+    from services.page_builder.refresh import _DEFAULT_TRANSIENT_STRIKES
+    for n in range(1, _DEFAULT_TRANSIENT_STRIKES):
         s = e.run(blocked)
         assert s["outcomes"][0]["reason"] == "fetch_failed"
         assert e.state()["transient_strikes"] == {"download_blocked": n}

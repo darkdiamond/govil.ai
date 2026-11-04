@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Create the Cloud Scheduler job that runs govdata-builder-job daily. A new
+# Create the Cloud Scheduler job that runs govdata-builder-job twice a day. A new
 # scheduler job is created PAUSED — resume it explicitly once a manual
 # execution looks good:
 #
 #   gcloud scheduler jobs resume govdata-pipeline-daily --location=me-west1
 #
-# SCHEDULE defaults to 06:00 Asia/Jerusalem (Cloud Scheduler applies DST, so
-# it stays 06:00 local year-round). The local Claude Code authoring routine
-# runs an hour later and works through the issues this run opened.
+# SCHEDULE defaults to 06:00 and 14:00 Asia/Jerusalem (Cloud Scheduler applies
+# DST, so the times stay local year-round). Twice a day since 2026-11-04, once
+# a run took minutes, not an hour. The local Claude Code authoring routine runs
+# at 07:00 and works through the issues the runs opened. The job name keeps its
+# historical "-daily" suffix.
 # (Until 2026-10 it was 23:00 UTC, for an LLM provider's off-peak discount;
 # no model runs in the job any more.)
 #
@@ -21,7 +23,7 @@ PROJECT=${FIREBASE_PROJECT:-govdata-il}
 REGION=${REGION:-me-west1}
 RUN_JOB=${CLOUD_RUN_JOB:-govdata-builder-job}
 JOB_NAME=${SCHEDULER_JOB:-govdata-pipeline-daily}
-SCHEDULE=${SCHEDULE:-"0 6 * * *"}
+SCHEDULE=${SCHEDULE:-"0 6,14 * * *"}
 TIMEZONE=${SCHEDULE_TZ:-"Asia/Jerusalem"}
 
 SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"

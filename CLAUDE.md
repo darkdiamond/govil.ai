@@ -57,9 +57,11 @@ landing pages. Five layers:
    container; also usable as a local CLI for debugging.
 2. **Builder** — `services/page_builder/`. **Cloud Run job**
    (`govdata-builder-job`, `python -m services.page_builder.pipeline
---mode scheduled`), executed by Cloud Scheduler **daily at 06:00
-   Asia/Jerusalem** (`0 6 * * *`, DST-aware) via the Admin API's `:run`
-   method. **No LLM runs in prod** — every page is a recipe render.
+--mode scheduled`), executed by Cloud Scheduler **twice a day, 06:00 and
+   14:00 Asia/Jerusalem** (`0 6,14 * * *`, DST-aware; twice-daily since
+   2026-11-04, when a run took ~6 min) via the Admin API's `:run`
+   method. Run-counted thresholds (`REFRESH_*_STRIKES`) assume two runs a
+   day, and the weekly reconcile sweep runs in both of Sunday's runs. **No LLM runs in prod** — every page is a recipe render.
    `pipeline.run_pipeline` drives:
    reconcile sweep (weekly, `RECONCILE_*`) → scan → reap legacy
    `pending` markers (`PENDING_REAP_MINUTES`; nothing writes `pending`
@@ -108,7 +110,7 @@ landing pages. Five layers:
    `agent/system-prompt.md` — the retired cloud agent's prompt, kept as
    the design reference (no longer shipped in the image).
    **Daily routine:** a local Claude Code routine on the user's machine
-   (bridge environment, **07:00 Israel time**, one hour after the job)
+   (bridge environment, **07:00 Israel time**, one hour after the morning job run)
    runs `/solve-authoring-issues`
    (`.claude/skills/solve-authoring-issues/SKILL.md`): reads open
    `[author] … (<id8>)` issues **authored by `darkdiamond` only**, labelled
@@ -178,11 +180,11 @@ landing pages. Five layers:
    reuses its open issue; a
    transient fetch failure (network, or the fetch wall budget running out) or
    sandbox-spawn crash (`sandbox_failed`: the gRPC fork abort, after an in-run
-   retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (3) wall-budget
+   retry) just retries next run, except that `REFRESH_WALL_BUDGET_STRIKES` (6, ≈3 days) wall-budget
    overruns since the last full fetch (`wall_budget_strikes` in the refresh
    state) open a `too_large` issue. A datastore preview that fails (CKAN
    timeout/5xx) is transient too, never a lost column: `preview_unavailable`
-   escalates to `schema_changed` only after `REFRESH_TRANSIENT_STRIKES` (3)
+   escalates to `schema_changed` only after `REFRESH_TRANSIENT_STRIKES` (6)
    runs in a row (a slow CKAN falsely locked 16 sources on 2026-11-02). Before
    any of that is recorded, a CKAN/network `fetch_failed` or a missing preview
    gets one more try at the end of the same run (`run_refresh`'s retry pass,
@@ -212,7 +214,7 @@ landing pages. Five layers:
    `Mozilla/5.0 (compatible; govdata-builder/1.0)` passes (verified from
    Cloud Run 2026-10-31; the user approved this UA). `CKAN_USER_AGENT`
    overrides it without a redeploy. A blocked download is transient
-   (`fetch_failed`) until it repeats `REFRESH_TRANSIENT_STRIKES` (3) runs in a
+   (`fetch_failed`) until it repeats `REFRESH_TRANSIENT_STRIKES` (6) runs in a
    row (`transient_strikes` in the refresh state), then opens a
    `download_blocked` issue. Download cap `REFRESH_MAP_MAX_BYTES` (100MB). The
    older fallback: a file downloaded once in a browser, converted by `author
