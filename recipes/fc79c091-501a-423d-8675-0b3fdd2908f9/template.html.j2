@@ -133,7 +133,7 @@
       sw.style.background = i < meta.k && i < P.length ? P[i] : REST;
     });
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var lines = [];
     GovMap.islands("map-lines").forEach(function (f) {
       var line = L.polyline(GovMap.ring(f[7], meta.origin, meta.scale), { color: colorOf("band", f), weight: 4, opacity: 0.9 }).addTo(map);

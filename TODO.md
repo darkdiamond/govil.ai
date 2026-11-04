@@ -8,6 +8,12 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **131 of 307 committed recipes fail `author verify`'s em-dash lint.** The rule (#124) came after
+  they were authored and only runs at authoring time; the daily refresh doesn't enforce it, so
+  the pages render fine. But any edit to one of these recipes, even a one-line template fix,
+  makes `verify` report FAIL on text the edit didn't touch, which hides real failures. Fix: a
+  one-off sweep that rewrites the em dashes per the rule (colon, comma, parentheses or a new
+  sentence), bumping each `recipe_version`. (2026-11-04)
 - **One broken datastore resource blocks every `by_schema` input of its dataset.**
   `resolve_inputs` raises `PreviewUnavailable` when any datastore-active resource's preview fails,
   even one that never had the input's columns. A resource whose datastore answers

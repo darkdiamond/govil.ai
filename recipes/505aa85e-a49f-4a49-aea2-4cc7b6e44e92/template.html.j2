@@ -319,7 +319,7 @@
     if (!el || !window.L) { return; }
     var map = L.map(el, { center: [20, 30], zoom: 1, minZoom: 0, zoomSnap: 0.25, scrollWheelZoom: false });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 10, attribution: "© OpenStreetMap"
+      maxZoom: 10, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>"
     }).addTo(map);
     var col = { il: "#0068f5", ab: "#7fb0f8", both: "#0b3668" };
     var bounds = [];

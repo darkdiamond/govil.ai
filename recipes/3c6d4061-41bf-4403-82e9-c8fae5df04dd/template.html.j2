@@ -113,7 +113,7 @@
       });
     }
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     meta.units.forEach(function (s, u) {
       if (!geo[u]) { return; }
       var shape = L.polygon(geo[u].filter(function (x) { return x; }), {

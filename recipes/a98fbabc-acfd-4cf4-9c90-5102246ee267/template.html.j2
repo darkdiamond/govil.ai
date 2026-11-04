@@ -119,7 +119,7 @@
     var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668"];
     var color = function (k) { return pal[k % pal.length]; };
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var popup = function (title, rows) {
       var box = document.createElement("div");
       var t = document.createElement("strong");

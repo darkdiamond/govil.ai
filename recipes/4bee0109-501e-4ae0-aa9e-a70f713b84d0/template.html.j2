@@ -345,7 +345,7 @@
       sw.style.background = color(Number(sw.getAttribute("data-i")));
     });
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     GovMap.islands("map-lines").forEach(function (f) {
       var line = L.polyline(GovMap.ring(f[5], meta.origin, meta.scale), { color: color(f[0]), weight: 4, opacity: 0.85 }).addTo(map);
       line.bindPopup(function () {

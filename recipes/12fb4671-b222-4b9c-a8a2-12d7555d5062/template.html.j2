@@ -258,7 +258,7 @@
     var colors = ["#0068f5", "#ffc107", "#dc3545", "#0dcaf0", "#198754"];
     var color = function (i) { return colors[i] || "#6c757d"; };
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var renderer = L.canvas({ padding: 0.5 });
     var groups = meta.statuses.map(function () { return L.layerGroup().addTo(map); });
     var index = [];

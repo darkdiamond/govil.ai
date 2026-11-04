@@ -124,7 +124,7 @@
     var color = function (b) { return colors[Math.max(0, Math.min(colors.length - 1, b))]; };
     var ZOOM_OUTLINE = 16;
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     function popup(p) {
       var box = document.createElement("div");
       var title = document.createElement("strong");

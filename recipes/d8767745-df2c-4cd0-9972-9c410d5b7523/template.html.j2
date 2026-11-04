@@ -458,7 +458,7 @@
     if (!el || !window.L || !window.GovMap) { return; }
     var meta = {{ {"origin": model.charts.map.origin, "scale": model.charts.map.scale, "kinds": model.charts.map.kinds, "colors": model.charts.map.colors, "weights": model.charts.map.weights, "ramp": model.charts.map.ramp, "bounds": model.charts.map.bounds} | tojson }};
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     function base(k) { return { color: meta.colors[k], weight: meta.weights[k], opacity: k === meta.ramp ? 0.7 : 0.9 }; }
     var byRoad = {}, ramps = [], roads = [];
     GovMap.islands("map-lines").forEach(function (f) {

@@ -245,7 +245,7 @@
     if (!el || !window.L) { return; }
     var map = L.map(el, { center: [20, 20], zoom: 1, minZoom: 1, zoomSnap: 0.25, scrollWheelZoom: false, worldCopyJump: true });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 8, attribution: "© OpenStreetMap"
+      maxZoom: 8, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>"
     }).addTo(map);
     var bounds = [];
     d.points.forEach(function (p) {

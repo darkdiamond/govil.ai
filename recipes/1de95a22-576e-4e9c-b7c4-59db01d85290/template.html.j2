@@ -180,7 +180,7 @@
     var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#6c9fd8"];
     var colors = [pal[0], pal[1], pal[2], pal[5], pal[7], pal[3]];
     var map = L.map(el, { preferCanvas: true, scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
     var popup = function (title, rows) {
       var box = document.createElement("div");

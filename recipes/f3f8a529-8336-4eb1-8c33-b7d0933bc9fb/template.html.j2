@@ -230,7 +230,7 @@
     function num(v) { return Number(v).toLocaleString("en-US"); }
     var popup = GovMap.popup;
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     function cell(c) {
       var la = G.lat0 + c[1] * G.step, lo = G.lon0 + c[0] * G.step;
       return [[la, lo], [la + G.step, lo + G.step]];
