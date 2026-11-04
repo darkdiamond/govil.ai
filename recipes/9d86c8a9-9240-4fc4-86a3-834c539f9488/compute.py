@@ -167,7 +167,7 @@ def insight_leader(top_rows, nat_young):
     ratio = a["young"] / b["young"]
     rel = (f"פי {ratio:.1f} מ{b['name']} שבמקום השני ({n(b['young'])})" if ratio >= 1.5
            else f"לפני {b['name']} ({n(b['young'])})")
-    return (f"{a['name']} מובילה במספר התושבים בגיל 18 עד 34 — {n(a['young'])}, "
+    return (f"{a['name']} מובילה במספר התושבים בגיל 18 עד 34: {n(a['young'])}, "
             f"{pct(a['young'] / nat_young * 100)} מכלל הצעירים ברשימה, {rel}.")
 
 
@@ -181,7 +181,7 @@ def insight_conc(df, nat_total, nat_young):
     if abs(sy - st) < 0.5:
         cmp_t = f"כמעט זהה לחלקם בכלל האוכלוסייה ({pct(st)})"
     elif sy > st:
-        cmp_t = f"יותר מחלקם בכלל האוכלוסייה ({pct(st)}) — הצעירים מרוכזים בערים הגדולות"
+        cmp_t = f"יותר מחלקם בכלל האוכלוסייה ({pct(st)}), כלומר הצעירים מרוכזים בערים הגדולות"
     else:
         cmp_t = f"פחות מחלקם בכלל האוכלוסייה ({pct(st)})"
     return (f"{n(TOP_EXT)} הישובים עם מספר הצעירים הגדול ביותר מרכזים {pct(sy)} מהתושבים בגיל "
@@ -203,7 +203,7 @@ def insight_high(high_rows, big_n):
         where = f" במחוז {dists[0]}" if len(dists) == 1 else ""
         tail = (f" {_of(len(tr), len(high_rows))} הישובים בראש הדירוג הם שבטים בדואיים{where}.")
     return (f"מבין {n(big_n)} הישובים שבהם {n(MIN_POP_RANK)} תושבים ומעלה, שיעור הצעירים הגבוה "
-            f"ביותר נמצא בישוב {a['name']} — {pct(a['share_v'])} ({n(a['young'])} מתוך {n(a['total'])})."
+            f"ביותר נמצא בישוב {a['name']}: {pct(a['share_v'])} ({n(a['young'])} מתוך {n(a['total'])})."
             f"{tail}")
 
 
@@ -216,7 +216,7 @@ def insight_low(low_rows, nat_share):
     if in_c * 2 > len(low_rows):
         tail = (f" {_of(in_c, len(low_rows))} הישובים בתחתית הדירוג שייכים למועצות אזוריות.")
     if a["share_v"] * 2 < nat_share:
-        head = (f"בקצה השני, בישוב {a['name']} רק {pct(a['share_v'])} מהתושבים הם בני 18 עד 34 — "
+        head = (f"בקצה השני, בישוב {a['name']} רק {pct(a['share_v'])} מהתושבים הם בני 18 עד 34, "
                 f"פחות ממחצית השיעור ברשימה כולה ({pct(nat_share)}).")
     else:
         head = (f"בקצה השני, בישוב {a['name']} שיעור הצעירים הוא {pct(a['share_v'])}, לעומת "
@@ -232,10 +232,10 @@ def insight_district(dist_rows):
     lo = min(rows, key=lambda r: (r["share_v"], D_IDX[r["name"]]))
     gap = hi["share_v"] - lo["share_v"]
     if gap < DISTRICT_GAP_PP:
-        return (f"שיעור הצעירים דומה בכל המחוזות — בין {pct(lo['share_v'])} במחוז {lo['name']} "
+        return (f"שיעור הצעירים דומה בכל המחוזות: בין {pct(lo['share_v'])} במחוז {lo['name']} "
                 f"ל-{pct(hi['share_v'])} במחוז {hi['name']}.")
     return (f"במחוז {hi['name']} שיעור הצעירים הגבוה ביותר ({pct(hi['share_v'])}), ובמחוז "
-            f"{lo['name']} הנמוך ביותר ({pct(lo['share_v'])}) — פער של {gap:.1f} נקודות אחוז.")
+            f"{lo['name']} הנמוך ביותר ({pct(lo['share_v'])}), פער של {gap:.1f} נקודות אחוז.")
 
 
 def insight_size(size_rows):
@@ -247,7 +247,7 @@ def insight_size(size_rows):
     if hi["share_v"] - lo["share_v"] < SIZE_GAP_PP:
         return None
     return (f"לפי גודל הישוב: בישובים של {hi['label']} תושבים שיעור הצעירים הוא "
-            f"{pct(hi['share_v'])}, ובישובים של {lo['label']} תושבים — {pct(lo['share_v'])} בלבד.")
+            f"{pct(hi['share_v'])}, ובישובים של {lo['label']} תושבים, {pct(lo['share_v'])} בלבד.")
 
 
 def insight_council(df):
@@ -385,7 +385,7 @@ def compute(frames):
                    "young": [r["young"] for r in nafa_rows],
                    "nat": r1(nat_share)}
 
-    # Regional councils — largest by young residents.
+    # Regional councils: largest by young residents.
     cdf = df[df["in_council"]]
     council_rows = []
     for c, sub in cdf.groupby("council", sort=True):
@@ -479,7 +479,7 @@ def compute(frames):
     labels = {
         "lede": (f"רשות האוכלוסין וההגירה מפרסמת, לכל ישוב במרשם האוכלוסין, את מספר התושבים "
                  f"הרשומים ואת מספר התושבים בגיל 18 עד 34. ברשימה {n(n_loc)} ישובים עם "
-                 f"{n(nat_total)} תושבים, ומתוכם {n(nat_young)} צעירים — {pct(nat_share)}. העמוד "
+                 f"{n(nat_total)} תושבים, ומתוכם {n(nat_young)} צעירים ({pct(nat_share)}). העמוד "
                  f"מראה היכן גרים הצעירים במספרים מוחלטים, היכן הם חלק גדול או קטן מהאוכלוסייה, "
                  f"ואיך השיעור משתנה לפי מחוז, נפה, גודל ישוב ומועצה אזורית.{ph_t}{bad_t}"),
         "young_kpi": "תושבים בגיל 18 עד 34",
@@ -491,7 +491,7 @@ def compute(frames):
         "top_aria": (f"גרף עמודות אופקי: {n(len(top_rows))} הישובים עם מספר הצעירים הגדול ביותר. "
                      + (f"{top_rows[0]['name']} מובילה עם {n(top_rows[0]['young'])}." if top_rows else "")),
         "top_caption": "הישובים עם מספר התושבים בגיל 18 עד 34 הגדול ביותר",
-        "high_note": (f"מבין {n(len(big))} הישובים שבהם {n(MIN_POP_RANK)} תושבים ומעלה — כדי "
+        "high_note": (f"מבין {n(len(big))} הישובים שבהם {n(MIN_POP_RANK)} תושבים ומעלה, כדי "
                       f"שישובים זעירים לא יעוותו את הדירוג."),
         "high_aria": ("גרף עמודות אופקי: הישובים עם שיעור הצעירים הגבוה ביותר. "
                       + (f"{high_rows[0]['name']} מובילה עם {pct(high_rows[0]['share_v'])}." if high_rows else "")),
@@ -513,7 +513,7 @@ def compute(frames):
                       + (f" רוב התושבים גרים בישובים של {big_size['label']} תושבים." if big_size and big_size["total"] * 2 > nat_total else "")),
         "size_aria": "גרף עמודות וקו: שיעור הצעירים ומספר הישובים לפי גודל הישוב.",
         "size_caption": "שיעור הצעירים לפי גודל הישוב",
-        "districts_note": (f"המחוז נגזר מסמל הנפה. במחוז {top_d['name']} מספר הצעירים הגדול ביותר — "
+        "districts_note": (f"המחוז נגזר מסמל הנפה. במחוז {top_d['name']} מספר הצעירים הגדול ביותר: "
                            f"{n(top_d['young'])} ({pct(top_d['young'] / nat_young * 100)} מהצעירים "
                            f"ברשימה). העמודות מפצלות את התושבים לבני 18 עד 34 ולשאר; הקו הוא שיעור "
                            f"הצעירים."),
@@ -538,7 +538,7 @@ def compute(frames):
         "councils_aria": ("גרף עמודות אופקי: המועצות האזוריות עם מספר הצעירים הגדול ביותר."
                           + (f" {council_top[0]['name']} מובילה." if council_top else "")),
         "councils_caption": "המועצות האזוריות עם מספר הצעירים הגדול ביותר",
-        "bureaus_note": (f"מספר התושבים בגיל 18 עד 34 בישובים שכל לשכה של רשות האוכלוסין משרתת — "
+        "bureaus_note": (f"מספר התושבים בגיל 18 עד 34 בישובים שכל לשכה של רשות האוכלוסין משרתת: "
                          f"{n(TOP_BUREAUS)} הלשכות הגדולות מתוך {n(n_bureaus)}."
                          if b_rest else
                          f"מספר התושבים בגיל 18 עד 34 בישובים שכל אחת מ-{n(n_bureaus)} הלשכות של רשות "
@@ -573,6 +573,19 @@ def compute(frames):
             "785ad9fb-6da6-426d-b5ea-b8e36febbc8a",
         ],
         "spatial_coverage": "ישראל ויהודה והשומרון",
+        "seo": {
+            "title": "כמה בני 18-34 יש בישראל? תושבים צעירים לפי ישוב",
+            "description": (f"כמה בני 18 עד 34 יש בישראל: {n(nat_young)} תושבים צעירים, "
+                            f"{nat_share:.1f}% מתוך {n(nat_total)} תושבים רשומים. מספר התושבים "
+                            f"והצעירים בכל ישוב ועיר."),
+            "name": "מספר התושבים בגיל 18-34 לפי ישוב",
+            "alternate_names": [
+                "תושבים צעירים בישראל לפי יישובים",
+                "מספר תושבים לפי ישובים",
+                "מספר תושבים בישראל לפי ערים",
+                "מספר הצעירים בישראל לפי ישוב",
+            ],
+        },
     }
 
     return {

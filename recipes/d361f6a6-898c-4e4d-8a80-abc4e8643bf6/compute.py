@@ -94,8 +94,8 @@ def insight_long_trend(stats, last_full):
         return None
     word = "ירד" if l < e else "עלה"
     return (f"שיעור הנבחנים עם ציון {SCORE_LINE} ומעלה {word} לאורך השנים: ממוצע של "
-            f"{pct(e * 100)} ב-{int(early.index.min())}–{int(early.index.max())} לעומת "
-            f"{pct(l * 100)} ב-{int(late.index.min())}–{int(late.index.max())}.")
+            f"{pct(e * 100)} ב-{int(early.index.min())}-{int(early.index.max())} לעומת "
+            f"{pct(l * 100)} ב-{int(late.index.min())}-{int(late.index.max())}.")
 
 
 def insight_institution(g):
@@ -147,7 +147,7 @@ def compute(frames):
 
     dist_src = g_year[g_year["d"].dt.year.between(last_full - DIST_YEARS + 1, last_full)]
     bins = list(range(0, 100, 10))
-    dist = [(f"{lo}–{lo + 9}" if lo < 90 else "90–100",
+    dist = [(f"{lo}-{lo + 9}" if lo < 90 else "90-100",
              int(((dist_src["s"] >= lo) & ((dist_src["s"] < lo + 10) if lo < 90 else (dist_src["s"] <= 100))).sum()))
             for lo in bins]
 
@@ -196,7 +196,7 @@ def compute(frames):
         "institutions": {"names": inst_top, "values": [int(inst_n[i]) for i in inst_top]},
         "months": {"names": MONTHS_HE, "values": [int(v) for v in by_month.values]},
         "bands": {"years": [str(y) for y in hy],
-                  "bands": [f"{lo}–{lo + 9}" if lo < 90 else "90–100" for lo in band_lo],
+                  "bands": [f"{lo}-{lo + 9}" if lo < 90 else "90-100" for lo in band_lo],
                   "cells": heat_cells,
                   "max": max([c[2] for c in heat_cells] or [1])},
     }
@@ -241,9 +241,9 @@ def compute(frames):
         "scores_aria": f"גרף קווים: ציון ממוצע ושיעור הנבחנים עם ציון {SCORE_LINE} ומעלה, לפי שנה.",
         "scores_note": (f"מחושב על נבחנים שיש להם ציון. ציון הסף לעבירת הבחינה אינו מופיע "
                         f"במאגר; הקו מציג ציון {SCORE_LINE} ומעלה."),
-        "dist_aria": (f"תרשים עמודות: התפלגות הציונים ב-{last_full - DIST_YEARS + 1}–{last_full}."),
-        "dist_title": f"התפלגות הציונים, {last_full - DIST_YEARS + 1}–{last_full}",
-        "dist_caption": f"מספר נבחנים לפי טווח ציון, {last_full - DIST_YEARS + 1}–{last_full}.",
+        "dist_aria": (f"תרשים עמודות: התפלגות הציונים ב-{last_full - DIST_YEARS + 1}-{last_full}."),
+        "dist_title": f"התפלגות הציונים, {last_full - DIST_YEARS + 1}-{last_full}",
+        "dist_caption": f"מספר נבחנים לפי טווח ציון, {last_full - DIST_YEARS + 1}-{last_full}.",
         "sittings_aria": "תרשים עמודות: נבחנים בכל מועד בחינה בשנתיים האחרונות, כולל מועדים עתידיים.",
         "cities_aria": f"תרשים עמודות: מתווכים מורשים לפי יישוב מגורים, {TOP_CITIES} היישובים המובילים.",
         "cities_caption": f"מתווכים מורשים לפי יישוב מגורים ({TOP_CITIES} המובילים ושאר היישובים).",
@@ -254,7 +254,7 @@ def compute(frames):
         "months_aria": "תרשים עמודות: נבחנים לפי חודש הבחינה, בכל השנים.",
         "months_caption": "מספר הנבחנים לפי חודש הבחינה, בכל השנים.",
         "bands_aria": (f"מפת חום: שיעור הנבחנים בכל טווח ציון לפי שנה, "
-                       f"{hy[0] if hy else ''}–{hy[-1] if hy else ''}."),
+                       f"{hy[0] if hy else ''}-{hy[-1] if hy else ''}."),
         "bands_note": "שיעור מהנבחנים בעלי ציון באותה שנה. גוון כהה = שיעור גבוה יותר.",
     }
 
@@ -269,6 +269,14 @@ def compute(frames):
             "suggested_tags": ["מתווכים", "נדל״ן", "רשם המתווכים", "בחינות", "שוק הדיור"],
             "temporal_coverage": f"{y0}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "רשימת מתווכים מורשים | פנקס המתווכים: בדיקת רישיון תיווך",
+                "description": (f"בדיקת מתווך מורשה ואיתור מספר רישיון תיווך לפי שם או עיר: {n(total)} מתווכים "
+                                f"במקרקעין ב-{n(cities.size)} יישובים, ברשימת רשם המתווכים."),
+                "name": "רשימת מתווכים מורשים (פנקס המתווכים)",
+                "alternate_names": ["פנקס מתווכים מורשים", "רשימת מתווכים פעילים", "רשם המתווכים",
+                                    "איתור מספר רישיון תיווך"],
+            },
         },
         "kpis": kpis,
         "charts": charts,

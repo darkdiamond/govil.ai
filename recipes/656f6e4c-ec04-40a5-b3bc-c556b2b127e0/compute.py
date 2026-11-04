@@ -587,6 +587,15 @@ def compute(frames):
             "related_ids": [],
             "temporal_coverage": f"{first_year}/{as_of_year}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "מאגר סימני מסחר: חיפוש סימן מסחר רשום בישראל",
+                "description": (f"חיפוש במאגר סימני המסחר לפי שם הסימן, מספר סימן או בעלים: "
+                                f"{_int(n_all)} בקשות מאז {first_year}, מהן {_int(registered)} "
+                                "סימנים רשומים ובתוקף."),
+                "name": "מאגר סימני מסחר",
+                "alternate_names": ["מאגר סימני המסחר", "רשם סימני המסחר", "חיפוש סימני מסחר",
+                                    "סימן מסחרי רשום"],
+            },
         },
         "kpis": {
             "total": {"value": n_all, "display": _kpi_num(n_all), "tone": "brand"},

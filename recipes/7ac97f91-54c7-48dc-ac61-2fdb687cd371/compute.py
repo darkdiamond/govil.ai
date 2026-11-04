@@ -528,7 +528,8 @@ def compute(frames):
     summary = (f"עולים חדשים לפי שנה, ארץ מוצא, גיל, מגדר ויישוב קליטה, {labels['years_range']}: "
                f"{_int(total)} עולים, שיא ב-{peak_year} ({_int(by_year[peak_year])}).")
     labels["lede"] = (
-        f"נתוני משרד העלייה והקליטה על {_int(total)} עולים חדשים שעלו לישראל בשנים {labels['years_range']}, "
+        f"נתוני העלייה לישראל לפי שנים: רשומות משרד העלייה והקליטה על {_int(total)} עולים חדשים "
+        f"שעלו בשנים {labels['years_range']}, "
         f"רשומה לכל עולה: שנה וחודש עלייה, גיל ביום העלייה, מגדר, ארץ מוצא, יישוב ומחוז קליטה ומקצוע. "
         f"העולים הגיעו מ-{_int(n_countries)} ארצות והתיישבו ב-{_int(n_cities)} יישובים; שנת השיא היא {peak_year}."
         + (f" נתוני {y_last} חלקיים (עד {MONTHS_HE[last_month - 1]})." if partial else ""))
@@ -547,6 +548,18 @@ def compute(frames):
             ],
             "temporal_coverage": f"{y_first}/{y_last}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "עולים חדשים לפי שנים: נתוני עלייה לישראל",
+                "description": (
+                    f"כמה עולים חדשים עלו לישראל בכל שנה, {labels['years_range']}: "
+                    f"{_int(by_year[y_last])} ב-{y_last}"
+                    + (f" (עד {MONTHS_HE[last_month - 1]})" if partial else "")
+                    + f", שיא ב-{peak_year} עם {_int(by_year[peak_year])}. "
+                    "לפי ארץ מוצא, גיל ויישוב קליטה."),
+                "name": "עולים חדשים לפי שנים",
+                "alternate_names": ["עלייה לישראל לפי שנים", "נתוני עלייה לישראל",
+                                    "נתוני עולים חדשים"],
+            },
         },
         "kpis": kpis,
         "charts": {

@@ -24,7 +24,7 @@
     <div class="text-sm text-subtle">{{ label }}</div>
   </div>
 {%- endmacro -%}
-<h1>פנקס הקבלנים הרשומים</h1>
+<h1>{{ model.agent_data.seo.name }}</h1>
 
 <section class="card p-5 mb-6">
   {{ head("תקציר", "info") }}
@@ -332,8 +332,8 @@
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "item", formatter: function (p) {
         var d = p.data.slice(-5);
-        return p.name + "<br>חציון: " + d[2] + " שנים<br>רבעונים: " + d[1] + "–" + d[3]
-          + "<br>אחוזונים חמישי עד תשעים וחמישה: " + d[0] + "–" + d[4];
+        return p.name + "<br>חציון: " + d[2] + " שנים<br>רבעונים: " + d[1] + "-" + d[3]
+          + "<br>אחוזונים חמישי עד תשעים וחמישה: " + d[0] + "-" + d[4];
       } },
       grid: { left: 16, right: 24, top: 16, bottom: 24, containLabel: true },
       xAxis: { type: "value", splitNumber: 4 },

@@ -300,14 +300,14 @@ def compute(frames):
     agrp = df.groupby("appraiser").agg(first=("year", "min"), last=("year", "max"),
                                        ncomm=("committee", "nunique"))
     appr_table = [{"name": a, "count": n(apprs[a]),
-                   "years": f"{int(agrp.loc[a, 'first'])}–{int(agrp.loc[a, 'last'])}",
+                   "years": f"{int(agrp.loc[a, 'first'])}-{int(agrp.loc[a, 'last'])}",
                    "ncomm": n(agrp.loc[a, "ncomm"])} for a in a_names]
     merged_variants = int(df["raw_appraiser"].nunique() - df["appraiser"].nunique())
 
     # 7. cohorts: decisions per year by the appraiser's first-decision band
     def cohort_of(y):
         lo = min_year + ((y - min_year) // COHORT_WIDTH) * COHORT_WIDTH
-        return f"{lo}–{lo + COHORT_WIDTH - 1}"
+        return f"{lo}-{lo + COHORT_WIDTH - 1}"
     df["cohort"] = df["appraiser"].map(agrp["first"]).map(cohort_of)
     cohort_names = sorted(df["cohort"].unique())
     coh = df.groupby(["year", "cohort"]).size().unstack(fill_value=0).reindex(years, fill_value=0)
@@ -350,7 +350,7 @@ def compute(frames):
         m = rec >= lo
         if hi is not None:
             m &= rec <= hi
-        lbl = f"{lo}+ ימים" if hi is None else f"{lo}–{hi} ימים"
+        lbl = f"{lo}+ ימים" if hi is None else f"{lo}-{hi} ימים"
         c = int(m.sum())
         lag_rows.append({"bucket": lbl, "count": c,
                          "share": (c / len(rec) * 100) if len(rec) else 0.0})
@@ -419,7 +419,7 @@ def compute(frames):
     within90 = sum(r["share"] for r in lag_rows[:2])
     rec_lag_lf = med_lf if med_lf is not None else 0
     labels = {
-        "lede": (f"הכרעות של שמאים מכריעים ושמאים מייעצים בסכסוכי שומה בין בעלי מקרקעין לוועדות "
+        "lede": (f"הכרעות שמאי מכריע ושמאי מייעץ (שומות מכריעות) בסכסוכי שומה בין בעלי מקרקעין לוועדות "
                  f"התכנון המקומיות, בעיקר בהיטל השבחה. המאגר כולל {n(total)} הכרעות מ-{d_he(first_dec)} "
                  f"ועד {d_he(ref)}, ב-{n(comms.size)} ועדות מקומיות ובחתימת {n(apprs.size)} שמאים. "
                  f"הפרסום האחרון במאגר: {d_he(ref_pub)}."),
@@ -430,15 +430,15 @@ def compute(frames):
                        f"חלקית.{partial_note}"),
         "years_aria": (f"גרף עמודות מוערמות: הכרעות לפי שנה וסוג שומה, {min_year} עד {ref_year}; "
                        f"ב-{last_full} ניתנו {n(lf_n)} הכרעות."),
-        "years_caption": f"מספר הכרעות לפי שנה וסוג שומה, {min_year}–{ref_year}.",
+        "years_caption": f"מספר הכרעות לפי שנה וסוג שומה, {min_year}-{ref_year}.",
         "monthly_note": (f"הכרעות לפי חודש ההחלטה, עם ממוצע נע של שנים־עשר חודשים. הכרעות מתפרסמות "
                          f"באיחור (חציון של {n(round(rec_lag_lf))} ימים ב-{last_full}), ולכן החודשים "
                          f"האחרונים חסרים בחלקם ויתמלאו עם הפרסומים הבאים."),
         "monthly_aria": (f"גרף קווים: הכרעות לפי חודש מ-{monthly_chart['x'][0]} עד "
                          f"{monthly_chart['x'][-1]}, עם ממוצע נע שנתי."),
-        "season_note": (f"ממוצע ההכרעות לחודש, לפי חודש בשנה, בשנים המלאות {first_full}–{last_full}."),
-        "season_aria": f"גרף עמודות: ממוצע הכרעות לפי חודש בשנה, {first_full}–{last_full}.",
-        "season_caption": f"ממוצע הכרעות לחודש, {first_full}–{last_full}.",
+        "season_note": (f"ממוצע ההכרעות לחודש, לפי חודש בשנה, בשנים המלאות {first_full}-{last_full}."),
+        "season_aria": f"גרף עמודות: ממוצע הכרעות לפי חודש בשנה, {first_full}-{last_full}.",
+        "season_caption": f"ממוצע הכרעות לחודש, {first_full}-{last_full}.",
         "comm_aria": (f"תרשים עמודות: {TOP_COMMITTEES} הוועדות המקומיות עם מספר ההכרעות הגבוה ביותר; "
                       f"בראש {comms.index[0]} עם {n(comms.iloc[0])}."),
         "comm_caption": f"מספר הכרעות לפי ועדה מקומית ({TOP_COMMITTEES} המובילות ואחר).",
@@ -457,7 +457,7 @@ def compute(frames):
         "appr_caption": f"{TOP_APPRAISERS} השמאים המובילים: הכרעות, שנות פעילות ומספר ועדות.",
         "cohort_note": (f"הכרעות בכל שנה לפי המחזור של השמאי (תקופה של {COHORT_WIDTH} שנים שבה "
                         f"ניתנה ההכרעה הראשונה שלו במאגר). רואים כך כיצד מחזורי מינוי חדשים מחליפים את הקודמים."),
-        "cohort_aria": f"גרף עמודות מוערמות: הכרעות לפי שנה ולפי מחזור השמאים, {min_year}–{ref_year}.",
+        "cohort_aria": f"גרף עמודות מוערמות: הכרעות לפי שנה ולפי מחזור השמאים, {min_year}-{ref_year}.",
         "cohort_caption": "מחזורי שמאים: מספר שמאים ומספר הכרעות בכל מחזור.",
         "active_note": "מספר השמאים שנתנו לפחות הכרעה אחת בשנה, וממוצע ההכרעות לשמאי פעיל.",
         "active_aria": (f"גרף משולב: שמאים פעילים וממוצע הכרעות לשמאי לפי שנה; ב-{last_full} "
@@ -473,13 +473,13 @@ def compute(frames):
         "lag_aria": (f"גרף קווים: חציון ורבעון עליון של ימים מהכרעה לפרסום לפי שנה; "
                      f"החציון ב-{last_full}: {n(round(rec_lag_lf))} ימים."),
         "lag_caption": "ימים מהכרעה לפרסום לפי שנת ההכרעה: חציון ורבעון עליון.",
-        "lagdist_note": (f"התפלגות זמן הפרסום בהכרעות {lag_from}–{last_full}: חציון של "
+        "lagdist_note": (f"התפלגות זמן הפרסום בהכרעות {lag_from}-{last_full}: חציון של "
                          f"{n(lag_recent_med)} ימים, ו-{pct(within90)} פורסמו בתוך תשעים יום."),
-        "lagdist_aria": f"תרשים עמודות: הכרעות {lag_from}–{last_full} לפי זמן מהכרעה לפרסום.",
-        "lagdist_caption": f"הכרעות {lag_from}–{last_full} לפי זמן מהכרעה לפרסום.",
+        "lagdist_aria": f"תרשים עמודות: הכרעות {lag_from}-{last_full} לפי זמן מהכרעה לפרסום.",
+        "lagdist_caption": f"הכרעות {lag_from}-{last_full} לפי זמן מהכרעה לפרסום.",
         "claims_note": (f"תביעות פיצויים (ירידת ערך בשל תכנית) ותיקי הפקעות: כ-{pct((total - int(types.get(TYPE_ORDER[0], 0))) / total * 100)} "
                         f"מההכרעות. {n(advisory)} הכרעות ניתנו בידי שמאי מייעץ, שממונה מטעם ועדת הערר."),
-        "claims_aria": f"גרף עמודות מוערמות: תביעות פיצויים ותיקי הפקעות לפי שנה, {min_year}–{ref_year}.",
+        "claims_aria": f"גרף עמודות מוערמות: תביעות פיצויים ותיקי הפקעות לפי שנה, {min_year}-{ref_year}.",
         "claims_caption": "תביעות פיצויים ותיקי הפקעות לפי שנה.",
         "xtab_caption": "הכרעות לפי סוג שומה וסוג השמאי.",
         "corp_note": (f"שיעור ההכרעות שבהן שם הצד שמול הוועדה מעיד על תאגיד (בע״מ, חברה, שותפות, "
@@ -517,7 +517,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"מאגר שומות מכריעות: {n(total)} הכרעות שמאי מכריע ושמאי מייעץ {min_year}–{ref_year} "
+            "summary_he": (f"מאגר שומות מכריעות: {n(total)} הכרעות שמאי מכריע ושמאי מייעץ {min_year}-{ref_year} "
                            f"בהיטל השבחה, פיצויים והפקעות. חיפוש לפי ועדה מקומית, גוש וחלקה או שם השמאי."),
             "dataset_kind": "timeseries",
             "related_ids": ["83372c35-23ce-4ddf-829f-1067b5ef3409", "669b2652-f75b-4de3-8e6b-0dfa17accef5"],
@@ -525,6 +525,15 @@ def compute(frames):
                                "תביעות פיצויים", "משרד המשפטים"],
             "temporal_coverage": f"{first_dec.strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "שומות מכריעות: חיפוש הכרעות שמאי מכריע לפי גוש וחלקה",
+                "description": (f"חיפוש שומות מכריעות והכרעות שמאי מכריע לפי ועדה מקומית, גוש וחלקה "
+                                f"או שם השמאי: {n(total)} הכרעות מאז {min_year}, בעיקר בהיטל השבחה."),
+                "name": "מאגר שומות מכריעות",
+                "alternate_names": ["הכרעות שמאי מכריע", "החלטות שמאי מכריע",
+                                    "הכרעות שמאים מכריעים", "מאגר החלטות שמאי מכריע",
+                                    "שומות מכריעות משרד המשפטים"],
+            },
         },
         "kpis": kpis,
         "charts": charts,

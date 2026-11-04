@@ -544,8 +544,28 @@ def compute(frames):
         summary = (f"המחיר המרבי המותר ל-{n_products} מוצרים בפיקוח מחירים, "
                    f"עדכון אחרון {_d(latest_date)}.")
 
+    # ---- search snippet: answer the top query (the egg price) when it is current
+    eggs = latest[latest["product_name"].str.contains(r"ביצ", regex=True)
+                  & latest["product_name"].str.contains("(L)", regex=False)
+                  & (latest["date"] >= latest_date - pd.DateOffset(years=1))]
+    if len(eggs):
+        egg = eggs.iloc[0]
+        seo_desc = (f"המחיר המרבי בפיקוח לביצים, חלב, לחם וגבינות: ביצים בגודל L עד "
+                    f"{_p(float(egg['con']))} ₪ כולל מע״מ. {n_products} מוצרים, עדכון אחרון "
+                    f"{_d(latest_date)}.")
+    else:
+        seo_desc = (f"המחיר המרבי המותר לצרכן לביצים, חלב, לחם וגבינות בפיקוח מחירים: "
+                    f"{n_products} מוצרים, עדכון אחרון {_d(latest_date)}.")
+
     agent_data = {
         "summary_he": summary,
+        "seo": {
+            "title": "מוצרים בפיקוח ממשלתי: מחיר מפוקח לביצים, חלב ולחם",
+            "description": seo_desc,
+            "name": "מחירי מוצרים בפיקוח ממשלתי",
+            "alternate_names": ["מחירי פיקוח", "מחיר ביצים בפיקוח", "מחיר מפוקח לביצים וחלב",
+                                "מחירים בפיקוח", "מוצרים בפיקוח משרד הכלכלה"],
+        },
         "dataset_kind": "timeseries",
         "suggested_tags": ["פיקוח מחירים", "מחירי מזון", "חלב ומוצריו", "לחם",
                            "ביצים", "יוקר המחיה"],
