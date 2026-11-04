@@ -208,7 +208,7 @@ landing pages. Five layers:
    overrides it without a redeploy. A blocked download is transient
    (`fetch_failed`) until it repeats `REFRESH_TRANSIENT_STRIKES` (3) runs in a
    row (`transient_strikes` in the refresh state), then opens a
-   `download_blocked` issue. Download cap `REFRESH_MAP_MAX_BYTES` (50MB). The
+   `download_blocked` issue. Download cap `REFRESH_MAP_MAX_BYTES` (100MB). The
    older fallback: a file downloaded once in a browser, converted by `author
 snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    `snapshot` input; when CKAN's size/hash moves past `snapshot_of`, the

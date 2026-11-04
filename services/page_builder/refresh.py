@@ -111,8 +111,10 @@ _DEFAULT_TRANSIENT_STRIKES = 3
 _DEFAULT_RETRY_CAP = 20
 _DEFAULT_RETRY_DELAY_S = 120.0
 # A `map` input's file download cap (REFRESH_MAP_MAX_BYTES): it is parsed
-# in the builder process, not the compute sandbox.
-_DEFAULT_MAP_MAX_BYTES = 50_000_000
+# in the builder process, not the compute sandbox. 100MB admits the parcel
+# blocks (65MB), survey-boundary (84MB) and aquifer (85MB) layers; parsing an
+# 84MB shapefile peaks at ~1.8GB RSS, see the TODO.md map-memory item.
+_DEFAULT_MAP_MAX_BYTES = 100_000_000
 _DEFAULT_PAGE_SIZE = 100_000
 _PAGE_TIMEOUT_S = 60.0
 _COMPUTE_TIMEOUT_S = 300
