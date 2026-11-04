@@ -1,7 +1,6 @@
 """Tests for CKANClient.datastore_total."""
 from __future__ import annotations
 
-import json
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx

@@ -79,7 +79,7 @@ PLAIN_STREET = "שם ללא תחילית"
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -310,7 +310,7 @@ def compute(frames):
     tables["usage"] = table(["קבוצת קודים", "טווח", "ערכים", "דוגמאות"],
                             [[f["label"], f["range"], fmt(f["n"]), ", ".join(f["names"][:4])] for f in fam_rows])
     if fam_rows:
-        big = sorted(fam_rows, key=lambda f: (-f["n"], f["range"]))[0]
+        big = min(fam_rows, key=lambda f: (-f["n"], f["range"]))
         labels["usage_note"] = (
             f"מילון השימושים בנוי בקבוצות של עשרות קודים: {fmt(len(us))} שימושים ב-{fmt(len(fam_rows))} קבוצות. "
             f"הקבוצה הגדולה ({big['range']}) מתחילה ב\"{big['names'][0]}\" ומונה {fmt(big['n'])} שימושים."
@@ -327,7 +327,7 @@ def compute(frames):
     for code in sorted(set(it["code"]) | set(isub["code"] // 100)):
         subs = isub[isub["code"] // 100 == code].sort_values(["code", "name"], kind="mergesort")
         nm = tname.get(code, f"קוד {code}")
-        tree.append({"name": nm, "value": int(len(subs)), "children": [{"name": s, "value": 1} for s in subs["name"]]})
+        tree.append({"name": nm, "value": len(subs), "children": [{"name": s, "value": 1} for s in subs["name"]]})
     tree = [t for t in tree if t["value"] > 0]
     tree.sort(key=lambda t: (-t["value"], t["name"]))
     charts["infra"] = tree

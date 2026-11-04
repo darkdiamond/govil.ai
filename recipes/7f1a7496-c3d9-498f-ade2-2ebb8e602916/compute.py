@@ -133,7 +133,7 @@ def insight_enforcement(df):
 
 def compute(frames):
     df = _prepare(frames["sites"])
-    n = int(len(df))
+    n = len(df)
     n_landfill = int((~df["transfer"]).sum())
     n_transfer = int(df["transfer"].sum())
     n_friable = int(df["friable"].sum())

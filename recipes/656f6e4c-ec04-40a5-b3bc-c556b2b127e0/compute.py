@@ -23,7 +23,7 @@ import unicodedata
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 NICE = {
@@ -90,12 +90,12 @@ AGENT_LEAD = 1.5                # leader must have this multiple of the runner-u
 OWNER_MIN = 200                 # a leading owner must hold at least this many marks
 LAG_CHANGE = 0.10               # median-time change below this reads as "stable"
 
-_BIDI = re.compile("[‎‏‪-‮⁦-⁩]")
+_BIDI = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 _WS = re.compile(r"\s+")
 
 
 def _int(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v, d=1):
@@ -319,7 +319,7 @@ def compute(frames):
     status = df["מצב"].str.strip()
     group = status.map(STATUS_GROUP).fillna(G_OTHER)
     route = df["לאומי/בינלאומי"].str.strip()
-    yes = lambda c: df[c].str.strip() == "כן"  # noqa: E731
+    yes = lambda c: df[c].str.strip() == "כן"
 
     ok = app.notna()
     # "Now" = the latest filing in a year with real volume, so one mistyped
@@ -397,7 +397,7 @@ def compute(frames):
     cls_pairs["year"] = year.reindex(cls_pairs["row"]).values
     py = year[ok]
     heat_classes = [int(c) for c in cls_counts.iloc[:HEAT_CLASSES].index]
-    cells, heat_tbl = [], []
+    cells, _heat_tbl = [], []
     shares_by_period = {}
     for xi, (a, b) in enumerate(periods):
         n_p = int(((py >= a) & (py <= b)).sum())

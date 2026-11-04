@@ -6,14 +6,15 @@ open data portal API.
 """
 
 import asyncio
-from typing import Any, Optional
+from collections.abc import Callable
+from typing import Any, Self
 
 import httpx
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from .config import ScannerSettings, settings
@@ -22,19 +23,18 @@ from .models import Dataset
 
 class CKANError(Exception):
     """Exception raised for CKAN API errors."""
-    pass
 
 
 class CKANClient:
     """Async client for the CKAN API."""
     
-    def __init__(self, config: Optional[ScannerSettings] = None):
+    def __init__(self, config: ScannerSettings | None = None):
         """Initialize the CKAN client."""
         self.config = config or settings
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
         self._last_request_time: float = 0
     
-    async def __aenter__(self) -> "CKANClient":
+    async def __aenter__(self) -> Self:
         """Enter async context."""
         self._client = httpx.AsyncClient(
             timeout=httpx.Timeout(self.config.ckan_timeout),
@@ -73,7 +73,7 @@ class CKANClient:
         wait=wait_exponential(multiplier=1, min=1, max=10),
         retry=retry_if_exception_type((httpx.HTTPError, httpx.TimeoutException)),
     )
-    async def _request(self, url: str, params: Optional[dict] = None) -> dict:
+    async def _request(self, url: str, params: dict | None = None) -> dict:
         """Make a rate-limited request to the CKAN API."""
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")
@@ -103,11 +103,11 @@ class CKANClient:
     
     async def search_packages(
         self,
-        query: Optional[str] = None,
+        query: str | None = None,
         rows: int = 100,
         start: int = 0,
         sort: str = "metadata_modified desc",
-        fq: Optional[str] = None,
+        fq: str | None = None,
     ) -> dict[str, Any]:
         """
         Search for datasets.
@@ -161,7 +161,7 @@ class CKANClient:
     async def get_packages_batch(
         self, 
         package_ids: list[str],
-        on_progress: Optional[callable] = None,
+        on_progress: Callable[..., Any] | None = None,
     ) -> list[Dataset]:
         """
         Get details for multiple datasets.
@@ -180,7 +180,7 @@ class CKANClient:
             try:
                 dataset = await self.get_package(package_id)
                 datasets.append(dataset)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 # Log error but continue with other datasets
                 print(f"Error fetching {package_id}: {e}")
             
@@ -189,7 +189,7 @@ class CKANClient:
         
         return datasets
     
-    async def datastore_total(self, resource_id: str) -> Optional[int]:
+    async def datastore_total(self, resource_id: str) -> int | None:
         """Return the total row count of a datastore-backed resource.
 
         Calls `/datastore_search?resource_id=<rid>&limit=0&include_total=true`
@@ -275,8 +275,8 @@ class CKANClient:
     async def iter_all_packages(
         self,
         batch_size: int = 100,
-        limit: Optional[int] = None,
-        on_progress: Optional[callable] = None,
+        limit: int | None = None,
+        on_progress: Callable[..., Any] | None = None,
     ):
         """
         Iterate through all datasets with pagination.

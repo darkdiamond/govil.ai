@@ -43,8 +43,8 @@ def test_json_dumps_placeholder_fails():
 def test_var_json_dumps_fails():
     with pytest.raises(SystemExit):
         check.check_unrendered_template(
-            ["    var years = {json.dumps(years)};\n"
-             "    var counts = {json.dumps(counts)};\n"]
+            [("    var years = {json.dumps(years)};\n"
+             "    var counts = {json.dumps(counts)};\n")]
         )
 
 

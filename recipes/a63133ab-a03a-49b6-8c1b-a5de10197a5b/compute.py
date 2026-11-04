@@ -41,7 +41,7 @@ MINUS = "−"
 
 # ---------------------------------------------------------------- helpers
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _signed(v, nd=1):
@@ -128,7 +128,7 @@ def elevation_bins(st):
     high = a.sort_values(["hgt", "name"], ascending=[False, True], kind="stable").iloc[0]
     return {"x": [r["label"] for r in rows], "y": [r["count"] for r in rows], "rows": rows,
             "low": {"name": low["name"], "hgt": int(low["hgt"])},
-            "high": {"name": high["name"], "hgt": int(high["hgt"])}, "n": int(len(a))}
+            "high": {"name": high["name"], "hgt": int(high["hgt"])}, "n": len(a)}
 
 
 # ---------------------------------------------------------------- daily
@@ -168,7 +168,7 @@ def temp_anomalies(d, t_last):
     yr = g.groupby("y").agg(n=("stn", "count"), ax=("ax", "mean"), an=("an", "mean"),
                             ah=("ah", "mean")).sort_index()
     yr = yr[yr["n"] >= MIN_STATIONS]
-    return yr, int(len(base))
+    return yr, len(base)
 
 
 def climatology(d, st, window):
@@ -176,7 +176,7 @@ def climatology(d, st, window):
     w = d[(d["y"] >= y0) & (d["y"] <= y1)]
     full = w.groupby(["stn", "y"])["tx"].count()
     full = full[full >= MIN_DAYS].reset_index().groupby("stn").size()
-    need = max(1, int(round((y1 - y0 + 1) * 0.8)))
+    need = max(1, round((y1 - y0 + 1) * 0.8))
     elig = sorted(full[full >= need].index)
     lat = st.drop_duplicates("stn_num").set_index("stn_num")["lat"]
     names = _station_names(st)
@@ -185,7 +185,7 @@ def climatology(d, st, window):
     cand = cand.dropna(subset=["lat"]).sort_values(["lat", "stn"], kind="stable").reset_index(drop=True)
     if len(cand) < 3:
         return None
-    idx = sorted(set(int(round(i)) for i in np.linspace(0, len(cand) - 1, min(CLIMATE_ROWS, len(cand)))))
+    idx = sorted({round(i) for i in np.linspace(0, len(cand) - 1, min(CLIMATE_ROWS, len(cand)))})
     pick = cand.iloc[idx]
     mm = (w[w["stn"].isin(pick["stn"])].groupby(["stn", "m"])["tx"].mean())
     rows, cells, table = [], [], []
@@ -203,7 +203,7 @@ def climatology(d, st, window):
     vmax = max(c[2] for c in cells)
     return {"rows": rows, "months": MONTHS_HE, "cells": cells, "table": table[::-1],
             "min": float(np.floor(vmin)), "max": float(np.ceil(vmax)),
-            "n_eligible": int(len(cand))}
+            "n_eligible": len(cand)}
 
 
 def records(d, names, col, hottest):
@@ -301,7 +301,7 @@ def rain_gradient(base, st):
     wet = g.sort_values(["norm", "name"], ascending=[False, True], kind="stable").iloc[0]
     dry = g.sort_values(["norm", "name"], kind="stable").iloc[0]
     corr = float(np.corrcoef(g["lat"], g["norm"])[0, 1]) if len(g) >= 10 else None
-    return {"points": pts, "n": int(len(g)),
+    return {"points": pts, "n": len(g),
             "wet": {"name": wet["name"], "mm": float(wet["norm"])},
             "dry": {"name": dry["name"], "mm": float(dry["norm"])}, "corr": corr}
 
@@ -371,7 +371,7 @@ def radiation(r, names):
         for hi, h in enumerate(RAD_HOURS):
             v = hours[h].get(mi, np.nan) if mi in hours.index else np.nan
             if pd.notna(v):
-                cells.append([hi, mi - 1, int(round(float(v)))])
+                cells.append([hi, mi - 1, round(float(v))])
     hour_labels = [f"{int(h[4:]) - 1}-{int(h[4:])}" for h in RAD_HOURS]
     peak = max(cells, key=lambda c: (c[2], -c[1], -c[0])) if cells else None
     return {"window": [y0, y1], "months": MONTHS_HE, "series": series,
@@ -662,8 +662,8 @@ def compute(frames):
                                   f"תחנות, {d_first.year}-{d_last.year}.")
     if ph:
         charts["phenomena"] = ph
-        labels["phen_aria"] = (f"מפת חום: אחוז הימים שבהם דווחה כל תופעת מזג אוויר, לפי חודש, "
-                               f"מתוך ימי הדיווח בתחנות המאוישות.")
+        labels["phen_aria"] = ("מפת חום: אחוז הימים שבהם דווחה כל תופעת מזג אוויר, לפי חודש, "
+                               "מתוך ימי הדיווח בתחנות המאוישות.")
         labels["phen_note"] = ("אחוז הימים עם התופעה מתוך הימים שבהם התחנה דיווחה על התופעה "
                                "(דיווח קיים בעיקר בתחנות מאוישות, שמספרן ירד עם השנים).")
     if len(ridx):

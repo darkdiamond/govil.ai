@@ -487,7 +487,7 @@ def compute(frames):
         cand = [t for t in shift_gap if t[0] * 100 >= GAP_SHIFT_PP]
         if not cand:
             return None
-        gap, m, hi, lo = max(cand, key=lambda t: (t[0], t[1]["code"]))
+        _gap, m, hi, lo = max(cand, key=lambda t: (t[0], t[1]["code"]))
         return (f"ב{m['name']} ({m['ly']}) משמרת ה{lo[0]} חלשה מכולן ({_pct(lo[1][0])}) לעומת "
                 f"משמרת ה{hi[0]} ({_pct(hi[1][0])}).")
 

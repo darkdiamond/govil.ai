@@ -25,7 +25,7 @@ TOP_HEADINGS = 10
 TOP_UNITS_SEC = 4
 TOP_UNITS = 8
 ISR_MIN_LINES = 20
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 # HS sections → chapter ranges (the fixed international Harmonized System
 # layout; chapters 98–99 are the Israeli national annex, section XXII).
@@ -251,12 +251,12 @@ def compute(frames):
         sl = leaves[leaves["section"] == s]
         kids = []
         for c, g in sorted(sl.groupby("ch"), key=lambda kv: kv[0]):
-            kids.append({"name": ch_label(c), "value": int(len(g))})
+            kids.append({"name": ch_label(c), "value": len(g)})
         if kids:
-            tree.append({"name": sec_label(s), "value": int(len(sl)), "children": kids})
+            tree.append({"name": sec_label(s), "value": len(sl), "children": kids})
         nl = len(sl)
         sec_rows.append({
-            "sec": s, "name": sec_label(s), "lines": int(len(sub)),
+            "sec": s, "name": sec_label(s), "lines": len(sub),
             "chapters": int(sub["ch"].nunique()), "leaves": int(nl),
             "decl": {k: int((sl["decl"] == k).sum()) for k in DECL_ORDER},
             "other": int(sl["other"].sum()),
@@ -363,7 +363,7 @@ def compute(frames):
     if lead_series and us_rows:
         cand = [(lead_series["data"][i], r["sec"], i) for i, r in enumerate(us_rows) if r["leaves"] >= ISR_MIN_LINES]
         if cand:
-            low_lead = sorted(cand)[0]
+            low_lead = min(cand)
 
     # ---- catch-all "אחרים" lines by section ---------------------------------
     oth_rows = [r for r in sec_rows if r["leaves"]]
@@ -371,7 +371,7 @@ def compute(frames):
                    "share": [round(r["other_share"], 1) for r in oth_rows],
                    "cnt": [r["other"] for r in oth_rows]}
     oth_big = [r for r in oth_rows if r["leaves"] >= ISR_MIN_LINES]
-    top_oth = sorted(oth_big, key=lambda r: (-r["other_share"], r["sec"]))[0] if oth_big else None
+    top_oth = min(oth_big, key=lambda r: (-r["other_share"], r["sec"])) if oth_big else None
 
     # ---- item end dates ---------------------------------------------------------
     ends = t["code"].map(en_end).fillna("")

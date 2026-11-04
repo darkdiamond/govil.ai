@@ -50,7 +50,7 @@ def _prepare(df):
         "code": df["court_district"].map(_clean),
         "district": df["מחוז"].map(_clean),
     })
-    raw_rows = int(len(d))
+    raw_rows = len(d)
     d = d[(d["name"] != "") & (d["district"] != "")]
     dup_rows = int(d.duplicated().sum())
     d = d.drop_duplicates().sort_values(["district", "name", "code"], kind="stable")

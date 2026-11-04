@@ -271,7 +271,7 @@ def insight_dairy_country(mix_rows, overall_dairy):
     cand = [r for r in mix_rows if r["n"] >= 300]
     if not cand:
         return None
-    best = sorted(cand, key=lambda r: (-r["dairy_share"], r["name"]))[0]
+    best = min(cand, key=lambda r: (-r["dairy_share"], r["name"]))
     if best["dairy_share"] < max(0.25, overall_dairy * 1.5):
         return None
     return (f"{best['name']} בולטת במוצרי חלב: {_pct(best['dairy_share'])} ממוצריה מסומנים חלביים, "
@@ -351,7 +351,7 @@ def compute(frames):
     # strongest body-country tie for the lede
     heat_lede = ""
     if cells:
-        best = sorted(cells, key=lambda c: (-c[2], c[0], c[1]))[0]
+        best = min(cells, key=lambda c: (-c[2], c[0], c[1]))
         heat_lede = (f"החיבור החזק ביותר: {hb[best[1]]} משגיח על {best[2]:.1f}% מהמוצרים שמקורם ב{hc[best[0]]}. "
                      "כל תא מציג את שיעור המוצרים של המדינה שבפיקוח הגוף.")
 
@@ -371,7 +371,7 @@ def compute(frames):
     mk = df[df["maker"] != ""]
     maker_cnt = _counts(mk["maker"])
     ctry_by_maker = mk.groupby("maker")["country"].agg(
-        lambda s: sorted(s.value_counts().items(), key=lambda kv: (-kv[1], kv[0]))[0][0])
+        lambda s: min(s.value_counts().items(), key=lambda kv: (-kv[1], kv[0]))[0])
     top_mk = maker_cnt.head(TOP_MAKER)
     maker_chart = {"y": [_maker_short(k) for k in top_mk["k"]], "full": list(top_mk["k"]),
                    "n": [int(v) for v in top_mk["n"]],
@@ -489,7 +489,7 @@ def compute(frames):
 
     # products per certificate
     per_cert = df[df["cert"] != ""].groupby("cert").size()
-    n_certs = int(len(per_cert))
+    n_certs = len(per_cert)
     cbins = [(1, 1, "מוצר אחד"), (2, 2, "2"), (3, 3, "3"), (4, 5, "4 עד 5"), (6, 9, "6 עד 9"), (10, 10 ** 9, "10 ומעלה")]
     cert_chart = {"x": [], "n": []}
     for lo, hi, lab in cbins:

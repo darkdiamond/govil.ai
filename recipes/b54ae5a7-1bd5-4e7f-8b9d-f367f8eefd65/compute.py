@@ -116,7 +116,7 @@ def _domain_body(email, website):
 
 def _valid_url(u):
     u = _clean(u)
-    return u if re.match(r"^https://[^\s\"'<>]+$", u, re.I) else ""
+    return u if re.match(r"^https://[^\s\"'<>]+$", u, re.IGNORECASE) else ""
 
 
 # Public webmail: a clinic address there is someone's personal mailbox; kept off the page.
@@ -280,7 +280,7 @@ def insight_address_detail(df):
 
 def compute(frames):
     df = _prepare(frames["clinics"])
-    n = int(len(df))
+    n = len(df)
 
     city_counts = (df.groupby("city").size().reset_index(name="n")
                    .sort_values(["n", "city"], ascending=[False, True], kind="stable")
@@ -312,7 +312,6 @@ def compute(frames):
     has_two = int(((df["phone"] != "") & (df["phone2"] != "")).sum())
     none_any = int(((df["phone"] == "") & (df["phone2"] == "") & (df["email"] == "")
                     & (df["website"] == "")).sum())
-    no_phone = n - has_phone
 
     rules = [
         ("spread", insight_spread(df, city_counts)),
@@ -328,7 +327,7 @@ def compute(frames):
     # ---- KPIs
     kpis = {
         "total": {"value": n, "display": f"{n:,}", "tone": "brand"},
-        "cities": {"value": int(len(city_counts)), "display": f"{len(city_counts):,}",
+        "cities": {"value": len(city_counts), "display": f"{len(city_counts):,}",
                    "tone": "brand"},
         "kids": {"value": aud_counts["kids"], "display": f"{aud_counts['kids']:,}",
                  "tone": "info" if aud_counts["kids"] else "brand"},
@@ -388,7 +387,6 @@ def compute(frames):
         })
 
     # ---- summary (meta description)
-    cities_list = list(city_counts.index)
     summary = (f"איתור מרכז טראומה נפשית לפי עיר, עם כתובת וטלפון: {_n_clinics(n)} "
                f"ב-{len(city_counts):,} יישובים, מרשימת משרד הבריאות.")
     if len(summary) > SUMMARY_MAX:

@@ -21,7 +21,7 @@ from collections import Counter
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 TOP_CITIES = 15
 MIX_CITIES = 10
@@ -76,7 +76,7 @@ def _sorted_counts(s):
 
 def _legal(name, tz):
     for label, pat in LEGAL:
-        if re.search(pat, name, flags=re.I):
+        if re.search(pat, name, flags=re.IGNORECASE):
             return label
     return LEGAL_PREFIX.get(tz[:2], LEGAL_NONE)
 
@@ -344,8 +344,8 @@ def compute(frames):
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "holders": {"value": holders_n, "display": n(holders_n), "tone": "brand"},
-        "cities": {"value": int(len(cities)), "display": n(len(cities)), "tone": "brand"},
-        "multi": {"value": int(len(multi)), "display": n(len(multi)), "tone": "brand"},
+        "cities": {"value": len(cities), "display": n(len(cities)), "tone": "brand"},
+        "multi": {"value": len(multi), "display": n(len(multi)), "tone": "brand"},
     }
 
     # ---------- charts ----------

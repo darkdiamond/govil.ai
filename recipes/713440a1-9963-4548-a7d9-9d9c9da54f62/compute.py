@@ -32,7 +32,7 @@ COHORT_MIN = 500
 SENIOR = 30
 DECADE_FROM = 1950
 SENIORITY = [(0, 4), (5, 9), (10, 14), (15, 19), (20, 24), (25, 29), (30, 39), (40, None)]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 MONTHS_SHORT = ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי",
@@ -289,7 +289,6 @@ def compute(frames):
     unknown_city = total - len(known)
 
     surnames = _sorted_counts(df.loc[df["last"] != "", "last"])
-    firsts = _sorted_counts(df.loc[df["first"] != "", "first"])
     recent_first = df[(df["first"] != "") & (df["year"] >= ref_year - 9)]
     firsts_recent = _sorted_counts(recent_first["first"])
 

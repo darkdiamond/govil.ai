@@ -154,7 +154,7 @@ def insight_block(blocks, total_valid):
 
 def compute(frames):
     df = _prepare(frames["investigators"])
-    total = int(len(df))
+    total = len(df)
 
     valid_lic = df.loc[df["lic"] != "", "lic"].drop_duplicates()
     total_valid = int(valid_lic.size)

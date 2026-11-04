@@ -246,7 +246,7 @@ def insight_newest(first_cert, asof):
     names = list(new.index[-3:])[::-1]
     head = (f"{n(len(new))} תחומי התמחות קיבלו את תעודתם הראשונה במאגר מאז {asof.year - NEW_SPEC_YEARS + 1}"
             if len(new) > 1 else f"תחום התמחות אחד קיבל את תעודתו הראשונה במאגר מאז {asof.year - NEW_SPEC_YEARS + 1}")
-    return head + f"; האחרונים שבהם: " + "; ".join(f"{nm} ({new[nm].year})" for nm in names) + "."
+    return head + "; האחרונים שבהם: " + "; ".join(f"{nm} ({new[nm].year})" for nm in names) + "."
 
 
 def insight_quality(n_neg, n_certs, bad):
@@ -317,7 +317,7 @@ def compute(frames):
     doc_spec = _ranked(sp.groupby("spec")["key"].nunique())
     top_specs = doc_spec.head(TOP_SPECS)
     charts["specs"] = {"names": list(top_specs.index)[::-1], "values": [int(v) for v in top_specs.values][::-1]}
-    n_fields = int(len(doc_spec))
+    n_fields = len(doc_spec)
 
     # ---- number of specialties per doctor
     cnt = per_doc.reindex(docs["key"]).fillna(0).astype(int)

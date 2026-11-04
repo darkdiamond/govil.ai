@@ -44,7 +44,7 @@ STATUS = [("בהליך", "בהליך"), ("בנוי", "בנוי"), ("פנוי", "
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -96,7 +96,7 @@ def addr_kind(street, house):
     if street == "":
         return ADDR_ORDER[2]
     h = pd.to_numeric(house, errors="coerce")
-    if h == h and h > 0:
+    if pd.notna(h) and h > 0:
         return ADDR_ORDER[0]
     return ADDR_ORDER[1]
 
@@ -332,7 +332,7 @@ def compute(frames):
         "sites": {"value": n, "display": fmt(n), "tone": "brand", "label": "אתרים במאגר (בתי כנסת ומבני דת)"},
         "neigh": {"value": n_neigh, "display": fmt(n_neigh), "tone": "brand", "label": "שכונות"},
         "shelter": {"value": n_shelter, "display": fmt(n_shelter), "tone": "info", "label": "בתי כנסת במקלט ציבורי"},
-        "nn": {"value": int(round(med_nn)), "display": fmt(med_nn), "tone": "ok" if has_nn and med_nn <= NEAR_M else "brand",
+        "nn": {"value": round(med_nn), "display": fmt(med_nn), "tone": "ok" if has_nn and med_nn <= NEAR_M else "brand",
                "label": "מרחק חציוני לבית הכנסת הקרוב (מטרים)"},
     }
 

@@ -26,7 +26,7 @@ import math
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -215,7 +215,7 @@ _TRANS = str.maketrans("أإآٱةى", "ااااهي")
 
 # ---------------------------------------------------------------- helpers
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -717,7 +717,7 @@ def compute(frames):
                     f"הודעות ב{period_word}; השיא — {per_he(peak_p)} ({n(peak_v)}), השפל — "
                     f"{per_he(low_p)} ({n(low_v)}), ללא ה{period_word} הראשון והאחרון שאינם מלאים. "
                     f"ה{period_word} האחרון כולל פרסומים עד {d_he(last)}.")
-    years_note = (f"הודעות לפי בית דין ושנת פרסום."
+    years_note = ("הודעות לפי בית דין ושנת פרסום."
                   + (f" {last_year} חלקית — עד {d_he(last)}." if year_partial else "")
                   + (f" {years[0]} — מ־{d_he(first)} בלבד." if first_partial and len(years) > 1 else ""))
     heat_note = (f"הודעות לפי חודש ושנת פרסום, {MONTHS_HE[first.month - 1]} {first.year} עד "

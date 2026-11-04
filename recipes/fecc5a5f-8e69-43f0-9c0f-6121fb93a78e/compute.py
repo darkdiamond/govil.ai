@@ -48,7 +48,7 @@ BAND_WIDTHS = [250, 500, 1000, 2000, 5000, 10000]
 MAX_BANDS = 12
 FAM_PAL = [0, 1, 2, 6, 5, 9, 3, 7, 4, 8]   # GOVIL_PALETTE indices, alternating light/dark
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 MONTHS_SHORT = ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי",
@@ -136,7 +136,7 @@ def median_int(s):
     if not len(v):
         return None
     k = len(v)
-    return int(v.iloc[(k - 1) // 2]) if k % 2 else int(round((v.iloc[k // 2 - 1] + v.iloc[k // 2]) / 2))
+    return int(v.iloc[(k - 1) // 2]) if k % 2 else round((v.iloc[k // 2 - 1] + v.iloc[k // 2]) / 2)
 
 
 # ── insights ──────────────────────────────────────────────────────────────
@@ -356,7 +356,7 @@ def compute(frames):
             lab = f"{lo} ומעלה"
         else:
             lab = f"{lo} עד {hi}"
-        bucket_rows.append({"name": lab, "cities": int(len(sel)), "lics": int(sel.sum())})
+        bucket_rows.append({"name": lab, "cities": len(sel), "lics": int(sel.sum())})
     spread_chart = {"names": [b["name"] for b in bucket_rows],
                     "cities": [b["cities"] for b in bucket_rows],
                     "lics": [b["lics"] for b in bucket_rows]}
@@ -379,8 +379,6 @@ def compute(frames):
 
     # licence-holders
     n_holders = int(df["ln"].dropna().nunique()) + int(df["ln"].isna().sum())
-    multi = df[df["ln"].notna()].groupby("ln")["stype"].nunique()
-    n_multi = int((multi >= 2).sum())
 
     # ── KPIs
     peak_share = peak_year_n / dated if dated else 0
@@ -439,7 +437,7 @@ def compute(frames):
         "year_aria": (f"תרשים עמודות מוערמות של מספר הרישיונות לפי שנת פקיעה, {y0}–{y1}" if dated
                       else "תרשים עמודות של שנת פקיעת הרישיון"),
         "year_caption": "רישיונות לפי שנת פקיעה ומשפחת רישיון",
-        "heat_note": (f"מספר הרישיונות שפוקעים בכל חודש; חודשים כהים הם גלי חידוש."
+        "heat_note": ("מספר הרישיונות שפוקעים בכל חודש; חודשים כהים הם גלי חידוש."
                       + (f" החודש העמוס: {month_he(ranked(months).index[0])} "
                          f"({n(ranked(months).iloc[0])} רישיונות)." if dated else "")),
         "heat_aria": f"מפת חום של פקיעת רישיונות לפי חודש ושנה, {n(len(heat['y']))} שנים",

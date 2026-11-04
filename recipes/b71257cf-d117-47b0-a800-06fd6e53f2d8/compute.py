@@ -106,7 +106,7 @@ def _prepare(df):
 def _orders(df):
     dist = (df.groupby("district")["dcode"].min().reset_index()
             .sort_values(["dcode", "district"], kind="stable"))
-    types = (df.groupby("tcode")["tname"].agg(lambda s: sorted(s)[0]).reset_index()
+    types = (df.groupby("tcode")["tname"].agg(lambda s: min(s)).reset_index()
              .sort_values("tcode", kind="stable"))
     types["short"] = [_short_type(c, n) for c, n in zip(types["tcode"], types["tname"])]
     return dist, types
@@ -241,15 +241,15 @@ def compute(frames):
 
     by_dist_local = (local.groupby("district").size().sort_index()
                      .sort_values(ascending=False, kind="stable"))
-    total_local = int(len(local))
+    total_local = len(local)
 
     # towns (local courts only: national courts sit in Jerusalem but serve all)
     lt = local[local["town"] != ""]
     town_types = {}
     town_dist = {}
     for t, grp in lt.groupby("town"):
-        town_types[t] = set(int(c) for c in grp["tcode"])
-        town_dist[t] = sorted(grp["district"].unique().tolist())[0]
+        town_types[t] = {int(c) for c in grp["tcode"]}
+        town_dist[t] = min(grp["district"].unique().tolist())
     town_rank = pd.DataFrame({
         "town": list(town_types.keys()),
         "types": [len(s) for s in town_types.values()],
@@ -368,9 +368,9 @@ def compute(frames):
                              else f"בתי משפט במחוז {top_d}, מהמחוזות הגדולים ברשימה"),
         "dt_lede": (f"מספר בתי המשפט בכל מחוז, בחלוקה לפי סוג. {dist_line()}. "
                     f"\"ארצי\" כולל את בית המשפט העליון ואת בית הדין הארצי לעבודה."),
-        "dt_aria": (f"גרף עמודות מוערמות: בתי משפט לפי מחוז וסוג. " +
+        "dt_aria": ("גרף עמודות מוערמות: בתי משפט לפי מחוז וסוג. " +
                     (f"המחוז עם הכי הרבה בתי משפט: {top_d} ({_int(top_dv)})." if top_unique else "")),
-        "types_lede": (f"לכל סוג בית משפט: כמה בתי משפט יש ברשימה, ובכמה יישובים שונים הם פועלים. " +
+        "types_lede": ("לכל סוג בית משפט: כמה בתי משפט יש ברשימה, ובכמה יישובים שונים הם פועלים. " +
                        (f"הסוג הנפוץ ביותר: {t_full[big_type_i]} "
                         f"({_int(type_courts[big_type_i])})." if big_unique else "")),
         "types_aria": (f"גרף עמודות: מספר בתי המשפט ומספר היישובים לכל אחד מ-{_int(len(t_codes))} סוגי בתי המשפט. " +

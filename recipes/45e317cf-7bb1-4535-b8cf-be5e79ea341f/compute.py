@@ -27,7 +27,7 @@ TOP_MODELS = 15
 TOP_EV = 10
 TOP_BODY = 8
 TOP_COUNTRIES = 8
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 PT_ORDER = ["בנזין", "דיזל", "היברידי", "פלאג-אין", "חשמלי", "אחר / לא ידוע"]
@@ -91,7 +91,7 @@ ZIHUM_BINS = [(1, 3, "קבוצות 1 עד 3 (הנקיות)"), (4, 9, "קבוצו
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -380,7 +380,6 @@ def compute(frames):
     pt_tot = df.groupby("pt")["act"].sum()
     elec_fleet = float(sum(pt_tot.get(p, 0) for p in ELECTRIFIED) / total * 100) if total else 0.0
     ev_fleet = float(pt_tot.get("חשמלי", 0) / total * 100) if total else 0.0
-    ev_ref = mix.get(ref, {}).get("חשמלי", 0.0)
 
     # --- country of manufacture by model year
     cy = df.groupby(["yr", "country"])["act"].sum().unstack(fill_value=0)
@@ -605,7 +604,7 @@ def compute(frames):
         elec_tone = "info"
     else:
         elec_tone = "ok" if elec_ref > elec_fleet else "warn"
-    n_combos = int(len(df))
+    n_combos = len(df)
     kpis = {
         "active": {"value": total, "tone": "brand",
                    "display": f"{total / 1e6:.2f}" if total >= 1_000_000 else n(total)},
@@ -663,8 +662,8 @@ def compute(frames):
                     + (f" המוביל בשנת ייצור {ref}: {ev_ref_top.index[0]}." if ev_ref_top is not None else "")),
         "ev_aria": f"תרשים עמודות אופקי: {TOP_EV} התוצרים המובילים ברכב חשמלי מלא פעיל.",
         "ev_caption": f"רכב חשמלי מלא פעיל לפי תוצר ({TOP_EV} המובילים ואחר).",
-        "survival_note": (f"שיעור כלי הרכב מכל שנת ייצור שעדיין פעילים, מתוך כל מי שנרשם (פעילים ושאינם "
-                          f"פעילים)." + (f" משנת ייצור {surv_old}: {pct(surv[surv_old])}." if surv_old in surv else "")),
+        "survival_note": ("שיעור כלי הרכב מכל שנת ייצור שעדיין פעילים, מתוך כל מי שנרשם (פעילים ושאינם "
+                          "פעילים)." + (f" משנת ייצור {surv_old}: {pct(surv[surv_old])}." if surv_old in surv else "")),
         "survival_aria": f"גרף משולב: שיעור כלי הרכב הפעילים וכלי הרכב שירדו מהכביש לפי שנת ייצור, {all_years[0]} עד {y_max}.",
         "heat_note": (f"שיעור כלי הרכב הפעילים מכל שנת ייצור שמצוידים בכל מערכת, משנת {heat_years[0]} עד {y_max}. "
                       f"כהה יותר = נפוץ יותר."),
@@ -672,8 +671,8 @@ def compute(frames):
         "local_note": ("מבין כלי הרכב שבהם מותקנת המערכת — כמה הותקנו בישראל (\"מקומי\") ולא בידי היצרן. "
                        f"שנים עם פחות מ-{n(MIN_YEAR_N)} כלי רכב מצוידים אינן מוצגות."),
         "local_aria": "גרף קווים: שיעור ההתקנה המקומית של מערכות בטיחות לפי שנת ייצור.",
-        "safety_note": (f"רמת האבזור הבטיחותי (1 עד 8) של כלי הרכב הפעילים שיש להם דירוג, בשנים שבהן "
-                        f"לפחות מחציתם מדורגים."
+        "safety_note": ("רמת האבזור הבטיחותי (1 עד 8) של כלי הרכב הפעילים שיש להם דירוג, בשנים שבהן "
+                        "לפחות מחציתם מדורגים."
                         + (f" רמה 7 ומעלה בשנת ייצור {ref}: {pct(hi_ref)}, לעומת {pct(hi_first)} ב-{lvl_first}."
                            if hi_ref is not None and hi_first is not None and lvl_first != ref else "")),
         "safety_aria": "גרף עמודות מוערמות: התפלגות רמת האבזור הבטיחותי לפי שנת ייצור.",

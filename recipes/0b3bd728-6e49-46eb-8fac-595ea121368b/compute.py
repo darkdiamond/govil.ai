@@ -66,7 +66,7 @@ FAMILY_COLOR = {"מסחר": 0, "תעשייה ותעסוקה": 1, "מוסדות �
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -182,7 +182,7 @@ def _thin(ring, budget):
     n = len(json.dumps(ring, separators=(",", ":")))
     if n <= budget or len(ring) <= 8:
         return ring
-    k = int(math.ceil(n / float(budget)))
+    k = math.ceil(n / float(budget))
     out = ring[:-1:k] + [ring[-1]]
     return out if len(out) >= 4 else ring
 

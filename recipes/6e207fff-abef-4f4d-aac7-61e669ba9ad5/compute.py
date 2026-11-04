@@ -12,7 +12,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 SECTIONS = ["A", "B", "C", "D", "E", "F", "G", "H", "Y"]
@@ -106,7 +106,7 @@ CODE_RE = re.compile(r"^([A-HY])(\d\d)([A-Z])\s*(\d+)/(\d+)$")
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -282,7 +282,6 @@ def compute(frames):
     nsec = df.groupby("app")["sec"].nunique()
     apps = per_app.index
     n_apps = len(apps)
-    n_codes = len(df)
 
     # main classification: first (alphabetical) main code per application
     mains = df[df["main"]].sort_values(["app", "cpc"])

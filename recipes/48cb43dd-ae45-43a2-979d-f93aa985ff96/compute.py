@@ -4,7 +4,6 @@ billions. Everything here is computed from the frame."""
 import re
 
 import pandas as pd
-
 from govlib import fmt, frame
 
 MAX_YEARS = 8          # heatmap / pace / budget-year charts keep the latest N years
@@ -111,7 +110,6 @@ def compute(frames):
 
     # ---------- programs ----------
     prog_sum = paid.groupby("prog")["paid"].sum().sort_index().sort_values(ascending=False, kind="stable")
-    prog_cnt = paid.groupby("prog")["paid"].size()
     prog_reqs = paid.groupby("prog")["req"].nunique()
     prog_code = (paid.groupby(["prog", "code"]).size().reset_index(name="n")
                  .sort_values(["prog", "n", "code"], ascending=[True, False, True])
@@ -375,7 +373,7 @@ def compute(frames):
     # lag
     if lag_stats and lag_stats["week"] >= 0.5:
         add("lag", f"{fmt.pct(lag_stats['week'])} מהתשלומים הועברו בתוך שבוע ממועד הזכאות "
-                   f"(חציון: {_plural(int(round(lag_stats['median'])), 'יום אחד', 'ימים') if round(lag_stats['median']) else 'באותו יום'}), "
+                   f"(חציון: {_plural(round(lag_stats['median']), 'יום אחד', 'ימים') if round(lag_stats['median']) else 'באותו יום'}), "
                    f"ו-{fmt.pct(lag_stats['over90'])} המתינו יותר מ-90 יום.")
 
     # pending
@@ -445,7 +443,7 @@ def compute(frames):
                        f"ו-{fmt.pct(big1_sum)} מהכסף."),
         "sizes_aria": "גרף עמודות: התפלגות התשלומים לפי גודל, אחוז ממספר התשלומים לעומת אחוז מהסכום.",
         "lag_lede": (f"הזמן מתאריך הזכאות ועד ההעברה בפועל. חציון: "
-                     f"{_plural(int(round(lag_stats['median'])), 'יום אחד', 'ימים') if lag_stats and round(lag_stats['median']) else 'באותו יום'}."
+                     f"{_plural(round(lag_stats['median']), 'יום אחד', 'ימים') if lag_stats and round(lag_stats['median']) else 'באותו יום'}."
                      if lag_stats else ""),
         "lag_aria": "גרף עמודות: התפלגות הזמן ממועד הזכאות ועד התשלום, אחוז מהתשלומים ואחוז מהסכום." if lag_stats else "",
     }

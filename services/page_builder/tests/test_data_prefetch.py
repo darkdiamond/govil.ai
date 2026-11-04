@@ -13,6 +13,7 @@ import io
 import json
 import time
 import urllib.error as urllib_error
+from typing import Self
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -29,7 +30,7 @@ class _Resp:
     def __init__(self, body: bytes):
         self._body = body
 
-    def __enter__(self) -> "_Resp":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_a) -> bool:
@@ -46,7 +47,7 @@ def _paged_urlopen(monkeypatch, records: list[dict], page_size_expected: int):
     """Serve `records` through a fake datastore_search honoring offset/limit."""
     calls = []
 
-    def fake(req, timeout=None):  # noqa: ANN001
+    def fake(req, timeout=None):
         q = parse_qs(urlparse(req.full_url).query)
         offset = int(q.get("offset", ["0"])[0])
         limit = int(q["limit"][0])
@@ -124,7 +125,7 @@ def test_pages_after_the_first_are_sized_by_row_width(monkeypatch, tmp_path):
     records = [{"_id": i + 1, "שם": "x" * 100, "ערך": i} for i in range(10)]
     limits = []
 
-    def fake(req, timeout=None):  # noqa: ANN001
+    def fake(req, timeout=None):
         q = parse_qs(urlparse(req.full_url).query)
         offset, limit = int(q.get("offset", ["0"])[0]), int(q["limit"][0])
         limits.append(limit)
@@ -150,7 +151,7 @@ def test_an_empty_page_before_total_is_a_failed_export(monkeypatch, tmp_path):
 
 
 def test_http_error_returns_none_and_removes_file(monkeypatch, tmp_path):
-    def fake(req, timeout=None):  # noqa: ANN001
+    def fake(req, timeout=None):
         raise urllib_error.HTTPError("http://x", 500, "err", None, io.BytesIO(b""))
 
     monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)

@@ -147,7 +147,7 @@ def compute(frames):
     for ci, c in enumerate(cat_names):
         sub = df[df["category"] == c]
         for ki, k in enumerate(comp_top):
-            cells.append([ki, ci, round(float((sub["component"] == k).mean()) * 100, 1), int(len(sub))])
+            cells.append([ki, ci, round(float((sub["component"] == k).mean()) * 100, 1), len(sub)])
     heat = {"components": comp_top, "categories": cat_names, "cells": cells}
 
     # Insights ------------------------------------------------------------

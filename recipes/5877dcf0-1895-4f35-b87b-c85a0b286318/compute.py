@@ -166,9 +166,11 @@ def insight_pounds(wv):
 def insight_weight_share(rows):
     best = None
     for r in rows:
-        if r["n_share"] > 0 and r["w_share"] / r["n_share"] >= WEIGHT_RATIO:
-            if best is None or r["w_share"] / r["n_share"] > best["w_share"] / best["n_share"]:
-                best = r
+        if r["n_share"] <= 0:
+            continue
+        ratio = r["w_share"] / r["n_share"]
+        if ratio >= WEIGHT_RATIO and (best is None or ratio > best["w_share"] / best["n_share"]):
+            best = r
     if best is None:
         return None
     return (f"כלי קטגוריה {best['cat']} הם {_pct(best['n_share'])} מהכלים אך {_pct(best['w_share'])} "

@@ -32,9 +32,10 @@ import random
 import re
 import sys
 from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional, Protocol, Sequence
+from typing import Protocol
 
 TOP_K = 5
 W_TEXT = 1.0
@@ -50,8 +51,8 @@ MAX_DF_RATIO = 0.5
 class _Entry(Protocol):
     id: str
     title: str
-    summary_he: Optional[str]
-    organization_slug: Optional[str]
+    summary_he: str | None
+    organization_slug: str | None
     tags: list[str]
     source_status: str
 
@@ -81,7 +82,7 @@ def _features(text: str) -> Counter[str]:
 @dataclass
 class _Doc:
     id: str
-    ministry: Optional[str]
+    ministry: str | None
     tags: frozenset[str]
     vec: dict[str, float]
     candidate: bool
@@ -186,9 +187,9 @@ def compute_related(entries: Sequence[_Entry], k: int = TOP_K) -> dict[str, list
 class _CliEntry:
     id: str
     title: str
-    summary_he: Optional[str]
-    organization_slug: Optional[str]
-    organization: Optional[str]
+    summary_he: str | None
+    organization_slug: str | None
+    organization: str | None
     tags: list[str]
     source_status: str
     live_related: list[str]
@@ -254,7 +255,7 @@ def _cmd_sample(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m services.page_builder.related")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("explain")

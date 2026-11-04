@@ -18,6 +18,7 @@ the same 27 rows without the outlines and are not read.
 Order-independent: dedup on a normalised key, then a total sort; ties broken
 by name and coordinates.
 """
+import itertools
 import json
 import math
 
@@ -36,7 +37,7 @@ SPAN_POINTS = 400      # vertices sampled per park for the end-to-end span
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -130,7 +131,7 @@ def _measure(polys):
             if q[0] != q[-1]:
                 q.append(q[0])
             a = sx = sy = 0.0
-            for (x1, y1), (x2, y2) in zip(q, q[1:]):
+            for (x1, y1), (x2, y2) in itertools.pairwise(q):
                 cr = x1 * y2 - x2 * y1
                 a += cr
                 sx += (x1 + x2) * cr
@@ -147,7 +148,7 @@ def _measure(polys):
     else:
         cx = sum(xy(pt)[0] for pt in pts) / len(pts)
         cy = sum(xy(pt)[1] for pt in pts) / len(pts)
-    q = sorted(set(xy(pt) for pt in pts))
+    q = sorted({xy(pt) for pt in pts})
     if len(q) > SPAN_POINTS:
         step = len(q) / SPAN_POINTS
         q = [q[int(i * step)] for i in range(SPAN_POINTS)]
@@ -155,8 +156,7 @@ def _measure(polys):
     for i in range(len(q)):
         for j in range(i + 1, len(q)):
             d = math.hypot(q[i][0] - q[j][0], q[i][1] - q[j][1])
-            if d > span:
-                span = d
+            span = max(span, d)
     return (max(area, 0.0), per, lat0 + cy / ky, lon0 + cx / kx, span)
 
 
@@ -252,8 +252,8 @@ def compute(frames):
     charts, tables = {}, {}
 
     top = by_area.head(RANK_CAP)
-    charts["area"] = {"names": top["name"].tolist(), "values": [int(round(v)) for v in top["area"]],
-                      "median": int(round(med_area))}
+    charts["area"] = {"names": top["name"].tolist(), "values": [round(v) for v in top["area"]],
+                      "median": round(med_area)}
     tables["area"] = {"headers": ["גינה", "שטח (מ״ר)", "שיעור מהשטח הכולל"],
                       "rows": [[a, fmt(b), pct(b / total_area)] for a, b in zip(top["name"], top["area"])]}
     rank_more = max(0, n_sz - RANK_CAP)
@@ -324,7 +324,7 @@ def compute(frames):
     scnt = [int((geo["sec"] == i).sum()) for i in range(len(SECTORS))]
     ssum = [float(geo.loc[geo["sec"] == i, "area"].sum()) for i in range(len(SECTORS))]
     geo_area = float(geo["area"].sum())
-    charts["sectors"] = {"names": SECTORS, "counts": scnt, "areas": [int(round(v)) for v in ssum]}
+    charts["sectors"] = {"names": SECTORS, "counts": scnt, "areas": [round(v) for v in ssum]}
     tables["sectors"] = {"headers": ["כיוון מהמרכז", "גינות", "שטח (מ״ר)"],
                          "rows": [[s, fmt(c), fmt(a)] for s, c, a in zip(SECTORS, scnt, ssum)]}
 
@@ -332,7 +332,7 @@ def compute(frames):
     dl = band_labels(DIST_EDGES, "מ׳")
     dcnt = [int((geo["db"] == i).sum()) for i in range(len(DIST_EDGES))]
     dsum = [float(geo.loc[geo["db"] == i, "area"].sum()) for i in range(len(DIST_EDGES))]
-    charts["dist"] = {"names": dl, "counts": dcnt, "areas": [int(round(v)) for v in dsum]}
+    charts["dist"] = {"names": dl, "counts": dcnt, "areas": [round(v) for v in dsum]}
     tables["dist"] = {"headers": ["מרחק מהמרכז", "גינות", "שטח (מ״ר)"],
                       "rows": [[l, fmt(c), fmt(a)] for l, c, a in zip(dl, dcnt, dsum)]}
     med_d = float(geo["d"].median()) if n_geo else 0.0
@@ -340,7 +340,7 @@ def compute(frames):
 
     nn_sorted = geo.sort_values(["nn", "name", "kla", "klo"], ascending=[False, True, True, True], kind="mergesort") if has_nn else geo
     ntop = nn_sorted.head(NN_TOP)
-    charts["nn"] = {"names": ntop["name"].tolist(), "values": [int(round(v)) for v in ntop["nn"]] if has_nn else []}
+    charts["nn"] = {"names": ntop["name"].tolist(), "values": [round(v) for v in ntop["nn"]] if has_nn else []}
     tables["nn"] = {"headers": ["גינה", "הגינה הקרובה", "מרחק (מ׳)"],
                     "rows": [[a, b, fmt(c)] for a, b, c in zip(ntop["name"], ntop["nn_name"], ntop["nn"])] if has_nn else []}
     nn_more = max(0, n_geo - NN_TOP)
@@ -472,11 +472,11 @@ def compute(frames):
     # ---------- kpis ----------
     kpis = {
         "parks": {"value": n_parks, "display": fmt(n_parks), "tone": "brand", "label": "גינות כלבים בעיר"},
-        "area": {"value": int(round(total_area)), "display": fmt(total_area), "tone": "brand",
+        "area": {"value": round(total_area), "display": fmt(total_area), "tone": "brand",
                  "label": "שטח כולל (מ״ר)"},
-        "median": {"value": int(round(med_area)), "display": fmt(med_area), "tone": "info",
+        "median": {"value": round(med_area), "display": fmt(med_area), "tone": "info",
                    "label": "שטח חציוני לגינה (מ״ר)"},
-        "nn": {"value": int(round(med_nn)), "display": fmt(med_nn), "tone": "info",
+        "nn": {"value": round(med_nn), "display": fmt(med_nn), "tone": "info",
                "label": "מרחק חציוני לגינה הקרובה (מטרים)"},
     }
 

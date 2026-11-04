@@ -108,7 +108,7 @@ def _runs(df):
     for pre, g in p.groupby("prefix", sort=True):
         present = int(g["num"].nunique())
         span = int(g["num"].max())
-        rows.append({"prefix": pre, "count": int(len(g)), "present": present,
+        rows.append({"prefix": pre, "count": len(g), "present": present,
                      "span": span, "missing": max(0, span - present)})
     return rows
 
@@ -141,7 +141,7 @@ def insight_gaps(runs):
     tot_miss = sum(r["missing"] for r in runs)
     if not tot_span or tot_miss / tot_span < GAP_MIN_SHARE or not miss:
         return None
-    worst = sorted(miss, key=lambda r: (-r["missing"], r["prefix"]))[0]
+    worst = min(miss, key=lambda r: (-r["missing"], r["prefix"]))
     return (f"ברצפי הקודים חסרים {_int(tot_miss)} מספרים מתוך {_int(tot_span)} "
             f"({_pct(tot_miss / tot_span, 1)}); הפער הגדול ביותר בקידומת {worst['prefix']}, "
             f"שבה הקוד הגבוה הוא {_int(worst['span'])} ורשומים {_int(worst['present'])} מקלטים. "
@@ -237,8 +237,8 @@ def compute(frames):
             math.radians((df["latf"].min() + df["latf"].max()) / 2))
         gy = np.radians(g["latf"].to_numpy()) * R_KM
         d = np.hypot(gx - np.median(gx), gy - np.median(gy)) * 1000
-        spread.append({"prefix": pre, "count": int(len(g)),
-                       "radius_m": int(round(float(np.median(d))))})
+        spread.append({"prefix": pre, "count": len(g),
+                       "radius_m": round(float(np.median(d)))})
     spread = sorted(spread, key=lambda r: (-r["count"], r["prefix"]))[:RUN_ROWS]
     spread_chart = {"names": [r["prefix"] for r in spread],
                     "values": [r["radius_m"] for r in spread]}
@@ -290,7 +290,7 @@ def compute(frames):
                  f"מתחלקים בין הקידומות, כמה צפופים הם ואיפה בעיר הם נמצאים.{bad_note}"),
         "map_note": (f"{_int(total)} המקלטים על המפה. לחצו על סמן כדי לראות את קוד המקלט; "
                      f"לחצו על אשכול כדי להתקרב."),
-        "prefix_note": (f"מספר המקלטים בכל קידומת של קוד המקלט"
+        "prefix_note": ("מספר המקלטים בכל קידומת של קוד המקלט"
                         + (f"; {_int(TOP_PREFIXES)} הגדולות, והשאר מקובצות." if rest else ".")),
         "prefix_aria": f"תרשים עמודות אופקי: מספר המקלטים לפי קידומת קוד, {len(pnames)} קבוצות.",
         "prefix_caption": "מספר המקלטים בכל קידומת קוד.",

@@ -13,9 +13,10 @@ student figure covers those two frameworks.
 The XLSX export leaves CSV quoting in some values ('"מ""מ"', '"חמ""ד'):
 `_unquote` strips it and turns the doubled quote into a gershayim.
 """
+import itertools
+
 import numpy as np
 import pandas as pd
-
 from govlib import fmt
 from govlib.frame import ranked, top_other
 
@@ -287,7 +288,7 @@ def compute(frames):
         q = np.percentile(v, [5, 25, 50, 75, 95])
         size["names"].append(c)
         size["box"].append([round(float(x), 1) for x in q])
-        size["n"].append(int(len(v)))
+        size["n"].append(len(v))
         size_rows.append([c, fmt.int_he(len(v)), fmt.int_he(q[1]), fmt.int_he(q[2]), fmt.int_he(q[3])])
     school_zero = int(len(RS) - len(RSn))
 
@@ -333,7 +334,7 @@ def compute(frames):
     for col, lab in PROGRAMS:
         v = RS[col].dropna()
         if len(v):
-            prog.append([lab, int((v == 1).sum()), int(len(v))])
+            prog.append([lab, int((v == 1).sum()), len(v)])
     prog.sort(key=lambda p: (-p[1], p[0]))
     programs = {"names": [p[0] for p in prog],
                 "share": [round(p[1] / p[2] * 100, 1) for p in prog],
@@ -375,7 +376,7 @@ def compute(frames):
     sets = {y: set(d.loc[d["year"] == y, "code"]) for y in years}
     churn = {"x": [], "new": [], "gone": [], "pairs": []}
     churn_rows = []
-    for a, b in zip(years, years[1:]):
+    for a, b in itertools.pairwise(years):
         lab = f"{a}-{b}" + (" (חלקי)" if partial and b == years[-1] else "")
         nw, gn = len(sets[b] - sets[a]), len(sets[a] - sets[b])
         churn["x"].append(lab)

@@ -18,7 +18,6 @@ Institutions are named (they are businesses / colleges in a commercial
 capacity). Telephone and e-mail never reach the page — they stay in the
 explorer under it.
 """
-import math
 import re
 
 import pandas as pd
@@ -27,7 +26,7 @@ TOP_CITIES = 15
 TOP_COURSES = 15
 TOP_INST = 15
 OTHER = "אחר"
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 # Ordered: first match wins. Keywords are matched case-insensitively as
 # substrings of the course name.

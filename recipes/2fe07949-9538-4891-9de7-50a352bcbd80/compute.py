@@ -336,7 +336,7 @@ def exec_key(name):
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x):
@@ -573,10 +573,10 @@ def compute(frames):
     named = df[df["site_key"] != ""]
     per_site = named.groupby("site_key")["d"].agg(["nunique", "min", "max"])
     rep = per_site[per_site["nunique"] >= 2]
-    rep_sites = int(len(rep))
+    rep_sites = len(rep)
     rep_rows = (named[named["site_key"].isin(rep.index)].drop_duplicates(["site_key", "d"])
                 .sort_values(["site_key", "d"], kind="stable"))
-    rep_closures = int(len(rep_rows))
+    rep_closures = len(rep_rows)
     gaps = rep_rows.groupby("site_key")["d"].diff().dt.days
     quick = int(gaps.groupby(rep_rows["site_key"]).min().le(GAP_DAYS).sum())
 
@@ -599,7 +599,7 @@ def compute(frames):
         t12_tone = "warn" if ch >= TREND_GAP else "ok" if ch <= -TREND_GAP else "brand"
     else:
         t12_tone = "brand"
-    corp_n = int(len(corp))
+    corp_n = len(corp)
     kpis = {
         "total": {"value": n, "display": _int(n), "tone": "brand"},
         "last12": {"value": t12, "display": _int(t12), "tone": t12_tone},
@@ -620,7 +620,7 @@ def compute(frames):
         "companies_kpi": f"חברות שאתריהן נסגרו ({_int(multi_companies)} יותר מפעם אחת)",
         "repeat_kpi": "אתרים שנסגרו יותר מפעם אחת",
         "years_note": (("עמודה בהירה היא שנה שהנתונים מכסים רק בחלקה. ") +
-                       f"השנה המלאה העמוסה ביותר: "
+                       "השנה המלאה העמוסה ביותר: "
                        + (f"{int(yearly[full_years].sort_index().idxmax())}." if full_years else "—")),
         "years_aria": f"תרשים עמודות: מספר אתרי הבנייה שנסגרו בכל שנה, {first.year}–{last.year}.",
         "monthly_note": (f"סגירות בכל חודש, וקו ממוצע נע של 12 חודשים. החודש העמוס ביותר: "

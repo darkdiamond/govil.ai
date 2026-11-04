@@ -28,7 +28,7 @@ RATE_GAP = 0.05           # rate differences below this are not called out
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x):
@@ -243,7 +243,7 @@ def compute(frames):
     sanc_city = _top(sanc[sanc["city"] != ""].groupby("city")["sanctions_sum"].sum(), 10)
     sanc_sites = sanc.groupby("city").size()
     sanctions = {"names": list(sanc_city.index),
-                 "values": [int(round(v)) for v in sanc_city],
+                 "values": [round(v) for v in sanc_city],
                  "sites": [int(sanc_sites.get(c, 0)) for c in sanc_city.index]}
 
     rules = [

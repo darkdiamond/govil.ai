@@ -64,7 +64,7 @@ def pct(v, digits=0):
 def clean(s):
     s = str(s).replace("\\n", " ")
     s = re.sub(r"<[^>]*>", " ", s)
-    s = s.replace("​", "").replace("‏", "").replace("‎", "").replace("\xa0", " ")
+    s = s.replace("\u200b", "").replace("\u200f", "").replace("\u200e", "").replace("\xa0", " ")
     return " ".join(s.split())
 
 
@@ -103,7 +103,7 @@ def legal_form(name):
         return "אגודה שיתופית"
     if re.search(r"שותפות", s):
         return "שותפות"
-    if re.search(r"(?:בעי?|ע)\s*[\"'״׳]{1,2}\s*מ|בעמ(?:\s|$)|\bLtd\b", s, flags=re.I):
+    if re.search(r"(?:בעי?|ע)\s*[\"'״׳]{1,2}\s*מ|בעמ(?:\s|$)|\bLtd\b", s, flags=re.IGNORECASE):
         return "חברה בע\"מ"
     if re.search(r"עמות|ע[\"'״׳]+ר(?:\s|$)", s):
         return "עמותה"
@@ -202,7 +202,7 @@ def compute(frames):
             dist_names.append("רישיון אחד" if k == 1 else f"{k} רישיונות")
             dist_vals.append(int(dist.get(k, 0)))
     multi = cnt_body[cnt_body > 1]
-    n_multi = int(len(multi))
+    n_multi = len(multi)
     combo_counts = {}
     for name in multi.index:
         key = " + ".join(per_body[name])

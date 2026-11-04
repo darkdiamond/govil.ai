@@ -18,6 +18,7 @@ The real lines are drawn with Leaflet, coloured by length band or by stretch.
 Order-independent: features are sorted by (length, geometry) before anything
 is numbered, and every later sort is total.
 """
+import itertools
 import json
 import math
 
@@ -39,7 +40,7 @@ NEAR_KM = 2
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -147,7 +148,7 @@ def stretches(segs, tol):
     grid = {}
     for si, s in enumerate(segs):
         for part in s["xy"]:
-            for a, b in zip(part, part[1:]):
+            for a, b in itertools.pairwise(part):
                 gx0, gx1 = sorted((int(a[0] // tol), int(b[0] // tol)))
                 gy0, gy1 = sorted((int(a[1] // tol), int(b[1] // tol)))
                 if (gx1 - gx0 + 1) * (gy1 - gy0 + 1) > 2500:
@@ -184,7 +185,7 @@ def compute(frames):
     for r in raw.to_dict("records"):
         g = r.get("__geometry") or ""
         parts = lines_of(g)
-        geo_m = sum(haversine(a, b) for p in parts for a, b in zip(p, p[1:]))
+        geo_m = sum(haversine(a, b) for p in parts for a, b in itertools.pairwise(p))
         declared = num(r.get("SHAPE_Leng", ""))
         ok = bool(pd.notna(declared) and declared > 0)
         recs.append({"len": float(declared) if ok else geo_m, "geo_m": geo_m, "parts": parts,
@@ -204,10 +205,10 @@ def compute(frames):
 
     # ---- local metric frame around the network centre (median of segment midpoints) ----
     def midpoint(parts):
-        tot = sum(haversine(a, b) for p in parts for a, b in zip(p, p[1:]))
+        tot = sum(haversine(a, b) for p in parts for a, b in itertools.pairwise(p))
         half, acc = tot / 2, 0.0
         for p in parts:
-            for a, b in zip(p, p[1:]):
+            for a, b in itertools.pairwise(p):
                 d = haversine(a, b)
                 if acc + d >= half and d > 0:
                     t = (half - acc) / d
@@ -236,7 +237,7 @@ def compute(frames):
         s["sec"] = sector(mx, my)
         scale = s["len"] / s["geo_m"] if s["geo_m"] > 0 else 1.0
         for p in s["xy"]:
-            for a, b in zip(p, p[1:]):
+            for a, b in itertools.pairwise(p):
                 m = math.hypot(b[0] - a[0], b[1] - a[1])
                 if m > 0:
                     pieces.append(((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, m * scale, s["rank"]))
@@ -263,7 +264,7 @@ def compute(frames):
     px, py, prow = [], [], []
     for st in range(1, PARETO_STEPS + 1):
         frac = st / PARETO_STEPS
-        k = max(1, int(math.ceil(frac * n_seg)))
+        k = max(1, math.ceil(frac * n_seg))
         share = cum[k - 1] / total_m
         px.append(round(frac * 100, 1))
         py.append(round(share * 100, 1))
@@ -272,11 +273,11 @@ def compute(frames):
     tables["pareto"] = {"headers": ["הקטעים הארוכים ביותר", "מספר קטעים", "שיעור מאורך הרשת"], "rows": prow}
 
     def top_share(frac):
-        k = max(1, int(math.ceil(frac * n_seg)))
+        k = max(1, math.ceil(frac * n_seg))
         return k, cum[k - 1] / total_m
 
     k20, s20 = top_share(0.2)
-    k50, s50 = top_share(0.5)
+    _k50, s50 = top_share(0.5)
 
     def where_of(s):
         if not s["parts"]:
@@ -315,7 +316,7 @@ def compute(frames):
     tnames, tvals, trows = [], [], []
     for s in top:
         tnames.append(f"#{s['rank']} · {where_of(s)}")
-        tvals.append(int(round(s["len"])))
+        tvals.append(round(s["len"]))
         trows.append([f"#{s['rank']}", where_of(s), fmt(s["len"]), pct(s["len"] / total_m)])
     charts["longest"] = {"names": tnames, "values": tvals}
     tables["longest"] = {"headers": ["דירוג", "מיקום אמצע הקטע ביחס למרכז", "אורך (מ׳)", "שיעור מהרשת"],
@@ -357,10 +358,10 @@ def compute(frames):
     xs_all = [p[0] for p in pieces]
     ys_all = [p[1] for p in pieces]
     span = max(max(xs_all) - min(xs_all), max(ys_all) - min(ys_all))
-    cell = 1000.0 * max(1, int(math.ceil(span / 1000.0 / 14.0)))
+    cell = 1000.0 * max(1, math.ceil(span / 1000.0 / 14.0))
     acc_cells = {}
     for x, y, m, rk in pieces:
-        k = (int(round(x / cell)), int(round(y / cell)))
+        k = (round(x / cell), round(y / cell))
         d = acc_cells.setdefault(k, [0.0, set()])
         d[0] += m
         d[1].add(rk)
@@ -378,7 +379,7 @@ def compute(frames):
     top_cell = max(cells, key=lambda c: (c[2], -c[0], -c[1]))
 
     # ---- scatter: segment length vs distance of its midpoint ----
-    charts["scatter"] = {"points": sorted([round(s["d"] / 1000, 2), int(round(s["len"]))] for s in geo)}
+    charts["scatter"] = {"points": sorted([round(s["d"] / 1000, 2), round(s["len"])] for s in geo)}
     rho = spearman([s["d"] for s in geo], [s["len"] for s in geo])
 
     # ---- map: real lines, delta-encoded from an origin (govlib.geo), packed into JSON islands ----
@@ -389,7 +390,7 @@ def compute(frames):
     feats = []
     for s in geo:
         for flat in geolib.encode(s["parts"], origin, ring=False):
-            feats.append([s["lb"], min(s["comp"], STRETCH_COLORS), int(round(s["len"])), s["rank"],
+            feats.append([s["lb"], min(s["comp"], STRETCH_COLORS), round(s["len"]), s["rank"],
                           s["comp"] + 1, round(s["comp_m"] / 1000, 2), s["comp_n"], flat])
     feats.sort(key=lambda f: (f[3], f[7]))
     chunks = geolib.pack(feats)
@@ -492,7 +493,7 @@ def compute(frames):
         "big_km": {"value": round(big["m"] / 1000, 1), "display": km1(big["m"]),
                    "tone": "ok" if big_share >= 0.5 else "warn" if big_share < 0.2 else "brand",
                    "label": "הרצף הרציף הארוך (ק״מ)"},
-        "median": {"value": int(round(med_len)), "display": fmt(med_len), "tone": "info",
+        "median": {"value": round(med_len), "display": fmt(med_len), "tone": "info",
                    "label": "אורך קטע חציוני (מטרים)"},
         "long_share": {"value": round(long_share * 100, 1), "display": pct(long_share),
                        "tone": "ok" if long_share >= 0.4 else "warn" if long_share < 0.2 else "brand",

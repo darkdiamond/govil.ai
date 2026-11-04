@@ -113,7 +113,7 @@ def r2(v):
 
 def in_(name):
     """Hebrew 'in <name>': ב + name, absorbing a leading definite ה."""
-    return "ב" + (name[1:] if name.startswith("ה") else name)
+    return "ב" + (name.removeprefix("ה"))
 
 
 def region_of(sid):
@@ -172,9 +172,9 @@ def load(frames):
 
 def compute(frames):
     d, name_of = load(frames)
-    nm = lambda s: name_of.get(s, f"תחנה {s}")  # noqa: E731
+    nm = lambda s: name_of.get(s, f"תחנה {s}")
 
-    n_rows = int(len(d))
+    n_rows = len(d)
     stations_all = sorted(d["sid"].unique().tolist(), key=int)
     n_stations = len(stations_all)
     rec = d[d["v"].notna()]
@@ -242,7 +242,7 @@ def compute(frames):
     heat_years = list(range(int(hb["y"].min()), L + 1)) if len(hb) else []
     yi = {y: i for i, y in enumerate(heat_years)}
     si = {s: i for i, s in enumerate(cand)}
-    cells = [[yi[int(y)], si[s], int(round(float(r) * 100))]
+    cells = [[yi[int(y)], si[s], round(float(r) * 100)]
              for s, y, r in zip(hb["sid"], hb["y"], hb["r"]) if int(y) in yi]
     cells.sort()
     chart_heat = {"years": [ylab(y) for y in heat_years], "stations": [nm(s) for s in cand], "cells": cells}
@@ -269,7 +269,7 @@ def compute(frames):
             "y": [round(float(vmap[y]) / 1e6, 2) if y in vmap else None for y in years_f],
             "recent_mean": float(recent["vol"].mean()) if len(recent) >= RECENT_SPAN - 2 else None,
             "earlier_mean": float(earlier["vol"].mean()) if len(earlier) >= RECENT_SPAN else None,
-            "n_years": int(len(fy)),
+            "n_years": len(fy),
         }
         # daily hydrograph of the latest year vs the station's typical day
         fd = rec[(rec["sid"] == fs)].copy()
@@ -333,7 +333,7 @@ def compute(frames):
     bins = [round(i / 10, 1) for i in range(11)]
     hist = [0] * 10
     for f in fdL:
-        hist[min(int(math.floor(f * 10 + 1e-9)), 9)] += 1
+        hist[min(math.floor(f * 10 + 1e-9), 9)] += 1
     chart_regime = {"bins": [f"{i * 10}-{(i + 1) * 10}%" for i in range(10)], "n": hist}
     del bins
     class_L = {c: int(sum(1 for f in fdL if cls(f) == c)) for c in CLASS_ORDER}
@@ -355,7 +355,7 @@ def compute(frames):
             continue
         m = sub[HYDRO_MONTHS].mean()
         season_series.append({"name": CLASS_NAMES[c], "data": [round(float(m[k]) * 100, 1) for k in HYDRO_MONTHS]})
-        season_n[c] = int(len(sub))
+        season_n[c] = len(sub)
         winter[c] = float(sum(m[k] for k in WINTER_MONTHS))
         summer[c] = float(sum(m[k] for k in SUMMER_MONTHS))
     chart_season = {"months": [MONTH_HE[k] for k in HYDRO_MONTHS], "series": season_series}

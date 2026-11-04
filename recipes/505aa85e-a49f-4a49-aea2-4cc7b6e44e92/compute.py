@@ -31,7 +31,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 OTHER = "אחר"
 NA = "לא צוין"
 MIN_YEAR = 1948
@@ -302,7 +302,7 @@ def compute(frames):
         return chart, table, order, len(multi)
 
     top_ab_chart, top_ab_table, order_ab, n_multi_ab = top(ab, cnt_ab)
-    top_il_chart, top_il_table, order_il, n_multi_il = top(il, cnt_il)
+    top_il_chart, top_il_table, _order_il, n_multi_il = top(il, cnt_il)
 
     # ---- areas in Israel ------------------------------------------------------
     il["tokens"] = il["areas"].map(lambda lst: [t for a in lst for t in _areas_il(a)])
@@ -503,8 +503,8 @@ def compute(frames):
                      f"({n(len(both))} מדינות).") + (
                      f" {n(len(unknown))} מדינות לא מוקמו על המפה: {_join(unknown)}." if unknown else ""),
         "map_aria": "מפת עולם: מדינות עם קונסולי כבוד בישראל ומדינות שבהן לישראל קונסולי כבוד.",
-        "regions_note": (f"מספר הקונסולים בכל אזור, לפי חלוקת האזורים של משרד החוץ: קונסולים זרים בישראל לפי "
-                         f"אזור המדינה שהם מייצגים, וקונסולים ישראליים לפי אזור המדינה שבה הם פועלים."),
+        "regions_note": ("מספר הקונסולים בכל אזור, לפי חלוקת האזורים של משרד החוץ: קונסולים זרים בישראל לפי "
+                         "אזור המדינה שהם מייצגים, וקונסולים ישראליים לפי אזור המדינה שבה הם פועלים."),
         "regions_aria": "גרף עמודות: קונסולי כבוד לפי אזור, בישראל ובחו״ל.",
         "regions_caption": "קונסולי כבוד ומדינות לפי אזור.",
         "overlap_note": (f"לכל מדינה במאגר: האם יש לה קונסול כבוד בישראל, האם לישראל יש קונסול כבוד אצלה, או "

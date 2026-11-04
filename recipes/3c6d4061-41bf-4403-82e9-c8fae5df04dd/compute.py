@@ -12,6 +12,7 @@ computed from the rows, so the wording follows if the layer is split into
 several units (committees, annexed areas): totals, the largest unit and a
 per-unit table switch on from the data.
 """
+import itertools
 import json
 import math
 import re
@@ -100,7 +101,7 @@ class _Proj:
 
 def _ring_stats(xy):
     a = cx = cy = per = 0.0
-    for (x1, y1), (x2, y2) in zip(xy, xy[1:]):
+    for (x1, y1), (x2, y2) in itertools.pairwise(xy):
         c = x1 * y2 - x2 * y1
         a += c
         cx += (x1 + x2) * c
@@ -162,7 +163,7 @@ def _inside(lon, lat, polys):
     hit = False
     for poly in polys:
         for ring in poly:
-            for (x1, y1), (x2, y2) in zip(ring, ring[1:]):
+            for (x1, y1), (x2, y2) in itertools.pairwise(ring):
                 if (y1 > lat) != (y2 > lat) and lon < (x2 - x1) * (lat - y1) / (y2 - y1) + x1:
                     hit = not hit
     return hit

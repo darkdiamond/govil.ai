@@ -41,7 +41,7 @@ def quantize(points, scale: int = SCALE) -> list:
     equal to the one before it."""
     out = []
     for lon, lat in points:
-        p = (int(round(float(lon) * scale)), int(round(float(lat) * scale)))
+        p = (round(float(lon) * scale), round(float(lat) * scale))
         if not out or p != out[-1]:
             out.append(p)
     return out
@@ -84,7 +84,7 @@ def simplify(points: list, tol: float, *, ring: bool = True) -> list:
 def origin(lons, lats, scale: int = SCALE) -> list:
     """An integer origin at the south-west corner of the points, for
     `encode`. Small deltas from it keep the islands short."""
-    return [int(math.floor(min(lons) * scale)), int(math.floor(min(lats) * scale))]
+    return [math.floor(min(lons) * scale), math.floor(min(lats) * scale)]
 
 
 def encode(rings, origin_xy, *, scale: int = SCALE, tol: float = 0.0, ring: bool = True) -> list:

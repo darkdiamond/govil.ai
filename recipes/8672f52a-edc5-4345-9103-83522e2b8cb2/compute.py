@@ -19,7 +19,7 @@ HEAT_AREAS = 10
 HEAT_LANGS = 6
 PERSONAL_DOMAINS = {"gmail.com", "walla.co.il", "walla.com", "hotmail.com",
                     "yahoo.com", "outlook.com", "icloud.com", "012.net.il"}
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):

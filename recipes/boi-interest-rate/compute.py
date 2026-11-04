@@ -145,7 +145,7 @@ def insight_fastest_hike(runs):
     if not hikes:
         return None
     # Steepest = largest total rise; ties go to the earlier cycle.
-    best = sorted(hikes, key=lambda r: (-(r["to"] - r["from"]), r["start"]))[0]
+    best = min(hikes, key=lambda r: (-(r["to"] - r["from"]), r["start"]))
     months = (best["end"].year - best["start"].year) * 12 + best["end"].month - best["start"].month
     if months <= 0:
         return None
@@ -157,7 +157,7 @@ def insight_fastest_hike(runs):
 def insight_longest_hold(holds, min_days=180):
     if not holds:
         return None
-    h = sorted(holds, key=lambda x: (-x["days"], x["start"]))[0]
+    h = min(holds, key=lambda x: (-x["days"], x["start"]))
     if h["days"] < min_days:
         return None
     still = ", ונמשכת עד היום" if h["ongoing"] else f" ועד {_date(h['end'])}"
@@ -347,7 +347,7 @@ def compute(frames):
             diff = (both["shir"] - both["rate"]).abs()
             shir_note = {
                 "since": _month(shir.index[0]),
-                "days": int(len(both)),
+                "days": len(both),
                 "equal_days": int((diff < 1e-9).sum()),
                 "last": _pct(float(shir.iloc[-1])),
                 "last_date": _date(shir.index[-1]),

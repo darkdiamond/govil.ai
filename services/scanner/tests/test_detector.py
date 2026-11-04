@@ -8,14 +8,14 @@ restricted stored doc — which makes save_dataset reset it back to `never`.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from services.scanner.detector import ChangeDetector
 from services.scanner.models import DatasetStatus
 
-MOD = datetime(2026, 5, 1, tzinfo=timezone.utc)
+MOD = datetime(2026, 5, 1, tzinfo=UTC)
 
 
 def _ds(metadata_modified):
@@ -44,7 +44,7 @@ def test_unchanged_when_succeeded_and_mtime_equal():
 
 def test_updated_when_mtime_advanced():
     d = _detector((MOD, "succeeded"))
-    later = datetime(2026, 5, 2, tzinfo=timezone.utc)
+    later = datetime(2026, 5, 2, tzinfo=UTC)
     assert d.detect_status(_ds(later)) == DatasetStatus.UPDATED
 
 

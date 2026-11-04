@@ -65,7 +65,7 @@ TOP_LIT = 8
 MIN_YEARS = 30       # parsed description years needed for the era chart/insight
 PERIOD = 25          # years per bar in the description-era chart
 MIN_CMP_GROUP = 30   # pests a group needs to enter the completeness-gap insight
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 PALETTE_ORDER = [0, 1, 2, 6, 5, 9, 7, 3]   # GOVIL_PALETTE indices that stay distinct when stacked
 
 GROUP_ORDER = ["ירקות", "נשירים", "הדרים", "סובטרופים", "צמחי תבלין", "גידולי שדה",
@@ -362,7 +362,7 @@ def compute(frames):
         for name in order:
             part = sub[lab == name]
             kids = build(part, cols[1:]) if name != OTHER else []
-            node = {"name": name, "value": int(len(part))}
+            node = {"name": name, "value": len(part)}
             if kids and not (len(kids) == 1 and kids[0]["name"] in (OTHER, UNSPEC)):
                 node["children"] = kids
             out.append(node)
@@ -417,7 +417,7 @@ def compute(frames):
                  .drop_duplicates("host").set_index("host"))
     hosts_table = [{"name": h, "pests": n(host_counts[h]), "group": host_lead.loc[h, "grp"],
                     "group_n": n(host_lead.loc[h, "k"]), "cgroup": host_group(h)} for h in top_hosts]
-    n_hosts_distinct = int(len(host_counts))
+    n_hosts_distinct = len(host_counts)
 
     # Crop group × agent group (distinct pests per cell).
     ex["cg"] = ex["host"].map(host_group)
@@ -474,7 +474,7 @@ def compute(frames):
             vals.append(k)
             era_table.append({"name": f"{s}–{s + PERIOD - 1}", "count": n(k)})
         era_chart = {"names": names, "values": vals}
-    n_years = int(len(yd))
+    n_years = len(yd)
 
     # Authorities.
     au = df[df["auth"] != ""]
@@ -515,7 +515,7 @@ def compute(frames):
     lit_counts = ranked(lit.groupby(lit).size())
     lit_table = [{"name": short(s, 110), "count": n(v), "share": pct_plain(v / total)}
                  for s, v in lit_counts.head(TOP_LIT).items()]
-    n_lit = int(len(lit))
+    n_lit = len(lit)
 
     # KPIs.
     with_host = int((df["n_hosts"] > 0).sum())

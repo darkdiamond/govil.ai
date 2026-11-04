@@ -440,7 +440,7 @@ def compute(frames):
                         + (f"; {_int(rc.get(OTHER_REGION, 0))} מעיינות עם קוד אגן אחר מקובצים תחת \"{OTHER_REGION}\"." if rc.get(OTHER_REGION) else ".")),
         "region_aria": f"תרשים עמודות מוערמות: מעיינות לפי אזור וסוג. המוביל: {regions[0] if regions else ''} עם {_int(rc[regions[0]]) if regions else '0'} מעיינות.",
         "region_caption": "מספר המעיינות לפי אזור",
-        "aq_note": (f"האקויפר (שכבת מי התהום) שמזין כל מעיין."
+        "aq_note": ("האקויפר (שכבת מי התהום) שמזין כל מעיין."
                     + (f" {_int(aq_other_n)} אקויפרים קטנים יותר מקובצים תחת \"{OTHER}\"." if OTHER in aq_cats else "")),
         "aq_aria": f"תרשים עמודות מוערמות: מעיינות לפי אקויפר וסוג. המוביל: {aq_cats[0] if aq_cats else ''}.",
         "aq_caption": "מספר המעיינות לפי אקויפר",

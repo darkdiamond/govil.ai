@@ -86,7 +86,7 @@ def _tel(display):
 
 def _valid_url(u):
     u = _clean(u)
-    return u if re.match(r"^https://[^\s\"'<>]+$", u, re.I) else ""
+    return u if re.match(r"^https://[^\s\"'<>]+$", u, re.IGNORECASE) else ""
 
 
 def _valid_email(e):
@@ -199,12 +199,12 @@ def insight_address(df):
 
 def compute(frames):
     df = _prepare(frames["clinics"])
-    n = int(len(df))
+    n = len(df)
 
     city_counts = (df.groupby("city").size().reset_index(name="n")
                    .sort_values(["n", "city"], ascending=[False, True], kind="stable")
                    .set_index("city")["n"])
-    n_city = int(len(city_counts))
+    n_city = len(city_counts)
     has_phone = int(df["has_phone"].sum())
     has_email = int((df["email"] != "").sum())
     has_web = int((df["website"] != "").sum())

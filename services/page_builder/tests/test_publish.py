@@ -10,13 +10,12 @@ three artifact contracts:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from services.shared.firestore import SourceRecord
-
 from services.page_builder import publish
+from services.shared.firestore import SourceRecord
 
 
 def _src(*, dataset_id: str, with_agent: bool, **overrides) -> SourceRecord:
@@ -38,7 +37,7 @@ def _src(*, dataset_id: str, with_agent: bool, **overrides) -> SourceRecord:
             }
         ],
         record_count=42,
-        metadata_modified=datetime(2026, 4, 24, 12, 0, tzinfo=timezone.utc),
+        metadata_modified=datetime(2026, 4, 24, 12, 0, tzinfo=UTC),
         analysis_status="succeeded",
     )
     if with_agent:
@@ -224,8 +223,8 @@ def test_publish_propagates_captured_analyzed_metadata_modified(
     """When the source doc carries a real snapshot, it flows verbatim to
     data.json + manifest.json."""
     src = _src(dataset_id="captured", with_agent=True)
-    src.last_analyzed_at = datetime(2026, 4, 25, tzinfo=timezone.utc)
-    src.analyzed_metadata_modified = datetime(2026, 4, 20, tzinfo=timezone.utc)
+    src.last_analyzed_at = datetime(2026, 4, 25, tzinfo=UTC)
+    src.analyzed_metadata_modified = datetime(2026, 4, 20, tzinfo=UTC)
     store = _store_mock([src])
 
     publish.publish(tmp_path, store=store)
@@ -250,8 +249,8 @@ def test_publish_passes_through_null_snapshot_for_legacy_sources(
     icon — we don't have an honest snapshot to compare against."""
 
     legacy = _src(dataset_id="legacy", with_agent=True)
-    legacy.metadata_modified = datetime(2026, 5, 1, tzinfo=timezone.utc)
-    legacy.last_analyzed_at = datetime(2026, 4, 1, tzinfo=timezone.utc)
+    legacy.metadata_modified = datetime(2026, 5, 1, tzinfo=UTC)
+    legacy.last_analyzed_at = datetime(2026, 4, 1, tzinfo=UTC)
     legacy.analyzed_metadata_modified = None
 
     store = _store_mock([legacy])

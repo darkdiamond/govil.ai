@@ -42,8 +42,8 @@ MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "י
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 MONTHS_SHORT = ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי",
                 "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"]
-LRI, PDI = "⁦", "⁩"
-RLM = "‏"
+LRI, PDI = "\u2066", "\u2069"
+RLM = "\u200f"
 
 
 def n(v):
@@ -148,7 +148,7 @@ def insight_topic_shift(era, first, last):
     r = _share_shift(era, "topic", first, last, exclude=("אחר", "לא צוין"))
     if not r or r[0] * 100 < SHIFT_PP:
         return None
-    gain, k, sa, sb, cnt, tot = r
+    _gain, k, sa, sb, cnt, tot = r
     return (f"הנושא שחלקו גדל יותר מכול הוא {k}: {pct(sb)} מהתיקים ב-{last} ({n(cnt)} מתוך {n(tot)}), "
             f"לעומת {pct(sa)} ב-{first}.")
 
@@ -173,7 +173,7 @@ def insight_source_shift(era, first, last):
     r = _share_shift(era, "source", first, last, exclude=("לא צוין",))
     if not r or r[0] * 100 < SHIFT_PP:
         return None
-    gain, k, sa, sb, cnt, tot = r
+    _gain, k, sa, sb, cnt, _tot = r
     return (f"הגורם הפונה שחלקו עלה יותר מכול הוא {k}: {pct(sb)} מהתיקים ב-{last} ({n(cnt)}), "
             f"לעומת {pct(sa)} ב-{first}.")
 
@@ -246,7 +246,7 @@ def compute(frames):
     era_start = _era_start(df)
     era = df[df["year"] >= era_start]
     legacy_n = total - len(era)
-    first_full = era_start if era_start < full else full
+    first_full = min(full, era_start)
 
     # yearly × status (all years)
     years = list(range(int(df["year"].min()), ref_year + 1))
@@ -276,7 +276,7 @@ def compute(frames):
     # topics (all rows)
     topics, topics_merged = _merge_small(_vc(df["topic"]), "אחר ונושאים נוספים", "אחר")
     sources, sources_merged = _merge_small(_vc(df["source"]), "גורמים נוספים")
-    types, types_merged = _merge_small(_vc(df["type"]), "אחר וסוגים נוספים", "אחר")
+    types, _types_merged = _merge_small(_vc(df["type"]), "אחר וסוגים נוספים", "אחר")
 
     # topic trend (era): top-N + אחר, counts
     tv = _vc(era["topic"])
@@ -387,7 +387,7 @@ def compute(frames):
         "last_year_kpi": f"תיקים שנפתחו ב-{full}",
         "open_kpi": "מהתיקים רשומים כפתוחים",
         "latest_kpi": "תאריך הרשומה האחרונה במאגר",
-        "yearly_note": (f"מספר התיקים לפי שנת היצירה, ולפי סטטוס הטיפול הנוכחי."
+        "yearly_note": ("מספר התיקים לפי שנת היצירה, ולפי סטטוס הטיפול הנוכחי."
                         + (f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else "")),
         "yearly_aria": (f"גרף עמודות מוערמות: תיקים לפי שנה וסטטוס, {years[0]}–{years[-1]}. "
                         f"השיא ב-{int(per_year.idxmax())}."),
@@ -408,7 +408,7 @@ def compute(frames):
                        f"{n(legacy_n)} רשומות ותיקות ללא סוג מוצגות כ'{NO_TYPE}'."),
         "types_aria": "תרשים עמודות: מספר התיקים לפי סוג התיק.",
         "types_caption": "מספר התיקים לפי סוג התיק.",
-        "sources_note": (f"מי פנה ליחידה — לאורך כל התקופה."
+        "sources_note": ("מי פנה ליחידה — לאורך כל התקופה."
                          + (f" גורמים עם פחות מ-{MIN_CAT} תיקים מקובצים יחד." if sources_merged else "")),
         "sources_aria": "תרשים עמודות: מספר התיקים לפי הגורם הפונה.",
         "sources_caption": "מספר התיקים לפי הגורם הפונה.",

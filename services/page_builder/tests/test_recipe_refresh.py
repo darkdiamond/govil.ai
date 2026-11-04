@@ -9,7 +9,7 @@ from __future__ import annotations
 import csv
 import json
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -89,7 +89,7 @@ class FakeStore:
                   refreshed_metadata_modified=metadata_modified,
                   refresh_status="succeeded", refresh_failed_version=None,
                   authoring_status="done", authoring_reason=None, authoring_issue=None,
-                  last_snapshot=snapshot, last_refreshed_at=datetime.now(timezone.utc),
+                  last_snapshot=snapshot, last_refreshed_at=datetime.now(UTC),
                   input_fingerprint=input_fingerprint, inputs_hash=inputs_hash,
                   content_hash=content_hash, file_fingerprint=file_fingerprint,
                   inputs_hash_unordered=inputs_hash_unordered, wall_budget_strikes=None,
@@ -109,7 +109,7 @@ class FakeStore:
         elif transient_strikes is not None:
             kw["transient_strikes"] = transient_strikes or None
         if reason == "content_hash":
-            kw["last_verified_at"] = datetime.now(timezone.utc)
+            kw["last_verified_at"] = datetime.now(UTC)
         if advance_version:
             kw.update(refreshed_metadata_modified=metadata_modified, refresh_status="succeeded",
                       refresh_failed_version=None, authoring_status="done",
@@ -135,7 +135,7 @@ class FakeStore:
 def _src(mm="2026-10-01"):
     return SimpleNamespace(
         id=DS, title="אירועים", organization={"title": "משרד"},
-        metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=timezone.utc),
+        metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=UTC),
         analysis_status="succeeded",
         resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True,
                     "hash": "md5-v1", "size": 1000}],
@@ -733,17 +733,14 @@ def test_percent_conflict_skipped_only_for_recipe_renders(tmp_path):
 
 
 def _prepared(tmp_path, monkeypatch, rows):
-    from services.page_builder import author
-
-    from services.page_builder import tags
-
+    from services.page_builder import author, tags
     from services.page_builder.cli import preview
 
     monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
     monkeypatch.setattr(preview, "PREVIEW_ROOT", tmp_path / "preview")
     monkeypatch.setattr(preview, "base_manifest_path", lambda: None)
     # The installed-version gate has its own test; keep these hermetic.
-    monkeypatch.setattr(author, "runtime_parity_problems", lambda: [])
+    monkeypatch.setattr(author, "runtime_parity_problems", list)
     monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     data = tmp_path / "authoring" / DS / "data"
     data.mkdir(parents=True)
@@ -776,7 +773,7 @@ def test_author_verify_passes_fixture(tmp_path, monkeypatch, capsys):
 def _base_manifest(path, entries):
     from services.page_builder.schema import Manifest, ManifestEntry
 
-    m = Manifest(generated_at=datetime(2026, 10, 1, tzinfo=timezone.utc),
+    m = Manifest(generated_at=datetime(2026, 10, 1, tzinfo=UTC),
                  datasets=[ManifestEntry(**e) for e in entries])
     path.write_text(m.model_dump_json(exclude_none=True), encoding="utf-8")
     return path
@@ -948,7 +945,7 @@ def _kpi(value, cls="text-brand", ltr=True):
     (_kpi("45.2%", "text-danger"), None),
     (_kpi("2014–2026", ltr=False), 'needs dir="ltr"'),
     (_kpi("-6.3%"), "minus sign"),
-    (_kpi("⁦-213.72⁩ מ'"), "bidi marks"),
+    (_kpi("\u2066-213.72\u2069 מ'"), "bidi marks"),
     (_kpi("432.9 מיליון ₪"), "carries a unit"),
     (_kpi("1,567", "text-ink"), "colour must be"),
     (_kpi("+0.76%", ltr=False), 'needs dir="ltr"'),       # leading plus flips in RTL
@@ -1078,7 +1075,7 @@ def test_author_verify_rejects_order_dependent_recipe(tmp_path, monkeypatch, cap
 
 
 def _bump(store, mm):
-    store.src.metadata_modified = datetime.fromisoformat(mm).replace(tzinfo=timezone.utc)
+    store.src.metadata_modified = datetime.fromisoformat(mm).replace(tzinfo=UTC)
 
 
 def _first(s):
@@ -1141,7 +1138,7 @@ def test_precheck_first_run_has_nothing_to_compare(env, monkeypatch):
 
 
 def test_precheck_inputs_skips_after_fetch_and_before_compute(env, monkeypatch):
-    store, ckan, staged = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
+    store, ckan, _staged = _stage_then_bump_same_rows(env, monkeypatch, "inputs")
     env.staged.clear()
     s = _run(env, store, ckan, preview=False)
     o = _first(s)
@@ -1175,7 +1172,7 @@ def test_precheck_fingerprint_blind_spot_is_bounded_without_new_bumps(env, monke
     store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
     edited = FakeCkan(_deep_edit(ckan.rows))
     assert _first(_run(env, store, edited, preview=False))["reason"] == "fingerprint"
-    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=UTC)
     s = _run(env, store, edited, preview=False)        # no new bump
     assert _first(s)["status"] == "refreshed" and edited.fetches == 1
 
@@ -1296,14 +1293,14 @@ def test_precheck_full_documents_the_fingerprint_blind_spot(env, monkeypatch):
     edited = FakeCkan(_deep_edit(ckan.rows))
     assert _first(_run(env, store, edited, preview=False))["reason"] == "fingerprint"
     # …and the safety net: page older than the max age → always re-render
-    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=UTC)
     _bump(store, "2026-10-03")
     s = _run(env, store, edited, preview=False)
     assert _first(s)["status"] == "refreshed" and edited.fetches == 1
 
 
 def test_precheck_changed_rows_always_refresh(env, monkeypatch):
-    store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
+    store, _ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
     more = FakeCkan(_rows([2024, 2025, 2026]))
     s = _run(env, store, more, preview=False)
     assert _first(s)["status"] == "refreshed" and more.fetches == 1
@@ -1431,7 +1428,7 @@ def test_precheck_content_skip_ignores_the_max_age(env, monkeypatch):
     """Exact, so an old page with a no-op re-upload still isn't re-staged —
     and the verified render restarts the max-age clock for A ∧ A′."""
     store, ckan, _ = _stage_then_bump_same_rows(env, monkeypatch, "full")
-    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    store.states[(DS, False)]["last_refreshed_at"] = datetime(2020, 1, 1, tzinfo=UTC)
     env.staged.clear()
     reordered = _reorder(store, ckan)
     assert _first(_run(env, store, reordered, preview=False))["reason"] == "content_hash"
@@ -1441,8 +1438,8 @@ def test_precheck_content_skip_ignores_the_max_age(env, monkeypatch):
 
 
 def test_precheck_may_skip_counts_the_last_verified_render(monkeypatch):
-    old = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
+    old = datetime(2020, 1, 1, tzinfo=UTC)
+    now = datetime.now(UTC)
     assert not rf._precheck_may_skip("data_updated", {"last_refreshed_at": old})
     assert rf._precheck_may_skip(
         "data_updated", {"last_refreshed_at": old, "last_verified_at": now})
@@ -1495,7 +1492,7 @@ def test_inputs_hash_is_unchanged_by_the_one_pass_rewrite(tmp_path):
     import hashlib
     rows = _rows([2024])
     ordered, _ = _hashes_of(tmp_path, rows)
-    f = sorted(tmp_path.iterdir())[0]
+    f = min(tmp_path.iterdir())
     name = Recipe.load(FIXTURES / DS).manifest.inputs[0].name
     h = hashlib.sha256()
     h.update(f"{name}|{RID}|".encode())

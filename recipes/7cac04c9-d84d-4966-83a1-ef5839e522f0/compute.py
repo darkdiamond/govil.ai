@@ -167,7 +167,7 @@ def _prepare(df):
     df["line_m"] = [l if l == NO_LINE else (f"{l} ({m})" if m != OTHER_METRO else l)
                     for l, m in zip(df["line"], df["metro"])]
     df["compact"] = [
-        (4 * math.pi * a * 1000 / p ** 2) if (p == p and p > 0) else None
+        (4 * math.pi * a * 1000 / p ** 2) if (pd.notna(p) and p > 0) else None
         for a, p in zip(df["dunam"], df["perim"])
     ]
     df["_g"] = [json.dumps(r, separators=(",", ":")) for r in df["rings"]]
@@ -526,7 +526,7 @@ def compute(frames):
                             f"{_f1(largest['dunam'])} דונם.{cap_note}"),
             "depots_aria": (f"תרשים עמודות: שטח {len(shown):,} מתחמי דיפו בדונמים, מהגדול "
                             f"({largest['name']}, {_f1(largest['dunam'])}) לקטן."),
-            "status_lede": (f"השוואה בין חלקו של כל סטטוס במספר המתחמים ובשטח. " +
+            "status_lede": ("השוואה בין חלקו של כל סטטוס במספר המתחמים ובשטח. " +
                             " ".join(f"{s}: {_n_depots(by_status[s]['count'])}, "
                                      f"{_pct(by_status[s]['area'] / total) if total else '0%'} מהשטח."
                                      for s in statuses)),
@@ -537,7 +537,7 @@ def compute(frames):
                            + (f", ו-{no_line_n:,} מתחמים ששמם אינו מציין קו מופיעים בנפרד."
                               if no_line_n else ".")),
             "lines_aria": f"תרשים עמודות נערמות: שטח הדיפו בדונמים לפי קו וסטטוס, {len(by_line):,} קבוצות.",
-            "bands_lede": (f"התפלגות המתחמים לפי גודל: " +
+            "bands_lede": ("התפלגות המתחמים לפי גודל: " +
                            ", ".join(f"{band_names[i]}: {band_totals[i]:,}" for i in range(len(BANDS)))
                            + "."),
             "bands_aria": f"תרשים עמודות נערמות: מספר המתחמים בכל טווח גודל לפי סטטוס, {len(BANDS):,} טווחים.",

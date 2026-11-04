@@ -33,7 +33,7 @@ MIN_BRANCH_ROWS = 200  # branches smaller than this are left out of share rankin
 BREADTH_BUCKETS = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 9), (10, None)]
 AGE_BUCKETS = [(0, 1), (1, 3), (3, 5), (5, 10), (10, 20), (20, None)]  # years
 TIERS = [("סיווג ק–1", {"ק", "1"}), ("סיווג 2–4", {"2", "3", "4"}), ("סיווג 5", {"5"})]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 
@@ -420,7 +420,7 @@ def compute(frames):
         label = "סיווג אחר" if s == "אחר" else f"סיווג {s}"
         box_names.append(label)
         box_data.append(q)
-        box_rows.append({"name": label, "count": int(len(v)), "q1": q[1], "med": q[2], "q3": q[3]})
+        box_rows.append({"name": label, "count": len(v), "q1": q[1], "med": q[2], "q3": q[3]})
     seniority = {"names": box_names, "data": box_data, "rows": box_rows}
 
     # restrictions table
@@ -451,7 +451,7 @@ def compute(frames):
     ytd_tone = "brand" if not ytd_prev or abs(ch) < 0.03 else ("ok" if ch > 0 else "warn")
     unl = int((c["n5"] > 0).sum())
     rec_n = int(c["rec"].sum())
-    n_restr = int(len(rr))
+    n_restr = len(rr)
     mean_br = math.fsum(c["branches"].astype(float)) / len(c)
     first_year = int(cy.min())
     top_label = f"סיווג {SIVUG_ORDER[-1]}"
@@ -541,8 +541,8 @@ def compute(frames):
             "leaders_aria": "גרף עמודות מוערמות: הקבלנים הרשומים במספר הענפים הגדול ביותר.",
             "corp_aria": "תרשים עמודות: שיעור הרישומים של תאגידים בכל סיווג.",
             "seniority_aria": "תרשים קופסה: ותק הקבלנים בפנקס בשנים, לפי הסיווג הגבוה שלהם.",
-            "seniority_note": (f"שנים מאז הרישום הראשון בפנקס, לפי הסיווג הגבוה ביותר של הקבלן; "
-                               f"הקופסה: הרבעון התחתון עד העליון; הקווים: אחוזונים חמישי ותשעים וחמישה."),
+            "seniority_note": ("שנים מאז הרישום הראשון בפנקס, לפי הסיווג הגבוה ביותר של הקבלן; "
+                               "הקופסה: הרבעון התחתון עד העליון; הקווים: אחוזונים חמישי ותשעים וחמישה."),
             "restrictions_note": (f"הגבלות הרשומות בתיאור הענף: {n(n_restr)} רישומים "
                                   f"({pct(n_restr / len(df), 2)} מהפנקס)."),
         },

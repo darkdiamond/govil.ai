@@ -147,8 +147,7 @@ def _rank_rows(names, values, total):
 
 def _country_of(token):
     t = token.replace('"', "").rstrip(".'")
-    if t.startswith("ד."):
-        t = t[2:]
+    t = t.removeprefix("ד.")
     if len(t) < 2:
         return None
     hits = {v for k, v in COUNTRIES.items() if k.startswith(t)}
@@ -303,7 +302,7 @@ def insight_country(country_shares, y1, top_country_all):
                    key=lambda t: (-t[0], t[1]))
     if not gains or gains[0][0] < SHIFT_PP:
         return None
-    g, c = gains[0]
+    _g, c = gains[0]
     text = (f"{c} היא ארץ הייצור שחלקה גדל יותר מכול: {_pct(cur[c])} מכלי שנת ייצור {y1} שארץ ייצורם מצוינת, "
             f"לעומת {_pct(old.get(c, 0.0))} בשנת ייצור {y1 - SPAN}.")
     if top_country_all and top_country_all[0] != c:
@@ -514,7 +513,7 @@ def compute(frames):
     mvc = mg.sort_index().sort_values(ascending=False, kind="stable").head(TOP_MODELS)
     models_chart = {"names": [str(x) for x in mvc.index], "values": [int(v) for v in mvc]}
     t_models = _rank_rows(models_chart["names"], models_chart["values"], n)
-    n_models = int(len(mg))
+    n_models = len(mg)
 
     # ── Plant country ──────────────────────────────────────────────────────
     known = df.loc[df["country"] != UNKNOWN, "country"]

@@ -78,7 +78,7 @@ def _mode(op: str, cl: str) -> str:
 
 def compute(frames):
     df = frames["main"]
-    n_rows = int(len(df))
+    n_rows = len(df)
 
     year = pd.to_numeric(df["year_key"], errors="coerce")
     month = pd.to_numeric(df["month_key"], errors="coerce")
@@ -392,7 +392,7 @@ def compute(frames):
                           f"אף יום חול בתקופה לא ירד מתחת ל-{LOW_DAY_FRAC * 100:.0f}% מהחציון.")),
         "daily_aria": (f"גרף קו של תיקופים יומיים מ-{_date_he(first_date)} עד {_date_he(last_date)}. "
                        f"השיא ב-{_date_he(best_day)} עם {_m(best_v, 2)} מיליון."),
-        "monthly_lede": (f"סך התיקופים בכל חודש (עמודות) וחציון יום חול (קו), שכמעט אינו מושפע מחגים בודדים או מחודש חלקי."
+        "monthly_lede": ("סך התיקופים בכל חודש (עמודות) וחציון יום חול (קו), שכמעט אינו מושפע מחגים בודדים או מחודש חלקי."
                          + (f" {m_labels[-1]} חלקי." if partial else "")),
         "monthly_aria": (f"גרף עמודות של תיקופים חודשיים ב-{yr_label}, עם קו חציון יום חול. "
                          f"החודש העמוס: {m_labels[int(np.argmax(m_total))]}."),
@@ -410,7 +410,7 @@ def compute(frames):
         "mode_lede": (f"חלוקת התיקופים בכל חודש בין אוטובוסים, רכבת ישראל ורכבת קלה. "
                       f"המסילות אחראיות ל-{_pct(rail_share)} מהתיקופים בתקופה."),
         "mode_aria": f"גרף עמודות מוערמות של תיקופים חודשיים לפי סוג שירות. חלק המסילות: {_pct(rail_share)}.",
-        "cl_lede": ((f"{TOP_CLUSTERS if n_cl > TOP_CLUSTERS else n_cl} האשכולות הגדולים מתוך {n_cl:,} (אשכול הוא אזור מכרז של קווים). "
+        "cl_lede": ((f"{min(n_cl, TOP_CLUSTERS)} האשכולות הגדולים מתוך {n_cl:,} (אשכול הוא אזור מכרז של קווים). "
                      + (f"{_m(unassigned_cl, 2)} מיליון תיקופים אינם משויכים לאשכול ואינם בגרף." if unassigned_cl > 0 else ""))
                     if top_cl else ""),
         "cl_aria": (f"גרף עמודות אופקי של תיקופים לפי אשכול. המוביל: {top_cl[0][0]}." if top_cl else ""),

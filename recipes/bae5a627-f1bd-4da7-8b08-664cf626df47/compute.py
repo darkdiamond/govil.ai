@@ -237,7 +237,7 @@ def compute(frames):
     t_multi = []
     for r in multi.itertuples():
         cities = m[(m["country"] == r.country) & (m["seat"] != "")]
-        cities = sorted(set(c for c in cities["seat"] if c not in (NO_CITY, UNKNOWN_CITY)))
+        cities = sorted({c for c in cities["seat"] if c not in (NO_CITY, UNKNOWN_CITY)})
         kinds_txt = ", ".join(f"{s} ({r.kinds.count(s)})" if r.kinds.count(s) > 1 else s
                               for s in dict.fromkeys(r.kinds))
         t_multi.append({"country": r.country, "count": _int(r.k), "kinds": kinds_txt,

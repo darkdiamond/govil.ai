@@ -386,8 +386,8 @@ def compute(frames):
     for t in box_types:
         ys = grouped[t]
         qs = [float(ys.quantile(q)) for q in (0.05, 0.25, 0.5, 0.75, 0.95)]
-        box_rows.append({"name": t, "q": [round(v, 1) for v in qs], "n": int(len(ys)),
-                         "med": int(round(qs[2]))})
+        box_rows.append({"name": t, "q": [round(v, 1) for v in qs], "n": len(ys),
+                         "med": round(qs[2])})
     box_rows.sort(key=lambda r: (r["q"][2], r["q"][1], r["name"]))
     box_chart = {"names": [r["name"] for r in box_rows], "data": [r["q"] for r in box_rows]}
     t_box = [{"name": r["name"], "q1": f"{r['q'][1]:.0f}", "med": f"{r['q'][2]:.0f}",
@@ -450,9 +450,9 @@ def compute(frames):
     seats_chart = {"x": [b[2] for b in SEAT_BINS],
                    "series": [{"name": _seg_label(s), "data": [int(v) for v in spiv[s]]} for s in segs]}
     t_seats = [{"name": b, "cols": [_int(spiv.loc[b, s]) for s in segs]} for b in spiv.index]
-    total_seats = int(round(math.fsum(df["seats"].tolist())))
+    total_seats = round(math.fsum(df["seats"].tolist()))
     n_no_seats = int(n - len(sd))
-    seg_seats = {s: int(round(math.fsum(df.loc[df["seg"] == s, "seats"].tolist()))) for s in segs}
+    seg_seats = {s: round(math.fsum(df.loc[df["seg"] == s, "seats"].tolist())) for s in segs}
     seg_seat_med = {s: int(df.loc[df["seg"] == s, "seats"].median()) for s in segs}
     seg_weight_med = {s: int(df.loc[(df["seg"] == s) & (df["weight"] > 0), "weight"].median())
                       if ((df["seg"] == s) & (df["weight"] > 0)).any() else 0 for s in segs}
@@ -479,7 +479,7 @@ def compute(frames):
     status_chart = {"names": r_names,
                     "series": [{"name": _seg_label(s), "data": [int(v) for v in rpiv[s]]} for s in segs]}
     t_status = [{"name": r, "cols": [_int(rpiv.loc[r, s]) for s in segs]} for r in r_names]
-    n_canc = int(len(canc))
+    n_canc = len(canc)
     seg_canc = [{"name": _seg_label(s),
                  "share": f"{(~df.loc[df['seg'] == s, 'active']).mean() * 100:.1f}"} for s in segs]
 
@@ -634,7 +634,7 @@ def compute(frames):
                              f"במרשם."),
             "country_aria": f"תרשים שטח מוערם: ארץ הייצור של האוטובוסים לפי שנת ייצור, \u2066{c_years[0] if c_years else y0}–{y1}\u2069.",
             "country_caption": f"חלק כל ארץ (%) ב-{min(TABLE_YEARS, len(c_years))} שנות הייצור האחרונות.",
-            "seats_note": (f"מקומות הישיבה לנוסעים בכל כלי, כולל המושבים שליד הנהג. חציון: "
+            "seats_note": ("מקומות הישיבה לנוסעים בכל כלי, כולל המושבים שליד הנהג. חציון: "
                            + "; ".join(f"{SEG_NAME.get(s, s)} {_int(seg_seat_med[s])}" for s in segs)
                            + (f". כלים ללא מספר מקומות רשום, שאינם בתרשים: {_int(n_no_seats)}." if n_no_seats else ".")),
             "seats_aria": "תרשים עמודות מוערם: כלי רכב לפי מספר מקומות ישיבה וקטגוריה.",

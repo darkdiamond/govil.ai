@@ -29,9 +29,10 @@ import logging
 import os
 import threading
 import time
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, ClassVar, Literal, Mapping, Optional
+from typing import ClassVar, Literal
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
@@ -80,13 +81,13 @@ class ProviderSettings(BaseModel):
     max_bytes: int = 300_000_000
     # Name of the env var holding the source's API key, if it needs one. Read
     # on the host only; the compute sandbox's env is scrubbed regardless.
-    secret_env: Optional[str] = None
+    secret_env: str | None = None
     user_agent: str = "govil.ai-builder (+https://govil.ai)"
 
     @classmethod
     def from_env(
-        cls, key: str, defaults: "ProviderSettings", environ: Mapping[str, str] = os.environ
-    ) -> "ProviderSettings":
+        cls, key: str, defaults: ProviderSettings, environ: Mapping[str, str] = os.environ
+    ) -> ProviderSettings:
         prefix = f"PROVIDER_{key.upper()}_"
         values = defaults.model_dump()
         for name in cls.model_fields:
@@ -104,7 +105,7 @@ class SourcePresentation(BaseModel):
 
     source_name_he: str
     home_url: str
-    terms_url: Optional[str] = None
+    terms_url: str | None = None
     attribution_he: str
     download_label_he: str = "הורדה"
     # The shell's live data explorer reads the CKAN datastore — CKAN only.
@@ -122,11 +123,11 @@ class SourceConfig(BaseModel):
 
     provider: str
     title: str = Field(min_length=1)
-    notes: Optional[str] = None
+    notes: str | None = None
     tags: list[str] = Field(default_factory=list)
-    update_frequency: Optional[str] = None
+    update_frequency: str | None = None
     # Rendered as a link on the page: https only (no javascript:, data:, …).
-    source_url: Optional[str] = Field(None, pattern=r"^https://[^\s\"'<>]+$")
+    source_url: str | None = Field(None, pattern=r"^https://[^\s\"'<>]+$")
     config: dict = Field(default_factory=dict)
 
 
@@ -146,12 +147,12 @@ class ProviderFacts(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     title: str
-    notes: Optional[str] = None
+    notes: str | None = None
     organization: dict
-    license_title: Optional[str] = None
+    license_title: str | None = None
     tags: list[str] = Field(default_factory=list)
-    update_frequency: Optional[str] = None
-    source_url: Optional[str] = None
+    update_frequency: str | None = None
+    source_url: str | None = None
     resources: list[ProviderResource] = Field(min_length=1)
 
 
@@ -205,16 +206,16 @@ class SourceProvider(abc.ABC):
         # url → (normalized CSV, data row count), for one run.
         self._cache: dict[str, tuple[bytes, int]] = {}
         self._last_request = 0.0
-        self._healthy: Optional[bool] = None
+        self._healthy: bool | None = None
         # The reconcile sweep probes from several threads at once; politeness
         # spacing and the one-per-run healthcheck must hold across them.
         self._lock = threading.RLock()  # healthy() → healthcheck() → http_get()
         # One keep-alive pool for the run, so a run pays for a few TCP
         # connects instead of one per request. httpx.Client is thread-safe.
-        self._client: Optional[httpx.Client] = None
+        self._client: httpx.Client | None = None
 
     @classmethod
-    def from_env(cls, environ: Mapping[str, str] = os.environ) -> "SourceProvider":
+    def from_env(cls, environ: Mapping[str, str] = os.environ) -> SourceProvider:
         return cls(ProviderSettings.from_env(cls.key, cls.default_settings, environ))
 
     # ── config + facts ───────────────────────────────────────────────────
@@ -280,7 +281,7 @@ class SourceProvider(abc.ABC):
         data, rows = self._cached(resource)
         return ResourceVersion(hashlib.sha256(data).hexdigest(), len(data), rows)
 
-    def preview(self, resource: dict) -> Optional[dict]:
+    def preview(self, resource: dict) -> dict | None:
         """None on a failed download; ProviderTooLarge passes through."""
         try:
             data, rows = self._capped(resource)
@@ -296,7 +297,7 @@ class SourceProvider(abc.ABC):
             "sample_rows": [dict(zip(header, r, strict=False)) for r in sample],
         }
 
-    def fetch_to_file(self, resource: dict, dest: Path, *, max_bytes: int) -> Optional[FetchOutcome]:
+    def fetch_to_file(self, resource: dict, dest: Path, *, max_bytes: int) -> FetchOutcome | None:
         try:
             data, rows = self._capped(resource)
         except ProviderTooLarge:
@@ -314,10 +315,10 @@ class SourceProvider(abc.ABC):
         takes, bound to a source doc's resources (resource id → params)."""
         by_id = {r["id"]: r for r in resources}
 
-        def preview_fn(rid: str) -> Optional[dict]:
+        def preview_fn(rid: str) -> dict | None:
             return self.preview(by_id[rid]) if rid in by_id else None
 
-        def fetch_fn(rid, total, dest, *, max_bytes, **_kw) -> Optional[FetchOutcome]:
+        def fetch_fn(rid, total, dest, *, max_bytes, **_kw) -> FetchOutcome | None:
             return self.fetch_to_file(by_id[rid], dest, max_bytes=max_bytes) if rid in by_id else None
 
         return preview_fn, fetch_fn
@@ -359,19 +360,19 @@ class SourceProvider(abc.ABC):
     def auth_headers(self) -> dict[str, str]:
         return {}
 
-    def secret(self) -> Optional[str]:
+    def secret(self) -> str | None:
         env = self.settings.secret_env
         return (os.environ.get(env) or "").strip() or None if env else None
 
-    def http_get(self, url: str, *, params: Optional[dict] = None,
+    def http_get(self, url: str, *, params: dict | None = None,
                  ok: tuple[int, ...] = (200,),
-                 headers: Optional[dict] = None) -> httpx.Response:
+                 headers: dict | None = None) -> httpx.Response:
         """GET with the provider's timeout, politeness interval and retries
         (on transport errors and 5xx/429). A status outside `ok` that isn't
         retryable comes back to the caller as is."""
         headers = {"User-Agent": self.settings.user_agent, **self.auth_headers(),
                    **(headers or {})}
-        last: Optional[Exception] = None
+        last: Exception | None = None
         attempt = connect_stalls = 0
         while True:
             with self._lock:  # reserve the next slot, then sleep outside the lock

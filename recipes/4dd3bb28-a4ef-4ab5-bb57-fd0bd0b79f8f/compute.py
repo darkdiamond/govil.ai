@@ -17,10 +17,10 @@ product flows through as its own series and family.
 "Latest" is the latest month in the data, never the wall clock. Months are
 keyed YYYY-MM (some months are dated the 2nd or 3rd).
 """
+import itertools
 import re
 
 import pandas as pd
-
 from govlib import fmt
 
 MINUS = fmt.MINUS
@@ -93,7 +93,7 @@ def month_shift(m, d):
 
 def month_pairs(months):
     """Consecutive calendar-month pairs only: a gap in the upload is not a monthly move."""
-    return [(a, b) for a, b in zip(months, months[1:]) if month_shift(a, 1) == b]
+    return [(a, b) for a, b in itertools.pairwise(months) if month_shift(a, 1) == b]
 
 
 def fmt_price(v):
@@ -175,8 +175,8 @@ def compute(frames):
         by_fam.setdefault(series[k]["family"], []).append(k)
     reps = {}
     for fam, ks in by_fam.items():
-        reps[fam] = sorted(ks, key=lambda k: (QUOTE in k[0], PIPE not in k[0], units_seen.index(k[1]),
-                                              -series[k]["n"], k[0]))[0]
+        reps[fam] = min(ks, key=lambda k: (QUOTE in k[0], PIPE not in k[0], units_seen.index(k[1]),
+                                              -series[k]["n"], k[0]))
     rep_keys = sorted(reps.values(), key=lambda k: (units_seen.index(k[1]), series[k]["family"]))
     rep_active = [k for k in rep_keys if series[k]["last"] == latest]
 
@@ -255,8 +255,8 @@ def compute(frames):
         if series[k]["last"] == latest:
             since.append((pct(vs[latest], base), flabel(k), base_m))
     since.sort(key=lambda t: (-t[0], t[1]))
-    idx_lede = (f"כל מוצר מוצג ביחס למחירו בחודש הראשון שבו פורסם (=100), כך שאפשר להשוות מוצרים "
-                f"ביחידות שונות.")
+    idx_lede = ("כל מוצר מוצג ביחס למחירו בחודש הראשון שבו פורסם (=100), כך שאפשר להשוות מוצרים "
+                "ביחידות שונות.")
     if len(since) >= 2:
         hi_s, lo_s = since[0], since[-1]
         since_w = f"מאז {mlabel(first)}" if all(t[2] == first for t in since) else "מאז תחילת הפרסום"
@@ -309,8 +309,8 @@ def compute(frames):
         vs = series[k]["vals"]
         if len(vs) < 2:
             continue
-        lo_m = sorted(vs, key=lambda m: (vs[m], m))[0]
-        hi_m = sorted(vs, key=lambda m: (-vs[m], m))[0]
+        lo_m = min(vs, key=lambda m: (vs[m], m))
+        hi_m = min(vs, key=lambda m: (-vs[m], m))
         lo, hi, cur = vs[lo_m], vs[hi_m], vs[latest]
         posv = (cur - lo) / (hi - lo) if hi > lo else 0.5
         rng.append({"label": flabel(k), "unit": ushort(k), "pos": posv,
@@ -334,7 +334,7 @@ def compute(frames):
     heat_keys = rep_active if len(hm) > 1 else []
     cells, hmax = [], 0.0
     for yi, k in enumerate(heat_keys):
-        for xi, (a, b) in enumerate(zip(hm, hm[1:])):
+        for xi, (a, b) in enumerate(itertools.pairwise(hm)):
             c = pct(val(k, b), val(k, a)) if month_shift(a, 1) == b else None
             if c is not None:
                 cells.append([xi, yi, round(c, 1)])
@@ -371,8 +371,8 @@ def compute(frames):
         sm = [m for m in months if val(k_dsl, m) is not None and val(k_gas, m) is not None]
         if len(sm) >= 3:
             vals = [val(k_dsl, m) - val(k_gas, m) for m in sm]
-            hi_i = sorted(range(len(sm)), key=lambda i: (-vals[i], sm[i]))[0]
-            lo_i = sorted(range(len(sm)), key=lambda i: (vals[i], sm[i]))[0]
+            hi_i = min(range(len(sm)), key=lambda i: (-vals[i], sm[i]))
+            lo_i = min(range(len(sm)), key=lambda i: (vals[i], sm[i]))
             spread = {"x": [mshort(m) for m in sm], "y": [r2(v) for v in vals],
                       "first": vals[0], "first_m": sm[0], "last": vals[-1], "last_m": sm[-1],
                       "hi": vals[hi_i], "hi_m": sm[hi_i], "lo": vals[lo_i], "lo_m": sm[lo_i],

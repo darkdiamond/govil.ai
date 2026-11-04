@@ -44,7 +44,7 @@ TOP_ACAD = 12
 TOP_COUNTRIES = 12
 TOP_IN_BAND = 10        # concentration: share of a band's apps held by its top filers
 
-PLACEHOLDER_RE = re.compile(r"^APPLICANT\s*PP$", re.I)
+PLACEHOLDER_RE = re.compile(r"^APPLICANT\s*PP$", re.IGNORECASE)
 
 COUNTRY_HE = {
     "Israel": "ישראל", "U.S.A.": "ארה״ב", "USA": "ארה״ב", "United States": "ארה״ב",
@@ -265,7 +265,7 @@ def compute(frames):
     # ---------------- applicant types ----------------
     tcount = people["type"].value_counts()
     types = {"names": [lbl for k, lbl in TYPES], "values": [int(tcount.get(k, 0)) for k, _ in TYPES]}
-    n_rec = int(len(people))
+    n_rec = len(people)
     type_rows = [{"name": lbl, "n": _int(tcount.get(k, 0)),
                   "share": f"{tcount.get(k, 0) / n_rec * 100:.1f}",
                   "appl": _int((key_type == k).sum())} for k, lbl in TYPES]
@@ -316,9 +316,9 @@ def compute(frames):
         topk = ks.head(TOP_IN_BAND).index
         conc_y.append(round(float(sub[sub["key"].isin(topk)]["app"].nunique()) / n_b * 100, 1) if n_b else 0)
         kk = sub.drop_duplicates("key")
-        nn = int(kk["new"].sum()) if b != first_shown - 1 else int(len(kk))
+        nn = int(kk["new"].sum()) if b != first_shown - 1 else len(kk)
         new_y.append(nn)
-        ret_y.append(int(len(kk)) - nn)
+        ret_y.append(len(kk) - nn)
         new_share.append(round(nn / len(kk) * 100, 1) if len(kk) else 0)
     conc = {"x": labels, "y": conc_y}
     sk = [i for i, b in enumerate(band_keys) if b >= first_shown]   # collapsed band: all "new"
@@ -398,7 +398,7 @@ def compute(frames):
             comp["series"].append({"name": lbl, "data": data})
         comp["keys"] = comp_keys
         comp_tot = {k: int((g["kind"] == k).sum()) for k, _ in kinds}
-        comp_n = int(len(g))
+        comp_n = len(g)
         comp_rows = [{"band": ranges[idx(b)], "vals": [f"{s['data'][j]:.1f}" for s in comp["series"]]}
                      for j, b in enumerate(comp_keys)]
         # applicant-type profile: Israeli vs foreign records

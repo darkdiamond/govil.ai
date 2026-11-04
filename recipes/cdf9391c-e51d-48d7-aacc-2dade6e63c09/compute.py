@@ -16,10 +16,9 @@ named in the decisions ranking.
 
 "Now" is the latest date in the data (its vintage), never the wall clock.
 """
-import numpy as np
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -51,7 +50,7 @@ OUTCOMES = ["התקבלה", "ניתן פסק דין", "פשרה", "נמחקה", 
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -487,7 +486,6 @@ def compute(frames):
     # weekday
     wd = cm["d"].dt.dayofweek.value_counts()
     wd_counts = {i: int(wd.get(i, 0)) for i in range(7)}
-    wd_tot = sum(wd_counts.values()) or 1
     weekday = {"names": [WEEKDAYS_HE[i] for i in WEEK_ORDER],
                "values": [wd_counts[i] for i in WEEK_ORDER]}
 
@@ -503,7 +501,7 @@ def compute(frames):
     for y in con_years:
         if y not in lag_med.index:
             continue
-        qual_rows.append({"year": y, "lag": int(round(float(lag_med[y]))),
+        qual_rows.append({"year": y, "lag": round(float(lag_med[y])),
                           "week": round(float(lag_week[y]) * 100, 1),
                           "missing": round(float(miss.get(y, 0)) * 100, 1),
                           "registrars": int(regs.get(y, 0))})
@@ -514,7 +512,7 @@ def compute(frames):
 
     # ── outcomes by topic (closed cases with a recorded decision) ──
     dec_share = (dated["decision"] != "").groupby(dated["y"]).mean().sort_index()
-    big_years = set(int(y) for y in per_year[per_year >= per_year.max() * 0.1].index)
+    big_years = {int(y) for y in per_year[per_year >= per_year.max() * 0.1].index}
     good = [int(y) for y, v in dec_share.items()
             if v >= 0.8 and y <= last_full and int(y) in big_years]
     dec_from = min(good) if good else None
@@ -591,7 +589,6 @@ def compute(frames):
     open_status = [(k, int(v)) for k, v in _sorted_counts(cases.loc[open_mask, "status"]).items()]
 
     # ── insights ──
-    dg = div_year
     rules = [
         ("ytd", insight_ytd(ytd, ytd_prev, ref, prev_year) if ytd_ok else None),
         ("ramadan", insight_ramadan(pool)),
@@ -643,7 +640,7 @@ def compute(frames):
                  f"ללא פרטים על הצדדים."),
         "ytd_kpi": f"תיקים שנפתחו ב-{ref.year} (עד {d_short(ref)})",
         "ytd_change_kpi": f"לעומת התקופה המקבילה ב-{prev_year}",
-        "ramadan_kpi": f"חוזי נישואין ביום ברמדאן, לעומת החודשים הסמוכים",
+        "ramadan_kpi": "חוזי נישואין ביום ברמדאן, לעומת החודשים הסמוכים",
         "missing_kpi": (f"חוזים ללא שם רשם נישואין ({last_reg['year']})" if last_reg
                         else "חוזים ללא שם רשם נישואין"),
         "qadis_kpi": f"קאדים שנתנו החלטות ({q0}–{last_full})",

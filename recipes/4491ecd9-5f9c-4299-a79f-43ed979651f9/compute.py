@@ -112,7 +112,7 @@ def _domain(url):
     s = url.strip()
     if not s:
         return ""
-    s = re.sub(r"^[a-z]+://", "", s, flags=re.I)
+    s = re.sub(r"^[a-z]+://", "", s, flags=re.IGNORECASE)
     s = s.split("/", 1)[0].lower()
     return re.sub(r"^www\.", "", s)
 

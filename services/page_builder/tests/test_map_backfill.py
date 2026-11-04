@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import shutil
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -149,7 +149,7 @@ def test_open_issue_uses_the_job_title_and_parses_the_url(monkeypatch):
 def test_declined_issues_are_never_asked_again(tmp_path, monkeypatch):
     src = SimpleNamespace(
         id=DS, title="t", provider=None, analysis_status="succeeded",
-        metadata_modified=datetime(2026, 10, 1, tzinfo=timezone.utc),
+        metadata_modified=datetime(2026, 10, 1, tzinfo=UTC),
         resources=[{"id": GEO, "format": "ZIP", "datastore_active": False, "url": "x"}],
     )
     monkeypatch.setattr(mb, "_iter_sources", lambda store: iter([src]))
@@ -157,7 +157,7 @@ def test_declined_issues_are_never_asked_again(tmp_path, monkeypatch):
     def no_download(res, dest):
         raise AssertionError("a declined dataset is never downloaded")
 
-    out = mb.find_candidates(None, floor=datetime(2025, 1, 1, tzinfo=timezone.utc),
+    out = mb.find_candidates(None, floor=datetime(2025, 1, 1, tzinfo=UTC),
                              recipes_root=tmp_path, issues={}, declined={DS[:8]},
                              download=no_download)
     assert [c.kind for c in out] == ["declined"]

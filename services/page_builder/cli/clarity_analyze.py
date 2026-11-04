@@ -21,9 +21,9 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import httpx
 from dotenv import load_dotenv
@@ -160,7 +160,7 @@ def _write_readme(out_dir: Path, num_of_days: int, fetched_at: str) -> None:
 
 async def _run(token: str, num_of_days: int, out_dir: Path) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
-    fetched_at = datetime.now(timezone.utc).isoformat()
+    fetched_at = datetime.now(UTC).isoformat()
     meta: dict[str, Any] = {
         "fetched_at": fetched_at,
         "num_of_days": num_of_days,
@@ -200,7 +200,7 @@ async def _run(token: str, num_of_days: int, out_dir: Path) -> int:
     return 0 if not meta["errors"] else 1
 
 
-def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(
         prog="clarity_analyze",
         description="Fetch a Microsoft Clarity snapshot for govil.ai.",
@@ -226,7 +226,7 @@ def _parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     return p.parse_args(argv)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     args = _parse_args(argv)
 
@@ -243,7 +243,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         )
         return 2
 
-    out_dir = args.out or (DEFAULT_OUT_DIR / datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    out_dir = args.out or (DEFAULT_OUT_DIR / datetime.now(UTC).strftime("%Y-%m-%d"))
     return asyncio.run(_run(token, args.days, out_dir))
 
 

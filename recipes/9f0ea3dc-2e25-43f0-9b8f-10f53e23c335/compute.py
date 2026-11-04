@@ -205,8 +205,8 @@ def insight_seniority(sen_share, label, counts):
     elig = [c for c in sen_share if counts.get(c, 0) >= 50]
     if len(elig) < 3:
         return None
-    newest = sorted(elig, key=lambda c: (-sen_share[c][0], _code_key(c)))[0]
-    oldest = sorted(elig, key=lambda c: (-(sen_share[c][2] + sen_share[c][3]), _code_key(c)))[0]
+    newest = min(elig, key=lambda c: (-sen_share[c][0], _code_key(c)))
+    oldest = min(elig, key=lambda c: (-(sen_share[c][2] + sen_share[c][3]), _code_key(c)))
     if newest == oldest or sen_share[newest][0] < 0.3:
         return None
     return (f"{label(newest)} היא ההכשרה הצעירה: {pct(sen_share[newest][0], 0)} מבעליה הוסמכו בשלוש "
@@ -288,7 +288,6 @@ def compute(frames):
     tbl_types = []
     for c in codes_all:
         g = df[df["code"] == c]
-        gv = g["valid"].dropna()
         tbl_types.append({
             "code": c, "prefix": prefixes.get(c, "—"), "count": n(len(g)),
             "share": pct(len(g) / total),
@@ -477,8 +476,8 @@ def compute(frames):
                         f"{n(n_window)} בסך הכול, לפי סוג."),
         "window_aria": f"גרף עמודות מוערמות: הכשרות שתוקפן פג בכל חודש ב-{WINDOW_MONTHS} החודשים שאחרי מועד הייחוס.",
         "window_caption": "הכשרות שתוקפן פג לפי חודש.",
-        "seniority_note": (f"ותק ההכשרה — הזמן מתאריך הקבלה ועד מועד הייחוס — בכל סוג. "
-                           f"סוג צעיר נפתח או התרחב לאחרונה; סוג ותיק מוחזק בעיקר על ידי מי שחידשו."),
+        "seniority_note": ("ותק ההכשרה — הזמן מתאריך הקבלה ועד מועד הייחוס — בכל סוג. "
+                           "סוג צעיר נפתח או התרחב לאחרונה; סוג ותיק מוחזק בעיקר על ידי מי שחידשו."),
         "seniority_aria": "גרף עמודות מוערמות באחוזים: ותק ההכשרה לפי סוג.",
         "seniority_caption": "ותק ההכשרה לפי סוג (שיעור מההכשרות, וחציון בשנים).",
         "multi_note": f"בכמה סוגי הכשרה שונים מחזיק כל בעל הכשרה. {approx}",

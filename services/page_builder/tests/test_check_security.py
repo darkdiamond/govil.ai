@@ -135,15 +135,15 @@ def test_token_level_bypasses_rejected(js, capsys):
     "body",
     [
         # icon headers + gov.il images
-        '<div class="flex items-center gap-2 mb-3 text-brand">'
-        '<img src="/icons/chart-bar.svg" alt="" class="w-5 h-5"/><h2>x</h2></div>',
-        '<img src="https://govextra.gov.il/media/x.png" alt="" '
-        "onerror=\"this.style.visibility='hidden'\"/>",
+        ('<div class="flex items-center gap-2 mb-3 text-brand">'
+        '<img src="/icons/chart-bar.svg" alt="" class="w-5 h-5"/><h2>x</h2></div>'),
+        ('<img src="https://govextra.gov.il/media/x.png" alt="" '
+        "onerror=\"this.style.visibility='hidden'\"/>"),
         "<img src=\"/icons/x.svg\" onerror=\"this.style.display='none'\">",
         # the one benign onclick in the corpus
-        '<button type="button" class="btn-ghost text-xs" '
+        ('<button type="button" class="btn-ghost text-xs" '
         "onclick=\"window.open('https://data.gov.il/dataset/51227f7b-26fe-4a79-ba70-5468add8b1a4','_blank')\">"
-        "מאגר הנתונים</button>",
+        "מאגר הנתונים</button>"),
         # external <a href> links are fine
         '<a href="https://www.gov.il/he/departments/x" target="_blank" rel="noopener">x</a>',
         # Leaflet tiles are a JS string, not a src= attribute

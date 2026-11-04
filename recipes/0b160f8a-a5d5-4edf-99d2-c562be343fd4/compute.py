@@ -263,7 +263,7 @@ def compute(frames: dict[str, pd.DataFrame]) -> dict:
         "combo_aria": ("גרף עמודות אופקי מוערם: מעבדות לפי צירוף סוגי בדיקה, "
                        + "; ".join(f"{r['name']} {r['total']}" for r in combo_table) + "."),
         "combo_caption": "מעבדות לפי צירוף סוגי בדיקה וסוג מעבדה",
-        "city_note": (f"מספר המעבדות בכל יישוב, לפי היישוב שבסוף הכתובת. "
+        "city_note": ("מספר המעבדות בכל יישוב, לפי היישוב שבסוף הכתובת. "
                       + (f"מעבדה שכתובתה כוללת כמה אתרים מוצגת כ\"{MULTI_SITE}\"." if n_multi_site else "")
                       + (f" מוצגים {CITY_TOP} היישובים המובילים והשאר תחת \"{frame.OTHER}\"."
                          if frame.OTHER in labels else "")).strip(),

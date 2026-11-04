@@ -30,7 +30,7 @@ DIR_MAX_ROWS = 400      # directory rows rendered in full
 LEADER_SHARE = 0.25     # a "leading authority" holds at least this share
 VENUE_LEADER_SHARE = 0.30
 SINGLE_SHARE = 0.5      # "most localities have a single station" threshold
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 DISTRICTS = {
     "north": "מחוז הצפון", "haifa": "מחוז חיפה", "center": "מחוז המרכז",
@@ -263,7 +263,7 @@ def compute(frames):
         s = (f"ב-{n(singles)} מתוך {n(n_loc)} היישובים ({pct(singles / n_loc)}) יש קלפי נגישה אחת בלבד")
         mx = per.sort_index().sort_values(ascending=False, kind="mergesort")
         if int(mx.iloc[0]) > 1:
-            (a_, l_), c_ = mx.index[0], int(mx.iloc[0])
+            (_, l_), c_ =mx.index[0], int(mx.iloc[0])
             s += f"; הריכוז הגדול ביותר הוא ב{l_}, עם {n(c_)} קלפיות נגישות"
         return s + "."
     add("single", ins_single())

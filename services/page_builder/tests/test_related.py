@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 from services.page_builder import related
 from services.page_builder.related import RelatedIndex, compute_related
@@ -12,8 +11,8 @@ from services.page_builder.related import RelatedIndex, compute_related
 class E:
     id: str
     title: str
-    summary_he: Optional[str] = None
-    organization_slug: Optional[str] = None
+    summary_he: str | None = None
+    organization_slug: str | None = None
     tags: list[str] = field(default_factory=list)
     source_status: str = "available"
 

@@ -21,7 +21,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 SECTIONS = ["A", "B", "C", "D", "E", "F", "G", "H"]
 SECTION_HE = {
@@ -115,7 +115,7 @@ RESIDUAL_RE = r"(?i)not provided for in other groups"
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -411,10 +411,10 @@ def compute(frames):
     max_dep = int(df["lvl"].max())
     cap = min(max_dep, MAX_LEVEL_BARS)
     lv = df["lvl"].clip(upper=cap)
-    lv_counts = lv.value_counts().reindex(range(0, cap + 1), fill_value=0)
-    leaf_by = df.groupby(lv)["leaf"].mean().reindex(range(0, cap + 1)).fillna(0)
-    frag_by = df.groupby(lv)["frag"].mean().reindex(range(0, cap + 1)).fillna(0)
-    lv_names = [level_label(i) if (i < cap or cap == max_dep) else f"רמה {LRI}{i}+{PDI}" for i in range(0, cap + 1)]
+    lv_counts = lv.value_counts().reindex(range(cap + 1), fill_value=0)
+    leaf_by = df.groupby(lv)["leaf"].mean().reindex(range(cap + 1)).fillna(0)
+    frag_by = df.groupby(lv)["frag"].mean().reindex(range(cap + 1)).fillna(0)
+    lv_names = [level_label(i) if (i < cap or cap == max_dep) else f"רמה {LRI}{i}+{PDI}" for i in range(cap + 1)]
     depth = {"names": lv_names, "values": [int(v) for v in lv_counts],
              "leaf": [round(float(v) * 100, 1) for v in leaf_by],
              "frag": [round(float(v) * 100, 1) for v in frag_by]}

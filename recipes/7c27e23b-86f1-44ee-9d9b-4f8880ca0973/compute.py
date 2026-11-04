@@ -30,7 +30,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 BLOCKS = [  # (lo, hi, name) — inclusive code ranges
     (1, 99, "מערב אסיה"),
@@ -153,7 +153,7 @@ def insight_blocks(block_rows, total):
 def insight_historical(hist_rows, total):
     if len(hist_rows) < 3:
         return None
-    big = sorted(hist_rows, key=lambda r: (-r["n_succ"], r["code"]))[0]
+    big = min(hist_rows, key=lambda r: (-r["n_succ"], r["code"]))
     tail = ""
     if big["n_succ"] >= 3:
         tail = (f" הבולטת שבהן: {big['name']} (סמל {big['code']}), שמופיעה לצד "
@@ -291,7 +291,7 @@ def compute(frames):
         cnt = {k: int(g.get((b, k), 0)) for k in ("country", "historical", "general")}
         rng = f"{int(sub['code'].min())} עד {int(sub['code'].max())}"
         block_rows.append({"block": b, "order": order_idx[b], "range": rng,
-                           "total": int(len(sub)), **cnt,
+                           "total": len(sub), **cnt,
                            "share": share(len(sub), total)})
     blocks_chart = {
         "names": [r["block"] for r in block_rows],
@@ -310,9 +310,9 @@ def compute(frames):
         sub = sub.sort_values("code", kind="stable")
         names = ", ".join(f"{c} {nm or '—'}" for c, nm in zip(sub["code"], sub["name"]))
         lo = int(h) * 100 + int(t) * 10
-        cells.append([int(t), int(h), int(len(sub))])
+        cells.append([int(t), int(h), len(sub)])
         info.append({"range": f"{lo} עד {lo + 9}", "names": names})
-        cell_rows.append({"lo": lo, "hi": lo + 9, "count": int(len(sub))})
+        cell_rows.append({"lo": lo, "hi": lo + 9, "count": len(sub)})
     cell_rows.sort(key=lambda r: r["lo"])
     codes_chart = {
         "x": [str(t * 10) for t in range(10)],
@@ -321,7 +321,7 @@ def compute(frames):
         "info": info,
         "max": max([c[2] for c in cells] or [1]),
     }
-    densest = sorted(cell_rows, key=lambda r: (-r["count"], r["lo"]))[0] if cell_rows else None
+    densest = min(cell_rows, key=lambda r: (-r["count"], r["lo"])) if cell_rows else None
 
     # Comparison with the earlier list.
     old = _frame(frames["snapshot"])
@@ -354,7 +354,7 @@ def compute(frames):
             if raw_old.at[code, "ארץ_באנגלית"].strip() != raw_cur.at[code, "ארץ_באנגלית"].strip():
                 ws_fix += 1
         ch = {
-            "old_total": int(len(old)), "added": int(len(added)), "removed": int(len(removed)),
+            "old_total": len(old), "added": len(added), "removed": len(removed),
             "added_rows": [{"code": int(c), "name": nm or "—", "eng": e or "—", "block": b}
                            for c, nm, e, b in zip(added["code"], added["name"], added["eng"], added["block"])],
             "removed_rows": [{"code": int(c), "name": nm or "—", "eng": e or "—"}
@@ -397,8 +397,7 @@ def compute(frames):
         if txt:
             insights.append({"id": iid, "text_he": txt})
 
-    top_block = sorted([r for r in block_rows if r["block"] not in (ZERO_BLOCK, OTHER_BLOCK)] or block_rows,
-                       key=lambda r: (-r["total"], r["order"]))[0]
+    top_block = min([r for r in block_rows if r["block"] not in (ZERO_BLOCK, OTHER_BLOCK)] or block_rows, key=lambda r: (-r["total"], r["order"]))
     labels = {
         "lede": (f"טבלת הסמלים של רשות האוכלוסין וההגירה לארצות: {n(total)} סמלים, כל אחד עם "
                  f"שם בעברית ובאנגלית. לצד {n(n_country)} ארצות וטריטוריות היא כוללת {n(n_hist)} סמלים של ישויות "

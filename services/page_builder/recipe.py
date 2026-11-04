@@ -43,9 +43,9 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -95,13 +95,13 @@ class SnapshotOf(BaseModel):
     is a note only: CKAN bumps it on byte-identical re-uploads."""
     model_config = ConfigDict(extra="forbid")
 
-    size: Optional[int] = Field(default=None, ge=0)
-    hash: Optional[str] = None
-    last_modified: Optional[str] = None
-    taken_at: Optional[str] = None
+    size: int | None = Field(default=None, ge=0)
+    hash: str | None = None
+    last_modified: str | None = None
+    taken_at: str | None = None
 
     @model_validator(mode="after")
-    def _comparable(self) -> "SnapshotOf":
+    def _comparable(self) -> SnapshotOf:
         if self.size is None and not self.hash:
             raise ValueError("snapshot_of needs `size` or `hash`")
         return self
@@ -144,19 +144,19 @@ class RecipeInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
-    by_id: Optional[str] = None
-    by_schema: Optional[list[str]] = None
+    by_id: str | None = None
+    by_schema: list[str] | None = None
     concat: bool = False
     pick: Literal["all", "latest"] = "all"
     required_columns: list[str] = Field(default_factory=list)
-    columns: Optional[list[str]] = Field(default=None, min_length=1)
-    snapshot: Optional[str] = None
-    snapshot_of: Optional[SnapshotOf] = None
+    columns: list[str] | None = Field(default=None, min_length=1)
+    snapshot: str | None = None
+    snapshot_of: SnapshotOf | None = None
     map: bool = False
-    map_max_kb: Optional[int] = Field(default=None, ge=1, le=MAP_MAX_KB_CEILING)
+    map_max_kb: int | None = Field(default=None, ge=1, le=MAP_MAX_KB_CEILING)
 
     @model_validator(mode="after")
-    def _one_selector(self) -> "RecipeInput":
+    def _one_selector(self) -> RecipeInput:
         if bool(self.by_id) == bool(self.by_schema):
             raise ValueError(f"input {self.name!r}: set exactly one of by_id / by_schema")
         if self.map_max_kb is not None and not self.map:
@@ -217,12 +217,12 @@ class RecipeLimits(BaseModel):
     """
     model_config = ConfigDict(extra="forbid")
 
-    max_records: Optional[int] = Field(default=None, ge=1, le=20_000_000)
-    max_bytes: Optional[int] = Field(default=None, ge=1, le=2_000_000_000)
-    total_bytes: Optional[int] = Field(default=None, ge=1, le=4_000_000_000)
-    wall_budget_s: Optional[int] = Field(default=None, ge=1, le=3600)
-    compute_timeout_s: Optional[int] = Field(default=None, ge=1, le=1800)
-    compute_memory_mb: Optional[int] = Field(default=None, ge=256, le=30_000)
+    max_records: int | None = Field(default=None, ge=1, le=20_000_000)
+    max_bytes: int | None = Field(default=None, ge=1, le=2_000_000_000)
+    total_bytes: int | None = Field(default=None, ge=1, le=4_000_000_000)
+    wall_budget_s: int | None = Field(default=None, ge=1, le=3600)
+    compute_timeout_s: int | None = Field(default=None, ge=1, le=1800)
+    compute_memory_mb: int | None = Field(default=None, ge=256, le=30_000)
 
 
 class RecipeManifest(BaseModel):
@@ -252,7 +252,7 @@ class RecipeManifest(BaseModel):
         return bool(self.limits.model_fields_set)
 
     @model_validator(mode="after")
-    def _unique_names(self) -> "RecipeManifest":
+    def _unique_names(self) -> RecipeManifest:
         names = [i.name for i in self.inputs]
         if len(names) != len(set(names)):
             raise ValueError("input names must be unique")
@@ -276,7 +276,7 @@ class Kpi(BaseModel):
     # Validated here, not only in author verify: a tone branch that only
     # fires on some future data state must fail the refresh (page kept,
     # issue opened), not ship an uncoloured `text-<typo>` KPI.
-    tone: Optional[KpiTone] = None
+    tone: KpiTone | None = None
 
 
 class Insight(BaseModel):
@@ -322,7 +322,7 @@ class Recipe:
         return [*RECIPE_FILES, *self.manifest.snapshot_files]
 
     @classmethod
-    def load(cls, root: Path) -> "Recipe":
+    def load(cls, root: Path) -> Recipe:
         root = Path(root)
         missing = [f for f in RECIPE_FILES if not (root / f).is_file()]
         if missing:
@@ -391,7 +391,7 @@ def feature_table(doc: Any, what: str, *,
     return [*keys, GEOMETRY_COLUMN], rows
 
 
-def snapshot_stale(inp: RecipeInput, res: Optional[dict]) -> Optional[str]:
+def snapshot_stale(inp: RecipeInput, res: dict | None) -> str | None:
     """Why the CKAN resource has moved past its snapshot, or None. Compares
     CKAN's md5 when both sides have one, else the size. A resource with
     neither can't be judged: logged, not failed."""
@@ -421,8 +421,8 @@ def _modified_key(resource: dict) -> datetime:
     if isinstance(v, str):
         v = _parse_datetime(v)
     if not isinstance(v, datetime):
-        return datetime.min.replace(tzinfo=timezone.utc)
-    return v if v.tzinfo else v.replace(tzinfo=timezone.utc)
+        return datetime.min.replace(tzinfo=UTC)
+    return v if v.tzinfo else v.replace(tzinfo=UTC)
 
 
 def resolve_inputs(
@@ -532,7 +532,7 @@ def resolve_inputs(
 
 
 def _fmt_int(v: Any) -> str:
-    return f"{int(round(float(v))):,}"
+    return f"{round(float(v)):,}"
 
 
 def _fmt_num(v: Any, digits: int = 1) -> str:
@@ -569,7 +569,7 @@ def _environment():
     return env
 
 
-def render_template(template_src: str, model: dict, inputs: Optional[dict] = None) -> str:
+def render_template(template_src: str, model: dict, inputs: dict | None = None) -> str:
     """Render a body template against a page model.
 
     Sandboxed + StrictUndefined: a template that references a key the model
@@ -686,7 +686,7 @@ def kpi_format_findings(html: str) -> list[str]:
         if not _KPI_TONE_RE.search(attrs):
             out.append(f"KPI-FORMAT: {where} colour must be one of text-brand, "
                        "text-ok, text-warn, text-info, text-danger")
-        if re.search("[⁦-⁩‎‏]", value):
+        if re.search("[\u2066-\u2069\u200e\u200f]", value):
             out.append(f'KPI-FORMAT: {where} contains bidi marks — dir="ltr" handles direction')
         if re.search(r"(?<![\w.])-\d", value):
             out.append(f"KPI-FORMAT: {where} uses '-' — use the minus sign '−' (U+2212)")

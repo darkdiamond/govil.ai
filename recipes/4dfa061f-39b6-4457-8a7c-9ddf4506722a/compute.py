@@ -70,7 +70,7 @@ def _clean(s):
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, d=0):

@@ -31,7 +31,7 @@ PRIVATE = "מבקש פרטי"
 
 # ── formatting ─────────────────────────────────────────────────────────────
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):

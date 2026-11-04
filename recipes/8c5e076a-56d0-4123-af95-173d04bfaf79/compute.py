@@ -41,7 +41,7 @@ CITY_ALIAS = {"ת\"א": "תל אביב", "תל אביב יפו": "תל אביב"
 GENERIC_TOKENS = {"החברה", "חברה", "חברת", "קרן", "קרנות", "קופת", "קופת\"ג", "התאגיד",
                   "תגמולים", "ביטוח", "מבטחים"}
 COMBINED = "נכנסות ויוצאות"
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 
@@ -317,7 +317,7 @@ def compute(frames):
         dom_rows.append({"name": DOMAIN_LABEL.get(d, d), "code": d,
                          "companies": int(r["company"].nunique()),
                          "funds": int(t.loc[t["fund_no"].ne(""), "fund_no"].nunique()),
-                         "tracks": int(len(t))})
+                         "tracks": len(t)})
     dom_names = [r["name"] for r in dom_rows]
     dom_codes = [r["code"] for r in dom_rows]
 
@@ -497,9 +497,9 @@ def compute(frames):
 
     kpis = {
         "tracks": {"value": n_tracks, "display": n(n_tracks), "tone": "brand"},
-        "funds": {"value": int(len(funds)), "display": n(len(funds)), "tone": "brand"},
+        "funds": {"value": len(funds), "display": n(len(funds)), "tone": "brand"},
         "companies": {"value": len(companies), "display": n(len(companies)), "tone": "brand"},
-        "accounts": {"value": int(len(accounts)), "display": n(len(accounts)), "tone": "brand"},
+        "accounts": {"value": len(accounts), "display": n(len(accounts)), "tone": "brand"},
         "fresh": {"value": round(fresh_share * 100, 1), "display": f"{fresh_share * 100:.1f}%",
                   "tone": "ok" if fresh_share >= 0.5 else "warn"},
     }
@@ -517,8 +517,8 @@ def compute(frames):
                        f"{n(len(company_only))} חברות ביטוח רשומות ברמת החברה בלבד, ללא מסלול וללא "
                        f"חשבון, ואינן נכללות בספירת המסלולים."),
         "fresh_kpi": f"מהמסלולים עודכנו בשנה האחרונה (עד {d_he(ref)})",
-        "domain_note": (f"מספר החברות, הקופות והמסלולים בכל תחום. בביטוח אין מספר קופה, ולכן "
-                        f"נספרים בו רק מסלולים."),
+        "domain_note": ("מספר החברות, הקופות והמסלולים בכל תחום. בביטוח אין מספר קופה, ולכן "
+                        "נספרים בו רק מסלולים."),
         "domain_aria": "תרשים עמודות מקובצות: חברות, קופות ומסלולים בכל תחום.",
         "domain_caption": "חברות, קופות וקרנות ומסלולי השקעה לפי תחום.",
         "comp_note": (f"מספר המסלולים של כל חברה מנהלת, לפי תחום. מוצגות {len(c_names)} החברות "
@@ -556,7 +556,7 @@ def compute(frames):
                         "להעברות נכנסות ויוצאות לאותו חשבון, או שני חשבונות שונים. באחוזים מהמסלולים בכל תחום."),
         "struct_aria": "תרשים עמודות מוערמות באחוזים: מבנה חשבונות ההעברה בכל תחום.",
         "struct_caption": "מספר המסלולים לפי מבנה חשבונות ההעברה ותחום.",
-        "up_note": (f"שנת העדכון האחרון של רשומות כל מסלול, לפי תחום."
+        "up_note": ("שנת העדכון האחרון של רשומות כל מסלול, לפי תחום."
                     + (f" {n(n_tracks - len(up))} מסלולים ללא תאריך עדכון אינם נכללים."
                        if n_tracks > len(up) else "")
                     + (f" {ref.year} — שנה חלקית, עד {d_he(ref)}." if partial_year else "")),
@@ -566,7 +566,7 @@ def compute(frames):
                       f"המסלולים שהם משרתים."),
         "pool_aria": "תרשים עמודות: חשבונות בנק ומסלולים לפי מספר המסלולים לחשבון.",
         "pool_caption": "חשבונות ומסלולים לפי מספר המסלולים שכל חשבון משרת.",
-        "city_note": (f"העיר שבה נמצאת מחלקת ההעברות, במספר חברות מנהלות."
+        "city_note": ("העיר שבה נמצאת מחלקת ההעברות, במספר חברות מנהלות."
                       + (f" ל-{n(no_city)} חברות לא צוינה עיר." if no_city else "")),
         "city_aria": "תרשים עמודות אופקיות: חברות מנהלות לפי עיר מחלקת ההעברות.",
         "city_caption": "מספר חברות מנהלות לפי עיר.",

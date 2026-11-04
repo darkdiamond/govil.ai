@@ -66,7 +66,7 @@ PHI_BUCKETS = [(0, 0), (1, 3), (4, 7), (8, 14), (15, 21), (22, 30), (31, 60), (6
 REENTRY_ORDER = ["מיד / ללא מגבלה", "עם התייבשות התרסיס", "עד 4 שעות", "5–12 שעות",
                  "13–24 שעות", "מעל 24 שעות", OTHER, UNSPEC]
 UN_NAMES = {"3082": "חומר מסוכן לסביבה, נוזלי", "3077": "חומר מסוכן לסביבה, מוצק"}
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 PHI_RE = re.compile(r"^(?:ימים\s*)?(\d+)\s*(?:ימים|יום)?\s*(?:לפני.*)?$")
@@ -147,7 +147,7 @@ def reentry_class(s):
         return UNSPEC
     if "התייבש" in s or "היתייבש" in s:
         return "עם התייבשות התרסיס"
-    if "אין מגבלה" in s or s.startswith("מיד") or s.startswith("בסיום"):
+    if "אין מגבלה" in s or s.startswith(("מיד", "בסיום")):
         return "מיד / ללא מגבלה"
     m = HOURS_RE.search(s)
     if m:
@@ -462,9 +462,9 @@ def compute(frames):
     phn = ph.dropna(subset=["d"]).groupby([LIC, CROP, PEST, CROPGRP])["d"].max().reset_index()
     phi_hist_c = phn["d"].map(phi_bucket).value_counts()
     phi_labels = [phi_bucket(lo) for lo, _ in PHI_BUCKETS]
-    n_phi_num = int(len(phn.drop_duplicates([LIC, CROP, PEST])))
+    n_phi_num = len(phn.drop_duplicates([LIC, CROP, PEST]))
     n_phi_none = int((~stated).sum())
-    n_phi_text = max(int(len(stated)) - n_phi_num - n_phi_none, 0)
+    n_phi_text = max(len(stated) - n_phi_num - n_phi_none, 0)
     phi_hist = {"names": phi_labels, "values": [int(phi_hist_c.get(b, 0)) for b in phi_labels]}
     stats = []
     for g, sub in phn.groupby(CROPGRP):
@@ -472,7 +472,7 @@ def compute(frames):
             continue
         q = sub["d"].quantile([0.1, 0.25, 0.5, 0.75, 0.9]).tolist()
         stats.append({"group": g, "q": [round(float(v), 1) for v in q], "med": float(q[2]),
-                      "count": int(len(sub))})
+                      "count": len(sub)})
     stats.sort(key=lambda s: (-s["med"], -s["count"], s["group"]))
     phi_box = {"names": [s["group"] for s in stats], "box": [s["q"] for s in stats]}
 

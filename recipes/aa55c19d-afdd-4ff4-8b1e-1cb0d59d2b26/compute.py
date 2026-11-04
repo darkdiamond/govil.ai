@@ -179,8 +179,6 @@ def compute(frames):
     p2_count, p3_count = int(p2.notna().sum()), int(p3.notna().sum())
 
     # shared e-mail addresses (two or more guides listing the same address)
-    em_valid = emails[df["has_email"]]
-    shared_email_rows = int(em_valid.duplicated(keep=False).sum())
 
     # --- providers ------------------------------------------------------------
     def prov(d):
@@ -188,7 +186,7 @@ def compute(frames):
             return None
         if d in PROVIDERS:
             return PROVIDERS[d]
-        if d.endswith(".ac.il") or d.endswith(".edu"):
+        if d.endswith((".ac.il", ".edu")):
             return ("מוסד אקדמי", ACAD)
         return ("דומיין פרטי או ארגוני", OWN)
 
@@ -312,7 +310,7 @@ def compute(frames):
         ex = lang_raw[lang_raw != ""].map(lambda v: sorted({t.strip() for t in SPLIT_RE.split(v) if t.strip()}))
         flat = pd.Series([t for lst in ex for t in lst], dtype=str)
         tl = _top_counts(flat, TOP_LANGS)
-        langs = {"names": [k for k, _ in tl], "values": [v for _, v in tl], "n": int(len(ex))}
+        langs = {"names": [k for k, _ in tl], "values": [v for _, v in tl], "n": len(ex)}
 
     # --- insights --------------------------------------------------------------
     insights = []
@@ -410,7 +408,7 @@ def compute(frames):
             return None
         third = ("ושדה הטלפון השלישי ריק בכל הרשומות" if p3_count == 0
                  else f"ושדה הטלפון השלישי מלא אצל {_n(p3_count)} בלבד")
-        both_empty = (f"שדות שפת ההדרכה והרכב ריקים בכל הרשומות"
+        both_empty = ("שדות שפת ההדרכה והרכב ריקים בכל הרשומות"
                       if lang_fill == 0 and veh_fill == 0 else
                       f"שדות שפת ההדרכה והרכב ריקים ב־{empty_l:.1f}% וב־{empty_v:.1f}% מהרשומות")
         return f"{both_empty}, {third} — אי אפשר ללמוד מהרשימה באילו שפות מדריך כל מורה דרך."
@@ -477,7 +475,6 @@ def compute(frames):
         "kind_cols": KIND_ORDER,
     }
 
-    fine_nonzero = [i for i, c in enumerate(fine["counts"]) if c > 0]
     peak_i = max(range(nb), key=lambda i: (fine["counts"][i], -i)) if nb else 0
     o = full_bands[0] if full_bands else None
     lede = (f"רשימת מורי הדרך המורשים של משרד התיירות כוללת {_n(total)} מורי דרך. לכל אחד מופיעים "
@@ -525,15 +522,15 @@ def compute(frames):
         "prefix_caption": "קידומות הטלפון הראשי של מורי הדרך",
         "region_note": (f"אזור החיוג של {_n(n_land)} מורי הדרך ({_pct(n_land, total)}) שרשמו מספר קווי באחד "
                         f"משדות הטלפון. מדד חלקי בלבד — רוב מורי הדרך רשמו נייד."),
-        "region_aria": (f"גרף עמודות: אזורי חיוג של מספרים קוויים. "
+        "region_aria": ("גרף עמודות: אזורי חיוג של מספרים קוויים. "
                         + (f"{reg_counts[0][0]} מוביל עם {_n(reg_counts[0][1])}." if reg_counts else "")),
         "region_caption": "אזורי חיוג של מורי דרך שרשמו מספר קווי",
         "names_note": (f"מבוסס על {_n(n_named)} שמות בני שתי מילים לפחות, לאחר הסרת תארים וכינויים בסוגריים; "
                        f"שם המשפחה הוא המילה האחרונה בשם. {_n(shared_names)} מורי דרך חולקים שם מלא זהה עם "
                        f"מורה דרך אחר."),
-        "firsts_aria": (f"גרף עמודות אופקי: השמות הפרטיים הנפוצים בקרב מורי הדרך. "
+        "firsts_aria": ("גרף עמודות אופקי: השמות הפרטיים הנפוצים בקרב מורי הדרך. "
                         + (f"{firsts[0][0]} מוביל עם {_n(firsts[0][1])}." if firsts else "")),
-        "lasts_aria": (f"גרף עמודות אופקי: שמות המשפחה הנפוצים בקרב מורי הדרך. "
+        "lasts_aria": ("גרף עמודות אופקי: שמות המשפחה הנפוצים בקרב מורי הדרך. "
                        + (f"{lasts[0][0]} מוביל עם {_n(lasts[0][1])}." if lasts else "")),
         "firsts_caption": "השמות הפרטיים הנפוצים בקרב מורי הדרך",
         "lasts_caption": "שמות המשפחה הנפוצים בקרב מורי הדרך",

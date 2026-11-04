@@ -16,6 +16,7 @@ lengths. The map ships every feature's real outline, delta-encoded at
 Order-independent: every list is sorted on a total key, sums use fsum over
 sorted values. The assets are public heritage sites, not people.
 """
+import itertools
 import json
 import math
 import re
@@ -35,7 +36,7 @@ TOP_CX = 12
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -197,7 +198,7 @@ def _area_centroid(polys, kx, ky):
 def _line_len(parts, kx, ky):
     m = 0.0
     for p in parts:
-        for (x1, y1), (x2, y2) in zip(p, p[1:]):
+        for (x1, y1), (x2, y2) in itertools.pairwise(p):
             m += math.hypot((x2 - x1) * kx, (y2 - y1) * ky)
     return m
 
@@ -527,8 +528,8 @@ def compute(frames):
                                               b["cx"], b["cy"], b["polys"]):
         enc = [[_enc(r, o, True) for r in rings] for rings in polys]
         bfeat.append([gi[s], yi.get(y.strip(), -1), int(card),
-                      int(round(area)) if not pd.isna(area) else -1,
-                      int(round(x * geo.SCALE)) - ox, int(round(yy * geo.SCALE)) - oy, enc])
+                      round(area) if not pd.isna(area) else -1,
+                      round(x * geo.SCALE) - ox, round(yy * geo.SCALE) - oy, enc])
     bfeat.sort(key=lambda f: (f[0], -f[3], f[4], f[5], f[1], f[2], json.dumps(f[6])))
     cfeat = []
     for i in range(ncx):
@@ -536,11 +537,11 @@ def compute(frames):
                       [[_enc(r, o, True) for r in rings] for rings in cx_polys[i]]])
     ffeat = []
     for s, ln, parts in zip(fe["std"], fe["len"], fe["parts"]):
-        ffeat.append([gi[s], int(round(ln)), [_enc(p, o, False) for p in parts]])
+        ffeat.append([gi[s], round(ln), [_enc(p, o, False) for p in parts]])
     efeat = []
     for s, k, n, x, y in zip(el["std"], el["k"], el["note"], el["x"], el["y"]):
         efeat.append([gi[s], k if k else "ללא שם", n,
-                      int(round(x * geo.SCALE)) - ox, int(round(y * geo.SCALE)) - oy])
+                      round(x * geo.SCALE) - ox, round(y * geo.SCALE) - oy])
     map_model = {
         "b": geo.pack(bfeat), "c": geo.pack(cfeat), "f": geo.pack(ffeat), "e": geo.pack(efeat),
         "meta": {
@@ -560,7 +561,7 @@ def compute(frames):
     lead_share = int(std_counts[lead]) / nb
     others = [s for s in std_order if s != lead]
     if lead != "" and lead_share >= 0.3 and others:
-        second = sorted(others, key=lambda s: (-int(std_counts[s]), std_key(s)))[0]
+        second = min(others, key=lambda s: (-int(std_counts[s]), std_key(s)))
         insights.append({"id": "grade_leader", "text_he": (
             f"{std_label(lead)} היא הדרגה הנפוצה ביותר: {fmt(std_counts[lead])} מתוך {fmt(nb)} מבנים ({pct(lead_share)}), "
             f"ואחריה {std_label(second)} עם {fmt(std_counts[second])}.")})

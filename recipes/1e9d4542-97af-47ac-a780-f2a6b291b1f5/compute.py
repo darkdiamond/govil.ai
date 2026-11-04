@@ -11,7 +11,6 @@ import re
 
 import numpy as np
 import pandas as pd
-
 from govlib import fmt
 
 DAY_COLS = [f"day_{i}" for i in range(1, 32)]
@@ -132,7 +131,7 @@ def compute(frames):
 
     roll = [None] * len(daily)
     for i in range(6, len(daily)):
-        roll[i] = int(round(daily[i - 6:i + 1].mean()))
+        roll[i] = round(daily[i - 6:i + 1].mean())
 
     # ---- months ----------------------------------------------------------------
     multi_year = len({y for y, _ in ym_vals}) > 1
@@ -167,7 +166,7 @@ def compute(frames):
         row = []
         for w in range(n_w):
             v = float(daily_w[sel, w].mean()) if sel.any() else 0.0
-            heat.append([w, k, int(round(v / 1000))])
+            heat.append([w, k, round(v / 1000)])
             row.append(v)
         heat_rows.append(row)
 
@@ -349,21 +348,21 @@ def compute(frames):
     charts = {
         "daily": {
             "x": [x.isoformat() for x in dates],
-            "y": [int(round(v)) for v in daily],
+            "y": [round(v) for v in daily],
             "roll": roll,
         },
         "monthly": {
             "x": [mo["label"] for mo in months],
             "total": [round(mo["total"] / 1e6, 2) for mo in months],
-            "per_day": [int(round(mo["per_day"])) for mo in months],
+            "per_day": [round(mo["per_day"]) for mo in months],
             "partial": [mo["partial"] for mo in months],
         },
-        "dow": {"x": WEEKDAYS_HE, "y": [int(round(v)) for v in dow_avg]},
+        "dow": {"x": WEEKDAYS_HE, "y": [round(v) for v in dow_avg]},
         "windows": {
             "x": [w["name"] for w in wins],
             "range": [w["range"] for w in wins],
             "total": [round(float(v) / 1e6, 2) for v in win_tot],
-            "per_hour": [int(round(float(win_tot[k]) / wins[k]["hours"] / n_days)) if wins[k]["hours"] else None
+            "per_hour": [round(float(win_tot[k]) / wins[k]["hours"] / n_days) if wins[k]["hours"] else None
                          for k in range(n_w)],
         },
         "heat": {"x": win_short, "y": WEEKDAYS_HE, "cells": heat,

@@ -24,7 +24,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_CITIES = 15
 TOP_OPS = 5
 EVENING_MIN = 18 * 60          # "evening" = open at or after 18:00 on some day
@@ -204,7 +204,7 @@ def _prepare(df):
     word_owner = {}
     for w, g in filled.groupby("word", sort=True):
         vc = g["owner"].value_counts()
-        top = sorted(vc.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+        top = min(vc.items(), key=lambda kv: (-kv[1], kv[0]))[0]
         word_owner[w] = top
     out["inferred"] = (out["owner"] == "") & out["word"].isin(word_owner)
     out["op"] = out["owner"]
@@ -404,7 +404,7 @@ def compute(frames):
         if code not in CITY:
             continue
         _, la, ln = CITY[code]
-        pts.append([la, ln, int(len(g)), name, CITY[code][0], city_main_op[name]])
+        pts.append([la, ln, len(g), name, CITY[code][0], city_main_op[name]])
     pts.sort(key=lambda p: (-p[2], p[3]))
     on_map = sum(p[2] for p in pts)
     off_map = total - on_map

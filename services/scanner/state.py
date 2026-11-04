@@ -6,7 +6,6 @@ This module keeps the `StateDB` name so existing callers (`detector.py`,
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
 
 from services.shared.firestore import FirestoreStateStore
 
@@ -21,18 +20,18 @@ class StateDB:
     `GOOGLE_CLOUD_PROJECT`.
     """
 
-    def __init__(self, store: Optional[FirestoreStateStore] = None):
+    def __init__(self, store: FirestoreStateStore | None = None):
         self.store = store or FirestoreStateStore()
 
     # Scanner reads this to decide NEW / UPDATED / UNCHANGED.
-    def get_dataset_metadata_modified(self, dataset_id: str) -> Optional[datetime]:
+    def get_dataset_metadata_modified(self, dataset_id: str) -> datetime | None:
         return self.store.get_dataset_metadata_modified(dataset_id)
 
     # Combined read (metadata_modified + analysis_status) for the change
     # detector — lets it also notice a `restricted` doc reappearing in CKAN.
     def get_scan_state(
         self, dataset_id: str
-    ) -> tuple[Optional[datetime], Optional[str]]:
+    ) -> tuple[datetime | None, str | None]:
         return self.store.get_scan_state(dataset_id)
 
     def save_dataset(self, dataset: Dataset, status: DatasetStatus) -> None:
@@ -50,8 +49,8 @@ class StateDB:
         new: int,
         updated: int,
         unchanged: int,
-        errors: Optional[list[str]] = None,
-        started_at: Optional[datetime] = None,
+        errors: list[str] | None = None,
+        started_at: datetime | None = None,
     ) -> None:
         self.store.complete_scan(
             scan_id,

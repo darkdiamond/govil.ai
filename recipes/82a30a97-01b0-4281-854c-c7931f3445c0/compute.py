@@ -2,6 +2,7 @@
 neighbourhood and type. Every number is computed here; rules return None when
 their premise does not hold."""
 import re
+
 import pandas as pd
 
 TOP_GROUPS = 12
@@ -120,12 +121,12 @@ def compute(frames):
     ins = []
     if len(groups) >= 3 and groups.iloc[0] / n >= 0.15:
         ins.append(("group_leader",
-                    f"הקבוצה הנושאית הגדולה ביותר היא ״{groups.index[0]}״ עם {_int(groups.iloc[0])} שמות "
-                    f"({_pct(groups.iloc[0] / n)}), לפני ״{groups.index[1]}״ ({_int(groups.iloc[1])})."))
+                    (f"הקבוצה הנושאית הגדולה ביותר היא ״{groups.index[0]}״ עם {_int(groups.iloc[0])} שמות "
+                    f"({_pct(groups.iloc[0] / n)}), לפני ״{groups.index[1]}״ ({_int(groups.iloc[1])}).")))
     if len(hoods) >= 3 and hoods.iloc[0] / n >= 0.1:
         ins.append(("hood_leader",
-                    f"{hoods.index[0]} היא השכונה עם מספר השמות הגדול ביותר: {_int(hoods.iloc[0])} "
-                    f"({_pct(hoods.iloc[0] / n)} מהרשומות), ואחריה {hoods.index[1]} ({_int(hoods.iloc[1])})."))
+                    (f"{hoods.index[0]} היא השכונה עם מספר השמות הגדול ביותר: {_int(hoods.iloc[0])} "
+                    f"({_pct(hoods.iloc[0] / n)} מהרשומות), ואחריה {hoods.index[1]} ({_int(hoods.iloc[1])}).")))
     # strongest group concentration in a sizable neighbourhood
     best = None
     big = hoods[hoods >= MIN_HOOD_N]
@@ -138,22 +139,22 @@ def compute(frames):
                     best = (s, h, g, int(cx.loc[h, g]), int(cx.loc[h].sum()))
     if best and best[0] >= 0.3:
         ins.append(("hood_mix",
-                    f"באזור ״{best[1]}״ בולטת קבוצת ״{best[2]}״: {_int(best[3])} מתוך {_int(best[4])} השמות "
-                    f"בשכונה ({_pct(best[0])})."))
+                    (f"באזור ״{best[1]}״ בולטת קבוצת ״{best[2]}״: {_int(best[3])} מתוך {_int(best[4])} השמות "
+                    f"בשכונה ({_pct(best[0])}).")))
     t_share = has_title.sum() / n
     if t_share >= 0.1 and len(titles):
         ins.append(("titles",
-                    f"{_pct(t_share)} מהרשומות ({_int(has_title.sum())}) כוללות תואר לפני השם; "
-                    f"התואר השכיח הוא ״{titles.index[0]}״ ({_int(titles.iloc[0])})."))
+                    (f"{_pct(t_share)} מהרשומות ({_int(has_title.sum())}) כוללות תואר לפני השם; "
+                    f"התואר השכיח הוא ״{titles.index[0]}״ ({_int(titles.iloc[0])}).")))
     if len(gt) >= 2 and gt["share"].iloc[0] >= 0.2:
         ins.append(("title_group",
-                    f"שיעור הרשומות עם תואר הגבוה ביותר הוא בקבוצה ״{gt.index[0]}״: {_pct(gt['share'].iloc[0])} "
-                    f"({_int(gt['t'].iloc[0])} מתוך {_int(gt['n'].iloc[0])}), לעומת {_pct(t_share)} בכלל המאגר."))
+                    (f"שיעור הרשומות עם תואר הגבוה ביותר הוא בקבוצה ״{gt.index[0]}״: {_pct(gt['share'].iloc[0])} "
+                    f"({_int(gt['t'].iloc[0])} מתוך {_int(gt['n'].iloc[0])}), לעומת {_pct(t_share)} בכלל המאגר.")))
     dual = int((d["extra"] != "").sum())
     if n and dual / n >= 0.05:
         ins.append(("dual",
-                    f"ל-{_int(dual)} שמות ({_pct(dual / n)}) יש גם קבוצה נוספת, כלומר שם אחד המשתייך לשני נושאים; "
-                    f"הנפוצה בהן: ״{extras.index[0]}״ ({_int(extras.iloc[0])})."))
+                    (f"ל-{_int(dual)} שמות ({_pct(dual / n)}) יש גם קבוצה נוספת, כלומר שם אחד המשתייך לשני נושאים; "
+                    f"הנפוצה בהן: ״{extras.index[0]}״ ({_int(extras.iloc[0])}).")))
     nobel = int(extras[[k for k in extras.index if "נובל" in k]].sum()) if len(extras) else 0
     prize = int(extras[[k for k in extras.index if "פרס ישראל" in k]].sum()) if len(extras) else 0
     if nobel + prize > 0:
@@ -161,13 +162,13 @@ def compute(frames):
                     f"{_int(prize)} שמות מסווגים גם כחתני פרס ישראל ו-{_int(nobel)} כזוכי פרס נובל."))
     if len(types) >= 2 and types.index[0] != "לא צוין" and types.iloc[0] / n >= 0.5:
         ins.append(("type_leader",
-                    f"רוב המקומות הם מסוג ״{types.index[0]}״: {_int(types.iloc[0])} ({_pct(types.iloc[0] / n)}); "
-                    f"אחריו ״{types.index[1]}״ ({_int(types.iloc[1])})."))
+                    (f"רוב המקומות הם מסוג ״{types.index[0]}״: {_int(types.iloc[0])} ({_pct(types.iloc[0] / n)}); "
+                    f"אחריו ״{types.index[1]}״ ({_int(types.iloc[1])}).")))
     if nocode > 0:
         tt = _counts(d.loc[d["code"].isna(), "type"])
         ins.append(("nocode",
-                    f"ל-{_int(nocode)} רשומות ({_pct(nocode / n)}) אין קוד רחוב; "
-                    f"הנפוץ שבהן הוא סוג ״{tt.index[0]}״ ({_int(tt.iloc[0])})."))
+                    (f"ל-{_int(nocode)} רשומות ({_pct(nocode / n)}) אין קוד רחוב; "
+                    f"הנפוץ שבהן הוא סוג ״{tt.index[0]}״ ({_int(tt.iloc[0])}).")))
     sec = int((d["second"] != "").sum())
     if n and 0.2 <= sec / n <= 0.9:
         ins.append(("secondary",
@@ -175,14 +176,14 @@ def compute(frames):
     dups = int(n - uniq)
     if dups > 0:
         ins.append(("duplicates",
-                    f"{_int(n)} רשומות נושאות {_int(uniq)} שמות ראשיים שונים: {_int(dups)} רשומות חוזרות על שם שכבר מופיע "
-                    f"(למשל באותו שם בשכונות שונות)."))
+                    (f"{_int(n)} רשומות נושאות {_int(uniq)} שמות ראשיים שונים: {_int(dups)} רשומות חוזרות על שם שכבר מופיע "
+                    f"(למשל באותו שם בשכונות שונות).")))
 
     kp = {
         "total": {"value": n, "display": _int(n), "tone": "brand"},
-        "hoods": {"value": int(len(hoods)), "display": _int(len(hoods)), "tone": "brand"},
-        "groups": {"value": int(len(groups)), "display": _int(len(groups)), "tone": "brand"},
-        "types": {"value": int(len(types)), "display": _int(len(types)), "tone": "brand"},
+        "hoods": {"value": len(hoods), "display": _int(len(hoods)), "tone": "brand"},
+        "groups": {"value": len(groups), "display": _int(len(groups)), "tone": "brand"},
+        "types": {"value": len(types), "display": _int(len(types)), "tone": "brand"},
         "unique": {"value": uniq, "display": _int(uniq), "tone": "info"},
         "nocode": {"value": nocode, "display": _int(nocode),
                    "tone": "warn" if n and nocode / n >= 0.05 else "brand"},

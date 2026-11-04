@@ -232,7 +232,7 @@ def compute(frames):
     cur, hist = _latest_per_name(df)
     pub = cur[cur["value"].notna()]
     pub = pub.sort_values(["value", "name"], ascending=[False, True], kind="stable")
-    n_all, n_pub = int(len(cur)), int(len(pub))
+    n_all, n_pub = len(cur), len(pub)
 
     base = _find(cur, _is_base)
     prev = None
@@ -320,7 +320,7 @@ def compute(frames):
         date_rows.append({"date": _date(d), "n": f"{len(grp):,}",
                           "names": ", ".join(sorted(grp["name"]))})
 
-    lo, hi = (pub["value"].min(), pub["value"].max()) if n_pub else (None, None)
+    _lo, hi = (pub["value"].min(), pub["value"].max()) if n_pub else (None, None)
     # summary_he is the meta description: <=155 chars, the searcher's answer first.
     parts = []
     if base is not None:

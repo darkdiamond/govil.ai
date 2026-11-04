@@ -19,7 +19,7 @@ SECTOR_N = 8
 
 
 def _fmt(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v, d=1):
@@ -382,7 +382,7 @@ def compute(frames):
             lag_share.append(None)
             tbl_lag.append({"year": str(y), "med": "", "share": ""})
             continue
-        m = int(round(float(s.median())))
+        m = round(float(s.median()))
         sh_ = float((s <= 120).mean())
         lag_med.append(m)
         lag_share.append(round(sh_ * 100, 1))

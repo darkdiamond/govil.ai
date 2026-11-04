@@ -16,7 +16,7 @@ TOP_TRACKS = 10
 RECENT_MONTHS = 36
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 EXPOSURES = [("STOCK_MARKET_EXPOSURE", "חשיפה למניות"),
              ("FOREIGN_EXPOSURE", "חשיפה לחו״ל"),
              ("FOREIGN_CURRENCY_EXPOSURE", "חשיפה למט״ח")]

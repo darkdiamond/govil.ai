@@ -32,7 +32,7 @@ MIX_SHARE_MIN = 0.6      # a type must hold this share of a city to be stated
 SEPT_SHARE_MIN = 0.4     # September openings share worth stating
 NO_DISTRICT = "ללא מחוז"
 OTHER = "אחר"
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 AGE_COLS = [("תפוסת תינוקות", "תינוקות"),
             ("תפוסת פעוטות", "פעוטות"),
@@ -272,7 +272,7 @@ def compute(frames):
 
     # ---- organisations
     n_orgs = int(df.loc[df["org"] != "לא צוין", "org"].nunique())
-    ob, o_cats, o_rest = _top_with_other(df, "org", TOP_ORGS)
+    _ob, o_cats, _o_rest = _top_with_other(df, "org", TOP_ORGS)
     org_names_only = [c for c in o_cats if c != OTHER]
     tmp = df[df["org"].isin(org_names_only)]
     org_chart, org_table = _stack_by_type(tmp, "org", org_names_only, types)

@@ -26,7 +26,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 UNASSIGNED = "לא משויך"
 
 # Spellings in this register that the CBS list writes differently, or places
@@ -300,7 +300,7 @@ _INSTALL = re.compile(r"התקנ|ייצור|יצור|חידוש|הטבעת|שי�
 def family_of(code, label):
     if (len(code) == 4 and code.startswith("70")) or label.startswith("גרור"):
         return F_TRAILER
-    if label.startswith("מנהל מקצועי") or label.startswith("קוד "):
+    if label.startswith(("מנהל מקצועי", "קוד ")):
         return F_OTHER
     if _PARTS.search(label):
         if "משומש" in label:
@@ -447,7 +447,7 @@ def compute(frames):
 
     types_present = [t for t in TYPE_ORDER if (biz["type"] == t).any()]
     types_present += sorted(set(biz["type"]) - set(TYPE_ORDER) - {""})
-    tlabel = lambda t: TYPE_LABEL.get(t, t or "לא צוין")  # noqa: E731
+    tlabel = lambda t: TYPE_LABEL.get(t, t or "לא צוין")
 
     # ── business types ────────────────────────────────────────────────
     tb = biz.groupby("type").size()
@@ -466,8 +466,8 @@ def compute(frames):
         avg = {t: tl.get(t, 0) / tb[t] for t in big_t}
         tail = ""
         if len(big_t) >= 2:
-            hi = sorted(big_t, key=lambda t: (-avg[t], t))[0]
-            lo = sorted(big_t, key=lambda t: (avg[t], t))[0]
+            hi = min(big_t, key=lambda t: (-avg[t], t))
+            lo = min(big_t, key=lambda t: (avg[t], t))
             if avg[lo] > 0 and avg[hi] / avg[lo] >= 2:
                 tail = (f" בממוצע, {tlabel(hi)} רשומים ל-{avg[hi]:.1f} פעילויות לעסק ו{tlabel(lo)} "
                         f"ל-{avg[lo]:.1f} בלבד.")
@@ -564,8 +564,8 @@ def compute(frames):
     big_d = [x for x in dists if dist_tot[x] >= MIN_DIST]
     if len(big_d) >= 3 and n_make:
         msh = {x: (dist_tot[x] - ctd.get((x, "סחר"), 0)) / dist_tot[x] for x in big_d}
-        hi = sorted(big_d, key=lambda x: (-msh[x], x))[0]
-        lo = sorted(big_d, key=lambda x: (msh[x], x))[0]
+        hi = min(big_d, key=lambda x: (-msh[x], x))
+        lo = min(big_d, key=lambda x: (msh[x], x))
         nat = n_make / total
         if msh[hi] - msh[lo] >= 0.08:
             insights.append({"id": "make_geo", "text_he": (
@@ -710,7 +710,7 @@ def compute(frames):
         "parts_note": (f"{n(n_parts)} עסקים רשומים לחלקי חילוף. לכל סוג רכב — כמה עסקים מוכרים לו חלקים חדשים, "
                        f"משופצים או משומשים (עסק יכול להופיע ביותר ממצב אחד)."),
         "parts_aria": "תרשים עמודות מוערמות: עסקי חלקי חילוף לפי סוג רכב ומצב החלקים.",
-        "districts_note": (f"העסקים לפי מחוז ולפי סוג עסק. "
+        "districts_note": ("העסקים לפי מחוז ולפי סוג עסק. "
                            + (f"{n(unassigned)} עסקים ללא יישוב או ביישוב שלא שויך למחוז אינם מוצגים." if unassigned else "")),
         "districts_aria": "תרשים עמודות מוערמות: עסקים לפי מחוז וסוג עסק.",
         "settlements_note": f"{n(len(top_pl))} היישובים עם מספר העסקים הגדול ביותר, לפי סוג עסק.",

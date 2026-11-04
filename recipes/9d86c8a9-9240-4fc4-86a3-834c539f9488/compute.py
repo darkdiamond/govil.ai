@@ -30,7 +30,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MIN_POP_DIST = 500
 MIN_POP_RANK = 1000
 MIN_POP_SCATTER = 2000
@@ -199,7 +199,7 @@ def insight_high(high_rows, big_n):
     tr = [r for r in high_rows if r["tribe"]]
     tail = ""
     if len(tr) * 3 >= len(high_rows):
-        dists = sorted(set(r["district"] for r in tr))
+        dists = sorted({r["district"] for r in tr})
         where = f" במחוז {dists[0]}" if len(dists) == 1 else ""
         tail = (f" {_of(len(tr), len(high_rows))} הישובים בראש הדירוג הם שבטים בדואיים{where}.")
     return (f"מבין {n(big_n)} הישובים שבהם {n(MIN_POP_RANK)} תושבים ומעלה, שיעור הצעירים הגבוה "
@@ -228,8 +228,8 @@ def insight_district(dist_rows):
     rows = [r for r in dist_rows if r["name"] != OTHER and r["total"] > 0]
     if len(rows) < 3:
         return None
-    hi = sorted(rows, key=lambda r: (-r["share_v"], D_IDX[r["name"]]))[0]
-    lo = sorted(rows, key=lambda r: (r["share_v"], D_IDX[r["name"]]))[0]
+    hi = min(rows, key=lambda r: (-r["share_v"], D_IDX[r["name"]]))
+    lo = min(rows, key=lambda r: (r["share_v"], D_IDX[r["name"]]))
     gap = hi["share_v"] - lo["share_v"]
     if gap < DISTRICT_GAP_PP:
         return (f"שיעור הצעירים דומה בכל המחוזות — בין {pct(lo['share_v'])} במחוז {lo['name']} "
@@ -242,8 +242,8 @@ def insight_size(size_rows):
     rows = [r for r in size_rows if r["count"] >= 10]
     if len(rows) < 3:
         return None
-    hi = sorted(rows, key=lambda r: (-r["share_v"], r["i"]))[0]
-    lo = sorted(rows, key=lambda r: (r["share_v"], r["i"]))[0]
+    hi = min(rows, key=lambda r: (-r["share_v"], r["i"]))
+    lo = min(rows, key=lambda r: (r["share_v"], r["i"]))
     if hi["share_v"] - lo["share_v"] < SIZE_GAP_PP:
         return None
     return (f"לפי גודל הישוב: בישובים של {hi['label']} תושבים שיעור הצעירים הוא "
@@ -340,7 +340,7 @@ def compute(frames):
         t, y, s = _pooled(sub)
         if len(sub) == 0:
             continue
-        size_rows.append({"i": i, "label": _band_label(lo, hi), "count": int(len(sub)),
+        size_rows.append({"i": i, "label": _band_label(lo, hi), "count": len(sub),
                           "young": y, "total": t, "share_v": r1(s), "share": f"{s:.1f}%",
                           "pop_share": f"{t / nat_total * 100:.1f}%"})
     size_chart = {"labels": [r["label"] for r in size_rows],
@@ -352,7 +352,7 @@ def compute(frames):
     for d in order:
         sub = df[df["district"] == d]
         t, y, s = _pooled(sub)
-        dist_rows.append({"name": d, "count": int(len(sub)), "young": y, "total": t,
+        dist_rows.append({"name": d, "count": len(sub), "young": y, "total": t,
                           "share_v": r1(s), "share": f"{s:.1f}%",
                           "young_share": f"{y / nat_young * 100:.1f}%"})
     districts_chart = {"names": [r["name"] for r in dist_rows],
@@ -374,7 +374,7 @@ def compute(frames):
     nafa_rows = []
     for nf, sub in df.groupby("nafa", sort=True):
         t, y, s = _pooled(sub)
-        nafa_rows.append({"name": nf, "district": sub["district"].iloc[0], "count": int(len(sub)),
+        nafa_rows.append({"name": nf, "district": sub["district"].iloc[0], "count": len(sub),
                           "young": y, "total": t, "share_v": r1(s), "share": f"{s:.1f}%",
                           "s_exact": s})
     nafa_rows.sort(key=lambda r: (-r["s_exact"], r["name"]))
@@ -390,13 +390,13 @@ def compute(frames):
     council_rows = []
     for c, sub in cdf.groupby("council", sort=True):
         t, y, s = _pooled(sub)
-        council_rows.append({"name": c, "count": int(len(sub)), "young": y, "total": t,
+        council_rows.append({"name": c, "count": len(sub), "young": y, "total": t,
                              "share_v": r1(s), "share": f"{s:.1f}%"})
     n_councils = len(council_rows)
     council_rows.sort(key=lambda r: (-r["young"], r["name"]))
     council_top = council_rows[:TOP_COUNCILS]
-    c_hi = sorted(council_rows, key=lambda r: (-r["share_v"], r["name"]))[0] if council_rows else None
-    c_lo = sorted(council_rows, key=lambda r: (r["share_v"], r["name"]))[0] if council_rows else None
+    c_hi = min(council_rows, key=lambda r: (-r["share_v"], r["name"])) if council_rows else None
+    c_lo = min(council_rows, key=lambda r: (r["share_v"], r["name"])) if council_rows else None
     councils_chart = {"names": [r["name"] for r in council_top],
                       "young": [r["young"] for r in council_top],
                       "share": [r["share_v"] for r in council_top]}
@@ -405,7 +405,7 @@ def compute(frames):
     bureau_rows = []
     for b, sub in df.groupby("bureau", sort=True):
         t, y, s = _pooled(sub)
-        bureau_rows.append({"name": b, "count": int(len(sub)), "young": y, "total": t,
+        bureau_rows.append({"name": b, "count": len(sub), "young": y, "total": t,
                             "share_v": r1(s), "share": f"{s:.1f}%"})
     n_bureaus = len(bureau_rows)
     bureau_rows.sort(key=lambda r: (-r["young"], r["name"]))
@@ -423,7 +423,7 @@ def compute(frames):
     # Concentration curve: cumulative share of young residents by locality rank.
     cum_y = by_y["young"].cumsum().tolist()
     ranks = sorted(set([k for k in range(1, 21)] +
-                       [int(round(10 ** (e / 20))) for e in range(26, 200)] + [n_loc]))
+                       [round(10 ** (e / 20)) for e in range(26, 200)] + [n_loc]))
     ranks = [k for k in ranks if 1 <= k <= n_loc]
     conc_chart = {"x": ranks, "y": [r1(cum_y[k - 1] / nat_young * 100) for k in ranks]}
     by_t = df.sort_values(["total", "code"], ascending=[False, True], kind="stable")
@@ -445,7 +445,7 @@ def compute(frames):
             scatter_series.append({"name": d, "ci": D_IDX[d],
                                    "data": [[int(t), r1(s), nm] for t, s, nm in
                                             zip(sub["total"], sub["share"], sub["name"])]})
-    n_scatter = int(len(sc))
+    n_scatter = len(sc)
 
     # KPIs.
     kpis = {
@@ -469,7 +469,7 @@ def compute(frames):
         if txt:
             insights.append({"id": iid, "text_he": txt})
 
-    top_d = sorted(dist_rows, key=lambda r: (-r["young"], D_IDX[r["name"]]))[0]
+    top_d = min(dist_rows, key=lambda r: (-r["young"], D_IDX[r["name"]]))
     bad_t = (f" {n(n_bad)} שורות עם ערך חסר או לא תקין הושמטו." if n_bad else "")
     ph_t = (f" שורת ״לא רשום״ ({n(ph['total'])} תושבים ללא ישוב) אינה נכללת." if ph else "")
     top_nafa = nafa_rows[0] if nafa_rows else None
@@ -562,7 +562,7 @@ def compute(frames):
         "summary_he": (f"מספר התושבים בגיל 18 עד 34 ב-{n(n_loc)} ישובים לפי מרשם האוכלוסין: "
                        f"{n(nat_young)} צעירים, {pct(nat_share)} מהתושבים"
                        + (f"; {top_rows[0]['name']} מובילה עם {n(top_rows[0]['young'])}" if top_rows else "")
-                       + f", ופילוח לפי מחוז, נפה, גודל ישוב ומועצה אזורית."),
+                       + ", ופילוח לפי מחוז, נפה, גודל ישוב ומועצה אזורית."),
         "dataset_kind": "rankings",
         "suggested_tags": ["צעירים", "אוכלוסייה", "ישובים", "דמוגרפיה", "מרשם אוכלוסין",
                            "מועצות אזוריות"],

@@ -46,7 +46,7 @@ TYPES = [
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -221,7 +221,7 @@ def compute(frames):
                          "rows": [[a, fmt(b), pct(b / geo_tot if geo_tot else 0)] for a, b in zip(SECTORS, sect["values"])]}
 
     # ---- concentration ----
-    k10 = max(1, int(math.ceil(n_active * 0.1))) if n_active else 0
+    k10 = max(1, math.ceil(n_active * 0.1)) if n_active else 0
     top10_share = (float(active["t"].sort_values(ascending=False, kind="mergesort").head(k10).sum()) / tot) if tot else 0.0
 
     # ---------- insights ----------
@@ -282,11 +282,10 @@ def compute(frames):
                 f"לפי שם המקום, {k0['kind']} מובילים עם {fmt(int(k0['t']))} עמדות ב־{fmt(int(k0['sites']))} מתקנים "
                 f"({pct(sh)} מהקיבולת), ואחריהם {k1['kind']} עם {fmt(int(k1['t']))} עמדות ({pct(float(k1['t']) / tot)}).")})
 
-    if n_active >= 20 and tot:
-        if top10_share >= 0.2:
-            insights.append({"id": "concentration", "text_he": (
-                f"עשירית המתקנים הגדולים ביותר ({fmt(k10)} מתקנים) מחזיקה {pct(top10_share)} מכל העמדות, "
-                f"ומתקן פעיל טיפוסי מכיל {fmt(med_size)} עמדות (ממוצע {mean_size:.1f}).")})
+    if n_active >= 20 and tot and top10_share >= 0.2:
+        insights.append({"id": "concentration", "text_he": (
+            f"עשירית המתקנים הגדולים ביותר ({fmt(k10)} מתקנים) מחזיקה {pct(top10_share)} מכל העמדות, "
+            f"ומתקן פעיל טיפוסי מכיל {fmt(med_size)} עמדות (ממוצע {mean_size:.1f}).")})
 
     if has_geo and geo_tot:
         sh2 = within2 / geo_tot

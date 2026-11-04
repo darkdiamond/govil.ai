@@ -170,7 +170,7 @@ def compute(frames):
     # flags an unusually slow (warn) or busy (info) recent month.
     prior_year = df["date"].between(ref - pd.Timedelta(days=395), ref - pd.Timedelta(days=30),
                                     inclusive="right")
-    typical_30 = int(round(prior_year.sum() / 12.17)) if prior_year.any() else 0
+    typical_30 = round(prior_year.sum() / 12.17) if prior_year.any() else 0
     if typical_30 and last_30 < 0.75 * typical_30:
         last_30_tone = "warn"
     elif typical_30 and last_30 > 1.25 * typical_30:

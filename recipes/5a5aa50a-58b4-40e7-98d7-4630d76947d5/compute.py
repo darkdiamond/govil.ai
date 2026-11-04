@@ -81,7 +81,7 @@ MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "י
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 MONTHS_SHORT = ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי",
                 "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 HAS_LETTER = re.compile(r"[א-תA-Za-z]")
 
 
@@ -112,7 +112,7 @@ def _short(t):
 
 def _legal(title):
     for name, pat in LEGAL:
-        if re.search(pat, title, flags=re.I):
+        if re.search(pat, title, flags=re.IGNORECASE):
             return name
     return LEGAL_NONE
 
@@ -478,7 +478,7 @@ def compute(frames):
                    f"שנרשמו, בלי לסווג רישיון כבתוקף או כפג."),
         "holders_kpi": "בעלי רישיון (לפי שם העסק)",
         "gmp_kpi": f"רישיונות עם תעודת GMP ({n_gmp / total * 100:.1f}%)",
-        "types_note": (f"מספר הרישיונות לפי סוג העסק, צבוע לפי קבוצת הפעילות. "
+        "types_note": ("מספר הרישיונות לפי סוג העסק, צבוע לפי קבוצת הפעילות. "
                        + (f"{n(len(types) - TOP_TYPES)} סוגים קטנים מקובצים תחת „{OTHER}”."
                           if rest else "")),
         "types_aria": (f"תרשים עמודות אופקי: רישיונות לפי סוג עסק; {type_rows[0][0]} בראש עם "

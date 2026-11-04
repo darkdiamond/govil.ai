@@ -120,7 +120,7 @@ def insight_concentration(t):
     n = len(t)
     if n < 20:
         return None
-    k = max(1, int(math.ceil(n * HEAD_SHARE)))
+    k = max(1, math.ceil(n * HEAD_SHARE))
     head = int(t["houses"].head(k).sum())
     total = int(t["houses"].sum())
     share = head / total
@@ -186,7 +186,7 @@ def insight_center(within, total, center_km):
 def insight_orient(counts, total):
     if total < 20:
         return None
-    name, c = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+    name, c = min(counts.items(), key=lambda kv: (-kv[1], kv[0]))
     if c / total < ORIENT_LEAD:
         return None
     return (f"הכיוון הנפוץ בין הרחובות הוא {name}: {_pct(c / total)} מהרחובות עם "
@@ -216,7 +216,7 @@ def insight_quality(extra, identical, total):
 def compute(frames):
     df, n_bad = _prepare(frames["main"])
     total = len(df)
-    t, s = _street_table(df)
+    t, _s = _street_table(df)
     n_streets = len(t)
 
     # --- top streets
@@ -251,7 +251,6 @@ def compute(frames):
     num_chart = {"names": nb_names, "odd": nb_odd, "even": nb_even}
     t_num = [{"name": n, "odd": _int(o), "even": _int(e), "total": _int(o + e)}
              for n, o, e in zip(nb_names, nb_odd, nb_even)]
-    n_odd = int(odd_m.sum())
 
     # --- suffixes
     lt = df["letter"]
@@ -300,7 +299,6 @@ def compute(frames):
         "data": [[int(r.x), int(r.y), int(r.c)] for r in cells.itertuples()],
         "max": int(cells["c"].max()),
     }
-    topcell = cells.sort_values(["c", "x", "y"], ascending=[False, True, True]).iloc[0]
 
     dist = np.hypot((df["lonf"] - lon0) * kx, (df["latf"] - lat0) * KM_PER_DEG)
     rings = []
@@ -376,7 +374,6 @@ def compute(frames):
                    "label": "כתובות שחוזרות ברשומות נוספות"},
     }
 
-    ls = len(letters)
     labels = {
         "lede": (f"{_int(total)} בתים בבאר שבע, כל אחד עם מספר, שם רחוב וקוד רחוב של הלמ״ס ונקודה על המפה. "
                  f"הם פרושים על {_int(n_streets)} רחובות, וחציון הרחובות כולל {med:g} בתים."),

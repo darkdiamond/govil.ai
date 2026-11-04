@@ -24,7 +24,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_TYPES = 15
 TOP_PRODUCTS = 15
 TOP_MANU = 12
@@ -420,7 +420,7 @@ def compute(frames):
         ("בקטלוג, ללא אצוות", st_cat),
         ("ללא שם מסחרי בקטלוג", st_none),
     ]
-    status_chart = [{"name": nm, "value": int(len(d))} for nm, d in status_rows]
+    status_chart = [{"name": nm, "value": len(d)} for nm, d in status_rows]
     status_table = [{"name": nm, "count": n(len(d)), "examples": _ex(d) or "—"} for nm, d in status_rows]
 
     # 9. catalogue per vaccine type: with / without batches
@@ -442,7 +442,7 @@ def compute(frames):
         vals = [int(bcount.get(c, 0)) for c in sub["tn_code"]]
         evo = {"type": evo_t, "gloss": gloss(evo_t), "names": list(sub["tn"]), "mf": list(sub["mf"]),
                "codes": [int(c) for c in sub["tn_code"]], "values": vals, "cut": cut,
-               "n": int(len(sub)), "with_b": int(sum(1 for v in vals if v > 0))}
+               "n": len(sub), "with_b": int(sum(1 for v in vals if v > 0))}
         evo["table"] = [{"code": n(c), "name": nm, "mf": mf, "count": n(v)}
                         for c, nm, mf, v in zip(evo["codes"], evo["names"], evo["mf"], vals)]
 
@@ -482,7 +482,7 @@ def compute(frames):
         "types_b": {"value": int(types.size), "display": n(types.size), "tone": "brand"},
         "manu_b": {"value": int(manu_b.size), "display": n(manu_b.size), "tone": "brand"},
         "tn_b": {"value": n_tn_b, "display": n(n_tn_b), "tone": "brand"},
-        "catalog": {"value": int(len(cat)), "display": n(len(cat)), "tone": "brand"},
+        "catalog": {"value": len(cat), "display": n(len(cat)), "tone": "brand"},
         "coverage": {"value": round(cov * 100, 1), "display": f"{cov * 100:.1f}%",
                      "tone": "ok" if cov >= 0.9 else "info"},
         "passive": {"value": round(pas_share * 100, 1), "display": f"{pas_share * 100:.1f}%", "tone": "info"},

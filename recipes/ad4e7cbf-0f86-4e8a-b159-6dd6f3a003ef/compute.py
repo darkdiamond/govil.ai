@@ -22,7 +22,7 @@ COHORT_WIDTH = 3          # years per appraiser cohort band
 LAG_RECENT_YEARS = 3      # full years used for the lag distribution
 LAG_BUCKETS = [(0, 30), (31, 90), (91, 180), (181, 365), (366, 730), (731, None)]
 LAG_OK_DAYS, LAG_WARN_DAYS = 90, 180
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 TYPE_ORDER = ["היטל השבחה", "תביעת פיצויים", "תיק הפקעות"]
@@ -337,8 +337,8 @@ def compute(frames):
     lag_years = [y for y in years if y in lag_med.index]
     chart_lag_years = [y for y in lag_years if base_year is None or y >= base_year]
     lag_chart = {"x": [_year_label(y, ref_year, partial) for y in chart_lag_years],
-                 "med": [int(round(lag_med[y])) for y in chart_lag_years],
-                 "p75": [int(round(lag_p75[y])) for y in chart_lag_years]}
+                 "med": [round(lag_med[y]) for y in chart_lag_years],
+                 "p75": [round(lag_p75[y]) for y in chart_lag_years]}
     lag_table = [{"year": _year_label(y, ref_year, partial), "med": n(round(lag_med[y])),
                   "p75": n(round(lag_p75[y]))} for y in lag_years]
 
@@ -423,7 +423,7 @@ def compute(frames):
                  f"התכנון המקומיות, בעיקר בהיטל השבחה. המאגר כולל {n(total)} הכרעות מ-{d_he(first_dec)} "
                  f"ועד {d_he(ref)}, ב-{n(comms.size)} ועדות מקומיות ובחתימת {n(apprs.size)} שמאים. "
                  f"הפרסום האחרון במאגר: {d_he(ref_pub)}."),
-        "last_full_kpi": f"הכרעות ב-{last_full}" + (f" (שנת שיא)" if is_record else f" ({n(prev_n)} ב-{last_full - 1})"),
+        "last_full_kpi": f"הכרעות ב-{last_full}" + (" (שנת שיא)" if is_record else f" ({n(prev_n)} ב-{last_full - 1})"),
         "active_kpi": f"שמאים שהכריעו ב-{last_full}",
         "lag_kpi": f"חציון ימים מהכרעה לפרסום (הכרעות {last_full})",
         "years_note": (f"מספר ההכרעות לפי שנת ההחלטה וסוג השומה. השנה הראשונה במאגר ({min_year}) "

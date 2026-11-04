@@ -5,11 +5,11 @@ a resource's content hash changes. Mocked client, as in test_firestore_status.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from services.shared.tests.test_firestore_status import _store_with_existing
 
-OLD = datetime(2026, 10, 1, tzinfo=timezone.utc)
+OLD = datetime(2026, 10, 1, tzinfo=UTC)
 
 
 def _payload(h="sha-1", rid="boi-br"):

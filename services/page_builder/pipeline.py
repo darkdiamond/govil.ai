@@ -15,8 +15,7 @@ import argparse
 import asyncio
 import logging
 import os
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from services.scanner.config import ScannerSettings
 from services.scanner.main import Scanner
@@ -44,8 +43,8 @@ def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
 
 
 async def _trigger_publish_github(
-    repo: str, workflow: str, branch: str, inputs: Optional[dict] = None
-) -> Optional[str]:
+    repo: str, workflow: str, branch: str, inputs: dict | None = None
+) -> str | None:
     """Fire the GitHub Actions publish workflow (workflow_dispatch).
 
     Fire-and-forget — the API returns 204 with no run id, so we return a
@@ -59,7 +58,7 @@ async def _trigger_publish_github(
         log.error("PUBLISH_VIA=github but GITHUB_DISPATCH_TOKEN is not set")
         return None
 
-    def _run() -> Optional[str]:
+    def _run() -> str | None:
         import httpx
 
         # follow_redirects: GitHub answers a renamed repo with a 307 that
@@ -93,7 +92,7 @@ async def _trigger_publish_github(
 
 async def _trigger_publish(
     project_id: str, trigger_id: str, branch: str, region: str = "me-west1"
-) -> Optional[str]:
+) -> str | None:
     """Fire the Cloud Build publisher (fallback path, PUBLISH_VIA=cloudbuild).
 
     Fire-and-forget — don't wait for the build. Uses the regional Cloud
@@ -101,11 +100,13 @@ async def _trigger_publish(
     reachable via the global endpoint.
     """
 
-    def _run() -> Optional[str]:
+    def _run() -> str | None:
         from google.api_core.client_options import ClientOptions
         from google.cloud.devtools import cloudbuild_v1
-        from google.cloud.devtools.cloudbuild_v1.types import RunBuildTriggerRequest
-        from google.cloud.devtools.cloudbuild_v1.types import RepoSource
+        from google.cloud.devtools.cloudbuild_v1.types import (
+            RepoSource,
+            RunBuildTriggerRequest,
+        )
 
         client = cloudbuild_v1.CloudBuildClient(
             client_options=ClientOptions(
@@ -125,7 +126,7 @@ async def _trigger_publish(
 
     try:
         return await asyncio.to_thread(_run)
-    except Exception as e:
+    except Exception:
         log.exception("trigger_publish failed")
         return None
 
@@ -139,7 +140,7 @@ async def _dispatch_publish(
     project_id: str,
     trigger_id: str,
     region: str,
-) -> Optional[str]:
+) -> str | None:
     if not should:
         return None
     if publish_via == "github":
@@ -154,7 +155,7 @@ async def _dispatch_publish(
 async def run_pipeline(
     *,
     mode: str = "scheduled",
-    override_id: Optional[str] = None,
+    override_id: str | None = None,
     dry_run: bool = False,
     skip_publish: bool = False,
 ) -> dict:
@@ -180,7 +181,7 @@ async def run_pipeline(
     if floor_env:
         floor_dt = datetime.fromisoformat(floor_env)
         if floor_dt.tzinfo is None:
-            floor_dt = floor_dt.replace(tzinfo=timezone.utc)
+            floor_dt = floor_dt.replace(tzinfo=UTC)
         selector_gates["min_modified_floor"] = floor_dt
     max_age_env = os.environ.get("MAX_AGE_DAYS", "").strip()
     if max_age_env:
@@ -222,12 +223,13 @@ async def run_pipeline(
     try:
         from zoneinfo import ZoneInfo
         il_now = datetime.now(ZoneInfo("Asia/Jerusalem"))
-    except Exception:
-        il_now = datetime.now(timezone.utc)
+    except Exception:  # noqa: BLE001
+        il_now = datetime.now(UTC)
     if not dry_run and not override_id and _reconcile_due(
         il_now, enabled=reconcile_enabled, weekday=reconcile_weekday
     ):
         from services.scanner.client import CKANClient
+
         from . import reconcile as _reconcile
         log.info("reconcile: due (weekday=%s) — running sweep", reconcile_weekday)
         try:
@@ -307,7 +309,7 @@ async def run_pipeline(
 
     # [3] what to refresh: the override if it has a recipe, else everything
     # (run_refresh decides per source).
-    only_ids: Optional[list[str]] = None
+    only_ids: list[str] | None = None
     override_src = None
     if override_id:
         override_src = await asyncio.to_thread(store.get_source, override_id)

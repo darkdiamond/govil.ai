@@ -22,6 +22,7 @@ back to "קטע <LINE_ID>", and new target years are listed, not assumed. The
 pairwise geometry is O(features² × vertices²); fine for a layer of tens of
 lines, and PAIR_LIMIT stops it from running away on a much bigger upload.
 """
+import itertools
 import json
 import math
 import re
@@ -88,7 +89,7 @@ def _hav(a, b):
 
 
 def _length(pts):
-    return sum(_hav(a, b) for a, b in zip(pts, pts[1:]))
+    return sum(_hav(a, b) for a, b in itertools.pairwise(pts))
 
 
 def _parts_of(geom):
@@ -148,7 +149,7 @@ def _polyline(plane, parts):
     for part in parts:
         xy = [plane.xy(p) for p in part]
         cum = [run]
-        for a, b in zip(xy, xy[1:]):
+        for a, b in itertools.pairwise(xy):
             run += math.hypot(b[0] - a[0], b[1] - a[1])
             cum.append(run)
         out.append((xy, cum))
@@ -566,7 +567,7 @@ def compute(frames):
     max_diff = max(diffs) if diffs else None
 
     # ── KPIs ──
-    in_fork = lambda p: any(p["i"] in c["ids"] and p["j"] in c["ids"] for c in forks)  # noqa: E731
+    in_fork = lambda p: any(p["i"] in c["ids"] and p["j"] in c["ids"] for c in forks)
     n_junc = (sum(1 for p in pairs if p["kind"] == "cross") + len(forks)
               + sum(1 for p in pairs if p["kind"] == "touch" and not in_fork(p)))
     year_disp = str(years[0]) if len(years) == 1 else (f"{years[0]}–{years[-1]}" if years else "-")
@@ -584,7 +585,7 @@ def compute(frames):
     year_txt = (f" לשנת היעד {years[0]}" if len(years) == 1
                 else (f" לשנים {years[0]}-{years[-1]}" if years else ""))
     struct = ("קו ראשי אחד" if len(mains) == 1 else f"{len(mains):,} קווים ראשיים") + (
-        ("" if not exts else (" ושלוחה אחת" if len(exts) == 1 else f" ו-{len(exts):,} שלוחות")))
+        "" if not exts else (" ושלוחה אחת" if len(exts) == 1 else f" ו-{len(exts):,} שלוחות"))
     if max_diff is None:
         diff_txt = ""
     elif max_diff < 0.01:

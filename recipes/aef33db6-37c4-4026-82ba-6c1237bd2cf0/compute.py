@@ -319,7 +319,7 @@ def compute(frames):
     # ── Age at lapse ────────────────────────────────────────────────────────
     ages = df["age"].dropna().astype(int)
     age_vc = ages.value_counts().sort_index()
-    age_x = list(range(0, int(ages.max()) + 1))
+    age_x = list(range(int(ages.max()) + 1))
     age_hist = {"x": [str(a) for a in age_x], "y": [int(age_vc.get(a, 0)) for a in age_x]}
     ab = ages.map(lambda a: _bucket(a, AGE_BINS)).value_counts()
     t_age = [{"name": b[2], "count": _int(ab.get(b[2], 0)),

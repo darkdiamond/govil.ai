@@ -271,7 +271,7 @@ def insight_no_city(df):
 
 def compute(frames):
     df = _prepare(frames["centers"])
-    n = int(len(df))
+    n = len(df)
 
     city_counts = _counts(df["city"])
     type_counts = _counts(df["ctype"])
@@ -289,8 +289,8 @@ def compute(frames):
             continue
         firsts = _counts(sub["name"].map(lambda s: s.split(" ")[0]))
         label = _display_name(firsts.index[0])
-        nets.append({"key": key, "label": label, "branches": int(len(sub)),
-                     "cities": int(len(set(sub["city"]) - {CITY_NONE}))})
+        nets.append({"key": key, "label": label, "branches": len(sub),
+                     "cities": len(set(sub["city"]) - {CITY_NONE})})
     nets = [r for r in nets if r["branches"] >= 2]
     nets.sort(key=lambda r: (-r["branches"], -r["cities"], r["key"]))
     in_nets = int(sum(r["branches"] for r in nets))
@@ -315,7 +315,7 @@ def compute(frames):
     n_adapted = int((df["adj"] != gen).sum()) if gen else 0
     kpis = {
         "total": {"value": n, "display": f"{n:,}", "tone": "brand"},
-        "cities": {"value": int(len(named_cities)), "display": f"{len(named_cities):,}",
+        "cities": {"value": len(named_cities), "display": f"{len(named_cities):,}",
                    "tone": "brand"},
         "hosp": {"value": n_hosp, "display": f"{n_hosp:,}", "tone": "brand"},
         "adapted": {"value": n_adapted, "display": f"{n_adapted:,}",
@@ -361,8 +361,7 @@ def compute(frames):
 
     # ---- networks chart
     net_rows = [{"name": r["label"], "n": r["branches"], "cities": r["cities"]} for r in nets]
-    net_rows_t = net_rows + ([{"name": "מרכזים שאינם חלק מרשת", "n": solo, "cities": int(
-        len(set(df[~df["net"].isin([r["key"] for r in nets])]["city"]) - {CITY_NONE}))}]
+    net_rows_t = net_rows + ([{"name": "מרכזים שאינם חלק מרשת", "n": solo, "cities": len(set(df[~df["net"].isin([r["key"] for r in nets])]["city"]) - {CITY_NONE})}]
         if solo else [])
     net_chart = {"names": [r["name"] for r in net_rows_t][::-1],
                  "values": [r["n"] for r in net_rows_t][::-1]}
@@ -371,8 +370,8 @@ def compute(frames):
     reach_rows = []
     for a in adj_order:
         sub = df[df["adj"] == a]
-        reach_rows.append({"name": a, "n": int(len(set(sub["city"]) - {CITY_NONE})),
-                           "centers": int(len(sub))})
+        reach_rows.append({"name": a, "n": len(set(sub["city"]) - {CITY_NONE}),
+                           "centers": len(sub)})
     reach_chart = {"names": [r["name"] for r in reach_rows],
                    "centers": [r["centers"] for r in reach_rows],
                    "cities": [r["n"] for r in reach_rows]}

@@ -39,11 +39,11 @@ def _clean(s):
 
 
 def _ils(v):
-    return f"₪{int(round(v)):,}"
+    return f"₪{round(v):,}"
 
 
 def _num(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v):
@@ -204,7 +204,7 @@ def insight_general(cur, median):
     g = cur[cur["name"].map(_is_general)].sort_values(["rate", "name"], kind="stable")
     if g.empty:
         return None
-    rates = sorted(set(int(round(r)) for r in g["rate"]))
+    rates = sorted({round(r) for r in g["rate"]})
     names = "; ".join(f"\"{n}\"" for n in g["name"])
     if len(rates) == 1:
         rel = ("מעל החציון" if rates[0] > round(median)
@@ -259,9 +259,8 @@ def compute(frames):
         cur_raw = df
     cur = _one_per_name(cur_raw)
     prev = _one_per_name(prev_raw) if not prev_raw.empty else prev_raw
-    n = int(len(cur))
+    n = len(cur)
     median = float(cur["rate"].median())
-    mean = float(cur["rate"].mean())
     lo_row = cur.sort_values(["rate", "name"], kind="stable").iloc[0]
     hi_rows = cur[cur["rate"].round() == round(cur["rate"].max())].sort_values("name", kind="stable")
     hi = float(cur["rate"].max())
@@ -273,7 +272,7 @@ def compute(frames):
     tiers = []
     for lvl, g in r.groupby("level"):
         if len(g) >= TIER_MIN:
-            tiers.append({"value": int(lvl), "count": int(len(g)),
+            tiers.append({"value": int(lvl), "count": len(g),
                           "names": sorted(g["name"].map(_base).unique())})
     tiers.sort(key=lambda t: (-t["count"], t["value"]))
     unique_n = int(n - sum(t["count"] for t in tiers))

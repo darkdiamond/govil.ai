@@ -18,7 +18,7 @@ HEAT_SECTORS = 6
 MONTH_CAP = 36
 EXPIRY_HORIZON_YEARS = 14
 INDEFINITE_YEAR = 2090          # 2099-12-31 is used as "no expiry date"
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 NO_STREET = {"", "0", "באר שבע"}
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -352,13 +352,12 @@ def compute(frames):
     soon_share = soon / total * 100 if total else 0
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
-        "businesses": {"value": int(len(b_counts)), "display": n(len(b_counts)), "tone": "brand"},
+        "businesses": {"value": len(b_counts), "display": n(len(b_counts)), "tone": "brand"},
         "renewing": {"value": ren, "display": f"{ren_share:.1f}%",
                      "tone": "ok" if ren_share >= 85 else ("warn" if ren_share >= 70 else "danger")},
         "soon": {"value": soon, "display": n(soon), "tone": "warn" if soon_share >= 10 else "info"},
     }
 
-    top_sector = sectors.drop(OTHER, errors="ignore")
     partial_note = (f" החודש האחרון ({mlabels[-1]}) חלקי — עד {d_he(ref)}." if partial_last else "")
     labels = {
         "lede": (f"רישיונות עסק בתוקף בעיריית באר שבע: {n(total)} רישיונות של {n(len(b_counts))} עסקים "

@@ -24,7 +24,7 @@ NATIONAL_MAX = 20           # national applications table cap
 ERA_SPLIT = 2000            # "early" vs "modern" era for closure / lag rules
 RECENT_YEARS = 10           # window for the recent-filings rule
 MIN_ERA_ROWS = 30           # min applications per era for a rate comparison
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 REG, CLOSED = "רשום", "סגור"
 NATIONAL, INTL = "לאומי", "בינלאומי"

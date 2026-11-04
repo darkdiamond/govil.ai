@@ -49,7 +49,7 @@ def _clean_auth(name):
         return "מועצה אזורית " + name[len("מועצה אזורית מ. א. "):]
     for p in ("עירית", "איגוד ערים"):
         rest = name[len(p) + 1:]
-        if name.startswith(p + " ") and (rest.startswith("עירי") or rest.startswith(p)):
+        if name.startswith(p + " ") and (rest.startswith(("עירי", p))):
             return rest
     return name
 

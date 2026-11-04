@@ -302,7 +302,7 @@ def insight_depth(path_depth):
 
 def compute(frames):
     df = _prepare(frames["main"])
-    n = int(len(df))
+    n = len(df)
 
     gdesc = _mode_name(df, "g", "CategoryDesc1")
     gcodes = sorted(df["g"].unique(), key=_code_key)
@@ -311,7 +311,7 @@ def compute(frames):
     inames = _mode_name(df, "CategoryCode2", "CategoryDesc2")
 
     paths = df.drop_duplicates("path")
-    n_paths = int(len(paths))
+    n_paths = len(paths)
     n_items = int(df.loc[df["CategoryCode2"] != "", "CategoryCode2"].nunique())
     n_reqs = int(df["req"].nunique())
     n_groups = len(gcodes)
@@ -322,7 +322,7 @@ def compute(frames):
     for g in gcodes:
         sub = df[df["g"] == g]
         grows.append({
-            "g": g, "name": gnames[g], "short": gshort[g], "rows": int(len(sub)),
+            "g": g, "name": gnames[g], "short": gshort[g], "rows": len(sub),
             "share": len(sub) / n if n else 0.0,
             "items": int(sub.loc[sub["CategoryCode2"] != "", "CategoryCode2"].nunique()),
             "paths": int(sub["path"].nunique()), "reqs": int(sub["req"].nunique()),

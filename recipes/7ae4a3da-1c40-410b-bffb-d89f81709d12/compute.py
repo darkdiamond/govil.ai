@@ -7,8 +7,6 @@ the range are not on the list, and how the codes split between operators.
 
 import re
 
-import pandas as pd
-
 # Known operators: a Hebrew display name for the well-known brands, matched
 # on a substring of the normalised English legal name. Anything else keeps
 # its legal name as written in the data.
@@ -221,7 +219,7 @@ def compute(frames):
 
     # Code map over the main MCC: every number from 1 to the highest listed.
     main = df[(df["mcc"] == main_mcc) & df["mnc_i"].notna()]
-    nums = sorted(set(int(v) for v in main["mnc_i"]))
+    nums = sorted({int(v) for v in main["mnc_i"]})
     grid, gaps, lo, hi = [], [], "", ""
     if nums:
         top = nums[-1]

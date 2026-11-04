@@ -12,9 +12,10 @@ string.
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -44,21 +45,21 @@ class SourceRecord:
     name: str = ""
     title: str = ""
     slug: str = ""
-    notes: Optional[str] = None
+    notes: str | None = None
     organization: dict = field(default_factory=dict)
-    license_title: Optional[str] = None
-    update_frequency: Optional[str] = None
+    license_title: str | None = None
+    update_frequency: str | None = None
     tags: list[str] = field(default_factory=list)
     resources: list[dict] = field(default_factory=list)
-    record_count: Optional[int] = None
-    metadata_created: Optional[datetime] = None
-    metadata_modified: Optional[datetime] = None
+    record_count: int | None = None
+    metadata_created: datetime | None = None
+    metadata_modified: datetime | None = None
 
-    first_seen_at: Optional[datetime] = None
-    last_scanned_at: Optional[datetime] = None
+    first_seen_at: datetime | None = None
+    last_scanned_at: datetime | None = None
     change_status: str = "unchanged"
 
-    last_analyzed_at: Optional[datetime] = None
+    last_analyzed_at: datetime | None = None
     # Source's metadata_modified at the moment of the last successful
     # analysis — i.e. the data vintage the agent's content is based on.
     # Distinct from `metadata_modified`, which is the *live* CKAN value
@@ -66,11 +67,11 @@ class SourceRecord:
     # `mark_analysis_succeeded`. The publisher falls back to
     # `min(metadata_modified, last_analyzed_at)` for legacy docs that
     # succeeded before this field existed.
-    analyzed_metadata_modified: Optional[datetime] = None
+    analyzed_metadata_modified: datetime | None = None
     last_analyzed_version: int = 0
     analysis_status: str = "never"
-    last_error: Optional[str] = None
-    page_path: Optional[str] = None
+    last_error: str | None = None
+    page_path: str | None = None
     # Whole-run failures since the last success. Only Track 2 reads it for
     # `succeeded` sources (see `mark_reanalysis_failed`).
     failed_attempts: int = 0
@@ -78,34 +79,34 @@ class SourceRecord:
     # UTC timestamp the reconcile sweep first flagged the source as removed
     # upstream. Set by mark_source_unavailable, cleared by
     # clear_source_unavailable. None while the source is available.
-    unavailable_since: Optional[datetime] = None
+    unavailable_since: datetime | None = None
 
     # Per-dataset interpretive fields (summary_he, dataset_kind, related_ids, …).
     # Written by a successful recipe refresh (legacy pages keep what the
     # retired agent builder wrote); consumed by the publisher to write
     # `agent_data.json`.
-    agent_data: Optional[dict] = None
+    agent_data: dict | None = None
 
     # Authoring queue (refresh state lives on the prod source doc):
     # `notified` = a needs-authoring issue is recorded, so the nightly
     # queue skips the source instead of re-asking every day.
-    authoring_status: Optional[str] = None
-    authoring_issue: Optional[int] = None
+    authoring_status: str | None = None
+    authoring_issue: int | None = None
 
     # Non-CKAN sources (services/providers): the provider key, the page
     # shell's credit block (SourcePresentation) and the readable slug suffix.
     # All None for data.gov.il datasets.
-    provider: Optional[str] = None
-    source_url: Optional[str] = None
-    presentation: Optional[dict] = None
-    page_slug_suffix: Optional[str] = None
+    provider: str | None = None
+    source_url: str | None = None
+    presentation: dict | None = None
+    page_slug_suffix: str | None = None
 
     # Titles CKAN renamed this dataset away from (save_dataset). Each one was
     # a page URL; the publisher redirects them to the current one.
     previous_titles: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_doc(cls, doc) -> "SourceRecord":
+    def from_doc(cls, doc) -> SourceRecord:
         data: dict[str, Any] = doc.to_dict() or {}
         return cls(
             id=doc.id,
@@ -151,9 +152,9 @@ class FirestoreStateStore:
 
     def __init__(
         self,
-        project_id: Optional[str] = None,
+        project_id: str | None = None,
         database: str = "(default)",
-        client: Optional[firestore.Client] = None,
+        client: firestore.Client | None = None,
     ):
         self.project_id = (
             project_id
@@ -166,7 +167,7 @@ class FirestoreStateStore:
 
     # ---- Scanner surface -------------------------------------------------
 
-    def get_dataset_metadata_modified(self, dataset_id: str) -> Optional[datetime]:
+    def get_dataset_metadata_modified(self, dataset_id: str) -> datetime | None:
         snap = self.client.collection(SOURCES_COLL).document(dataset_id).get()
         if not snap.exists:
             return None
@@ -174,7 +175,7 @@ class FirestoreStateStore:
 
     def get_scan_state(
         self, dataset_id: str
-    ) -> tuple[Optional[datetime], Optional[str]]:
+    ) -> tuple[datetime | None, str | None]:
         """Return `(metadata_modified, analysis_status)` in a single read.
 
         Used by the scanner's ChangeDetector so it can both decide
@@ -190,7 +191,7 @@ class FirestoreStateStore:
 
     def save_dataset(self, dataset, change_status: str) -> None:
         """Upsert a `sources/{id}` document. Preserves analyzer fields."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ref = self.client.collection(SOURCES_COLL).document(dataset.id)
         snap = ref.get()
 
@@ -209,7 +210,7 @@ class FirestoreStateStore:
             for r in dataset.resources
         ]
 
-        org: Optional[dict] = None
+        org: dict | None = None
         if dataset.organization:
             org = {
                 "id": dataset.organization.id,
@@ -279,7 +280,7 @@ class FirestoreStateStore:
         content hash changed (or a resource came or went). Returns whether it
         moved. Analyzer/refresh fields are preserved, as in `save_dataset`.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ref = self.client.collection(SOURCES_COLL).document(dataset_id)
         snap = ref.get()
         old = (snap.to_dict() or {}) if snap.exists else {}
@@ -314,7 +315,7 @@ class FirestoreStateStore:
     # ---- scan_runs -------------------------------------------------------
 
     def start_scan(self, mode: str = "scheduled") -> str:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ref = self.client.collection(SCAN_RUNS_COLL).document()
         ref.set(
             {
@@ -338,12 +339,12 @@ class FirestoreStateStore:
         new: int,
         updated: int,
         unchanged: int,
-        processed_source_ids: Optional[list[str]] = None,
-        processed_statuses: Optional[dict[str, str]] = None,
-        errors: Optional[list[str]] = None,
-        started_at: Optional[datetime] = None,
+        processed_source_ids: list[str] | None = None,
+        processed_statuses: dict[str, str] | None = None,
+        errors: list[str] | None = None,
+        started_at: datetime | None = None,
     ) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         ref = self.client.collection(SCAN_RUNS_COLL).document(scan_id)
         if started_at is None:
             snap = ref.get()
@@ -378,7 +379,7 @@ class FirestoreStateStore:
 
     # ---- Builder surface -------------------------------------------------
 
-    def get_source(self, dataset_id: str) -> Optional[SourceRecord]:
+    def get_source(self, dataset_id: str) -> SourceRecord | None:
         snap = self.client.collection(SOURCES_COLL).document(dataset_id).get()
         if not snap.exists:
             return None
@@ -475,9 +476,9 @@ class FirestoreStateStore:
         self,
         dataset_id: str,
         page_path: str,
-        analyzed_metadata_modified: Optional[datetime] = None,
+        analyzed_metadata_modified: datetime | None = None,
     ) -> None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {
                 "analysis_status": "succeeded",
@@ -531,7 +532,7 @@ class FirestoreStateStore:
             "last_error": (error or "")[:1000],
         }
         if not already:
-            payload["unavailable_since"] = datetime.now(timezone.utc)
+            payload["unavailable_since"] = datetime.now(UTC)
         ref.set(payload, merge=True)
 
     def clear_source_unavailable(self, dataset_id: str) -> None:
@@ -610,7 +611,7 @@ class FirestoreStateStore:
 
         Returns the ids reaped.
         """
-        cutoff = datetime.now(timezone.utc) - timedelta(minutes=older_than_minutes)
+        cutoff = datetime.now(UTC) - timedelta(minutes=older_than_minutes)
         query = self.client.collection(SOURCES_COLL).where(
             filter=FieldFilter("analysis_status", "==", "pending")
         )
@@ -622,7 +623,7 @@ class FirestoreStateStore:
                 # come from a hand-edited doc — treat it as UTC rather than
                 # letting the comparison raise and strand the whole sweep.
                 if started.tzinfo is None:
-                    started = started.replace(tzinfo=timezone.utc)
+                    started = started.replace(tzinfo=UTC)
                 if started > cutoff:
                     continue
             # No timestamp at all → written before this field existed, so it
@@ -659,16 +660,16 @@ class FirestoreStateStore:
         self,
         dataset_id: str,
         *,
-        metadata_modified: Optional[datetime],
+        metadata_modified: datetime | None,
         recipe_version: int,
         agent_data: dict,
         page_path: str,
-        snapshot: Optional[dict] = None,
-        input_fingerprint: Optional[str] = None,
-        inputs_hash: Optional[str] = None,
-        content_hash: Optional[str] = None,
-        file_fingerprint: Optional[str] = None,
-        inputs_hash_unordered: Optional[str] = None,
+        snapshot: dict | None = None,
+        input_fingerprint: str | None = None,
+        inputs_hash: str | None = None,
+        content_hash: str | None = None,
+        file_fingerprint: str | None = None,
+        inputs_hash_unordered: str | None = None,
         preview: bool = False,
     ) -> None:
         """Record a successful recipe refresh.
@@ -684,7 +685,7 @@ class FirestoreStateStore:
         (`mark_analysis_succeeded`) — the page's data vintage is now the
         version just rendered — plus agent_data, in one merged write.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         payload: dict[str, Any] = {
             "agent_data": agent_data,
             "recipe_version": recipe_version,
@@ -723,14 +724,14 @@ class FirestoreStateStore:
         self,
         dataset_id: str,
         *,
-        metadata_modified: Optional[datetime],
+        metadata_modified: datetime | None,
         input_fingerprint: str,
-        inputs_hash: Optional[str] = None,
-        inputs_hash_unordered: Optional[str] = None,
-        file_fingerprint: Optional[str] = None,
+        inputs_hash: str | None = None,
+        inputs_hash_unordered: str | None = None,
+        file_fingerprint: str | None = None,
         reason: str,
         advance_version: bool,
-        transient_strikes: Optional[dict[str, int]] = None,
+        transient_strikes: dict[str, int] | None = None,
         preview: bool = False,
     ) -> None:
         """Record that CKAN bumped the version but the precheck found the
@@ -754,7 +755,7 @@ class FirestoreStateStore:
         run of `preview_unavailable` strikes restarts).
         """
         payload: dict[str, Any] = {
-            "last_unchanged_at": datetime.now(timezone.utc),
+            "last_unchanged_at": datetime.now(UTC),
             "unchanged_reason": reason,
             "input_fingerprint": input_fingerprint,
             "file_fingerprint": file_fingerprint,
@@ -793,8 +794,8 @@ class FirestoreStateStore:
         error: str,
         reason: str,
         failed_version: str,
-        wall_budget_strikes: Optional[int] = None,
-        transient_strikes: Optional[dict[str, int]] = None,
+        wall_budget_strikes: int | None = None,
+        transient_strikes: dict[str, int] | None = None,
         preview: bool = False,
     ) -> None:
         """Record a failed refresh. Never touches `analysis_status`: the
@@ -811,7 +812,7 @@ class FirestoreStateStore:
             "refresh_error": (error or "")[:1000],
             "refresh_reason": reason,
             "refresh_failed_version": failed_version,
-            "last_refresh_attempt_at": datetime.now(timezone.utc),
+            "last_refresh_attempt_at": datetime.now(UTC),
         }
         if wall_budget_strikes is not None:
             payload["wall_budget_strikes"] = wall_budget_strikes

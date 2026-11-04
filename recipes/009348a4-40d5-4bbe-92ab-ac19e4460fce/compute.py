@@ -38,7 +38,7 @@ def _plural(t):
 
 def _district_label(d):
     """'מחוז הצפון', but 'אזור יהודה והשומרון' stays as is."""
-    if d == NO_DISTRICT or d.startswith("אזור") or d.startswith("מחוז"):
+    if d == NO_DISTRICT or d.startswith(("אזור", "מחוז")):
         return d
     return f"מחוז {d}"
 
@@ -224,7 +224,7 @@ def insight_gaps(df):
 
 def compute(frames):
     df = _prepare(frames["authorities"])
-    total = int(len(df))
+    total = len(df)
     types = sorted(df["type"].unique().tolist(), key=_type_key)
     by_type = df["type"].value_counts().reindex(types).fillna(0).astype(int)
 

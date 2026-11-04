@@ -6,6 +6,8 @@ counts are shown alongside. "Now" is the latest sample in the data, never
 the wall clock. Only the latest calendar year can be partial; it is labelled
 and kept out of the year-over-year rules.
 """
+import itertools
+
 import pandas as pd
 
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
@@ -39,7 +41,7 @@ def _mode(series, default=""):
         return default
     vc = s.value_counts()
     top = vc[vc == vc.max()].index
-    return sorted(top)[0]
+    return min(top)
 
 
 def _prepare(df):
@@ -211,7 +213,7 @@ def compute(frames):
     }
 
     yoy = []
-    for a, b in zip(full_years, full_years[1:]):
+    for a, b in itertools.pairwise(full_years):
         if b == a + 1:
             yoy.append((a, b, float(annual.loc[b, "mean"] - annual.loc[a, "mean"])))
     yoy_chart = {"x": [str(b) for _, b, _ in yoy], "y": [round(v, 1) for _, _, v in yoy]}
@@ -219,12 +221,12 @@ def compute(frames):
     # Decades (box plot): label = actual year span of data inside the decade.
     dec_rows = []
     for dec, g in df.groupby(df["y"] // 10 * 10):
-        ys = sorted(set(int(v) for v in g["y"]))
+        ys = sorted({int(v) for v in g["y"]})
         span_full = [y for y in ys if y in full_years]
         q = g["v"].quantile([0, 0.25, 0.5, 0.75, 1.0]).tolist()
         label = f"{ys[0]}-{ys[-1]}" if ys[0] != ys[-1] else str(ys[0])
         dec_rows.append({"start": int(dec), "label": label, "mean": float(g["v"].mean()),
-                         "box": [round(float(x), 1) for x in q], "n": int(len(g)),
+                         "box": [round(float(x), 1) for x in q], "n": len(g),
                          "full": len(span_full) == 10})
     decades = {"x": [r["label"] for r in dec_rows], "box": [r["box"] for r in dec_rows],
                "mean": [round(r["mean"], 1) for r in dec_rows]}

@@ -21,7 +21,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_CITIES = 12
 TOP_ORGS = 15
 ORG_MIN = 3
@@ -276,7 +276,7 @@ def compute(frames):
     orgs = dcounts[dcounts >= ORG_MIN]
     top_o = orgs.head(TOP_ORGS)
     webmail_n = int(df["webmail"].sum())
-    org_email_n = int(len(org_rows))
+    org_email_n = len(org_rows)
     no_email = total - with_email
 
     # Titles.
@@ -334,9 +334,9 @@ def compute(frames):
                  f"ב-{ref}; {n(cur)} שילמו את האגרה השנתית לשנת {cycle}."),
         "current_kpi": f"שילמו אגרה שנתית לשנת {cycle} ואילך",
         "seniority_kpi": f"ותק חציוני בפנקס (שנים, נכון ל-{ref})",
-        "years_note": (f"מספר עורכי הפטנטים הרשומים כיום לפי שנת הרישום בפנקס, לפי מצב תשלום "
-                       f"האגרה. המאגר כולל רק את הרשומים היום — מי שנגרע מהפנקס אינו מופיע, ולכן "
-                       f"השנים המוקדמות דלילות."
+        "years_note": ("מספר עורכי הפטנטים הרשומים כיום לפי שנת הרישום בפנקס, לפי מצב תשלום "
+                       "האגרה. המאגר כולל רק את הרשומים היום — מי שנגרע מהפנקס אינו מופיע, ולכן "
+                       "השנים המוקדמות דלילות."
                        + (f" ל-{n(no_year)} רשומים אין שנת רישום." if no_year else "")),
         "years_aria": (f"גרף עמודות מוערמות: עורכי פטנטים לפי שנת רישום, {first} עד {ref}, "
                        f"לפי מצב תשלום האגרה; שיא ב-{peak_year}."),

@@ -346,7 +346,6 @@ def compute(frames):
     n_issues = int(df["issue"].nunique())
     vols = df["vol"].dropna()
     n_vols = int(vols.nunique())
-    latest_vol = int(vols.max()) if len(vols) else None
 
     # --- themes by decade (share of full articles whose title touches the theme)
     full["themes"] = full["article_name"].map(_themes_of)
@@ -439,9 +438,9 @@ def compute(frames):
         "coauthor_aria": (f"תרשים עמודות מוערמות באחוזים: מספר הכותבים למאמר לפי עשור. "
                           f"ממוצע הכותבים עלה מ-{first_r['mean']:.1f} ל-{last_r['mean']:.1f}."),
         "bucket_names": [f"{b} כותבים" if b != "1" else "כותב/ת יחיד/ה" for b in buckets],
-        "authors_note": (f"הכותבים עם המספר הגדול ביותר של מאמרים מלאים, כולל מאמרים "
-                         f"משותפים. שמות נספרים לפי הכתיב במאגר, כך שכתיב שונה של אותו "
-                         f"שם נספר בנפרד."),
+        "authors_note": ("הכותבים עם המספר הגדול ביותר של מאמרים מלאים, כולל מאמרים "
+                         "משותפים. שמות נספרים לפי הכתיב במאגר, כך שכתיב שונה של אותו "
+                         "שם נספר בנפרד."),
         "authors_aria": (f"תרשים עמודות אופקי: {_int(len(top))} הכותבים הפורים ביותר. "
                          f"במקום הראשון {top[0][0]} עם {_int(top[0][1])} מאמרים."
                          if top else "תרשים עמודות אופקי: הכותבים הפורים ביותר."),

@@ -21,7 +21,7 @@ import pandas as pd
 
 TOP_GROUPS = 12
 TOP_MAKERS = 15
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 SEG_COM, SEG_HOME, SEG_UNK = "שימוש מסחרי", "שימוש ביתי ואישי", "לא צוין"
 SEG_ORDER = [SEG_COM, SEG_HOME, SEG_UNK]
 PLACEHOLDER_MAKERS = {"", "כללי"}       # not a real manufacturer
@@ -374,7 +374,7 @@ def compute(frames):
 
     # KPIs
     v_share = valid_n / total * 100 if total else 0.0
-    n_vm = int(len(vm))
+    n_vm = len(vm)
     n_certs = int(df.loc[df["cert"].str.len() >= 3, "cert"].nunique())
     lf_tone = "brand" if pv_n == 0 else ("ok" if lf_n > pv_n * 1.1 else ("warn" if lf_n < pv_n * 0.9 else "brand"))
     kpis = {
@@ -442,8 +442,8 @@ def compute(frames):
                         f"פוקעים {n(exp_this + exp_next)} דגמים."),
         "expiry_caption": "דגמים בתוקף לפי שנת פקיעת האישור וייעוד.",
         "term_note": ("משך האישור בשנים — שנת הפקיעה פחות שנת האישור שבמספר התעודה — לפי ייעוד השימוש."
-                      + (("" if not t_bad else " דגם אחד עם הפרש שלילי או חריג אינו מוצג." if t_bad == 1
-                         else f" {n(t_bad)} דגמים עם הפרש שלילי או חריג אינם מוצגים."))),
+                      + ("" if not t_bad else " דגם אחד עם הפרש שלילי או חריג אינו מוצג." if t_bad == 1
+                         else f" {n(t_bad)} דגמים עם הפרש שלילי או חריג אינם מוצגים.")),
         "term_aria": "גרף עמודות מוערמות: דגמים לפי משך האישור בשנים וייעוד השימוש.",
         "term_caption": "דגמים לפי משך האישור (שנים) וייעוד.",
         "makers_note": (f"{TOP_MAKERS} היצרנים עם מספר הדגמים הגבוה ביותר שבתוקף, לפי ייעוד. "

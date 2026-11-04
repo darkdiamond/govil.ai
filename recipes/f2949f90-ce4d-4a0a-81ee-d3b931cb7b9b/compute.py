@@ -22,7 +22,7 @@ deposits table (never the wall clock); decisions carry their own latest date.
 """
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 TOP_COUNTRIES = 10
@@ -40,7 +40,7 @@ SOURCE_BUCKETS = [(1, 1), (2, 10), (11, 100), (101, None)]   # rank ranges of es
 
 # ── formatting ─────────────────────────────────────────────────────────────
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -478,8 +478,6 @@ def compute(frames):
     early = by_dec[by_dec.index < dec_from]
     d_total = float(dec["decided"].sum())
     d_paid = float(dec["paid"].sum())
-    d_cancel = float(dec["cancelled"].sum())
-    d_open = max(d_total - d_paid - d_cancel, 0.0)
     paid_share = d_paid / d_total * 100 if d_total else 0.0
 
     min_names, min_vals = _top(dec.groupby("ministry")["decided"].sum(), TOP_MINISTRIES)

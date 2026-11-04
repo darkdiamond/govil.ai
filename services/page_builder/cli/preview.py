@@ -41,9 +41,8 @@ import tempfile
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 from services.shared.firestore import SourceRecord
 from services.shared.slug import slugify
@@ -74,7 +73,7 @@ WATCH_INTERVAL_S = 0.5
 # ── staging ──────────────────────────────────────────────────────────────
 
 
-def base_manifest_path() -> Optional[Path]:
+def base_manifest_path() -> Path | None:
     """The published corpus to overlay: this checkout's manifest, else the
     main checkout's (worktrees don't carry frontend/public/data/)."""
     rel = Path("frontend/public/data/manifest.json")
@@ -94,11 +93,11 @@ def base_manifest_path() -> Optional[Path]:
 def _load_base() -> Manifest:
     path = base_manifest_path()
     if path is None:
-        return Manifest(generated_at=datetime.now(timezone.utc))
+        return Manifest(generated_at=datetime.now(UTC))
     return Manifest.model_validate_json(path.read_text(encoding="utf-8"))
 
 
-def _dt(value) -> Optional[datetime]:
+def _dt(value) -> datetime | None:
     return datetime.fromisoformat(value) if isinstance(value, str) and value else None
 
 
@@ -122,7 +121,7 @@ def _source_record(dataset_id: str, recipes_root: Path) -> SourceRecord:
         record_count=facts.get("record_count"),
         metadata_modified=modified,
         analysis_status="succeeded",
-        last_analyzed_at=modified or datetime.now(timezone.utc),
+        last_analyzed_at=modified or datetime.now(UTC),
         analyzed_metadata_modified=modified,
     )
     provider = author._provider_for_recipe(dataset_id, recipes_root)
@@ -135,7 +134,7 @@ def _source_record(dataset_id: str, recipes_root: Path) -> SourceRecord:
     return src
 
 
-def _dataset_tags(tax: Taxonomy, meta: DatasetMeta, agent: Optional[AgentData],
+def _dataset_tags(tax: Taxonomy, meta: DatasetMeta, agent: AgentData | None,
                   drop: frozenset[str]) -> list[str]:
     """Curated tags, else the batch's pending tags.json, else the fallback."""
     if meta.id not in tax.assignments:
@@ -153,7 +152,7 @@ def _write_overlay_manifest(root: Path, base: Manifest) -> None:
     """Base corpus + every staged dataset, with publisher tags + related."""
     tax = Taxonomy.load()
     entries = {e.id: e for e in base.datasets}
-    staged: list[tuple[DatasetMeta, Optional[AgentData]]] = []
+    staged: list[tuple[DatasetMeta, AgentData | None]] = []
     for d in sorted((root / "datasets").iterdir()):
         if not (d / "data.json").is_file():
             continue
@@ -169,9 +168,9 @@ def _write_overlay_manifest(root: Path, base: Manifest) -> None:
     index = RelatedIndex(entries.values())
     for meta, _ in staged:
         entries[meta.id].related_ids = [m.id for m in index.top(meta.id, TOP_K)]
-    oldest = datetime.min.replace(tzinfo=timezone.utc)
+    oldest = datetime.min.replace(tzinfo=UTC)
     manifest = base.model_copy(update={
-        "generated_at": datetime.now(timezone.utc),
+        "generated_at": datetime.now(UTC),
         "datasets": sorted(entries.values(), key=lambda e: e.metadata_modified or oldest,
                            reverse=True),
     })
@@ -186,7 +185,7 @@ def _write_overlay_manifest(root: Path, base: Manifest) -> None:
 
 
 def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIPES_ROOT,
-          root: Optional[Path] = None) -> Path:
+          root: Path | None = None) -> Path:
     """Write one rendered page into the preview overlay the way the publisher
     lays out frontend/public/: datasets/<id>/{content.html,data.json,
     agent_data.json} (+ model.json, for reading), data/manifest.json and
@@ -215,7 +214,7 @@ def stage(dataset_id: str, page, raw: dict, *, recipes_root: Path = author.RECIP
 
 
 def render(dataset_id: str, recipes_root: Path = author.RECIPES_ROOT,
-           root: Optional[Path] = None) -> bool:
+           root: Path | None = None) -> bool:
     """Render one recipe over the local data and stage it. A failure keeps
     the last staged page and returns False."""
     t0 = time.monotonic()
@@ -232,7 +231,7 @@ def render(dataset_id: str, recipes_root: Path = author.RECIPES_ROOT,
     except RecipeError as e:
         print(f"{tag} FAIL [{e.reason}] {e}", file=sys.stderr)
         return False
-    except Exception as e:  # a broken recipe mid-edit must not kill --watch
+    except Exception as e:  # a broken recipe mid-edit must not kill --watch  # noqa: BLE001
         print(f"{tag} FAIL {type(e).__name__}: {e}", file=sys.stderr)
         return False
     finally:
@@ -250,19 +249,19 @@ def _server_file(root: Path) -> Path:
     return root / "server.json"
 
 
-def _read_server(root: Path) -> Optional[dict]:
+def _read_server(root: Path) -> dict | None:
     try:
         return json.loads(_server_file(root).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
 
 
-def _get(url: str, timeout: float) -> Optional[int]:
+def _get(url: str, timeout: float) -> int | None:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as r:
             r.read()
             return r.status
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None
 
 
@@ -288,7 +287,7 @@ def _is_ours(info: dict) -> bool:
             and str(info["port"]).encode() in argv and b"dev" in argv)
 
 
-def running_server(root: Optional[Path] = None) -> Optional[dict]:
+def running_server(root: Path | None = None) -> dict | None:
     root = root or PREVIEW_ROOT
     info = _read_server(root)
     if not info or not _is_ours(info):
@@ -311,7 +310,7 @@ def _free_port() -> int:
     raise SystemExit(f"no free port in {PORTS.start}-{PORTS.stop - 1}")
 
 
-def ensure_server(root: Optional[Path] = None) -> dict:
+def ensure_server(root: Path | None = None) -> dict:
     """The checkout's preview server, started (and waited for) if needed.
     Locked, so parallel `preview` calls share one server."""
     root = root or PREVIEW_ROOT
@@ -343,7 +342,7 @@ def _ensure_server(root: Path) -> dict:
             cwd=FRONTEND, env=env, stdin=subprocess.DEVNULL, stdout=log,
             stderr=subprocess.STDOUT, start_new_session=True,
         )
-    info = {"pid": proc.pid, "port": port, "started_at": datetime.now(timezone.utc).isoformat()}
+    info = {"pid": proc.pid, "port": port, "started_at": datetime.now(UTC).isoformat()}
     _server_file(root).write_text(json.dumps(info), encoding="utf-8")
     print(f"starting nuxt dev on port {port} (log: {log_path.relative_to(REPO_ROOT)}) ...")
     t0 = time.monotonic()
@@ -376,7 +375,7 @@ def _kill(pid: int) -> None:
         pass
 
 
-def stop(root: Optional[Path] = None) -> int:
+def stop(root: Path | None = None) -> int:
     root = root or PREVIEW_ROOT
     info = _read_server(root)
     if not info:
@@ -394,7 +393,7 @@ def stop(root: Optional[Path] = None) -> int:
 # ── urls / status ────────────────────────────────────────────────────────
 
 
-def _urls(dataset_id: str, port: Optional[int], root: Path) -> list[str]:
+def _urls(dataset_id: str, port: int | None, root: Path) -> list[str]:
     d = root / "datasets" / dataset_id
     try:
         slug = json.loads((d / "data.json").read_text(encoding="utf-8")).get("page_slug") or dataset_id
@@ -415,7 +414,7 @@ def _warm(dataset_id: str, port: int, root: Path) -> None:
         _get(urllib.parse.quote(urls[0].split(": ", 1)[1], safe=":/"), timeout=120)
 
 
-def status(root: Optional[Path] = None) -> int:
+def status(root: Path | None = None) -> int:
     root = root or PREVIEW_ROOT
     info = running_server(root)
     print(f"server: http://{HOST}:{info['port']}/ (pid {info['pid']})" if info
@@ -469,7 +468,7 @@ def watch(ids: list[str], recipes_root: Path, root: Path) -> int:
 # ── cli ──────────────────────────────────────────────────────────────────
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     sys.stdout.reconfigure(line_buffering=True)  # --watch lines show up in a piped log
     if argv[:1] == ["stop"]:

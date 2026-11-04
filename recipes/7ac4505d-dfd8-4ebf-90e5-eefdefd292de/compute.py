@@ -15,7 +15,6 @@ import json
 import math
 
 import pandas as pd
-
 from govlib import fmt, frame, geo
 
 COUNT_COLS = [
@@ -493,8 +492,8 @@ def compute(frames):
         "types_lede": (f"נתח כל סוג רשות מהתאונות ומההרוגים. {big_type['name']}: {fmt.pct(big_type['acc'] / acc_all)} מהתאונות "
                        f"ו-{fmt.pct(big_type['dead'] / dead_all if dead_all else 0)} מההרוגים." if big_type and acc_all else ""),
         "types_aria": "גרף עמודות: נתח התאונות ונתח ההרוגים לפי סוג רשות.",
-        "districts_lede": (f"מספר התאונות בכל מחוז (עמודות) ושיעור ההרוגים והפצועים קשה לכל 100 תאונות (קו). "
-                           f"כל רשות משויכת למחוז של רוב יישוביה; שטח מחוץ למחוזות משרד הפנים מוצג בשמו."),
+        "districts_lede": ("מספר התאונות בכל מחוז (עמודות) ושיעור ההרוגים והפצועים קשה לכל 100 תאונות (קו). "
+                           "כל רשות משויכת למחוז של רוב יישוביה; שטח מחוץ למחוזות משרד הפנים מוצג בשמו."),
         "districts_aria": (f"גרף עמודות וקו: תאונות ושיעור חומרה לפי מחוז. הכי הרבה תאונות ב{districts[0]['name']}."
                            if districts else "גרף עמודות"),
         "age_lede": (f"{fmt.int_he(inj_all)} נפגעים בסך הכול. "

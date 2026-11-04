@@ -18,6 +18,7 @@ position, monthly-change heatmap, top moves).
 
 "Latest" is the latest month in the data, never the wall clock.
 """
+import itertools
 import re
 
 import pandas as pd
@@ -69,7 +70,7 @@ def family_of(c):
 
 
 def is_adjust(c):
-    return c.startswith("תוספת") or c.startswith("הפחתה")
+    return c.startswith(("תוספת", "הפחתה"))
 
 
 def mlabel(m):
@@ -133,7 +134,6 @@ def compute(frames):
         months = months[:-1]
     latest = months[-1]
     first = months[0]
-    mi = {m: i for i, m in enumerate(months)}
 
     # series table
     units_seen = sorted(df["unit"].unique().tolist(),
@@ -167,8 +167,8 @@ def compute(frames):
         by_fam.setdefault(fam, []).extend(ks)
     reps = {}
     for fam, ks in by_fam.items():
-        reps[fam] = sorted(ks, key=lambda k: (QUOTE in k[0], PIPE not in k[0], units_seen.index(k[1]),
-                                              -series[k]["n"], k[0]))[0]
+        reps[fam] = min(ks, key=lambda k: (QUOTE in k[0], PIPE not in k[0], units_seen.index(k[1]),
+                                              -series[k]["n"], k[0]))
     rep_keys = sorted(reps.values(), key=lambda k: (units_seen.index(k[1]), k[0]))
     rep_active = [k for k in rep_keys if series[k]["last"] == latest]
 
@@ -214,7 +214,7 @@ def compute(frames):
                 k2 in reps.values() for k2 in ks)
         last_vals = [(series[k]["vals"][latest], series[k]["label"]) for k in ks if latest in series[k]["vals"]]
         if last_vals:
-            hi = sorted(last_vals, key=lambda t: (-t[0], t[1]))[0]
+            hi = min(last_vals, key=lambda t: (-t[0], t[1]))
             lede = (f"{len(ks)} סדרות מחיר ביחידה זו, מהן {len(last_vals)} מתפרסמות גם ב{mlabel(latest)}. "
                     f"היקר ביותר החודש: {hi[1]}, {fmt_price(hi[0])} ש״ח {UNIT_SHORT.get(u, u)}.")
         else:
@@ -258,7 +258,7 @@ def compute(frames):
     jump = None
     for k in rep_active:
         row = yavg[k]
-        for a, b in zip(years, years[1:]):
+        for a, b in itertools.pairwise(years):
             if row[a] and row[b] and year_counts[b] >= full_n:
                 c = pct(row[b], row[a])
                 cand = (c, flabel(k), b)
@@ -302,8 +302,8 @@ def compute(frames):
     rng = []
     for k in rep_active:
         vs = series[k]["vals"]
-        lo_m = sorted(vs, key=lambda m: (vs[m], m))[0]
-        hi_m = sorted(vs, key=lambda m: (-vs[m], m))[0]
+        lo_m = min(vs, key=lambda m: (vs[m], m))
+        hi_m = min(vs, key=lambda m: (-vs[m], m))
         lo, hi, cur = vs[lo_m], vs[hi_m], vs[latest]
         posv = (cur - lo) / (hi - lo) if hi > lo else 0.5
         rng.append({"label": flabel(k), "unit": UNIT_SHORT.get(k[1], k[1]), "pos": posv,
@@ -322,7 +322,7 @@ def compute(frames):
     heat_keys = rep_active if len(hm) > 1 else []
     cells, hmax = [], 0.0
     for yi, k in enumerate(heat_keys):
-        for xi, (a, b) in enumerate(zip(hm, hm[1:])):
+        for xi, (a, b) in enumerate(itertools.pairwise(hm)):
             c = pct(val(k, b), val(k, a))
             if c is not None:
                 cells.append([xi, yi, round(c, 1)])
@@ -333,7 +333,7 @@ def compute(frames):
     # ── top monthly moves (all reps, all history) ──
     moves = []
     for k in rep_keys:
-        for a, b in zip(months, months[1:]):
+        for a, b in itertools.pairwise(months):
             c = pct(val(k, b), val(k, a))
             if c is not None:
                 moves.append((abs(c), c, flabel(k), b))
@@ -356,7 +356,7 @@ def compute(frames):
         sm = [m for m in months if val(k_dsl, m) is not None and val(k_gas, m) is not None]
         if len(sm) >= 12:
             vals = [val(k_dsl, m) - val(k_gas, m) for m in sm]
-            hi_i = sorted(range(len(sm)), key=lambda i: (-vals[i], sm[i]))[0]
+            hi_i = min(range(len(sm)), key=lambda i: (-vals[i], sm[i]))
             last12 = vals[-12:]
             spread = {"x": [mshort(m) for m in sm], "y": [r2(v) for v in vals],
                       "dsl": flabel(k_dsl), "gas": flabel(k_gas),
@@ -498,8 +498,8 @@ def compute(frames):
         if not k:
             return None
         vs = series[k]["vals"]
-        lo_m = sorted(vs, key=lambda m: (vs[m], m))[0]
-        hi_m = sorted(vs, key=lambda m: (-vs[m], m))[0]
+        lo_m = min(vs, key=lambda m: (vs[m], m))
+        hi_m = min(vs, key=lambda m: (-vs[m], m))
         if vs[lo_m] <= 0 or vs[hi_m] / vs[lo_m] < 1.5:
             return None
         order = "ועלה עד" if lo_m < hi_m else "אחרי שיא של"

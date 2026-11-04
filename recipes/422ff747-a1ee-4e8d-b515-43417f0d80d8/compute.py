@@ -385,7 +385,7 @@ def compute(frames):
     kpis["span"] = {"value": years, "display": years, "tone": "brand"}
     labels["kpi_reports"] = "דיווחי תקלות במאגר"
     labels["kpi_sites"] = "מפעלים שדיווחו"
-    labels["kpi_top_share"] = f"מהדיווחים הגיעו מהמפעל המוביל"
+    labels["kpi_top_share"] = "מהדיווחים הגיעו מהמפעל המוביל"
     labels["kpi_lag"] = "ימים (חציון) מתחילת התקלה ועד הדיווח"
     labels["kpi_span"] = "שנות הדיווח"
 

@@ -33,7 +33,6 @@ import logging
 import os
 import shlex
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 def _sh_quote(s: str) -> str:
@@ -81,7 +80,7 @@ class _Result:
 @dataclass
 class _Execution:
     logs: _Logs = field(default_factory=_Logs)
-    error: Optional[_Error] = None
+    error: _Error | None = None
     results: list[_Result] = field(default_factory=list)
 
 
@@ -92,7 +91,7 @@ class _FileEntry:
 
 
 class _Files:
-    def __init__(self, sb: "PodmanSandbox"):
+    def __init__(self, sb: PodmanSandbox):
         self._sb = sb
 
     def read(self, container_path: str) -> bytes:
@@ -139,8 +138,8 @@ class PodmanSandbox:
         cls,
         *,
         image: str = DEFAULT_IMAGE,
-        runtime_configs: Optional[dict] = None,
-    ) -> "PodmanSandbox":
+        runtime_configs: dict | None = None,
+    ) -> PodmanSandbox:
         from llm_sandbox import SandboxSession
 
         rc = dict(DEFAULT_RUNTIME_CONFIGS)
@@ -185,12 +184,12 @@ class PodmanSandbox:
         container = getattr(self._session, "container", None)
         try:
             self._session.__exit__(None, None, None)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             log.warning("PodmanSandbox.kill: __exit__ failed: %s", e)
         if container is not None:
             try:
                 container.remove(force=True)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 # Expected on the happy path — llm-sandbox's __exit__
                 # already removed it. Only useful when __exit__ raised.
                 pass
@@ -202,7 +201,7 @@ class PodmanSandbox:
         code: str,
         *,
         language: str = "python",
-        timeout: int = 120,  # noqa: ARG002 - llm-sandbox doesn't expose per-call timeout cleanly
+        timeout: int = 120,
     ) -> _Execution:
         if language == "bash":
             # llm-sandbox's execute_command is argv-style (no shell), so

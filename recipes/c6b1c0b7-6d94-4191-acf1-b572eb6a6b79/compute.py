@@ -172,10 +172,10 @@ def compute(frames):
                        + fmt_note + (f" הקבוצה הגדולה: {big.iloc[0]['key']}… עם {_licences(int(big.iloc[0]['n']))}." if len(big) else ""),
         "series_aria": f"מספר הרישיונות בכל אחת מ-{_n(len(sc))} קבוצות המספור",
         "series_cap": "רישיונות לפי תחילת מספר הרישיון",
-        "last_note": f"{TOP_N if len(top_last) >= TOP_N else len(top_last)} שמות המשפחה הנפוצים מתוך {_n(n_last)} שמות משפחה שונים ברשימה.",
+        "last_note": f"{min(TOP_N, len(top_last))} שמות המשפחה הנפוצים מתוך {_n(n_last)} שמות משפחה שונים ברשימה.",
         "last_aria": f"שמות המשפחה הנפוצים בקרב {_people(total)} בעלי רישיון",
         "last_cap": "שמות המשפחה הנפוצים",
-        "first_note": f"{TOP_N if len(top_first) >= TOP_N else len(top_first)} השמות הפרטיים הנפוצים מתוך {_n(n_first)} שמות שונים.",
+        "first_note": f"{min(TOP_N, len(top_first))} השמות הפרטיים הנפוצים מתוך {_n(n_first)} שמות שונים.",
         "first_aria": "השמות הפרטיים הנפוצים בקרב בעלי רישיון חוקר פרטי",
         "first_cap": "השמות הפרטיים הנפוצים",
     })

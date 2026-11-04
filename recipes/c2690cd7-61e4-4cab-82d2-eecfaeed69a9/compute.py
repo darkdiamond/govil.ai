@@ -333,7 +333,7 @@ def compute(frames):
                          f"מחוז {top_d['name']} הגדול ביותר עם {_int(top_d['count'])} צמתים."),
         "bodies_lede": (f"ל-{_int(n_body)} צמתים ({_pct(n_body / n) if n else '0.0%'}) רשום גורם ארצי אחראי. "
                         f"ל-{_int(n - n_body)} הצמתים האחרים לא רשום גורם כזה."),
-        "bodies_aria": (f"גרף עמודות אופקי: צמתים מרומזרים לפי גורם ארצי אחראי. "
+        "bodies_aria": ("גרף עמודות אופקי: צמתים מרומזרים לפי גורם ארצי אחראי. "
                         + (f"{bodies.iloc[0]['name']} מובילה עם {_int(bodies.iloc[0]['count'])}." if len(bodies) else "")),
         "roads_lede": (f"צמתים שבהם נפגש כביש ממוספר ({_int(on_road)} מתוך {_int(n)}). צומת של שני כבישים ממוספרים נספר בשניהם."
                        + (f" כביש {roads.iloc[0]['name']} בראש עם {_int(roads.iloc[0]['count'])}." if len(roads) else "")),

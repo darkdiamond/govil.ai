@@ -190,7 +190,6 @@ def insight_month(df, now):
 
 
 def insight_mix(df, now):
-    y = df["founded"].dt.year
     full = now.year - 1
     old = full - MIX_GAP
     isr = df[df["tgroup"].isin([TYPE_GENERAL, TYPE_LIMITED])]
@@ -233,7 +232,7 @@ def insight_town(df):
     top = vc.index[0]
     tops = list(vc.head(10).index)
     lim = {t: (act.loc[act["town"] == t, "tgroup"] == TYPE_LIMITED).mean() for t in tops}
-    best = sorted(tops, key=lambda t: (-lim[t], t))[0]
+    best = min(tops, key=lambda t: (-lim[t], t))
     return (f"{top} היא הכתובת הרשומה של {_pct(vc.iloc[0] / len(act))} מהשותפויות הפעילות שיש להן יישוב "
             f"({_int(vc.iloc[0])}). מבין עשרת היישובים המובילים, ב{best} שיעור השותפויות המוגבלות "
             f"הגבוה ביותר: {_pct(lim[best])}.")

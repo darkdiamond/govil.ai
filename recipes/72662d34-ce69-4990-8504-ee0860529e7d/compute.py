@@ -31,7 +31,7 @@ TOP_DAYS = 10
 HEAT_YEARS = 15
 DECADE_FROM = 1960
 BIG_DAY = 10
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 MONTHS_SHORT = ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי",
@@ -474,7 +474,6 @@ def compute(frames):
     lp = int(per_year.get(last_full - 1, 0))
     chg = (lf / lp - 1) if lp else 0
     new_tone = "ok" if chg >= 0.05 else ("warn" if chg <= -0.05 else "brand")
-    ytd = int(per_year.get(ref_year, 0))
     if not lp:
         chg_txt = ""
     elif round(abs(chg) * 100) == 0:

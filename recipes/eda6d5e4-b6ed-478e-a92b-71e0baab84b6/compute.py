@@ -205,7 +205,7 @@ def compute(frames):
     roster = [{"title": r["title"], "name": r["name"], "qual": r["qual"],
                "role": r["kind"] == "role", "raw": r["raw"]} for r in rows]
 
-    comp_aria = (f"תרשים עמודות: הרכב רשימת הקאדים לפי תואר. "
+    comp_aria = ("תרשים עמודות: הרכב רשימת הקאדים לפי תואר. "
                  + _join_he([f"{t} {c:,}" for t, c in zip(chart_names, chart_vals)])
                  + ".")
     top_title = max(title_counts, key=lambda t: (t[1], -chart_names.index(t[0])))[0] \

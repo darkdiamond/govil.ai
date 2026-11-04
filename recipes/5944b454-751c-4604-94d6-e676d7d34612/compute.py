@@ -97,7 +97,7 @@ def _neigh_name(n):
 
 
 def compute(frames):
-    df, n_bad = _prepare(frames["trees"])
+    df, _n_bad = _prepare(frames["trees"])
     total = len(df)
     sp = df[df["spk"]]
     n_sp_rows = len(sp)
@@ -185,7 +185,7 @@ def compute(frames):
     counts_sorted = sorted((c[2] for c in cells), reverse=True)
     n_top = max(1, math.ceil(len(cells) * DENSE_CELL_PCT))
     top_share = sum(counts_sorted[:n_top]) / total
-    cell_m = int(round(CELL_DEG * math.radians(1) * 6371008.8))
+    cell_m = round(CELL_DEG * math.radians(1) * 6371008.8)
 
     # --- insights
     insights = []

@@ -32,7 +32,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MIN_POP = 500          # areas / neighbourhoods below this are not ranked on shares
 LEAD_RATIO = 1.3       # "well above the city" threshold for share insights
 UNASSIGNED = "ללא שיוך לשכונה (קוד 0)"
@@ -76,7 +76,7 @@ BROAD = [("ילדים 0-17", 0, 17), ("צעירים 18-34", 18, 34),
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):

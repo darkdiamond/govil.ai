@@ -255,7 +255,6 @@ def compute(frames):
             continue
         dd = np.sqrt(((pts[:, None, :] - pts[None, :, :]) ** 2).sum(-1)).max()
         (dup_close if dd <= NEAR_PAIR_M else dup_far).append((nm, dd))
-    n_unique = int(df["HEBREW"].nunique())
 
     # ---------------------------------------------------------- insights
     insights = []
@@ -294,8 +293,8 @@ def compute(frames):
         if len(big) < 3:
             return None
         sh = {r: road_inter.get(r, 0) / road_tot[r] for r in big}
-        hi = sorted(big, key=lambda r: (-sh[r], -int(road_tot[r]), int(r)))[0]
-        lo = sorted(big, key=lambda r: (sh[r], -int(road_tot[r]), int(r)))[0]
+        hi = min(big, key=lambda r: (-sh[r], -int(road_tot[r]), int(r)))
+        lo = min(big, key=lambda r: (sh[r], -int(road_tot[r]), int(r)))
         if sh[hi] - sh[lo] < 0.3:
             return None
         return (f"בין הכבישים עם עשרה צמתים בעלי שם או יותר, כביש {hi} מופרד מפלסית ברובו: {_pct(sh[hi], 0)} מהנקודות בו מחלפים "
@@ -318,7 +317,7 @@ def compute(frames):
         if len(years) < 2 or n_dec == 0:
             return None
         yc = dec["vyear"].value_counts()
-        peak = sorted(years, key=lambda y: (-int(yc[y]), -y))[0]
+        peak = min(years, key=lambda y: (-int(yc[y]), -y))
         last = years[-1]
         s = (f"{_fmt(n_dec)} שמות ({_pct(n_dec / total)}) אושרו בוועדת השילוט של משרד התחבורה ב־{_fmt(n_sessions)} ישיבות "
              f"בין {years[0]} ל־{last}; השנה העמוסה ביותר הייתה {peak} עם {_fmt(yc[peak])} שמות")
@@ -330,8 +329,8 @@ def compute(frames):
         if len(ok) < 2:
             return None
         sh = {b["name"]: b["inter"] / b["built"] for b in ok}
-        hi = sorted(ok, key=lambda b: (-sh[b["name"]], b["name"]))[0]
-        lo = sorted(ok, key=lambda b: (sh[b["name"]], b["name"]))[0]
+        hi = min(ok, key=lambda b: (-sh[b["name"]], b["name"]))
+        lo = min(ok, key=lambda b: (sh[b["name"]], b["name"]))
         if sh[hi["name"]] - sh[lo["name"]] < 0.1:
             return None
         return (f"שיעור המחלפים משתנה לאורך הארץ: ברצועת \"{hi['name']}\" {_pct(sh[hi['name']], 0)} מהנקודות הבנויות הן מחלפים, "

@@ -13,7 +13,7 @@ TOP_CITIES = 15
 RECENT_SITTINGS_MONTHS = 24
 SCORE_LINE = 60
 DIST_YEARS = 3
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 
@@ -224,7 +224,7 @@ def compute(frames):
     kpis = {
         "brokers": {"value": total, "display": n(total), "tone": "brand"},
         "cities": {"value": int(cities.size), "display": n(cities.size), "tone": "brand"},
-        "examinees": {"value": int(len(done)), "display": n(len(done)), "tone": "brand"},
+        "examinees": {"value": len(done), "display": n(len(done)), "tone": "brand"},
         "ge_last": {"value": None if lf is None else float(lf["ge"]),
                     "display": "–" if lf is None else f"{lf['ge'] * 100:.1f}%",
                     "tone": ge_tone},

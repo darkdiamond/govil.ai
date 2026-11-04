@@ -38,10 +38,10 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable, Optional
 
 from .author import RECIPES_ROOT, _map_resources, _map_suffix, download_map
 from .recipe import TEMPLATE_FILENAME, Recipe, RecipeError
@@ -83,7 +83,7 @@ class Candidate:
     maps: list[MapFile]
     kind: str = ""
     why: str = ""
-    issue: Optional[int] = None
+    issue: int | None = None
     labels: list = field(default_factory=list)
 
 
@@ -97,14 +97,14 @@ def probe_map(res: dict, work: Path, download: Callable = download_map) -> MapFi
         feats, m.crs = download(res, dest)
         s = gs.summary(feats)
         m.features, m.geometry_types, m.columns = s["features"], s["geometry_types"], s["columns"]
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         m.error = f"{type(e).__name__}: {str(e)[:200]}"
     finally:
         dest.unlink(missing_ok=True)
     return m
 
 
-def classify(c: Candidate, recipe: Optional[Recipe], open_issue: Optional[int]) -> None:
+def classify(c: Candidate, recipe: Recipe | None, open_issue: int | None) -> None:
     good = [m for m in c.maps if not m.error]
     if not good:
         c.kind, c.why = "failed", "; ".join(m.error for m in c.maps)
@@ -181,7 +181,7 @@ def _iter_sources(store):
 
 def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT,
                     download: Callable = download_map,
-                    issues: Optional[dict] = None, declined: Optional[set] = None,
+                    issues: dict | None = None, declined: set | None = None,
                     skip_ids: frozenset = frozenset()) -> list[Candidate]:
     issues = open_issues_by_id8() if issues is None else issues
     declined = declined_id8s() if declined is None else declined
@@ -191,7 +191,7 @@ def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT
             if (src.id in skip_ids or getattr(src, "provider", None)
                     or src.analysis_status in _NO_DATA
                     or src.metadata_modified is None
-                    or src.metadata_modified.astimezone(timezone.utc) < floor):
+                    or src.metadata_modified.astimezone(UTC) < floor):
                 continue
             files = _map_resources({"resources": src.resources})
             if not files:
@@ -297,7 +297,7 @@ def open_all(store, cands: list[Candidate], *, max_new: int,
             store.mark_authoring_needed(c.src.id, "map_available")
             store.set_authoring_issue(c.src.id, n)
             done["opened"].append((c.src.id, n))
-        except Exception as e:  # one dataset's failure never stops the batch
+        except Exception as e:  # one dataset's failure never stops the batch  # noqa: BLE001
             err = (getattr(e, "stderr", None) or str(e))[:200]
             # An issue that opened but wasn't recorded is still found by title
             # on a re-run (open_issues_by_id8), so it gets a comment, not a twin.
@@ -312,7 +312,7 @@ def open_all(store, cands: list[Candidate], *, max_new: int,
     return done
 
 
-def _cli(argv: Optional[list[str]] = None) -> int:
+def _cli(argv: list[str] | None = None) -> int:
     from services.shared.firestore import FirestoreStateStore
 
     ap = argparse.ArgumentParser(prog="python -m services.page_builder.map_backfill")
@@ -323,7 +323,7 @@ def _cli(argv: Optional[list[str]] = None) -> int:
     ap.add_argument("--skip", nargs="*", default=[], help="dataset ids to leave out")
     args = ap.parse_args(argv)
     floor = datetime.fromisoformat(args.floor)
-    floor = floor if floor.tzinfo else floor.replace(tzinfo=timezone.utc)
+    floor = floor if floor.tzinfo else floor.replace(tzinfo=UTC)
     store = FirestoreStateStore()
     cands = find_candidates(store, floor=floor, skip_ids=frozenset(args.skip))
     _report(cands)

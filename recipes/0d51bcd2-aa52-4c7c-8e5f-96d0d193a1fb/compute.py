@@ -71,7 +71,7 @@ def _clean(s):
 
 
 def _i(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v, d=1):
@@ -252,8 +252,8 @@ def compute(frames):
     if len(full_years) >= 2 and len(fdd):
         mtot = fdd.groupby(fdd["dt"].dt.month).size().reindex(range(1, 13), fill_value=0)
         avg = mtot / len(full_years)
-        top_m = int(sorted(range(1, 13), key=lambda m: (-mtot[m], m))[0])
-        low_m = int(sorted(range(1, 13), key=lambda m: (mtot[m], m))[0])
+        top_m = int(min(range(1, 13), key=lambda m: (-mtot[m], m)))
+        low_m = int(min(range(1, 13), key=lambda m: (mtot[m], m)))
         share_top = mtot[top_m] / mtot.sum() * 100
         labels["months_lede"] = (f"בממוצע על {len(full_years):,} שנים מלאות, {MONTHS_HE[top_m - 1]} הוא החודש העמוס ביותר "
                                  f"({avg[top_m]:.1f} השתלמויות בשנה) ו{MONTHS_HE[low_m - 1]} השקט ביותר ({avg[low_m]:.1f}).")
@@ -275,7 +275,7 @@ def compute(frames):
                      "cur_name": L}
     tables["dow"] = [{"d": DOW_HE[d], "all": _i(dow_all.get(d, 0)), "cur": _i(dow_cur.get(d, 0))} for d in DOW_ORDER]
     labels["dow_aria"] = f"התפלגות ההשתלמויות לפי יום בשבוע, בכל המאגר ובקטלוג {L}"
-    top_d = sorted(DOW_ORDER, key=lambda d: (-int(dow_all.get(d, 0)), DOW_ORDER.index(d)))[0]
+    top_d = min(DOW_ORDER, key=lambda d: (-int(dow_all.get(d, 0)), DOW_ORDER.index(d)))
     fri = int(dow_all.get(4, 0))
     sat = int(dow_all.get(5, 0))
     labels["dow_lede"] = (f"יום {DOW_HE[top_d]} מוביל עם {_pct(int(dow_all.get(top_d, 0)) / tot_all * 100)} מההשתלמויות במאגר; "
@@ -293,7 +293,7 @@ def compute(frames):
                         "n": {r: [int(rc.get((y, r), 0)) for y in years] for r in regs}}
     tables["region"] = [{"r": r, "v": [_i(rc.get((y, r), 0)) for y in years]} for r in regs]
     labels["region_aria"] = f"חלוקת ההשתלמויות לפי אזור בכל שנת השתלמויות, {ylabels[0]} עד {L}"
-    lead_r = sorted(regs, key=lambda r: (-int(rc.get((latest, r), 0)), regs.index(r)))[0]
+    lead_r = min(regs, key=lambda r: (-int(rc.get((latest, r), 0)), regs.index(r)))
     lead_share = int(rc.get((latest, lead_r), 0)) / n_courses[li] * 100
     labels["region_lede"] = (f"האזור המוביל ב-{L}: {lead_r}, עם {_pct(lead_share)} מההשתלמויות. "
                              "אזורים מפורטים בקבצים הישנים (יישוב או חבל ארץ) קובצו לאזורים הראשיים.")
@@ -324,7 +324,7 @@ def compute(frames):
         labels["types_aria"] = f"חלוקת ההשתלמויות לפי אופי ההשתלמות בכל שנה, {_year_label(type_years[0])} עד {_year_label(type_years[-1])}"
         missing = [ylabels[i] for i, y in enumerate(years) if y not in type_years]
         lt = type_years[-1]
-        lead_t = sorted(tlist, key=lambda t: (-int(tc.get((lt, t), 0)), tlist.index(t)))[0]
+        lead_t = min(tlist, key=lambda t: (-int(tc.get((lt, t), 0)), tlist.index(t)))
         lead_t_share = int(tc.get((lt, lead_t), 0)) / int(ty_tot[lt]) * 100
         walk = sum(int(tc.get((lt, t), 0)) for t in tlist if t.startswith("סיור")) / int(ty_tot[lt]) * 100
         labels["types_lede"] = (f"ב-{_year_label(lt)} הסוג הנפוץ הוא {lead_t} ({_pct(lead_t_share)}); "
@@ -462,11 +462,11 @@ def compute(frames):
     inst = frames["institutions"].fillna("").copy()
     inst_rows = []
     for r in inst.itertuples(index=False):
-        name = _clean(getattr(r, "institution"))
+        name = _clean(r.institution)
         if not name:
             continue
-        inst_rows.append({"name": name, "city": _clean(getattr(r, "city")), "addr": _clean(getattr(r, "address")),
-                          "remarks": _clean(getattr(r, "remarks"))})
+        inst_rows.append({"name": name, "city": _clean(r.city), "addr": _clean(r.address),
+                          "remarks": _clean(r.remarks)})
     inst_rows.sort(key=lambda r: (r["city"], r["name"], r["addr"], r["remarks"]))
     tables["inst"] = inst_rows
     flags["inst"] = bool(inst_rows)
@@ -475,7 +475,7 @@ def compute(frames):
                            if inst_rows else "")
 
     # ---------- KPIs
-    total = int(len(df))
+    total = len(df)
     kpis, order = {}, []
     tone = "brand"
     if len(years) >= 2 and full[li]:

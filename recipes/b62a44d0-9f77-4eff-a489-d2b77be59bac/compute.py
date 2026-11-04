@@ -27,7 +27,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 RES = "_resource_name"
 SUPP_HI = 10
 TOP_TOWNS = 15
@@ -60,7 +60,7 @@ DEC_LABEL = {
 # ── helpers ──────────────────────────────────────────────────────────────
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def iso(s):
@@ -139,7 +139,7 @@ def load_caseload(df):
     for name, part in split_files(df):
         y = year_of(name)
         lc = loc_col(part.columns)
-        tot_cols = [c for c in part.columns if c.startswith("סה") or c.startswith("סך")]
+        tot_cols = [c for c in part.columns if c.startswith(("סה", "סך"))]
         kind = None
         if tot_cols:
             tc = tot_cols[0]

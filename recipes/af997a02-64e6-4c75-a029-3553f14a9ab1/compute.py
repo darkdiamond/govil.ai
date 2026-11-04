@@ -30,7 +30,7 @@ NOTES = ("מאגר זה מכיל פרטים אודות כמות כלי רכב ח
 
 
 def _int(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v, digits=1):
@@ -335,7 +335,7 @@ def compute(frames):
         conc_rows.append({"name": g, "total": gt, "leader": s.index[0],
                           "leader_share": s.iloc[0] / gt if gt else 0,
                           "top3_share": s.iloc[:3].sum() / gt if gt else 0,
-                          "makers": int(len(s))})
+                          "makers": len(s)})
     conc_table = [{"name": r["name"], "makers": _int(r["makers"]), "leader": r["leader"],
                    "leader_share": _pct(r["leader_share"]), "top3": _pct(r["top3_share"])}
                   for r in conc_rows]
@@ -351,7 +351,7 @@ def compute(frames):
                     "values": [int(by_model[k]) for k in top_models]}
     models_table = [{"model": mo, "maker": mk, "type": model_type.get((mk, mo), ""),
                      "total": _int(by_model[(mk, mo)])} for mk, mo in top_models]
-    n_models = int(len(by_model))
+    n_models = len(by_model)
 
     # Diversity per year.
     div = (df.assign(mk=df["maker"] + "|" + df["model"])
@@ -444,7 +444,7 @@ def compute(frames):
         "monthly_aria": (f"גרף קו: כלי רכב חדשים ללא קוד דגם לפי חודש, {period_range}. "
                          f"השיא ב{_month_label(idx[hi_i])} עם {_int(monthly.iloc[hi_i])}, "
                          f"ובחודש האחרון {_int(last_val)}."),
-        "yearly_note": (f"סך כלי הרכב בכל שנה, מפולח לפי קבוצת סוג רכב."
+        "yearly_note": ("סך כלי הרכב בכל שנה, מפולח לפי קבוצת סוג רכב."
                         + (f" שנת {last_year} חלקית ({ytd_span_short})." if partial_last else "")),
         "yearly_aria": (f"תרשים עמודות מוערמות: כלי רכב לפי שנה וקבוצת סוג רכב, {y_min} עד {y_max}. "
                         f"הקבוצה הגדולה: {by_type_ranked.index[0]}."),
@@ -461,7 +461,7 @@ def compute(frames):
                        "כך רואים את המגמה בלי רעש עונתי ובלי עיוות של שנה חלקית."),
         "trend_aria": "גרפי קו קטנים: סכום מתגלגל של 12 חודשים לקבוצת סוג הרכב",
         "trend_caption": "כלי רכב ב-12 החודשים האחרונים לעומת 12 החודשים שקדמו להם, לפי קבוצה",
-        "season_note": (f"כל משבצת היא חודש אחד; ככל שהצבע כהה יותר עלו לכביש יותר כלי רכב."
+        "season_note": ("כל משבצת היא חודש אחד; ככל שהצבע כהה יותר עלו לכביש יותר כלי רכב."
                         + (f" בממוצע על פני {len(full_years)} שנים מלאות, "
                            f"{MONTHS_HE[int(cal_avg.idxmax()) - 1]} הוא החודש העמוס ביותר ו"
                            f"{MONTHS_HE[int(cal_avg.idxmin()) - 1]} השקט ביותר."

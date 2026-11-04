@@ -38,7 +38,7 @@ CUM_STEPS = [1, 3, 5, 10, 20]
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=1):
@@ -129,7 +129,7 @@ def _nice(v):
     """Round a class break to two significant digits."""
     if v <= 0:
         return 0
-    mag = 10 ** max(0, int(math.floor(math.log10(v))) - 1)
+    mag = 10 ** max(0, math.floor(math.log10(v)) - 1)
     return int(round(v / mag) * mag)
 
 
@@ -351,7 +351,7 @@ def compute(frames):
     # ---- chart: density ---------------------------------------------------
     de = df[df["dens"].notna()].sort_values(["dens", "label"], ascending=[False, True], kind="stable")
     dtop = de.head(TOP_DENSITY)
-    chart_density = {"names": list(dtop["label"]), "values": [int(round(v)) for v in dtop["dens"]],
+    chart_density = {"names": list(dtop["label"]), "values": [round(v) for v in dtop["dens"]],
                      "area": [round(float(v), 1) for v in dtop["area"]]}
     tbl_density = _table(["אשכול", "נוסעים לקמ״ר", "שטח (קמ״ר)", "נוסעים בשבוע"],
                          [[r["label"], _int(r["dens"]), _num(r["area"]), _int(r["riders"])]

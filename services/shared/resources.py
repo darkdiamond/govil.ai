@@ -7,7 +7,8 @@ the priority order in one place avoids drift.
 from __future__ import annotations
 
 import re
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 PRIMARY_FORMAT_PRIORITY: tuple[str, ...] = (
     "CSV", "GEOJSON", "JSON", "XLSX", "XML",
@@ -24,7 +25,7 @@ def _accessor(item: Any, key: str) -> Any:
     return getattr(item, key, None)
 
 
-def pick_primary_resource_id(resources: Sequence[Any]) -> Optional[str]:
+def pick_primary_resource_id(resources: Sequence[Any]) -> str | None:
     """Return the id of the most agent-friendly resource on a dataset.
 
     Walks `PRIMARY_FORMAT_PRIORITY` in order; first hit wins. Falls back
@@ -40,7 +41,7 @@ def pick_primary_resource_id(resources: Sequence[Any]) -> Optional[str]:
     return _accessor(resources[0], "id")
 
 
-def _normalized_name(name: Optional[str], fmt: Optional[str]) -> str:
+def _normalized_name(name: str | None, fmt: str | None) -> str:
     """Grouping key for format-duplicate detection.
 
     CKAN datasets that publish the same table as CSV+XLSX(+JSON) name the

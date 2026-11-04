@@ -53,7 +53,7 @@ TOP_N_NOTES = 7
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _m(v, digits=2):
@@ -260,7 +260,6 @@ def compute(frames):
     dep_med = float(dep_known.median()) if len(dep_known) else None
     artesian = int((dep_known < 0).sum())
     below_sea = int((latest["lvl"] < 0).sum())
-    deepest_dep = float(dep_known.max()) if len(dep_known) else None
     chart_depth = {"x": [r["band"] for r in dep_rows], "y": [r["n"] for r in dep_rows], "rows": dep_rows}
     wells_last = int(latest["id"].nunique())
     del latest
@@ -322,8 +321,6 @@ def compute(frames):
                      "rows": [{"p": f"{p}-{p + 4}", "n": _int(per.loc[p])} for p in idx5]}
         pk = per.sort_index().idxmax()
         oil_peak = (f"{pk}-{pk + 4}", int(per.loc[pk]))
-        oil_last_p = idx5[-1]
-        oil_last_n = int(per.iloc[-1])
         oil_max = oil.groupby("id")["oil"].max()
         oil_top_ids = oil_max.sort_index().sort_values(ascending=False, kind="stable").head(8)
     else:

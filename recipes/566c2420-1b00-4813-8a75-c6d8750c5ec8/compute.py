@@ -45,7 +45,7 @@ TYPE_ORDER = [t for t, _ in TYPE_RULES] + [OTHER]
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -111,7 +111,6 @@ def band_index(v, edges):
 
 def compute(frames):
     raw = frames["sirens"].copy()
-    n_raw = len(raw)
     df = pd.DataFrame({
         "id": num(raw["ID"]),
         "name": raw["Name"].map(clean),
@@ -211,7 +210,7 @@ def compute(frames):
                  if has_nn else geo)
     top = nn_sorted.head(NN_TOP)
     charts["nn"] = {"names": top["name"].tolist(),
-                    "values": [int(round(v)) for v in top["nn"]] if has_nn else []}
+                    "values": [round(v) for v in top["nn"]] if has_nn else []}
     tables["nn"] = {"headers": ["אתר הצופר", "הצופר הקרוב", "מרחק (מ׳)"],
                     "rows": [[a, b, fmt(c)] for a, b, c in zip(top["name"], top["nn_name"], top["nn"])] if has_nn else []}
     nn_more = max(0, n_geo - NN_TOP)
@@ -311,9 +310,9 @@ def compute(frames):
     kpis = {
         "sirens": {"value": n_st, "display": fmt(n_st), "tone": "brand", "label": "אתרי צופרים בעיר"},
         "hoods": {"value": n_hoods, "display": fmt(n_hoods), "tone": "brand", "label": "שכונות ואזורים עם צופר"},
-        "nn": {"value": int(round(med_nn)), "display": fmt(med_nn), "tone": "info",
+        "nn": {"value": round(med_nn), "display": fmt(med_nn), "tone": "info",
                "label": "מרחק חציוני לצופר הקרוב (מטרים)"},
-        "maxnn": {"value": int(round(max_nn)), "display": fmt(max_nn),
+        "maxnn": {"value": round(max_nn), "display": fmt(max_nn),
                   "tone": "warn" if med_nn > 0 and max_nn >= 2.5 * med_nn else "brand",
                   "label": "המרחק הגדול ביותר לצופר הקרוב (מטרים)"},
     }

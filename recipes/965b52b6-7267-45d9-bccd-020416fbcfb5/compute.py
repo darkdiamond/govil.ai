@@ -43,7 +43,7 @@ def _num(s):
 
 
 def _fmt_int(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _fmt1(v):
@@ -114,7 +114,6 @@ def compute(frames):
     win_label = f"{_mlabel(win[0])} עד {_mlabel(win[-1])}"
 
     comm = df[df["ptype"] == TYPE_COMMERCIAL]
-    pers = df[df["ptype"] == TYPE_PERSONAL]
     wc, wp = w[w["ptype"] == TYPE_COMMERCIAL], w[w["ptype"] == TYPE_PERSONAL]
     pc, pp = p[p["ptype"] == TYPE_COMMERCIAL], p[p["ptype"] == TYPE_PERSONAL]
 
@@ -421,7 +420,7 @@ def compute(frames):
     gran = "רבעון" if quarterly else "חודש"
     labels = {
         "lede": lede,
-        "total_kpi": f"הצהרות ב-12 החודשים האחרונים (מיליונים)",
+        "total_kpi": "הצהרות ב-12 החודשים האחרונים (מיליונים)",
         "comm_n_kpi": "הצהרות יבוא מסחרי ב-12 החודשים האחרונים (אלפים)",
         "hc_kpi": "זמן שחרור ממוצע ביבוא מסחרי (שעות)",
         "hp_kpi": "זמן שחרור ממוצע ביבוא אישי (שעות)",

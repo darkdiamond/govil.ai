@@ -21,7 +21,7 @@ SAME_DAY_TOLERANCE = 10    # days: a year counts for "same date" if measured thi
 TABLE_ROWS = 20            # rows in the accessible table fallbacks
 
 
-LRI, PDI = "⁦", "⁩"   # bidi isolate: keeps "-213.72" intact in RTL text
+LRI, PDI = "\u2066", "\u2069"   # bidi isolate: keeps "-213.72" intact in RTL text
 
 
 def m(v):

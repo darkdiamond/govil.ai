@@ -19,7 +19,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 TOP_CHAINS = 12
 TOP_CITIES = 15
@@ -142,7 +142,7 @@ def insight_spread(prod_stats, short):
     cand = [s for s in prod_stats if s["levels"] >= 2 and s["min"] > 0]
     if not cand:
         return None
-    s = sorted(cand, key=lambda x: (-(x["max"] / x["min"]), x["product"]))[0]
+    s = min(cand, key=lambda x: (-(x["max"] / x["min"]), x["product"]))
     gap = (s["max"] / s["min"] - 1) * 100
     if gap < 5:
         return None
@@ -234,7 +234,7 @@ def compute(frames):
             continue
         lo, hi = float(g["price"].min()), float(g["price"].max())
 
-        def who(price):
+        def who(price, g=g):
             sub = g[g["price"] == price]
             imps = _sorted_counts(sub["importer"])
             return " ו".join(f"«{i}»" for i in imps.index[:2]), len(sub)
@@ -307,7 +307,7 @@ def compute(frames):
     cheap_y = [int(v) for v in cm.values]
     top_price = float(mp["price"].max()) if len(mp) else 0.0
     only_top = int((city_min == top_price).sum()) if len(mp) and len(main_levels) >= 2 else 0
-    city_main_n = int(len(city_min))
+    city_main_n = len(city_min)
 
     # Assortment: products per point
     per_point = df.drop_duplicates(["point", "product"]).groupby("point")["product"].apply(
@@ -354,8 +354,8 @@ def compute(frames):
     hi_all = float(pp["price"].max()) if len(pp) else 0.0
     kpis = {
         "points": {"value": points_n, "display": n(points_n), "tone": "brand"},
-        "cities": {"value": int(len(cities)), "display": n(len(cities)), "tone": "brand"},
-        "chains": {"value": int(len(chain_points)), "display": n(len(chain_points)), "tone": "brand"},
+        "cities": {"value": len(cities), "display": n(len(cities)), "tone": "brand"},
+        "chains": {"value": len(chain_points), "display": n(len(chain_points)), "tone": "brand"},
         "range": {"value": [lo_all, hi_all],
                   "display": money(lo_all) if lo_all == hi_all else f"{money(lo_all)}–{money(hi_all)}",
                   "tone": "brand"},
@@ -453,7 +453,7 @@ def compute(frames):
         "cheap_aria": f"יישובים לפי המחיר המרבי הנמוך ביותר הזמין בהם עבור {short.get(main_prod, '')}",
         "assort_note": f"אילו מוצרים מציעה כל נקודת מכירה ({n(points_n)} נקודות).",
         "assort_aria": "נקודות מכירה לפי סל המוצרים שהן מציעות",
-        "updates_note": (f"מתי עודכנה כל רשומה לאחרונה, לפי יבואן"
+        "updates_note": ("מתי עודכנה כל רשומה לאחרונה, לפי יבואן"
                          + (" (לפי חודש)" if upd_chart.get("monthly") else "") + ". "
                          + (f"הוסרו {n(dups)} רשומות כפולות זהות." if dups else "")),
         "updates_aria": "רשומות לפי תאריך העדכון האחרון ויבואן",

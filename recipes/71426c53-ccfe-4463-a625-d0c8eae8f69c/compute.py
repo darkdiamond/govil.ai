@@ -22,7 +22,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 CLASSES = [  # column, label, colour
@@ -393,7 +393,7 @@ def compute(frames):
                          + (f"{n(rest_off)} אזורים נוספים מונים יחד {n(rest_cnt)} בתי ספר." if rest_off else "")),
         "offices_aria": f"תרשים עמודות אופקי: בתי ספר לנהיגה ב-{n(len(top_off))} אזורי הרישוי הגדולים",
         "offices_caption": "בתי ספר לנהיגה לפי אזור רישוי ולפי סוג ההכשרה",
-        "districts_note": (f"אזורי הרישוי שויכו למחוזות לפי היישוב שבו נמצאת לשכת הרישוי."
+        "districts_note": ("אזורי הרישוי שויכו למחוזות לפי היישוב שבו נמצאת לשכת הרישוי."
                            + (f" {n(unassigned_n)} בתי ספר באזורים שלא זוהו מופיעים תחת „{UNASSIGNED}”." if unassigned_n else "")),
         "districts_aria": "תרשים עמודות מוערמות: בתי ספר לנהיגה לפי מחוז ולפי סוג ההכשרה",
         "districts_caption": "בתי ספר לנהיגה ואזורי רישוי לפי מחוז",

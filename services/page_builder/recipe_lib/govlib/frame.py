@@ -48,7 +48,7 @@ def clean_series(series: pd.Series) -> pd.Series:
     return series.fillna("").astype(str).str.replace(_SPACE, " ", regex=True).str.strip()
 
 
-_NUM_JUNK = re.compile(r"[,\s₪%‎‏⁦-⁩]")
+_NUM_JUNK = re.compile(r"[,\s₪%\u200e\u200f\u2066-\u2069]")
 
 
 def num(series: pd.Series) -> pd.Series:

@@ -36,7 +36,7 @@ MOVER_MIN_REL = 0.25    # and at least this relative change
 
 
 def _n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _signed_pct(p):
@@ -48,7 +48,7 @@ def _signed_pct(p):
 
 def _avg(v):
     s = f"{v:.1f}"
-    return s[:-2] if s.endswith(".0") else s
+    return s.removesuffix(".0")
 
 
 def _prepare(df):

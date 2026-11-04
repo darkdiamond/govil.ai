@@ -91,7 +91,7 @@ def _pick(df, **dims):
     if sub.empty:
         return pd.Series(dtype=float)
     counts = sub.groupby("SERIES_CODE").size()
-    code = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+    code = min(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
     s = sub[sub["SERIES_CODE"] == code].drop_duplicates("TIME_PERIOD", keep="last")
     return s.set_index("TIME_PERIOD")["v"].sort_index()
 

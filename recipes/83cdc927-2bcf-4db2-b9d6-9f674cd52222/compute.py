@@ -17,7 +17,7 @@ import re
 import pandas as pd
 
 R_EARTH = 6378137.0
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 UNKNOWN = "לא ידוע"
@@ -69,7 +69,7 @@ def _top(counts, k):
 
 
 def _lineage(v):
-    s = v.replace(" ", "").replace("​", "").upper()
+    s = v.replace(" ", "").replace("\u200b", "").upper()
     return s if LINEAGE_RE.match(s) else UNKNOWN
 
 
@@ -353,7 +353,7 @@ def compute(frames):
     pts = []
     for key, sub in geo.groupby("key", sort=True):
         top_sp = _sorted_counts(sub["species"]).index[0]
-        pts.append([round(math.fsum(sub["lat"]) / len(sub), 4), round(math.fsum(sub["lon"]) / len(sub), 4), int(len(sub)),
+        pts.append([round(math.fsum(sub["lat"]) / len(sub), 4), round(math.fsum(sub["lon"]) / len(sub), 4), len(sub),
                     "" if key.startswith("@") else key, int(sub["year"].min()), int(sub["year"].max()), top_sp])
     pts.sort(key=lambda p: (-p[2], p[3], p[0], p[1]))
     map_trim = len(pts) > MAP_MAX
@@ -398,7 +398,7 @@ def compute(frames):
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "last_year": {"value": last_v, "display": n(last_v), "tone": year_tone},
         "trend12": {"value": cur12, "display": chg_display, "tone": chg_tone},
-        "locations": {"value": int(len(loc_counts)), "display": n(len(loc_counts)), "tone": "brand"},
+        "locations": {"value": len(loc_counts), "display": n(len(loc_counts)), "tone": "brand"},
     }
 
     dropped_note = (f" {n(dropped)} רשומות ללא תאריך תקין אינן נכללות." if dropped else "")

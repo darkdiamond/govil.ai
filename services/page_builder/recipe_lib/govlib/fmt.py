@@ -9,7 +9,7 @@ import re
 
 # Bidi isolates: wrap a number or Latin run inside Hebrew text so the
 # browser doesn't reorder its sign or unit.
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
@@ -25,7 +25,7 @@ def isolate(s) -> str:
 def _round_half_up(v: float) -> int:
     # Python's round() is half-to-even (round(2.5) == 2); a page reader
     # expects a median of 2.5 to read 3.
-    return int(math.floor(abs(v) + 0.5)) * (1 if v >= 0 else -1)
+    return math.floor(abs(v) + 0.5) * (1 if v >= 0 else -1)
 
 
 def int_he(v) -> str:

@@ -42,7 +42,7 @@ MIN_CATEGORY = 50          # a purpose/type value below this is free text, group
 ABROAD_MIN = 50            # min databases for an owner type's abroad rate
 RECENT_MONTHS = 36
 NTYPES_CAP = 8
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 STATUS_ORDER = ["מאושר", "בוער", "מבוטל", "מותלה רישוי"]
@@ -259,7 +259,7 @@ def insight_owner(owners, total):
 def insight_otype(otypes, total):
     if otypes.empty:
         return None
-    lead = [k for k in otypes.index if k != WITHHELD][0]
+    lead = next(k for k in otypes.index if k != WITHHELD)
     v = int(otypes[lead])
     w = int(otypes.get(WITHHELD, 0))
     s = f"סוג הבעלים הנפוץ בפנקס: {lead} — {n(v)} מאגרים ({pct(v / total * 100)})"
@@ -358,7 +358,7 @@ def compute(frames):
     medical = int(df["type_list"].map(lambda l: any("רפואי" in x for x in l)).sum())
     ntypes = df["tcanon"].str.len().clip(upper=NTYPES_CAP)
     nt_rows = [(f"{k}+" if k == NTYPES_CAP else str(k), int((ntypes == k).sum()))
-               for k in range(0, NTYPES_CAP + 1)]
+               for k in range(NTYPES_CAP + 1)]
     no_types = int((ntypes == 0).sum())
     med_ntypes = float(df["tcanon"].str.len()[df["tcanon"].str.len() > 0].median())
 
@@ -499,8 +499,8 @@ def compute(frames):
                         f"פרטים מטעמי פרטיות."),
         "otypes_aria": f"תרשים עמודות: מאגרים לפי סוג בעל המאגר. המוביל: {ot_names[0]}.",
         "otypes_caption": "מספר מאגרים לפי סוג בעל המאגר.",
-        "owners_note": (f"בעלי המאגרים עם המספר הגדול ביותר של מאגרים רשומים (בעלים שפרטיהם לא "
-                        f"פורסמו אינם נכללים). ארגון גדול רושם לעתים מאגר נפרד לכל סניף או יחידה."),
+        "owners_note": ("בעלי המאגרים עם המספר הגדול ביותר של מאגרים רשומים (בעלים שפרטיהם לא "
+                        "פורסמו אינם נכללים). ארגון גדול רושם לעתים מאגר נפרד לכל סניף או יחידה."),
         "owners_aria": f"תרשים עמודות: {TOP_OWNERS} בעלי המאגרים הגדולים לפי מספר מאגרים.",
         "owners_caption": f"{TOP_OWNERS} בעלי המאגרים עם מספר המאגרים הגדול ביותר.",
         "types_note": (f"מספר המאגרים המחזיקים כל סוג מידע (מאגר יכול להחזיק כמה סוגים). "

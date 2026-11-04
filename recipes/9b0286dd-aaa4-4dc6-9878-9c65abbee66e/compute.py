@@ -140,7 +140,6 @@ def compute(frames):
     n_ids = len(set(raw["id"]) - set(sum_ids))
     n_springs = int(m["id"].nunique())
     k_first, k_last = int(m_all["k"].min()), int(m_all["k"].max())
-    y_first = int(m_all["y"].min())
     last_mo = k_last % 12 + 1
     y_last = int(m_all["y"].max())
     L = y_last if last_mo == 9 else y_last - 1               # latest complete hydro year
@@ -169,7 +168,7 @@ def compute(frames):
 
     # Measured-in-latest-month counts --------------------------------------
     m_last = m[m["k"] == k_last]
-    n_last = int(len(m_last))
+    n_last = len(m_last)
     zero_last = int((m_last["vol"] == 0).sum())
 
     # Complete hydro years per series (incl. published totals) ------------

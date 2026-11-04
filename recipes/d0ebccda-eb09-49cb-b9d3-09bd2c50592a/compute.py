@@ -140,7 +140,7 @@ def compute(frames):
     co["company_name"] = co["key"].map(disp)
     n_spellings = int(co["co_raw"].nunique())
     co_counts = frame.ranked(co["company_name"])
-    n_companies = int(len(co_counts))
+    n_companies = len(co_counts)
     mnt_with_co = int((is_mnt & (df["co_raw"] != "")).sum())
 
     # ---- dates ----
@@ -215,7 +215,7 @@ def compute(frames):
     size_rows = []
     for lab, lo, hi in buckets:
         sel = co_counts[(co_counts >= lo) & (co_counts <= hi)]
-        size_rows.append((lab, int(len(sel)), int(sel.sum())))
+        size_rows.append((lab, len(sel), int(sel.sum())))
 
     # ---- cities (maintainers, company address) ----
     mnt = df[is_mnt]
@@ -234,7 +234,7 @@ def compute(frames):
         else:
             sel = mco[mco["city"] == lab]
         c_cos.append(int(sel["company_name"].nunique()))
-    n_cities = int(len(city_counts))
+    n_cities = len(city_counts)
 
     # ---- batches: approvals per authorisation day ----
     per_day = dated.groupby("d").size()
@@ -242,9 +242,9 @@ def compute(frames):
     batch_rows = []
     for lab, lo, hi in b_buckets:
         sel = per_day[(per_day >= lo) & (per_day <= hi)]
-        batch_rows.append((lab, int(len(sel)), int(sel.sum())))
+        batch_rows.append((lab, len(sel), int(sel.sum())))
     big_share = (per_day[per_day >= 10].sum() / len(dated)) if len(dated) else 0.0
-    n_days = int(len(per_day))
+    n_days = len(per_day)
     busiest = per_day.sort_index().sort_values(ascending=False, kind="stable")
     top_day, top_day_n = (busiest.index[0], int(busiest.iloc[0])) if len(busiest) else (None, 0)
 
@@ -270,7 +270,6 @@ def compute(frames):
     not_names = sorted(set(not_rows["name"]))
     reauth = sum(1 for nm in not_names
                  if nm in last_ok.index and last_ok[nm] > not_rows.loc[not_rows["name"] == nm, "d"].max())
-    n_people = int(named["name"].nunique())
 
     # ================= insights =================
     insights = []
@@ -349,7 +348,7 @@ def compute(frames):
     # city
     if len(city_counts) >= 3:
         lead, lead_n = city_counts.index[0], int(city_counts.iloc[0])
-        located = int(len(mnt)) - n_no_addr
+        located = len(mnt) - n_no_addr
         if located and lead_n / located >= 0.15:
             ncos = int(mco.loc[mco["city"] == lead, "company_name"].nunique())
             add("city", f"{lead} מובילה בכתובות חברות השירות: {fmt.int_he(lead_n)} תחזוקאים "
@@ -412,7 +411,7 @@ def compute(frames):
 
     yr_lede = ""
     if years:
-        yr_lede = (f"מספר ההרשאות לפי שנת ההרשאה, בחלוקה לסוג."
+        yr_lede = ("מספר ההרשאות לפי שנת ההרשאה, בחלוקה לסוג."
                    + (f" {last_y} חלקית: הנתונים מגיעים עד {fmt.d_he(last_d)}." if partial else "")
                    + (f" {years[0]} חלקית גם היא: ההרשאה הראשונה ברשימה מ-{fmt.d_he(first_d)}." if first_partial else ""))
     ytd_lede = ""

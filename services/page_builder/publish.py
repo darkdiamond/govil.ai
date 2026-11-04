@@ -28,9 +28,9 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable, Optional
 
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
@@ -118,7 +118,7 @@ def dataset_meta_from_source(src: SourceRecord) -> DatasetMeta:
     )
 
 
-def _source_info(src: SourceRecord) -> Optional[SourceInfo]:
+def _source_info(src: SourceRecord) -> SourceInfo | None:
     """The credit block of a provider source (services/providers); None for
     CKAN. A malformed one is dropped, not fatal: the page then falls back to
     the shell's defaults rather than failing the whole publish."""
@@ -128,18 +128,18 @@ def _source_info(src: SourceRecord) -> Optional[SourceInfo]:
         return SourceInfo.model_validate(
             {**src.presentation, "provider": src.provider, "source_url": src.source_url}
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         log.warning("malformed presentation for %s: %s", src.id, e)
         return None
 
 
-def agent_data_from_source(src: SourceRecord) -> Optional[AgentData]:
+def agent_data_from_source(src: SourceRecord) -> AgentData | None:
     """Validate and return `AgentData`, or None if the source has none yet."""
     if not src.agent_data:
         return None
     try:
         return AgentData.model_validate(src.agent_data)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         log.warning("malformed agent_data for %s: %s", src.id, e)
         return None
 
@@ -189,7 +189,7 @@ def _build_page_slugs(metas: dict[str, DatasetMeta]) -> dict[str, str]:
 def dataset_slug_redirects(
     sources: Iterable[SourceRecord],
     page_slugs: dict[str, str],
-    legacy: Optional[dict[str, str]] = None,
+    legacy: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Map every old page_slug of a published dataset to its current one.
 
@@ -225,7 +225,7 @@ def _load_legacy_page_slugs() -> dict[str, str]:
 
 def _merged_entry(
     meta: DatasetMeta,
-    agent: Optional[AgentData],
+    agent: AgentData | None,
     tags: list[str],
 ) -> ManifestEntry:
     return ManifestEntry(
@@ -321,8 +321,8 @@ def _write_manifest(out_root: Path, manifest: Manifest) -> Path:
 def publish(
     out_root: Path,
     *,
-    store: Optional[FirestoreStateStore] = None,
-    taxonomy: Optional[Taxonomy] = None,
+    store: FirestoreStateStore | None = None,
+    taxonomy: Taxonomy | None = None,
 ) -> dict:
     """Emit data.json + agent_data.json for each succeeded or unavailable
     source (unavailable sources keep their preserved snapshot page) and the
@@ -337,7 +337,7 @@ def publish(
     log.info("publish: %d publishable source(s) (succeeded + unavailable)", len(sources))
 
     metas: dict[str, DatasetMeta] = {}
-    agents: dict[str, Optional[AgentData]] = {}
+    agents: dict[str, AgentData | None] = {}
     for src in sources:
         metas[src.id] = dataset_meta_from_source(src)
         agents[src.id] = agent_data_from_source(src)
@@ -377,13 +377,13 @@ def publish(
 
     final_entries = sorted(
         entries.values(),
-        key=lambda e: (e.metadata_modified or datetime.min.replace(tzinfo=timezone.utc)),
+        key=lambda e: (e.metadata_modified or datetime.min.replace(tzinfo=UTC)),
         reverse=True,
     )
     tag_index = build_tag_index(final_entries, taxonomy)
     raw_tags = {t for e in final_entries for t in (*e.tags_he, *e.suggested_tags)}
     manifest = Manifest(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         datasets=final_entries,
         tag_index={t: TagIndexEntry(**v) for t, v in tag_index.items()},
         topics=[TopicEntry(**vars(t)) for t in taxonomy.topics.values()],

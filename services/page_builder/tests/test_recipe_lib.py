@@ -13,7 +13,7 @@ from services.page_builder import refresh as rf
 from services.page_builder.recipe import Recipe, render_template
 
 sys.path.insert(0, str(rf.RECIPE_LIB_DIR))
-from govlib import fmt, frame, geo  # noqa: E402
+from govlib import fmt, frame, geo
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
 DS = "11111111-2222-3333-4444-555555555555"

@@ -79,7 +79,7 @@ def _num(s):
 
 
 def _i(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v, d=1):
@@ -108,9 +108,9 @@ def _dist(n):
 def _col(df, prefix, exclude=()):
     """First column (sorted) starting with `prefix` that has data in df."""
     for c in sorted(df.columns):
-        if c.startswith(prefix) and not any(c.startswith(x) for x in exclude):
-            if (df[c].astype(str).str.strip() != "").any():
-                return c
+        if (c.startswith(prefix) and not any(c.startswith(x) for x in exclude)
+                and (df[c].astype(str).str.strip() != "").any()):
+            return c
     return None
 
 

@@ -53,17 +53,17 @@ NO_PLACE = "לא צוין מקום"
 # Latin keyword (word-bounded, upper case) -> country, checked in order.
 LATIN_PLACES = [
     (r"JERUSALEM|TEL[\s-]*AVIV|ISRAEL|HAIFA|BEER[\s-]*SHEVA|NAZARETH|EILAT", ISRAEL),
-    (r"UNITED KINGDOM|UK|LONDON|OXFORD|ENGLAND|BELFAST|SURREY|CAMBRIDGE|WALLINGFORD|"
-     r"EDINBURGH|SCOTLAND|GLASGOW|MANCHESTER|BRIGHTON", "בריטניה"),
-    (r"USA|US|UNITED STATES|NEW YORK|NY|WASHINGTON|EVANSTON|FLORIDA|BOSTON|NEVADA|"
-     r"CA|CHICAGO|CALIFORNIA", "ארה״ב"),
+    ((r"UNITED KINGDOM|UK|LONDON|OXFORD|ENGLAND|BELFAST|SURREY|CAMBRIDGE|WALLINGFORD|"
+     r"EDINBURGH|SCOTLAND|GLASGOW|MANCHESTER|BRIGHTON"), "בריטניה"),
+    ((r"USA|US|UNITED STATES|NEW YORK|NY|WASHINGTON|EVANSTON|FLORIDA|BOSTON|NEVADA|"
+     r"CA|CHICAGO|CALIFORNIA"), "ארה״ב"),
     (r"SPAIN|MADRID|ELCHE|MALAGA|BARCELONA", "ספרד"),
     (r"HAGUE|NETHERLANDS|AMSTERDAM|ROTTERDAM|HOLLAND", "הולנד"),
     (r"CROATIA|ZAGREB", "קרואטיה"),
     (r"GERMANY|GERM|MUNICH|MUNCHEN|BERLIN|WIESBADEN|STARNBERG|FRANKFURT|HAMBURG", "גרמניה"),
     (r"FRANCE|FRANC|PARIS|NANTERRE|LYON", "צרפת"),
-    (r"SWITZERLAND|SWITZ|SCHWEIZ|SCHWEI|GENEVA|GENEVE|BERN|BERNE|ZURICH|ST[\s.-]*GALL|"
-     r"ST[\s.-]*GALLEN|GALLEN", "שווייץ"),
+    ((r"SWITZERLAND|SWITZ|SCHWEIZ|SCHWEI|GENEVA|GENEVE|BERN|BERNE|ZURICH|ST[\s.-]*GALL|"
+     r"ST[\s.-]*GALLEN|GALLEN"), "שווייץ"),
     (r"CANADA|MONTREAL|OTTAWA|TORONTO", "קנדה"),
     (r"AUSTRALIA|AUSTR|CANBERRA|SYDNEY|MELBOURNE", "אוסטרליה"),
     (r"ITALY|VENEZIA|ROMA|ROME|MILAN|BRECSIA", "איטליה"),
@@ -251,7 +251,7 @@ def insight_lang_shift(dec):
 def insight_peak(dec, n_dated, years, counts):
     if n_dated == 0 or not dec:
         return None
-    top = sorted(dec, key=lambda r: (-r["total"], r["decade"]))[0]
+    top = min(dec, key=lambda r: (-r["total"], r["decade"]))
     share = _share(top["total"], n_dated)
     if share < 0.25:
         return None
@@ -368,7 +368,7 @@ def insight_gaps(no_year, no_pages, total):
 
 def compute(frames):
     df = _prepare(frames["main"])
-    total = int(len(df))
+    total = len(df)
 
     # language
     n_for = int((df["lang"] == FOR).sum())
@@ -377,7 +377,7 @@ def compute(frames):
     # years
     dated = df[df["year"].notna()].copy()
     dated["year"] = dated["year"].astype(int)
-    n_dated = int(len(dated))
+    n_dated = len(dated)
     no_year = total - n_dated
     if n_dated:
         y0, y1 = int(dated["year"].min()), int(dated["year"].max())
@@ -396,8 +396,8 @@ def compute(frames):
     for d in sorted(dated["decade"].unique()):
         sub = dated[dated["decade"] == d]
         f = int((sub["lang"] == FOR).sum())
-        dec.append({"decade": int(d), "total": int(len(sub)), "foreign": f,
-                    "hebrew": int(len(sub)) - f})
+        dec.append({"decade": int(d), "total": len(sub), "foreign": f,
+                    "hebrew": len(sub) - f})
     lang_dec = {
         "labels": [_decade_label(r["decade"]) for r in dec],
         "hebrew": [r["hebrew"] for r in dec],
@@ -440,7 +440,7 @@ def compute(frames):
 
     # publishers
     pubs = df["publisher"][df["publisher"] != ""]
-    n_pub_known = int(len(pubs))
+    n_pub_known = len(pubs)
     pnames, pcounts, prest, n_publishers = _top_counts(pubs, TOP_PUBLISHERS)
     publishers = {"names": pnames, "counts": pcounts,
                   "shares": [round(_share(c, n_pub_known) * 100, 1) for c in pcounts],
@@ -452,18 +452,18 @@ def compute(frames):
     n_noplace = orig.get(NO_PLACE, 0)
     n_placed = total - n_noplace - orig.get(UNCLASSIFIED, 0)
     abroad = df["country"][~df["country"].isin([ISRAEL, UNCLASSIFIED, NO_PLACE])]
-    n_abroad = int(len(abroad))
+    n_abroad = len(abroad)
     n_il = orig.get(ISRAEL, 0)
     origin = {"names": ["ישראל", "חו״ל", UNCLASSIFIED, NO_PLACE],
               "counts": [n_il, n_abroad, orig.get(UNCLASSIFIED, 0), n_noplace]}
     origin["shares"] = [round(_share(c, total) * 100, 1) for c in origin["counts"]]
-    cnames, ccounts, crest, n_countries = _top_counts(abroad, TOP_COUNTRIES)
+    cnames, ccounts, crest, _n_countries = _top_counts(abroad, TOP_COUNTRIES)
     countries = {"names": cnames, "counts": ccounts, "rest": crest,
                  "shares": [round(_share(c, n_abroad) * 100, 1) for c in ccounts]}
 
     # pages
     pg = df[df["pages"].notna()]
-    n_pages = int(len(pg))
+    n_pages = len(pg)
     no_pages = total - n_pages
     bins = [lab for _, _, lab in PAGE_BINS] + [PAGE_TOP_LABEL]
 
@@ -480,19 +480,19 @@ def compute(frames):
     for lg in LANGS:
         s = pg["pages"][pg["lang"] == lg]
         if len(s):
-            med[lg] = {"n": int(len(s)), "median": int(round(float(s.median())))}
-    median_all = int(round(float(pg["pages"].median()))) if n_pages else 0
+            med[lg] = {"n": len(s), "median": round(float(s.median()))}
+    median_all = round(float(pg["pages"].median())) if n_pages else 0
 
     # authors (split co-authors on "/")
     au = df["author"].str.split("/").explode().map(_norm_text)
     au = au[(au != "") & (~au.isin(UNKNOWN_MARKERS))]
     n_author_items = int((df["author"].map(_norm_text) != "").sum())
-    anames, acounts, arest, n_authors = _top_counts(au, TOP_AUTHORS)
+    anames, acounts, _arest, _n_authors = _top_counts(au, TOP_AUTHORS)
     authors = {"names": anames, "counts": acounts}
 
     # remarks
     rm = df["remarks"][df["remarks"] != ""]
-    n_remarks = int(len(rm))
+    n_remarks = len(rm)
     rnames, rcounts = [], []
     matched_any = pd.Series(False, index=rm.index)
     for lab, rx in REMARKS:
@@ -513,12 +513,12 @@ def compute(frames):
     for b in sorted(sb["band"].unique()):
         sub = sb[sb["band"] == b]
         if len(sub) < MIN_BAND_ITEMS:
-            dropped_band_items += int(len(sub))
+            dropped_band_items += len(sub)
             continue
         lo = int(b) * STICKER_BAND
         bands["labels"].append(f"{lo:,}-{lo + STICKER_BAND - 1:,}")
-        bands["median"].append(int(round(float(sub["year"].median()))))
-        bands["counts"].append(int(len(sub)))
+        bands["median"].append(round(float(sub["year"].median())))
+        bands["counts"].append(len(sub))
 
     # ── insights ──
     rules = [
@@ -553,7 +553,7 @@ def compute(frames):
     }
 
     # ── labels / ledes ──
-    top_dec = sorted(dec, key=lambda r: (-r["total"], r["decade"]))[0] if dec else None
+    top_dec = min(dec, key=lambda r: (-r["total"], r["decade"])) if dec else None
     labels = {
         "peak_kpi": (f"שנת השיא בפרסומים ({_int(ytot[peak_i])} פריטים)" if peak_i is not None
                      else "שנת השיא בפרסומים"),

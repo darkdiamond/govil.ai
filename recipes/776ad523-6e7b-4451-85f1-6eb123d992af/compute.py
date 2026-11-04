@@ -81,7 +81,7 @@ def compute(frames):
     df["start"] = pd.to_datetime(df["project_start_date"].str[:10], errors="coerce", format="%Y-%m-%d")
     df["end"] = pd.to_datetime(df["contract_end_date"].str[:10], errors="coerce", format="%Y-%m-%d")
 
-    n = int(len(df))
+    n = len(df)
     ils = df[df["is_ils"] & df["amount"].notna()]
     non_ils = df[~df["is_ils"] & df["amount"].notna()]
     total_ils = float(ils["amount"].sum())
@@ -177,7 +177,7 @@ def compute(frames):
 
     # ── sub-field (excluding rows whose sub-field just repeats the field) ─
     sf = df[(df["sub_field"] != "") & (df["sub_field"] != df["field"])]
-    sf_excluded = n - int(len(sf))
+    sf_excluded = n - len(sf)
     sf_items = _sorted_counts(sf["sub_field"])[:TOP_SUBFIELD]
     sf_field = {}
     for name, _ in sf_items:
@@ -191,7 +191,7 @@ def compute(frames):
 
     # ── institutions ───────────────────────────────────────────────────
     inst_df = df[df["institution"] != ""]
-    inst_missing = n - int(len(inst_df))
+    inst_missing = n - len(inst_df)
     n_inst = int(inst_df["institution"].nunique())
     inst_items = _sorted_counts(inst_df["institution"])
     ib = ils[ils["institution"] != ""].groupby("institution")["amount"].sum()
@@ -208,13 +208,13 @@ def compute(frames):
         "count": [r["count"] for r in inst_rows],
         "budget_m": [r["budget_m"] for r in inst_rows],
     }
-    top5_share = _pct(sum(k for _, k in inst_items[:5]), int(len(inst_df)))
+    top5_share = _pct(sum(k for _, k in inst_items[:5]), len(inst_df))
 
     # ── gender ─────────────────────────────────────────────────────────
     g = df[df["gender"].isin([FEMALE, MALE])]
-    g_missing = n - int(len(g))
+    g_missing = n - len(g)
     fem_total = int((g["gender"] == FEMALE).sum())
-    fem_share = _pct(fem_total, int(len(g)))
+    fem_share = _pct(fem_total, len(g))
     gy_f = g[g["gender"] == FEMALE].groupby("year").size()
     gy_m = g[g["gender"] == MALE].groupby("year").size()
     gender_year = {
@@ -228,20 +228,20 @@ def compute(frames):
     for c, _ in _sorted_counts(g["category_of_call"].replace("", "לא צוין")):
         sub = g[g["category_of_call"].replace("", "לא צוין") == c]
         f = int((sub["gender"] == FEMALE).sum())
-        gc.append({"name": c, "female": f, "total": int(len(sub)),
-                   "share": round(_pct(f, int(len(sub))) * 100, 1)})
+        gc.append({"name": c, "female": f, "total": len(sub),
+                   "share": round(_pct(f, len(sub)) * 100, 1)})
     gc.sort(key=lambda r: (-r["share"], -r["total"], r["name"]))
     gf = []
     for f_name, _ in _sorted_counts(g["field"].replace("", "לא צוין")):
         sub = g[g["field"].replace("", "לא צוין") == f_name]
         f = int((sub["gender"] == FEMALE).sum())
-        gf.append({"name": f_name, "female": f, "total": int(len(sub)),
-                   "share": round(_pct(f, int(len(sub))) * 100, 1)})
+        gf.append({"name": f_name, "female": f, "total": len(sub),
+                   "share": round(_pct(f, len(sub)) * 100, 1)})
     gf.sort(key=lambda r: (-r["share"], -r["total"], r["name"]))
 
     # ── partner countries ──────────────────────────────────────────────
     intl = df[df["partner_country"] != ""]
-    n_intl = int(len(intl))
+    n_intl = len(intl)
     n_countries = int(intl["partner_country"].nunique())
     country_items = _top_with_other(intl["partner_country"].value_counts(), TOP_COUNTRY)
     cb = ils[ils["partner_country"] != ""].groupby("partner_country")["amount"].sum()
@@ -286,7 +286,7 @@ def compute(frames):
             cnt = int((dur_years >= k).sum())
             dur_labels.append(f"{k} שנים ומעלה")
         dur_counts.append(cnt)
-    dur_missing = n - int(len(dur))
+    dur_missing = n - len(dur)
     dur_median = float(dur.median()) if len(dur) else 0.0
     duration = {"labels": dur_labels, "count": dur_counts}
 
@@ -377,8 +377,8 @@ def compute(frames):
         meds = [r for r in field_rows if r["name"] != OTHER and r["count"] >= 20]
         extra = ""
         if len(meds) >= 2:
-            hi = sorted(meds, key=lambda r: (-r["median_k"], r["name"]))[0]
-            lo = sorted(meds, key=lambda r: (r["median_k"], r["name"]))[0]
+            hi = min(meds, key=lambda r: (-r["median_k"], r["name"]))
+            lo = min(meds, key=lambda r: (r["median_k"], r["name"]))
             if hi["median_k"] >= lo["median_k"] * 1.3:
                 extra = (f" המענק החציוני הגבוה ביותר הוא ב{hi['name']} ({hi['median_k']:,.0f} אלף ₪), "
                          f"והנמוך ביותר ב{lo['name']} ({lo['median_k']:,.0f} אלף ₪), "
@@ -542,7 +542,7 @@ def compute(frames):
             f"{n_intl:,} מענקים ({_pct(n_intl, n) * 100:.1f}%) הם חלק משיתוף פעולה בינלאומי עם "
             f"{n_countries:,} מדינות וגופים שותפים."
         ),
-        "country_aria": (f"גרף עמודות אופקי: מספר המענקים לפי מדינה שותפה."
+        "country_aria": ("גרף עמודות אופקי: מספר המענקים לפי מדינה שותפה."
                          + (f" המובילה: {country_items[0][0]}." if country_items else "")),
         "size_lede": (
             f"המענק החציוני בשקלים הוא {median_ils / 1000:,.1f} אלף ₪"

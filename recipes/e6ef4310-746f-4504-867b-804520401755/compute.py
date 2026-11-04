@@ -22,12 +22,11 @@ Data handling (disclosed in the copy):
 - the reference date for "expired" is the latest inspection date in the list
   (never the clock).
 """
-import math
 import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 UNCLASSIFIED = "לא מסווג"
 OTHER = "אחר"
 NOT_GIVEN = "לא צוין"
@@ -505,7 +504,6 @@ def compute(frames):
 
     # --- KPIs ---
     expired_total = int((df["expiry"] < ref).sum()) if ref is not None else 0
-    revai_rows = int(df["notes"].str.contains("רבעי").sum())
     kpis = {
         "growers": {"value": int(n_growers), "display": n(n_growers), "tone": "brand"},
         "localities": {"value": int(n_localities), "display": n(n_localities), "tone": "brand"},
@@ -568,25 +566,25 @@ def compute(frames):
         "localities_aria": (f"תרשים עמודות אופקיות מוערמות: יישובים מובילים — {top_locs[0]} בראש עם "
                             f"{n(loc_rows.iloc[0])} שורות." if top_locs else "תרשים יישובים מובילים."),
         "localities_caption": "היישובים המובילים: שורות זן ומגדלים.",
-        "loc_dist_note": (f"מספר היישובים לפי כמות שורות הזן המאושרות בהם — רוב היישובים קטנים, ומעטים "
-                          f"מרכזים חלק גדול מהרשימה."),
+        "loc_dist_note": ("מספר היישובים לפי כמות שורות הזן המאושרות בהם — רוב היישובים קטנים, ומעטים "
+                          "מרכזים חלק גדול מהרשימה."),
         "loc_dist_aria": f"תרשים עמודות: התפלגות {n(n_localities)} היישובים לפי מספר שורות הזן בכל יישוב.",
         "loc_dist_caption": "מספר היישובים לפי כמות שורות הזן.",
-        "grower_size_note": (f"מספר המגדלים לפי כמות שורות הזן שאושרו להם. מגדל מזוהה לפי שמו ויישובו."),
+        "grower_size_note": ("מספר המגדלים לפי כמות שורות הזן שאושרו להם. מגדל מזוהה לפי שמו ויישובו."),
         "grower_size_aria": f"תרשים עמודות: התפלגות {n(n_growers)} המגדלים לפי מספר שורות הזן.",
         "grower_size_caption": "מספר המגדלים לפי כמות שורות הזן.",
         "top_growers_note": (f"{len(pg)} המגדלים עם מירב שורות הזן המאושרות, בצבע קבוצת הגידול העיקרית שלהם."),
         "top_growers_aria": (f"תרשים עמודות אופקי: המגדלים המובילים — {top_g_name} בראש עם {n(top_g_count)} שורות."
                              if len(pg) else "תרשים המגדלים המובילים."),
         "top_growers_caption": "המגדלים המובילים לפי שורות זן.",
-        "inspectors_note": (f"שורות הזן שאישר כל בודק, לפי תוקף האישור"
+        "inspectors_note": ("שורות הזן שאישר כל בודק, לפי תוקף האישור"
                             + (f" ({len(top_insp)} הבודקים המובילים)" if len(insp_names) > len(top_insp) else "")
                             + ". כל צבע הוא מועד תוקף אחר."),
         "inspectors_aria": (f"תרשים עמודות אופקיות מוערמות: אישורים לפי בודק ותוקף — {top_insp[0]} בראש."
                             if top_insp else "תרשים אישורים לפי בודק."),
         "inspectors_caption": "שורות זן לפי בודק ותוקף.",
-        "validity_note": (f"שורות הזן לפי מועד פקיעת האישור. תוקף יחסי (\"חודשים מהבדיקה\") מחושב מתאריך הבדיקה "
-                          f"שבשורה" + (f"; שורות שתוקפן פג עד {ref_txt} מסומנות באדום." if ref is not None else ".")),
+        "validity_note": ("שורות הזן לפי מועד פקיעת האישור. תוקף יחסי (\"חודשים מהבדיקה\") מחושב מתאריך הבדיקה "
+                          "שבשורה" + (f"; שורות שתוקפן פג עד {ref_txt} מסומנות באדום." if ref is not None else ".")),
         "validity_aria": (f"תרשים עמודות: שורות זן לפי תוקף האישור, {n(expired_total)} שתוקפן פג."),
         "validity_caption": "שורות זן לפי תוקף האישור.",
         "notes_note": (f"{n(len(nn))} שורות ({pct(len(nn) / max(total, 1), 1)}) נושאות הערה. \"רבעי\" — פרי "
@@ -595,7 +593,7 @@ def compute(frames):
                        if top_notes else "תרשים הערות."),
         "notes_caption": "שורות זן לפי הערה וקבוצת גידול.",
         "inspections_note": (f"{n(len(dated))} שורות בלבד נושאות תאריך בדיקה — אלו מספר הבדיקות בכל חודש"
-                             + (f"; החודש האחרון חלקי." if partial else ".")),
+                             + ("; החודש האחרון חלקי." if partial else ".")),
         "inspections_aria": (f"תרשים עמודות: בדיקות לפי חודש, {n(len(dated))} שורות עם תאריך."),
         "inspections_caption": "בדיקות לפי חודש.",
     }

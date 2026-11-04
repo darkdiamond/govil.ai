@@ -203,7 +203,7 @@ def compute(frames):
     n_ops = len(ops)
 
     # ---- per prefix (NDC) --------------------------------------------------
-    labels_by_ndc = b.groupby("ndc")["label"].agg(lambda s: sorted(s.unique())[0]).to_dict()
+    labels_by_ndc = b.groupby("ndc")["label"].agg(lambda s: min(s.unique())).to_dict()
     space_by_ndc = b.groupby("ndc")["sublen"].max().map(lambda d: 10**int(d)).to_dict()
 
     def ndc_key(n):
@@ -229,8 +229,8 @@ def compute(frames):
                 "label": labels_by_ndc[n],
                 "kind": kind,
                 "cat": cat,
-                "blocks": int(len(g)),
-                "ops": int(len(oc)),
+                "blocks": len(g),
+                "ops": len(oc),
                 "cap": cap,
                 "space": space,
                 "util": cap / space if space else 0.0,
@@ -250,7 +250,7 @@ def compute(frames):
             {
                 "name": CAT_HE[c],
                 "cap": int(g["cap"].sum()),
-                "blocks": int(len(g)),
+                "blocks": len(g),
                 "prefixes": _list_he([labels_by_ndc[n] for n in ndcs if _category(n) == c]),
                 "ops": int(g["owner"].nunique()),
             }
@@ -333,7 +333,7 @@ def compute(frames):
         size_rows.append(
             {
                 "name": f"{10**int(nx):,} מספרים",
-                "blocks": int(len(g)),
+                "blocks": len(g),
                 "cap": int(g["cap"].sum()),
                 "cap_share": _pct(g["cap"].sum() / total_cap),
                 "block_share": _pct(len(g) / n_blocks),
@@ -398,7 +398,7 @@ def compute(frames):
         "kinds": {p["ndc"]: p["kind"] for p in pref},
         "chunks": [entries[i : i + chunk] for i in range(0, len(entries), chunk)],
     }
-    biggest_ndc = sorted(pref, key=lambda p: (-p["blocks"], p["ndc"]))[0]
+    biggest_ndc = min(pref, key=lambda p: (-p["blocks"], p["ndc"]))
 
     # ---- prefix directory table -------------------------------------------
     directory = []
@@ -487,14 +487,14 @@ def compute(frames):
         if len(pref) < 3:
             return None
         full = [p for p in pref if p["util"] >= 0.999]
-        low = sorted(pref, key=lambda p: (p["util"], ndc_key(p["ndc"])))[0]
+        low = min(pref, key=lambda p: (p["util"], ndc_key(p["ndc"])))
         if low["util"] >= 0.5:
             return None
         lead = ""
         if full:
             lead = _full_txt([p["label"] for p in full]) + ", "
         else:
-            hi = sorted(pref, key=lambda p: (-p["util"], ndc_key(p["ndc"])))[0]
+            hi = min(pref, key=lambda p: (-p["util"], ndc_key(p["ndc"])))
             lead = f"הקידומת המלאה ביותר היא {hi['label']} ({_pct_txt(hi['util'])} הוקצו), "
         return (
             f"{lead}ואילו בקידומת {low['label']} הוקצו רק {_pct_txt(low['util'])} ממרחב המספרים "
@@ -544,7 +544,6 @@ def compute(frames):
     add("sizes", ins_sizes())
 
     # ---- KPIs --------------------------------------------------------------
-    full_n = sum(1 for p in pref if p["util"] >= 0.999)
     kpis = {
         "blocks": {"value": n_blocks, "display": f"{n_blocks:,}", "tone": "brand"},
         "ops": {"value": n_ops, "display": f"{n_ops:,}", "tone": "brand"},
@@ -554,11 +553,11 @@ def compute(frames):
 
     # ---- labels / ledes ----------------------------------------------------
     top_op = ops.iloc[0]
-    top_cat = sorted(cat_rows, key=lambda r: (-r["cap"], r["name"]))[0]
+    top_cat = min(cat_rows, key=lambda r: (-r["cap"], r["name"]))
     util_full = [p["label"] for p in pref if p["util"] >= 0.999]
-    util_low = sorted(pref, key=lambda p: (p["util"], ndc_key(p["ndc"])))[0]
-    mix_shared = sorted(pref, key=lambda p: (-p["ops"], ndc_key(p["ndc"])))[0]
-    largest_size = sorted(size_rows, key=lambda r: (-r["blocks"], r["name"]))[0]
+    util_low = min(pref, key=lambda p: (p["util"], ndc_key(p["ndc"])))
+    mix_shared = min(pref, key=lambda p: (-p["ops"], ndc_key(p["ndc"])))
+    largest_size = min(size_rows, key=lambda r: (-r["blocks"], r["name"]))
 
     labels = {
         "kpi_blocks": "טווחי מספרים שהוקצו",

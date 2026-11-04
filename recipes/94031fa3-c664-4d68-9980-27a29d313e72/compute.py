@@ -290,7 +290,6 @@ def compute(frames):
         ([NO_VALUE] if NO_VALUE in bs.index else [])
     bs_stack = _stack(p, "block_status", bs_names, statuses)
     n_blocks = int(df["block"].dropna().nunique())
-    blocks_new = int(p[p["block_status"] == "חדש רשום"]["block"].nunique())
 
     # Plan reach: how many municipal areas each plan touches.
     reach = p.groupby("n_muni").size().sort_index()

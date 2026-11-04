@@ -177,8 +177,7 @@ def _runs(years, flags):
 
 
 def compute(frames):
-    raw, valid, meas, names, bad, sum_ids, n_sum_rows = _prepare(frames["main"])
-    n_rows = len(raw)
+    _raw, valid, meas, names, bad, sum_ids, n_sum_rows = _prepare(frames["main"])
     n_nomeas = int((valid["method"] == NO_MEAS).sum())
     n_springs = int(meas["id"].nunique())
     d_first, d_last = meas["d"].min(), meas["d"].max()

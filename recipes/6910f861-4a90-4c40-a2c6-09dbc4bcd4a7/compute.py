@@ -12,7 +12,6 @@ Every number on the page is computed here. Insight rules return a sentence
 or None when their premise does not hold.
 """
 import json
-import math
 
 import numpy as np
 import pandas as pd

@@ -9,8 +9,7 @@ Cloud Run builder.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import UTC, datetime
 
 from services.shared.resources import pick_primary_resource_id
 
@@ -18,7 +17,7 @@ from .client import CKANClient
 from .config import ScannerSettings, settings
 from .detector import ChangeDetector
 from .filters import DatasetFilter, create_filter
-from .models import Dataset, DatasetStatus, ScanResult, ScanSummary
+from .models import DatasetStatus, ScanResult, ScanSummary
 from .state import StateDB
 
 log = logging.getLogger("scanner")
@@ -29,8 +28,8 @@ class Scanner:
 
     def __init__(
         self,
-        config: Optional[ScannerSettings] = None,
-        db: Optional[StateDB] = None,
+        config: ScannerSettings | None = None,
+        db: StateDB | None = None,
     ):
         self.config = config or settings
         self.db = db or StateDB()
@@ -39,11 +38,11 @@ class Scanner:
         self,
         *,
         limit: int = 5,
-        filter_config: Optional[DatasetFilter] = None,
+        filter_config: DatasetFilter | None = None,
         force: bool = False,
         mode: str = "manual",
     ) -> ScanSummary:
-        summary = ScanSummary(started_at=datetime.now(timezone.utc))
+        summary = ScanSummary(started_at=datetime.now(UTC))
         scan_id = self.db.start_scan(mode=mode)
         detector = ChangeDetector(self.db)
 
@@ -88,7 +87,7 @@ class Scanner:
                 if datasets_processed >= limit:
                     break
 
-        summary.completed_at = datetime.now(timezone.utc)
+        summary.completed_at = datetime.now(UTC)
         self.db.complete_scan(
             scan_id,
             sources_seen=summary.datasets_scanned,
@@ -148,11 +147,11 @@ if typer is not None:
     @app.command()
     def scan(
         limit: int = typer.Option(5, "--limit", "-l"),
-        format: Optional[str] = typer.Option(None, "--format", "-f"),
-        name_contains: Optional[str] = typer.Option(None, "--name-contains", "-n"),
-        name_regex: Optional[str] = typer.Option(None, "--name-regex"),
-        org: Optional[str] = typer.Option(None, "--org", "-o"),
-        tags: Optional[str] = typer.Option(None, "--tags", "-t"),
+        format: str | None = typer.Option(None, "--format", "-f"),
+        name_contains: str | None = typer.Option(None, "--name-contains", "-n"),
+        name_regex: str | None = typer.Option(None, "--name-regex"),
+        org: str | None = typer.Option(None, "--org", "-o"),
+        tags: str | None = typer.Option(None, "--tags", "-t"),
         force: bool = typer.Option(False, "--force"),
     ) -> None:
         """Scan datasets from data.gov.il CKAN API and upsert into Firestore."""

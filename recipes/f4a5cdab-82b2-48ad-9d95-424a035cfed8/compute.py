@@ -236,7 +236,7 @@ def insight_weekday(df):
     if len(d) < 20:
         return None
     wd = d["deadline"].dt.dayofweek.value_counts()
-    top = int(sorted(wd.index, key=lambda k: (-wd[k], WEEKDAY_ORDER.index(k)))[0])
+    top = int(min(wd.index, key=lambda k: (-wd[k], WEEKDAY_ORDER.index(k))))
     share = wd[top] / len(d)
     if share < 0.35:
         return None

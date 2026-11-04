@@ -207,7 +207,7 @@ def insight_mix_shift(df, now):
         return None
     sc, sp = ct.loc[cur] / totals[cur], ct.loc[prev] / totals[prev]
     gain = (sc - sp).drop(NO_TYPE, errors="ignore")
-    best = sorted(gain.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+    best = min(gain.items(), key=lambda kv: (-kv[1], kv[0]))
     if best[1] < 0.05:
         return None
     t = best[0]
@@ -434,7 +434,7 @@ def compute(frames):
                              f"הנפוצים, והשאר תחת 'אחר'. העשור האחרון חלקי — עד {now.year}."),
             "status_aria": f"תרשים עמודות: {_int(n)} האגודות לפי סטטוס במרשם.",
             "types_aria": f"גרף עמודות מוערמות: האגודות לפי סוג ראשי ({TOP_TYPES} הנפוצים) ומצבן.",
-            "secondary_aria": f"תרשים עמודות: הסיווגים המשניים הנפוצים בקרב האגודות הפעילות.",
+            "secondary_aria": "תרשים עמודות: הסיווגים המשניים הנפוצים בקרב האגודות הפעילות.",
             "secondary_note": (f"לאגודה יכולים להיות כמה סיווגים משניים; ל-{_int(n_sec_rows)} מתוך "
                                f"{_int(n_act)} האגודות הפעילות רשום סיווג משני."),
             "closures_aria": "גרף עמודות מוערמות: אגודות שנסגרו או נכנסו לפירוק, לפי שנת שינוי הסטטוס.",

@@ -14,6 +14,7 @@ Every number on the page comes from here. Attribute lengths are the LENGT
 column (metres); map lengths are measured on the geometry. Insight rules each return a sentence or None; a rule whose premise
 no longer holds in the data drops out rather than asserting something false.
 """
+import itertools
 import json
 import math
 import re
@@ -67,7 +68,7 @@ YEARS_SHOWN = 15
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _km(m):
@@ -325,7 +326,7 @@ def _geo_prepare(df):
             "parts": parts,
             "gkey": r.get("__geometry") or "",
         }
-        rec["m"] = sum(_haversine_m(a, b) for p in parts for a, b in zip(p, p[1:]))
+        rec["m"] = sum(_haversine_m(a, b) for p in parts for a, b in itertools.pairwise(p))
         rows.append(rec)
     code_num = lambda s: (0, float(s), s) if re.fullmatch(r"-?\d+(\.\d+)?", s) else (1, 0.0, s)
     rows.sort(key=lambda x: (code_num(x["code"]), code_num(x["seg"]), x["name"], x["dir"],
@@ -347,7 +348,7 @@ def _lat_bands(drawn):
     pieces = []
     for s in drawn:
         for p in s["parts"]:
-            for a, b in zip(p, p[1:]):
+            for a, b in itertools.pairwise(p):
                 pieces.append(((a[1] + b[1]) / 2, _haversine_m(a, b), s["auth"]))
     for w in BAND_WIDTHS:
         acc = {}
@@ -362,7 +363,7 @@ def _lat_bands(drawn):
     for k in sorted(acc, reverse=True):   # north first
         d = acc[k]
         named = {a: v for a, v in d["auth"].items() if a != UNKNOWN} or d["auth"]
-        lead = sorted(named.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+        lead = min(named.items(), key=lambda kv: (-kv[1], kv[0]))[0]
         lo = k * w / 100
         bands.append({"lo": lo, "hi": lo + w / 100, "m": d["m"], "lead": lead})
     return bands, w / 100
@@ -479,7 +480,7 @@ def _geo_section(df):
         "map_aria": (f"מפה אינטראקטיבית של {_int(len(drawn))} מקטעי נתיבי העדפה, קווים בצבע לפי סוג. "
                      f"גרסה נגישה: טבלת הנתונים מתחת לעמוד."),
         "lat_note": lat_note,
-        "lat_aria": (f"תרשים עמודות: ק\"מ של נתיבי העדפה במפה לפי רצועת קו רוחב, מצפון לדרום."
+        "lat_aria": ("תרשים עמודות: ק\"מ של נתיבי העדפה במפה לפי רצועת קו רוחב, מצפון לדרום."
                      + (f" הצפופה ביותר: {lead_band['lead']}." if lead_band else "")),
     }
     insights = [("extent", insight_extent(drawn)), ("band", insight_band(bands, width, total_m))]
@@ -664,7 +665,7 @@ def compute(frames):
                 "tone": "ok" if sat_share >= 0.5 else "warn"},
         "camera": {"value": round(cam_share, 4), "display": _pct(cam_share),
                    "tone": "ok" if cam_share >= 0.5 else "warn"},
-        "cancel": {"value": int(len(canc)), "display": _int(len(canc)),
+        "cancel": {"value": len(canc), "display": _int(len(canc)),
                    "tone": "warn" if len(canc) else "ok"},
     }
 
@@ -744,7 +745,7 @@ def compute(frames):
         "infra_note": (f"פילוח האורך לפי צביעה, הפרדה פיזית ואכיפה. מתוך האורך שבו האכיפה מתועדת, "
                        f"{_pct(cam_share)} נאכף במצלמה. ערכים חסרים מסומנים \"{UNKNOWN}\"."),
         "infra_aria": "שלושה תרשימי טבעת: אורך הנתיבים לפי מצב הצביעה, סוג ההפרדה ואופן האכיפה.",
-        "lanes_note": (f"כמה נתיבי תנועה כללית נותרים לצד נתיב ההעדפה. "
+        "lanes_note": ("כמה נתיבי תנועה כללית נותרים לצד נתיב ההעדפה. "
                        + (f"הנפוץ: {main_other.index[0]} ({_pct(main_other.iloc[0] / total_m) if total_m else '0.0%'} מהאורך). "
                           if len(main_other) else "")
                        + f"ב-{_int(two_bus)} מקטעים יש שני נתיבי העדפה"
@@ -752,7 +753,7 @@ def compute(frames):
                           if hov_n else "")
                        + ((f"; {_int(hot_n)} מקטעים מוגדרים כנתיב אגרה" if hot_n > 1 else "; מקטע אחד מוגדר כנתיב אגרה")
                           if hot_n else "") + "."),
-        "lanes_aria": (f"תרשים עמודות: אורך הנתיבים לפי מספר נתיבי התנועה הכללית לצדם. "
+        "lanes_aria": ("תרשים עמודות: אורך הנתיבים לפי מספר נתיבי התנועה הכללית לצדם. "
                        + (f"הנפוץ: {main_other.index[0]}." if len(main_other) else "")),
         "length_note": (f"חציון אורך מקטע: {_int(median_m)} מ'. {_int(long_n)} המקטעים שאורכם מעל 2 ק\"מ "
                         f"מהווים {_pct(long_share)} מכלל האורך."),
@@ -760,7 +761,7 @@ def compute(frames):
         "time_note": (f"תאריך הפעלה ידוע ל-{_int(start_known)} מתוך {_int(n)} מקטעים ({_pct(start_known / n) if n else '0.0%'}); "
                       f"תאריך העדכון האחרון קיים לכל מקטע."
                       + (f" השנים {time_x[0]} מקובצות לעמודה אחת." if time_x and time_x[0].startswith("עד") else "")),
-        "time_aria": (f"תרשים עמודות: מספר המקטעים לפי שנת הפעלה ולפי שנת עדכון אחרון"
+        "time_aria": ("תרשים עמודות: מספר המקטעים לפי שנת הפעלה ולפי שנת עדכון אחרון"
                       + (f", עד {time_x[-1]}." if time_x else ".")),
     }
 

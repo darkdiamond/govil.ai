@@ -52,7 +52,7 @@ GAP_MIN_SHARE = 0.005
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=0):
@@ -144,7 +144,7 @@ def _breaks(values):
         return [0]
     out = []
     for i in range(1, N_CLASSES + 1):
-        b = v[min(len(v) - 1, int(math.ceil(i * len(v) / N_CLASSES)) - 1)]
+        b = v[min(len(v) - 1, math.ceil(i * len(v) / N_CLASSES) - 1)]
         if not out or b > out[-1]:
             out.append(b)
     return out
@@ -199,7 +199,7 @@ def _shapes(geo):
     feats = []
     for r in pick.itertuples(index=False):
         feats.append([_band_of(int(r.floors)), uidx[r.use], int(r.floors), int(r.apts), int(r.ent),
-                      int(round(r.area)), r.name, geolib.encode(r.rings, o, tol=SIMPLIFY)])
+                      round(r.area), r.name, geolib.encode(r.rings, o, tol=SIMPLIFY)])
     return {"origin": o, "scale": geolib.SCALE, "uses": uses, "chunks": geolib.pack(feats),
             "n": len(feats), "eligible": n_pick}
 
@@ -240,7 +240,7 @@ def insight_area_gap(area_rows):
     cand = [r for r in area_rows if r["cnt_share"] > 0 and r["area_share"] >= 0.02]
     if not cand:
         return None
-    best = sorted(cand, key=lambda r: (-r["area_share"] / r["cnt_share"], r["name"]))[0]
+    best = min(cand, key=lambda r: (-r["area_share"] / r["cnt_share"], r["name"]))
     if best["area_share"] / best["cnt_share"] < AREA_RATIO:
         return None
     return (f"מבנים בשימוש {best['name']} הם {_pct(best['cnt_share'], 1)} מהמבנים, אבל תופסים "

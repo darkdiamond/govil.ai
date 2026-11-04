@@ -9,7 +9,7 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
@@ -18,12 +18,13 @@ import pytest
 from services.page_builder import agent_contract
 from services.page_builder import refresh as rf
 from services.page_builder.recipe import (
+    PreviewUnavailable,
     Recipe,
     RecipeError,
-    PreviewUnavailable,
     RecipeManifest,
     resolve_inputs,
 )
+from services.page_builder.tests import test_recipe_refresh
 from services.page_builder.tests.test_recipe_refresh import (
     COLS,
     DS,
@@ -34,8 +35,9 @@ from services.page_builder.tests.test_recipe_refresh import (
     _rows,
     _run,
     _src,
-    env,  # noqa: F401  (fixture)
 )
+
+env = test_recipe_refresh.env  # the shared fixture, registered in this module too
 
 
 def _manifest(inputs, **kw):
@@ -91,13 +93,13 @@ def test_limits_make_a_recipe_heavy():
 def _snapshots():
     return [
         {"id": "r-old", "name": "נכון ליום 2021", "format": "CSV", "datastore_active": True,
-         "last_modified": datetime(2021, 11, 10, tzinfo=timezone.utc)},
+         "last_modified": datetime(2021, 11, 10, tzinfo=UTC)},
         {"id": "r-new", "name": "נכון ליום 2026", "format": "CSV", "datastore_active": True,
          "last_modified": "2026-09-06T06:14:33"},  # naive ISO string: read as UTC
         {"id": "r-none", "name": "ללא תאריך", "format": "CSV", "datastore_active": True,
          "last_modified": None},
         {"id": "r-other", "name": "אחר", "format": "CSV", "datastore_active": True,
-         "last_modified": datetime(2027, 1, 1, tzinfo=timezone.utc)},
+         "last_modified": datetime(2027, 1, 1, tzinfo=UTC)},
     ]
 
 

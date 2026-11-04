@@ -15,8 +15,6 @@ medians and fsum for coordinates.
 import math
 import re
 
-import pandas as pd
-
 LAT_RANGE = (29.0, 34.0)
 LON_RANGE = (34.0, 36.0)
 SITE_DECIMALS = 4  # ~10 m: rows on the same rounded point share one site
@@ -169,7 +167,7 @@ def _mode(values):
     vc = {}
     for v in values:
         vc[v] = vc.get(v, 0) + 1
-    return sorted(vc.items(), key=lambda kv: (-kv[1], kv[0]))[0][0] if vc else None
+    return min(vc.items(), key=lambda kv: (-kv[1], kv[0]))[0] if vc else None
 
 
 def compute(frames):
@@ -399,7 +397,7 @@ def compute(frames):
                      f"ואחריה {c2} עם {_int(n2)}."))
 
     if has_mix:
-        best = sorted(mix_rows, key=lambda r: (-abs(r[1] - r[2]), r[0]))[0]
+        best = min(mix_rows, key=lambda r: (-abs(r[1] - r[2]), r[0]))
         gap = best[1] - best[2]
         if abs(gap) >= MIX_GAP_PP:
             where_hi, where_lo = ("במרכזי הקניות", "ברחובות") if gap > 0 else ("ברחובות", "במרכזי הקניות")
