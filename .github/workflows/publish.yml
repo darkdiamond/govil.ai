@@ -27,6 +27,8 @@ on:
     paths:
       - "frontend/**"
       - "services/page_builder/publish.py"
+      - "services/page_builder/dataset_successors.json"
+      - "services/page_builder/legacy_page_slugs.json"
       - "services/page_builder/related.py"
       - "services/page_builder/tags.py"
       - "services/page_builder/schema.py"
