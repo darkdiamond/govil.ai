@@ -9,6 +9,7 @@ import json
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+import httpx
 import pytest
 
 from services.page_builder import refresh as rf
@@ -72,7 +73,7 @@ def boi(monkeypatch):
                 return resp
         return FakeResp(404, b"<html>", "text/html")
 
-    monkeypatch.setattr("services.providers.base.httpx.get", fake_get)
+    monkeypatch.setattr(p, "_send", fake_get)
     p.answers["EXR/1.0/RER_USD_ILS"] = FakeResp(200, b"SERIES_CODE,TIME_PERIOD,OBS_VALUE\nX,1,2\n")
     p.answers["names"] = names_resp()
     return p
@@ -215,8 +216,59 @@ def test_server_errors_are_retried(boi, monkeypatch):
     boi.settings = boi.settings.model_copy(update={"retries": 1})
     monkeypatch.setattr("services.providers.base.time.sleep", lambda s: None)
     seq = [FakeResp(503, b"", "text/html"), FakeResp(200, BR_CSV.encode()), names_resp()]
-    monkeypatch.setattr("services.providers.base.httpx.get", lambda url, **kw: seq.pop(0))
+    monkeypatch.setattr(boi, "_send", lambda url, **kw: seq.pop(0))
     assert boi.version(_res(boi)).rows == 3
+
+
+def test_connect_stalls_reconnect_without_spending_retries(boi, monkeypatch):
+    # Cloud Run → BoI drops SYNs at random: a connect timeout is retried
+    # at once, on its own budget, and `retries` (0 here) is left alone.
+    monkeypatch.setattr("services.providers.base.time.sleep", lambda s: None)
+    stall = httpx.ConnectTimeout("stalled")
+    seq = [stall, stall, FakeResp(200, BR_CSV.encode()), names_resp()]
+
+    def send(url, **kw):
+        r = seq.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    monkeypatch.setattr(boi, "_send", send)
+    assert boi.version(_res(boi)).rows == 3
+
+
+def test_connect_stalls_give_up_after_the_budget(boi, monkeypatch):
+    boi.settings = boi.settings.model_copy(update={"connect_retries": 2})
+    calls = []
+
+    def send(url, **kw):
+        calls.append(url)
+        raise httpx.ConnectTimeout("stalled")
+
+    monkeypatch.setattr(boi, "_send", send)
+    with pytest.raises(ProviderError, match="after 3 attempts"):
+        boi.http_get("https://edge.boi.org.il/x")
+    assert len(calls) == 3
+
+
+def test_requests_share_one_client_with_a_short_connect_timeout(monkeypatch):
+    p = BoiSdmxProvider(BoiSdmxProvider.default_settings.model_copy(
+        update={"enabled": True, "min_interval_s": 0.0}))
+    seen, made = [], []
+    real = httpx.Client
+
+    def client(**kw):
+        made.append(kw)
+        return real(transport=httpx.MockTransport(
+            lambda req: (seen.append(req), httpx.Response(200))[1]), **kw)
+
+    monkeypatch.setattr("services.providers.base.httpx.Client", client)
+    p.http_get("https://edge.boi.org.il/a")
+    p.http_get("https://edge.boi.org.il/b")
+    assert len(made) == 1 and len(seen) == 2
+    t = made[0]["timeout"]
+    assert t.connect == p.settings.connect_timeout_s == 10.0
+    assert t.read == p.settings.timeout_s == 180.0
 
 
 # ── liveness ─────────────────────────────────────────────────────────────

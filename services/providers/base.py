@@ -69,6 +69,13 @@ class ProviderSettings(BaseModel):
     base_url: str = ""
     timeout_s: float = 60.0
     retries: int = 2
+    # TCP connect only. From Cloud Run, SYNs to some hosts are dropped at
+    # random (BoI 2026-11: ~half of connects stalled, up to ~135s, before the
+    # kernel's retransmit got through). A short connect timeout plus a fresh
+    # connect beats waiting out the backoff; these retries don't spend
+    # `retries`.
+    connect_timeout_s: float = 10.0
+    connect_retries: int = 5
     min_interval_s: float = 0.0
     max_bytes: int = 300_000_000
     # Name of the env var holding the source's API key, if it needs one. Read
@@ -202,6 +209,9 @@ class SourceProvider(abc.ABC):
         # The reconcile sweep probes from several threads at once; politeness
         # spacing and the one-per-run healthcheck must hold across them.
         self._lock = threading.RLock()  # healthy() → healthcheck() → http_get()
+        # One keep-alive pool for the run, so a run pays for a few TCP
+        # connects instead of one per request. httpx.Client is thread-safe.
+        self._client: Optional[httpx.Client] = None
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] = os.environ) -> "SourceProvider":
@@ -362,21 +372,43 @@ class SourceProvider(abc.ABC):
         headers = {"User-Agent": self.settings.user_agent, **self.auth_headers(),
                    **(headers or {})}
         last: Optional[Exception] = None
-        for attempt in range(self.settings.retries + 1):
+        attempt = connect_stalls = 0
+        while True:
             with self._lock:  # reserve the next slot, then sleep outside the lock
                 slot = max(time.monotonic(), self._last_request + self.settings.min_interval_s)
                 self._last_request = slot
             if slot > time.monotonic():
                 time.sleep(slot - time.monotonic())
             try:
-                r = httpx.get(url, params=params, headers=headers,
-                              timeout=self.settings.timeout_s, follow_redirects=True)
+                r = self._send(url, params=params, headers=headers)
+            except httpx.ConnectTimeout as e:
+                last = e
+                if connect_stalls < self.settings.connect_retries:
+                    connect_stalls += 1
+                    log.info("provider %s: connect to %s timed out after %.0fs, "
+                             "reconnecting (%d/%d)", self.key, httpx.URL(url).host,
+                             self.settings.connect_timeout_s, connect_stalls,
+                             self.settings.connect_retries)
+                    continue
             except httpx.HTTPError as e:
                 last = e
             else:
                 if r.status_code in ok or not (r.status_code >= 500 or r.status_code == 429):
                     return r
                 last = ProviderError(f"HTTP {r.status_code}")
-            if attempt < self.settings.retries:
-                time.sleep(2 ** attempt)
-        raise ProviderError(f"GET {url} failed after {self.settings.retries + 1} attempts: {last}")
+            if attempt >= self.settings.retries:
+                break
+            time.sleep(2 ** attempt)
+            attempt += 1
+        raise ProviderError(f"GET {url} failed after {attempt + 1 + connect_stalls} "
+                            f"attempts: {last}")
+
+    def _send(self, url: str, **kw) -> httpx.Response:
+        """One GET on the shared client (the seam tests replace)."""
+        with self._lock:
+            if self._client is None:
+                self._client = httpx.Client(
+                    timeout=httpx.Timeout(self.settings.timeout_s,
+                                          connect=self.settings.connect_timeout_s),
+                    follow_redirects=True)
+        return self._client.get(url, **kw)
