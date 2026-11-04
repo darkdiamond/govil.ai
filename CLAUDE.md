@@ -212,7 +212,8 @@ snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    refresh fails `geometry_stale` (page kept, issue opened). The refresh code
    ships in the builder image, but recipes are read from `main` at run time:
    **redeploy the job before merging a recipe that uses a new
-   `recipe.json` field**, or the old image rejects it as `recipe_invalid`. `REFRESH_CAP` (200)
+   `recipe.json` field** (or a new `agent_data.seo` key: `SeoMeta` forbids
+   unknown keys), or the old image rejects it as `recipe_invalid`. `REFRESH_CAP` (200)
    bounds renders per run. **Issue dedup:** a successful render
    (`mark_refreshed` / `mark_refresh_unchanged`) clears the recorded
    `authoring_issue`; `queue_authoring` reuses a recorded issue unless
@@ -322,7 +323,10 @@ are still read by the authoring selector.
   - `agent_data` — an `AgentData` (`services/page_builder/schema.py`;
     the name is legacy, the recipe's `compute()` produces it now). Holds
     ONLY interpretive fields (`summary_he`, `dataset_kind`, coverage
-    hints; tags and related datasets are publisher-computed). Scanner
+    hints, and `seo`: the recipe's search title / description / name /
+    alternate names, which `[slug].vue` prefers over the CKAN title and
+    `summary_he` for the head tags, JSON-LD and breadcrumb; tags and
+    related datasets are publisher-computed). Scanner
     facts (id, title, slug, license, resources, formats, record_count,
     metadata_modified) are not the recipe's
     responsibility — `data.json` is owned by the publisher and rebuilt

@@ -1,5 +1,10 @@
 <script setup lang="ts">
-import { buildDatasetLd, datasetDescription } from "~/composables/useDatasetLd";
+import {
+  buildDatasetLd,
+  datasetDescription,
+  datasetName,
+  datasetSeoTitle,
+} from "~/composables/useDatasetLd";
 import { formatBytes, formatNumber } from "~/composables/useRelativeTime";
 import type { AgentData, DatasetMeta, ManifestEntry } from "~/types/manifest";
 import {
@@ -78,6 +83,7 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
     temporal_coverage: agent?.temporal_coverage as string | undefined,
     spatial_coverage: agent?.spatial_coverage as string | undefined,
     suggested_tags: (agent?.suggested_tags as string[] | undefined) ?? [],
+    seo: agent?.seo,
     tags: me.tags ?? [],
     related_ids: [],
   };
@@ -283,24 +289,13 @@ const breadcrumbs = [
         },
       ]
     : []),
-  { name: entry.value.title, url: datasetUrl },
+  { name: datasetName(entry.value), url: datasetUrl },
 ];
 
 const datasetLd = buildDatasetLd(entry.value, { canonical: datasetUrl });
 
-// Google truncates titles around 60 chars in Hebrew SERPs. useSeo no longer
-// auto-appends " — govil.ai" (the brand goes through og:site_name instead),
-// so the full 60 are ours. Append the ministry with a thin separator only
-// when the combined string still fits — long CKAN titles stand on their own.
-const seoTitle = (() => {
-  const t = entry.value.title;
-  const org = entry.value.organization;
-  const withOrg = org ? `${t} · ${org}` : t;
-  return withOrg.length <= 60 ? withOrg : t;
-})();
-
 useSeo({
-  title: seoTitle,
+  title: datasetSeoTitle(entry.value),
   description: seoDescription,
   path: pagePath,
   author: entry.value.organization,
@@ -548,7 +543,7 @@ onMounted(async () => {
           }}</NuxtLink>
         </template>
         <span class="mx-1">›</span>
-        <span>{{ entry.title }}</span>
+        <span>{{ datasetName(entry) }}</span>
       </div>
     </nav>
 

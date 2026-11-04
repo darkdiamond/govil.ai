@@ -1707,3 +1707,62 @@ def test_author_runtime_parity(tmp_path, monkeypatch):
     ]
     versions["pandas"] = "3.1.0"
     assert author.runtime_parity_problems(reqs) == []
+
+
+# ── agent_data.seo: recipe-owned search metadata ─────────────────────────
+
+
+def test_refresh_carries_the_recipes_seo_into_agent_data(env):
+    store = FakeStore(_src())
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["refreshed"] == [DS], s
+    seo = next(st["agent_data"]["seo"] for st in store.states.values() if "agent_data" in st)
+    assert seo["title"] == "אירועים לפי מחוז וחודש: נתונים וגרפים"
+    assert "2024 עד 2025" in seo["description"]
+    assert seo["name"] == "אירועים לפי מחוז"
+
+
+@pytest.mark.parametrize("seo", [
+    {"title": "א" * 61},
+    {"title": "מאגר אירועים מ-data.gov.il"},
+    {"name": "Data.gov.il אירועים"},
+    {"description": "קצר מדי"},
+    {"title": "שתי\nשורות"},
+    {"alternate_names": [f"שם {i}" for i in range(6)]},
+    {"keywords": ["x"]},
+])
+def test_invalid_seo_fails_the_page_model(seo):
+    raw = {"agent_data": {"summary_he": "x", "dataset_kind": "misc", "seo": seo}}
+    m = RecipeManifest.model_validate({
+        "dataset_id": DS, "recipe_version": 1, "authored_at": "2026-10-24T00:00:00Z",
+        "inputs": [{"name": "x", "by_id": RID}], "min_insights": 0})
+    from services.page_builder.recipe import validate_model
+
+    with pytest.raises(RecipeError):
+        validate_model(raw, m)
+
+
+def test_author_verify_requires_seo_title_and_description(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    c = recipes / DS / "compute.py"
+    c.write_text(c.read_text().replace('"title": "אירועים לפי מחוז וחודש: נתונים וגרפים",', ""))
+    assert author.verify(DS, recipes) == 1
+    out = capsys.readouterr().out
+    assert "SEO: agent_data.seo.title is missing" in out
+    assert "seo.description (" in out  # the SERP preview still prints
+    assert "h1: " in out
+
+
+def test_author_verify_wants_headroom_in_the_description(tmp_path, monkeypatch, capsys):
+    """A description at the edge of SeoMeta's bounds fails verify: its numbers
+    move with the data, and crossing the bound on a refresh fails the page."""
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    c = recipes / DS / "compute.py"
+    c.write_text(c.read_text().replace('"מחוזות, עם מגמה שנתית ופילוח חודשי."',
+                                       '"מחוזות, עם מגמה שנתית ופילוח חודשי." + "א" * 50'))
+    assert author.verify(DS, recipes) == 1
+    assert "SEO: seo.description is" in capsys.readouterr().out

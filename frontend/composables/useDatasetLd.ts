@@ -8,7 +8,7 @@
 // creator, publisher) so collection pages stop tripping the Dataset validator
 // on their `hasPart` children.
 
-import type { ManifestEntry, SlimEntry } from "~/types/manifest";
+import type { ManifestEntry, SeoMeta, SlimEntry } from "~/types/manifest";
 import { buildLicenseLd, type LicenseLd } from "~/utils/dataset-license";
 import { publicResourceUrl } from "~/utils/resource-url";
 
@@ -17,7 +17,7 @@ import { publicResourceUrl } from "~/utils/resource-url";
 // assignable to this, so detail-page callers don't change. `notes` is absent
 // from SlimEntry — summary_he is near-universal, and the rare gap falls back
 // to the title.
-type LdSource = SlimEntry & { notes?: string };
+type LdSource = SlimEntry & { notes?: string; seo?: SeoMeta };
 
 const SITE_URL = "https://govil.ai";
 const GOV_IL = "https://www.gov.il";
@@ -40,6 +40,7 @@ export interface DatasetLd {
   "@context": "https://schema.org";
   "@type": "Dataset";
   name: string;
+  alternateName?: string[];
   description: string;
   url: string;
   license: LicenseLd;
@@ -80,10 +81,11 @@ function trimToWord(s: string, max: number): string {
   );
 }
 
-// Description precedence: agent's short summary_he, then trimmed CKAN notes,
-// then the title as last resort (selector gates publish on agent success, so
-// summary_he is almost always present).
+// Description precedence: the recipe's search snippet (agent_data.seo, dataset
+// page only), then the short summary_he, then trimmed CKAN notes, then the
+// title as last resort (summary_he is almost always present).
 export function datasetDescription(entry: LdSource): string {
+  if (entry.seo?.description) return entry.seo.description;
   if (entry.summary_he) return entry.summary_he;
   if (entry.notes) return trimToWord(entry.notes, 200);
   return entry.title;
@@ -107,15 +109,47 @@ export function datasetCreator(entry: LdSource): OrgLd {
   return { "@type": "GovernmentOrganization", name: entry.organization, url };
 }
 
+// The page <title>. Google truncates titles around 60 chars in Hebrew SERPs.
+// useSeo no longer auto-appends " — govil.ai" (the brand goes through
+// og:site_name instead), so the full 60 are ours. A recipe's seo.title
+// (agent_data.seo, ≤60 chars) is used verbatim. Otherwise append the ministry
+// to the CKAN title with a thin separator only when the result still fits.
+export function datasetSeoTitle(entry: LdSource): string {
+  if (entry.seo?.title) return entry.seo.title;
+  const t = entry.title;
+  const org = entry.organization;
+  const withOrg = org ? `${t} · ${org}` : t;
+  return withOrg.length <= 60 ? withOrg : t;
+}
+
+// The name people search for: the recipe's seo.name (its h1), else the CKAN
+// title. Used by the JSON-LD and the breadcrumb, so they agree.
+export function datasetName(entry: LdSource): string {
+  return entry.seo?.name || entry.title;
+}
+
+// The other names of the dataset: the CKAN title when the recipe renamed it,
+// then the recipe's spelling variants. Never repeats `name`.
+export function datasetAlternateNames(entry: LdSource): string[] {
+  const name = datasetName(entry);
+  const out: string[] = [];
+  for (const n of [entry.title, ...(entry.seo?.alternate_names ?? [])]) {
+    if (n && n !== name && !out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
 export function buildDatasetLd(
   entry: ManifestEntry,
   opts: { canonical: string }
 ): DatasetLd {
   const creator = datasetCreator(entry);
+  const alternateName = datasetAlternateNames(entry);
   const ld: DatasetLd = {
     "@context": "https://schema.org",
     "@type": "Dataset",
-    name: entry.title,
+    name: datasetName(entry),
+    ...(alternateName.length ? { alternateName } : {}),
     description: datasetDescription(entry),
     url: opts.canonical,
     license: buildLicenseLd(entry.license, entry.source?.terms_url),

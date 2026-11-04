@@ -84,6 +84,15 @@ def compute(frames):
             "dataset_kind": "timeseries",
             "suggested_tags": ["אירועים", "מחוזות"],
             "temporal_coverage": f"{y_min}/{y_max}",
+            # Search metadata: the SERP title and snippet, task-first.
+            "seo": {
+                "title": "אירועים לפי מחוז וחודש: נתונים וגרפים",
+                "description": (f"כמה אירועים נרשמו בכל מחוז ובכל חודש, {y_min} עד "
+                                f"{y_max}: {_int(total)} אירועים ב-{by_district.size} "
+                                "מחוזות, עם מגמה שנתית ופילוח חודשי."),
+                "name": "אירועים לפי מחוז",
+                "alternate_names": ["מספר אירועים חודשי לפי מחוז"],
+            },
         },
         "kpis": {
             "total": {"value": total, "display": _int(total)},

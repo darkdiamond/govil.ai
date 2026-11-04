@@ -280,6 +280,12 @@ Return:
     "dataset_kind": "timeseries|map|registry|rankings|misc",
     "temporal_coverage": "2019/2026",   # computed, optional
     "spatial_coverage": "...",          # optional
+    "seo": {                 # search metadata; title + description required by verify
+      "title": "...",        # ≤60, the <title>, verbatim
+      "description": "...",  # 80-150 (verify), the snippet; computed numbers welcome
+      "name": "...",         # ≤80, the h1 name (JSON-LD name + breadcrumb)
+      "alternate_names": ["..."],  # ≤5 variants (JSON-LD alternateName)
+    },
   },
   "kpis": {"total": {"value": 1695, "display": "1,695", "tone": "brand"}, ...},
   "charts": {"by_year": {"x": [...], "y": [...]}, ...},
@@ -386,7 +392,7 @@ GovMap `resourceId`).
   `gov.table(caption, cols, rows, ltr=(...))` (the "הצג כטבלה" details
   table). Prefer them over writing the markup again: the same elements and
   classes, only the whitespace differs.
-- The `<h1>` is the dataset title; insights section, cards, icon headers etc.
+- The `<h1>` is the dataset's searched name (`seo.name`, see "Search (SEO)"); insights section, cards, icon headers etc.
   exactly per BODY SKELETON (check.py enforces them).
 
 ### No em dash in user-facing text
@@ -412,14 +418,35 @@ search on the SERP. Search Console (2026-10) showed pages ranking at position
 2–7 with 1–2% CTR because neither the snippet nor the top of the page offered
 the lookup.
 
-- **`summary_he` is the meta description** (and the JSON-LD description).
-  Keep it ≤155 chars. Lead with the task the searcher has, using their words
+The recipe owns its search metadata through `agent_data.seo` (`SeoMeta` in
+`services/page_builder/schema.py`; the refresh rejects a page whose `seo`
+breaks a limit, and `verify` fails without `title` and `description` and
+prints them with their lengths). The shell builds every head tag from it, so
+the template still never writes `<title>` or `<meta>`:
+
+- **`seo.title`** (≤60 chars) is the `<title>`, og:title and twitter:title,
+  used verbatim: no brand or ministry is appended. Lead with the searcher's
+  task or the name they type ("איתור רופא לפי מספר רישיון | פנקס הרופאים"),
+  not the CKAN title's bureaucratic form. No `data.gov.il` (the brand is
+  govil.ai; the schema rejects it). Write `title` and `name` as fixed
+  strings: numbers and data values (a top city, a count) belong in the
+  description, whose length `verify` checks with room to move. A title or
+  name built from the data can cross its limit on a later refresh and fail
+  the page.
+- **`seo.description`** (70-160 chars; `verify` wants 80-150, so the
+  computed numbers and names in it can change length on new data without
+  failing a refresh) is the meta, og and JSON-LD description. Lead with the task the searcher has, using their words
   ("איתור … לפי שם, מספר רישיון או יישוב"), then one or two computed numbers.
-  Don't write a stats blurb.
-- **The `<h1>` is the name people search**, which is not always the CKAN title
-  (e.g. "מאגר שומות מכריעות: הכרעות שמאי מכריע", not "מאגר נתוני שמאות
-  מכריעה"). Work the common variant (כח/כוח, בניה/בנייה, "רשם …"/"פנקס …")
-  into the lede or an H2 naturally. Never add a keyword block.
+  Don't write a stats blurb. It may differ from `summary_he`, which stays the
+  blurb on cards, the related sidebar and site search.
+- **`seo.name`** (≤80) is the name people search, which is not always the
+  CKAN title (e.g. "מאגר שומות מכריעות", not "מאגר נתוני שמאות מכריעה"). Make
+  the `<h1>` say the same thing: `name` becomes the JSON-LD Dataset `name`
+  and the breadcrumb, and the CKAN title moves to `alternateName`.
+- **`seo.alternate_names`** (≤5) holds the other names and spellings people
+  type (כח/כוח, בניה/בנייה, "רשם …"/"פנקס …"), emitted as JSON-LD
+  `alternateName`. Also work the most common variant into the lede or an H2
+  naturally. Never add a keyword block to the page.
 - **Registry/list datasets get a lookup callout** right after the lede card,
   linking to the shell's explorer (`#data-explorer`, a live full-text search
   over every record). Name the fields the explorer can actually search, and

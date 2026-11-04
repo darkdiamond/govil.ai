@@ -8,6 +8,13 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **No committed recipe sets `agent_data.seo` yet.** The plumbing landed with the field: the
+  dataset page uses the recipe's search title, description, name and alternate names when
+  present and its old CKAN-title / `summary_he` head otherwise, and `author verify` requires
+  `seo.title` + `seo.description` from now on. The existing pages keep their CKAN titles (some
+  over 60 chars, 45 summaries over 160) until a recipe adds it. Fix: backfill in batches like
+  the authoring PRs, highest GSC impressions with low CTR first, bumping each `recipe_version`;
+  each page re-stages once. (2026-11-04)
 - **131 of 307 committed recipes fail `author verify`'s em-dash lint.** The rule (#124) came after
   they were authored and only runs at authoring time; the daily refresh doesn't enforce it, so
   the pages render fine. But any edit to one of these recipes, even a one-line template fix,

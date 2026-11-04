@@ -59,6 +59,7 @@ async function renderPage(
       related: [],
       allTags: [],
       publicResourceUrl: (url) => url,
+      datasetName: (e) => e.seo?.name || e.title,
       formatClass: () => "fmt-csv",
       formatBytes: String,
     }),

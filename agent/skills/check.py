@@ -783,6 +783,40 @@ def check_percent_consistency(body: str) -> None:
             )
 
 
+# Mirrors services/page_builder/schema.py SeoMeta (this script is standalone).
+SEO_LIMITS = {"title": (1, 60), "description": (70, 160), "name": (1, 80)}
+
+
+def check_seo(seo: object) -> None:
+    """agent_data.seo: optional recipe-owned search metadata."""
+    if seo is None:
+        return
+    if not isinstance(seo, dict):
+        fail(f"AGENT-DATA: seo must be an object, got {type(seo).__name__}")
+    unknown = set(seo) - {*SEO_LIMITS, "alternate_names"}
+    if unknown:
+        fail(f"AGENT-DATA: seo has unknown keys {sorted(unknown)}")
+    def one_line(val: object, lo: int, hi: int) -> bool:
+        return (isinstance(val, str) and "\n" not in val and "\r" not in val
+                and lo <= len(val.strip()) <= hi)
+
+    for key, (lo, hi) in SEO_LIMITS.items():
+        val = seo.get(key)
+        if val is None:
+            continue
+        if not one_line(val, lo, hi):
+            fail(f"AGENT-DATA: seo.{key} must be one line of {lo}-{hi} chars, got {val!r}")
+        if key in ("title", "name") and "data.gov.il" in val.lower():
+            fail(f"AGENT-DATA: seo.{key} must not mention data.gov.il (the brand is govil.ai)")
+    names = seo.get("alternate_names") or []
+    if (
+        not isinstance(names, list)
+        or len(names) > 5
+        or not all(one_line(n, 1, 80) for n in names)
+    ):
+        fail(f"AGENT-DATA: seo.alternate_names must be at most 5 names of 1-80 chars, got {names!r}")
+
+
 def main(argv: list[str]) -> int:
     # --recipe: the body was rendered by a deterministic recipe
     # (services/page_builder/refresh.py), not written by a model. Skips only
@@ -816,6 +850,7 @@ def main(argv: list[str]) -> int:
         )
     if any(not isinstance(t, str) or not t.strip() for t in suggested):
         fail("AGENT-DATA: suggested_tags entries must be non-empty strings")
+    check_seo(d.get("seo"))
 
     check_html_hygiene(body)
     # Security gate before every quality rule: an injected payload must be
