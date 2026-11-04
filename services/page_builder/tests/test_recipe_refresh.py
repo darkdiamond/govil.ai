@@ -244,6 +244,26 @@ def test_refresh_renders_valid_page_and_insights_follow_data(env):
     assert out["changes"]["insights_removed"]
 
 
+def test_fetch_gets_the_resource_and_its_preview_and_reports_the_path(env):
+    """The export is handed the CKAN resource (its file URL) and the datastore
+    preview the file must match; the outcome says which path served it."""
+    ckan = FakeCkan(_rows([2024, 2025]))
+    seen = []
+    plain = ckan.fetch
+
+    def fetch(rid, total, dest, **kw):
+        seen.append((kw["resource"]["id"], kw["preview"]["total"]))
+        out = plain(rid, total, dest, **kw)
+        out.via = "file"
+        return out
+
+    ckan.fetch = fetch
+    s = _run(env, FakeStore(_src()), ckan)
+    assert s["refreshed"] == [DS], s
+    assert seen == [(RID, 72)]
+    assert s["outcomes"][0]["fetch_via"] == {RID[:8]: "file"}
+
+
 def test_preview_target_never_writes_prod_state(env):
     store = FakeStore(_src())
     _run(env, store, FakeCkan(_rows([2024, 2025])))

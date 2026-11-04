@@ -115,6 +115,40 @@ def test_gates_return_none(monkeypatch, tmp_path):
     assert _fetch(dest, total=10, prefer_sample=True, sample_rows=0) is None
 
 
+def test_pages_after_the_first_are_sized_by_row_width(monkeypatch, tmp_path):
+    """The builder holds a whole page in memory: after the first page, wide
+    rows get smaller pages, never more rows than `page_size`."""
+    monkeypatch.setattr(agent_contract, "_FIRST_PAGE_ROWS", 4)
+    monkeypatch.setattr(agent_contract, "_PAGE_TARGET_BYTES", 220)
+    monkeypatch.setattr(agent_contract, "_MIN_PAGE_ROWS", 1)
+    records = [{"_id": i + 1, "שם": "x" * 100, "ערך": i} for i in range(10)]
+    limits = []
+
+    def fake(req, timeout=None):  # noqa: ANN001
+        q = parse_qs(urlparse(req.full_url).query)
+        offset, limit = int(q.get("offset", ["0"])[0]), int(q["limit"][0])
+        limits.append(limit)
+        body = {"success": True,
+                "result": {"fields": _FIELDS, "records": records[offset: offset + limit]}}
+        return _Resp(json.dumps(body, ensure_ascii=False).encode("utf-8"))
+
+    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
+    dest = tmp_path / "d.csv"
+    outcome = _fetch(dest, total=10, page_size=10)
+    assert outcome.rows == 10
+    # ~105 bytes a row against a 220-byte target: 2 rows a page after the first.
+    assert limits == [4, 2, 2, 2]
+
+
+def test_an_empty_page_before_total_is_a_failed_export(monkeypatch, tmp_path):
+    """The datastore answered an empty page mid-export (it was reloading the
+    resource): the 8 rows it gave are not the 10 it promised."""
+    _paged_urlopen(monkeypatch, _make_records(8), page_size_expected=4)
+    dest = tmp_path / "d.csv"
+    assert _fetch(dest, total=10) is None
+    assert not dest.exists()
+
+
 def test_http_error_returns_none_and_removes_file(monkeypatch, tmp_path):
     def fake(req, timeout=None):  # noqa: ANN001
         raise urllib_error.HTTPError("http://x", 500, "err", None, io.BytesIO(b""))

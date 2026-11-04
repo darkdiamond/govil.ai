@@ -321,8 +321,8 @@ def prepare(dataset_id: str) -> Path:
     from services.shared.firestore import FirestoreStateStore
     from services.shared.resources import select_prefetch_resources
 
-    from .agent_contract import fetch_resource_preview, fetch_resource_records_to_file
-    from .refresh import _env_int, _DEFAULT_MAX_BYTES, _DEFAULT_MAX_RECORDS
+    from .agent_contract import fetch_resource_export, fetch_resource_preview
+    from .refresh import _env_int, _DEFAULT_MAX_BYTES, _DEFAULT_MAX_RECORDS, _DEFAULT_PAGE_SIZE
 
     provider = _provider_for_recipe(dataset_id)
     if provider is not None:
@@ -344,6 +344,7 @@ def prepare(dataset_id: str) -> Path:
     max_records = _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
     max_bytes = _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
     modified = {r.get("id"): r.get("last_modified") for r in src.resources or []}
+    by_id = {r.get("id"): r for r in src.resources or []}  # url + format, for the file fetch
     manifest = []
     for i, res in enumerate(select_prefetch_resources(src.resources or []), 1):
         preview = fetch_resource_preview(res["id"]) or {}
@@ -364,8 +365,9 @@ def prepare(dataset_id: str) -> Path:
         if 0 < total <= max_records:
             dest = p["data"] / f"{i}.csv"
             out, skipped = _fetch_or_skip(
-                fetch_resource_records_to_file, res["id"], total, dest,
-                max_bytes=max_bytes, page_size=25_000, page_timeout_s=60.0,
+                fetch_resource_export, res["id"], total, dest,
+                resource=by_id.get(res["id"]), preview=preview,
+                max_bytes=max_bytes, page_size=_DEFAULT_PAGE_SIZE, page_timeout_s=60.0,
                 deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
             )
             if skipped:

@@ -49,7 +49,7 @@ from .agent_contract import (
     fetch_resource_file,
     fetch_resource_preview,
     FetchLimitExceeded,
-    fetch_resource_records_to_file,
+    fetch_resource_export,
     run_host_check,
     sanitize_content_html,
 )
@@ -106,7 +106,7 @@ _DEFAULT_RETRY_DELAY_S = 120.0
 # A `map` input's file download cap (REFRESH_MAP_MAX_BYTES): it is parsed
 # in the builder process, not the compute sandbox.
 _DEFAULT_MAP_MAX_BYTES = 50_000_000
-_DEFAULT_PAGE_SIZE = 25_000
+_DEFAULT_PAGE_SIZE = 100_000
 _PAGE_TIMEOUT_S = 60.0
 _COMPUTE_TIMEOUT_S = 300
 # Heap cap for compute (see `_memory_guard`). The job has 4Gi; the rest is
@@ -380,6 +380,7 @@ class FetchedInput:
     resource_id: str
     resource_name: str
     rows: int
+    via: Optional[str] = None        # CKAN export: "file" | "datastore"
 
 
 @dataclass
@@ -726,7 +727,7 @@ def fetch_inputs(
     dest_dir: Path,
     *,
     preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
-    fetch_fn: Callable = fetch_resource_records_to_file,
+    fetch_fn: Callable = fetch_resource_export,
     probe: Optional[InputProbe] = None,
     snapshot_rows: Callable[[list], list] = lambda rows: rows,
     fetch_file_fn: Callable = fetch_resource_file,
@@ -814,6 +815,10 @@ def fetch_inputs(
                     sample_target_rows=0,
                     prefer_sample=False,
                     fields=inp.columns,
+                    # The uploaded file is tried first; the datastore preview
+                    # is what it must match (agent_contract.fetch_resource_csv).
+                    resource=res,
+                    preview=_preview(rid),
                 )
             except FetchLimitExceeded as e:
                 raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
@@ -826,7 +831,8 @@ def fetch_inputs(
                 _project_csv(dest, inp.columns)
             remaining -= outcome.bytes
             parts.append(
-                FetchedInput(dest, rid, res.get("name") or "", outcome.rows)
+                FetchedInput(dest, rid, res.get("name") or "", outcome.rows,
+                             getattr(outcome, "via", None))
             )
         out[inp.name] = parts
     return out
@@ -1243,6 +1249,8 @@ class RefreshOutcome:
     # inputs_same_unordered, content_same, skipped}
     # (True/False; None = no stored hash to compare against yet).
     precheck: dict = field(default_factory=dict)
+    # Which path served each CKAN input export: {resource id8: "file" | "datastore"}.
+    fetch_via: dict = field(default_factory=dict)
     # True on the outcome of the end-of-run second pass (see _DEFAULT_RETRY_CAP).
     retried: Optional[bool] = None
 
@@ -1440,6 +1448,7 @@ def refresh_one(
         "insights": [i.get("text_he") for i in page.model.get("insights") or []],
         "warnings": page.warnings,
     }
+    fetch_via = {p.resource_id[:8]: p.via for v in inputs.values() for p in v if p.via}
     if page.warnings:
         log.warning("refresh %s: %d format warning(s): %s", src.id[:8],
                     len(page.warnings), "; ".join(page.warnings)[:500])
@@ -1457,11 +1466,13 @@ def refresh_one(
                            and state.get("refresh_reason") == STAGE_FAILED)
         if (mode in ("inputs", "full") and trigger == "data_updated"
                 and pc["content_same"] and not staging_suspect):
-            return _mark_unchanged(
+            out = _mark_unchanged(
                 store, src, trigger, "content_hash", pc, hashes,
                 advance_version=True, preview=preview, started=started,
                 rows=snapshot["rows"],
             )
+            out.fetch_via = fetch_via
+            return out
     prefix = "preview/datasets" if preview else "datasets"
     rel = f"{prefix}/{src.id}/{CONTENT_FILENAME}"
     previous_html: Optional[bytes] = None
@@ -1527,6 +1538,7 @@ def refresh_one(
         insights=snapshot["insights"],
         changes=snapshot_diff(previous, snapshot),
         precheck=pc,
+        fetch_via=fetch_via,
     )
 
 
