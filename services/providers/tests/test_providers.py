@@ -417,7 +417,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
         raise AssertionError("CKAN must not be called for a provider source")
 
     monkeypatch.setattr(rf, "fetch_resource_preview", ckan)
-    monkeypatch.setattr(rf, "fetch_resource_records_to_file", ckan)
+    monkeypatch.setattr(rf, "fetch_resource_export", ckan)
     seen = {}
     # The probe runs in every precheck mode; it must get the provider's preview.
     monkeypatch.setattr(rf, "probe_inputs",

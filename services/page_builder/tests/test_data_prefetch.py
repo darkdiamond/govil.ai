@@ -115,6 +115,15 @@ def test_gates_return_none(monkeypatch, tmp_path):
     assert _fetch(dest, total=10, prefer_sample=True, sample_rows=0) is None
 
 
+def test_an_empty_page_before_total_is_a_failed_export(monkeypatch, tmp_path):
+    """The datastore answered an empty page mid-export (it was reloading the
+    resource): the 8 rows it gave are not the 10 it promised."""
+    _paged_urlopen(monkeypatch, _make_records(8), page_size_expected=4)
+    dest = tmp_path / "d.csv"
+    assert _fetch(dest, total=10) is None
+    assert not dest.exists()
+
+
 def test_http_error_returns_none_and_removes_file(monkeypatch, tmp_path):
     def fake(req, timeout=None):  # noqa: ANN001
         raise urllib_error.HTTPError("http://x", 500, "err", None, io.BytesIO(b""))

@@ -136,6 +136,22 @@ landing pages. Five layers:
    re-runs it with **no LLM**: full CKAN export → sandboxed `compute()` →
    page-model validation → template → sanitizer → `check.py` → stage
    `content.html` to GCS + `agent_data` and refresh state to Firestore.
+   **The export** (`agent_contract.fetch_resource_export`) is
+   `datastore_search` in 100k-row pages (`REFRESH_PAGE_SIZE`). An input
+   bigger than one page first downloads its uploaded CSV in one request
+   (builder UA, then a browser UA if the WAF refuses it) and normalizes it to
+   the datastore's exact shape: trimmed cells, line breaks as spaces, numbers
+   as `2` or `2.0` per column (settled by the preview's samples or one
+   datastore cell). Any doubt (header, row count, a non-text/numeric column,
+   the preview's sample rows) falls back to the pages. The file and the
+   datastore are separate copies that can disagree (re-uploaded or edited
+   data), so this is used only above one page, where it pays off. Over the
+   50 recipe inputs above 100k rows (2026-11-04), 29 used the file, 27 of
+   those matched the datastore byte for byte and 2 differed in a few hundred
+   cells. Total time was 1,040s against 1,544s for pages alone, and the 8.5M-row
+   input took 75s instead of 335s. `fetch_via` in `refresh_outcome` says
+   which path served each input. A page export that comes back short of
+   `total` fails (`fetch_failed`, retried next run) and is never staged.
    Failures keep the last-good page live and, when a human must act
    (recipe broke, schema moved, data outgrew the fetch cap —
    `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`), open a `needs-authoring` issue and

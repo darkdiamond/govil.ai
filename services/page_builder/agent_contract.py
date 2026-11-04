@@ -1,8 +1,10 @@
 """Host-side page contract shared by the recipe refresh and local authoring.
 
-1. `fetch_resource_preview` / `fetch_resource_records_to_file` — CKAN
-   datastore schema probe and full-data CSV export (with the 403
-   restriction gate, `ResourceRestrictedError`).
+1. `fetch_resource_preview` / `fetch_resource_export` — CKAN datastore
+   schema probe and full-data CSV export (with the 403 restriction gate,
+   `ResourceRestrictedError`): `datastore_search` pages, or for an input
+   bigger than one page, the uploaded CSV in one download, normalized to
+   the datastore's shape.
 2. `sanitize_content_html` — belt-and-braces cleanup for recurring
    page-body failure modes (CDN script tags, fabricated SRI hashes,
    unclosed <script>/<style>, raw control chars in JS strings). Runs on
@@ -25,9 +27,10 @@ import re
 import subprocess
 import sys
 import time
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
@@ -220,6 +223,7 @@ class FetchOutcome:
     bytes: int
     mode: str                        # "full" | "sample"
     sample_note: Optional[str] = None
+    via: Optional[str] = None        # "file" | "datastore" (fetch_resource_export)
 
 
 class _ByteCapExceeded(Exception):
@@ -355,6 +359,11 @@ def fetch_resource_records_to_file(
                         break
                     w.write_page(page_fields, records)
                     offset += len(records)
+                if offset < total:
+                    # An empty page before `total` (seen 2026-11-03 while the
+                    # datastore reloaded a resource) is a cut-off export, not
+                    # the end of the data: fail it, never stage it as full.
+                    raise RuntimeError(f"datastore ran out at row {offset:,} of {total:,}")
             else:
                 for offset in offsets:
                     if time.monotonic() > deadline:
@@ -464,6 +473,7 @@ def fetch_resource_file(
     max_bytes: int,
     timeout_s: float,
     deadline: float,
+    user_agent: Optional[str] = None,
 ) -> FileOutcome:
     """Download a resource's uploaded file (a map file, say) to `dest`.
 
@@ -483,7 +493,7 @@ def fetch_resource_file(
     # The URL is publisher-supplied: only ever fetch data.gov.il's own files.
     if not url.startswith(_FILE_HOST):
         raise ValueError(f"not a data.gov.il file URL ({url[:80]!r})")
-    req = urllib_request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
+    req = urllib_request.Request(url, headers={"User-Agent": user_agent or _CKAN_BROWSER_UA})
     for attempt in (1, 2):
         try:
             return _download(req, dest, max_bytes, timeout_s, deadline)
@@ -526,6 +536,279 @@ def _download(req, dest: Path, max_bytes: int, timeout_s: float, deadline: float
     if n == 0:
         raise DownloadBlocked(f"{req.full_url} answered with an empty body")
     return FileOutcome(bytes=n, sha256=h.hexdigest())
+
+
+# File export for inputs bigger than one datastore page (see
+# `fetch_resource_export`). A resource's uploaded CSV comes down in one
+# request, where the datastore needs one per page. It is not the datastore export byte
+# for byte (a BOM, Windows-1255, empty trailing columns, numbers as the
+# publisher typed them), and recipes and the precheck hashes assume the
+# export's exact shape. So the file is rewritten as `_CsvStreamWriter` would
+# have written the export, and any doubt (header, row count, a column type we
+# can't reproduce, the preview's sample rows) falls back to datastore_search.
+
+# Tried when the WAF refuses the builder UA.
+_BROWSER_FALLBACK_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+)
+_FILE_TIMEOUT_S = 120.0
+_FILE_PROBE_TIMEOUT_S = 30.0
+# Datastore column types whose JSON → CSV form we reproduce from the file.
+_NUMERIC_TYPES = {"numeric", "int", "int4", "int8", "integer", "bigint"}
+_FLOAT_TYPES = {"float8", "float"}
+
+
+class _FileMismatch(Exception):
+    """The file doesn't normalize to the datastore's export."""
+
+
+def _canonical_number(raw: str, float_only: bool) -> str:
+    """A numeric cell as the datastore export writes it: integral values as
+    ints, others as a float's repr, empty as ""."""
+    from decimal import Decimal, InvalidOperation
+
+    v = raw.strip()
+    if not v:
+        return ""
+    try:
+        d = Decimal(v)
+    except InvalidOperation:
+        raise _FileMismatch(f"non-numeric value {v[:20]!r} in a numeric column") from None
+    if not d.is_finite():
+        raise _FileMismatch(f"non-finite value {v[:20]!r}")
+    if not float_only and d == d.to_integral_value():
+        return str(int(d))
+    return str(float(d))
+
+
+def _open_text(raw: Path):
+    """The raw file as text: UTF-8 (BOM stripped), else Windows-1255."""
+    for enc in ("utf-8-sig", "cp1255"):
+        try:
+            with open(raw, encoding=enc, newline="") as f:
+                while f.read(1 << 20):
+                    pass
+        except UnicodeDecodeError:
+            continue
+        return open(raw, encoding=enc, newline="")
+    raise _FileMismatch("neither UTF-8 nor Windows-1255")
+
+
+def _file_rows(raw: Path, columns: list[str]):
+    """(header, iterator of non-blank data rows) of the raw file. The
+    datastore loader trims headers; a column with no header must be empty."""
+    f = _open_text(raw)
+    reader = csv.reader(f)
+    header = [h.strip() for h in next(reader, None) or []]
+    if not header:
+        f.close()
+        raise _FileMismatch("empty file")
+    if [h for h in header if h != ""] != columns:
+        f.close()
+        raise _FileMismatch("header differs from the datastore's columns")
+    blank = [i for i, h in enumerate(header) if h == ""]
+
+    def rows():
+        with f:
+            n = 0
+            for row in reader:
+                if not any(row):
+                    continue
+                n += 1
+                if any(row[len(header):]) or any(i < len(row) and row[i] for i in blank):
+                    raise _FileMismatch(f"row {n} has data outside the named columns")
+                yield row
+
+    return header, rows()
+
+
+def _float_columns(raw: Path, columns: list[str], numeric: list[str], samples: list[dict],
+                   probe: Callable[[int, str], Any]) -> set[str]:
+    """Which numeric columns the datastore writes as floats (`2.0`, not `2`).
+    The loader decides per column and the schema type doesn't say. A sample
+    value settles it when it is a JSON int (ints) or a whole float (floats).
+    Otherwise `probe(offset, column)` reads the datastore cell at the first
+    row whose file value is a whole number, one call per such column."""
+    floats, open_ = set(), []
+    for c in numeric:
+        vals = [s.get(c) for s in samples]
+        if any(isinstance(v, float) and v.is_integer() for v in vals):
+            floats.add(c)
+        elif not any(isinstance(v, int) and not isinstance(v, bool) for v in vals):
+            open_.append(c)
+    if not open_:
+        return floats
+    header, rows = _file_rows(raw, columns)
+    first: dict[str, int] = {}
+    for n, row in enumerate(rows):
+        for c in open_:
+            i = header.index(c)
+            if c not in first and i < len(row) and _canonical_number(row[i], False).lstrip("-").isdigit():
+                first[c] = n
+        if len(first) == len(open_):
+            rows.close()
+            break
+    for c, offset in first.items():
+        v = probe(offset, c)
+        if isinstance(v, float):
+            floats.add(c)
+        elif not isinstance(v, int) or isinstance(v, bool):
+            raise _FileMismatch(f"datastore row {offset + 1} column {c!r} is {v!r}, a whole number in the file")
+    return floats
+
+
+def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
+                   fields: Optional[list[str]], max_bytes: int,
+                   probe: Callable[[int, str], Any]) -> int:
+    """Rewrite the downloaded CSV `raw` as the datastore export → `dest`.
+    Returns the row count; raises _FileMismatch when it can't match.
+    `probe(offset, column)` reads one datastore cell (see _float_columns)."""
+    types = {f["id"]: (f.get("type") or "") for f in preview.get("fields") or []
+             if f.get("id") and f["id"] != "_id"}
+    cols = list(fields) if fields else list(types)
+    if not cols or any(c not in types for c in cols):
+        raise _FileMismatch("requested columns not in the datastore schema")
+    for c in cols:
+        if types[c] != "text" and types[c] not in _NUMERIC_TYPES | _FLOAT_TYPES:
+            raise _FileMismatch(f"column {c!r} is {types[c]!r}, which the file can't reproduce")
+    samples = preview.get("sample_rows") or []
+    floats = _float_columns(
+        raw, list(types), [c for c in cols if types[c] in _NUMERIC_TYPES], samples, probe
+    ) | {c for c in cols if types[c] in _FLOAT_TYPES}
+
+    header, reader = _file_rows(raw, list(types))
+    # The datastore loader trims text cells and turns a line break inside a
+    # cell into a space (parity sweeps, 2026-11-03).
+    conv = [(header.index(c), types[c] != "text", c in floats) for c in cols]
+    rows = 0
+    with closing(reader):
+        with open(dest, "w", encoding="utf-8", newline="") as out:
+            w = csv.writer(out)
+            w.writerow(cols)
+            for row in reader:
+                vals = []
+                for i, num, float_only in conv:
+                    v = row[i] if i < len(row) else ""
+                    vals.append(_canonical_number(v, float_only) if num else
+                                v.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").strip())
+                if rows < len(samples):
+                    want = samples[rows]
+                    for c, v in zip(cols, vals):
+                        s = want.get(c)
+                        if isinstance(s, str) and len(s) == _PREFETCH_VALUE_TRUNC and s.endswith("…"):
+                            continue  # the preview truncated it
+                        if c in want and ("" if s is None else str(s)) != v:
+                            raise _FileMismatch(f"row {rows + 1} column {c!r} differs from the datastore")
+                w.writerow(vals)
+                rows += 1
+                if rows > total:
+                    raise _FileMismatch(f"more rows than the datastore's {total:,}")
+                if rows % 10_000 == 0 and out.tell() > max_bytes:
+                    raise FetchLimitExceeded("bytes", "normalized file crossed the byte cap")
+    if rows != total:
+        raise _FileMismatch(f"{rows:,} rows, the datastore has {total:,}")
+    if dest.stat().st_size > max_bytes:
+        raise FetchLimitExceeded("bytes", "normalized file crossed the byte cap")
+    return rows
+
+
+def fetch_resource_csv(
+    resource: dict,
+    preview: Optional[dict],
+    total: int,
+    dest: Path,
+    *,
+    max_bytes: int,
+    deadline: float,
+    fields: Optional[list[str]] = None,
+) -> Optional[FetchOutcome]:
+    """The resource's uploaded CSV → `dest`, normalized to exactly what the
+    datastore export would have written. None when the file can't stand in
+    for the export (not a CSV, no preview to check it against, blocked for
+    both UAs, too big, or any difference the gate sees): the caller falls
+    back to datastore_search. A wall-budget overrun raises
+    FetchLimitExceeded, as the datastore path does."""
+    from services.scanner.models import _public_resource_url
+
+    rid = (resource.get("id") or "")[:8]
+    url = _public_resource_url(resource.get("url") or "")
+    if (resource.get("format") or "").strip().upper() != "CSV" or not url.startswith(_FILE_HOST):
+        return None
+    if not preview or total <= 0:
+        return None
+    started = time.monotonic()
+    raw = dest.with_suffix(".raw")
+    try:
+        for ua in (_CKAN_BROWSER_UA, _BROWSER_FALLBACK_UA):
+            try:
+                fetch_resource_file(url, raw, max_bytes=max_bytes, timeout_s=_FILE_TIMEOUT_S,
+                                    deadline=deadline, user_agent=ua)
+                break
+            except DownloadBlocked as e:
+                if ua == _BROWSER_FALLBACK_UA:
+                    raise
+                log.info("fetch %s: file blocked for the builder UA (%s), trying a browser UA", rid, e)
+        def probe(offset: int, column: str) -> Any:
+            _, records = _fetch_page(resource["id"], offset, 1, _FILE_PROBE_TIMEOUT_S, [column])
+            return records[0].get(column) if records else None
+
+        rows = _normalize_csv(raw, dest, preview, total, fields, max_bytes, probe)
+    except FetchLimitExceeded as e:
+        dest.unlink(missing_ok=True)
+        if e.limit == "wall_budget":
+            raise
+        log.info("fetch %s: file unusable (%s), using datastore", rid, e)
+        return None
+    except Exception as e:
+        dest.unlink(missing_ok=True)
+        log.info("fetch %s: file unusable (%s), using datastore", rid, e)
+        return None
+    finally:
+        raw.unlink(missing_ok=True)
+    nbytes = dest.stat().st_size
+    log.info("data prefetch %s: file, %d rows, %d bytes in %.1fs",
+             rid, rows, nbytes, time.monotonic() - started)
+    return FetchOutcome(rows=rows, bytes=nbytes, mode="full", via="file")
+
+
+def fetch_resource_export(
+    resource_id: str,
+    total: int,
+    dest: Path,
+    *,
+    resource: Optional[dict] = None,
+    preview: Optional[dict] = None,
+    max_bytes: int,
+    deadline: float,
+    fields: Optional[list[str]] = None,
+    page_size: int,
+    **datastore_kw,
+) -> Optional[FetchOutcome]:
+    """Full export of one resource, same contract as
+    `fetch_resource_records_to_file`. An input that fits one datastore page
+    is one datastore_search call. A bigger one tries its uploaded file first
+    (`fetch_resource_csv`, given the CKAN `resource` dict and its datastore
+    `preview`) and pages the datastore when the file can't stand in.
+
+    Only above one page: the file and the datastore are separate copies that
+    can differ in ways the gate can't see (rows re-uploaded or edited after
+    the datastore load). Below ~100k rows one page is already one request
+    and the file saved nothing (59-input sweep, 2026-11-03). Above it, over
+    the 50 recipe inputs past 100k rows (2026-11-04), 29 used the file, 27
+    matched the datastore byte for byte, 2 differed in a few hundred cells,
+    and the whole set took 1,040s instead of 1,544s."""
+    if resource is not None and total > page_size:
+        out = fetch_resource_csv(resource, preview, total, dest, max_bytes=max_bytes,
+                                 deadline=deadline, fields=fields)
+        if out is not None:
+            return out
+    out = fetch_resource_records_to_file(resource_id, total, dest, max_bytes=max_bytes,
+                                         deadline=deadline, fields=fields,
+                                         page_size=page_size, **datastore_kw)
+    if out is not None:
+        out.via = "datastore"
+    return out
 
 
 # Belt-and-braces cleanup for agent-emitted body fragments. The agent
