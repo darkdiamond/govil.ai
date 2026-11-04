@@ -8,13 +8,24 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **No committed recipe sets `agent_data.seo` yet.** The plumbing landed with the field: the
-  dataset page uses the recipe's search title, description, name and alternate names when
-  present and its old CKAN-title / `summary_he` head otherwise, and `author verify` requires
-  `seo.title` + `seo.description` from now on. The existing pages keep their CKAN titles (some
-  over 60 chars, 45 summaries over 160) until a recipe adds it. Fix: backfill in batches like
-  the authoring PRs, highest GSC impressions with low CTR first, bumping each `recipe_version`;
-  each page re-stages once. (2026-11-04)
+- **Most recipes still don't set `agent_data.seo`.** Batch 1 (the 21 recipes with the most
+  GSC clicks lost to low CTR, 90 days to 2026-11-03) has it; the other ~296 keep their CKAN
+  titles (some over 60 chars, 45 summaries over 160) and a " · ministry" suffix. Fix: next
+  batches in the same order (missed clicks = impressions × (expected CTR at position − actual
+  CTR)), starting with 688d7791, 35c791ca, 669b2652, 15c65f47, 14f2521f, 7a6cbf55, 3de0e7f0
+  (the import sibling of 3e4e79f7), f4a5cdab, 023b7883; bump each `recipe_version`. Compare
+  batch 1's CTR in GSC about 4 weeks after it ships before spending on the long tail.
+  (2026-11-04)
+- **`author verify` doesn't check the h1 against `seo.name`.** It only prints the h1 next to
+  the SERP preview, so a recipe whose template hardcodes a different h1 passes, and the
+  JSON-LD name / breadcrumb then disagree with the visible heading. Batch-1 templates render
+  `{{ model.agent_data.seo.name }}`; older and future recipes can still drift. Fix: make verify
+  fail when the rendered h1 text differs from `seo.name`. (2026-11-04)
+- **`author prepare` ignores a recipe's `limits`.** It caps rows and bytes from the env only
+  (`REFRESH_MAX_RECORDS` / `REFRESH_MAX_BYTES`), so a heavy recipe like 273c5e33
+  (`limits.max_records` 12M, 5.5M rows) prepares 0 rows unless the author knows to export the
+  env vars, and `verify` then fails as too_large or empty. Fix: have `prepare` and `verify` read
+  the recipe's `limits` the way the refresh does. (2026-11-04)
 - **131 of 307 committed recipes fail `author verify`'s em-dash lint.** The rule (#124) came after
   they were authored and only runs at authoring time; the daily refresh doesn't enforce it, so
   the pages render fine. But any edit to one of these recipes, even a one-line template fix,

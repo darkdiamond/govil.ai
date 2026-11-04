@@ -358,13 +358,26 @@ def compute(frames):
     if len(summary) > SUMMARY_MAX:
         summary = parts[0][:SUMMARY_MAX]
 
-    lede = (f"תעריפי רכישת חלקת קבר בחיים (קבר מחיים){(' לשנת ' + yr) if yr else ''}, "
+    lede = (f"כמה עולה חלקת קבר בכל יישוב: תעריפי רכישת חלקת קבר בחיים (קבר מחיים)"
+            f"{(' לשנת ' + yr) if yr else ''}, "
             f"כפי שפרסם המשרד לשירותי דת: {_count_he(n, 'תעריף אחד', 'תעריפים')} לפי חברה קדישא, "
             f"יישוב או חלקת קבורה. המחיר נע בין {_ils(lo_row['rate'])} ל-{_ils(hi)}, "
             f"והתעריף החציוני הוא {_ils(median)}.")
 
+    name = "מחיר חלקת קבר מחיים לפי יישוב"
+    seo = {
+        "title": "כמה עולה חלקת קבר? תעריפי קבר מחיים לפי יישוב",
+        "description": (f"כמה עולה חלקת קבר מחיים{(' ב-' + yr) if yr else ''}? "
+                        f"תעריף רכישת קבר בחיים {in_soc}: "
+                        f"מ-{_ils(lo_row['rate'])} עד {_ils(hi)}, חציון {_ils(median)}."),
+        "name": name,
+        "alternate_names": ["תעריפי חלקות קבר מחיים", "תעריפי רכישת קבר בחיים",
+                            "מחיר קבר מחיים", "כמה עולה קבר"],
+    }
+
     agent_data = {
         "summary_he": summary,
+        "seo": seo,
         "dataset_kind": "rankings",
         "suggested_tags": ["קבר מחיים", "חלקת קבר", "חברה קדישא", "תעריפים", "קבורה",
                            "שירותי דת"],
@@ -379,7 +392,7 @@ def compute(frames):
 
     labels = {f"kpi_{k}": v for k, v in klabels.items()}
     labels.update({
-        "h1": f"מחיר קבר מחיים{yr_sfx}: תעריפי רכישת חלקת קבר לפי יישוב",
+        "h1": name,
         "lede": lede,
         "top_title": f"{_count_he(min(TOP_N, n), 'התעריף היקר', 'התעריפים היקרים')} ביותר",
         "top_lede": (f"חברות הקדישא עם התעריף הגבוה ביותר. הקו המקווקו מסמן את החציון "

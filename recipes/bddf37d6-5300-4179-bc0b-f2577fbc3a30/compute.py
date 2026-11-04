@@ -22,7 +22,7 @@ TOP_N = 15
 MIN_CITY_SITES = 100   # cities compared on rates need at least this many sites
 ORDER_BUCKETS = ["0", "1", "2", "3", "4+"]
 # Executor portfolio size (active sites per executor_id).
-PORTFOLIO = [(1, 1, "אתר אחד"), (2, 5, "2–5"), (6, 20, "6–20"), (21, None, "21 ומעלה")]
+PORTFOLIO = [(1, 1, "אתר אחד"), (2, 5, "2-5"), (6, 20, "6-20"), (21, None, "21 ומעלה")]
 MIN_SEGMENT_SITES = 100   # a rate is shown/compared only on at least this many sites
 RATE_GAP = 0.05           # rate differences below this are not called out
 
@@ -229,7 +229,7 @@ def compute(frames):
         sel = (with_size["psize"] >= lo) & ((with_size["psize"] <= hi) if hi else True)
         g = with_size[sel]
         execs = int(((per_exec >= lo) & ((per_exec <= hi) if hi else True)).sum())
-        phrase = f"{lo} אתרים ומעלה" if hi is None else f"{lo}–{hi} אתרים"
+        phrase = f"{lo} אתרים ומעלה" if hi is None else f"{lo}-{hi} אתרים"
         port.append({"label": label, "phrase": phrase, "execs": execs, "sites": len(g),
                      "rate": _rate(g["orders"])})
     portfolio = {"names": [p["label"] for p in port],
@@ -278,7 +278,7 @@ def compute(frames):
     order_table = [{"bucket": b, "n": _int(v)} for b, v in order_dist.items()]
     labels = {
         "orders_kpi": f"מהאתרים קיבלו צו בטיחות ({_int(with_orders)} אתרים)",
-        "lede": (f"{_int(n)} אתרי בנייה פעילים שעליהם התקבלה הודעה על פעולות בנייה, "
+        "lede": (f"{_int(n)} אתרי בנייה פעילים ברשימת משרד העבודה, שעליהם התקבלה הודעה על פעולות בנייה, "
                  f"ב-{kpis['cities']['display']} יישובים. המאגר מתאר את המצב הנוכחי ומתעדכן "
                  f"כשאתרים נפתחים ונסגרים."),
         "cities_aria": f"תרשים עמודות אופקי: {len(cities)} היישובים עם מספר אתרי הבנייה הפעילים הגבוה ביותר.",
@@ -314,6 +314,15 @@ def compute(frames):
             "dataset_kind": "registry",
             "suggested_tags": ["אתרי בנייה", "בטיחות בעבודה", "בנייה", "עגורנים", "צווי בטיחות"],
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "אתרי בניה פעילים: רשימת משרד העבודה לפי יישוב וקבלן",
+                "description": (f"איתור אתרי בנייה פעילים לפי יישוב, קבלן מבצע או כתובת: {_int(n)} אתרים "
+                                f"ב-{kpis['cities']['display']} יישובים, עם עגורנים, צווי בטיחות "
+                                f"ועיצומים כספיים."),
+                "name": "אתרי בנייה פעילים",
+                "alternate_names": ["אתרי בניה פעילים", "רשימת אתרי בניה פעילים",
+                                    "אתרים פעילים משרד העבודה", "אתרי בניה פעילים משרד העבודה"],
+            },
         },
         "kpis": kpis,
         "charts": {

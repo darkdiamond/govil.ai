@@ -477,6 +477,15 @@ def compute(frames):
                             "4f361ce6-f30f-4629-b4ba-1ad19039e745",
                             "fa11b2f3-0796-48f8-ab84-e5540ea2b014"],
             "temporal_coverage": f"{y_min}/{y_max}",
+            "seo": {
+                "title": "חברה ורווחה: מאמרי כתב העת, חיפוש לפי כותב ושנה",
+                "description": (f"חיפוש מאמרים בכתב העת חברה ורווחה לפי שם מאמר, כותב או שנה: "
+                                f"{_int(n_full)} מאמרים מלאים מ-{_int(n_issues)} חוברות, "
+                                f"{y_min}-{y_max}, עם קישור לקובץ."),
+                "name": "כתב העת חברה ורווחה",
+                "alternate_names": ["חברה ורווחה", "חברה ורווחה: רבעון לעבודה סוציאלית",
+                                    "מאמרי חברה ורווחה"],
+            },
         },
         "kpis": {
             "total": {"value": total, "display": _int(total), "tone": "brand"},
