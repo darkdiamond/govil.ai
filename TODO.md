@@ -135,7 +135,10 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   4Gi job. `build_snapshot` also re-serializes every feature per tolerance step (up to 8 passes).
   Fix: have `build_snapshot` return the simplified features with the bytes (no re-parse), pick
   the tolerance from a size estimate instead of the full ladder, and free the raw features
-  before compute. (2026-11-01)
+  before compute. (2026-11-01) The download cap is now 100MB (2026-11-04), for three layers
+  with search traffic: 1d2d0ec1 (65MB), 65dafbb0 (84MB) and 022552b2 (85MB). `load_map` alone
+  peaks at 1.35GB and 1.8GB RSS on the first two, so do this fix, or raise the job's
+  `--memory`, before merging a recipe that reads any of them. (2026-11-04)
 
 - **More recipes carry their own map chunking or simplification.** 1745d2f8, 2a795952, 4eef54bc,
   5ecf0587, 12fb4671, 6910f861, 1de95a22, 3ce41381, 4acf8b98, 8f2becb2, a98fbabc, 0b3bd728,
