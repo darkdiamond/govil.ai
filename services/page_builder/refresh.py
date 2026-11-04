@@ -37,6 +37,7 @@ import shutil
 import tempfile
 import time
 import uuid
+import weakref
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -266,10 +267,24 @@ class GithubRecipeRepo:
     The branch is resolved to one commit per run (git trees API), and every
     file is fetched at that commit, so a merge landing mid-run can't mix
     two versions of a recipe.
+
+    `fetch` (env RECIPES_FETCH): `files` downloads each recipe file on its own
+    from raw.githubusercontent.com — 3+ sequential requests per recipe, ~0.6s
+    each from me-west1, so ~9.5 min/run at 317 recipes, growing with every
+    recipe. `tarball` downloads the commit's archive once (~5MB) and extracts
+    `recipes/` locally; a recipe loaded either way is byte-identical.
     """
 
-    def __init__(self, repo: str, ref: str = "main", token: str | None = None):
-        self.repo, self.ref = repo, ref
+    FETCH_MODES = ("files", "tarball")
+    # The whole repo's archive (~5MB compressed on 2026-11-04). A fuse, not a
+    # budget: far above any plausible repo, far below the container's disk.
+    TARBALL_MAX_BYTES = 200_000_000
+
+    def __init__(self, repo: str, ref: str = "main", token: str | None = None,
+                 fetch: str = "files"):
+        if fetch not in self.FETCH_MODES:
+            raise ValueError(f"RECIPES_FETCH must be one of {self.FETCH_MODES}, got {fetch!r}")
+        self.repo, self.ref, self.fetch = repo, ref, fetch
         self._headers = {"Accept": "application/vnd.github+json",
                          "X-GitHub-Api-Version": "2022-11-28"}
         if token:
@@ -277,6 +292,7 @@ class GithubRecipeRepo:
         self._sha: str | None = None
         self._ids: list[str] | None = None
         self._with_source: set[str] = set()
+        self._tree: Path | None = None  # extracted `recipes/` (tarball mode)
 
     def _get(self, url: str, **kw):
         import httpx
@@ -291,20 +307,35 @@ class GithubRecipeRepo:
             sha = self._get(
                 f"https://api.github.com/repos/{self.repo}/commits/{self.ref}"
             ).json()["sha"]
-            tree = self._get(
-                f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
-                params={"recursive": "1"},
-            ).json()
-            if tree.get("truncated"):
-                raise RuntimeError("git tree listing truncated — recipe list incomplete")
+            self._sha = sha
             ids, with_source = set(), set()
-            for node in tree.get("tree") or []:
-                parts = node.get("path", "").split("/")
-                if len(parts) == 3 and parts[0] == "recipes" and parts[2] == MANIFEST_FILENAME:
-                    ids.add(parts[1])
-                elif len(parts) == 3 and parts[0] == "recipes" and parts[2] == SOURCE_CONFIG_FILENAME:
-                    with_source.add(parts[1])
-            self._sha, self._ids = sha, sorted(ids)
+            if self.fetch == "tarball":
+                # The list comes from the archive itself, eagerly, here: the
+                # pipeline's recipe-list step turns a failure into
+                # `refresh_unavailable`. Lazily (first load) it would fail
+                # every recipe as `recipe_invalid` and open an authoring
+                # issue for each.
+                tree = self._extracted()
+                for d in tree.iterdir():
+                    if (d / MANIFEST_FILENAME).is_file():
+                        ids.add(d.name)
+                    if (d / SOURCE_CONFIG_FILENAME).is_file():
+                        with_source.add(d.name)
+            else:
+                listing = self._get(
+                    f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
+                    params={"recursive": "1"},
+                ).json()
+                if listing.get("truncated"):
+                    raise RuntimeError("git tree listing truncated — recipe list incomplete")
+                for node in listing.get("tree") or []:
+                    parts = node.get("path", "").split("/")
+                    if len(parts) == 3 and parts[0] == "recipes" and parts[2] == MANIFEST_FILENAME:
+                        ids.add(parts[1])
+                    elif (len(parts) == 3 and parts[0] == "recipes"
+                          and parts[2] == SOURCE_CONFIG_FILENAME):
+                        with_source.add(parts[1])
+            self._ids = sorted(ids)
             self._with_source = with_source & ids
         return list(self._ids)
 
@@ -314,23 +345,94 @@ class GithubRecipeRepo:
     def source_config(self, dataset_id: str) -> SourceConfig | None:
         if dataset_id not in set(self.provider_source_ids()):
             return None
-        r = self._get(
-            f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
-            f"recipes/{dataset_id}/{SOURCE_CONFIG_FILENAME}"
+        return SourceConfig.model_validate_json(
+            self._read(dataset_id, SOURCE_CONFIG_FILENAME)
         )
-        return SourceConfig.model_validate_json(r.content)
 
     def load(self, dataset_id: str, scratch: Path) -> Recipe:
-        if self._sha is None:
-            self.list_ids()
         def fetch(name: str, dest: Path) -> None:
-            r = self._get(
-                f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
-                f"recipes/{dataset_id}/{name}"
-            )
-            dest.write_bytes(r.content)
+            dest.write_bytes(self._read(dataset_id, name))
 
         return _load_remote(scratch / dataset_id, fetch)
+
+    def _read(self, dataset_id: str, name: str) -> bytes:
+        """One recipe file at the run's commit."""
+        if self._sha is None:
+            self.list_ids()
+        if self.fetch == "tarball":
+            path = self._extracted() / dataset_id / name
+            if not path.is_file():
+                raise RecipeError(f"recipe {dataset_id} missing {name} at {self._sha[:12]}")
+            return path.read_bytes()
+        return self._get(
+            f"https://raw.githubusercontent.com/{self.repo}/{self._sha}/"
+            f"recipes/{dataset_id}/{name}"
+        ).content
+
+    def _extracted(self) -> Path:
+        """`recipes/` at the run's commit, from one archive download. Lives
+        for the process (the job's container); a failure raises, and the
+        caller treats it like a failed recipe list."""
+        if self._tree is not None:
+            return self._tree
+        started = time.monotonic()
+        root = Path(tempfile.mkdtemp(prefix="recipes-tar-"))
+        try:
+            size, n = self._download_and_extract(root)
+        except BaseException:
+            shutil.rmtree(root, ignore_errors=True)
+            raise
+        # Removed with this repo object, or at interpreter exit: local runs
+        # would otherwise leave a copy of every recipe in /tmp each time.
+        weakref.finalize(self, shutil.rmtree, root, True)
+        log.info("recipes: %d files from the %s archive (%d bytes) in %.1fs",
+                 n, self._sha[:12], size, time.monotonic() - started)
+        self._tree = root / "tree"
+        return self._tree
+
+    def _download_and_extract(self, root: Path) -> tuple[int, int]:
+        import tarfile
+
+        import httpx
+
+        archive = root / "repo.tar.gz"
+        # The API answers with a redirect to codeload.github.com (httpx drops
+        # the Authorization header on the cross-host hop; a private repo's
+        # redirect URL carries its own token).
+        with httpx.stream(
+            "GET", f"https://api.github.com/repos/{self.repo}/tarball/{self._sha}",
+            headers=self._headers, timeout=60.0, follow_redirects=True,
+        ) as r:
+            r.raise_for_status()
+            size = 0
+            with archive.open("wb") as f:
+                for chunk in r.iter_bytes():
+                    size += len(chunk)
+                    if size > self.TARBALL_MAX_BYTES:
+                        raise RuntimeError(
+                            f"repo archive exceeds {self.TARBALL_MAX_BYTES:,} bytes"
+                        )
+                    f.write(chunk)
+        out = root / "tree"
+        out.mkdir()
+        with tarfile.open(archive, "r:gz") as tar:
+            # Every member sits under one top dir (`<owner>-<repo>-<sha>/`);
+            # keep only regular files at recipes/<id>/<name>. The `data`
+            # filter also refuses absolute paths, `..` and links.
+            members, tops = [], set()
+            for m in tar.getmembers():
+                parts = m.name.split("/")
+                if len(parts) > 1:
+                    tops.add(parts[0])
+                if (m.isfile() and len(parts) == 4 and parts[1] == "recipes"
+                        and parts[2] and parts[3]):
+                    m.name = f"{parts[2]}/{parts[3]}"
+                    members.append(m)
+            if len(tops) != 1:
+                raise RuntimeError(f"repo archive has {len(tops)} top-level dirs, expected 1")
+            tar.extractall(out, members=members, filter="data")
+        archive.unlink()
+        return size, len(members)
 
 
 def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:
@@ -353,6 +455,8 @@ def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo
       github:<owner/repo>@<ref>   (default: PUBLISH_GITHUB_REPO @ main)
       gs://bucket/prefix/         (the preview lane's uploaded demo recipes)
       a local directory           (tests, local runs)
+    RECIPES_FETCH (github only): `files` (default) | `tarball` — see
+    `GithubRecipeRepo`.
     """
     src = os.environ.get("RECIPES_SOURCE", "").strip()
     if not src:
@@ -364,6 +468,7 @@ def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo
         return GithubRecipeRepo(
             repo, ref or "main",
             token=os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip() or None,
+            fetch=os.environ.get("RECIPES_FETCH", "files").strip().lower() or "files",
         )
     if src.startswith("gs://"):
         bucket, _, prefix = src[len("gs://"):].partition("/")

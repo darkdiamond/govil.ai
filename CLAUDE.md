@@ -66,6 +66,9 @@ landing pages. Five layers:
    any more, this only drains the set the retired agent builder left) →
    **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
    `RECIPES_SOURCE`, default `github:<PUBLISH_GITHUB_REPO>@main`;
+   prod sets `RECIPES_FETCH=tarball` (code default `files`): one archive
+   download per run instead of 3+ GitHub requests per recipe, which cost
+   ~9.5 min/run at 317 recipes; an archive failure is a recipe-list failure;
    on failure the run stops with `status: refresh_unavailable` and exits
    non-zero — nothing refreshed or queued, because without the list it
    can't tell which sources a recipe owns) → `refresh.run_refresh`
