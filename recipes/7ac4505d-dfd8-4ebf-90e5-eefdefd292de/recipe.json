@@ -1,0 +1,50 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7ac4505d-dfd8-4ebf-90e5-eefdefd292de",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-22T10:39:43.095007+00:00",
+    "rows": { "main": 1174, "geo": 1174 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "b17b1634-c001-4d37-96c6-a661b2ecd98c",
+      "required_columns": [
+        "MUNICIPAL",
+        "CITY",
+        "MUNITYPE",
+        "DISTRICT",
+        "MUNICODE",
+        "YEARMONTH",
+        "AreaSQKM",
+        "SUMACCIDEN",
+        "DEAD",
+        "SEVER_INJ",
+        "SLIGH_INJ",
+        "PEDESTRINJ",
+        "ELECTRIC_INJ",
+        "INJ0_19",
+        "INJ20_64",
+        "INJ65_",
+        "INJTOTAL",
+        "MOTORCYCLE",
+        "TRUCK",
+        "BICYCLE",
+        "SCOOTERS",
+        "PRIVATE",
+        "VEHICLE"
+      ]
+    },
+    {
+      "name": "geo",
+      "by_id": "42097396-d215-44eb-b979-509f29873865",
+      "map": true,
+      "map_max_kb": 2000,
+      "required_columns": ["MUNICODE"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

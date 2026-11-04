@@ -1,0 +1,27 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0b160f8a-a5d5-4edf-99d2-c562be343fd4",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-12-31T11:44:28.526589+00:00",
+    "rows": { "main": 12 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "59cf6470-94b1-4cd0-8c7e-b292a24c51b4",
+      "required_columns": [
+        "lab_name",
+        "address",
+        "phone",
+        "email",
+        "manager",
+        "test_material",
+        "test_type"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

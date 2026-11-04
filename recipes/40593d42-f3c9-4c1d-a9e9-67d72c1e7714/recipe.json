@@ -1,0 +1,47 @@
+{
+  "contract_version": 1,
+  "dataset_id": "40593d42-f3c9-4c1d-a9e9-67d72c1e7714",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-03T07:33:05.672791+00:00",
+    "rows": {
+      "main": 38702
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "CategoryTypeDesc",
+        "CategoryCode1",
+        "CategoryCode2",
+        "RequirementNumber",
+        "RequirementDesc"
+      ],
+      "pick": "latest",
+      "required_columns": [
+        "CategoryTypeDesc",
+        "CategoryCode1",
+        "CategoryCode2",
+        "CategoryCode3",
+        "CategoryCode4",
+        "CategoryCode5",
+        "CategoryCode6",
+        "CategoryCode7",
+        "CategoryDesc1",
+        "CategoryDesc2",
+        "CategoryDesc3",
+        "CategoryDesc4",
+        "CategoryDesc5",
+        "CategoryDesc6",
+        "CategoryDesc7",
+        "RequirementNumber",
+        "RequirementDesc",
+        "REQUIREMENT_SOURCE_DESC"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

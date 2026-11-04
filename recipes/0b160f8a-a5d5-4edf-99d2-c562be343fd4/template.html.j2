@@ -1,0 +1,137 @@
+{% import "gov.j2" as gov %}
+<h1>רשימת מעבדות מזון</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מעבדה לבדיקת מזון לפי שם, עיר או סוג בדיקה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם המעבדה, כתובת, טלפון, מנהל/ת, סוג בדיקה (כימיה, מיקרוביולוגיה) וחומר הבדיקה</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.total_kpi) }}
+  {{ gov.kpi(model.kpis.multi, model.labels.multi_kpi) }}
+  {{ gov.kpi(model.kpis.gov, model.labels.gov_kpi) }}
+  {{ gov.kpi(model.kpis.cities, model.labels.cities_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מדריך מעבדות המזון") }}
+  <p class="m-0 text-sm text-subtle mb-4">{{ model.labels.dir_note }}</p>
+  <div id="lab-directory" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+{%- for lab in model.directory %}
+    <div class="border border-rule rounded-gov p-4 bg-white min-w-0">
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep break-words">{{ lab.name }}</h3>
+      <div class="flex flex-wrap gap-1 mb-3">
+{%- for t in lab.types %}
+        <span class="inline-block px-2 py-0.5 rounded-gov-pill bg-surface text-ink text-xs">{{ t }}</span>
+{%- endfor %}
+{%- if lab.kind %}
+        <span class="inline-block px-2 py-0.5 rounded-gov-pill bg-surface-alt text-ink-deep text-xs border border-rule">{{ lab.kind }}</span>
+{%- endif %}
+      </div>
+      <dl class="m-0 text-sm space-y-1">
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">יישוב:</dt><dd class="m-0 font-medium">{{ lab.city }}</dd></div>
+{%- if lab.address %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">כתובת:</dt><dd class="m-0 break-words min-w-0">{{ lab.address }}</dd></div>
+{%- endif %}
+{%- if lab.phones %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">טלפון:</dt><dd class="m-0" dir="ltr">{{ lab.phones }}</dd></div>
+{%- endif %}
+{%- if lab.manager %}
+        <div class="flex gap-2"><dt class="text-subtle shrink-0">מנהל/ת:</dt><dd class="m-0">{{ lab.manager }}</dd></div>
+{%- endif %}
+      </dl>
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "סוגי הבדיקות במעבדות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.combo_note }}</p>
+  {{ gov.chart("chart-combo", model.labels.combo_aria, h="h-64 md:h-72") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.combo_caption }}</caption>
+        <thead><tr><th scope="col">סוגי בדיקה</th><th scope="col">ממשלתיות</th><th scope="col">אחרות</th><th scope="col">סה״כ</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.combo %}
+          <tr><th scope="row">{{ r.name }}</th><td>{{ r.gov }}</td><td>{{ r.oth }}</td><td>{{ r.total }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מעבדות לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  {{ gov.chart("chart-city", model.labels.city_aria, h="h-72 md:h-80") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.city_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">מעבדות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.city %}
+        <tr><th scope="row">{{ r.name }}</th><td>{{ r.count }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת מעבדות מזון</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.combo | tojson }};
+    var c = echarts.init(document.getElementById("chart-combo"));
+    var cols = ["#0b3668", "#0068f5"];
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, width: 140, overflow: "break" } },
+      series: d.series.map(function (s, i) {
+        return { type: "bar", stack: "k", name: s.name, data: s.data, barMaxWidth: 36,
+                 itemStyle: { color: cols[i % cols.length] } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.city | tojson }};
+    var c = echarts.init(document.getElementById("chart-city"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 32, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, inverse: true,
+               axisLabel: { fontSize: 11, width: 110, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מעבדות", data: d.values, barMaxWidth: 28,
+                 itemStyle: { color: "#0068f5" },
+                 label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

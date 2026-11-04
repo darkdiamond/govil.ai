@@ -1,0 +1,32 @@
+{
+  "contract_version": 1,
+  "dataset_id": "48cb43dd-ae45-43a2-979d-f93aa985ff96",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-13T09:44:02.913671+00:00",
+    "rows": { "main": 29431 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "702f9bd7-c97b-4cff-92c8-0383d95e5955",
+      "required_columns": [
+        "שולם בפועל",
+        "נרשם לתש",
+        "סך מעודכן",
+        "ת. התאמה",
+        "ת.זכאות",
+        "מספר בקשה",
+        "שנת WBS",
+        "מגיש הבקשה",
+        "תאור התקנה",
+        "תקנה",
+        "שם מחלקה",
+        "סטאטוס"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

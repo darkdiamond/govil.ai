@@ -1,0 +1,382 @@
+{% import "gov.j2" as gov %}
+<h1>תיקופי מסלקה לתחנה: נסיעות בתחבורה הציבורית לפי תחנה ושעה</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">כמה נוסעים עולים בתחנה? איתור תחנה לפי שם או מספר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: {{ model.labels.lookup_fields }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.total_kpi) }}
+  {{ gov.kpi(model.kpis.weekday, model.labels.weekday_kpi) }}
+  {{ gov.kpi(model.kpis.stations, model.labels.stations_kpi) }}
+  {{ gov.kpi(model.kpis.half, model.labels.half_kpi) }}
+{%- if model.kpis.mom %}
+  {{ gov.kpi(model.kpis.mom, model.labels.mom_kpi) }}
+{%- endif %}
+{%- if model.kpis.peak %}
+  {{ gov.kpi(model.kpis.peak, model.labels.peak_kpi) }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תיקופים בכל יום") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.daily_lede }}</p>
+  <div id="chart-daily" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.daily_aria }}"></div>
+</section>
+
+{% if model.flags.multi_month %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תיקופים לפי חודש") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.monthly_lede }}</p>
+  {{ gov.chart("chart-monthly", model.labels.monthly_aria) }}
+  {{ gov.table(model.labels.monthly_aria, ["חודש", "תיקופים (מיליון)", "ממוצע ליום", "תחנות פעילות"], model.tables.monthly, ltr=(1, 2, 3)) }}
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "לפי יום בשבוע") }}
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.dow_lede }}</p>
+    {{ gov.chart("chart-dow", model.labels.dow_aria) }}
+    {{ gov.table(model.labels.dow_aria, ["יום", "ממוצע תיקופים ביום", "ימים בתקופה"], model.tables.dow, ltr=(1, 2)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "שעות שיא ושפל") }}
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.windows_lede }}</p>
+    {{ gov.chart("chart-windows", model.labels.windows_aria) }}
+    {{ gov.table(model.labels.windows_aria, ["חלון שעות", "תיקופים (מיליון)", "שיעור", "ממוצע לשעה ביום"], model.tables.windows, ltr=(1, 2, 3)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יום בשבוע מול שעה ביום") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.heat_lede }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, h="h-80 md:h-[420px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+        <thead><tr><th scope="col">יום</th>{% for c in model.tables.win_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{% if model.flags.mix %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תמהיל השעות לאורך החודשים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.mix_lede }}</p>
+  {{ gov.chart("chart-mix", model.labels.mix_aria, h="h-80 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.mix_aria }}</caption>
+        <thead><tr><th scope="col">חודש</th>{% for c in model.tables.win_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.mix %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "התחנות העמוסות ביותר") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.top_lede }}</p>
+  {{ gov.chart("chart-top", model.labels.top_aria, h="h-96 md:h-[460px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.top_aria }}</caption>
+        <thead><tr><th scope="col">דירוג</th><th scope="col">תחנה</th><th scope="col">מספר תחנה</th><th scope="col">תיקופים</th><th scope="col">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.top %}
+          <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td dir="ltr">{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td><td dir="ltr">{{ r[4] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{% if model.flags.skew %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "תחנות יציאה ותחנות יעד: שיא הבוקר מול שיא הערב") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.skew_lede }}</p>
+  {{ gov.chart("chart-skew", model.labels.skew_aria, h="h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.skew_aria, ["תחנה", "שיעור שיא הבוקר", "סך התיקופים"], model.tables.skew, ltr=(1, 2)) }}
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "תחנות לפי היקף תיקופים") }}
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.buckets_lede }}</p>
+    {{ gov.chart("chart-buckets", model.labels.buckets_aria) }}
+    {{ gov.table(model.labels.buckets_aria, ["תיקופים בתקופה", "תחנות", "שיעור מהתיקופים"], model.tables.buckets, ltr=(0, 1, 2)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "ריכוזיות: כמה תחנות נושאות את העומס") }}
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.curve_lede }}</p>
+    {{ gov.chart("chart-curve", model.labels.curve_aria) }}
+    {{ gov.table(model.labels.curve_aria, ["התחנות העמוסות", "שיעור מצטבר מהתיקופים"], model.tables.curve, ltr=(0, 1)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">המאגר מציג את כמות התיקופים שבוצעו בתחבורה הציבורית ברמת תחנה בכל אמצעי הכרטוס. חיבור למיקום התחנה יעשה כרגע דרך טבלת stops ב-GTFS והשדה המקשר הוא station_id. לגבי שעות שפל ושיא, מדובר בשעות קשיחות שאינן משתנות בהתאם לעונות, חגים או מועדים אחרים או אירועים חריגים. הנתונים מוצגים ביחס לתחנות המפורטות ברישיון הקו של המפעיל.</p>
+</section>
+
+<style>
+  @media (max-width: 639px) {
+    #chart-top, #chart-skew { height: 30rem !important; }
+    #chart-heat { height: 26rem !important; }
+    #chart-mix { height: 28rem !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    var d = {{ model.charts.daily | tojson }};
+    var el = document.getElementById("chart-daily");
+    var narrow = el.clientWidth < 520;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "" : v.toLocaleString("he-IL"); } },
+      legend: { top: 0, left: "center", width: "90%", itemGap: 12, textStyle: { fontSize: narrow ? 11 : 12 } },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true, formatter: function (v) {
+        var p = v.split("-"); return Number(p[2]) + "." + Number(p[1]);
+      } } },
+      yAxis: { type: "value", splitNumber: 4, axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: narrow ? "יומי" : "תיקופים ביום", data: d.y, showSymbol: false, lineStyle: { width: 1 }, color: "#9cc2fa" },
+        { type: "line", name: narrow ? "ממוצע שבועי" : "ממוצע נע שבועי", data: d.roll, showSymbol: false, lineStyle: { width: 2.5 }, color: "#0b3668" }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.multi_month %}
+<script>
+  (function () {
+    var d = {{ model.charts.monthly | tojson }};
+    var el = document.getElementById("chart-monthly");
+    var narrow = el.clientWidth < 520;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, left: "center", width: "90%", itemGap: 12, textStyle: { fontSize: narrow ? 11 : 12 } },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: narrow ? 10 : 11, rotate: narrow ? 45 : 0 } },
+      yAxis: [
+        { type: "value", splitNumber: 4 },
+        { type: "value", splitNumber: 4, splitLine: { show: false }, axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } }
+      ],
+      series: [
+        { type: "bar", name: narrow ? "בחודש (מיליון)" : "תיקופים בחודש (מיליון)", barMaxWidth: 40,
+          data: d.total.map(function (v, i) { return d.partial[i] ? { value: v, itemStyle: { color: "#9cc2fa" } } : v; }) },
+        { type: "line", name: "ממוצע ליום", yAxisIndex: 1, data: d.per_day, color: "#0b3668",
+          tooltip: { valueFormatter: function (v) { return v.toLocaleString("he-IL"); } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.dow | tojson }};
+    var c = echarts.init(document.getElementById("chart-dow"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL"); } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "value", splitNumber: 4, axisLabel: { formatter: function (v) { return (v / 1e6).toLocaleString("he-IL") + " מ׳"; } } },
+      series: [{ type: "bar", name: "ממוצע תיקופים ביום", barMaxWidth: 44, data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.windows | tojson }};
+    var el = document.getElementById("chart-windows");
+    var narrow = el.clientWidth < 520;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, left: "center", width: "90%", itemGap: 12, textStyle: { fontSize: narrow ? 11 : 12 } },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: narrow ? 9 : 10, lineHeight: 12,
+        formatter: function (v) { return v.split(" ").join("\n"); } } },
+      yAxis: [
+        { type: "value", splitNumber: 4 },
+        { type: "value", splitNumber: 4, splitLine: { show: false }, axisLabel: { formatter: function (v) { return (v / 1000).toLocaleString("he-IL") + " א׳"; } } }
+      ],
+      series: [
+        { type: "bar", name: narrow ? "סך (מיליון)" : "תיקופים (מיליון)", barMaxWidth: 40, data: d.total },
+        { type: "line", name: narrow ? "לשעה" : "ממוצע לשעה ביום", yAxisIndex: 1, data: d.per_hour, color: "#0b3668",
+          tooltip: { valueFormatter: function (v) { return v == null ? "" : v.toLocaleString("he-IL"); } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return "יום " + enc(d.y[p.value[1]]) + ", " + enc(d.x[p.value[0]]) + ": " + (p.value[2] * 1000).toLocaleString("he-IL") + " תיקופים ביום (בקירוב)";
+      } },
+      grid: { left: 8, right: 8, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 10, lineHeight: 12,
+        formatter: function (v) { return v.split(" ").join("\n"); } } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true }, axisLabel: { fontSize: 11 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+                   itemHeight: 120, inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+                   textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: true, fontFamily: "Rubik", fontSize: 10 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.mix %}
+<script>
+  (function () {
+    var d = {{ model.charts.mix | tojson }};
+    // Peak windows in two strong, clearly different shades; off-peak windows in light tints.
+    var PEAK = ["#0068f5", "#0b3668"];
+    var OFF = ["#c3cfe7", "#9cc2fa", "#dbe8fb", "#8a9bb8", "#6c757d"];
+    var pk = 0, ok = 0;
+    var el = document.getElementById("chart-mix");
+    var narrow = el.clientWidth < 520;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0, left: "center", width: "92%", itemWidth: 14, itemGap: 10, textStyle: { fontSize: narrow ? 10 : 11 } },
+      grid: { left: 16, right: 16, top: 16, bottom: narrow ? 104 : 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: narrow ? 10 : 11, rotate: narrow ? 45 : 0 } },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s) {
+        var col;
+        if (s.name.indexOf("שיא") !== -1) { col = PEAK[pk % PEAK.length]; pk += 1; }
+        else { col = OFF[ok % OFF.length]; ok += 1; }
+        return { type: "bar", stack: "mix", name: s.name, data: s.data, barMaxWidth: 44, itemStyle: { color: col } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    var el = document.getElementById("chart-top");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " מיליון"; } },
+      grid: { left: 8, right: 40, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value} מ׳" } },
+      yAxis: { type: "category", data: d.x, axisLabel: { fontSize: 11, interval: 0, width: el.clientWidth < 520 ? 120 : 220, overflow: "truncate" } },
+      series: [{ type: "bar", name: "תיקופים (מיליון)", data: d.y, barMaxWidth: 22,
+                 label: { show: true, position: "right", fontSize: 10, formatter: function (p) { return p.value.toFixed(2); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.skew %}
+<script>
+  (function () {
+    var d = {{ model.charts.skew | tojson }};
+    var el = document.getElementById("chart-skew");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "% בשיא הבוקר"; } },
+      grid: { left: 8, right: 40, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "value", min: 0, max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.x, axisLabel: { fontSize: 11, interval: 0, width: el.clientWidth < 520 ? 120 : 220, overflow: "truncate" } },
+      series: [{ type: "bar", name: "שיעור שיא הבוקר", barMaxWidth: 20,
+                 data: d.y.map(function (v) { return { value: v, itemStyle: { color: v >= 50 ? "#0068f5" : "#0b3668" } }; }),
+                 label: { show: true, position: "right", fontSize: 10, formatter: "{c}%" },
+                 markLine: { symbol: "none", silent: true, data: [{ xAxis: 50 }],
+                             lineStyle: { type: "dashed", color: "#6c757d" }, label: { show: false } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.buckets | tojson }};
+    var c = echarts.init(document.getElementById("chart-buckets"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + " תחנות"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 10, rotate: 30 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [{ type: "bar", name: "תחנות", barMaxWidth: 44, data: d.y,
+                 label: { show: true, position: "top", fontSize: 10, formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.curve | tojson }};
+    var c = echarts.init(document.getElementById("chart-curve"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false, name: "תחנות", nameLocation: "middle", nameGap: 40,
+               axisLabel: { interval: 0, fontSize: 10, rotate: 30 } },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { formatter: "{value}%" } },
+      series: [{ type: "line", name: "שיעור מצטבר", data: d.y, areaStyle: { opacity: 0.15 },
+                 markLine: { symbol: "none", silent: true, data: [{ yAxis: 50 }],
+                             lineStyle: { type: "dashed", color: "#6c757d" }, label: { show: false } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

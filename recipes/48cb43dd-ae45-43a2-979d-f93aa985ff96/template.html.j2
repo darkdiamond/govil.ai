@@ -1,0 +1,316 @@
+{%- import "gov.j2" as gov -%}
+{%- set L = model.labels -%}
+{%- set C = model.charts -%}
+{%- set T = model.tables -%}
+{%- macro tbl(caption, cols, rows, ltr=()) -%}
+<details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="pay-tbl mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td{% if loop.index0 in ltr %} dir="ltr"{% endif %}>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{%- endmacro -%}
+<style>
+  .pay-tbl { border-collapse: collapse; }
+  .pay-tbl th, .pay-tbl td { border: 1px solid #c3cfe7; padding: 0.3rem 0.5rem; text-align: right; }
+  .pay-tbl thead th { background: #f1f7ff; color: #0b3668; font-weight: 600; }
+  .pay-tbl td { white-space: nowrap; }
+  @media (max-width: 639px) {
+    #chart-programs, #chart-depts { height: 26rem !important; }
+    #chart-recipients { height: 32rem !important; }
+    #chart-heat { height: 30rem !important; }
+    #chart-yearly, #chart-pace, #chart-budget { height: 22rem !important; }
+  }
+</style>
+<h1>תשלומי משרד הפנים לרשויות המקומיות: מענקים והעברות לפי רשות, תקנה ושנה</h1>
+
+{{ gov.lede(L.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור התשלומים לרשות שלכם לפי שם העירייה או המועצה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל שורות המאגר: מגיש הבקשה, תיאור הבקשה, תקנה ותיאורה, שם המחלקה, סטטוס ותיאור אבן הדרך.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, L.total_kpi) }}
+  {{ gov.kpi(model.kpis.payments, L.payments_kpi) }}
+  {{ gov.kpi(model.kpis.recipients, L.recipients_kpi) }}
+  {{ gov.kpi(model.kpis.requests, L.requests_kpi) }}
+  {{ gov.kpi(model.kpis.top_prog, L.top_prog_kpi) }}
+  {{ gov.kpi(model.kpis.pending, L.pending_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה כסף הועבר בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.yearly_lede }}</p>
+  {{ gov.chart("chart-yearly", L.yearly_aria, "h-80 md:h-96") }}
+  {{ tbl(L.yearly_aria, ["שנה", "סכום (מיליון ש\"ח)", "תשלומים", "משקל " ~ model.first_prog], T.yearly) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">קצב ההעברות מתחילת השנה</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.pace_lede }}</p>
+  {{ gov.chart("chart-pace", L.pace_aria, "h-80 md:h-96") }}
+  {{ tbl(L.pace_aria, ["חודש"] + model.pace_years, T.pace) }}
+</section>
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">עונתיות: סכום לפי חודש ושנה</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.heat_lede }}</p>
+  {{ gov.chart("chart-heat", L.heat_aria, "h-96") }}
+  {{ tbl(L.heat_aria, ["חודש"] + C.heat.years, T.heat) }}
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "תקנות התקציב: לאן הולך הכסף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.programs_lede }}</p>
+  {{ gov.chart("chart-programs", L.programs_aria, "h-80 md:h-[460px]") }}
+  {{ tbl(L.programs_aria, ["תקנה", "קוד", "סכום (מיליון ש\"ח)", "משקל", "בקשות"], T.programs, ltr=(1,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "הרשויות שקיבלו הכי הרבה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.recip_lede }}</p>
+  {{ gov.chart("chart-recipients", L.recip_aria, "h-96 md:h-[520px]") }}
+  {{ tbl(L.recip_aria, ["גוף", "סכום (מיליון ש\"ח)", "משקל", "התקנה העיקרית"], T.recipients) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">לפי סוג הגוף המקבל</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.types_lede }}</p>
+  {{ gov.chart("chart-types", L.types_aria, "h-72 md:h-80") }}
+  {{ tbl(L.types_aria, ["סוג", "סכום (מיליון ש\"ח)", "משקל", "גופים", "ממוצע לגוף (מיליון ש\"ח)"], T.types) }}
+</section>
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">המחלקה האחראית במשרד</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.depts_lede }}</p>
+  {{ gov.chart("chart-depts", L.depts_aria, "h-72 md:h-80") }}
+  {{ tbl(L.depts_aria, ["מחלקה", "סכום (מיליון ש\"ח)", "משקל", "תקנות"], T.depts) }}
+</section>
+</div>
+
+{%- if C.budget.x %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "שנת התקציב מול מועד התשלום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.budget_lede }}</p>
+  {{ gov.chart("chart-budget", L.budget_aria, "h-80 md:h-96") }}
+  {{ tbl(L.budget_aria, ["שנת תקציב", "אושר (מיליון ש\"ח)", "שולם עד סוף השנה", "שולם בשנים שאחריה", "יתרה", "בקשות", "בקשה ממוצעת (מיליון ש\"ח)"], T.budget) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גודל התשלום</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.sizes_lede }}</p>
+  {{ gov.chart("chart-sizes", L.sizes_aria, "h-72 md:h-80") }}
+  {{ tbl(L.sizes_aria, ["גודל תשלום (ש\"ח)", "תשלומים", "אחוז מהתשלומים", "סכום (מיליון ש\"ח)", "אחוז מהסכום"], T.sizes) }}
+</section>
+{%- if C.lag %}
+<section class="card p-5">
+  <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">מהזכאות ועד ההעברה</h2>
+  <p class="m-0 text-sm text-subtle mb-3">{{ L.lag_lede }}</p>
+  {{ gov.chart("chart-lag", L.lag_aria, "h-72 md:h-80") }}
+  {{ tbl(L.lag_aria, ["זמן המתנה", "תשלומים", "אחוז מהתשלומים", "אחוז מהסכום"], T.lag) }}
+</section>
+{%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">{{ L.notes }}</p>
+</section>
+
+<script>
+(function () {
+  var d = {{ C.yearly | tojson }};
+  var el = document.getElementById('chart-yearly');
+  var c = echarts.init(el);
+  var narrow = el.clientWidth < 500;
+  var series = d.series.map(function (s) {
+    return { name: s.name, type: 'bar', stack: 'y', data: s.data, barMaxWidth: 56 };
+  });
+  series.push({ name: 'סה"כ', type: 'line', data: d.totals, symbol: 'none', lineStyle: { opacity: 0 },
+    label: { show: true, position: 'top', fontFamily: 'Rubik', color: '#0b3668', fontSize: 11,
+      formatter: function (p) { return (p.value / 1000).toFixed(2); } }, tooltip: { show: false } });
+  c.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+      valueFormatter: function (v) { return v == null ? '' : v.toLocaleString('he-IL') + ' מיליון ש"ח'; } },
+    legend: { bottom: 0, left: 'center', data: d.series.map(function (s) { return s.name; }), width: '95%', textStyle: { fontSize: narrow ? 11 : 12 } },
+    grid: { left: 8, right: 8, top: 24, bottom: narrow ? 64 : 40, containLabel: true },
+    xAxis: { type: 'category', data: d.x, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12, lineHeight: 14 } },
+    yAxis: { type: 'value', axisLabel: { formatter: function (v) { return v.toLocaleString('he-IL'); } } },
+    series: series
+  }));
+  window.addEventListener('resize', function () { c.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  var d = {{ C.pace | tojson }};
+  var el = document.getElementById('chart-pace');
+  var c = echarts.init(el);
+  var n = d.series.length;
+  var old = ['#dde4f0', '#c9d3e4', '#b4c0d6', '#9fadc8', '#8a9aba', '#7587ab'];
+  function col(i) { return i === n - 1 ? '#0068f5' : (i === n - 2 ? '#0b3668' : old[Math.max(0, old.length - (n - 2 - i))]); }
+  c.setOption(window.GovEcharts.option({
+    color: d.series.map(function (s, i) { return col(i); }),
+    tooltip: { trigger: 'axis',
+      valueFormatter: function (v) { return v == null ? '' : v.toFixed(2) + ' מיליארד ש"ח'; } },
+    legend: { bottom: 0, left: 'center', width: '95%', itemGap: 8 },
+    grid: { left: 8, right: 16, top: 16, bottom: 40, containLabel: true },
+    xAxis: { type: 'category', data: d.months, boundaryGap: false, axisLabel: { interval: el.clientWidth < 500 ? 1 : 0 } },
+    yAxis: { type: 'value' },
+    series: d.series.map(function (s, i) {
+      var last = i === n - 1;
+      var prev = i === n - 2;
+      return { name: s.name, type: 'line', data: s.data, connectNulls: false, symbolSize: last ? 6 : (prev ? 4 : 2),
+        z: last ? 4 : (prev ? 3 : 2), lineStyle: { width: last ? 3.5 : (prev ? 2.5 : 1.5), color: col(i) },
+        itemStyle: { color: col(i) } };
+    })
+  }));
+  window.addEventListener('resize', function () { c.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  var d = {{ C.heat | tojson }};
+  var el = document.getElementById('chart-heat');
+  var c = echarts.init(el);
+  c.setOption(window.GovEcharts.option({
+    tooltip: { position: 'top', formatter: function (p) {
+      return echarts.format.encodeHTML(d.months[p.value[1]] + ' ' + d.years[p.value[0]]) + ': ' + p.value[2].toLocaleString('he-IL') + ' מיליון ש"ח'; } },
+    grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+    xAxis: { type: 'category', data: d.years, position: 'top', splitArea: { show: true }, axisLabel: { interval: 0 } },
+    yAxis: { type: 'category', data: d.months, inverse: true, splitArea: { show: true }, axisLabel: { interval: 0 } },
+    visualMap: { min: 0, max: d.max, dimension: 2, calculable: true, orient: 'horizontal', left: 'center', bottom: 4,
+      itemHeight: 120, inRange: { color: ['#dbe8fb', '#0068f5', '#0b3668'] },
+      textStyle: { fontFamily: 'Rubik', color: '#0c3058' } },
+    series: [{ type: 'heatmap', data: d.cells,
+      label: { show: true, fontFamily: 'Rubik', fontSize: 10, formatter: function (p) { return Math.round(p.value[2]).toLocaleString('he-IL'); } },
+      emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,104,245,.3)' } } }]
+  }));
+  window.addEventListener('resize', function () { c.resize(); });
+})();
+</script>
+
+<script>
+(function () {
+  function hbar(id, d, unit) {
+    var el = document.getElementById(id);
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+        valueFormatter: function (v) { return v.toLocaleString('he-IL') + unit; } },
+      grid: { left: 8, right: narrow ? 16 : 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: 'value', axisLabel: { formatter: function (v) { return v.toLocaleString('he-IL'); } } },
+      yAxis: { type: 'category', inverse: true, data: d.labels,
+        axisLabel: { interval: 0, width: narrow ? 110 : 190, overflow: 'truncate', fontSize: narrow ? 11 : 12 } },
+      series: [{ type: 'bar', data: d.values, barMaxWidth: 26,
+        label: { show: !narrow, position: 'right', fontFamily: 'Rubik', fontSize: 11, color: '#0b3668',
+          formatter: function (p) { return Math.round(p.value).toLocaleString('he-IL'); } } }]
+    }));
+    window.addEventListener('resize', function () { c.resize(); });
+  }
+  hbar('chart-programs', {{ C.programs | tojson }}, ' מיליון ש"ח');
+  hbar('chart-recipients', {{ C.recipients | tojson }}, ' מיליון ש"ח');
+  hbar('chart-depts', {{ C.depts | tojson }}, ' מיליון ש"ח');
+})();
+</script>
+
+<script>
+(function () {
+  var d = {{ C.types | tojson }};
+  var el = document.getElementById('chart-types');
+  var c = echarts.init(el);
+  var narrow = el.clientWidth < 500;
+  c.setOption(window.GovEcharts.option({
+    color: window.GOVIL_PALETTE,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function (ps) {
+      var i = ps[0].dataIndex;
+      return echarts.format.encodeHTML(d.labels[i]) + '<br>' + d.values[i].toLocaleString('he-IL') + ' מיליון ש"ח<br>' + d.bodies[i].toLocaleString('he-IL') + ' גופים'; } },
+    grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+    xAxis: { type: 'category', data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12,
+      width: narrow ? 58 : 110, overflow: 'break' } },
+    yAxis: { type: 'value', axisLabel: { formatter: function (v) { return v.toLocaleString('he-IL'); } } },
+    series: [{ type: 'bar', data: d.values, barMaxWidth: 56,
+      label: { show: true, position: 'top', fontFamily: 'Rubik', fontSize: 11, color: '#0b3668',
+        formatter: function (p) { return Math.round(p.value).toLocaleString('he-IL'); } } }]
+  }));
+  window.addEventListener('resize', function () { c.resize(); });
+})();
+</script>
+
+{%- if C.budget.x %}
+<script>
+(function () {
+  var d = {{ C.budget | tojson }};
+  var el = document.getElementById('chart-budget');
+  var c = echarts.init(el);
+  var narrow = el.clientWidth < 500;
+  c.setOption(window.GovEcharts.option({
+    color: ['#0068f5', '#6c9fd8', '#c3cfe7'],
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+      valueFormatter: function (v) { return v.toLocaleString('he-IL') + ' מיליון ש"ח'; } },
+    legend: { bottom: 0, left: 'center', width: '95%', data: [narrow ? 'באותה שנה' : 'שולם עד סוף שנת התקציב', narrow ? 'בשנים שאחריה' : 'שולם בשנים שאחריה', 'יתרה'] },
+    grid: { left: 8, right: 8, top: 16, bottom: 40, containLabel: true },
+    xAxis: { type: 'category', data: d.x, axisLabel: { interval: 0 } },
+    yAxis: { type: 'value', axisLabel: { formatter: function (v) { return v.toLocaleString('he-IL'); } } },
+    series: [
+      { name: narrow ? 'באותה שנה' : 'שולם עד סוף שנת התקציב', type: 'bar', stack: 'b', data: d.same, barMaxWidth: 56 },
+      { name: narrow ? 'בשנים שאחריה' : 'שולם בשנים שאחריה', type: 'bar', stack: 'b', data: d.later, barMaxWidth: 56 },
+      { name: 'יתרה', type: 'bar', stack: 'b', data: d.remain, barMaxWidth: 56 }
+    ]
+  }));
+  window.addEventListener('resize', function () { c.resize(); });
+})();
+</script>
+{%- endif %}
+
+<script>
+(function () {
+  function dist(id, d) {
+    var el = document.getElementById(id);
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      color: ['#0068f5', '#0b3668'],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
+        valueFormatter: function (v) { return v.toFixed(1) + '%'; } },
+      legend: { bottom: 0, left: 'center', data: ['אחוז מהתשלומים', 'אחוז מהסכום'] },
+      grid: { left: 8, right: 8, top: 16, bottom: 36, containLabel: true },
+      xAxis: { type: 'category', data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 11,
+        width: narrow ? 48 : 80, overflow: 'break' } },
+      yAxis: { type: 'value', axisLabel: { formatter: '{value}%' } },
+      series: [
+        { name: 'אחוז מהתשלומים', type: 'bar', data: d.count_share, barMaxWidth: 28 },
+        { name: 'אחוז מהסכום', type: 'bar', data: d.sum_share, barMaxWidth: 28 }
+      ]
+    }));
+    window.addEventListener('resize', function () { c.resize(); });
+  }
+  dist('chart-sizes', {{ C.sizes | tojson }});
+{%- if C.lag %}
+  dist('chart-lag', {{ C.lag | tojson }});
+{%- endif %}
+})();
+</script>

@@ -1,0 +1,12 @@
+{
+  "main.lab_name": "lab-directory, insight:rare — every lab named (businesses and public labs)",
+  "main.address": "lab-directory, chart-city, kpi:cities, insight:city — city = text after the last comma; a cell listing several sites is shown as כמה אתרים",
+  "main.phone": "lab-directory — the lab's business numbers as listed by the ministry, whitespace cleaned",
+  "main.email": "chart-combo, kpi:gov, insight:gov — domain only (gov.il marks a government lab); addresses never shown, several are named individuals' mailboxes",
+  "main.manager": "lab-directory — lab director, professional capacity",
+  "main.test_material": "text:lede — constant (מזון) today; a second material is listed in the lede with counts",
+  "main.test_type": "chart-combo, lab-directory, kpi:multi, insight:both, insight:types, insight:rare — comma-separated list split into types; unknown types flow through",
+  "main.district": "skip: filled in only 1 of 12 rows (>80% empty)",
+  "main.notes": "skip: empty in every row",
+  "main.fax": "skip: fax numbers add nothing a visitor needs beyond the phone; available in the explorer"
+}
