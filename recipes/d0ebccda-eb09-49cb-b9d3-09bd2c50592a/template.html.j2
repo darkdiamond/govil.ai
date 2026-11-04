@@ -1,0 +1,361 @@
+{% import "gov.j2" as gov %}
+<h1>רשימת מבקרי מטפים ותחזוקאי מטפים מורשים (ת״י 129)</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקה אם מבקר או תחזוקאי מטפים מורשה, לפי שם או חברה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם פרטי, שם משפחה, חברת שירות, סוג ההרשאה, סטטוס, תאריך ההרשאה ופרטי הקשר של החברה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, "רשומות ברשימה") }}
+  {{ gov.kpi(model.kpis.auditors, "מבקרי מטפים") }}
+  {{ gov.kpi(model.kpis.maintainers, "תחזוקאי מטפים") }}
+  {{ gov.kpi(model.kpis.not_ok, "רשומות בסטטוס לא מורשה") }}
+  {{ gov.kpi(model.kpis.companies, "חברות שירות לתחזוקת מטפים") }}
+  {{ gov.kpi(model.kpis.last, "תאריך ההרשאה האחרון ברשימה") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{% if model.flags.has_time %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הרשאות חדשות לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.year_lede }}</p>
+  {{ gov.chart("chart-year", model.labels.year_aria) }}
+  {{ gov.table(model.labels.year_aria, model.cols.year, model.tables.year, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "מתחילת השנה ועד אותו תאריך") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ytd_lede }}</p>
+    {{ gov.chart("chart-ytd", model.labels.ytd_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.ytd_aria, ["שנה", "הרשאות"], model.tables.ytd, ltr=(1,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("tag", "מבקרים ותחזוקאים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_lede }}</p>
+    {{ gov.chart("chart-type", model.labels.type_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.type_aria, ["סוג", "רשומות", "שיעור"], model.tables.type, ltr=(1, 2)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גודל הרשימה לאורך זמן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cum_lede }}</p>
+  <div id="chart-cum" class="h-72 md:h-96" role="img" data-fallback="explorer" aria-label="{{ model.labels.cum_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "עונתיות: הרשאות לפי חודש ושנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-72 md:h-80" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("circle-check", "תחזוקאים לפי שנה וסטטוס") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mstat_lede }}</p>
+    {{ gov.chart("chart-mstat", model.labels.mstat_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.mstat_aria, model.cols.mstat, model.tables.mstat, ltr=(1, 2, 3)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "גודל חברות השירות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_lede }}</p>
+    {{ gov.chart("chart-size", model.labels.size_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.size_aria, ["תחזוקאים בחברה", "חברות", "תחזוקאים"], model.tables.size, ltr=(1, 2)) }}
+  </section>
+</div>
+
+{% if model.flags.has_co %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "חברות השירות המובילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.co_lede }}</p>
+  {{ gov.chart("chart-co", model.labels.co_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.co_aria, ["חברה", "מורשה", "לא מורשה", "סך הכול"], model.tables.co, ltr=(1, 2, 3)) }}
+</section>
+{% endif %}
+
+{% if model.flags.has_city %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "פריסה גאוגרפית של חברות השירות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_lede }}</p>
+  {{ gov.chart("chart-city", model.labels.city_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.city_aria, ["יישוב", "תחזוקאים", "חברות"], model.tables.city, ltr=(1, 2)) }}
+</section>
+{% endif %}
+
+{% if model.flags.has_time %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "הרשאות במקבצים: כמה הרשאות ניתנו ביום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.batch_lede }}</p>
+  {{ gov.chart("chart-batch", model.labels.batch_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.batch_aria, ["הרשאות ביום", "ימים", "הרשאות"], model.tables.batch, ltr=(1, 2)) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "אילו פרטים מופיעים ברשומה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_lede }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.comp_cap }}</caption>
+      <thead><tr>{% for c in model.cols.comp %}<th scope="col" class="px-2 py-1 text-start">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.comp %}
+        <tr class="border-t border-rule">{% for v in r %}{% if loop.first %}<th scope="row" class="px-2 py-1 text-start font-normal">{{ v }}</th>{% else %}<td class="px-2 py-1 text-start tabular-nums" dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <ol class="list-decimal ps-5 m-0 space-y-2 text-sm text-subtle">
+{%- for n in model.notes %}
+    <li>{{ n }}</li>
+{%- endfor %}
+  </ol>
+</section>
+
+<style>
+  @media (max-width: 639px) {
+    #chart-co, #chart-city { height: 24rem !important; }
+  }
+</style>
+
+{% if model.flags.has_time %}
+<script>
+  (function () {
+    var d = {{ model.charts.year | tojson }};
+    var el = document.getElementById("chart-year");
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 10, lineHeight: 13 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: d.series.map(function (s, i) {
+        return { type: "bar", name: s.name, stack: "all", data: s.values, barMaxWidth: 56,
+                 label: { show: i === d.series.length - 1, position: "top", color: "#0c3058",
+                          formatter: function (p) {
+                            var t = 0; d.series.forEach(function (q) { t += q.values[p.dataIndex]; });
+                            return t.toLocaleString("he-IL");
+                          } } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.ytd | tojson }};
+    var c = echarts.init(document.getElementById("chart-ytd"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [{ type: "bar", name: "הרשאות", barMaxWidth: 48,
+                 data: d.y.map(function (v, i) { return i === d.last ? { value: v, itemStyle: { color: "#0b3668" } } : v; }),
+                 label: { show: true, position: "top", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.type | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-type"));
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668", "#9a6700"],
+      tooltip: { trigger: "item", formatter: function (p) {
+        return enc(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent.toFixed(1) + "%)";
+      } },
+      legend: { bottom: 0, left: "center" },
+      series: [{ type: "pie", radius: ["38%", "64%"], center: ["50%", "42%"],
+                 data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }),
+                 labelLine: { show: false },
+                 label: { position: "inside", color: "#fff", fontWeight: "bold",
+                          formatter: function (p) { return p.percent >= 5 ? p.value.toLocaleString("he-IL") : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cum | tojson }};
+    var c = echarts.init(document.getElementById("chart-cum"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis" },
+      legend: { top: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", splitNumber: 4 },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.series.map(function (s) {
+        return { type: "line", name: s.name, stack: "all", areaStyle: { opacity: 0.25 }, showSymbol: false, data: s.values };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    function narrow() { return el.clientWidth < 520; }
+    function opt() {
+      return {
+        tooltip: { position: "top", formatter: function (p) {
+          return d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + p.value[2].toLocaleString("he-IL") + " הרשאות";
+        } },
+        grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.months, splitArea: { show: true },
+                 axisLabel: { interval: 0, fontSize: narrow() ? 9 : 12, rotate: narrow() ? 45 : 0 } },
+        yAxis: { type: "category", data: d.years, splitArea: { show: true } },
+        visualMap: { min: 0, max: Math.max(d.max, 1), dimension: 2, calculable: true, orient: "horizontal",
+                     left: "center", bottom: 0, itemHeight: 120,
+                     inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+                     textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+        series: [{ type: "heatmap", data: d.cells,
+                   label: { show: !narrow(), fontFamily: "Rubik" },
+                   emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.batch | tojson }};
+    var c = echarts.init(document.getElementById("chart-batch"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, width: 72, overflow: "break", fontSize: 11 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [
+        { type: "bar", name: "ימים", data: d.days, barMaxWidth: 40, label: { show: true, position: "top", color: "#0c3058" } },
+        { type: "bar", name: "הרשאות", data: d.approvals, barMaxWidth: 40, label: { show: true, position: "top", color: "#0c3058" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.mstat | tojson }};
+    var colors = { "מורשה": "#0068f5", "לא מורשה": "#9a6700" };
+    var c = echarts.init(document.getElementById("chart-mstat"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 16, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 10, lineHeight: 13 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: d.series.map(function (s) {
+        var o = { type: "bar", name: s.name, stack: "all", data: s.values, barMaxWidth: 48 };
+        if (colors[s.name]) { o.itemStyle = { color: colors[s.name] }; }
+        return o;
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.size | tojson }};
+    var c = echarts.init(document.getElementById("chart-size"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, width: 64, overflow: "break", fontSize: 11 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [
+        { type: "bar", name: "חברות", data: d.companies, barMaxWidth: 40, label: { show: true, position: "top", color: "#0c3058" } },
+        { type: "bar", name: "תחזוקאים", data: d.people, barMaxWidth: 40, label: { show: true, position: "top", color: "#0c3058" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.has_co %}
+<script>
+  (function () {
+    var d = {{ model.charts.co | tojson }};
+    var el = document.getElementById("chart-co");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 110 : 260; }
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0, left: "center" },
+        grid: { left: 16, right: 32, top: 8, bottom: 36, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [
+          { type: "bar", name: "מורשה", stack: "all", data: d.ok, itemStyle: { color: "#0068f5" } },
+          { type: "bar", name: "לא מורשה", stack: "all", data: d.not, itemStyle: { color: "#9a6700" },
+            label: { show: true, position: "right", color: "#0c3058",
+                     formatter: function (p) { return (d.ok[p.dataIndex] + d.not[p.dataIndex]).toLocaleString("he-IL"); } } }
+        ]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.has_city %}
+<script>
+  (function () {
+    var d = {{ model.charts.city | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-city"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return enc(d.names[i]) + ": " + d.values[i].toLocaleString("he-IL") + " תחזוקאים, " + (d.cos[i] === 1 ? "חברה אחת" : d.cos[i].toLocaleString("he-IL") + " חברות");
+      } },
+      grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "truncate" } },
+      series: [{ type: "bar", name: "תחזוקאים", data: d.values, label: { show: true, position: "right", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

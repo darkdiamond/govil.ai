@@ -1,0 +1,376 @@
+{% import "gov.j2" as gov %}
+<h1>רשימת מתכננים ומודדים של משרד הבינוי והשיכון</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מתכנן, מודד או יועץ לפי שם, יישוב או תחום התמחות ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הספק, יישוב, רחוב, תחום ההתמחות וסיווג המשנה (דרגה).</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.rows, "רישומים ברשימה (ספק לכל תחום)") }}
+  {{ gov.kpi(model.kpis.suppliers, "ספקים שונים") }}
+  {{ gov.kpi(model.kpis.pros, "בעלי מקצוע (ללא רשויות וגופים ציבוריים)") }}
+  {{ gov.kpi(model.kpis.specs, "תחומי התמחות") }}
+  {{ gov.kpi(model.kpis.multi, "בעלי מקצוע הרשומים ביותר מתחום אחד") }}
+  {{ gov.kpi(model.kpis.cities, "יישובים שבהם רשומים בעלי מקצוע") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "בעלי המקצוע לפי משפחה מקצועית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fam_lede }}</p>
+  {{ gov.chart("chart-fam", model.labels.fam_aria, "h-96 md:h-[460px]") }}
+  {{ gov.table(model.labels.fam_aria, ["משפחה", "ספקים", "שיעור מבעלי המקצוע"], model.tables.fam, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "כל תחומי ההתמחות במבט אחד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tree_lede }}</p>
+  <div id="chart-tree" class="h-96 md:h-[520px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.tree_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "תחומי ההתמחות המובילים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.spec_lede }}</p>
+  {{ gov.chart("chart-spec", model.labels.spec_aria, "h-96 md:h-[520px]") }}
+  {{ gov.table(model.labels.spec_aria, ["תחום התמחות", "ספקים"], model.tables.spec, ltr=(1,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "דרגות הסיווג בכל משפחה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.grade_lede }}</p>
+  {{ gov.chart("chart-grade", model.labels.grade_aria, "h-96 md:h-[520px]") }}
+  {{ gov.table(model.labels.grade_aria, model.cols.grade, model.tables.grade, ltr=(1, 2, 3, 4, 5, 6)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("list", "בכמה תחומים רשום כל ספק") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.multi_lede }}</p>
+    {{ gov.chart("chart-multi", model.labels.multi_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.multi_aria, ["תחומי התמחות", "בעלי מקצוע"], model.tables.multi, ltr=(0, 1)) }}
+  </section>
+{% if model.flags.ent %}
+  <section class="card p-5">
+    {{ gov.head("building-2", "חברות, שותפויות ועוסקים יחידים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ent_lede }}</p>
+    {{ gov.chart("chart-ent", model.labels.ent_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.ent_aria, ["סוג הגוף", "בעלי מקצוע", "שיעור"], model.tables.ent, ltr=(1, 2)) }}
+  </section>
+{% endif %}
+</div>
+
+{% if model.flags.firms %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "הספקים הרב-תחומיים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.firms_lede }}</p>
+  {{ gov.chart("chart-firms", model.labels.firms_aria, "h-80 md:h-[420px]") }}
+  {{ gov.table(model.labels.firms_aria, ["ספק", "יישוב", "תחומי התמחות", "משפחות מקצועיות"], model.tables.firms, ltr=(2, 3)) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "פריסה גאוגרפית: בעלי המקצוע לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_lede }}</p>
+  {{ gov.chart("chart-city", model.labels.city_aria, "h-96 md:h-[520px]") }}
+  {{ gov.table(model.labels.city_aria, ["יישוב", "בעלי מקצוע"], model.tables.city, ltr=(1,)) }}
+</section>
+
+{% if model.flags.heat %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "איזה תחום יושב איפה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  <div id="chart-heat" class="h-96 md:h-[520px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+{% endif %}
+
+{% if model.flags.auth %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "רשויות וגופים ציבוריים ברשימה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auth_lede }}</p>
+  {{ gov.chart("chart-auth", model.labels.auth_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.auth_aria, ["סוג הגוף", "גופים"], model.tables.auth, ltr=(1,)) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">במאגר זה רשומים מתכננים, מודדים ובעלי מקצוע אחרים, והוא כולל מידע על התמחויות מקצועיות של בעלי המקצוע וכן פרטי התקשרות עמם.</p>
+</section>
+
+<style>
+  @media (max-width: 639px) {
+    #chart-fam, #chart-firms, #chart-auth { height: 26rem !important; }
+    #chart-tree { height: 28rem !important; }
+    #chart-spec, #chart-city, #chart-grade, #chart-heat { height: 32rem !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    var d = {{ model.charts.fam | tojson }};
+    var el = document.getElementById("chart-fam");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 110 : 200; }
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.x, inverse: true,
+                 axisLabel: { interval: 0, width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "ספקים", data: d.y, barMaxWidth: 26,
+                   label: { show: true, position: "right", color: "#0c3058" } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var t = {{ model.charts.tree | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-tree"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (n) { return enc(n.name); }).join(" / ");
+        return path + ": " + p.value.toLocaleString("he-IL") + " ספקים";
+      } },
+      series: [{ type: "treemap", data: t, roam: false, nodeClick: "zoomToNode", leafDepth: 2,
+                 width: "100%", height: "88%", top: 0,
+                 breadcrumb: { show: true, bottom: 0, itemStyle: { color: "#0068f5" } },
+                 label: { show: true, formatter: "{b}", overflow: "truncate", fontSize: 11 },
+                 upperLabel: { show: true, height: 22, color: "#fff", fontWeight: "bold" },
+                 levels: [
+                   { colorMappingBy: "index", itemStyle: { borderColor: "#fff", borderWidth: 3, gapWidth: 3 } },
+                   { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+                 ] }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.spec | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-spec");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 120 : 280; }
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var p = ps[0], f = d.fam[p.dataIndex];
+          return enc(p.name) + (f ? " (" + enc(f) + ")" : "") + ": " + p.value.toLocaleString("he-IL") + " ספקים";
+        } },
+        grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.x, inverse: true,
+                 axisLabel: { interval: 0, width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "ספקים", barMaxWidth: 22,
+                   data: d.y.map(function (v, i) { return i === 0 ? { value: v, itemStyle: { color: "#0b3668" } } : v; }),
+                   label: { show: true, position: "right", color: "#0c3058" } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.grade | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-grade");
+    var c = echarts.init(el);
+    var colors = ["#0b3668", "#0068f5", "#5b9bf8", "#a9c8fb", "#6c757d", "#c3cfe7"];
+    function lw() { return el.clientWidth < 520 ? 96 : 180; }
+    function opt() {
+      return {
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex, out = enc(d.fams[i]);
+          ps.forEach(function (p) {
+            var n = d.counts[p.seriesIndex][i];
+            if (n > 0) { out += "<br/>" + p.marker + enc(p.seriesName) + ": " + n.toLocaleString("he-IL") + " (" + p.value.toFixed(1) + "%)"; }
+          });
+          return out;
+        } },
+        legend: { bottom: 0, left: "center", itemWidth: 12, itemHeight: 10, textStyle: { fontSize: 11 } },
+        grid: { left: 16, right: 16, top: 8, bottom: el.clientWidth < 520 ? 64 : 40, containLabel: true },
+        xAxis: { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%" } },
+        yAxis: { type: "category", data: d.fams, inverse: true,
+                 axisLabel: { interval: 0, width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: d.grades.map(function (g, si) {
+          return { type: "bar", name: g, stack: "all", data: d.series[si], barMaxWidth: 26 };
+        })
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.multi | tojson }};
+    var c = echarts.init(document.getElementById("chart-multi"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "תחומים", nameLocation: "middle", nameGap: 26,
+               axisLabel: { interval: 0 } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: [{ type: "bar", name: "בעלי מקצוע", data: d.y, barMaxWidth: 44,
+                 label: { show: true, position: "top", color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{% if model.flags.ent %}
+<script>
+  (function () {
+    var d = {{ model.charts.ent | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var c = echarts.init(document.getElementById("chart-ent"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return enc(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent.toFixed(1) + "%)";
+      } },
+      legend: { bottom: 0, left: "center", itemWidth: 12, itemHeight: 10, textStyle: { fontSize: 11 } },
+      series: [{ type: "pie", radius: ["36%", "62%"], center: ["50%", "42%"],
+                 data: d.names.map(function (n, i) { return { name: n, value: d.values[i] }; }),
+                 labelLine: { show: false },
+                 label: { position: "inside", color: "#fff", fontWeight: "bold",
+                          formatter: function (p) { return p.percent >= 6 ? p.value.toLocaleString("he-IL") : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.firms %}
+<script>
+  (function () {
+    var d = {{ model.charts.firms | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-firms");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 120 : 260; }
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var p = ps[0];
+          return enc(p.name) + ": " + p.value + " תחומים ב-" + d.f[p.dataIndex] + " משפחות";
+        } },
+        grid: { left: 16, right: 32, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 3 },
+        yAxis: { type: "category", data: d.x, inverse: true,
+                 axisLabel: { interval: 0, width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "תחומי התמחות", data: d.y, barMaxWidth: 22,
+                   label: { show: true, position: "right", color: "#0c3058" } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.city | tojson }};
+    var el = document.getElementById("chart-city");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 100 : 160; }
+    function opt() {
+      return {
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", splitNumber: 3 },
+        yAxis: { type: "category", data: d.x, inverse: true,
+                 axisLabel: { interval: 0, width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "בעלי מקצוע", data: d.y, barMaxWidth: 22,
+                   label: { show: true, position: "right", color: "#0c3058" } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+
+{% if model.flags.heat %}
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var enc = echarts.format.encodeHTML;
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    function narrow() { return el.clientWidth < 520; }
+    function opt() {
+      return {
+        tooltip: { position: "top", formatter: function (p) {
+          return enc(d.cities[p.value[0]]) + ", " + enc(d.fams[p.value[1]]) + ": " + p.value[2].toLocaleString("he-IL") + " ספקים";
+        } },
+        grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+        xAxis: { type: "category", data: d.cities, splitArea: { show: true },
+                 axisLabel: { interval: 0, fontSize: narrow() ? 9 : 11, rotate: narrow() ? 60 : 30,
+                              width: 80, overflow: "truncate" } },
+        yAxis: { type: "category", data: d.fams, inverse: true, splitArea: { show: true },
+                 axisLabel: { interval: 0, fontSize: narrow() ? 9 : 11, width: narrow() ? 84 : 160, overflow: "truncate" } },
+        visualMap: { min: 0, max: Math.max(d.max, 1), dimension: 2, calculable: true, orient: "horizontal",
+                     left: "center", bottom: 0, itemHeight: 120,
+                     inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] },
+                     textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+        series: [{ type: "heatmap", data: d.cells.map(function (x) { return [x[1], x[0], x[2]]; }),
+                   label: { show: !narrow(), fontFamily: "Rubik", fontSize: 10,
+                            formatter: function (p) { return p.value[2] > 0 ? p.value[2] : ""; } },
+                   emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+{% endif %}
+
+{% if model.flags.auth %}
+<script>
+  (function () {
+    var d = {{ model.charts.auth | tojson }};
+    var el = document.getElementById("chart-auth");
+    var c = echarts.init(el);
+    function lw() { return el.clientWidth < 520 ? 110 : 200; }
+    function opt() {
+      return {
+        color: ["#0b3668"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 40, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, splitNumber: 3 },
+        yAxis: { type: "category", data: d.x, inverse: true,
+                 axisLabel: { interval: 0, width: lw(), overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: "גופים", data: d.y, barMaxWidth: 24,
+                   label: { show: true, position: "right", color: "#0c3058" } }]
+      };
+    }
+    c.setOption(window.GovEcharts.option(opt()));
+    window.addEventListener("resize", function () { c.setOption(opt()); c.resize(); });
+  })();
+</script>
+{% endif %}

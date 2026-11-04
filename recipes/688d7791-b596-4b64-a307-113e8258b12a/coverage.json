@@ -1,0 +1,11 @@
+{
+  "main.KOD_SAPAK": "kpi:suppliers, kpi:pros, kpi:multi, chart-multi, chart-firms, chart-ent, insight:multi, insight:entity, insight:authorities — supplier grouping key; entity type derived from the registrar prefix (company / partnership / association / ID number). The number itself never reaches the page",
+  "main.SHEM_SAPAK": "chart-firms, chart-auth, insight:multi, insight:authorities — supplier names shown only for the multi-specialty top 10 (professional firms); public-body type classified from the name",
+  "main.SEMEL_YISHUV": "chart-city, chart-heat, kpi:cities, insight:city — locality key per supplier (names keyed by code)",
+  "main.SHEM_YISHUV": "chart-city, chart-heat, chart-firms, kpi:cities, insight:city — whitespace and hyphen spacing normalised",
+  "main.HITMAHUT_DESCRIPTION": "chart-fam, chart-tree, chart-spec, chart-grade, chart-multi, chart-heat, kpi:specs, kpi:pros, insight:family, insight:specialty, insight:authorities — specialties grouped into families by keyword; unknown ones fall to אחר",
+  "main.SUB_KOD_HITMAHUT_DESCRIPTION": "chart-grade, insight:grade — letter grade (א-ד) parsed from the prefix, רגילה, else פירוט אחר",
+  "main.RECHOV": "skip: street address (contact detail), stays in the explorer",
+  "main.MISPAR_BAIT": "skip: house number (contact detail), stays in the explorer",
+  "main.MISPAR_TEL": "skip: phone number (contact detail), stays in the explorer"
+}

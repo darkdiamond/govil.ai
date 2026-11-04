@@ -1,0 +1,7 @@
+{
+  "main.city": "chart-cities, chart-buckets, chart-heat, kpi:cities, kpi:top_city, kpi:single, insight:leader, insight:tail, insight:shift — city of residence as listed; whitespace-normalised, blanks counted as a not-stated bucket",
+  "main.registration_date": "chart-years, chart-cum, chart-heat, chart-batches, kpi:last_year, kpi:peak, insight:trend, insight:peak, insight:partial, insight:shift, insight:batches, insight:undated — aggregated by year only (day/month look swapped in part of the rows); dates shared by many examiners form the registration rounds; detached typo years (a cluster of <= 2 rows, 2+ empty years from the main span) are left out of the time views and disclosed",
+  "main.first_name": "skip: personal name of an individual examiner; searchable in the explorer under the page, not aggregated",
+  "main.last_name": "skip: personal name of an individual examiner; searchable in the explorer under the page, not aggregated",
+  "main.registration_number": "skip: an individual's registration number (identifier); left to the explorer"
+}

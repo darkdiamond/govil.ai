@@ -1,0 +1,29 @@
+{
+  "contract_version": 1,
+  "dataset_id": "d0ebccda-eb09-49cb-b9d3-09bd2c50592a",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-03T07:23:41.594412+00:00",
+    "rows": { "registry": 1616 }
+  },
+  "inputs": [
+    {
+      "name": "registry",
+      "by_id": "ea004fd2-251e-4ea1-9b03-0eefb51b8f74",
+      "required_columns": [
+        "type",
+        "company",
+        "first_name",
+        "last_name",
+        "date",
+        "status",
+        "phone",
+        "adress",
+        "email"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["ת״י 129"]
+}

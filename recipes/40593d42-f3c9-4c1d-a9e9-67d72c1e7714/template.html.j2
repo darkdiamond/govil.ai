@@ -1,0 +1,472 @@
+<h1>דרישות בטיחות אש להיתרי בנייה</h1>
+
+<style>
+  .fb-table th, .fb-table td { padding: 0.35rem 0.5rem; text-align: start; vertical-align: top; }
+  .fb-table tbody tr { border-top: 1px solid #c3cfe7; }
+  .fb-table td.num, .fb-table th.num { white-space: nowrap; }
+  .fb-table .item-name { min-width: 11rem; }
+  @media (max-width: 639px) {
+    #chart-fam, #chart-topics, #chart-common, #chart-leaves { height: 30rem !important; }
+    #chart-pairs { height: 40rem !important; }
+    #chart-heat { height: 34rem !important; }
+  }
+</style>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/info.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תקציר</h2>
+  </div>
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+{%- if inputs.main %}
+  <p class="m-0 mt-2 text-sm text-subtle">הנתונים בעמוד מחושבים מהקובץ: {{ inputs.main[0].name }}. על כל מבנה חלות הדרישות שהיו בתוקף במועד קבלת ההיתר.</p>
+{%- endif %}
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור דרישות כיבוי אש להיתר בנייה לפי שימוש או סוג המבנה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: קבוצת השימוש, סוג המבנה ותנאי הסיווג (גובה, שטח, תפוסה), קוד הסיווג, מספר הדרישה, נוסח הדרישה, ההערות ומקור הדרישה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.leaves.tone }} mb-1" dir="ltr">{{ model.kpis.leaves.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.leaves_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.groups.tone }} mb-1" dir="ltr">{{ model.kpis.groups.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.groups_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.reqs.tone }} mb-1" dir="ltr">{{ model.kpis.reqs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.reqs_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.median.tone }} mb-1" dir="ltr">{{ model.kpis.median.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.median_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.max.tone }} mb-1" dir="ltr">{{ model.kpis.max.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.max_kpi }}</div>
+  </div>
+  <div class="card p-4 text-center">
+    <div class="text-3xl font-bold text-{{ model.kpis.certs.tone }} mb-1" dir="ltr">{{ model.kpis.certs.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.certs_kpi }}</div>
+  </div>
+</div>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">תובנות עיקריות</h2>
+  </div>
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm marker:text-brand">
+{%- for i in model.insights %}
+    <li>{{ i.text_he }}</li>
+{%- endfor %}
+  </ul>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">דרישות לפי שימוש המבנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fam_note }}</p>
+  <div id="chart-fam" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.fam_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.fam_aria }}</caption>
+        <thead><tr><th scope="col">שימוש</th><th scope="col" class="num">שורות</th><th scope="col" class="num">שיעור</th><th scope="col" class="num">קבוצות</th><th scope="col" class="num">אישורים</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.fam %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th><td class="num">{{ r.rows }}</td><td class="num">{{ r.share }}</td><td class="num">{{ r.groups }}</td><td class="num">{{ r.certs }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.pairs %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.pairs_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pairs_note }}</p>
+  <div id="chart-pairs" class="h-80 md:h-[560px]" role="img" aria-label="{{ model.labels.pairs_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.pairs_aria }}</caption>
+        <thead><tr><th scope="col">שימוש</th>{% for c in model.tables.pair_cols %}<th scope="col" class="num">{{ c }}</th>{% endfor %}<th scope="col" class="num">הפרש</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.pairs %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th><td class="num">{{ r.a }}</td><td class="num">{{ r.b }}</td><td class="num" dir="ltr">{{ r.d }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">כמה דרישות חלות על כל סוג מבנה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+  <div id="chart-hist" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.hist_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="fb-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.hist_aria }}</caption>
+      <thead><tr><th scope="col">דרישות לסוג מבנה</th><th scope="col" class="num">סוגי מבנים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.hist %}
+        <tr><th scope="row" class="font-normal" dir="ltr">{{ r.name }}</th><td class="num">{{ r.n }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.leaves_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.leaves_note }}</p>
+  <div id="chart-leaves" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.leaves_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.leaves_aria }}</caption>
+        <thead><tr><th scope="col">קוד</th><th scope="col">סוג המבנה</th><th scope="col">קבוצה</th><th scope="col" class="num">דרישות</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.leaves %}
+          <tr><th scope="row" class="num font-normal" dir="ltr">{{ r.code }}</th><td class="item-name">{{ r.name }}</td><td class="item-name">{{ r.group }}</td><td class="num">{{ r.n }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+{%- if model.flags.height %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/building-2.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">גובה הבניין ומספר הדרישות</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.height_note }}</p>
+  <div id="chart-height" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.height_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.height_aria }}</caption>
+        <thead><tr><th scope="col">מדרגת גובה</th><th scope="col" class="num">סוגי מבנים</th><th scope="col" class="num">מינימום</th><th scope="col" class="num">רבעון תחתון</th><th scope="col" class="num">חציון</th><th scope="col" class="num">רבעון עליון</th><th scope="col" class="num">מקסימום</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.height %}
+          <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.n }}</td><td class="num">{{ r.min }}</td><td class="num">{{ r.q1 }}</td><td class="num">{{ r.median }}</td><td class="num">{{ r.q3 }}</td><td class="num">{{ r.max }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/tag.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">נושאי הדרישות: מילוט, גילוי, כיבוי והפרדות אש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.topics_note }}</p>
+  <div id="chart-topics" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.topics_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="fb-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.topics_aria }}</caption>
+      <thead><tr><th scope="col">נושא</th><th scope="col" class="num">שורות</th><th scope="col" class="num">שיעור</th><th scope="col" class="num">מהן אישורים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.topics %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.rows }}</td><td class="num">{{ r.share }}</td><td class="num">{{ r.certs }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/database.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">איזה נושא בולט בכל שימוש</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" class="h-80 md:h-[480px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+        <thead><tr><th scope="col">שימוש</th>{% for t in model.tables.heat_cols %}<th scope="col">{{ t }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr><th scope="row">{{ r.name }}</th>{% for v in r.vals %}<td class="num">{{ v }}</td>{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/circle-check.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">{{ model.labels.common_title }}</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.common_note }}</p>
+  <div id="chart-common" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.common_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.common_aria }}</caption>
+        <thead><tr><th scope="col">דרישה</th><th scope="col" class="num">מספר סעיף</th><th scope="col" class="num">סוגי מבנים</th><th scope="col" class="num">שיעור</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.common %}
+          <tr><th scope="row" class="item-name font-normal">{{ r.name }}</th><td class="num" dir="ltr">{{ r.num }}</td><td class="num">{{ r.leaves }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">מקור הדרישות: תקנות, תקנים והוראות נציב</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.src_note }}</p>
+  <div id="chart-src" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.src_aria }}"></div>
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <table class="fb-table mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.src_aria }}</caption>
+      <thead><tr><th scope="col">מקור</th><th scope="col" class="num">שורות</th><th scope="col" class="num">שיעור</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.src %}
+        <tr><th scope="row" class="font-normal">{{ r.name }}</th><td class="num">{{ r.rows }}</td><td class="num">{{ r.share }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-brand">
+    <img src="/icons/list.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">קבוצות השימוש: כמה סוגי מבנים ודרישות בכל קבוצה</h2>
+  </div>
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+  <details>
+    <summary class="text-sm text-subtle">{{ model.labels.dir_summary }}</summary>
+    <div class="overflow-x-auto">
+      <table class="fb-table mt-2 w-full text-sm">
+        <caption class="sr-only">קבוצות השימוש: סוגי מבנים, סיווגים ודרישות</caption>
+        <thead><tr><th scope="col">קבוצה</th><th scope="col">שימוש</th><th scope="col" class="num">סוגי מבנים</th><th scope="col" class="num">סיווגים</th><th scope="col" class="num">דרישות שונות</th><th scope="col" class="num">רשימה ארוכה ביותר</th></tr></thead>
+        <tbody>
+{%- for r in model.directory %}
+          <tr><th scope="row" class="num font-normal" dir="ltr">{{ r.code }}</th><td class="item-name">{{ r.name }}</td><td class="num">{{ r.types }}</td><td class="num">{{ r.leaves }}</td><td class="num">{{ r.reqs }}</td><td class="num">{{ r.max }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.fam | tojson }};
+    var el = document.getElementById("chart-fam");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, tot = 0, out = "";
+        ps.forEach(function (p) { tot += p.value; out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"); });
+        return echarts.format.encodeHTML(d.full[i]) + "<br>סה״כ " + tot.toLocaleString("he-IL") + " שורות" + out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: narrow ? 3 : 5 },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: narrow ? 110 : 190, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "all", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.flags.pairs %}
+  (function () {
+    var d = {{ model.charts.pairs | tojson }};
+    var el = document.getElementById("chart-pairs");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex, out = "";
+        ps.forEach(function (p) { out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL") + " דרישות"; });
+        return echarts.format.encodeHTML(d.full[i]) + out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: narrow ? 36 : 48, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: narrow ? 110 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [
+        { name: d.names[0], type: "bar", data: d.a, label: { show: true, position: "right", fontSize: 10 } },
+        { name: d.names[1], type: "bar", data: d.b, label: { show: true, position: "right", fontSize: 10 } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.hist | tojson }};
+    var el = document.getElementById("chart-hist");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        return echarts.format.encodeHTML(ps[0].axisValue) + " דרישות: " + ps[0].value.toLocaleString("he-IL") + " סוגי מבנים";
+      } },
+      grid: { left: 8, right: 8, top: 16, bottom: 32, containLabel: true },
+      xAxis: { type: "category", data: d.x, name: "דרישות לסוג מבנה", nameLocation: "middle", nameGap: narrow ? 44 : 28,
+               axisLabel: { interval: 0, rotate: narrow ? 45 : 0, fontSize: 10 } },
+      yAxis: { type: "value", splitNumber: 3 },
+      series: [{ type: "bar", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.leaves | tojson }};
+    var el = document.getElementById("chart-leaves");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "<div style=\"max-width:300px;white-space:normal\">" + echarts.format.encodeHTML(d.full[i]) + "<br>" + d.v[i].toLocaleString("he-IL") + " דרישות</div>";
+      } },
+      grid: { left: 8, right: 36, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: narrow ? 160 : 260, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: [{ type: "bar", data: d.v, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- if model.flags.height %}
+  (function () {
+    var d = {{ model.charts.height | tojson }};
+    var el = document.getElementById("chart-height");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value, o = v.length > 5 ? 1 : 0;
+        return echarts.format.encodeHTML(d.x[p.dataIndex]) + " (" + d.n[p.dataIndex].toLocaleString("he-IL") + " סוגי מבנים)"
+          + "<br>מקסימום: " + v[o + 4] + "<br>רבעון עליון: " + v[o + 3] + "<br>חציון: " + v[o + 2]
+          + "<br>רבעון תחתון: " + v[o + 1] + "<br>מינימום: " + v[o];
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", name: "דרישות", min: 0 },
+      series: [{ type: "boxplot", data: d.box, itemStyle: { color: "#f1f7ff", borderColor: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+{%- endif %}
+  (function () {
+    var d = {{ model.charts.topics | tojson }};
+    var el = document.getElementById("chart-topics");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var tot = 0, out = "";
+        ps.forEach(function (p) { tot += p.value; out += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"); });
+        return echarts.format.encodeHTML(ps[0].axisValue) + "<br>סה״כ " + tot.toLocaleString("he-IL") + " שורות" + out;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", splitNumber: narrow ? 2 : 5 },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: narrow ? 130 : 230, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: d.series.map(function (s) { return { name: s.name, type: "bar", stack: "all", data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.xfull[p.value[0]]) + "<br>" + echarts.format.encodeHTML(d.y[p.value[1]]) + ": " + p.value[2] + "% (" + p.value[3].toLocaleString("he-IL") + " שורות)";
+      } },
+      grid: { left: 8, right: 8, top: narrow ? 36 : 8, bottom: narrow ? 4 : 56, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 90 : 30, width: narrow ? 70 : 110, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 9 : 12 } },
+      yAxis: { type: "category", data: d.y, splitArea: { show: true }, axisLabel: { interval: 0, width: narrow ? 100 : 200, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 9 : 12 } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", top: narrow ? 0 : undefined, bottom: narrow ? undefined : 4, itemWidth: 12, itemHeight: narrow ? 90 : 160,
+                   inRange: { color: ["#f0f4fa", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" },
+                   formatter: function (v) { return Math.round(v) + "%"; } },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontSize: 10, formatter: function (p) { return p.value[2] >= 1 ? String(Math.round(p.value[2])) : ""; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.common | tojson }};
+    var el = document.getElementById("chart-common");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, confine: true, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "<div style=\"max-width:300px;white-space:normal\">" + echarts.format.encodeHTML(d.full[i]) + "<br>סעיף " + echarts.format.encodeHTML(d.num[i]) + " · " + d.leaves[i].toLocaleString("he-IL") + " סוגי מבנים (" + d.share[i] + "%)</div>";
+      } },
+      grid: { left: 8, right: narrow ? 48 : 60, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { show: !narrow, formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: narrow ? 150 : 300, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 10 : 12 } },
+      series: [{ type: "bar", data: d.share, label: { show: true, position: "right", formatter: "{c}%" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+  (function () {
+    var d = {{ model.charts.src | tojson }};
+    var el = document.getElementById("chart-src");
+    var c = echarts.init(el);
+    var narrow = el.clientWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        return echarts.format.encodeHTML(ps[0].axisValue) + ": " + ps[0].value.toLocaleString("he-IL") + " שורות";
+      } },
+      grid: { left: 8, right: narrow ? 48 : 60, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow } },
+      yAxis: { type: "category", data: d.y, axisLabel: { width: narrow ? 140 : 260, overflow: "truncate", ellipsis: "…", fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", label: { show: true, position: "right" }, data: d.v.map(function (v, i) {
+        return d.muted[i] ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

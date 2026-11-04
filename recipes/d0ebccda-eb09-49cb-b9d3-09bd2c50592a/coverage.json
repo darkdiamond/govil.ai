@@ -1,0 +1,12 @@
+{
+  "registry.type": "chart-year, chart-type, chart-cum, chart-mstat, table:comp, kpi:auditors, kpi:maintainers, insight:mix, insight:mpeak, insight:both — whitespace-normalised; unknown types flow through after the two known ones",
+  "registry.company": "chart-co, chart-size, chart-city, table:comp, kpi:companies, insight:conc, insight:city, insight:mix — spellings unified by a key that drops punctuation and the company suffix",
+  "registry.first_name": "insight:both, insight:not_ok — full-name matching only, for aggregate counts; names are never listed on the page",
+  "registry.last_name": "insight:both, insight:not_ok — full-name matching only, for aggregate counts",
+  "registry.date": "chart-year, chart-ytd, chart-cum, chart-heat, chart-batch, chart-mstat, kpi:last, insight:ytd, insight:peak, insight:mpeak, insight:batch, insight:season, insight:dates — dd/mm/yyyy, malformed dates disclosed and excluded from time charts",
+  "registry.status": "chart-type, chart-mstat, chart-co, kpi:not_ok, insight:not_ok",
+  "registry.phone": "table:comp — share of rows with a phone only; the numbers stay in the explorer",
+  "registry.adress": "chart-city, table:comp, insight:city — locality extracted from the free-text company address",
+  "registry.email": "table:comp — share of rows with an email only",
+  "registry.simuchin": "skip: 100% empty in every row"
+}

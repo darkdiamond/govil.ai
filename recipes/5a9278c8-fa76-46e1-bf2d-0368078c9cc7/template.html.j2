@@ -1,0 +1,512 @@
+{% import "gov.j2" as gov %}
+<h1>מאפייני מוסדות חינוך בפיקוח משרד החינוך</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מוסד חינוך לפי סמל מוסד, שם מוסד או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: סמל מוסד, שם מוסד, רשות מקומית, יישוב, מגזר, זרם פיקוח וסוג מסגרת (גן ילדים, בית ספר ועוד).</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.inst, "מוסדות חינוך ב-" ~ model.labels.ref) }}
+  {{ gov.kpi(model.kpis.students, "תלמידים בגנים ובבתי ספר ב-" ~ model.labels.ref) }}
+  {% if model.kpis.growth %}{{ gov.kpi(model.kpis.growth, "שינוי במספר המוסדות מאז " ~ model.labels.y0) }}{% else %}{{ gov.kpi(model.kpis.auth, "רשויות מקומיות") }}{% endif %}
+  {{ gov.kpi(model.kpis.kg, "גני ילדים") }}
+  {{ gov.kpi(model.kpis.schools, "בתי ספר") }}
+  {% if model.kpis.growth %}{{ gov.kpi(model.kpis.auth, "רשויות מקומיות") }}{% endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מוסדות לפי שנה וסוג מסגרת") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.trend_lede }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria) }}
+  {{ gov.table(model.labels.trend_aria, model.cols.trend, model.tables.trend) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תלמידים בגני ילדים ובבתי ספר") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.students_lede }}</p>
+  {{ gov.chart("chart-students", model.labels.students_aria) }}
+  {{ gov.table(model.labels.students_aria, ["שנה", "גני ילדים", "בתי ספר", "סך הכול", "מוסדות בלי דיווח"], model.tables.students) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "זרמי פיקוח: ממלכתי, ממלכתי-דתי וחרדי") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.sup_lede }}</p>
+  {{ gov.chart("chart-sup", model.labels.sup_aria) }}
+  {{ gov.table(model.labels.sup_aria, model.cols.supervision, model.tables.supervision) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תלמידים לפי מגזר") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.sector_lede }}</p>
+  {{ gov.chart("chart-sector", model.labels.sector_aria) }}
+  {{ gov.table(model.labels.sector_aria, ["מגזר", "גנים ובתי ספר", "תלמידים", "שיעור", "שינוי מאז " ~ model.labels.y0], model.tables.sector) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "פריסה לפי מחוז") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.district_lede }}</p>
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-80 md:h-[420px]") }}
+  {{ gov.table(model.labels.district_aria, ["מחוז", "מוסדות (כל המסגרות)", "תלמידים", "שיעור מהתלמידים"], model.tables.district) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "הרשויות המקומיות הגדולות") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.auth_lede }}</p>
+  {{ gov.chart("chart-auth", model.labels.auth_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.auth_aria, ["רשות", "גנים ובתי ספר", "תלמידים", "שינוי מאז " ~ model.labels.y0], model.tables.authorities) }}
+</section>
+
+{% if model.charts.growth %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "היכן גדל מספר התלמידים") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.growth_lede }}</p>
+  {{ gov.chart("chart-growth", model.labels.growth_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.growth_aria, ["רשות", "תלמידים ב-" ~ model.labels.y0, "תלמידים ב-" ~ model.labels.ref, "שינוי"], model.tables.growth) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מבנה בתי הספר: טווח הכיתות") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.span_lede }}</p>
+  {{ gov.chart("chart-span", model.labels.span_aria) }}
+  {{ gov.table(model.labels.span_aria, ["טווח כיתות", "בתי ספר", "שיעור"], model.tables.span) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גודל בתי הספר לפי זרם פיקוח") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.size_lede }}</p>
+  {{ gov.chart("chart-size", model.labels.size_aria) }}
+  {{ gov.table(model.labels.size_aria, ["זרם פיקוח", "בתי ספר", "אחוזון 25", "חציון", "אחוזון 75"], model.tables.size) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה ילדים בגן") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.kg_lede }}</p>
+  {{ gov.chart("chart-kg", model.labels.kg_aria) }}
+  {{ gov.table(model.labels.kg_aria, ["ילדים בגן", "גנים", "שיעור"], model.tables.kg_size) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "מעמד משפטי: רשמי, מוכר, פטור ותרבותי ייחודי") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.legal_lede }}</p>
+  {{ gov.chart("chart-legal", model.labels.legal_aria) }}
+  {{ gov.table(model.labels.legal_aria, model.cols.legal, model.tables.legal) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חינוך מיוחד") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.special_lede }}</p>
+  {{ gov.chart("chart-special", model.labels.special_aria) }}
+  {{ gov.table(model.labels.special_aria, ["שנה", "מוסדות חינוך מיוחד", "שיעור מהגנים ובתי הספר", "תלמידים"], model.tables.special) }}
+</section>
+
+{% if model.charts.programs.names %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "תכניות וזכאויות בבתי הספר") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.prog_lede }}</p>
+  {{ gov.chart("chart-prog", model.labels.prog_aria) }}
+  {{ gov.table(model.labels.prog_aria, ["תכנית או זכאות", "בתי ספר", "בתי ספר עם נתון", "שיעור"], model.tables.programs) }}
+  {% if model.tables.yoha %}
+  {{ gov.table("בתי ספר ביום חינוך ארוך לפי סוג התכנית, כפי שהוא רשום במאגר", ["סוג יוח״א", "בתי ספר"], model.tables.yoha) }}
+  {% endif %}
+</section>
+{% endif %}
+
+{% if model.charts.track.names %}
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "בגרות: מסלול, גמול הכנה והכרה בציונים") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.track_lede }}</p>
+  {{ gov.chart("chart-track", model.labels.track_aria, "h-64 md:h-72") }}
+  {{ gov.table(model.labels.track_aria, ["מסלול", "מוסדות"], model.tables.track) }}
+  {% if model.tables.gmul %}
+  {{ gov.table("מוסדות לפי זכאות לגמול הכנה לבגרות", ["גמול הכנה לבגרות", "מוסדות"], model.tables.gmul) }}
+  {% endif %}
+  {% if model.tables.hakara %}
+  {{ gov.table("מוסדות לפי הכרה בציונים שנתיים", ["הכרה בציון שנתי", "מוסדות"], model.tables.hakara) }}
+  {% endif %}
+</section>
+{% endif %}
+
+{% if model.charts.founding %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שנת יסוד") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.found_lede }}</p>
+  {{ gov.chart("chart-found", model.labels.found_aria) }}
+  {{ gov.table(model.labels.found_aria, ["שנת יסוד", "מוסדות"], model.tables.founding) }}
+</section>
+{% endif %}
+
+{% if model.charts.churn.x %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מוסדות חדשים ומוסדות שיצאו") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.churn_lede }}</p>
+  {{ gov.chart("chart-churn", model.labels.churn_aria) }}
+  {{ gov.table(model.labels.churn_aria, ["מעבר", "חדשים", "יצאו", "נטו"], model.tables.churn, ltr=(3,)) }}
+</section>
+{% endif %}
+
+{% if model.charts.tree %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מסגרות שאינן גנים או בתי ספר") }}
+  <p class="m-0 mb-3 text-sm text-subtle leading-relaxed">{{ model.labels.tree_lede }}</p>
+  {{ gov.chart("chart-tree", model.labels.tree_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.tree_aria, ["סוג מסגרת", "מוסדות"], model.tables.frames) }}
+</section>
+{% endif %}
+
+{% if model.tables.largest %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "בתי הספר הגדולים") }}
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.largest_caption }}</caption>
+      <thead><tr><th scope="col">בית ספר</th><th scope="col">סמל מוסד</th><th scope="col">יישוב</th><th scope="col">פיקוח</th><th scope="col">תלמידים</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.largest %}
+        <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td dir="ltr">{{ r[4] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">קובץ המכיל את כלל מוסדות החינוך שבפיקוח משרד החינוך</p>
+</section>
+
+<style>
+  @media (max-width: 639px) {
+    #chart-auth, #chart-growth { height: 30rem !important; }
+    #chart-district { height: 24rem !important; }
+    #chart-tree { height: 24rem !important; }
+  }
+</style>
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const el = document.getElementById("chart-trend");
+    const c = echarts.init(el);
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", axisLabel: { formatter: nf } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "t", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.students | tojson }};
+    const c = echarts.init(document.getElementById("chart-students"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return v >= 1e6 ? (v / 1e6) + " מיליון" : (v >= 1e3 ? (v / 1e3) + " אלף" : v); } } },
+      series: [
+        { type: "bar", stack: "s", name: "גני ילדים", data: d.kg },
+        { type: "bar", stack: "s", name: "בתי ספר", data: d.school }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.supervision | tojson }};
+    const c = echarts.init(document.getElementById("chart-sup"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: d.series.map(function (s, i) {
+        return { type: "bar", stack: "p", name: s.name, data: s.share,
+                 label: { show: true, formatter: function (p) { return p.value >= 8 ? p.value + "%" : ""; }, color: i < 2 ? "#fff" : "#0c3058" } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.sector | tojson }};
+    const c = echarts.init(document.getElementById("chart-sector"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", axisLabel: { formatter: function (v) { return v >= 1e6 ? (v / 1e6) + " מיליון" : (v >= 1e3 ? (v / 1e3) + " אלף" : v); } } },
+      series: [{ type: "bar", name: "תלמידים", data: d.ref,
+                 label: { show: true, position: "top", formatter: function (p) {
+                   const g = d.growth[p.dataIndex];
+                   return (g === null || g === undefined) ? "" : (g > 0 ? "+" : "") + g + "%";
+                 } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.district | tojson }};
+    const c = echarts.init(document.getElementById("chart-district"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 52, bottom: 28, containLabel: true },
+      xAxis: { type: "value", name: "אלפי תלמידים", nameLocation: "middle", nameGap: 24, splitNumber: 3, axisLabel: { formatter: function (v) { return (v / 1e3).toLocaleString("en-US"); } } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "d", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.authorities | tojson }};
+    const c = echarts.init(document.getElementById("chart-auth"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      grid: { left: 8, right: 56, top: 8, bottom: 28, containLabel: true },
+      xAxis: { type: "value", name: "אלפי תלמידים", nameLocation: "middle", nameGap: 24, splitNumber: 3, axisLabel: { formatter: function (v) { return (v / 1e3).toLocaleString("en-US"); } } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "תלמידים", data: d.values,
+                 label: { show: true, position: "right", formatter: function (p) { return nf(p.value); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% if model.charts.growth %}
+<script>
+  (function () {
+    const d = {{ model.charts.growth | tojson }};
+    const c = echarts.init(document.getElementById("chart-growth"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return (v > 0 ? "+" : "") + v + "%"; } },
+      grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "שינוי", data: d.values.map(function (v) {
+                   return v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v;
+                 }),
+                 label: { show: true, position: "right", formatter: function (p) { return (p.value > 0 ? "+" : "") + p.value + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+<script>
+  (function () {
+    const d = {{ model.charts.span | tojson }};
+    const c = echarts.init(document.getElementById("chart-span"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "בתי ספר", data: d.values, label: { show: true, position: "top", formatter: function (p) { return nf(p.value); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.size | tojson }};
+    const c = echarts.init(document.getElementById("chart-size"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "item", formatter: function (p) {
+        const v = p.value;
+        return echarts.format.encodeHTML(d.names[p.dataIndex]) + "<br>אחוזון 95: " + nf(v[5]) + "<br>אחוזון 75: " + nf(v[4]) + "<br>חציון: " + nf(v[3]) +
+          "<br>אחוזון 25: " + nf(v[2]) + "<br>אחוזון 5: " + nf(v[1]) + "<br>בתי ספר: " + nf(d.n[p.dataIndex]);
+      } },
+      grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value", name: "תלמידים", nameTextStyle: { align: "right" } },
+      series: [{ type: "boxplot", name: "תלמידים בבית ספר", data: d.box }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.kg_size | tojson }};
+    const c = echarts.init(document.getElementById("chart-kg"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "ילדים", nameLocation: "middle", nameGap: 28, axisLabel: { interval: 0, fontSize: 10, overflow: "break", width: 40 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "גנים", barCategoryGap: "8%", data: d.values,
+                 label: { show: true, position: "top", fontSize: 10, formatter: function (p) { return nf(p.value); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.legal | tojson }};
+    const c = echarts.init(document.getElementById("chart-legal"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 44, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value" },
+      series: d.series.map(function (s) { return { type: "bar", stack: "l", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.special | tojson }};
+    const c = echarts.init(document.getElementById("chart-special"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis" },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 52, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0 } },
+      yAxis: [{ type: "value" }, { type: "value", scale: true, axisLabel: { formatter: "{value}%" } }],
+      series: [
+        { type: "bar", name: "מוסדות חינוך מיוחד", data: d.count, tooltip: { valueFormatter: nf } },
+        { type: "line", name: "שיעור מהגנים ובתי הספר", yAxisIndex: 1, data: d.share, tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% if model.charts.programs.names %}
+<script>
+  (function () {
+    const d = {{ model.charts.programs | tojson }};
+    const c = echarts.init(document.getElementById("chart-prog"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 8, right: 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", name: "שיעור בתי הספר", data: d.share,
+                 label: { show: true, position: "right", formatter: function (p) { return p.value + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+{% if model.charts.track.names %}
+<script>
+  (function () {
+    const d = {{ model.charts.track | tojson }};
+    const c = echarts.init(document.getElementById("chart-track"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "מוסדות", data: d.values, label: { show: true, position: "top", formatter: function (p) { return nf(p.value); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+{% if model.charts.founding %}
+<script>
+  (function () {
+    const d = {{ model.charts.founding | tojson }};
+    const c = echarts.init(document.getElementById("chart-found"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45, fontSize: 10 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "מוסדות", data: d.values.map(function (v, i) {
+        return i === 0 ? { value: v, itemStyle: { color: "#c3cfe7" } } : v;
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+{% if model.charts.churn.x %}
+<script>
+  (function () {
+    const d = {{ model.charts.churn | tojson }};
+    const c = echarts.init(document.getElementById("chart-churn"));
+    const nf = function (v) { return Math.abs(Number(v)).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: nf },
+      color: ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#3d70b0", "#dbe8fb"],
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, fontSize: 10 } },
+      yAxis: { type: "value", axisLabel: { formatter: nf } },
+      series: [
+        { type: "bar", stack: "c", name: "חדשים", data: d.new },
+        { type: "bar", stack: "c", name: "יצאו", data: d.gone }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+{% if model.charts.tree %}
+<script>
+  (function () {
+    const d = {{ model.charts.tree | tojson }};
+    const c = echarts.init(document.getElementById("chart-tree"));
+    const nf = function (v) { return Number(v).toLocaleString("en-US"); };
+    c.setOption(window.GovEcharts.option({
+      tooltip: { formatter: function (p) {
+        const path = p.treePathInfo || [];
+        const raw = path.length ? path[path.length - 1].name : "";
+        return echarts.format.encodeHTML(raw) + ": " + nf(p.value);
+      } },
+      series: [{
+        type: "treemap", name: "מסגרות", data: d, leafDepth: 1, roam: false,
+        top: 8, left: 4, right: 4, bottom: 32,
+        label: { show: true, formatter: "{b}" },
+        upperLabel: { show: true, height: 22 },
+        breadcrumb: { show: true, bottom: 4 },
+        levels: [
+          { itemStyle: { borderColor: "#fff", borderWidth: 2, gapWidth: 2 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 1, borderWidth: 1 } }
+        ]
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}

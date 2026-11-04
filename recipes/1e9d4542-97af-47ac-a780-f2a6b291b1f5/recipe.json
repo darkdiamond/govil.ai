@@ -1,0 +1,72 @@
+{
+  "contract_version": 1,
+  "dataset_id": "1e9d4542-97af-47ac-a780-f2a6b291b1f5",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T08:10:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-03T10:45:14.015914+00:00",
+    "rows": {
+      "main": 1603610
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_schema": [
+        "StationId",
+        "StationName",
+        "LowOrPeakDescFull",
+        "year_key",
+        "month_key",
+        "day_1",
+        "day_28"
+      ],
+      "pick": "latest",
+      "required_columns": [
+        "StationId",
+        "StationName",
+        "LowOrPeakDescFull",
+        "year_key",
+        "month_key",
+        "day_1",
+        "day_2",
+        "day_3",
+        "day_4",
+        "day_5",
+        "day_6",
+        "day_7",
+        "day_8",
+        "day_9",
+        "day_10",
+        "day_11",
+        "day_12",
+        "day_13",
+        "day_14",
+        "day_15",
+        "day_16",
+        "day_17",
+        "day_18",
+        "day_19",
+        "day_20",
+        "day_21",
+        "day_22",
+        "day_23",
+        "day_24",
+        "day_25",
+        "day_26",
+        "day_27",
+        "day_28",
+        "day_29",
+        "day_30",
+        "day_31"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": [],
+  "limits": {
+    "max_records": 3000000,
+    "max_bytes": 400000000,
+    "total_bytes": 400000000
+  }
+}

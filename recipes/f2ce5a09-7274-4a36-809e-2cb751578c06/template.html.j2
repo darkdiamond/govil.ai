@@ -1,0 +1,308 @@
+{% import "gov.j2" as gov %}
+<style>
+  @media (max-width: 639px) {
+    #chart-cities { height: 30rem !important; }
+  }
+  .bs-table th, .bs-table td { padding: 0.35rem 0.5rem; text-align: start; white-space: nowrap; }
+  .bs-table thead th { border-bottom: 1px solid #c3cfe7; }
+</style>
+<h1>בודקי שכר מוסמכים: פנקס בודקי השכר של משרד העבודה</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בודק שכר מוסמך לפי שם או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הפנקס: שם פרטי, שם משפחה, יישוב, תאריך רישום ומספר רישום.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+{%- for key in model.kpi_order %}
+  {{ gov.kpi(model.kpis[key], model.labels["kpi_" ~ key]) }}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.has_years %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה בודקי שכר נרשמים בכל שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_lede }}</p>
+  {{ gov.chart("chart-years", model.labels.years_aria) }}
+  {%- if model.flags.has_undated %}
+  <p class="mt-2 mb-0 text-xs text-subtle">{{ model.labels.undated_note }}</p>
+  {%- endif %}
+  {{ gov.table(model.labels.years_caption, ["שנה", "נרשמים", "תאריכי רישום", "מצטבר"], model.tables.years, ltr=(0,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גודל הפנקס לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cum_lede }}</p>
+  {{ gov.chart("chart-cum", model.labels.cum_aria, h="h-64 md:h-80") }}
+  {{ gov.table(model.labels.years_caption, ["שנה", "נרשמים", "תאריכי רישום", "מצטבר"], model.tables.years, ltr=(0,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_cities %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "היכן מתגוררים בודקי השכר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_lede }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.cities_caption, ["יישוב", "בודקים", "שיעור מהפנקס"], model.tables.cities) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_buckets %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "יישובים גדולים וקטנים בפנקס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bucket_lede }}</p>
+  {{ gov.chart("chart-buckets", model.labels.bucket_aria) }}
+  {{ gov.table(model.labels.bucket_caption, ["בודקים ביישוב", "יישובים", "שיעור היישובים", "בודקים", "שיעור הבודקים"], model.tables.buckets) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.has_heat %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "נרשמים לפי שנה ביישובים הגדולים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_lede }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, h="h-80 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="bs-table mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+        <thead><tr>{% for c in model.tables.heat_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.has_batches %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מחזורי רישום: כמה נרשמו יחד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.batch_lede }}</p>
+  {{ gov.chart("chart-batches", model.labels.batch_aria) }}
+  {{ gov.table(model.labels.batch_caption, ["נרשמים באותו תאריך", "בודקים", "שיעור"], model.tables.batches) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על פנקס בודקי השכר") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">בודק שכר מוסמך הוא מי שעבר הכשרה ובחינה, קיבל הסמכה ממשרד העבודה ונרשם בפנקס בודקי השכר. בדיקת שכר (ביקורת שכר) בוחנת אם מעסיק משלם לעובדיו את השכר, את הפרשות הפנסיה ואת יתר הזכויות לפי חוקי העבודה, ומעסיקים, קבלני שירות ומזמיני שירות נעזרים בה כדי לוודא שהם עומדים בחובותיהם. לפני התקשרות עם בודק שכר אפשר לוודא שהוא רשום בפנקס באמצעות החיפוש בתחתית העמוד. יישוב הבודק הוא יישוב המגורים הרשום בפנקס, ולא בהכרח המקום שבו הוא עובד.</p>
+  <p class="mt-2 mb-0 text-sm text-subtle leading-relaxed">תאריכי הרישום מגיעים מקובץ אקסל, ובחלק מהרשומות נראה שהיום והחודש הוחלפו. לכן העמוד מסכם את הרישום לפי שנה בלבד, ואינו מציג פילוח לפי חודש.</p>
+</section>
+
+{%- if model.flags.has_years %}
+<script>
+  (function () {
+    const d = {{ model.charts.years | tojson }};
+    const el = document.getElementById("chart-years");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.labels[i]) + (d.partial[i] ? " (שנה חלקית)" : "") + "<br/>" +
+            Number(d.values[i]).toLocaleString("he-IL") + " נרשמים<br/>" +
+            Number(d.dates[i]).toLocaleString("he-IL") + " תאריכי רישום";
+        }
+      },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12, rotate: narrow && d.labels.length > 8 ? 45 : 0 } },
+      yAxis: { type: "value", splitNumber: narrow ? 3 : 5 },
+      series: [{
+        type: "bar",
+        barMaxWidth: 40,
+        data: d.values.map(function (v, i) {
+          return d.partial[i] ? { value: v, itemStyle: { color: "#9a6700" } } : v;
+        }),
+        label: { show: !narrow, position: "top", fontFamily: "Rubik", color: "#0c3058",
+          formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.years | tojson }};
+    const el = document.getElementById("chart-cum");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          return "סוף " + echarts.format.encodeHTML(d.labels[i]) + (d.partial[i] ? " (שנה חלקית)" : "") + "<br/>" +
+            Number(d.cum[i]).toLocaleString("he-IL") + " בודקים בפנקס";
+        }
+      },
+      grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", boundaryGap: false, data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12, rotate: narrow && d.labels.length > 8 ? 45 : 0 } },
+      yAxis: { type: "value", splitNumber: narrow ? 3 : 5 },
+      series: [{ type: "line", data: d.cum, symbolSize: 6, areaStyle: { opacity: 0.12 } }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_cities %}
+<script>
+  (function () {
+    const d = {{ model.charts.cities | tojson }};
+    const el = document.getElementById("chart-cities");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.labels[i]) + "<br/>" +
+            Number(d.values[i]).toLocaleString("he-IL") + " בודקים (" + d.shares[i] + "%)";
+        }
+      },
+      grid: { left: 8, right: narrow ? 36 : 48, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: !narrow }, splitNumber: 3 },
+      yAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 11 : 12 } },
+      series: [{
+        type: "bar",
+        data: d.values,
+        barMaxWidth: 22,
+        label: { show: true, position: "right", fontFamily: "Rubik", color: "#0c3058",
+          formatter: function (p) { return Number(p.value).toLocaleString("he-IL"); } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_buckets %}
+<script>
+  (function () {
+    const d = {{ model.charts.buckets | tojson }};
+    const el = document.getElementById("chart-buckets");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[3]],
+      legend: { top: 0, textStyle: { fontFamily: "Rubik", fontSize: narrow ? 11 : 12 } },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          return "בודקים ביישוב: " + echarts.format.encodeHTML(d.labels[i]) + "<br/>" +
+            Number(d.n_cities[i]).toLocaleString("he-IL") + " יישובים (" + d.cities[i] + "%)<br/>" +
+            Number(d.n_examiners[i]).toLocaleString("he-IL") + " בודקים (" + d.examiners[i] + "%)";
+        }
+      },
+      grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" }, splitNumber: narrow ? 3 : 5 },
+      series: [
+        { name: "שיעור היישובים", type: "bar", data: d.cities, barMaxWidth: 32,
+          label: { show: true, position: "top", fontSize: narrow ? 10 : 11, formatter: "{c}%" } },
+        { name: "שיעור הבודקים", type: "bar", data: d.examiners, barMaxWidth: 32,
+          label: { show: true, position: "top", fontSize: narrow ? 10 : 11, formatter: "{c}%" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_heat %}
+<script>
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const el = document.getElementById("chart-heat");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: function (p) {
+          return echarts.format.encodeHTML(d.cities[p.value[1]]) + ", " + echarts.format.encodeHTML(d.years[p.value[0]]) +
+            "<br/>" + Number(p.value[2]).toLocaleString("he-IL") + " נרשמים";
+        }
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.years, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12, rotate: narrow && d.years.length > 6 ? 45 : 0 } },
+      yAxis: { type: "category", data: d.cities, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      visualMap: {
+        min: 0, max: Math.max(d.max, 1), dimension: 2, calculable: false,
+        orient: "horizontal", left: "center", bottom: 0, itemHeight: narrow ? 120 : 180,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap",
+        data: d.cells,
+        label: { show: true, fontFamily: "Rubik", fontSize: narrow ? 9 : 11 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.has_batches %}
+<script>
+  (function () {
+    const d = {{ model.charts.batches | tojson }};
+    const el = document.getElementById("chart-batches");
+    if (!el) return;
+    const chart = echarts.init(el);
+    const narrow = el.clientWidth < 500;
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          const i = ps[0].dataIndex;
+          return "נרשמים באותו תאריך: " + echarts.format.encodeHTML(d.labels[i]) + "<br/>" +
+            Number(d.values[i]).toLocaleString("he-IL") + " בודקים (" + d.shares[i] + "%)";
+        }
+      },
+      grid: { left: 8, right: 8, top: 24, bottom: 28, containLabel: true },
+      xAxis: { type: "category", data: d.labels, name: "נרשמים באותו תאריך", nameLocation: "middle", nameGap: 26,
+        axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", splitNumber: narrow ? 3 : 5 },
+      series: [{
+        type: "bar",
+        data: d.values,
+        barMaxWidth: 40,
+        label: { show: true, position: "top", fontFamily: "Rubik", color: "#0c3058", fontSize: narrow ? 10 : 12,
+          formatter: function (p) { return d.shares[p.dataIndex] + "%"; } }
+      }]
+    }));
+    window.addEventListener("resize", function () { chart.resize(); });
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,507 @@
+{% import "gov.j2" as gov %}
+{%- macro rtable(caption, cols, rows, ltr=()) -%}
+<details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row"{% if 0 in ltr %} dir="ltr"{% endif %}>{{ v }}</th>{% else %}<td{% if loop.index0 in ltr %} dir="ltr"{% endif %}>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endmacro %}
+<h1>תאונות דרכים לפי רשות מקומית ויישוב</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור נתוני תאונות דרכים בעיר, במועצה או ביישוב ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_note }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.acc, model.labels.acc_kpi) }}
+  {{ gov.kpi(model.kpis.inj, "נפגעים (הרוגים ופצועים)") }}
+  {{ gov.kpi(model.kpis.dead, "הרוגים") }}
+  {{ gov.kpi(model.kpis.severe, "פצועים קשה") }}
+  {{ gov.kpi(model.kpis.dead1000, model.labels.dead1000_kpi) }}
+  {{ gov.kpi(model.kpis.auth, model.labels.auth_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת התאונות לפי רשות") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.map_lede }}</p>
+  <div id="map-muni" class="h-96 md:h-[560px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <div class="mt-3 text-sm text-subtle">
+    <span class="font-semibold">{{ model.labels.map_legend }}</span>
+    <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-1 mt-1 mb-0 ps-0 list-none"></ul>
+  </div>
+</section>
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-pts-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הרשויות עם הכי הרבה תאונות") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.top_acc_lede }}</p>
+  {{ gov.chart("chart-top-acc", model.labels.top_acc_aria, h="h-[30rem] md:h-[480px]") }}
+  {{ rtable(model.labels.top_acc_aria, ["דירוג", "רשות", "סוג רשות", "תאונות", "הרוגים", "פצועים קשה"], model.tables.top_acc, ltr=(3, 4, 5)) }}
+</section>
+
+{%- if model.flags.dead %}
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "הרשויות עם הכי הרבה הרוגים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.top_dead_lede }}</p>
+  {{ gov.chart("chart-top-dead", model.labels.top_dead_aria, h="h-[30rem] md:h-[480px]") }}
+  {{ rtable(model.labels.top_dead_aria, ["דירוג", "רשות", "הרוגים", "תאונות", model.labels.col_dead1000], model.tables.top_dead, ltr=(2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.sev %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">חומרת התאונות: איפה הן קטלניות יותר</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.sev_lede }}</p>
+    {{ gov.chart("chart-sev", model.labels.sev_aria, h="h-[30rem] md:h-[480px]") }}
+    {{ rtable(model.labels.sev_aria, ["דירוג", "רשות", "סוג רשות", model.labels.col_sev, "תאונות"], model.tables.sev, ltr=(3, 4)) }}
+  </section>
+{%- endif %}
+{%- if model.flags.dens %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">צפיפות התאונות לקמ״ר</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.dens_lede }}</p>
+    {{ gov.chart("chart-dens", model.labels.dens_aria, h="h-[30rem] md:h-[480px]") }}
+    {{ rtable(model.labels.dens_aria, ["דירוג", "רשות", "תאונות לקמ״ר", "תאונות", "שטח (קמ״ר)"], model.tables.dens, ltr=(2, 3, 4)) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.scatter %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "צפיפות מול חומרה: עיר מול שטח פתוח") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.scatter_lede }}</p>
+  <div id="chart-scatter" class="h-96 md:h-[480px]" role="img" aria-label="{{ model.labels.scatter_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">לפי סוג רשות: נתח התאונות מול נתח ההרוגים</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.types_lede }}</p>
+    {{ gov.chart("chart-types", model.labels.types_aria, h="h-80 md:h-96") }}
+    {{ rtable(model.labels.types_aria, ["סוג רשות", "רשויות", "תאונות", "הרוגים", model.labels.col_sev, model.labels.col_dead1000], model.tables.types, ltr=(1, 2, 3, 4, 5)) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">לפי מחוז</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.districts_lede }}</p>
+    {{ gov.chart("chart-districts", model.labels.districts_aria, h="h-80 md:h-96") }}
+    {{ rtable(model.labels.districts_aria, ["מחוז", "תאונות", "הרוגים", model.labels.col_sev, "תאונות לקמ״ר"], model.tables.districts, ltr=(1, 2, 3, 4)) }}
+  </section>
+</div>
+
+{%- if model.flags.open %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מועצות אזוריות: הכבישים הפתוחים מול היישובים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.open_lede }}</p>
+  {{ gov.chart("chart-open", model.labels.open_aria, h="h-64 md:h-72") }}
+  {{ rtable(model.labels.open_aria, ["מדד", "שטח פתוח", "בתוך היישובים", "נתח השטח הפתוח"], model.tables.open, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">חומרת הפגיעה</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.age_lede }}</p>
+    {{ gov.chart("chart-injsev", model.labels.injsev_aria, h="h-64 md:h-80") }}
+    {{ rtable(model.labels.injsev_aria, ["חומרה", "נפגעים", "שיעור"], model.tables.injsev, ltr=(1, 2)) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">גיל הנפגעים</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.age_aria }}</p>
+    {{ gov.chart("chart-age", model.labels.age_aria, h="h-64 md:h-80") }}
+    {{ rtable(model.labels.age_aria, ["קבוצת גיל", "נפגעים", "שיעור"], model.tables.age, ltr=(1, 2)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">הולכי רגל ודו-גלגלי חשמלי לפי סוג רשות</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.roles_lede }}</p>
+    {{ gov.chart("chart-roles", model.labels.roles_aria, h="h-80 md:h-96") }}
+    {{ rtable(model.labels.roles_aria, ["סוג רשות", "הולכי רגל", "שיעור", "דו-גלגלי חשמלי", "שיעור"], model.tables.roles, ltr=(1, 2, 3, 4)) }}
+  </section>
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">כלי הרכב המעורבים</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.vehmix_lede }}</p>
+    {{ gov.chart("chart-vehmix", model.labels.vehmix_aria, h="h-96 md:h-96") }}
+    {{ rtable(model.labels.vehmix_aria, ["סוג רשות"] + model.charts.vehmix.series, model.tables.vehmix, ltr=(1, 2, 3, 4, 5, 6)) }}
+  </section>
+</div>
+
+{%- if model.flags.shares %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מי נפגע איפה: הולכי רגל, דו-גלגלי חשמלי, ילדים ומבוגרים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.shares_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+{%- for key in ["ped", "elec", "kids", "seniors"] %}
+    <div>
+      <h3 class="m-0 mb-2 text-sm font-semibold text-ink-deep">{{ model.labels.share_titles[key] }}</h3>
+      {{ gov.chart("chart-share-" ~ key, model.labels[key ~ "_aria"], h="h-80 md:h-80") }}
+      {{ rtable(model.labels[key ~ "_aria"], ["רשות", "שיעור מהנפגעים", "נפגעים"], model.tables.shares[key], ltr=(1, 2)) }}
+    </div>
+{%- endfor %}
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">תאונות דרכים, שנחקרו על ידי המשטרה, ונאספו על ידי הלמ"ס (מאגרים: ת.ד. מורחב וכללי), בחמשת השנים האחרונות. מיפוי בכל הרמות וסכימה לפי שטח רשות מוניציפלית.</p>
+</section>
+
+<script>
+  (function () {
+    var esc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    var num = function (v) { return Number(v).toLocaleString("he-IL"); };
+    var short = function (s) { s = String(s); return s.length > 22 ? s.slice(0, 21) + "…" : s; };
+    window.AccMuni = {
+      esc: esc, num: num,
+      hbar: function (id, names, series, o) {
+        var el = document.getElementById(id);
+        if (!el || !window.echarts) { return; }
+        o = o || {};
+        var c = echarts.init(el);
+        var unit = o.unit || "";
+        var s = series.map(function (x, i) {
+          var out = { name: x.name, type: "bar", data: x.data, barMaxWidth: 22, itemStyle: { color: x.color } };
+          if (i > 0 && o.overlay) { out.barGap = "-100%"; }
+          if (i === 0 && o.mark != null) {
+            out.markLine = { symbol: "none", silent: true, lineStyle: { color: "#dc3545", type: "dashed" },
+              label: { formatter: o.markLabel || "", color: "#dc3545", fontFamily: "Rubik" }, data: [{ xAxis: o.mark }] };
+          }
+          return out;
+        });
+        c.setOption(window.GovEcharts.option({
+          color: window.GOVIL_PALETTE,
+          legend: series.length > 1 ? { top: 0, textStyle: { fontFamily: "Rubik" } } : undefined,
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+            var lines = ["<strong>" + esc(ps[0].name) + "</strong>"];
+            ps.forEach(function (p) { lines.push(esc(p.seriesName) + ": " + num(p.value) + unit); });
+            if (o.extra) { lines.push(esc(o.extra.label) + ": " + num(o.extra.data[ps[0].dataIndex])); }
+            return lines.join("<br>");
+          } },
+          grid: { left: 8, right: 16, top: series.length > 1 ? 32 : 8, bottom: 24, containLabel: true },
+          xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: function (v) { return num(v) + unit; } } },
+          yAxis: { type: "category", inverse: true, data: names,
+            axisLabel: { interval: 0, fontSize: 11, formatter: short, width: el.clientWidth < 520 ? 110 : 200, overflow: "truncate" } },
+          series: s
+        }));
+        window.addEventListener("resize", function () { c.resize(); });
+      }
+    };
+  })();
+</script>
+
+{%- if model.flags.map %}
+<script>
+  (function () {
+    var el = document.getElementById("map-muni");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.charts.map.chunks | length, "bounds": model.charts.map.bounds, "classes": model.charts.map.classes, "unit": model.labels.sev_unit} | tojson }};
+    var colors = ["#9aa5b1", "#a9c8f5", "#4d8ff0", "#0b3668", "#dc3545"];
+    var pts = [];
+    for (var i = 0; i < meta.n; i++) {
+      var node = document.getElementById("map-pts-" + i);
+      if (node) { pts = pts.concat(JSON.parse(node.textContent)); }
+    }
+    var max = 1;
+    pts.forEach(function (p) { if (p[3] > max) { max = p[3]; } });
+    var maxR = el.clientWidth < 520 ? Math.max(8, el.clientWidth / 22) : 26;
+    pts.sort(function (a, b) { return b[3] - a[3]; });
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    pts.forEach(function (p) {
+      var m = L.circleMarker([p[0], p[1]], {
+        radius: 2 + maxR * Math.sqrt(p[3] / max), color: "#ffffff", weight: 0.75,
+        fillColor: colors[p[7]] || colors[0], fillOpacity: 0.8
+      }).addTo(map);
+      var box = document.createElement("div");
+      var t = document.createElement("strong");
+      t.textContent = p[2];
+      box.appendChild(t);
+      [["תאונות", p[3].toLocaleString("he-IL")], ["הרוגים", p[4].toLocaleString("he-IL")],
+       ["פצועים קשה", p[5].toLocaleString("he-IL")], ["הרוגים ופצועים קשה", p[6] + " " + meta.unit]].forEach(function (r) {
+        var d = document.createElement("div");
+        d.textContent = r[0] + ": " + r[1];
+        box.appendChild(d);
+      });
+      m.bindPopup(box);
+    });
+    if (meta.bounds.length) { map.fitBounds(meta.bounds, { padding: [10, 10] }); }
+    var legend = document.getElementById("map-legend");
+    meta.classes.forEach(function (label, i) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:12px;height:12px;border-radius:50%;background:" + colors[i];
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(label));
+      legend.appendChild(li);
+    });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.top_acc | tojson }};
+    window.AccMuni.hbar("chart-top-acc", d.names, [
+      { name: "תאונות", data: d.acc, color: "#0068f5" },
+      { name: "הרוגים ופצועים קשה", data: d.ds, color: "#0b3668" }
+    ], { overlay: true });
+  })();
+</script>
+
+{%- if model.flags.dead %}
+<script>
+  (function () {
+    var d = {{ model.charts.top_dead | tojson }};
+    window.AccMuni.hbar("chart-top-dead", d.names, [{ name: "הרוגים", data: d.dead, color: "#0b3668" }],
+      { extra: { label: "תאונות", data: d.acc } });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.sev %}
+<script>
+  (function () {
+    var d = {{ model.charts.sev | tojson }};
+    var lbl = {{ model.labels.col_sev | tojson }};
+    window.AccMuni.hbar("chart-sev", d.names, [{ name: lbl, data: d.vals, color: "#0068f5" }],
+      { mark: d.nat, markLabel: "ממוצע", extra: { label: "תאונות", data: d.acc } });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.dens %}
+<script>
+  (function () {
+    var d = {{ model.charts.dens | tojson }};
+    window.AccMuni.hbar("chart-dens", d.names, [{ name: "תאונות לקמ״ר", data: d.vals, color: "#0068f5" }],
+      { extra: { label: "תאונות", data: d.acc } });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.scatter %}
+<script>
+  (function () {
+    var el = document.getElementById("chart-scatter");
+    if (!el || !window.echarts) { return; }
+    var groups = {{ model.charts.scatter | tojson }};
+    var lbl = {{ model.labels.col_sev | tojson }};
+    var max = 1;
+    groups.forEach(function (g) { g.data.forEach(function (p) { if (p[2] > max) { max = p[2]; } }); });
+    var esc = window.AccMuni.esc, num = window.AccMuni.num;
+    var scol = ["#0068f5", "#0b3668", "#6c9fd8", "#ffc107", "#6c757d", "#b7d2f7", "#dc3545"];
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: scol,
+      legend: { top: 0, type: "scroll", textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "item", formatter: function (p) {
+        return "<strong>" + esc(p.value[3]) + "</strong><br>" + esc(p.seriesName) +
+          "<br>תאונות: " + num(p.value[2]) + "<br>תאונות לקמ״ר: " + num(p.value[0]) + "<br>" + esc(lbl) + ": " + num(p.value[1]);
+      } },
+      grid: { left: 8, right: 24, top: 48, bottom: 32, containLabel: true },
+      xAxis: { type: "log", name: "תאונות לקמ״ר", nameLocation: "middle", nameGap: 26, axisLabel: { formatter: function (v) { return num(v); } } },
+      yAxis: { type: "value", name: lbl, nameTextStyle: { align: "right" } },
+      series: groups.map(function (g, gi) {
+        return { name: g.name, type: "scatter", data: g.data, itemStyle: { opacity: 0.75, color: scol[gi % scol.length] },
+          symbolSize: function (v) { return 5 + 28 * Math.sqrt(v[2] / max); } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-types");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.types | tojson }};
+    var esc = window.AccMuni.esc;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#dc3545"],
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "<strong>" + esc(ps[0].name) + "</strong><br>" + ps.map(function (p) { return esc(p.seriesName) + ": " + p.value + "%"; }).join("<br>") +
+          "<br>" + esc({{ model.labels.col_dead1000 | tojson }}) + ": " + d.dead1000[i];
+      } },
+      grid: { left: 8, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { interval: 0, fontSize: 11, width: el.clientWidth < 520 ? 100 : 160, overflow: "truncate" } },
+      series: [
+        { name: "נתח מהתאונות", type: "bar", data: d.acc_share, barMaxWidth: 18 },
+        { name: "נתח מההרוגים", type: "bar", data: d.dead_share, barMaxWidth: 18 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-districts");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.districts | tojson }};
+    var lbl = {{ model.labels.col_sev | tojson }};
+    var esc = window.AccMuni.esc, num = window.AccMuni.num;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        return "<strong>" + esc(ps[0].name) + "</strong><br>" + ps.map(function (p) { return esc(p.seriesName) + ": " + num(p.value); }).join("<br>");
+      } },
+      grid: { left: 8, right: 8, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 40, fontSize: 11, formatter: function (s) { return s.length > 12 ? s.slice(0, 11) + "…" : s; } } },
+      yAxis: [{ type: "value", splitNumber: 4 }, { type: "value", splitNumber: 4, splitLine: { show: false } }],
+      series: [
+        { name: "תאונות", type: "bar", data: d.acc, barMaxWidth: 28 },
+        { name: lbl, type: "line", yAxisIndex: 1, data: d.sev, itemStyle: { color: "#dc3545" }, lineStyle: { color: "#dc3545" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.open %}
+<script>
+  (function () {
+    var el = document.getElementById("chart-open");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.open | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0b3668", "#a9c8f5"],
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 8, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.metrics, axisLabel: { interval: 0 } },
+      series: [
+        { name: "שטח פתוח", type: "bar", stack: "a", data: d.open, barMaxWidth: 28, label: { show: true, formatter: "{c}%", color: "#ffffff", fontFamily: "Rubik" } },
+        { name: "בתוך היישובים", type: "bar", stack: "a", data: d.loc, barMaxWidth: 28 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-injsev");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.injsev | tojson }};
+    var num = window.AccMuni.num;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: num },
+      grid: { left: 8, right: 16, top: 8, bottom: 24, containLabel: true },
+      xAxis: { type: "log", axisLabel: { formatter: function (v) { return num(v); } } },
+      yAxis: { type: "category", data: d.labels, axisLabel: { interval: 0 } },
+      series: [{ type: "bar", barMaxWidth: 32, label: { show: true, position: "insideRight", color: "#ffffff", formatter: function (p) { return num(p.value); } },
+        data: d.vals.map(function (v, i) { return { value: v, itemStyle: { color: ["#a9c8f5", "#0053c4", "#dc3545"][i] || "#0068f5" } }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-age");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.age | tojson }};
+    var esc = window.AccMuni.esc, num = window.AccMuni.num;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#a9c8f5", "#0068f5", "#0b3668", "#9aa5b1"],
+      tooltip: { trigger: "item", formatter: function (p) { return esc(p.name) + ": " + num(p.value) + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0, textStyle: { fontFamily: "Rubik" } },
+      series: [{ type: "pie", radius: ["40%", "68%"], center: ["50%", "45%"], label: { formatter: "{d}%", fontFamily: "Rubik" },
+        data: d.labels.map(function (l, i) { return { name: l, value: d.vals[i] }; }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-roles");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.roles | tojson }};
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 8, right: 16, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { interval: 0, fontSize: 11, width: el.clientWidth < 520 ? 100 : 160, overflow: "truncate" } },
+      series: [
+        { name: "הולכי רגל", type: "bar", data: d.ped, barMaxWidth: 18 },
+        { name: "דו-גלגלי חשמלי", type: "bar", data: d.elec, barMaxWidth: 18 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-vehmix");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.vehmix | tojson }};
+    var vcol = ["#0068f5", "#0b3668", "#6c9fd8", "#b7d2f7", "#ffc107", "#6c757d"];
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { top: 0, textStyle: { fontFamily: "Rubik" } },
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      grid: { left: 8, right: 16, top: el.clientWidth < 520 ? 84 : 56, bottom: 24, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", inverse: true, data: d.cats, axisLabel: { interval: 0, fontSize: 11, width: el.clientWidth < 520 ? 100 : 160, overflow: "truncate" } },
+      series: d.series.map(function (s, i) { return { name: s, type: "bar", stack: "v", data: d.data[i], barMaxWidth: 24, itemStyle: { color: vcol[i % vcol.length] } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.shares %}
+<script>
+  (function () {
+    var all = {{ model.charts.shares | tojson }};
+    ["ped", "elec", "kids", "seniors"].forEach(function (k) {
+      var s = all[k];
+      window.AccMuni.hbar("chart-share-" + k, s.names, [{ name: "שיעור מהנפגעים", data: s.vals, color: "#0068f5" }],
+        { unit: "%", mark: s.nat, markLabel: "כלל המאגר", extra: { label: "נפגעים", data: s.counts } });
+    });
+  })();
+</script>
+{%- endif %}
