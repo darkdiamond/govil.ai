@@ -607,34 +607,57 @@ _ENCODINGS = ("utf-8-sig", "cp1255")
 _HEBREW = re.compile("[א-ת]")
 
 
+# CKAN's loader decodes a Windows-1255 file with replacement: a byte the
+# code page leaves undefined is stored as U+FFFD (3 such bytes in the 879MB
+# vehicle registry, 2026-11-04), and so is it here. A UTF-8 file misread as
+# Windows-1255 would replace most Hebrew letters, so more than this many
+# replacements is a mismatch.
+_MAX_CP1255_REPLACED = 100
+
+# Delimiters a data.gov.il CSV upload uses. The Ministry of Transport's
+# vehicle files are `|`-separated (23 of 90 recipe inputs over 100k rows,
+# 2026-11-04), and their datastore copies hold the split columns.
+_DELIMITERS = (",", "|", ";", "\t")
+
+
 def _file_rows(raw: Path, columns: list[str], encoding: str):
     """(header, iterator of non-blank data rows) of the raw file. The
     datastore loader trims headers; a column with no header must be empty.
-    A wrong `encoding` raises UnicodeDecodeError while iterating."""
-    f = open(raw, encoding=encoding, newline="")  # noqa: SIM115 — rows() owns and closes it
-    reader = csv.reader(f)
-    try:
-        header = [h.strip() for h in next(reader, None) or []]
-    except BaseException:
+    The delimiter is the one whose header reads exactly as the datastore's
+    columns. A wrong `encoding` raises UnicodeDecodeError while iterating."""
+    errors = "replace" if encoding == "cp1255" else "strict"
+    for delimiter in _DELIMITERS:
+        f = open(raw, encoding=encoding, errors=errors, newline="")  # noqa: SIM115 — rows() owns and closes it
+        reader = csv.reader(f, delimiter=delimiter)
+        try:
+            header = [h.strip() for h in next(reader, None) or []]
+        except BaseException:
+            f.close()
+            raise
+        if not header:
+            f.close()
+            raise _FileMismatch("empty file")
+        if [h for h in header if h != ""] == columns:
+            break
         f.close()
-        raise
-    if not header:
-        f.close()
-        raise _FileMismatch("empty file")
-    if [h for h in header if h != ""] != columns:
-        f.close()
+    else:
         raise _FileMismatch("header differs from the datastore's columns")
     blank = [i for i, h in enumerate(header) if h == ""]
 
     def rows():
         with f:
-            n = 0
+            n = replaced = 0
             for row in reader:
                 if not any(row):
                     continue
                 n += 1
                 if any(row[len(header):]) or any(i < len(row) and row[i] for i in blank):
                     raise _FileMismatch(f"row {n} has data outside the named columns")
+                if errors == "replace":
+                    replaced += sum(v.count("\ufffd") for v in row)
+                    if replaced > _MAX_CP1255_REPLACED:
+                        raise _FileMismatch(
+                            f"over {_MAX_CP1255_REPLACED} bytes undefined in Windows-1255")
                 yield row
 
     return header, rows()
@@ -776,13 +799,20 @@ def fetch_resource_csv(
     max_bytes: int,
     deadline: float,
     fields: list[str] | None = None,
+    file_max_bytes: int | None = None,
 ) -> FetchOutcome | None:
     """The resource's uploaded CSV → `dest`, normalized to exactly what the
     datastore export would have written. None when the file can't stand in
     for the export (not a CSV, no preview to check it against, blocked for
     both UAs, too big, or any difference the gate sees): the caller falls
     back to datastore_search. A wall-budget overrun raises
-    FetchLimitExceeded, as the datastore path does."""
+    FetchLimitExceeded, as the datastore path does.
+
+    `max_bytes` bounds the normalized output, like the datastore export.
+    The download itself holds every column, not just `fields`, so it is
+    bounded by `file_max_bytes` instead (never below `max_bytes`): a recipe
+    reading 11 of 23 columns from an 879MB file exports ~400MB, and refusing
+    the download at the export cap sent it to 42 datastore pages."""
     from services.scanner.models import _public_resource_url
 
     rid = (resource.get("id") or "")[:8]
@@ -796,8 +826,9 @@ def fetch_resource_csv(
     try:
         for ua in (_CKAN_BROWSER_UA, _BROWSER_FALLBACK_UA):
             try:
-                fetch_resource_file(url, raw, max_bytes=max_bytes, timeout_s=_FILE_TIMEOUT_S,
-                                    deadline=deadline, user_agent=ua)
+                fetch_resource_file(url, raw, max_bytes=max(max_bytes, file_max_bytes or 0),
+                                    timeout_s=_FILE_TIMEOUT_S, deadline=deadline,
+                                    user_agent=ua)
                 break
             except DownloadBlocked as e:
                 if ua == _BROWSER_FALLBACK_UA:
@@ -837,6 +868,7 @@ def fetch_resource_export(
     deadline: float,
     fields: list[str] | None = None,
     page_size: int,
+    file_max_bytes: int | None = None,
     **datastore_kw,
 ) -> FetchOutcome | None:
     """Full export of one resource, same contract as
@@ -854,7 +886,8 @@ def fetch_resource_export(
     and the whole set took 1,040s instead of 1,544s."""
     if resource is not None and total > page_size:
         out = fetch_resource_csv(resource, preview, total, dest, max_bytes=max_bytes,
-                                 deadline=deadline, fields=fields)
+                                 deadline=deadline, fields=fields,
+                                 file_max_bytes=file_max_bytes)
         if out is not None:
             return out
     out = fetch_resource_records_to_file(resource_id, total, dest, max_bytes=max_bytes,

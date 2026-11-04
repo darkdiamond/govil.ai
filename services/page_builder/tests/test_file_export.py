@@ -125,12 +125,101 @@ def test_file_honors_the_fields_projection(monkeypatch, tmp_path):
     assert dest.read_bytes().decode("utf-8") == "קוד,שם\r\n007,חיפה\r\n,תל אביב\r\n"
 
 
+def _export_capped(tmp_path, max_bytes, file_max_bytes, fields):
+    dest = tmp_path / "main__1.csv"
+    out = ac.fetch_resource_export(
+        RES["id"], 2, dest, resource=RES, preview=_preview(), max_bytes=max_bytes,
+        file_max_bytes=file_max_bytes, deadline=time.monotonic() + 60, fields=fields,
+        page_size=1, page_timeout_s=5.0, sample_target_rows=0, prefer_sample=False,
+    )
+    return out, dest
+
+
+def test_a_file_over_the_export_cap_still_downloads_when_its_columns_fit(monkeypatch, tmp_path):
+    # The raw file (all columns) is over the export cap; the projected export is not.
+    export = "קוד\r\n007\r\n\"\"\r\n".encode()
+    assert len(export) < 20 < len(GOOD)
+    _serve(monkeypatch, GOOD)
+    ds = _datastore(monkeypatch)
+    out, dest = _export_capped(tmp_path, max_bytes=20, file_max_bytes=1_000, fields=["קוד"])
+    assert out.via == "file" and not ds
+    assert dest.read_bytes() == export
+
+
+@pytest.mark.parametrize("file_max_bytes", [None, 30])
+def test_the_download_cap_never_drops_below_the_export_cap(monkeypatch, tmp_path, file_max_bytes):
+    _serve(monkeypatch, GOOD)
+    ds = _datastore(monkeypatch)
+    out, _ = _export_capped(tmp_path, max_bytes=1_000, file_max_bytes=file_max_bytes, fields=None)
+    assert out.via == "file" and not ds
+
+
+def test_a_file_over_the_download_cap_falls_back(monkeypatch, tmp_path):
+    _serve(monkeypatch, GOOD)
+    ds = _datastore(monkeypatch)
+    out, dest = _export_capped(tmp_path, max_bytes=20, file_max_bytes=30, fields=["קוד"])
+    assert out.via == "datastore" and len(ds) == 1
+    assert not dest.with_suffix(".raw").exists()
+
+
+def test_the_normalized_file_still_obeys_the_export_cap(monkeypatch, tmp_path):
+    _serve(monkeypatch, GOOD)
+    ds = _datastore(monkeypatch)
+    out, _ = _export_capped(tmp_path, max_bytes=20, file_max_bytes=1_000, fields=None)
+    assert out.via == "datastore" and len(ds) == 1
+
+
+@pytest.mark.parametrize("delimiter", ["|", ";", "\t"])
+def test_a_file_with_another_delimiter(monkeypatch, tmp_path, delimiter):
+    _serve(monkeypatch, GOOD.decode("utf-8").replace(",", delimiter).encode())
+    ds = _datastore(monkeypatch)
+    out, dest = _export(tmp_path, _preview())
+    assert out.via == "file" and not ds
+    assert dest.read_bytes().decode("utf-8") == EXPORT
+
+
+def test_a_quoted_pipe_file(monkeypatch, tmp_path):
+    # The vehicle registry's shape: every value quoted, `|` between them.
+    body = '"שם"|"ערך"|"קוד"\r\n"חיפה"|"1.50"|"007"\r\n"תל אביב"|"2"|""\r\n'.encode()
+    _serve(monkeypatch, body)
+    _datastore(monkeypatch)
+    out, dest = _export(tmp_path, _preview())
+    assert out.via == "file"
+    assert dest.read_bytes().decode("utf-8") == EXPORT
+
+
 def test_windows_1255_file(monkeypatch, tmp_path):
     _serve(monkeypatch, "שם,ערך,קוד\r\nחיפה,3,א\r\n".encode("cp1255"))
     _datastore(monkeypatch)
     out, dest = _export(tmp_path, _preview(), total=1, page_size=0)
     assert out.via == "file"
     assert dest.read_bytes().decode("utf-8") == "שם,ערך,קוד\r\nחיפה,3,א\r\n"
+
+
+def test_a_windows_1255_byte_with_no_character_reads_as_the_datastore_stores_it(
+        monkeypatch, tmp_path):
+    # 0x9F is undefined in Windows-1255; CKAN's loader stored it as U+FFFD.
+    _serve(monkeypatch, "שם,ערך,קוד\r\nחיפה,3,".encode("cp1255") + b"CB\x9f\r\n")
+    _datastore(monkeypatch)
+    out, dest = _export(tmp_path, _preview(), total=1, page_size=0)
+    assert out.via == "file"
+    assert dest.read_bytes().decode("utf-8") == "שם,ערך,קוד\r\nחיפה,3,CB\ufffd\r\n"
+
+
+def test_a_broken_utf8_file_does_not_pass_as_windows_1255(monkeypatch, tmp_path, caplog):
+    # One invalid byte fails UTF-8; read as Windows-1255 instead, its Hebrew
+    # letters are mostly undefined bytes, far over the replacement cap.
+    # (An ASCII header, so it is the cap that refuses it, not the header.)
+    rows = "".join(f"שלום עולם,{i},x\r\n" for i in range(40))  # 4 undefined per row
+    body = ("name,v,code\r\n" + rows).encode() + b"\xff,1,x\r\n"
+    _serve(monkeypatch, body)
+    ds = _datastore(monkeypatch)
+    fields = [{"id": "name", "type": "text"}, {"id": "v", "type": "numeric"},
+              {"id": "code", "type": "text"}]
+    caplog.set_level("INFO", logger=ac.log.name)
+    out, _ = _export(tmp_path, _preview(fields=fields), total=41, page_size=0)
+    assert out.via == "datastore" and len(ds) == 1
+    assert "undefined in Windows-1255" in caplog.text
 
 
 def test_an_8_bit_file_that_is_not_hebrew_falls_back(monkeypatch, tmp_path):

@@ -484,7 +484,10 @@ def resolve_inputs(
                 if cols is None:
                     unknown.append(res["id"][:8])
                 elif set(inp.by_schema or []) <= set(cols):
-                    matched.append(res)
+                    # The scanner's full resource, not select_prefetch_resources'
+                    # {id, name, format}: the export needs its url (file
+                    # download) and check A′ its CKAN hash/size.
+                    matched.append(by_id.get(res["id"], res))
             if unknown:
                 # The match set would be incomplete (and `pick: "latest"`
                 # could pick the wrong one), so don't resolve on a guess.

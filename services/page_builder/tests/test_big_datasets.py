@@ -111,6 +111,18 @@ def test_latest_picks_newest_matching_snapshot():
     assert [r["id"] for r in out["main"]] == ["r-new"]
 
 
+@pytest.mark.parametrize("how", [{"concat": True}, {"pick": "latest"}])
+def test_by_schema_resolves_to_the_full_resource(how):
+    """The export downloads the input's file by its url, and check A′ reads its
+    CKAN hash: a schema match must carry them, as a by_id input does."""
+    inp = {"name": "main", "by_schema": ["a"], **how}
+    res = [{"id": "r1", "name": "x", "format": "csv", "datastore_active": True,
+            "url": "https://data.gov.il/dataset/d/resource/r1/download/r1.csv",
+            "hash": "md5", "size": 123}]
+    out = resolve_inputs(_manifest([inp]), res, lambda rid: ["a"])
+    assert out["main"][0] is res[0]
+
+
 def test_latest_ties_keep_ckan_order():
     m = _manifest([{"name": "main", "by_schema": ["a"], "pick": "latest"}])
     res = [{"id": i, "name": i, "format": "CSV", "datastore_active": True} for i in ("p", "q")]
@@ -183,6 +195,25 @@ def test_columns_reach_the_fetcher_and_compute_sees_only_them(env, tmp_path):
     store = FakeStore(_src())
     s = _run(env, store, ckan, recipes=recipes)
     assert s["refreshed"] == [DS]
+
+
+@pytest.mark.parametrize("env_value, want", [(None, rf._DEFAULT_FILE_MAX_BYTES), ("123", 123)])
+def test_the_file_download_cap_reaches_the_fetcher(tmp_path, monkeypatch, env_value, want):
+    if env_value is None:
+        monkeypatch.delenv("REFRESH_FILE_MAX_BYTES", raising=False)
+    else:
+        monkeypatch.setenv("REFRESH_FILE_MAX_BYTES", env_value)
+    recipe = Recipe.load(_fixture_copy(tmp_path, lambda d: None) / DS)
+    ckan = FakeCkan(_rows([2024, 2025]))
+    seen = []
+
+    def fetch(rid, total, dest, **kw):
+        seen.append(kw.get("file_max_bytes"))
+        return ckan.fetch(rid, total, dest, **kw)
+
+    rf.fetch_inputs(recipe, _src().resources, tmp_path / "data",
+                    preview_fn=ckan.preview, fetch_fn=fetch)
+    assert seen == [want]
 
 
 def test_column_listed_but_gone_is_schema_changed(env, tmp_path):

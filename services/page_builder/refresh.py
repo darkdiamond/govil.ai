@@ -88,6 +88,12 @@ GOVLIB_DIR = RECIPE_LIB_DIR / "govlib"
 _DEFAULT_MAX_RECORDS = 2_000_000
 _DEFAULT_MAX_BYTES = 300_000_000
 _DEFAULT_TOTAL_BYTES = 600_000_000
+# Ceiling on an input's uploaded-file DOWNLOAD (all columns), separate from
+# the export caps above, which bound the normalized output (only the
+# recipe's `columns`). Over it the input pages the datastore instead. The
+# job's /tmp is in memory: this + the exports already fetched must fit in
+# the container next to the builder (largest recipe file 879MB, 2026-11-04).
+_DEFAULT_FILE_MAX_BYTES = 1_500_000_000
 _DEFAULT_WALL_BUDGET_S = 900.0
 # A wall-budget overrun is transient (slow CKAN); this many in a row since
 # the last full fetch means the dataset outgrew its budget → `too_large`.
@@ -861,6 +867,7 @@ def fetch_inputs(
         _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
     )
     page_size = _env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE)
+    file_max_bytes = _env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES)
     deadline = time.monotonic() + float(
         limits.wall_budget_s
         or _env_int("REFRESH_WALL_BUDGET_S", int(_DEFAULT_WALL_BUDGET_S))
@@ -924,6 +931,7 @@ def fetch_inputs(
                     # is what it must match (agent_contract.fetch_resource_csv).
                     resource=res,
                     preview=_preview(rid),
+                    file_max_bytes=file_max_bytes,
                 )
             except FetchLimitExceeded as e:
                 raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
