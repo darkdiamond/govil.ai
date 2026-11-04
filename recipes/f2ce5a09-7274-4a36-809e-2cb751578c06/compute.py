@@ -39,6 +39,7 @@ RECENT_YEARS = 3
 OUTLIER_MAX = 2           # a detached year cluster with <= this many rows is a typo date
 OUTLIER_GAP = 3           # years this far apart (2+ empty years between) are detached
 SUMMARY_MAX = 155
+NO_CITY = "לא צוין"
 
 CITY_BUCKETS = [(1, 1, "בודק אחד"), (2, 5, "2-5"), (6, 20, "6-20"), (21, None, "21 ומעלה")]
 BATCH_BUCKETS = [(1, 1, "לבד"), (2, 4, "2-4"), (5, 9, "5-9"), (10, 19, "10-19"),
@@ -212,7 +213,7 @@ def compute(frames):
     df = frames["main"]
     city = frame.clean_series(df["city"])
     dt = _parse_dates(df["registration_date"])
-    d = pd.DataFrame({"city": city.where(city != "", "לא צוין"), "dt": dt})
+    d = pd.DataFrame({"city": city.where(city != "", NO_CITY), "dt": dt})
     total = int(len(d))
     dated = d[d["dt"].notna()].copy()
     dated["year"] = dated["dt"].dt.year.astype(int)
@@ -242,7 +243,9 @@ def compute(frames):
             partial_year = ly
 
     # ---- cities
-    cc = frame.ranked(d["city"])
+    # a blank city is not a place: kept in the totals, left out of every city view
+    cc = frame.ranked(d.loc[d["city"] != NO_CITY, "city"])
+    no_city = int((d["city"] == NO_CITY).sum())
     cities = [{"city": str(k), "n": int(v)} for k, v in cc.items()]
     n_cities = len(cities)
     top = cities[:TOP_CITIES]
@@ -405,13 +408,15 @@ def compute(frames):
         years_lede += ". בריחוף מוצג גם מספר תאריכי הרישום השונים באותה שנה."
     cum_lede = (f"גודל הפנקס המצטבר לפי שנת הרישום: מ-{years[0]['cum']:,} בסוף "
                 f"{years[0]['year']} עד {years[-1]['cum']:,} כיום. הספירה כוללת רק את "
-                "הבודקים המופיעים כיום ברשימה." if years else "")
+                "הבודקים המופיעים כיום ברשימה"
+                + (", ורק את אלה שיש להם תאריך רישום תקין." if undated else ".") if years else "")
     cities_lede = ""
     if cities:
         shown = int(sum(c["n"] for c in top))
         cities_lede = (f"{len(top):,} היישובים עם מספר הבודקים הגדול ביותר, לפי יישוב המגורים "
                        f"הרשום בפנקס. יחד הם מרכזים {fmt.pct(shown / total)} מהבודקים; "
-                       f"השאר מתפזרים בין {_n_city(max(n_cities - len(top), 0))} נוספים.")
+                       f"השאר מתפזרים בין {_n_city(max(n_cities - len(top), 0))} נוספים."
+                       + (f" {_pre('ל', _n_ex(no_city))} לא צוין יישוב." if no_city else ""))
     bucket_lede = ""
     if n_cities:
         b0 = bucket_rows[0]

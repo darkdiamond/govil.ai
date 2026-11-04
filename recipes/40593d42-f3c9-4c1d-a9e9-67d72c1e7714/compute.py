@@ -104,8 +104,7 @@ _TI = re.compile("ת['\"׳״]{1,2}י\\s*")
 _ADD = re.compile(r"\s*-?\s*תוספת בני")
 
 
-def _clean(s):
-    return _WS.sub(" ", s or "").strip()
+_clean = frame.clean
 
 
 def _int(v):
@@ -210,7 +209,7 @@ def _path(row):
 def _prepare(raw):
     df = raw.copy()
     for c in df.columns:
-        df[c] = df[c].map(_clean)
+        df[c] = frame.clean_series(df[c])
     df = df[df["CategoryTypeDesc"].str.contains("בני", regex=False)].copy()
     if df.empty:
         raise ValueError("snapshot holds no construction (בנייה) rows: wrong table picked")
@@ -401,7 +400,6 @@ def compute(frames):
     lens = pd.Series([r["n"] for r in leaves], dtype=float)
     med = float(lens.median()) if n_leaves else 0.0
     n_reqs = int(df["req"].nunique())
-    n_types = int(df.loc[df["path"].str.count(r"\|") >= 1, "path"].str.split("|").str[1].nunique())
     n_groups = len(gcodes)
 
     # ---- series

@@ -319,7 +319,8 @@ def compute(frames):
         my = max(m_years, key=lambda y: (mt[y], y))
         if mt[my] / n_mnt >= 0.25:
             add("mpeak", f"תחזוקאי המטפים נרשמו בגלים: {fmt.int_he(mt[my])} מתוך {fmt.int_he(n_mnt)} "
-                         f"({fmt.pct(mt[my] / n_mnt, 0)}) קיבלו הרשאה ב-{my}{' (שנה חלקית)' if partial and my == last_y else ''}.")
+                         f"({fmt.pct(mt[my] / n_mnt, 0)}) קיבלו הרשאה ב-{my}"
+                         f"{' (שנה חלקית)' if (partial and my == last_y) or (first_partial and my == years[0]) else ''}.")
 
     # not authorised
     if n_not:
@@ -426,8 +427,24 @@ def compute(frames):
         hc = max(heat, key=lambda c: (c[2], -c[1], -c[0]))
         heat_lede = (f"כל משבצת היא חודש: ככל שהצבע כהה יותר, ניתנו בו יותר הרשאות. "
                      f"השיא: {fmt.MONTHS_HE[hc[0]]} {years[hc[1]]}, עם {fmt.int_he(hc[2])} הרשאות.")
-    type_lede = (f"{fmt.pct(n_aud / n, 0)} מהרשומות הן של מבקרי מטפים. בקרב התחזוקאים, "
-                 f"{plural(n_not, 'רשומה אחת', 'רשומות')} בסטטוס \"לא מורשה\".") if n else ""
+    # not-authorised rows per type: the donut splits each type that has any
+    not_by_type = {t: int(((df["t"].replace("", "לא צוין") == t) & (df["st"] == NOT_OK)).sum())
+                   for t in type_order}
+    type_names, type_values = [], []
+    for t in type_order:
+        k = not_by_type[t]
+        type_names.append(f"{t}: {OK_STATUS}" if k else t)
+        type_values.append(int(types[t]) - k)
+    for t in type_order:
+        if not_by_type[t]:
+            type_names.append(f"{t}: {NOT_OK}")
+            type_values.append(not_by_type[t])
+    not_parts = [f"{plural(k, 'רשומה אחת', 'רשומות')} של {t}" for t, k in not_by_type.items() if k]
+    type_lede = ""
+    if n:
+        type_lede = f"{fmt.pct(n_aud / n, 0)} מהרשומות הן של מבקרי מטפים."
+        if not_parts:
+            type_lede += f" בסטטוס \"לא מורשה\": {fmt.join_he(not_parts)}."
     if n_other_type:
         type_lede += f" {plural(n_other_type, 'רשומה אחת', 'רשומות')} בסוג אחר."
     mstat_lede = ""
@@ -518,10 +535,7 @@ def compute(frames):
         "ytd": {"x": [str(y) for y in years], "y": ytd, "last": len(years) - 1 if partial else -1},
         "cum": {"x": cum_x, "series": [{"name": t, "values": cum[t]} for t in [AUDITOR, MAINTAINER]]},
         "heat": {"months": fmt.MONTHS_SHORT_HE, "years": [str(y) for y in years], "cells": heat, "max": heat_max},
-        "type": {"names": [f"{t}: {OK_STATUS}" if t == MAINTAINER and n_not else t for t in type_order]
-                 + ([f"{MAINTAINER}: {NOT_OK}"] if n_not else []),
-                 "values": [int(types[t]) - (int(((df['t'] == t) & (df['st'] == NOT_OK)).sum())) for t in type_order]
-                 + ([n_not] if n_not else [])},
+        "type": {"names": type_names, "values": type_values},
         "mstat": {"x": [yshort(y) for y in m_years], "series": [{"name": s, "values": mstat[s]} for s in statuses]},
         "co": {"names": top_names, "ok": co_ok, "not": co_not},
         "size": {"x": [r[0] for r in size_rows], "companies": [r[1] for r in size_rows], "people": [r[2] for r in size_rows]},

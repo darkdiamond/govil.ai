@@ -303,7 +303,7 @@ def compute(frames):
         idx = np.nonzero(weekday_mask)[0]
         hi = int(idx[np.argmax(daily[idx])])
         lo = int(idx[np.argmin(daily[idx])])
-        add("days", (f"היום העמוס בתקופה היה {fmt.d_he(dates[hi])} (יום {WEEKDAYS_HE[dow[hi]]}) "
+        add("days", (f"יום החול העמוס בתקופה היה {fmt.d_he(dates[hi])} (יום {WEEKDAYS_HE[dow[hi]]}) "
                      f"עם {fmt.int_he(daily[hi])} תיקופים. יום החול השקט ביותר היה "
                      f"{fmt.d_he(dates[lo])} (יום {WEEKDAYS_HE[dow[lo]]}) עם {fmt.int_he(daily[lo])} בלבד."))
 

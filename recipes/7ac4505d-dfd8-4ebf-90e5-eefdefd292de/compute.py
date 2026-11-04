@@ -74,7 +74,7 @@ def _centroids(g):
         except (TypeError, ValueError):
             continue
         t = gj.get("type") if isinstance(gj, dict) else None
-        polys = gj.get("coordinates") or [] if t in ("Polygon", "MultiPolygon") else []
+        polys = (gj.get("coordinates") or []) if t in ("Polygon", "MultiPolygon") else []
         if t == "Polygon":
             polys = [polys]
         for poly in polys:

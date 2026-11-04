@@ -191,7 +191,7 @@ def compute(frames):
 
     # ---------- recipients ----------
     who_sum = paid.groupby("who")["paid"].sum().sort_index().sort_values(ascending=False, kind="stable")
-    n_who = int(df["who"].replace("", pd.NA).dropna().nunique())
+    n_who = int(paid.loc[paid["who"] != "", "who"].nunique())  # bodies actually paid
     top_who = who_sum.iloc[:TOP_RECIP]
     who_top_prog = {}
     for w in top_who.index:
@@ -204,7 +204,7 @@ def compute(frames):
     # ---------- recipient types ----------
     paid["type"] = paid["who"].map(_type)
     t_sum = paid.groupby("type")["paid"].sum()
-    t_bodies = df.assign(type=df["who"].map(_type))[df["who"] != ""].groupby("type")["who"].nunique()
+    t_bodies = paid[paid["who"] != ""].groupby("type")["who"].nunique()
     types_present = [t for t in TYPE_ORDER if t in t_sum.index]
     type_lead = max(types_present, key=lambda t: (float(t_sum[t]), -TYPE_ORDER.index(t)))
     types = {"labels": types_present, "values": [_m(t_sum[t]) for t in types_present],
@@ -296,7 +296,7 @@ def compute(frames):
 
     # top recipient concentration
     tw, tv = top_who.index[0], float(top_who.iloc[0])
-    if tv / total >= 0.05:
+    if tv / total >= 0.05 and len(top_who) >= 2 and float(top_who.iloc[1]) > 0:
         tp, tpv = who_top_prog[tw]
         add("top_recipient",
             f"ל{tw} הועברו {_mn(tv)} מיליון ש\"ח, {fmt.pct(tv / total)} מכל התשלומים במאגר, "
