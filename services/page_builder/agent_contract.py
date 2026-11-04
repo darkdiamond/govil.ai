@@ -226,6 +226,14 @@ class FetchOutcome:
     via: Optional[str] = None        # "file" | "datastore" (fetch_resource_export)
 
 
+# Sequential export paging (`fetch_resource_records_to_file`): the first page
+# is the old fixed size, later ones aim at about this much CSV, between
+# _MIN_PAGE_ROWS and the caller's `page_size`.
+_FIRST_PAGE_ROWS = 25_000
+_PAGE_TARGET_BYTES = 32_000_000
+_MIN_PAGE_ROWS = 1_000
+
+
 class _ByteCapExceeded(Exception):
     pass
 
@@ -349,16 +357,23 @@ def fetch_resource_records_to_file(
             w = _CsvStreamWriter(f, max_bytes)
             if sequential:
                 offset = 0
+                limit = min(page_size, _FIRST_PAGE_ROWS)
                 while offset < total:
                     if time.monotonic() > deadline:
                         raise _WallBudgetExceeded()
                     page_fields, records = _fetch_page(
-                        resource_id, offset, page_size, page_timeout_s, fields
+                        resource_id, offset, limit, page_timeout_s, fields
                     )
                     if not records:
                         break
+                    before = w.bytes
                     w.write_page(page_fields, records)
                     offset += len(records)
+                    # A whole page is decoded and held in the builder process,
+                    # which has no heap cap: size the next one by this one's
+                    # row width, so a wide table stays near _PAGE_TARGET_BYTES.
+                    per_row = max(1, (w.bytes - before) // len(records))
+                    limit = min(page_size, max(_MIN_PAGE_ROWS, _PAGE_TARGET_BYTES // per_row))
                 if offset < total:
                     # An empty page before `total` (seen 2026-11-03 while the
                     # datastore reloaded a resource) is a cut-off export, not
@@ -586,25 +601,21 @@ def _canonical_number(raw: str, float_only: bool) -> str:
     return str(float(d))
 
 
-def _open_text(raw: Path):
-    """The raw file as text: UTF-8 (BOM stripped), else Windows-1255."""
-    for enc in ("utf-8-sig", "cp1255"):
-        try:
-            with open(raw, encoding=enc, newline="") as f:
-                while f.read(1 << 20):
-                    pass
-        except UnicodeDecodeError:
-            continue
-        return open(raw, encoding=enc, newline="")
-    raise _FileMismatch("neither UTF-8 nor Windows-1255")
+_ENCODINGS = ("utf-8-sig", "cp1255")
+_HEBREW = re.compile("[א-ת]")
 
 
-def _file_rows(raw: Path, columns: list[str]):
+def _file_rows(raw: Path, columns: list[str], encoding: str):
     """(header, iterator of non-blank data rows) of the raw file. The
-    datastore loader trims headers; a column with no header must be empty."""
-    f = _open_text(raw)
+    datastore loader trims headers; a column with no header must be empty.
+    A wrong `encoding` raises UnicodeDecodeError while iterating."""
+    f = open(raw, encoding=encoding, newline="")
     reader = csv.reader(f)
-    header = [h.strip() for h in next(reader, None) or []]
+    try:
+        header = [h.strip() for h in next(reader, None) or []]
+    except BaseException:
+        f.close()
+        raise
     if not header:
         f.close()
         raise _FileMismatch("empty file")
@@ -627,8 +638,14 @@ def _file_rows(raw: Path, columns: list[str]):
     return header, rows()
 
 
-def _float_columns(raw: Path, columns: list[str], numeric: list[str], samples: list[dict],
-                   probe: Callable[[int, str], Any]) -> set[str]:
+def _check_deadline(deadline: float) -> None:
+    if time.monotonic() > deadline:
+        raise FetchLimitExceeded("wall_budget", "normalizing the file ran out of wall budget")
+
+
+def _float_columns(raw: Path, encoding: str, columns: list[str], numeric: list[str],
+                   samples: list[dict], probe: Callable[[int, str], Any],
+                   deadline: float) -> set[str]:
     """Which numeric columns the datastore writes as floats (`2.0`, not `2`).
     The loader decides per column and the schema type doesn't say. A sample
     value settles it when it is a JSON int (ints) or a whole float (floats).
@@ -643,16 +660,19 @@ def _float_columns(raw: Path, columns: list[str], numeric: list[str], samples: l
             open_.append(c)
     if not open_:
         return floats
-    header, rows = _file_rows(raw, columns)
+    header, rows = _file_rows(raw, columns, encoding)
+    pending = {c: header.index(c) for c in open_}
     first: dict[str, int] = {}
-    for n, row in enumerate(rows):
-        for c in open_:
-            i = header.index(c)
-            if c not in first and i < len(row) and _canonical_number(row[i], False).lstrip("-").isdigit():
-                first[c] = n
-        if len(first) == len(open_):
-            rows.close()
-            break
+    with closing(rows):
+        for n, row in enumerate(rows):
+            if n % 10_000 == 0:
+                _check_deadline(deadline)
+            for c, i in list(pending.items()):
+                if i < len(row) and _canonical_number(row[i], False).lstrip("-").isdigit():
+                    first[c] = n
+                    del pending[c]
+            if not pending:
+                break
     for c, offset in first.items():
         v = probe(offset, c)
         if isinstance(v, float):
@@ -662,12 +682,23 @@ def _float_columns(raw: Path, columns: list[str], numeric: list[str], samples: l
     return floats
 
 
+def _matches_sample(sample: Any, value: str) -> bool:
+    """`value` (as the export writes it) against the preview's sample cell,
+    which `fetch_resource_preview` passed through `_truncate_value`."""
+    if sample is None:
+        return value == ""
+    if isinstance(sample, str):
+        return _truncate_value(value) == sample
+    return str(sample) == value
+
+
 def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
                    fields: Optional[list[str]], max_bytes: int,
-                   probe: Callable[[int, str], Any]) -> int:
-    """Rewrite the downloaded CSV `raw` as the datastore export → `dest`.
-    Returns the row count; raises _FileMismatch when it can't match.
-    `probe(offset, column)` reads one datastore cell (see _float_columns)."""
+                   probe: Callable[[int, str], Any], deadline: float) -> int:
+    """Rewrite the downloaded CSV `raw` as the datastore export → `dest`:
+    UTF-8 (BOM stripped), else Windows-1255. Returns the row count; raises
+    _FileMismatch when it can't match. `probe(offset, column)` reads one
+    datastore cell (see _float_columns)."""
     types = {f["id"]: (f.get("type") or "") for f in preview.get("fields") or []
              if f.get("id") and f["id"] != "_id"}
     cols = list(fields) if fields else list(types)
@@ -676,40 +707,57 @@ def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
     for c in cols:
         if types[c] != "text" and types[c] not in _NUMERIC_TYPES | _FLOAT_TYPES:
             raise _FileMismatch(f"column {c!r} is {types[c]!r}, which the file can't reproduce")
+    for encoding in _ENCODINGS:
+        try:
+            return _normalize_as(raw, encoding, dest, types, cols, preview, total,
+                                 max_bytes, probe, deadline)
+        except UnicodeDecodeError:
+            continue
+    raise _FileMismatch("neither UTF-8 nor Windows-1255")
+
+
+def _normalize_as(raw: Path, encoding: str, dest: Path, types: dict, cols: list[str],
+                  preview: dict, total: int, max_bytes: int,
+                  probe: Callable[[int, str], Any], deadline: float) -> int:
     samples = preview.get("sample_rows") or []
     floats = _float_columns(
-        raw, list(types), [c for c in cols if types[c] in _NUMERIC_TYPES], samples, probe
+        raw, encoding, list(types), [c for c in cols if types[c] in _NUMERIC_TYPES],
+        samples, probe, deadline,
     ) | {c for c in cols if types[c] in _FLOAT_TYPES}
-
-    header, reader = _file_rows(raw, list(types))
+    header, reader = _file_rows(raw, list(types), encoding)
+    # Windows-1255 decodes almost any bytes, so a file in another 8-bit
+    # encoding would pass as garbled text: accept it only if it reads as Hebrew.
+    hebrew = encoding != "cp1255" or any(_HEBREW.search(h) for h in header)
     # The datastore loader trims text cells and turns a line break inside a
     # cell into a space (parity sweeps, 2026-11-03).
     conv = [(header.index(c), types[c] != "text", c in floats) for c in cols]
     rows = 0
-    with closing(reader):
-        with open(dest, "w", encoding="utf-8", newline="") as out:
-            w = csv.writer(out)
-            w.writerow(cols)
-            for row in reader:
-                vals = []
-                for i, num, float_only in conv:
-                    v = row[i] if i < len(row) else ""
-                    vals.append(_canonical_number(v, float_only) if num else
-                                v.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").strip())
-                if rows < len(samples):
-                    want = samples[rows]
-                    for c, v in zip(cols, vals):
-                        s = want.get(c)
-                        if isinstance(s, str) and len(s) == _PREFETCH_VALUE_TRUNC and s.endswith("…"):
-                            continue  # the preview truncated it
-                        if c in want and ("" if s is None else str(s)) != v:
-                            raise _FileMismatch(f"row {rows + 1} column {c!r} differs from the datastore")
-                w.writerow(vals)
-                rows += 1
-                if rows > total:
-                    raise _FileMismatch(f"more rows than the datastore's {total:,}")
-                if rows % 10_000 == 0 and out.tell() > max_bytes:
+    with closing(reader), open(dest, "w", encoding="utf-8", newline="") as out:
+        w = csv.writer(out)
+        w.writerow(cols)
+        for row in reader:
+            vals = []
+            for i, num, float_only in conv:
+                v = row[i] if i < len(row) else ""
+                vals.append(_canonical_number(v, float_only) if num else
+                            v.replace("\r\n", " ").replace("\r", " ").replace("\n", " ").strip())
+            if not hebrew:
+                hebrew = any(_HEBREW.search(v) for v in vals)
+            if rows < len(samples):
+                want = samples[rows]
+                for c, v in zip(cols, vals):
+                    if c in want and not _matches_sample(want[c], v):
+                        raise _FileMismatch(f"row {rows + 1} column {c!r} differs from the datastore")
+            w.writerow(vals)
+            rows += 1
+            if rows > total:
+                raise _FileMismatch(f"more rows than the datastore's {total:,}")
+            if rows % 10_000 == 0:
+                _check_deadline(deadline)
+                if out.tell() > max_bytes:
                     raise FetchLimitExceeded("bytes", "normalized file crossed the byte cap")
+    if not hebrew:
+        raise _FileMismatch("not UTF-8, and no Hebrew when read as Windows-1255")
     if rows != total:
         raise _FileMismatch(f"{rows:,} rows, the datastore has {total:,}")
     if dest.stat().st_size > max_bytes:
@@ -757,7 +805,7 @@ def fetch_resource_csv(
             _, records = _fetch_page(resource["id"], offset, 1, _FILE_PROBE_TIMEOUT_S, [column])
             return records[0].get(column) if records else None
 
-        rows = _normalize_csv(raw, dest, preview, total, fields, max_bytes, probe)
+        rows = _normalize_csv(raw, dest, preview, total, fields, max_bytes, probe, deadline)
     except FetchLimitExceeded as e:
         dest.unlink(missing_ok=True)
         if e.limit == "wall_budget":

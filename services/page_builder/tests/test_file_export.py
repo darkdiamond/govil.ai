@@ -133,6 +133,28 @@ def test_windows_1255_file(monkeypatch, tmp_path):
     assert dest.read_bytes().decode("utf-8") == "שם,ערך,קוד\r\nחיפה,3,א\r\n"
 
 
+def test_an_8_bit_file_that_is_not_hebrew_falls_back(monkeypatch, tmp_path):
+    """Windows-1255 decodes almost any bytes: a Latin-1 file reads as Hebrew
+    vowel points, so a non-UTF-8 file with no Hebrew letter uses the datastore."""
+    _serve(monkeypatch, "name,v,code\r\nÀÁ,3,x\r\n".encode("latin-1"))
+    ds = _datastore(monkeypatch)
+    fields = [{"id": "name", "type": "text"}, {"id": "v", "type": "numeric"},
+              {"id": "code", "type": "text"}]
+    out, _ = _export(tmp_path, _preview(fields=fields), total=1, page_size=0)
+    assert out.via == "datastore" and len(ds) == 1
+
+
+def test_normalizing_past_the_deadline_is_a_wall_budget_overrun(monkeypatch, tmp_path):
+    _serve(monkeypatch, GOOD)
+    ds = _datastore(monkeypatch)
+    real = ac._check_deadline
+    monkeypatch.setattr(ac, "_check_deadline",
+                        lambda deadline: real(time.monotonic() - 1))
+    with pytest.raises(FetchLimitExceeded) as e:
+        _export(tmp_path, _preview())
+    assert e.value.limit == "wall_budget" and not ds
+
+
 def test_blocked_builder_ua_retries_with_a_browser_ua(monkeypatch, tmp_path):
     seen = _serve(monkeypatch, GOOD, blocked_uas={ac._CKAN_BROWSER_UA})
     _datastore(monkeypatch)
@@ -235,7 +257,8 @@ def test_float_columns(tmp_path, samples, probe_answer, want, probed):
         calls.append((offset, col))
         return probe_answer
 
-    got = ac._float_columns(raw, ["שם", "ערך", "קוד"], ["ערך"], samples, probe)
+    got = ac._float_columns(raw, "utf-8-sig", ["שם", "ערך", "קוד"], ["ערך"], samples, probe,
+                            time.monotonic() + 60)
     assert got == want
     assert calls == ([(1, "ערך")] if probed else [])
 
