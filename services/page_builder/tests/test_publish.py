@@ -14,6 +14,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from services.page_builder import publish
 from services.shared.firestore import SourceRecord
 
@@ -336,6 +338,78 @@ def test_slug_redirects_never_shadow_a_live_page():
     a.previous_titles = ["א", "ב"]
     page_slugs = {"aaaaaaaa-1": "ב-aaaaaaaa", "bbbbbbbb-2": "א-aaaaaaaa"}
     assert publish.dataset_slug_redirects([a], page_slugs, {"ב-aaaaaaaa": "bbbbbbbb-2"}) == {}
+
+
+def test_superseded_dataset_redirects_to_its_successor(tmp_path: Path, monkeypatch):
+    """A removed dataset whose content moved into another one gets no page:
+    its slug, its old slugs and its bare-id URL all 301 to the successor."""
+    old = _src(dataset_id="8152ebdf-502f", with_agent=True, title="קבלני כח אדם")
+    old.analysis_status = "unavailable"
+    old.previous_titles = ["קבלני כח אדם ישן"]
+    new = _src(dataset_id="90b08091-d516", with_agent=True, title="מאגר קבלנים מאוחד")
+    successors = tmp_path / "successors.json"
+    successors.write_text(json.dumps({"8152ebdf-502f": "90b08091-d516"}))
+    monkeypatch.setattr(publish, "DATASET_SUCCESSORS_PATH", successors)
+
+    summary = publish.publish(tmp_path / "out", store=_store_mock([old, new]))
+
+    assert summary["superseded"] == 1
+    manifest = json.loads((tmp_path / "out/data/manifest.json").read_text())
+    assert [d["id"] for d in manifest["datasets"]] == ["90b08091-d516"]
+    assert not (tmp_path / "out/datasets/8152ebdf-502f").exists()
+    target = "מאגר-קבלנים-מאוחד-90b08091"
+    assert manifest["slug_redirects"] == {
+        "8152ebdf-502f": target,
+        "קבלני-כח-אדם-8152ebdf": target,
+        "קבלני-כח-אדם-ישן-8152ebdf": target,
+    }
+
+
+@pytest.mark.parametrize(
+    ("old_status", "new_status", "chained", "published_new"),
+    [
+        ("succeeded", "succeeded", False, True),     # old page still live
+        ("unavailable", "unavailable", False, True), # successor gone too
+        ("unavailable", "succeeded", True, True),    # successor superseded
+        ("unavailable", "succeeded", False, False),  # successor not published
+    ],
+)
+def test_invalid_successor_keeps_the_old_page(
+    tmp_path: Path, monkeypatch, old_status, new_status, chained, published_new,
+):
+    old = _src(dataset_id="aaaaaaaa-1", with_agent=True, title="ישן")
+    old.analysis_status = old_status
+    new = _src(dataset_id="bbbbbbbb-2", with_agent=True, title="חדש")
+    new.analysis_status = new_status
+    third = _src(dataset_id="cccccccc-3", with_agent=True, title="שלישי")
+    third.analysis_status = "unavailable"
+    mapping = {"aaaaaaaa-1": "bbbbbbbb-2"}
+    if chained:
+        new.analysis_status = "unavailable"
+        mapping["bbbbbbbb-2"] = "cccccccc-3"
+        third.analysis_status = "succeeded"
+    successors = tmp_path / "successors.json"
+    successors.write_text(json.dumps(mapping))
+    monkeypatch.setattr(publish, "DATASET_SUCCESSORS_PATH", successors)
+    records = [old, third] + ([new] if published_new else [])
+
+    publish.publish(tmp_path / "out", store=_store_mock(records))
+
+    manifest = json.loads((tmp_path / "out/data/manifest.json").read_text())
+    assert "aaaaaaaa-1" in {d["id"] for d in manifest["datasets"]}
+    assert not any(k.endswith("aaaaaaaa") or k == "aaaaaaaa-1" for k in manifest["slug_redirects"])
+
+
+def test_dataset_successors_file_is_well_formed():
+    """Every committed entry maps a dataset id to a different dataset id."""
+    import re
+
+    entries = publish._load_dataset_successors()
+    for old, new in entries.items():
+        assert re.fullmatch(r"[0-9a-z-]+", old), old
+        assert re.fullmatch(r"[0-9a-z-]+", new), new
+        assert old != new
+        assert new not in entries, f"{new} is itself superseded"
 
 
 def test_legacy_page_slugs_file_is_well_formed():

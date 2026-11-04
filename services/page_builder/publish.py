@@ -57,6 +57,15 @@ log = logging.getLogger(__name__)
 # gen-redirects.mjs's OLD_SPACE_TAGS; new renames need no entry here.
 LEGACY_PAGE_SLUGS_PATH = Path(__file__).with_name("legacy_page_slugs.json")
 
+# Datasets removed upstream whose content now lives in another dataset (the
+# ministry merged several lists into one): removed id → successor id. Curated
+# by hand, because nothing in CKAN links the two. A superseded dataset gets no
+# page; every URL it had 301s to the successor, which moves its search ranking
+# there instead of leaving visitors on a frozen snapshot. Applied only while
+# the old source is `unavailable` and the successor is published and live
+# (`_valid_successors`); otherwise the old page stays as it was.
+DATASET_SUCCESSORS_PATH = Path(__file__).with_name("dataset_successors.json")
+
 
 # ---- record assembly --------------------------------------------------------
 
@@ -204,6 +213,7 @@ def dataset_slug_redirects(
     sources: Iterable[SourceRecord],
     page_slugs: dict[str, str],
     legacy: dict[str, str] | None = None,
+    successors: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Map every old page_slug of a published dataset to its current one.
 
@@ -212,19 +222,27 @@ def dataset_slug_redirects(
     id). Shared links and search results keep pointing at an old URL long
     after the rename, and without a redirect they land on the 404 page.
 
+    A superseded dataset (`successors`, already validated: removed id →
+    successor id) has no page of its own: its current slug, its bare-id URL
+    and all its old slugs point at the successor's page.
+
     An old slug that is some dataset's live slug is dropped: Firebase applies
     redirects before serving files, so it would take that page over.
     """
-    live = set(page_slugs.values())
+    successors = successors or {}
+    live = {slug for sid, slug in page_slugs.items() if sid not in successors}
     out: dict[str, str] = {}
 
     def add(old: str, sid: str) -> None:
-        cur = page_slugs.get(sid)
+        cur = page_slugs.get(successors.get(sid, sid))
         if cur and old and old not in live:
             out.setdefault(old, cur)
 
     for src in sources:
         suffix = src.page_slug_suffix or src.id.replace("-", "")[:8]
+        if src.id in successors:
+            add(page_slugs.get(src.id, ""), src.id)
+            add(src.id, src.id)
         for title in src.previous_titles:
             base = hebrew_slugify(title)
             add(f"{base}-{suffix}" if base else suffix, src.id)
@@ -235,6 +253,40 @@ def dataset_slug_redirects(
 
 def _load_legacy_page_slugs() -> dict[str, str]:
     return json.loads(LEGACY_PAGE_SLUGS_PATH.read_text(encoding="utf-8"))
+
+
+def _load_dataset_successors() -> dict[str, str]:
+    return json.loads(DATASET_SUCCESSORS_PATH.read_text(encoding="utf-8"))
+
+
+def _valid_successors(
+    successors: dict[str, str], metas: dict[str, DatasetMeta],
+) -> dict[str, str]:
+    """The `successors` entries safe to apply to this corpus.
+
+    The old dataset must be published and `unavailable` (a live page is never
+    hidden), and the successor published, available and not itself
+    superseded (no chains). A skipped entry leaves the old page as it was and
+    logs why: a wrong mapping costs a redirect, never a page.
+    """
+    out: dict[str, str] = {}
+    for old, new in successors.items():
+        old_meta, new_meta = metas.get(old), metas.get(new)
+        if old_meta is None:
+            continue  # not published (any more): nothing to redirect from
+        if old_meta.source_status != "unavailable":
+            problem = "the old dataset is still available"
+        elif new_meta is None:
+            problem = "the successor is not published"
+        elif new_meta.source_status == "unavailable":
+            problem = "the successor is unavailable"
+        elif new in successors:
+            problem = "the successor is itself superseded"
+        else:
+            out[old] = new
+            continue
+        log.warning("publish: successor %s -> %s skipped: %s", old, new, problem)
+    return out
 
 
 def _merged_entry(
@@ -363,6 +415,13 @@ def publish(
     for sid, slug in page_slugs.items():
         metas[sid].page_slug = slug
 
+    # Superseded datasets drop out here (no data.json, manifest entry, tag or
+    # related link); their URLs 301 to the successor via slug_redirects.
+    # Slugs are assigned first, so no other dataset's slug moves.
+    successors = _valid_successors(_load_dataset_successors(), metas)
+    for sid in successors:
+        del metas[sid], agents[sid]
+
     # Canonical tags per dataset: the curated assignment, else the fallback
     # (recipe suggested_tags ∪ CKAN tags through the alias index).
     drop_names = org_drop_names(m.organization for m in metas.values())
@@ -402,7 +461,9 @@ def publish(
         tag_index={t: TagIndexEntry(**v) for t, v in tag_index.items()},
         topics=[TopicEntry(**vars(t)) for t in taxonomy.topics.values()],
         tag_redirects=tag_redirects(raw_tags, taxonomy, tag_index, drop_names),
-        slug_redirects=dataset_slug_redirects(sources, page_slugs, _load_legacy_page_slugs()),
+        slug_redirects=dataset_slug_redirects(
+            sources, page_slugs, _load_legacy_page_slugs(), successors,
+        ),
     )
     manifest_path = _write_manifest(out_root, manifest)
     search_index_path = _write_search_index(out_root, manifest)
@@ -416,6 +477,7 @@ def publish(
         "datasets": len(final_entries),
         "wrote_data_json": written_meta,
         "wrote_agent_data_json": written_agent,
+        "superseded": len(successors),
     }
 
 
