@@ -111,6 +111,18 @@ def test_latest_picks_newest_matching_snapshot():
     assert [r["id"] for r in out["main"]] == ["r-new"]
 
 
+@pytest.mark.parametrize("how", [{"concat": True}, {"pick": "latest"}])
+def test_by_schema_resolves_to_the_full_resource(how):
+    """The export downloads the input's file by its url, and check A′ reads its
+    CKAN hash: a schema match must carry them, as a by_id input does."""
+    inp = {"name": "main", "by_schema": ["a"], **how}
+    res = [{"id": "r1", "name": "x", "format": "csv", "datastore_active": True,
+            "url": "https://data.gov.il/dataset/d/resource/r1/download/r1.csv",
+            "hash": "md5", "size": 123}]
+    out = resolve_inputs(_manifest([inp]), res, lambda rid: ["a"])
+    assert out["main"][0] is res[0]
+
+
 def test_latest_ties_keep_ckan_order():
     m = _manifest([{"name": "main", "by_schema": ["a"], "pick": "latest"}])
     res = [{"id": i, "name": i, "format": "CSV", "datastore_active": True} for i in ("p", "q")]

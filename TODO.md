@@ -15,6 +15,16 @@ This repo is public: describe a security gap by what to change, never by how to 
   over 60 chars, 45 summaries over 160) until a recipe adds it. Fix: backfill in batches like
   the authoring PRs, highest GSC impressions with low CTR first, bumping each `recipe_version`;
   each page re-stages once. (2026-11-04)
+- **One big input still pages the datastore after the file fixes.** 656f6e4c's trademarks file
+  (391MB) is refused with "row 1048 has data outside the named columns" (77s of paging per run);
+  the cause isn't known yet (unquoted delimiter in a cell, or an unnamed trailing column the
+  datastore loader drops). Fix: inspect row 1048 of the raw file and match what the loader does.
+  (2026-11-04)
+- **~4.6s per refreshed source is spent outside `elapsed_s`.** In the 2026-11-04 13:05 run, 123
+  sources took 37m11s of wall time against 27m44s of summed `elapsed_s`; the 9.5 minutes in
+  between (staging, Firestore writes, and the up-to-date checks of the 194 untouched recipes) is
+  a third of the 30-minute target. Fix: time those steps in `refresh_outcome`, then batch or skip
+  whichever dominates. (2026-11-04)
 - **131 of 307 committed recipes fail `author verify`'s em-dash lint.** The rule (#124) came after
   they were authored and only runs at authoring time; the daily refresh doesn't enforce it, so
   the pages render fine. But any edit to one of these recipes, even a one-line template fix,

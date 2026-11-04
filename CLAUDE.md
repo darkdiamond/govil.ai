@@ -149,7 +149,10 @@ landing pages. Five layers:
    the datastore's exact shape: trimmed cells, line breaks as spaces, numbers
    as `2` or `2.0` per column (settled by the preview's samples or one
    datastore cell). Any doubt (header, row count, a non-text/numeric column,
-   the preview's sample rows) falls back to the pages. The file and the
+   the preview's sample rows) falls back to the pages. The download is
+   capped by `REFRESH_FILE_MAX_BYTES` (1.5GB), not the export caps: it holds
+   every column, while `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`/`limits` bound the
+   normalized output (the recipe's `columns` only). The file and the
    datastore are separate copies that can disagree (re-uploaded or edited
    data), so this is used only above one page, where it pays off. Over the
    50 recipe inputs above 100k rows (2026-11-04), 29 used the file, 27 of
