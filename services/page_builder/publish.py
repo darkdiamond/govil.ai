@@ -265,9 +265,10 @@ def _valid_successors(
     """The `successors` entries safe to apply to this corpus.
 
     The old dataset must be published and `unavailable` (a live page is never
-    hidden), and the successor published, available and not itself
-    superseded (no chains). A skipped entry leaves the old page as it was and
-    logs why: a wrong mapping costs a redirect, never a page.
+    hidden), and the successor published and available. That also rules out
+    chains: a successor superseded in turn is unavailable, so it fails here.
+    A skipped entry leaves the old page as it was and logs why: a wrong
+    mapping costs a redirect, never a page.
     """
     out: dict[str, str] = {}
     for old, new in successors.items():
@@ -280,8 +281,6 @@ def _valid_successors(
             problem = "the successor is not published"
         elif new_meta.source_status == "unavailable":
             problem = "the successor is unavailable"
-        elif new in successors:
-            problem = "the successor is itself superseded"
         else:
             out[old] = new
             continue

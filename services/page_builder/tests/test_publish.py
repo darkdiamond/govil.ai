@@ -370,7 +370,7 @@ def test_superseded_dataset_redirects_to_its_successor(tmp_path: Path, monkeypat
     [
         ("succeeded", "succeeded", False, True),     # old page still live
         ("unavailable", "unavailable", False, True), # successor gone too
-        ("unavailable", "succeeded", True, True),    # successor superseded
+        ("unavailable", "unavailable", True, True),  # successor superseded in turn
         ("unavailable", "succeeded", False, False),  # successor not published
     ],
 )
@@ -382,12 +382,9 @@ def test_invalid_successor_keeps_the_old_page(
     new = _src(dataset_id="bbbbbbbb-2", with_agent=True, title="חדש")
     new.analysis_status = new_status
     third = _src(dataset_id="cccccccc-3", with_agent=True, title="שלישי")
-    third.analysis_status = "unavailable"
     mapping = {"aaaaaaaa-1": "bbbbbbbb-2"}
-    if chained:
-        new.analysis_status = "unavailable"
+    if chained:  # b → c is valid, but a → b must not apply (no chains)
         mapping["bbbbbbbb-2"] = "cccccccc-3"
-        third.analysis_status = "succeeded"
     successors = tmp_path / "successors.json"
     successors.write_text(json.dumps(mapping))
     monkeypatch.setattr(publish, "DATASET_SUCCESSORS_PATH", successors)

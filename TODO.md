@@ -191,6 +191,11 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 
 ## Tags, related datasets and list pages
 
+- **A superseded dataset's `content.html` is still deployed.** `dataset_successors.json` 301s the
+  page route, but the publish workflows still rsync its staged body from GCS, so the frozen
+  snapshot stays reachable at `/datasets/<old-id>/content.html` (unlinked). Fix: skip superseded
+  ids in the rsync step, or delete their GCS staging prefix when a successor entry is added.
+  (2026-11-04)
 - **Topic hub pages.** Topics exist only as sections of `/tags/` (and a broad tag per topic,
   like `/tags/תחבורה/`). A `/topics/<id>/` hub with the topic intro, its tags and its datasets
   would be a stronger landing page than the broad tag, which three topics (ביטחון והצלה,
