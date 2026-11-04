@@ -481,6 +481,9 @@ sandboxed compute, sanitizer, `check.py`), then:
   has ≤1 row, the 70% cut drops nothing, so verify skips the 70% run
   (shuffle and every other check still run) and prints `robustness skipped`;
 - template numeric-literal lint, PII grep;
+- `ruff check` on the recipe's Python (`RUFF:` lines; repo `ruff.toml`, the
+  same check CI runs). Fix the finding; a deliberate exception gets a
+  `# noqa: <code>` with the reason;
 - a chart-fallback check per chart section, and `coverage.json` completeness
   (every `"<input>.<column>"` mapped to element ids on the page or to
   `skip: <reason>`).

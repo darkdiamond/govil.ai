@@ -905,6 +905,21 @@ def test_em_dash_lint(tmp_path):
                          for k in (4, 6)), findings
 
 
+def test_ruff_findings_flag_recipe_lint(tmp_path):
+    from services.page_builder import author
+
+    shutil.copytree(FIXTURES / DS, tmp_path / DS)
+    assert author._ruff_findings(Recipe.load(tmp_path / DS)) == []
+
+    c = tmp_path / DS / "compute.py"
+    c.write_text("import os\n" + c.read_text(encoding="utf-8")
+                 + "\n\ndef _unused():\n    x = 1\n", encoding="utf-8")
+    findings = author._ruff_findings(Recipe.load(tmp_path / DS))
+    assert any(f.startswith("RUFF: compute.py:1:") and "F401" in f for f in findings), findings
+    assert any("F841" in f for f in findings), findings
+    assert all(f.startswith("RUFF: compute.py:") for f in findings), findings
+
+
 def test_author_verify_requires_fallback_and_coverage(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     recipes = tmp_path / "recipes"

@@ -36,6 +36,7 @@ import json
 import random
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 from collections.abc import Callable
@@ -710,6 +711,28 @@ def _purity_findings(recipe: Recipe) -> list[str]:
     return out
 
 
+RUFF_CONFIG = REPO_ROOT / "ruff.toml"
+
+
+def _ruff_findings(recipe: Recipe) -> list[str]:
+    """`ruff check` over the recipe's Python, with the repo's ruff.toml (CI
+    runs the same check, so a finding here would fail the PR anyway)."""
+    cmd = [sys.executable, "-m", "ruff", "check", "--no-cache", "--output-format", "concise",
+           "--config", str(RUFF_CONFIG), str(recipe.root)]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return [f"RUFF: could not run ruff ({type(e).__name__}: {e})"]
+    if proc.returncode not in (0, 1):  # 0 clean, 1 findings, 2 ruff itself failed
+        err = (proc.stderr or proc.stdout).strip()
+        if "No module named ruff" in err:
+            return ["RUFF: ruff is not installed — pip install -r requirements-dev.txt"]
+        return [f"RUFF: ruff failed: {err[:300]}"]
+    root = str(recipe.root) + "/"
+    return [f"RUFF: {line.removeprefix(root)}" for line in proc.stdout.splitlines()
+            if line.startswith(root)]
+
+
 # House style: no em dash (U+2014) in anything a visitor reads. Checked on the
 # recipe source, not the rendered page, so an em dash inside CKAN data values
 # is not flagged. Comments and docstrings are exempt; every other string
@@ -973,6 +996,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     )
     problems += _pii_findings(recipe)
     problems += _purity_findings(recipe)
+    problems += _ruff_findings(recipe)
     problems += _em_dash_findings(recipe)
     problems += _tag_findings(dataset_id)
 

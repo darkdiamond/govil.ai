@@ -1,0 +1,18 @@
+# Ruff lint config for the Python code: services/, agent/, recipes/.
+#
+# The rule set is ruff's own default for the pinned version (no `select`).
+# `required-version` makes an unpinned ruff refuse to run instead of quietly
+# applying a different default set: a ruff bump is a deliberate PR
+# (requirements-dev.txt + this line) that fixes whatever new rules it brings.
+#
+# Run: ruff check .   (CI runs it; `author verify` runs it on each recipe.)
+required-version = "==0.17.2"
+target-version = "py312"
+
+# Ruff honors .gitignore already; these are listed so a checkout with a
+# different ignore file still skips authoring scratch and nested worktrees.
+extend-exclude = [
+    ".claude",
+    "tmp",
+    "services/page_builder/harness-comparison",
+]
