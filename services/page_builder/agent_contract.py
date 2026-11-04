@@ -639,20 +639,30 @@ def _join_surrogates(s: str) -> str:
     return s.encode("utf-16", "surrogatepass").decode("utf-16")
 
 
-def _decoded_lines(f, encoding: str, state: dict):
+# One physical line of a CSV is read at most this long. Lines end at "\n"
+# only, so a file with bare-CR line ends (or none) would otherwise be read
+# whole into memory; it pages the datastore instead.
+_MAX_LINE_BYTES = 16 * 1024 * 1024
+
+
+def _decoded_lines(f, encoding: str):
     """The binary file's lines, decoded. Only a line that fails the strict
     decode pays for the fallbacks: UTF-8 joins CESU-8 surrogate pairs,
     Windows-1255 replaces undefined bytes (counted against the cap)."""
     rest = "utf-8" if encoding == "utf-8-sig" else encoding
     enc = encoding  # the BOM can only lead the first line
-    for line in f:
+    replaced = 0
+    for line in iter(lambda: f.readline(_MAX_LINE_BYTES), b""):
+        if len(line) == _MAX_LINE_BYTES and not line.endswith(b"\n"):
+            raise _FileMismatch(
+                f"a line longer than {_MAX_LINE_BYTES:,} bytes (bare-CR or no line ends?)")
         try:
             yield line.decode(enc)
         except UnicodeDecodeError:
             if enc == "cp1255":
                 text = line.decode(enc, "replace")
-                state["replaced"] += text.count("\ufffd")
-                if state["replaced"] > _MAX_CP1255_REPLACED:
+                replaced += text.count("\ufffd")
+                if replaced > _MAX_CP1255_REPLACED:
                     raise _FileMismatch(
                         f"over {_MAX_CP1255_REPLACED} bytes undefined in Windows-1255") from None
                 yield text
@@ -670,7 +680,7 @@ def _file_rows(raw: Path, columns: list[str], encoding: str):
     columns. A wrong `encoding` raises UnicodeDecodeError while iterating."""
     for delimiter in _DELIMITERS:
         f = open(raw, "rb")  # noqa: SIM115 — rows() owns and closes it
-        reader = csv.reader(_decoded_lines(f, encoding, {"replaced": 0}), delimiter=delimiter)
+        reader = csv.reader(_decoded_lines(f, encoding), delimiter=delimiter)
         try:
             header = [h.strip() for h in next(reader, None) or []]
         except BaseException:
@@ -811,8 +821,11 @@ def _normalize_as(raw: Path, encoding: str, dest: Path, types: dict, cols: list[
         w.writerow(cols)
         for row in reader:
             if isinstance(row, _Malformed):
-                if fetch_rows is None or len(malformed) >= _MAX_REFETCHED_ROWS:
+                if fetch_rows is None:
                     raise _FileMismatch(f"row {rows + 1} has data outside the named columns")
+                if len(malformed) >= _MAX_REFETCHED_ROWS:
+                    raise _FileMismatch(
+                        f"over {_MAX_REFETCHED_ROWS:,} malformed rows to read from the datastore")
                 # A one-line placeholder, replaced from the datastore below.
                 malformed[rows] = row
                 w.writerow([""] * len(cols))
@@ -872,16 +885,19 @@ def _patch_rows(dest: Path, malformed: dict[int, list[str]], header: list[str],
         if not same:
             raise _FileMismatch(f"row {offset + 1}: datastore {key!r} is {got!r}, the file has {cell!r}")
     patched = dest.with_suffix(".patch")
-    with open(dest, "rb") as src, open(patched, "w", encoding="utf-8", newline="") as out:
-        w = csv.writer(out)
-        out.write(src.readline().decode("utf-8"))
-        for i, line in enumerate(src):
-            if i in malformed:
-                rec = recs[i]
-                w.writerow(["" if rec.get(c) is None else rec[c] for c in cols])
-            else:
-                out.write(line.decode("utf-8"))
-    patched.replace(dest)
+    try:
+        with open(dest, "rb") as src, open(patched, "w", encoding="utf-8", newline="") as out:
+            w = csv.writer(out)
+            out.write(src.readline().decode("utf-8"))
+            for i, line in enumerate(src):
+                if i in malformed:
+                    rec = recs[i]
+                    w.writerow(["" if rec.get(c) is None else rec[c] for c in cols])
+                else:
+                    out.write(line.decode("utf-8"))
+        patched.replace(dest)
+    finally:
+        patched.unlink(missing_ok=True)
     log.info("file: %d malformed row(s) read from the datastore", len(malformed))
 
 
@@ -935,6 +951,7 @@ def fetch_resource_csv(
 
         def fetch_rows(offsets: list[int], columns: list[str]) -> dict[int, dict]:
             def one(offset: int) -> tuple[int, dict]:
+                _check_deadline(deadline)
                 _, records = _fetch_page(resource["id"], offset, 1, _FILE_PROBE_TIMEOUT_S, columns)
                 if not records:
                     raise _FileMismatch(f"datastore has no row {offset + 1}")

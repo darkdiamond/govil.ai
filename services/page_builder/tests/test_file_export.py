@@ -5,6 +5,7 @@ datastore_search on any doubt."""
 from __future__ import annotations
 
 import io
+import threading
 import time
 import urllib.error as urllib_error
 
@@ -469,3 +470,31 @@ def test_a_short_row_without_quotes_keeps_its_empty_tail(monkeypatch, tmp_path):
     out, dest = _export(tmp_path, _preview(), total=1, page_size=0)
     assert out.via == "file"
     assert dest.read_bytes().decode("utf-8") == "שם,ערך,קוד\r\nחיפה,1.5,\r\n"
+
+
+def test_a_line_with_no_line_end_in_sight_falls_back(monkeypatch, tmp_path):
+    # Bare-CR line ends: without the per-line cap the whole file is one line.
+    monkeypatch.setattr(ac, "_MAX_LINE_BYTES", 32)
+    _serve(monkeypatch, ("שם,ערך,קוד\r" + "חיפה,1,א\r" * 10).encode())
+    ds = _datastore(monkeypatch)
+    out, _ = _export(tmp_path, _preview(), total=10, page_size=0)
+    assert out.via == "datastore" and len(ds) == 1
+
+
+def test_the_refetch_respects_the_wall_budget(monkeypatch, tmp_path):
+    _serve(monkeypatch, MALFORMED)
+    ds = _datastore(monkeypatch)
+    _rows_datastore(monkeypatch, {1: {"שם": "צפת", "ערך": 2, "קוד": "x"}, 2: ROW3})
+    real = ac._check_deadline
+
+    def deadline_after_the_normalize(deadline):
+        # The refetch runs in pool threads; the normalize pass doesn't.
+        if threading.current_thread() is not threading.main_thread():
+            raise FetchLimitExceeded("wall_budget", "out of wall budget")
+        return real(deadline)
+
+    monkeypatch.setattr(ac, "_check_deadline", deadline_after_the_normalize)
+    with pytest.raises(FetchLimitExceeded) as e:
+        _export(tmp_path, _preview(), total=3)
+    assert e.value.limit == "wall_budget" and not ds
+    assert not list(tmp_path.glob("*.patch"))
