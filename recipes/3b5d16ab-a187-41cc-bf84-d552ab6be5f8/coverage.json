@@ -1,0 +1,5 @@
+{
+  "main.country": "chart-regions, chart-kinds, kpi:total, kpi:countries, kpi:served, kpi:multi, kpi:regions, insight:leader, insight:outside, insight:served, insight:multi, insight:single, table:directory, table:hubs — the region comes from a fixed name/slug mapping with an \"אחר\" fallback; \"(מX)\" marks a country served from the X mission",
+  "main.link": "table:directory, chart-regions — the gov.il page slug is the primary key for the region mapping",
+  "main.flag": "table:directory — flag image shown next to each mission (only https *.gov.il images)"
+}

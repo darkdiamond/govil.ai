@@ -1,0 +1,201 @@
+{% import "gov.j2" as gov %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, cols, rows, h="h-72 md:h-80") %}
+<section class="card p-5 mb-6">
+  {{ gov.head(icon, title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  {{ gov.chart(cid, aria, h) }}
+  <div class="overflow-x-auto">
+  {{ gov.table(cap, cols, rows) }}
+  </div>
+</section>
+{%- endmacro %}
+
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.area, "שטח המסדרונות (קמ״ר)") }}
+  {{ gov.kpi(model.kpis.boundary, "אורך קו המתאר (ק״מ)") }}
+  {{ gov.kpi(model.kpis.ns, "אורך הרשת מצפון לדרום (ק״מ)") }}
+  {{ gov.kpi(model.kpis.width, "רוחב מסדרון ממוצע, הערכה (ק״מ)") }}
+  {{ gov.kpi(model.kpis.cells, "תאים סגורים בין הנתיבים") }}
+{%- if model.kpis.updated is defined %}
+  {{ gov.kpi(model.kpis.updated, model.labels.kpi_updated) }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת נתיבי הטיסה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <style>#map-cvfr { height: 480px; } @media (min-width: 768px) { #map-cvfr { height: 620px; } }</style>
+  <div id="map-cvfr" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+</section>
+
+{%- if model.flags.bands %}
+{{ chart_section("chart-bands", "map-pin", "היכן המסדרונות: שטח לפי רצועת רוחב", model.labels.bands_note, model.labels.bands_aria, model.labels.bands_cap, ["רצועת רוחב", "שטח מסדרונות (קמ״ר)", "שיעור מהרשת", "תאים סגורים"], model.tables.bands, "h-80 md:h-96") }}
+{%- endif %}
+
+{%- if model.flags.cells %}
+{{ chart_section("chart-mesh", "database", "צפיפות הרשת: תאים סגורים לפי רצועה וגודל", model.labels.mesh_note, model.labels.mesh_aria, model.labels.mesh_cap, ["רצועת רוחב"] + model.charts.mesh.buckets + ["סך הכול"], model.tables.mesh, "h-80 md:h-96") }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "גודל התאים הסגורים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sizes_note }}</p>
+    {{ gov.chart("chart-sizes", model.labels.sizes_aria, "h-64 md:h-80") }}
+    <div class="overflow-x-auto">
+    {{ gov.table(model.labels.sizes_cap, ["גודל התא (קמ״ר)", "תאים", "שטח כולל (קמ״ר)"], model.tables.sizes) }}
+    </div>
+  </section>
+  <section class="card p-5">
+    {{ gov.head("list", "התאים הגדולים ביותר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cells_note }}</p>
+    {{ gov.chart("chart-cells", model.labels.cells_aria, "h-64 md:h-80") }}
+    <div class="overflow-x-auto">
+    {{ gov.table(model.labels.cells_cap, ["תא", "שטח (קמ״ר)", "רצועת רוחב"], model.tables.cells) }}
+    </div>
+  </section>
+</div>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על השכבה") }}
+  <p class="m-0 text-sm text-subtle leading-relaxed">נתיבי CVFR הם מסדרונות שבהם טסים כלי טיס קלים בטיסת ראייה, לפי מפת הנתיבים של רשות התעופה האזרחית. השכבה היא פוליגון אחד: שטחו הוא המסדרונות, והחורים בו הם התאים שהמסדרונות סוגרים ביניהם. השטחים והאורכים בעמוד נמדדו מהגאומטריה של השכבה, ורוחב המסדרון הוא הערכה גסה. המפה להמחשה בלבד ואינה מחליפה מפות ופרסומי תעופה רשמיים לצורכי ניווט.</p>
+</section>
+
+{%- for chunk in model.charts.map.chunks %}
+<script type="application/json" id="map-s-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-cvfr");
+    if (!el || !window.L || !window.GovMap) { return; }
+    var M = {{ model.charts.map.meta | tojson }};
+    var feats = GovMap.islands("map-s");
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    var rings = {};
+    feats.forEach(function (f) {
+      if (f[0] !== 0) { return; }
+      var rr = f[2].map(function (flat) { return GovMap.ring(flat, M.origin, M.scale); });
+      rings[f[1]] = rr;
+      L.polygon(rr, { color: "#0053c4", weight: 1, fillColor: "#0068f5", fillOpacity: 0.55 })
+        .bindPopup(GovMap.popup("מסדרונות הטיסה", [["שטח המסדרונות", M.area + " קמ״ר"], ["תאים סגורים", M.cells]]))
+        .addTo(map);
+    });
+    feats.forEach(function (f) {
+      if (f[0] !== 1 || !rings[f[1]] || !rings[f[1]][f[2]]) { return; }
+      L.polygon(rings[f[1]][f[2]], { stroke: false, fillColor: "#f1f7ff", fillOpacity: 0.05 })
+        .bindPopup(GovMap.popup("תא סגור בין הנתיבים", [["שטח", f[3] + " קמ״ר"], ["רצועת רוחב", f[4]]]))
+        .addTo(map);
+    });
+    map.fitBounds(M.bounds, { padding: [8, 8] });
+    var legend = document.getElementById("map-legend");
+    [["#0068f5", "מסדרון טיסה"], ["#f1f7ff", "תא סגור בין הנתיבים"]].forEach(function (it) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:14px;height:14px;border-radius:2px;border:1px solid #0053c4;background:" + it[0];
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(it[1]));
+      legend.appendChild(li);
+    });
+  })();
+</script>
+
+{%- if model.flags.bands %}
+<script>
+  (function () {
+    var d = {{ model.charts.bands | tojson }};
+    var el = document.getElementById("chart-bands");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + "<br>" + d.area[i].toLocaleString("he-IL") + " קמ״ר<br>" + d.cells[i].toLocaleString("he-IL") + " תאים סגורים";
+      } },
+      grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { width: 150, overflow: "truncate", fontSize: 11 } },
+      series: [{ type: "bar", name: "קמ״ר", data: d.area, barMaxWidth: 20, itemStyle: { color: "#0068f5" },
+        label: { show: true, position: "right", formatter: function (p) { return Math.round(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.cells %}
+<script>
+  (function () {
+    var d = {{ model.charts.mesh | tojson }};
+    var el = document.getElementById("chart-mesh");
+    if (!el) { return; }
+    var ramp = ["#0b3668", "#0053c4", "#0068f5", "#6c9fd8", "#9fc0ee"];
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 24, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, splitNumber: 3 },
+      yAxis: { type: "category", data: d.labels, inverse: true, axisLabel: { width: 150, overflow: "truncate", fontSize: 11 } },
+      series: d.buckets.map(function (b, i) {
+        return { type: "bar", stack: "n", name: b + " קמ״ר", data: d.series[i], barMaxWidth: 20,
+          itemStyle: { color: ramp[i] || window.GOVIL_PALETTE[i % 10] } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.sizes | tojson }};
+    var el = document.getElementById("chart-sizes");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + " קמ״ר<br>" + d.n[i].toLocaleString("he-IL") + " תאים<br>שטח כולל: " + d.area[i].toLocaleString("he-IL") + " קמ״ר";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, name: "קמ״ר", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{ type: "bar", name: "תאים", data: d.n, barMaxWidth: 40, itemStyle: { color: "#0068f5" },
+        label: { show: true, position: "top" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cells | tojson }};
+    var el = document.getElementById("chart-cells");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var i = p[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + "<br>" + echarts.format.encodeHTML(d.bands[i]) + "<br>" + d.area[i].toLocaleString("he-IL") + " קמ״ר";
+      } },
+      grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", splitNumber: 3 },
+      yAxis: { type: "category", data: d.labels, inverse: true },
+      series: [{ type: "bar", name: "קמ״ר", data: d.area, barMaxWidth: 18, itemStyle: { color: "#0b3668" },
+        label: { show: true, position: "right", formatter: function (p) { return Math.round(p.value).toLocaleString("he-IL"); } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

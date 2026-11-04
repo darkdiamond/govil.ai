@@ -1,0 +1,242 @@
+{% import "gov.j2" as gov %}
+{%- macro chart_section(cid, icon, title, note, aria, cap, tbl, h="h-72 md:h-80") %}
+<section class="card p-5 mb-6">
+  {{ gov.head(icon, title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  {{ gov.chart(cid, aria, h) }}
+  <div class="overflow-x-auto">
+  {{ gov.table(cap, tbl.headers, tbl.rows) }}
+  </div>
+</section>
+{%- endmacro %}
+
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.hoods, "אזורי שיקום שכונות") }}
+  {{ gov.kpi(model.kpis.towns, "יישובים עם אזור שיקום") }}
+  {{ gov.kpi(model.kpis.buildings, "מבנים בתוכנית שיפוץ המבנים") }}
+  {{ gov.kpi(model.kpis.done, "מהמבנים מסומנים ששופצו") }}
+  {{ gov.kpi(model.kpis.apts, "דירות במבני התוכנית") }}
+  {{ gov.kpi(model.kpis.emg, "אזורים בסימון חירום") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת שיקום שכונות ומחוזות משרד הבינוי והשיכון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-layers" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="map-legend" class="flex flex-wrap gap-x-4 gap-y-2 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+</section>
+
+<h2 class="text-xl font-semibold text-ink-deep mb-4">שיקום שכונות: גבולות האזורים</h2>
+
+{{ chart_section("chart-districts", "map-pin", "אזורי שיקום לפי מחוז", model.labels.districts_note, model.labels.districts_aria, model.labels.districts_cap, model.tables.districts) }}
+
+{{ chart_section("chart-towns", "building-2", "היישובים עם הכי הרבה אזורי שיקום", model.labels.towns_note, model.labels.towns_aria, model.labels.towns_cap, model.tables.towns, "h-72 md:h-96") }}
+
+{{ chart_section("chart-areas", "database", "שטח אזורי השיקום", model.labels.areas_note, model.labels.areas_aria, model.labels.areas_cap, model.tables.areas) }}
+
+{{ chart_section("chart-codes", "tag", "שדות הקוד: סוג, פעילות וחירום", model.labels.codes_note, model.labels.codes_aria, model.labels.codes_cap, model.tables.codes, "h-64 md:h-80") }}
+
+<h2 class="text-xl font-semibold text-ink-deep mb-4">שיקום שכונות: שיפוץ מבנים</h2>
+
+{{ chart_section("chart-projects", "building-2", "מבנים בכל פרויקט שיפוץ", model.labels.projects_note, model.labels.projects_aria, model.labels.projects_cap, model.tables.projects, "h-80 md:h-[460px]") }}
+
+{% if model.flags.years %}
+{{ chart_section("chart-years", "database", "שנת השיפוץ האחרון", model.labels.years_note, model.labels.years_aria, model.labels.years_cap, model.tables.years) }}
+{% endif %}
+
+{{ chart_section("chart-public", "building-2", "דיור ציבורי במבני התוכנית", model.labels.public_note, model.labels.public_aria, model.labels.public_cap, model.tables.public, "h-64 md:h-80") }}
+
+{{ chart_section("chart-apts", "database", "גודל המבנים: דירות במבנה", model.labels.apts_note, model.labels.apts_aria, model.labels.apts_cap, model.tables.apts, "h-64 md:h-80") }}
+
+{% if model.flags.floors %}
+{{ chart_section("chart-floors", "database", "קומות וכניסות", model.labels.floors_note, model.labels.floors_aria, model.labels.floors_cap, model.tables.floors, "h-64 md:h-80") }}
+{% endif %}
+
+{% if model.flags.streets %}
+{{ chart_section("chart-streets", "map-pin", "הרחובות עם הכי הרבה מבנים בתוכנית", model.labels.streets_note, model.labels.streets_aria, model.labels.streets_cap, model.tables.streets, "h-72 md:h-96") }}
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "רשימת אזורי שיקום השכונות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hoods_note }}</p>
+  <details>
+    <summary class="text-sm text-subtle">הצג את הרשימה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.hoods_cap }}</caption>
+      <thead><tr>{% for c in model.tables.hoods.headers %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.hoods.rows %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על השכבות בקובץ") }}
+  <p class="m-0 text-sm text-subtle">המאגר כולל ארבע שכבות בפורמט Shapefile: גבולות אזורי שיקום השכונות, מבני תוכנית שיפוץ המבנים, מחוזות המשרד ושכבות מחיר למשתכן. שכבות מחיר למשתכן ארוזות כקבצים דחוסים בתוך קובץ דחוס, ולכן אינן מוצגות בעמוד זה; אפשר להוריד אותן מרשימת הקבצים. משמעות השדות בשכבת שיפוץ המבנים לקוחה ממסמך המקרא המצורף למאגר.</p>
+</section>
+
+{%- for key in ["d", "h", "r"] %}
+{%- for chunk in model.map[key] %}
+<script type="application/json" id="map-{{ key }}-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-layers");
+    if (!el || !window.L || !window.GovMap) { return; }
+    var M = {{ model.map.meta | tojson }};
+    var pal = window.GOVIL_PALETTE || ["#0068f5", "#0b3668", "#6c9fd8"];
+    var tone = { ok: "#198754", warn: "#9a6700", subtle: "#6c757d" };
+    function actColor(i) { return pal[i % pal.length]; }
+    function stColor(i) { return tone[M.tones[i]] || "#6c757d"; }
+    function feats(key) { return GovMap.islands("map-" + key); }
+    function path(flat) { return GovMap.ring(flat, M.origin, M.scale); }
+    function polys(p) { return p.map(function (rings) { return rings.map(path); }); }
+    function pt(x, y) { return GovMap.ring([x, y], M.origin, M.scale)[0]; }
+    function num(v) { return Number(v).toLocaleString("en-US"); }
+    var popup = GovMap.popup;
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+
+    var dist = L.featureGroup();
+    feats("d").forEach(function (f) {
+      L.polygon(polys(f[3]), { color: "#0b3668", weight: 1.5, dashArray: "5 4", fill: false, interactive: false }).addTo(dist);
+    });
+    var hoods = L.featureGroup();
+    feats("h").forEach(function (f) {
+      var c = actColor(f[0]);
+      L.polygon(polys(f[8]), { color: c, weight: 1.5, fillColor: c, fillOpacity: 0.25 })
+        .bindPopup(popup(f[1], [["יישוב", f[2]], ["מחוז", f[3]], ["שטח", f[4] + " דונם"], ["קוד פעילות", M.acts[f[0]]],
+          ["סוג", String(f[7])], ["חירום", f[5]], ["מבנים בשכבת השיפוץ", f[6] > 0 ? num(f[6]) : ""]]))
+        .addTo(hoods);
+    });
+    var bShapes = L.featureGroup(), bDots = L.featureGroup();
+    feats("r").forEach(function (f) {
+      var info = popup(f[3] || f[1], [["פרויקט", f[1]], ["מתחם", f[2]], ["סטטוס", M.statuses[f[0]]],
+        ["דירות", num(f[4])], ["מהן בדיור הציבורי", num(f[5])], ["קומות", f[6] >= 0 ? String(f[6]) : ""],
+        ["תאריך שיפוץ אחרון", f[7]]]);
+      var c = stColor(f[0]);
+      L.polygon(polys(f[10]), { color: c, weight: 1, fillColor: c, fillOpacity: 0.7 }).bindPopup(info).addTo(bShapes);
+      L.circleMarker(pt(f[8], f[9]), { radius: 3.5, stroke: false, fillColor: c, fillOpacity: 0.9 }).bindPopup(info).addTo(bDots);
+    });
+    var bld = L.layerGroup();
+    function syncBuildings() {
+      var near = map.getZoom() >= 16;
+      bld.clearLayers();
+      bld.addLayer(near ? bShapes : bDots);
+    }
+    dist.addTo(map);
+    hoods.addTo(map);
+    bld.addTo(map);
+    var overlays = {};
+    overlays["מחוזות"] = dist;
+    overlays["אזורי שיקום"] = hoods;
+    overlays["מבני תוכנית השיפוץ"] = bld;
+    L.control.layers(null, overlays, { collapsed: window.innerWidth < 640 }).addTo(map);
+    map.on("zoomend", syncBuildings);
+    map.fitBounds(M.bounds, { padding: [8, 8] });
+    syncBuildings();
+
+    var legend = document.getElementById("map-legend");
+    function item(css, text) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;" + css;
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(text));
+      legend.appendChild(li);
+    }
+    M.acts.forEach(function (a, i) {
+      item("width:14px;height:12px;border-radius:2px;border:2px solid " + actColor(i) + ";background:" + actColor(i) + "40", "אזור שיקום, " + a);
+    });
+    M.statuses.forEach(function (s, i) {
+      item("width:10px;height:10px;border-radius:50%;background:" + stColor(i), "מבנה: " + s);
+    });
+    item("width:18px;height:12px;border:2px dashed #0b3668;border-radius:2px", "גבול מחוז");
+  })();
+</script>
+
+<script>
+  (function () {
+    var tone = { ok: "#198754", warn: "#9a6700", subtle: "#6c757d" };
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    window.__mk = mk;
+    window.__hbar = function (id, names, values, unit) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+    };
+    window.__stack = function (id, d, opts) {
+      opts = opts || {};
+      var c = mk(id); if (!c) { return; }
+      var horiz = !!opts.horizontal;
+      var cats = horiz ? d.cats.slice().reverse() : d.cats;
+      var catAxis = { type: "category", data: cats, axisLabel: horiz ? { width: 140, overflow: "truncate" } : { interval: 0, fontSize: 11, rotate: window.innerWidth < 500 ? 35 : 0 } };
+      var valAxis = { type: "value", minInterval: 1 };
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+        xAxis: horiz ? valAxis : catAxis,
+        yAxis: horiz ? catAxis : valAxis,
+        dataZoom: opts.zoom ? [{ type: "inside" }] : [],
+        series: d.names.map(function (n, i) {
+          var s = { type: "bar", stack: "t", name: n, data: horiz ? d.series[i].slice().reverse() : d.series[i] };
+          if (d.tones && tone[d.tones[i]]) { s.itemStyle = { color: tone[d.tones[i]] }; }
+          return s;
+        })
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    window.__stack("chart-districts", {{ model.charts.districts | tojson }});
+    var T = {{ model.charts.towns | tojson }};
+    window.__hbar("chart-towns", T.names, T.values, "אזורי שיקום");
+    window.__stack("chart-areas", {{ model.charts.areas | tojson }});
+    window.__stack("chart-codes", {{ model.charts.codes | tojson }});
+  })();
+</script>
+
+<script>
+  (function () {
+    window.__stack("chart-projects", {{ model.charts.projects | tojson }}, { horizontal: true });
+    var Y = {{ model.charts.years | tojson }};
+    if (document.getElementById("chart-years")) { window.__stack("chart-years", Y); }
+    window.__stack("chart-public", {{ model.charts.public | tojson }});
+    window.__stack("chart-apts", {{ model.charts.apts | tojson }});
+    var F = {{ model.charts.floors | tojson }};
+    if (document.getElementById("chart-floors")) { window.__stack("chart-floors", F); }
+    var S = {{ model.charts.streets | tojson }};
+    if (document.getElementById("chart-streets")) {
+      window.__stack("chart-streets", { cats: S.names, names: ["שופצו", "טרם שופצו"], tones: ["ok", "warn"], series: [S.done, S.rest] }, { horizontal: true });
+    }
+  })();
+</script>

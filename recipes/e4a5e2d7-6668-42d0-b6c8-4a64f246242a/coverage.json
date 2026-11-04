@@ -1,0 +1,17 @@
+{
+  "trips.OperatorId": "chart-opvol, chart-opstat, chart-optrend, table-worst, kpi:operators, insight:leader, insight:op_gap — grouping key; operator 4 was renamed, the latest name is shown",
+  "trips.operator_nm": "chart-opvol, chart-opstat, chart-optrend, chart-clusters, table-worst — latest-month spelling per OperatorId",
+  "trips.ClusterId": "chart-clusters, table-worst, insight:cluster — grouping key; -1 (undefined) is left out of the ranking",
+  "trips.cluster_nm": "chart-clusters, table-worst — latest-month spelling per ClusterId (older files misplace quote marks)",
+  "trips.OperatorLineId": "table-worst — the public line number, latest non-empty value",
+  "trips.OfficeLineId": "chart-dist, chart-volume, table-worst, kpi:lines, insight:lines — line key together with OperatorId",
+  "trips.trip_year": "chart-monthly, chart-volume, chart-yearly, chart-heat, chart-optrend, chart-lob, kpi:span, insight:years",
+  "trips.trip_month": "chart-monthly, chart-volume, chart-heat, kpi:span, insight:trend, insight:dip — the 12-month window is the latest 12 months in the data",
+  "trips.rishui": "chart-monthly, chart-volume, chart-yearly, chart-heat, chart-opvol, chart-opstat, chart-clusters, chart-dist, table-worst, kpi:planned, insight:dip, insight:leader — denominator of every share",
+  "trips.eibizua": "chart-monthly, chart-yearly, chart-opstat, chart-clusters, table-worst, kpi:miss, insight:missed, insight:cluster",
+  "trips.hakdama": "chart-monthly, chart-yearly, chart-opstat, insight:late_early",
+  "trips.eihurim": "chart-monthly, chart-yearly, chart-opstat, chart-clusters, kpi:late, insight:late_early",
+  "trips.takin": "chart-monthly, chart-yearly, chart-heat, chart-opstat, chart-optrend, chart-dist, kpi:ontime, kpi:ontime_delta, insight:trend, insight:years, insight:op_gap, insight:lines",
+  "trips.loberishui": "chart-lob — trips run outside the licence",
+  "trips._resource_name": "skip: synthetic file name; the year comes from trip_year"
+}

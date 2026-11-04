@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "3b5d16ab-a187-41cc-bf84-d552ab6be5f8",
+  "recipe_version": 1,
+  "authored_at": "2026-11-04T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-14T04:38:29.329674+00:00",
+    "rows": { "main": 37 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "bf01b488-c341-41b9-8b3f-257dda11bd43",
+      "required_columns": ["flag", "country", "link"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

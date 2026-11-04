@@ -1,0 +1,153 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מחצבה לפי שם, חברה או סוג מסלע ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מספר מחצבה, שם מחצבה, חברה מפעילה, מסלע ומחוז.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.sites, "אתרי כרייה וחציבה מורשים") }}
+  {{ gov.kpi(model.kpis.companies, "חברות מפעילות") }}
+  {{ gov.kpi(model.kpis.rocks, "חומרי גלם שונים") }}
+  {{ gov.kpi(model.kpis.top_share, model.kpi_labels.top_share) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת המחצבות והמכרות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "אתרים לפי מחוז") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_lede }}</p>
+    {{ gov.chart("chart-districts", model.labels.dist_aria, "h-64 md:h-80") }}
+    {{ gov.table("אתרי כרייה וחציבה לפי מחוז", ["מחוז", "אתרים", "שיעור"], model.tables.districts, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "אתרים לפי סוג המסלע") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rock_lede }}</p>
+    {{ gov.chart("chart-rocks", model.labels.rock_aria, "h-72 md:h-80") }}
+    {{ gov.table("אתרים לפי סוג המסלע", ["מסלע", "אתרים", "שיעור"], model.tables.rocks, ltr=(2,)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חומרי הגלם שנחצבים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_lede }}</p>
+  {{ gov.chart("chart-components", model.labels.comp_aria, "h-64 md:h-80") }}
+  {{ gov.table("מספר האתרים שבהם מופיע כל חומר גלם", ["חומר גלם", "אתרים", "שיעור מהאתרים"], model.tables.components, ltr=(2,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מה נחצב בכל מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dr_lede }}</p>
+  {{ gov.chart("chart-dist-rock", model.labels.dr_aria, "h-72 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.dr_caption }}</caption>
+      <thead><tr><th scope="col">מחוז</th>{% for c in model.tables.dist_rock.cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.dist_rock.rows %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "החברות המפעילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.co_lede }}</p>
+  {{ gov.chart("chart-companies", model.labels.co_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.co_caption, ["חברה", "אתרים", "שיעור"], model.tables.companies, ltr=(2,)) }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג לפי מחוז</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.cd_caption }}</caption>
+      <thead><tr><th scope="col">חברה</th>{% for c in model.tables.co_dist.cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.co_dist.rows %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.sites[0].id | tojson }},
+    latField: "(אורך) Y",
+    lngField: "(רוחב) X",
+    projection: "itm",
+    cluster: false,
+    popupTitleField: "שם מחצבה",
+    popupFields: [
+      { field: "חברה", label: "חברה מפעילה" },
+      { field: "מסלע", label: "מסלע" },
+      { field: "מחוז משרד הפנים", label: "מחוז" },
+      { field: "מס' מחצבה", label: "מספר מחצבה" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, labelWidth) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 32, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names.slice().reverse(),
+                 axisLabel: { width: labelWidth, overflow: "truncate" } },
+        series: [{ type: "bar", name: "אתרים", data: d.values.slice().reverse(),
+                   label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-districts", {{ model.charts.districts | tojson }}, 90);
+    hbar("chart-rocks", {{ model.charts.rocks | tojson }}, 110);
+    hbar("chart-components", {{ model.charts.components | tojson }}, 90);
+  })();
+</script>
+
+<script>
+  (function () {
+    function stack(id, d, labelWidth) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { type: "scroll", bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names.slice().reverse(),
+                 axisLabel: { width: labelWidth, overflow: "truncate" } },
+        series: d.series.map(function (s) {
+          return { type: "bar", stack: "t", name: s.name, data: s.data.slice().reverse() };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stack("chart-dist-rock", {{ model.charts.dist_rock | tojson }}, 80);
+    stack("chart-companies", {{ model.charts.co_dist | tojson }}, 150);
+  })();
+</script>

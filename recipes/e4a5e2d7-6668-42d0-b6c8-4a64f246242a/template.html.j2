@@ -1,0 +1,356 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת ביצוע של קו אוטובוס לפי מספר קו, מפעיל או אשכול ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם המפעיל, שם האשכול, מספר הקו ומק"ט הקו, עם הנסיעות המתוכננות, בזמן, באיחור ושלא בוצעו בכל חודש.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.planned, model.labels.kpi_planned) }}
+  {{ gov.kpi(model.kpis.ontime, model.labels.kpi_ontime) }}
+{%- if model.flags.prev %}
+  {{ gov.kpi(model.kpis.ontime_delta, model.labels.kpi_ontime_delta) }}
+{%- endif %}
+  {{ gov.kpi(model.kpis.miss, model.labels.kpi_miss) }}
+  {{ gov.kpi(model.kpis.late, model.labels.kpi_late) }}
+  {{ gov.kpi(model.kpis.lines, model.labels.kpi_lines) }}
+  {{ gov.kpi(model.kpis.operators, model.labels.kpi_operators) }}
+  {{ gov.kpi(model.kpis.span, model.labels.kpi_span) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "עמידה בזמנים ואי ביצוע לאורך זמן, לפי חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div id="chart-monthly" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.monthly_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היקף השירות: נסיעות מתוכננות וקווים פעילים בכל חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.volume_note }}</p>
+  <div id="chart-volume" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.volume_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אופן ביצוע הנסיעות לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yearly_note }}</p>
+  {{ gov.chart("chart-yearly", model.labels.yearly_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.yearly_caption, ["שנה", "נסיעות מתוכננות", "בזמן (%)", "באיחור (%)", "בהקדמה (%)", "לא בוצעו (%)"], model.tables.years, ltr=(2, 3, 4, 5)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "עונתיות: שיעור הנסיעות בזמן לפי שנה וחודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "המפעילים: חלקו של כל מפעיל בנסיעות בשנה האחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.opvol_note }}</p>
+  {{ gov.chart("chart-opvol", model.labels.opvol_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.opvol_caption, ["מפעיל", "נסיעות מתוכננות", "חלק מהנסיעות (%)"], model.tables.op_volume, ltr=(2,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "עמידה בזמנים ואי ביצוע לפי מפעיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.opstat_note }}</p>
+  {{ gov.chart("chart-opstat", model.labels.opstat_aria, "h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.opstat_caption, ["מפעיל", "נסיעות מתוכננות", "בזמן (%)", "באיחור (%)", "בהקדמה (%)", "לא בוצעו (%)"], model.tables.op_status, ltr=(2, 3, 4, 5)) }}
+  </div>
+</section>
+
+{%- if model.flags.op_trend %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "המפעילים הגדולים לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.optrend_note }}</p>
+  {{ gov.chart("chart-optrend", model.labels.optrend_aria, "h-72 md:h-96") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.optrend_caption, model.tables.op_trend_cols, model.tables.op_trend, ltr=(1, 2, 3, 4, 5, 6)) }}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.clusters %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "האשכולות עם שיעור אי הביצוע הגבוה ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cluster_note }}</p>
+  {{ gov.chart("chart-clusters", model.labels.cluster_aria, "h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.cluster_caption, ["אשכול", "מפעיל עיקרי", "נסיעות מתוכננות", "לא בוצעו", "לא בוצעו (%)", "באיחור (%)"], model.tables.clusters, ltr=(4, 5)) }}
+  </div>
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.lines %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">הקווים לפי שיעור העמידה בזמנים</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    {{ gov.chart("chart-dist", model.labels.dist_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.dist_caption, ["שיעור בזמן", "קווים", "חלק מהקווים (%)"], model.tables.line_dist, ltr=(2,)) }}
+  </section>
+{%- endif %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">נסיעות מחוץ לרישוי</h2>
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lob_note }}</p>
+    {{ gov.chart("chart-lob", model.labels.lob_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.lob_caption, ["שנה", "נסיעות מחוץ לרישוי", "מהמתוכנן (%)"], model.tables.lob, ltr=(2,)) }}
+  </section>
+</div>
+
+{%- if model.flags.lines %}
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "הקווים עם הכי הרבה נסיעות שלא בוצעו") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.worst_note }}</p>
+  <div class="overflow-x-auto">
+  <table id="table-worst" class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.worst_caption }}</caption>
+    <thead><tr><th scope="col">קו</th><th scope="col">מפעיל</th><th scope="col">אשכול</th><th scope="col">מק"ט</th><th scope="col">נסיעות מתוכננות</th><th scope="col">לא בוצעו</th><th scope="col">לא בוצעו (%)</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.worst %}
+      <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td><td>{{ r[4] }}</td><td>{{ r[5] }}</td><td dir="ltr">{{ r[6] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.monthly | tojson }};
+    var c = echarts.init(document.getElementById("chart-monthly"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.label[i]) +
+          "<br>בזמן: " + d.ontime[i].toFixed(1) + "%" +
+          "<br>באיחור: " + d.late[i].toFixed(1) + "%" +
+          "<br>בהקדמה: " + d.early[i].toFixed(2) + "%" +
+          "<br>לא בוצעו: " + d.miss[i].toFixed(1) + "%";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "בזמן (%)", scale: true },
+        { type: "value", name: "לא בוצעו (%)", splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 32, height: 18 }],
+      series: [
+        { type: "line", name: "יצאו בזמן", data: d.ontime, symbol: "none", lineStyle: { width: 2, color: "#0068f5" }, itemStyle: { color: "#0068f5" } },
+        { type: "line", name: "לא בוצעו", yAxisIndex: 1, data: d.miss, symbol: "none", lineStyle: { width: 2, color: "#dc3545" }, itemStyle: { color: "#dc3545" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.monthly | tojson }};
+    var c = echarts.init(document.getElementById("chart-volume"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.label[i]) +
+          "<br>נסיעות מתוכננות: " + d.rishui[i].toLocaleString("he-IL") +
+          "<br>קווים פעילים: " + d.lines[i].toLocaleString("he-IL");
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "נסיעות" },
+        { type: "value", name: "קווים", scale: true, splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 32, height: 18 }],
+      series: [
+        { type: "bar", name: "נסיעות מתוכננות", data: d.rishui },
+        { type: "line", name: "קווים פעילים", yAxisIndex: 1, data: d.lines, symbol: "none", lineStyle: { width: 2, color: "#0b3668" }, itemStyle: { color: "#0b3668" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var colors = ["#0068f5", "#9a6700", "#0dcaf0", "#dc3545"];
+    var c = echarts.init(document.getElementById("chart-yearly"));
+    c.setOption(window.GovEcharts.option({
+      color: colors,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.labels[i]);
+        ps.forEach(function (p) { s += "<br>" + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toFixed(2) + "%"; });
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "אחוז מהמתוכנן", min: d.axis_min, max: 100 },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(d.x[p.value[0]] + " " + d.y[p.value[1]]) + ": " + p.value[2].toFixed(1) + "% בזמן";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: { type: "category", data: d.y, splitArea: { show: true } },
+      visualMap: {
+        min: d.min, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" },
+        formatter: function (v) { return v.toFixed(1) + "%"; }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.op_volume | tojson }};
+    var c = echarts.init(document.getElementById("chart-opvol"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + ": " + d.y[i].toLocaleString("he-IL") + " נסיעות (" + d.share[i].toFixed(1) + "%)";
+      } },
+      grid: { left: 16, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "נסיעות", axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: [{ type: "bar", name: "נסיעות מתוכננות", data: d.y,
+        label: { show: true, position: "right", fontFamily: "Rubik", formatter: function (p) { return d.share[p.dataIndex].toFixed(1) + "%"; } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.op_status | tojson }};
+    var colors = ["#0068f5", "#9a6700", "#0dcaf0", "#dc3545"];
+    var c = echarts.init(document.getElementById("chart-opstat"));
+    c.setOption(window.GovEcharts.option({
+      color: colors,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var s = echarts.format.encodeHTML(d.x[ps[0].dataIndex]);
+        ps.forEach(function (p) { s += "<br>" + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toFixed(2) + "%"; });
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", name: "אחוז", min: d.axis_min, max: 100 },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      series: d.series.map(function (s) { return { type: "bar", stack: "all", name: s.name, data: s.data }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.op_trend %}
+<script>
+  (function () {
+    var d = {{ model.charts.op_trend | tojson }};
+    var c = echarts.init(document.getElementById("chart-optrend"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v == null ? "" : v.toFixed(1) + "%"; } },
+      legend: { bottom: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "בזמן (%)", scale: true },
+      series: d.series.map(function (s) { return { type: "line", name: s.name, data: s.data, connectNulls: false, symbolSize: 6, lineStyle: { width: 2 } }; })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.clusters %}
+<script>
+  (function () {
+    var d = {{ model.charts.clusters | tojson }};
+    var c = echarts.init(document.getElementById("chart-clusters"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>לא בוצעו: " + d.miss[i].toFixed(1) + "%<br>באיחור: " + d.late[i].toFixed(1) + "%";
+      } },
+      grid: { left: 16, right: 48, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", name: "לא בוצעו (%)" },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "לא בוצעו", data: d.miss, itemStyle: { color: "#dc3545" },
+        label: { show: true, position: "right", fontFamily: "Rubik", formatter: function (p) { return p.value.toFixed(1) + "%"; } },
+        markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: "#0b3668" }, label: { formatter: "ממוצע ארצי" }, data: [{ xAxis: d.avg }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.lines %}
+<script>
+  (function () {
+    var d = {{ model.charts.line_dist | tojson }};
+    var c = echarts.init(document.getElementById("chart-dist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + " בזמן: " + d.y[i].toLocaleString("he-IL") + " קווים (" + d.share[i].toFixed(1) + "%)";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 30 } },
+      yAxis: { type: "value", name: "קווים" },
+      series: [{ type: "bar", name: "קווים", data: d.y }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.yearly | tojson }};
+    var c = echarts.init(document.getElementById("chart-lob"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + ": " + d.lob[i].toFixed(2) + "% מהמתוכנן";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", name: "אחוז" },
+      series: [{ type: "bar", name: "מחוץ לרישוי", data: d.lob }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
