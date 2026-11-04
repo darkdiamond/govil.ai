@@ -1,4 +1,4 @@
-"""Builder pipeline — what one daily job execution does.
+"""Builder pipeline — what one job execution (06:00 or 14:00 tick) does.
 
 Cloud Scheduler, 06:00 + 14:00 Asia/Jerusalem: scan CKAN → refresh every recipe'd
 source CKAN moved past (deterministic, no LLM — services/page_builder/

@@ -61,7 +61,10 @@ landing pages. Five layers:
    14:00 Asia/Jerusalem** (`0 6,14 * * *`, DST-aware; twice-daily since
    2026-11-04, when a run took ~6 min) via the Admin API's `:run`
    method. Run-counted thresholds (`REFRESH_*_STRIKES`) assume two runs a
-   day, and the weekly reconcile sweep runs in both of Sunday's runs. **No LLM runs in prod** — every page is a recipe render.
+   day, and the weekly reconcile sweep runs in both of Sunday's runs.
+   `--task-timeout` (6h) must stay under the 8h gap between ticks, or a
+   slow run overlaps the next execution. **No LLM runs in prod** — every
+   page is a recipe render.
    `pipeline.run_pipeline` drives:
    reconcile sweep (weekly, `RECONCILE_*`) → scan → reap legacy
    `pending` markers (`PENDING_REAP_MINUTES`; nothing writes `pending`
@@ -83,7 +86,7 @@ landing pages. Five layers:
    selector/queue error ends the run `status: authoring_failed`, non-zero,
    but never costs the publish dispatch)
    → `refresh.queue_authoring` (one `needs-authoring` GitHub issue per
-   source, capped by `AUTHORING_NOTIFY_CAP`=100 new issues/run — a fuse
+   source, capped by `AUTHORING_NOTIFY_CAP`=100 new issues/run (so ≤200/day) — a fuse
    against a scan anomaly flooding the tracker) → publish dispatch **only
    if ≥1 page re-rendered** (`status: ok`; otherwise `status: idle`,
    dispatch skipped — a healthy outcome). A recipe merged to `main` is
@@ -96,8 +99,8 @@ landing pages. Five layers:
      `infra/builder-job.deploy.sh`. The `govdata-builder` HTTP service and
      its `TARGET=service` scheduler rollback are gone.
    - One container, one task (`--tasks=1 --parallelism=1
---max-retries=0`). A failed run is retried by the next day's tick,
-     not back to back.
+--max-retries=0`). A failed run is retried by the next tick (06:00
+     or 14:00), not back to back.
    - The deploy script uses `--set-env-vars`, which REPLACES the whole
      set — a var missing from the script is silently dropped on deploy.
      Diff against the live job before redeploying.
@@ -443,7 +446,7 @@ are still read by the authoring selector.
 - **Don't restore SQLite or add a fallback store.** Firestore is the
   only state store. `FIRESTORE_EMULATOR_HOST` for local/test is fine.
 - **Don't autoscale the builder.** `--tasks=1 --parallelism=1` on the job
-  is deliberate: one execution per day, refreshing recipes sequentially
+  is deliberate: one execution per tick (twice a day), refreshing recipes sequentially
   in one container (CKAN-bound, no model latency to hide). If a single
   recipe outgrows memory, bump `--memory` on that container, not task
   count.
