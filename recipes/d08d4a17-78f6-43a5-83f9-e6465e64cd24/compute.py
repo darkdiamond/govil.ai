@@ -61,7 +61,7 @@ NLANG_MAX = 5
 SIZE_BUCKETS = [(1, 1), (2, 5), (6, 10), (11, 50), (51, 200), (201, None)]
 MILESTONES = [1, 2, 5, 10, 20, 50, 100]
 PARTICLES = {"בן", "בר", "אבו", "אל", "דה", "אבן", "בית", "עבד", "ואן", "פון", "די"}
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):
@@ -330,11 +330,11 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     with_l = int(has_any.sum())
-    n_langs = int(len([l for l in lang_counts.index if l != OTHER_LANG]))
+    n_langs = len([l for l in lang_counts.index if l != OTHER_LANG])
     top_share = float(cities.iloc[0] / known_total * 100) if known_total else 0.0
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
-        "cities": {"value": int(len(cities)), "display": n(len(cities)), "tone": "brand"},
+        "cities": {"value": len(cities), "display": n(len(cities)), "tone": "brand"},
         "foreign": {"value": round(with_l / total * 100, 1) if total else 0,
                     "display": f"{with_l / total * 100:.1f}%" if total else "0%",
                     "tone": "info"},

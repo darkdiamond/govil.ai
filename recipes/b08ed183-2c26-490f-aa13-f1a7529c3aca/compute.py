@@ -294,7 +294,7 @@ def insight_address(df):
 
 def compute(frames):
     df = _prepare(frames["centers"])
-    n = int(len(df))
+    n = len(df)
 
     # settlement -> centers index
     index = {}

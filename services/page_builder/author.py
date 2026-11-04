@@ -36,10 +36,13 @@ import json
 import random
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from .agent_contract import FetchLimitExceeded, FetchOutcome
 from .recipe import (
@@ -160,7 +163,11 @@ def _provider_for_recipe(dataset_id: str, recipes_root: Path = RECIPES_ROOT):
     """`(provider, source_config)` when recipes/<id>/source.json declares a
     non-CKAN source, else None. Authoring is local, so the provider is built
     from env whether or not the job has it enabled."""
-    from services.providers import PROVIDER_CLASSES, SOURCE_CONFIG_FILENAME, SourceConfig
+    from services.providers import (
+        PROVIDER_CLASSES,
+        SOURCE_CONFIG_FILENAME,
+        SourceConfig,
+    )
 
     path = recipes_root / dataset_id / SOURCE_CONFIG_FILENAME
     if not path.is_file():
@@ -173,7 +180,7 @@ def _provider_for_recipe(dataset_id: str, recipes_root: Path = RECIPES_ROOT):
     return cls.from_env(), source
 
 
-def _fetch_or_skip(fetch: Callable, *args, **kwargs) -> tuple[Any, Optional[str]]:
+def _fetch_or_skip(fetch: Callable, *args, **kwargs) -> tuple[Any, str | None]:
     """(fetch(...), None), or (None, limit) when it stopped at a limit; the
     limit is kept as the manifest entry's `skipped`."""
     try:
@@ -259,11 +266,11 @@ def _tags_section(dataset_id: str, siblings: list[dict]) -> list[str]:
         "## Tags (taxonomy/)",
         "",
         f"Assign with `python -m services.page_builder.tags assign {dataset_id} <tag> ...`",
-        f"{MIN_ASSIGNED}–{MAX_ASSIGNED} tags from the vocabulary below, most important first, "
+        (f"{MIN_ASSIGNED}–{MAX_ASSIGNED} tags from the vocabulary below, most important first, "
         "starting with the topic's broad tag when it has one. Tag what the data is ABOUT, "
         "not who publishes it. A genuinely new subject gets a new canonical tag in "
         "`taxonomy/tags.json` in the same PR (with a topic and aliases), never a variant "
-        "of an existing one.",
+        "of an existing one."),
         "",
     ]
     for tid, topic in tax.topics.items():
@@ -293,7 +300,11 @@ def _tag_findings(dataset_id: str) -> list[str]:
     authoring, where parallel authors never touch the shared file) a pending
     tmp/authoring/<id>/tags.json that `tags assign --from-pending` merges."""
     from .tags import (
-        MAX_ASSIGNED, MIN_ASSIGNED, Taxonomy, TaxonomyError, pending_tags_path,
+        MAX_ASSIGNED,
+        MIN_ASSIGNED,
+        Taxonomy,
+        TaxonomyError,
+        pending_tags_path,
         validate_assignment,
     )
 
@@ -311,9 +322,9 @@ def _tag_findings(dataset_id: str) -> list[str]:
             return [f"TAGS: {pending} is not valid JSON: {e}"]
         source = _display_path(pending)
     if tags is None:
-        return [f"TAGS: no tags for {dataset_id} — add {MIN_ASSIGNED}–{MAX_ASSIGNED} vocabulary "
+        return [(f"TAGS: no tags for {dataset_id} — add {MIN_ASSIGNED}–{MAX_ASSIGNED} vocabulary "
                 "tags (BRIEF.md § Tags) with `python -m services.page_builder.tags assign "
-                f"{dataset_id} <tag>...` (batch runs: a JSON list in {_display_path(pending)})"]
+                f"{dataset_id} <tag>...` (batch runs: a JSON list in {_display_path(pending)})")]
     return [f"TAGS ({source}): {p}" for p in validate_assignment(tax, tags)]
 
 
@@ -322,7 +333,12 @@ def prepare(dataset_id: str) -> Path:
     from services.shared.resources import select_prefetch_resources
 
     from .agent_contract import fetch_resource_export, fetch_resource_preview
-    from .refresh import _env_int, _DEFAULT_MAX_BYTES, _DEFAULT_MAX_RECORDS, _DEFAULT_PAGE_SIZE
+    from .refresh import (
+        _DEFAULT_MAX_BYTES,
+        _DEFAULT_MAX_RECORDS,
+        _DEFAULT_PAGE_SIZE,
+        _env_int,
+    )
 
     provider = _provider_for_recipe(dataset_id)
     if provider is not None:
@@ -428,7 +444,12 @@ def download_map(res: dict, dest: Path) -> tuple[list[dict], str]:
 
     from . import geo_snapshot as gs
     from .agent_contract import fetch_resource_file
-    from .refresh import _DEFAULT_MAP_MAX_BYTES, _PAGE_TIMEOUT_S, _env_int, _map_file_name
+    from .refresh import (
+        _DEFAULT_MAP_MAX_BYTES,
+        _PAGE_TIMEOUT_S,
+        _env_int,
+        _map_file_name,
+    )
 
     fetch_resource_file(res.get("url") or "", dest,
                         max_bytes=_env_int("REFRESH_MAP_MAX_BYTES", _DEFAULT_MAP_MAX_BYTES),
@@ -455,7 +476,7 @@ def _prepare_maps(facts: dict, data_dir: Path) -> list[dict]:
                 entry.update(geojson_bytes=len(body), tolerance=tol)
             except gs.SnapshotTooLarge as e:
                 entry["note"] = f"over the default size target: set map_max_kb ({e})"
-        except Exception as e:  # recorded for the brief; the author decides
+        except Exception as e:  # recorded for the brief; the author decides  # noqa: BLE001
             entry["file"] = dest.name if dest.is_file() else None
             entry["error"] = f"{type(e).__name__}: {str(e)[:200]}"
         out.append(entry)
@@ -475,8 +496,8 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
     ]
     if provider:
         head += [
-            f"- source: {facts.get('provider_label')} (provider `{provider}`, "
-            f"recipes/{facts['id']}/source.json)",
+            (f"- source: {facts.get('provider_label')} (provider `{provider}`, "
+            f"recipes/{facts['id']}/source.json)"),
             f"- source page: {facts.get('source_url')}",
             f"- update_frequency: {facts.get('update_frequency')}",
             f"- tags: {', '.join(facts.get('tags') or [])}",
@@ -528,12 +549,12 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
     maps = json.loads(p["maps"].read_text(encoding="utf-8")) if p.get("maps") and p["maps"].is_file() else []
     if maps:
         lines += ["## Map files (not in the datastore)", "",
-                  "The refresh downloads these itself. To draw one, add the input "
+                  ("The refresh downloads these itself. To draw one, add the input "
                   '`{"name": "geo", "by_id": "<resource_id>", "map": true}`: compute gets one '
                   "row per feature, every property as a string plus `__geometry` (the "
                   "feature's WGS84 GeoJSON geometry, compact JSON). Lines and rings are "
                   "simplified to fit 150 KB (`map_max_kb` raises it). A file listed as failed "
-                  "below falls back to `author snapshot` (a browser download, committed).", ""]
+                  "below falls back to `author snapshot` (a browser download, committed)."), ""]
         for m in maps:
             lines.append(f"- `{m['resource_id']}` {m.get('format')} {m.get('name')} "
                          f"({m.get('size') or '?'} bytes): {m.get('url')}")
@@ -577,13 +598,13 @@ class _LocalCkan:
         self.by_id = {m["resource_id"]: m for m in manifest}
         self.transform = transform
 
-    def preview(self, rid: str) -> Optional[dict]:
+    def preview(self, rid: str) -> dict | None:
         m = self.by_id.get(rid)
         if not m:
             return None
         return {"fields": [{"id": f} for f in m["fields"]], "total": m["total"]}
 
-    def fetch(self, rid, total, dest, **kw) -> Optional[FetchOutcome]:
+    def fetch(self, rid, total, dest, **kw) -> FetchOutcome | None:
         m = self.by_id.get(rid)
         if m and m.get("skipped"):
             raise FetchLimitExceeded(m["skipped"], f"prepare skipped {rid[:8]}: over {m['skipped']}")
@@ -690,6 +711,38 @@ def _purity_findings(recipe: Recipe) -> list[str]:
     return out
 
 
+RUFF_CONFIG = REPO_ROOT / "ruff.toml"
+
+
+def _ruff_findings(recipe: Recipe) -> list[str]:
+    """`ruff check` over the recipe's Python, with the repo's ruff.toml (CI
+    runs the same check, so a finding here would fail the PR anyway)."""
+    # JSON, not text: its filenames are absolute (text output is cwd-relative),
+    # and anything that isn't a JSON list means ruff never ran, never "clean".
+    cmd = [sys.executable, "-m", "ruff", "check", "--no-cache", "--output-format", "json",
+           "--config", str(RUFF_CONFIG), str(recipe.root)]
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
+        found = json.loads(proc.stdout) if proc.returncode in (0, 1) else None
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return [f"RUFF: could not run ruff ({type(e).__name__}: {e})"]
+    except json.JSONDecodeError:
+        found = None
+    if not isinstance(found, list):
+        err = (proc.stderr or proc.stdout).strip()
+        if "No module named ruff" in err:
+            return ["RUFF: ruff is not installed — pip install -r requirements-dev.txt"]
+        return [f"RUFF: ruff failed (exit {proc.returncode}): {err[:300]}"]
+    root = recipe.root.resolve()
+    out = []
+    for f in found:
+        path = Path(f["filename"])
+        where = path.relative_to(root) if path.is_relative_to(root) else path
+        loc = f.get("location") or {}
+        out.append(f"RUFF: {where}:{loc.get('row')}:{loc.get('column')}: {f.get('code')} {f.get('message')}")
+    return out
+
+
 # House style: no em dash (U+2014) in anything a visitor reads. Checked on the
 # recipe source, not the rendered page, so an em dash inside CKAN data values
 # is not flagged. Comments and docstrings are exempt; every other string
@@ -698,11 +751,11 @@ def _purity_findings(recipe: Recipe) -> list[str]:
 
 # The character itself, or an HTML entity that renders as one.
 _EM_DASH_RE = re.compile(r"\u2014|&mdash;|&#0*8212;|&#[xX]0*2014;")
-_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--.*?-->", re.S)
+_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--.*?-->", re.DOTALL)
 # A JS string literal (kept, so "a // b" or "https://…" stays checked) or a comment (blanked).
 _JS_STRING_OR_COMMENT_RE = re.compile(
-    r"""("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|/\*.*?\*/|//[^\n]*""", re.S)
-_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(</script>)", re.S | re.I)
+    r"""("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|/\*.*?\*/|//[^\n]*""", re.DOTALL)
+_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(</script>)", re.DOTALL | re.IGNORECASE)
 
 
 def _keep_newlines(m: re.Match) -> str:
@@ -784,8 +837,8 @@ def _source_link_findings(html: str) -> list[str]:
     # Checked on the RENDERED page, so a link built from a model value or a
     # Jinja expression is caught as well as a literal one.
     n = len(_SOURCE_LINK_RE.findall(html))
-    return [f"SOURCE-LINK: page links to data.gov.il {n}x — the shell already "
-            "renders downloads and the data explorer under every page; remove them"] if n else []
+    return [(f"SOURCE-LINK: page links to data.gov.il {n}x — the shell already "
+            "renders downloads and the data explorer under every page; remove them")] if n else []
 
 
 def _explorer_marked(html: str) -> list[str]:
@@ -804,13 +857,13 @@ def _coverage_findings(
 ) -> tuple[list[str], list[str]]:
     path = recipe.root / COVERAGE_FILENAME
     if not path.is_file():
-        return [f"COVERAGE: recipes/{recipe.dataset_id}/{COVERAGE_FILENAME} is missing — "
+        return [(f"COVERAGE: recipes/{recipe.dataset_id}/{COVERAGE_FILENAME} is missing — "
                 'map every "<input>.<column>" to the chart id(s) / kpi: / insight: / '
-                'table: that use it, or to "skip: <reason>"'], []
+                'table: that use it, or to "skip: <reason>"')], []
     try:
         cov = json.loads(path.read_text(encoding="utf-8"))
         assert isinstance(cov, dict) and all(isinstance(v, str) for v in cov.values())
-    except Exception:
+    except Exception:  # noqa: BLE001
         return [f"COVERAGE: {COVERAGE_FILENAME} must be a JSON object of strings"], []
     fields = {m["resource_id"]: m["fields"] for m in manifest}
     for i in recipe.manifest.inputs:
@@ -943,7 +996,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
             prov, source = provider
             prov.facts(dataset_id, source, prov.parse_config(dataset_id, source))
             notes.append(f"source.json OK — provider {prov.key}")
-    except (SystemExit, Exception) as e:  # a bad source.json is a finding, not a crash
+    except (SystemExit, Exception) as e:  # a bad source.json is a finding, not a crash  # noqa: BLE001
         problems.append(f"SOURCE-CONFIG: recipes/{dataset_id}/source.json: {e}")
         provider = None
 
@@ -953,6 +1006,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
     )
     problems += _pii_findings(recipe)
     problems += _purity_findings(recipe)
+    problems += _ruff_findings(recipe)
     problems += _em_dash_findings(recipe)
     problems += _tag_findings(dataset_id)
 
@@ -1033,7 +1087,7 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
         out = preview.stage(dataset_id, page, raw, recipes_root=recipes_root)
     # The preview is a convenience; never fail verify on it. SystemExit too:
     # a bad source.json raises it, and is already reported as SOURCE-CONFIG.
-    except (SystemExit, Exception) as e:
+    except (SystemExit, Exception) as e:  # noqa: BLE001
         out = None
         notes.append(f"preview not staged: {type(e).__name__}: {e}")
 
@@ -1095,7 +1149,7 @@ def snapshot(dataset_id: str, map_file: Path, resource_id: str, *, name: str = "
              max_kb: int = 150, recipes_root: Path = RECIPES_ROOT, resource_fn=_ckan_resource) -> int:
     """Convert a browser-downloaded map file into recipes/<id>/<name>.geojson
     and print the recipe.json input that reads it."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from .geo_snapshot import SnapshotError, build_snapshot, detect_crs, read_map_file
 
@@ -1114,7 +1168,7 @@ def snapshot(dataset_id: str, map_file: Path, resource_id: str, *, name: str = "
     snap_of = {k: v for k, v in {
         "size": res.get("size"), "hash": res.get("hash") or None,
         "last_modified": res.get("last_modified"),
-        "taken_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        "taken_at": datetime.now(UTC).strftime("%Y-%m-%d"),
     }.items() if v is not None}
     entry = {"name": name, "by_id": resource_id, "snapshot": f"{name}.geojson",
              "snapshot_of": snap_of, "required_columns": []}
@@ -1133,7 +1187,7 @@ def snapshot(dataset_id: str, map_file: Path, resource_id: str, *, name: str = "
     return 0
 
 
-def _cli(argv: Optional[list[str]] = None) -> int:
+def _cli(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sp = sub.add_parser("prepare")

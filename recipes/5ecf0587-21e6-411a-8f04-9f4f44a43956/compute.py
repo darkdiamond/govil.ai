@@ -10,6 +10,7 @@ A line (LINE_ID) can be split into several segments, each with its own
 target year (the Beit Shemesh line runs to 2050, its Begin extension to
 2060). Counts of lines group by LINE_ID; the timeline works per segment.
 """
+import itertools
 import json
 import math
 
@@ -56,14 +57,13 @@ def _pct(x):
 
 def _norm(name):
     n = " ".join(str(name).strip().lower().split())
-    if n.startswith("jlm "):
-        n = n[4:]
+    n = n.removeprefix("jlm ")
     return n.split(" - ")[0].strip()
 
 
 def _haversine_m(coords):
     total = 0.0
-    for (x1, y1, *_), (x2, y2, *_) in zip(coords, coords[1:]):
+    for (x1, y1, *_), (x2, y2, *_) in itertools.pairwise(coords):
         p1, p2 = math.radians(y1), math.radians(y2)
         dp, dl = p2 - p1, math.radians(x2 - x1)
         a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
@@ -125,9 +125,9 @@ def _name_lines(segs):
     taken = {}
     for n in names.values():
         taken[n] = taken.get(n, 0) + 1
-    for lid in names:
-        if taken[names[lid]] > 1:
-            names[lid] = f"{names[lid]} ({lid})"
+    for lid, name in names.items():
+        if taken[name] > 1:
+            names[lid] = f"{name} ({lid})"
     for lid, main in mains.items():
         for k, s in enumerate(main, 1):
             s["name"] = names[lid] if k == 1 else f"{names[lid]}, מקטע {k}"

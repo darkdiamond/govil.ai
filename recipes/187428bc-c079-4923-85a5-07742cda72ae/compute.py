@@ -206,7 +206,7 @@ def insight_uniform(d):
 
 
 def _full_years(dated):
-    years = sorted(set(int(y) for y in dated["year"]))
+    years = sorted({int(y) for y in dated["year"]})
     if not years:
         return []
     last = years[-1]
@@ -220,7 +220,7 @@ def insight_peak(by_year, partial_year):
     rows = [(y, v) for y, v in by_year if y != partial_year]
     if len(rows) < 10:
         return None
-    top = sorted(rows, key=lambda r: (-r[1], r[0]))[0]
+    top = min(rows, key=lambda r: (-r[1], r[0]))
     vals = [v for _, v in rows]
     med = sorted(vals)[len(vals) // 2]
     if top[1] < 1.5 * med:
@@ -261,13 +261,13 @@ def insight_quality(n_bad, n_early, early_mode):
 
 def compute(frames):
     d = _prepare(frames["main"])
-    n = int(len(d))
+    n = len(d)
     n_cases = int(d["case"].nunique())
     dated = d[d["year"].notna()].copy()
     dated["year"] = dated["year"].astype(int)
-    n_bad = n - int(len(dated))
+    n_bad = n - len(dated)
     early = dated[dated["year"] < STATE_YEAR]
-    n_early = int(len(early))
+    n_early = len(early)
     early_mode = None
     if n_early:
         vc = early["year"].value_counts()

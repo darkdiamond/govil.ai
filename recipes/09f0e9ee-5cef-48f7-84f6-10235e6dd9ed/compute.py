@@ -175,7 +175,7 @@ def compute(frames):
     for lab, lo, hi in buckets:
         sel = per_auth[(per_auth >= lo) & (per_auth <= hi)]
         b_names.append(lab)
-        b_auth.append(int(len(sel)))
+        b_auth.append(len(sel))
         b_st.append(int(sel.sum()))
     chart_dist = {"names": b_names, "auth": b_auth, "stations": b_st}
     tbl_dist = [[k, n(a), n(s)] for k, a, s in zip(b_names, b_auth, b_st)]

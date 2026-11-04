@@ -35,9 +35,10 @@ import re
 import sys
 import unicodedata
 from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Optional, Protocol, Sequence
+from typing import Protocol
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TAXONOMY_DIR = REPO_ROOT / "taxonomy"
@@ -93,7 +94,7 @@ class Topic:
 @dataclass(frozen=True)
 class TagDef:
     name: str
-    topic: Optional[str] = None
+    topic: str | None = None
     aliases: tuple[str, ...] = ()
     intro_he: str = ""
     slug: str = ""
@@ -111,7 +112,7 @@ class Taxonomy:
     # -- construction --
 
     @classmethod
-    def from_dicts(cls, vocab: dict, assignments: Optional[dict] = None) -> "Taxonomy":
+    def from_dicts(cls, vocab: dict, assignments: dict | None = None) -> Taxonomy:
         topics = {
             t["id"]: Topic(t["id"], t["label_he"], t.get("intro_he", ""))
             for t in vocab.get("topics", [])
@@ -168,9 +169,9 @@ class Taxonomy:
     @classmethod
     def load(
         cls,
-        vocab_path: Optional[Path] = None,
-        assignments_path: Optional[Path] = None,
-    ) -> "Taxonomy":
+        vocab_path: Path | None = None,
+        assignments_path: Path | None = None,
+    ) -> Taxonomy:
         # Resolved at call time (not as defaults) so tests can repoint them.
         vocab_path = vocab_path or VOCAB_PATH
         assignments_path = assignments_path or ASSIGNMENTS_PATH
@@ -183,7 +184,7 @@ class Taxonomy:
 
     # -- lookups --
 
-    def resolve(self, raw: str, drop_names: frozenset[str] = frozenset()) -> Optional[str]:
+    def resolve(self, raw: str, drop_names: frozenset[str] = frozenset()) -> str | None:
         """Canonical name for one raw tag; None when it's empty or dropped.
         A tag outside the vocabulary passes through in normal form."""
         key = normalize(raw)
@@ -204,7 +205,7 @@ class Taxonomy:
     def slug(self, tag: str) -> str:
         return self._slugs.get(tag) or _slugify(tag)
 
-    def topic_of(self, tag: str) -> Optional[str]:
+    def topic_of(self, tag: str) -> str | None:
         tdef = self.tags.get(tag)
         return tdef.topic if tdef else None
 
@@ -223,7 +224,7 @@ class Taxonomy:
         return self.canonicalize([*suggested, *ckan], drop_names)[:MAX_DISPLAY]
 
 
-def org_drop_names(org_titles: Iterable[Optional[str]]) -> frozenset[str]:
+def org_drop_names(org_titles: Iterable[str | None]) -> frozenset[str]:
     """Ministry/organization titles in normal form — a tag that just repeats
     the publisher's name is dropped (its /ministries/ hub covers it)."""
     return frozenset(normalize(t) for t in org_titles if t)
@@ -234,11 +235,11 @@ def org_drop_names(org_titles: Iterable[Optional[str]]) -> frozenset[str]:
 class _Tagged(Protocol):
     id: str
     tags: list[str]
-    organization_slug: Optional[str]
+    organization_slug: str | None
 
 
 def build_tag_index(
-    entries: Iterable[_Tagged], taxonomy: Taxonomy, min_datasets: Optional[int] = None,
+    entries: Iterable[_Tagged], taxonomy: Taxonomy, min_datasets: int | None = None,
 ) -> dict[str, dict]:
     """Per paged tag (≥ min_datasets carriers): slug, topic, count, ministry
     breakdown and the top co-occurring paged tags. Insertion order is count
@@ -380,7 +381,7 @@ def _cmd_report(args: argparse.Namespace) -> int:
     class _E:
         id: str
         tags: list[str]
-        organization_slug: Optional[str]
+        organization_slug: str | None
 
     entries = [
         _E(d["id"], tax.dataset_tags(
@@ -439,7 +440,7 @@ def validate_assignment(taxonomy: Taxonomy, tags: object) -> list[str]:
     return problems
 
 
-def write_assignments(assignments: dict[str, list[str]], path: Optional[Path] = None) -> None:
+def write_assignments(assignments: dict[str, list[str]], path: Path | None = None) -> None:
     (path or ASSIGNMENTS_PATH).write_text(
         json.dumps(dict(sorted(assignments.items())), ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
@@ -476,7 +477,7 @@ def _cmd_assign(args: argparse.Namespace) -> int:
     return 0
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m services.page_builder.tags")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("suggest", "report"):

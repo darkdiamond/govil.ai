@@ -24,7 +24,7 @@ HAS_NUMBER = re.compile(r"\d")
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -145,7 +145,7 @@ def compute(frames):
     # nearest neighbour: most isolated first
     nn_sorted = geo.sort_values(["nn", "name", "address"], ascending=[False, True, True], kind="mergesort") if has_nn else geo
     top = nn_sorted.head(NN_TOP)
-    charts["nn"] = {"names": top["name"].tolist(), "values": [int(round(v)) for v in top["nn"]] if has_nn else []}
+    charts["nn"] = {"names": top["name"].tolist(), "values": [round(v) for v in top["nn"]] if has_nn else []}
     tables["nn"] = {"headers": ["תחנה", "התחנה הקרובה", "מרחק (מ׳)"],
                     "rows": [[a, b, fmt(c)] for a, b, c in zip(top["name"], top["nn_name"], top["nn"])] if has_nn else []}
     nn_more = max(0, n_geo - NN_TOP)
@@ -249,7 +249,7 @@ def compute(frames):
     # ---------- kpis ----------
     kpis = {
         "stations": {"value": n_st, "display": fmt(n_st), "tone": "brand", "label": "תחנות מוניות שונות"},
-        "nn": {"value": int(round(med_nn)), "display": fmt(med_nn), "tone": "info",
+        "nn": {"value": round(med_nn), "display": fmt(med_nn), "tone": "info",
                "label": "מרחק חציוני לתחנה הקרובה (מטרים)"},
         "dups": {"value": n_dup, "display": fmt(n_dup), "tone": "warn" if n_dup else "ok",
                  "label": "רשומות כפולות בקובץ"},

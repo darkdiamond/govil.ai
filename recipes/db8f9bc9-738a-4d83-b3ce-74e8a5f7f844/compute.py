@@ -48,7 +48,7 @@ ACTIVE_YEARS = 2       # sampled in the last N hydrological years = "active"
 
 
 def _i(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _n(v, d=1):
@@ -110,7 +110,7 @@ def _dec_label(d):
 def _mode(s):
     vc = s.value_counts()
     top = vc[vc == vc.max()].index
-    return sorted(top)[0]
+    return min(top)
 
 
 def _param_name(pkey, desc):
@@ -133,23 +133,23 @@ def _top_with_other(series, n):
 
 def compute(frames):
     df = _prepare(frames["samples"])
-    total = int(len(df))
+    total = len(df)
 
     # ── stations ────────────────────────────────────────────────────────
     st_name = df.groupby("sid")["name"].agg(_mode)
     st = df.groupby("sid").agg(n=("value", "size"), first=("hy", "min"),
                                last=("hy", "max"), events=("day", "nunique"))
     st["name"] = st_name
-    n_stations = int(len(st))
+    n_stations = len(st)
     max_hy, min_hy = int(df["hy"].max()), int(df["hy"].min())
     first_year, last_year = int(df["date"].dt.year.min()), int(df["date"].dt.year.max())
     last_date = df["date"].max()
     _LAST_YEAR[0] = last_year
     active = st[st["last"] > max_hy - ACTIVE_YEARS]
-    n_active = int(len(active))
+    n_active = len(active)
 
     events = df[["sid", "day"]].drop_duplicates()
-    n_events = int(len(events))
+    n_events = len(events)
 
     # ── per hydrological year, stacked by lab ───────────────────────────
     by_hy = df.groupby("hy").size().sort_index()
@@ -179,7 +179,7 @@ def compute(frames):
     pg = df.groupby("pkey").agg(n=("value", "size"), st=("sid", "nunique"),
                                 desc=("desc", _mode), unit=("unit", _mode))
     pg = pg.sort_index().sort_values("n", ascending=False, kind="stable")
-    n_params = int(len(pg))
+    n_params = len(pg)
     ptop = pg.iloc[:TOP_PARAMS]
     params_rest = int(pg["n"].iloc[TOP_PARAMS:].sum())
     params_chart = {
@@ -195,7 +195,7 @@ def compute(frames):
     # ── streams ─────────────────────────────────────────────────────────
     sg = df.groupby("stream").agg(n=("value", "size"), st=("sid", "nunique"))
     sg = sg.sort_index().sort_values("n", ascending=False, kind="stable")
-    n_streams = int(len(sg))
+    n_streams = len(sg)
     stop = sg.iloc[:TOP_STREAMS]
     streams_chart = {"names": [str(k) for k in stop.index],
                      "values": [int(v) for v in stop["n"]],
@@ -238,7 +238,7 @@ def compute(frames):
     salty = rg.iloc[:TOP_SALTY]
     salty_table = [{"name": r.name, "median": round(float(r.median), 1),
                     "n": int(r.size)} for r in salty.itertuples()]
-    n_ranked = int(len(rg))
+    n_ranked = len(rg)
     overall_med = float(rg["median"].median()) if n_ranked else 0.0
     n_over_1000 = int((rg["median"] >= 1000).sum())
 
@@ -307,7 +307,7 @@ def compute(frames):
 
     # ── censored values ─────────────────────────────────────────────────
     below = df[df["sign"] == "<"]
-    n_below = int(len(below))
+    n_below = len(below)
     below_top = below.groupby("pkey").size().sort_index().sort_values(
         ascending=False, kind="stable")
 

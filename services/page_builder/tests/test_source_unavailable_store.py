@@ -1,7 +1,7 @@
 """FirestoreStateStore.mark/clear_source_unavailable payloads + SourceRecord."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 from google.cloud import firestore
@@ -30,7 +30,7 @@ def test_mark_unavailable_stamps_since_when_absent():
 
 
 def test_mark_unavailable_preserves_existing_since():
-    ts = datetime(2026, 7, 1, tzinfo=timezone.utc)
+    ts = datetime(2026, 7, 1, tzinfo=UTC)
     store, doc_ref = _store_with_existing({"unavailable_since": ts})
     store.mark_source_unavailable("id1", "still gone")
     payload = doc_ref.set.call_args.args[0]
@@ -46,7 +46,7 @@ def test_clear_unavailable_restores_succeeded_and_deletes_since():
 
 
 def test_source_record_reads_unavailable_since():
-    ts = datetime(2026, 7, 20, tzinfo=timezone.utc)
+    ts = datetime(2026, 7, 20, tzinfo=UTC)
     doc = MagicMock()
     doc.id = "id1"
     doc.to_dict.return_value = {"analysis_status": "unavailable", "unavailable_since": ts}

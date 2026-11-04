@@ -22,7 +22,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_SHARED = 12
 TOP_MULTI = 10
 NA = "לא צוין"
@@ -133,7 +133,7 @@ def compute(frames):
         "n_missions": gc["mission"].nunique(),
     })
     shared_missions = missions[missions["n_countries"] > 1]
-    shared_set = set(c for lst in shared_missions["countries"] for c in lst)
+    shared_set = {c for lst in shared_missions["countries"] for c in lst}
     countries["shared"] = countries.index.isin(shared_set)
     n_countries = len(countries)
     n_shared_c = int(countries["shared"].sum())
@@ -220,7 +220,6 @@ def compute(frames):
     known = countries[countries["visa"] != "na"]
     n_known = len(known)
     isr_free = int((known["visa_out"] == NO).sum())
-    isr_req = int((known["visa_out"] == YES).sum())
 
     # ---- chart: reception hours ------------------------------------------------
     missions["hours"] = missions["Kabala"].map(lambda t: weekly_hours(t) if t else None)
@@ -240,7 +239,6 @@ def compute(frames):
     if n_unparsed:
         hours_table.append({"bin": "פורמט שלא פוענח", "count": n(n_unparsed)})
     med_hours = float(parsed["hours"].median()) if len(parsed) else None
-    pat = _sorted_counts(parsed["pattern"]) if len(parsed) else pd.Series(dtype=int)
     friday_share = (parsed["pattern"].str.contains("ו").sum() / len(parsed) * 100) if len(parsed) else 0
 
     # ---- chart: contact completeness ------------------------------------------

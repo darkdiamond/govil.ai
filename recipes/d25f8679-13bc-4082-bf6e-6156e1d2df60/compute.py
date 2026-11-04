@@ -76,7 +76,7 @@ NUMERAL_PAIRS = {"יא", "יב", "יג", "יד"}
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -101,7 +101,7 @@ def family(t):
 
 def yesno(v):
     v = clean(v)
-    if v in YES_WORDS or v.startswith("קיים") or v.startswith("נגיש"):
+    if v in YES_WORDS or v.startswith(("קיים", "נגיש")):
         return "כן"
     if v in NO_WORDS or v.startswith("אין"):
         return "לא"
@@ -314,7 +314,6 @@ def compute(frames):
     charts["sites"] = {"names": [k for k, _ in sites_top], "values": [v for _, v in sites_top]}
     tables["sites"] = {"headers": ["אתר", "מתקנים", "סוגי מתקנים"],
                        "rows": [[k, fmt(v), site_fams[k]] for k, v in sites_top]}
-    n_sites = len(site_rows)
     n_multi = len(multi)
     in_multi = sum(v for _, v in multi)
 

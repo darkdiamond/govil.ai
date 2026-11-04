@@ -9,11 +9,10 @@ the input matches only the all-years schema, and a new year appended to it
 (or a new resource with the same schema) flows through. Rows are de-duplicated
 on (year, account, department) so a re-uploaded copy cannot double-count.
 """
-import math
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_DEPTS = 12
 TOP_ITEMS = 12
 TOP_INCOME = 10
@@ -27,7 +26,7 @@ ACTUAL_MIN_COVERAGE = 0.5                 # share of a year's rows that report a
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def mil(v):
@@ -98,7 +97,6 @@ def compute(frames):
 
     e_orig, e_upd, e_act = _yearly(exp, "orig"), _yearly(exp, "upd"), _yearly(exp, "act")
     i_act = {y: -v for y, v in _yearly(inc, "act").items()}
-    i_orig = {y: -v for y, v in _yearly(inc, "orig").items()}
 
     rows_per_year = df.groupby("year").size()
     act_rows = df[df["act"].notna()].groupby("year").size()
@@ -174,7 +172,6 @@ def compute(frames):
 
     # ---- departments ----
     ed = exp[exp["dept"] != ""]
-    dept_cov = ed.groupby("year").size() / rows_per_year.reindex(ed.groupby("year").size().index)
     exp_rows = exp.groupby("year").size()
     dept_years = [y for y in budget_years
                   if (ed[ed["year"] == y]["orig"].notna().sum() >= 0.5 * exp_rows.get(y, 1))]
@@ -185,7 +182,6 @@ def compute(frames):
     c_depts = {"names": [], "first": [], "last": []}
     tab_depts = []
     c_heat = {"x": [], "y": [], "cells": [], "max": 1}
-    tab_heat = []
     dept_share_last = None
     if d_last is not None and d_last in dept_orig.columns:
         last_vals = dept_orig[d_last]
@@ -249,7 +245,7 @@ def compute(frames):
               "share": [round(a / tot_pos * 100, 1) if tot_pos else 0 for a in amt]}
     tab_size = [{"bucket": SIZE_LABELS[i], "count": n(cnt[i]), "share": f"{c_size['share'][i]:.1f}%"}
                 for i in range(len(SIZE_LABELS))]
-    n_items = int(len(pos))
+    n_items = len(pos)
     n80 = None
     if n_items:
         cs = pos.cumsum() / tot_pos
@@ -410,7 +406,6 @@ def compute(frames):
         miss_txt = (f" בשנים {', '.join(str(y) for y in missing_upd)} אין תקציב מעודכן במאגר — הקו מנותק."
                     if len(missing_upd) > 1 else
                     f" בשנת {missing_upd[0]} אין תקציב מעודכן במאגר — הקו מנותק.")
-    no_act = [y for y in budget_years if y not in act_years and y_act is not None and y < y_act]
     labels = {
         "lede": (f"תקציב עיריית באר שבע ברמת סעיף (חשבון ומחלקה) לשנים {all_years[0]} עד {all_years[-1]}: "
                  f"תקציב מקורי, תקציב מעודכן וביצוע בפועל. תקציב ההוצאות המקורי ל-{y_last} עומד על "
@@ -441,7 +436,7 @@ def compute(frames):
                       f"ללא שם; בטבלה מוצג הסעיף הגדול בכל מחלקה. סעיפים ללא מחלקה אינם נכללים."
                       if d_last else ""),
         "dept_aria": "תרשים עמודות: תקציב ההוצאות המקורי של המחלקות הגדולות בשנה הראשונה מול האחרונה.",
-        "dept_caption": f"תקציב הוצאות מקורי לפי מחלקה, מיליוני ₪.",
+        "dept_caption": "תקציב הוצאות מקורי לפי מחלקה, מיליוני ₪.",
         "heat_note": "תקציב ההוצאות המקורי (מיליוני ₪) של המחלקות הגדולות לאורך השנים; ככל שהצבע כהה יותר הסכום גבוה יותר.",
         "heat_aria": "מפת חום: תקציב ההוצאות המקורי של המחלקות הגדולות לפי שנה.",
         "items_note": f"סעיפי ההוצאה הגדולים ב-{y_last}, לפי שם החשבון ובסיכום כל המחלקות.",

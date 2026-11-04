@@ -61,7 +61,7 @@ OUTCOMES = [("טרם הוחלט", r"טרם"), ("נדחתה", r"נדחת"), ("ה�
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def ils(v):
@@ -305,7 +305,7 @@ def compute(frames):
     sizes = {
         "names": size_order,
         "decisions": [int(by_size_n.get(s, 0)) for s in size_order],
-        "median": [int(round(float(by_size_med.get(s, 0)))) if s in by_size_med.index else 0
+        "median": [round(float(by_size_med.get(s, 0))) if s in by_size_med.index else 0
                    for s in size_order],
     }
 
@@ -316,8 +316,8 @@ def compute(frames):
         "stages": ["בקשה לביטול או הפחתה", "ערעור לבית הדין לעבודה"],
         "series": [{"name": o, "data": [int((req == o).sum()), int((crt == o).sum())]}
                    for o in outcome_names if (req == o).any() or (crt == o).any()],
-        "asked": int(len(req)),
-        "court": int(len(crt)),
+        "asked": len(req),
+        "court": len(crt),
         "base": int((detail["appeal"] != "").sum()),
     }
 
@@ -332,7 +332,6 @@ def compute(frames):
 
     fam_rows = rows.assign(fam=rows["law"].map(_families)).explode("fam")
     fam_counts = _top(fam_rows["fam"].value_counts(), 20)
-    fam_amt = fam_rows.groupby("fam")["amt"].sum()
     laws = {"names": list(fam_counts.index), "values": [int(v) for v in fam_counts]}
 
     ind_amt = _top(rows.groupby("industry")["amt"].sum())

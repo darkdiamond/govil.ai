@@ -27,7 +27,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_AUTH = 10
 TOP_CONF = 14
 TOP_STD = 12
@@ -215,7 +215,6 @@ def compute(frames):
     n_conf = int(a["conf"].replace("", pd.NA).dropna().nunique())
     n_pubs = int(a["pub"].nunique())
     latest = a["upd"].max()
-    earliest = a["upd"].min()
 
     # requirement-level frame (one row per requirement)
     rq = (a.sort_values(["req", "rcode", "item", "conf"])
@@ -345,7 +344,7 @@ def compute(frames):
         vals = [int((rpi == i).sum()) for i in range(1, BURDEN_CAP)] + [int((rpi >= BURDEN_CAP).sum())]
         burden[g] = rpi
         burden_series.append({"name": GROUP_LABEL[g], "data": vals})
-        burden_stats[g] = {"multi": int((rpi >= 2).sum()), "total": int(len(rpi)),
+        burden_stats[g] = {"multi": int((rpi >= 2).sum()), "total": len(rpi),
                            "max": int(rpi.max()) if len(rpi) else 0,
                            "mean": float(rpi.mean()) if len(rpi) else 0.0}
     burden_table = [{"name": burden_x[i], "cells": [n(s["data"][i]) for s in burden_series]}
@@ -418,14 +417,14 @@ def compute(frames):
     # one row per published condition (exact duplicate rows dropped); the end
     # date is set per condition (e.g. per standard), not per requirement
     cond = a.drop_duplicates(subset=["req", "item", "conf", "auth", "tr", "end", "inc", "src"])
-    n_pairs = int(len(cond))   # unparseable/out-of-range dates (e.g. year 3000) are open-ended too
+    n_pairs = len(cond)   # unparseable/out-of-range dates (e.g. year 3000) are open-ended too
     cond = cond[cond["end"].notna()]
     open_cut = latest.year + OPEN_END_YEARS if pd.notna(latest) else 9999
     cond = cond.assign(year=cond["end"].dt.year.astype(int))
     dated = cond[cond["year"] < open_cut]
-    n_dated_pairs = int(len(dated))
+    n_dated_pairs = len(dated)
     passed = dated[dated["end"] < latest] if pd.notna(latest) else dated.iloc[0:0]
-    n_passed = int(len(passed))
+    n_passed = len(passed)
     n_passed_items = int(passed["item"].nunique())
     end_years = sorted(dated["year"].unique().tolist())
     if len(end_years) > MAX_END_BUCKETS:
@@ -641,16 +640,16 @@ def compute(frames):
         "multi_kpi": "מהפרטים בצו יבוא חופשי כפופים לשתי דרישות ומעלה",
         "passed_kpi": "תנאים שמועד סיומם חלף",
         "pa_kpi": "פרטים בדרישות החלות רק בשטחי הרשות הפלסטינית",
-        "orders_note": (f"מספר פרטי המכס שחלה עליהם דרישה לפי כל צו או חוק. בקובץ הצווים הנוספים "
-                        f"מופיע לצד השם גם ספר המכס (יבוא או יצוא)."),
+        "orders_note": ("מספר פרטי המכס שחלה עליהם דרישה לפי כל צו או חוק. בקובץ הצווים הנוספים "
+                        "מופיע לצד השם גם ספר המכס (יבוא או יצוא)."),
         "orders_aria": f"תרשים עמודות: פרטי מכס לפי צו או חוק, {n(len(orders_rows))} צווים.",
         "orders_caption": "צווים וחוקים: שורות, דרישות ופרטי מכס.",
         "auth_note": (f"{len(top_auth)} הגופים המוסמכים לפי מספר פרטי המכס שבהם הם נדרשים, מפוצלים "
                       f"לפי קובץ הצו. פרט שמוסדר בשני צווים נספר בכל אחד מהם."),
         "auth_aria": f"תרשים עמודות מוערמות: פרטי מכס לפי גוף מוסמך, {len(auth_names)} קטגוריות.",
         "auth_caption": "גופים מוסמכים: פרטי מכס, דרישות ומספר קבצי הצו שבהם מופיעים.",
-        "sec_note": (f"פרטי המכס המוסדרים לפי חלק במערכת ההרמוניזציה (לפי שתי הספרות הראשונות של "
-                     f"הפרט)."
+        "sec_note": ("פרטי המכס המוסדרים לפי חלק במערכת ההרמוניזציה (לפי שתי הספרות הראשונות של "
+                     "הפרט)."
                      + (f" המוביל: {section_label(sec_rank[0][0])} עם {n(sec_rank[0][1])} פרטים." if sec_rank else "")),
         "sec_aria": f"תרשים עמודות מוערמות: פרטי מכס מוסדרים לפי חלק, {len(sec_present)} חלקים.",
         "sec_caption": "פרטי מכס מוסדרים לפי חלק, והגוף המעורב ביותר בכל חלק.",

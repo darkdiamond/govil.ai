@@ -24,7 +24,7 @@ counted, not ranked.
 """
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -63,7 +63,7 @@ COURT_AREA = {"עכו": "הגליל והכרמל", "בוקעתא": "רמת הג�
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -446,8 +446,6 @@ def compute(frames):
                      for g in mix_names]}
     mix_table = [{"court": c, "total": n(ctot[c]),
                   "cells": [mdisp(ct.get((c, g), 0)) for g in mix_names]} for c in rcourts]
-    div_by_court = {c: int(ct.get((c, DIVORCE_TOPIC), 0)) / int(ctot[c]) for c in rcourts}
-    inh_by_court = {c: int(ct.get((c, INHERIT_TOPIC), 0)) / int(ctot[c]) for c in rcourts}
 
     # ── cases and contracts by court and year ──
     cy0 = max(first_full, last_full - COURT_YEARS + 1)
@@ -643,7 +641,7 @@ def compute(frames):
             continue
         sub = regf[regf["y"] == y]
         top_share = (_sorted_counts(sub["registrar"]).head(REG_TOP).sum() / len(sub) * 100) if len(sub) else 0
-        lead_rows.append({"year": y, "n": int(lcount[y]), "lead": int(round(float(lead_med[y]))),
+        lead_rows.append({"year": y, "n": int(lcount[y]), "lead": round(float(lead_med[y])),
                           "month": round(float(lead_month[y]) * 100, 1),
                           "registrars": int(regs.get(y, 0)), "fill": round(float(reg_fill[y]) * 100, 1),
                           "top": round(float(top_share), 1)})
@@ -736,8 +734,8 @@ def compute(frames):
                          f"שלום בית, התרת חוזה ועוד). הקו — שיעור התביעות בהסכמה."),
         "divorce_aria": "גרף עמודות מוערמות: תיקי גירושין לפי סוג ושנה, וקו של שיעור הגירושין בהסכמה.",
         "divorce_caption": "תיקי גירושין לפי סוג ושנה.",
-        "md_note": (f"חוזי נישואין ותיקי גירושין שנפתחו בכל שנה מלאה. תיקי גירושין לכל מאה חוזים הוא "
-                    f"יחס גס בין שני רישומים — לא שיעור גירושין."),
+        "md_note": ("חוזי נישואין ותיקי גירושין שנפתחו בכל שנה מלאה. תיקי גירושין לכל מאה חוזים הוא "
+                    "יחס גס בין שני רישומים — לא שיעור גירושין."),
         "md_aria": "גרף קווים: חוזי נישואין ותיקי גירושין לפי שנה.",
         "md_caption": "חוזי נישואין, תיקי גירושין והיחס ביניהם לפי שנה.",
         "outcomes_note": (f"התפלגות ההחלטות בתיקי בתי הדין האזוריים, בנושאים שבהם הוכרעו לפחות "
@@ -756,7 +754,7 @@ def compute(frames):
         "appeals_out_caption": "החלטות בבית הדין לערעורים לפי תוצאה.",
         "con_year_note": (f"חוזי נישואין לפי שנת עריכת החוזה, {rng(con_start, int(ref_cd.year))}"
                           + (f" ({n(early)} חוזים מוקדמים יותר אינם מוצגים)" if early else "")
-                          + f". חוזים שהוזנו למערכת יותר משנה אחרי עריכתם מסומנים בנפרד"
+                          + ". חוזים שהוזנו למערכת יותר משנה אחרי עריכתם מסומנים בנפרד"
                           + (f" — רובם הוזנו ב-{retro_entry}" if retro_entry else "")
                           + ". שנים עם מעט חוזים עשויות לשקף רישום היסטורי חסר, לא ירידה בנישואין."),
         "con_year_aria": f"גרף עמודות מוערמות: חוזי נישואין לפי שנה ואופן הרישום, {rng(con_start, int(ref_cd.year))}.",

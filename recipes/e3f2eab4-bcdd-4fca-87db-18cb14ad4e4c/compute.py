@@ -17,7 +17,7 @@ it reaches December, so year-on-year rules compare the same months
 """
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 UNKNOWN = "לא ידוע"
 OTHER = "אחר"
@@ -63,7 +63,7 @@ PARTIAL_ROWS = 0.35      # latest month below this share of their median rows = 
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -252,8 +252,8 @@ def compute(frames):
 
     # ---------------------------------------------------------- country of manufacture
     cy = d.groupby(["year", "country"])["n"].sum()
-    win12 = set(_shift(last_ym, k) for k in range(12))
-    prev12 = set(_shift(last_ym, k) for k in range(12, 24))
+    win12 = {_shift(last_ym, k) for k in range(12)}
+    prev12 = {_shift(last_ym, k) for k in range(12, 24)}
     d12 = d[d["ym"].isin(win12)]
     dp12 = d[d["ym"].isin(prev12)]
     c12 = _rank(d12.groupby("country")["n"].sum())
@@ -484,7 +484,7 @@ def compute(frames):
                       "display": n(yt.get(full_years[-1], 0)) if full_years else "0", "tone": "brand"},
         "china": {"value": round(china_ytd, 1), "display": f"{china_ytd:.1f}%",
                   "tone": "info" if china_ytd >= 10 else "brand"},
-        "brands12": {"value": int(len(rb)), "display": n(len(rb)), "tone": "brand"},
+        "brands12": {"value": len(rb), "display": n(len(rb)), "tone": "brand"},
     }
 
     period_lbl = f"{ytd_label} {last_year}" if partial_year else str(last_year)

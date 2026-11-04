@@ -12,7 +12,7 @@ MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "י
 RECENT_MONTHS = 36          # window of the "recent" chart
 STEP_M = 5                  # milestone spacing (metres)
 TOLERANCE_DAYS = 45         # a reading counts for "12 months ago" if this close
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def m(v):
@@ -272,7 +272,7 @@ def compute(frames):
         "recent_aria": f"גרף קו: מפלס ים המלח ב-{len(recent_m)} החודשים האחרונים.",
         "annual_aria": f"תרשים עמודות: שינוי המפלס בכל אחת מ-{len(annual)} השנים המלאות, בס״מ.",
         "annual_note": "שנה מלאה = שנה עם מדידה בדצמבר; השינוי מחושב מדצמבר לדצמבר.",
-        "decades_aria": f"תרשים עמודות: הירידה השנתית הממוצעת בכל עשור, בס״מ.",
+        "decades_aria": "תרשים עמודות: הירידה השנתית הממוצעת בכל עשור, בס״מ.",
         "season_aria": "תרשים עמודות: השינוי החודשי הממוצע במפלס לפי חודש בשנה, בס״מ.",
         "miles_aria": (f"תרשים עמודות: מספר השנים שנדרשו לכל ירידה של {STEP_M} מטרים "
                        f"במפלס, מ-{len(marks)} סימני דרך."),

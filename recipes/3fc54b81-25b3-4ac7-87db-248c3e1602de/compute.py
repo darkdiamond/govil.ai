@@ -28,7 +28,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_COUNCILS = 15
 TOP_BUREAUS = 15
 TOP_WORDS = 15
@@ -153,7 +153,7 @@ def insight_councils(df, council_counts):
         return None
     no = total - k
     tribes_no = int((df["tribe"] & ~df["in_council"]).sum())
-    (a, va) = list(council_counts.items())[0]
+    (a, va) = next(iter(council_counts.items()))
     lead = ""
     if len(council_counts) > 1:
         b, vb = list(council_counts.items())[1]
@@ -170,7 +170,7 @@ def insight_cross(cross_rows):
     cand = [r for r in cross_rows if r["n"] >= CROSS_MIN_N and r["cross"] / r["n"] >= CROSS_MIN_SHARE]
     if not cand:
         return None
-    r = sorted(cand, key=lambda x: (-x["cross"] / x["n"], x["order"]))[0]
+    r = min(cand, key=lambda x: (-x["cross"] / x["n"], x["order"]))
     tb = r["top_bureau"]
     tail = f"; לשכת {tb[0]} לבדה משרתת {n(tb[1])} מהם" if tb else ""
     return (f"מתוך {n(r['n'])} הישובים במחוז {r['district']}, {n(r['cross'])} ({share(r['cross'], r['n'])}) "
@@ -348,7 +348,7 @@ def compute(frames):
         if len(cs):
             bc = _ranked(cs.groupby("bureau").size())
             tb = (bc.index[0], int(bc.iloc[0]))
-        cross_rows.append({"district": d, "n": len(sub), "cross": int(len(cs)),
+        cross_rows.append({"district": d, "n": len(sub), "cross": len(cs),
                            "order": order_idx[d], "top_bureau": tb})
     n_cross = int(df["cross"].sum())
 
@@ -386,7 +386,7 @@ def compute(frames):
         renames.sort(key=lambda x: x["code"])
         ch = {
             "old_total": int(old["code"].nunique()),
-            "added": int(len(added)), "removed": int(len(removed)),
+            "added": len(added), "removed": len(removed),
             "top_added": top_added, "rows": ch_rows,
             "added_councils": [{"name": c, "count": int(v)} for c, v in
                                _ranked(added.groupby("council").size()).head(10).items()],
@@ -413,7 +413,7 @@ def compute(frames):
         "council_share": {"value": round(k_in / total * 100, 1) if total else 0,
                           "display": f"{k_in / total * 100:.1f}%" if total else "0%",
                           "tone": "info"},
-        "councils": {"value": int(len(council_counts)), "display": n(len(council_counts)),
+        "councils": {"value": len(council_counts), "display": n(len(council_counts)),
                      "tone": "brand"},
         "net": {"value": net, "display": net_disp, "tone": net_tone},
     }
@@ -434,7 +434,7 @@ def compute(frames):
 
     # Labels.
     top_nafa = nafa_rows[0] if nafa_rows else {"name": "", "total": 0}
-    top_dist = sorted(dist_rows, key=lambda r: (-r["total"], order_idx[r["name"]]))[0]
+    top_dist = min(dist_rows, key=lambda r: (-r["total"], order_idx[r["name"]]))
     labels = {
         "lede": (f"רשות האוכלוסין וההגירה מפרסמת את רשימת הישובים המוכרים במרשם האוכלוסין: "
                  f"{n(total)} ישובים, כל אחד עם סמל ישוב ייחודי, שם בעברית ובלועזית, ושיוך "
@@ -480,7 +480,7 @@ def compute(frames):
         "words_caption": "המילים הנפוצות בפתיחת שמות הישובים",
     }
     if ch:
-        excl = (f" רשומת מציין-מקום ללא סמל ישוב בקובץ הקודם אינה נספרת." if placeholder else "")
+        excl = (" רשומת מציין-מקום ללא סמל ישוב בקובץ הקודם אינה נספרת." if placeholder else "")
         labels.update({
             "changes_note": (f"סמלי ישוב שמופיעים רק ברשימה הנוכחית (נוספו) או רק בקובץ הקודם "
                              f"({n(ch['old_total'])} ישובים, הוסרו), לפי מחוז.{excl}"),

@@ -152,7 +152,7 @@ def insight_peak(months, full, counts):
     fm = [m for m, f in zip(months, full) if f]
     if len(fm) < 3:
         return None
-    best = sorted(fm, key=lambda m: (-counts.get(m, 0), m))[0]
+    best = min(fm, key=lambda m: (-counts.get(m, 0), m))
     v = counts.get(best, 0)
     avg = sum(counts.get(m, 0) for m in fm) / len(fm)
     if v < avg * 1.3:
@@ -241,7 +241,7 @@ def insight_weekday(df):
     weekend = int(wd.get(4, 0) + wd.get(5, 0))
     if len(df) < 50 or weekend / len(df) > 0.02:
         return None
-    best = sorted(WEEK_ORDER, key=lambda d: (-int(wd.get(d, 0)), WEEK_ORDER.index(d)))[0]
+    best = min(WEEK_ORDER, key=lambda d: (-int(wd.get(d, 0)), WEEK_ORDER.index(d)))
     we = ("אף בקשה לא הוגשה בשישי או בשבת" if weekend == 0 else
           "רק בקשה אחת הוגשה בשישי או בשבת" if weekend == 1 else
           f"רק {_int(weekend)} בקשות הוגשו בשישי או בשבת")
@@ -348,7 +348,7 @@ def compute(frames):
                      "cells": [_int(b_op.get((b, o), 0)) for o in op_names]})
     ns = {"names": b_labels,
           "series": [{"name": o, "data": [int(b_op.get((b, o), 0)) for b in bands]} for o in op_names]}
-    center_band = sorted(bands, key=lambda b: (-int(b_tot[b]), b))[0] if bands else None
+    center_band = min(bands, key=lambda b: (-int(b_tot[b]), b)) if bands else None
     n_invalid = int((~df["valid_xy"]).sum())
 
     # Weekday of submission.
@@ -398,8 +398,8 @@ def compute(frames):
                  f"למשרד להגנת הסביבה, מ-{span}. {permit_txt}. הבקשות מתייחסות ל-{_int(n_sites)} "
                  f"אתרים ב-{_int(len(jv))} תחומי שיפוט. הרשימה מתעדכנת: בקשות חדשות נוספות אליה, "
                  f"וישנות עשויות לצאת ממנה."),
-        "map_note": (f"כל נקודה היא אתר שהוגשה עבורו בקשה; לחיצה על נקודה מציגה את החברה, היישוב, "
-                     f"הכתובת וסוג המוקד."
+        "map_note": ("כל נקודה היא אתר שהוגשה עבורו בקשה; לחיצה על נקודה מציגה את החברה, היישוב, "
+                     "הכתובת וסוג המוקד."
                      + (f" ל-{_int(n_invalid)} בקשות רשומה נקודת ציון מחוץ לתחום ישראל." if n_invalid else "")),
         "monthly_note": (f"מספר הבקשות שהוגשו בכל חודש, לפי חברה. ממוצע של {avg_full:.1f} בקשות בחודש מלא"
                          + ("; חודשים בקצה הרשימה שאינם מכוסים במלואם מסומנים (חלקי)." if not all(mfull) else ".")),
@@ -435,7 +435,7 @@ def compute(frames):
         "ns_caption": f"בקשות לפי רצועה של {BAND_KM} ק\"מ מצפון לדרום, לפי חברה.",
         "weekday_note": "באיזה יום בשבוע הוגשו הבקשות.",
         "weekday_aria": (f"תרשים עמודות: בקשות לפי יום בשבוע; העמוס יום "
-                         f"{WEEKDAYS_HE[sorted(WEEK_ORDER, key=lambda d: (-int(wd.get(d, 0)), WEEK_ORDER.index(d)))[0]]}."),
+                         f"{WEEKDAYS_HE[min(WEEK_ORDER, key=lambda d: (-int(wd.get(d, 0)), WEEK_ORDER.index(d)))]}."),
         "weekday_caption": "בקשות לפי יום בשבוע.",
         "last_kpi": (f"בקשות ב{_month_he(last_full)} (ממוצע חודשי: {avg_full:.1f})"
                      if last_full is not None else "בקשות בחודש האחרון"),

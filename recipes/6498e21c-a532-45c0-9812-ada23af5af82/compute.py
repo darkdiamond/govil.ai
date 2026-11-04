@@ -20,6 +20,7 @@ last CASE_YEARS_MAX years plus an "earlier" bucket. A case id that fits
 neither scheme (or decodes to a year after its decision) counts as
 "unidentified" and the page says so.
 """
+import itertools
 import re
 
 import pandas as pd
@@ -199,8 +200,6 @@ def compute(frames):
         cells = [n(ct.get((lab, y), 0)) for lab in cy_labels]
         unk = int(((df["year"] == y) & df["case_year"].isna()).sum())
         cross_rows.append({"year": str(y), "cells": cells, "unknown": n(unk)})
-    case_year_counts = known["cy_lab"].value_counts()
-    case_bar = {"x": cy_labels, "y": [int(case_year_counts.get(l, 0)) for l in cy_labels]}
 
     # ---- lag (decision year - case year) ----
     known["lag"] = known["year"] - known["case_year"]
@@ -236,7 +235,7 @@ def compute(frames):
     # ---- gaps ----
     dates = sorted(df["dt"].unique())
     gap_days, gap_from, gap_to = 0, None, None
-    for a, b in zip(dates[:-1], dates[1:]):
+    for a, b in itertools.pairwise(dates):
         g = int((pd.Timestamp(b) - pd.Timestamp(a)).days)
         if g > gap_days:
             gap_days, gap_from, gap_to = g, pd.Timestamp(a), pd.Timestamp(b)

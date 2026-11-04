@@ -19,7 +19,7 @@ import io
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import ClassVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -70,7 +70,7 @@ class BoiResource(BaseModel):
     version: str = Field("1.0", pattern=r"^\d+(\.\d+)*$")
     # SDMX key: series codes joined with "+", or "" for the whole flow.
     key: str = Field("", pattern=r"^[A-Za-z0-9_.+]*$")
-    startperiod: Optional[str] = Field(None, pattern=r"^\d{4}(-\d{2}(-\d{2})?)?$")
+    startperiod: str | None = Field(None, pattern=r"^\d{4}(-\d{2}(-\d{2})?)?$")
 
 
 class BoiDatasetConfig(BaseModel):
@@ -101,7 +101,7 @@ class BoiSdmxProvider(SourceProvider):
     )
     sort_keys = ("SERIES_CODE", "TIME_PERIOD")
 
-    ORGANIZATION = {
+    ORGANIZATION: ClassVar[dict[str, str | None]] = {
         "id": "bank-of-israel",
         "name": "bank-of-israel",
         "title": "בנק ישראל",
@@ -258,20 +258,4 @@ class BoiSdmxProvider(SourceProvider):
         return out.getvalue()
 
     def authoring_notes(self) -> str:
-        return "\n".join([
-            "- Rows are observations: one row per (SERIES_CODE, TIME_PERIOD). OBS_VALUE is a",
-            "  string; parse with float() and skip blanks. FREQ tells D/M/Q/A; TIME_PERIOD",
-            "  is `YYYY-MM-DD`, `YYYY-MM`, `YYYY-Qn` or `YYYY`.",
-            "- SERIES_NAME_HE is BoI's own Hebrew series name (long, hyphen-joined",
-            "  facets). Pick series by SERIES_CODE or by dimension codes, never by name.",
-            "  Short display labels may live in a dict in compute.py, but an unknown code",
-            "  must still render (fall back to SERIES_NAME_HE, then the code) so a new BoI",
-            "  series never breaks the refresh.",
-            "- UNIT_MEASURE / UNIT_MULT give units (PT = percent; UNIT_MULT 6 = millions).",
-            "- The page shell has NO live data explorer for this source: every chart needs",
-            "  its own <details><table> (downsample long daily series, e.g. month-end).",
-            "  `data-fallback=\"explorer\"` is rejected by verify.",
-            "- No GovExplorer / GovMap (they read the CKAN datastore). ECharts only.",
-            "- Credit the source in the page intro text as \"בנק ישראל\". The shell adds",
-            "  the download link and attribution; do not link to data.gov.il.",
-        ])
+        return "- Rows are observations: one row per (SERIES_CODE, TIME_PERIOD). OBS_VALUE is a\n  string; parse with float() and skip blanks. FREQ tells D/M/Q/A; TIME_PERIOD\n  is `YYYY-MM-DD`, `YYYY-MM`, `YYYY-Qn` or `YYYY`.\n- SERIES_NAME_HE is BoI's own Hebrew series name (long, hyphen-joined\n  facets). Pick series by SERIES_CODE or by dimension codes, never by name.\n  Short display labels may live in a dict in compute.py, but an unknown code\n  must still render (fall back to SERIES_NAME_HE, then the code) so a new BoI\n  series never breaks the refresh.\n- UNIT_MEASURE / UNIT_MULT give units (PT = percent; UNIT_MULT 6 = millions).\n- The page shell has NO live data explorer for this source: every chart needs\n  its own <details><table> (downsample long daily series, e.g. month-end).\n  `data-fallback=\"explorer\"` is rejected by verify.\n- No GovExplorer / GovMap (they read the CKAN datastore). ECharts only.\n- Credit the source in the page intro text as \"בנק ישראל\". The shell adds\n  the download link and attribution; do not link to data.gov.il."

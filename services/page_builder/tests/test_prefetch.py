@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import json
 import urllib.error as urllib_error
+from typing import Self
 
 import pytest
 
@@ -32,7 +33,7 @@ class _Resp:
     def __init__(self, body: bytes):
         self._body = body
 
-    def __enter__(self) -> "_Resp":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *_a) -> bool:
@@ -54,7 +55,7 @@ def _http_error(code: int, body: dict | None) -> urllib_error.HTTPError:
 
 
 def _patch_urlopen(monkeypatch, behaviour):
-    def fake(_req, timeout=None):  # noqa: ANN001 - matches urlopen signature
+    def fake(_req, timeout=None):
         return behaviour()
 
     monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)

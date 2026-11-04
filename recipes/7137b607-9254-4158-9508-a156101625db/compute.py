@@ -62,11 +62,11 @@ def _pre(prefix, text):
     return f"{prefix}-{text}" if text[:1].isdigit() else f"{prefix}{text}"
 
 
-_HREF = re.compile(r"""href\s*=\s*["']([^"'<>\s]+)["']""", re.I)
+_HREF = re.compile(r"""href\s*=\s*["']([^"'<>\s]+)["']""", re.IGNORECASE)
 
 
 # https on gov.il or a subdomain of it, no userinfo/port, then a path.
-_GOVIL_URL = re.compile(r"^https://(?:[a-z0-9-]+\.)*gov\.il/[^\s\"'<>\\]*$", re.I)
+_GOVIL_URL = re.compile(r"^https://(?:[a-z0-9-]+\.)*gov\.il/[^\s\"'<>\\]*$", re.IGNORECASE)
 
 
 def _link(cell):
@@ -84,7 +84,7 @@ def _prepare(df):
         "district": df["מחוז"].map(_clean),
         "link": df["regional_courts"].map(_link),
     })
-    raw_rows = int(len(d))
+    raw_rows = len(d)
     d = d[(d["name"] != "") & (d["district"] != "")]
     dup_rows = int(d.duplicated().sum())
     d = d.drop_duplicates().sort_values(["district", "name", "code", "link"], kind="stable")
@@ -100,7 +100,7 @@ def _district_table(d):
         link = ""
         if len(links):
             top = links.max()
-            link = sorted(k for k, v in links.items() if v == top)[0]
+            link = min(k for k, v in links.items() if v == top)
         rows.append({"district": dist, "n": int(grp["name"].nunique()),
                      "code": ", ".join(codes), "link": link})
     rows.sort(key=lambda r: (-r["n"], r["district"]))

@@ -57,7 +57,7 @@ PIECE_MAX_PTS = 2000  # a longer line part is split (sharing end points) so no i
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=1):
@@ -128,7 +128,7 @@ def _geo(gdf):
         if not parts:
             n_badgeom += 1
             continue
-        feats.append((int(round(v * 1000)), s, parts))
+        feats.append((round(v * 1000), s, parts))
     feats.sort(key=lambda f: (-f[0], f[1]))
     return feats, n_zero, n_badgeom
 
@@ -361,7 +361,7 @@ def compute(frames):
     cum = np.cumsum(mm_sorted)
     lorenz = []
     for p in LORENZ_PCTS:
-        k = max(1, int(math.ceil(n * p / 100)))
+        k = max(1, math.ceil(n * p / 100))
         lorenz.append((p, float(cum[k - 1]) / mm_total))
     lorenz_chart = {"x": [p for p, _ in lorenz], "y": [round(s * 100, 1) for _, s in lorenz]}
     t_lorenz = [{"name": f"{p}%", "share": _pct(s)} for p, s in lorenz]

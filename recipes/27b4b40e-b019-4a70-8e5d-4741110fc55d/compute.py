@@ -67,7 +67,7 @@ def _chain_roots(store):
     for s in names:
         best = s
         for w in names:
-            if w != s and (s.startswith(w + " ") or s.startswith(w + "(")) and len(w) < len(best):
+            if w != s and (s.startswith((w + " ", w + "("))) and len(w) < len(best):
                 best = w
         mapping[s] = best
     return store.map(mapping)
@@ -287,7 +287,7 @@ def compute(frames):
         med = float(q[2])
         near = sub.assign(dd=(sub["lat"] - med).abs()).sort_values(["dd", "city"], kind="stable")
         box.append({
-            "chain": ch, "n": int(len(sub)), "q": [round(float(v), 3) for v in q],
+            "chain": ch, "n": len(sub), "q": [round(float(v), 3) for v in q],
             "iqr_km": float(q[3] - q[1]) * M_PER_DEG / 1000.0,
             "median_city": str(near["city"].iloc[0]),
             "north_city": str(sub.sort_values(["lat", "city"], ascending=[False, True], kind="stable")["city"].iloc[0]),
@@ -392,8 +392,8 @@ def compute(frames):
             "single_city_kpi": "יישובים עם סניף ברזל אחד בלבד",
             "map_aria": (f"מפה אינטראקטיבית של {_int(n)} סניפי הברזל. גרסה נגישה: טבלת הנתונים "
                          f"וקובץ הנתונים בתחתית העמוד."),
-            "map_note": (f"כל סניפי הרשימה לפי הקואורדינטות המדווחות; לחיצה על נקודה מציגה את הרשת, "
-                         f"שם הסניף והכתובת." + (f" ל-{_int(no_geo)} סניפים אין קואורדינטות תקינות."
+            "map_note": ("כל סניפי הרשימה לפי הקואורדינטות המדווחות; לחיצה על נקודה מציגה את הרשת, "
+                         "שם הסניף והכתובת." + (f" ל-{_int(no_geo)} סניפים אין קואורדינטות תקינות."
                                                   if no_geo else "")),
             "chains_note": ("מספר הסניפים ומספר היישובים שבהם פועלת כל רשת. שמות משנה של רשת "
                             f"(כמו תת-מותג או שם עם תוספת) אוחדו לשם הרשת — {_int(folded)} רשומות."),

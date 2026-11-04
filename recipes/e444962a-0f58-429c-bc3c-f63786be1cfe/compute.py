@@ -288,7 +288,7 @@ def compute(frames):
     # ---- site lists: kind x stream
     by_list = (sites.groupby("list").size().sort_index()
                .sort_values(ascending=False, kind="stable"))
-    total_entries = int(len(sites))
+    total_entries = len(sites)
     kinds = [k for k in KIND_ORDER if k in set(sites["kind"])]
     streams = [s for s in STREAM_ORDER if s in set(sites["stream"])]
     lists_series = []
@@ -307,10 +307,10 @@ def compute(frames):
     op_rows = []
     for corp, g in ops_src.groupby("corp", sort=True):
         names = sorted(set(g["name"]))
-        label = sorted(names, key=lambda x: (len(x), x))[0]
+        label = min(names, key=lambda x: (len(x), x))
         op_rows.append({
             "corp": corp,
-            "entries": int(len(g)),
+            "entries": len(g),
             "lists": int(g["list"].nunique()),
             "label": label,
             "names": names,
@@ -320,9 +320,9 @@ def compute(frames):
     if not ops.empty:
         ops = ops.sort_values(["entries", "lists", "label", "corp"],
                               ascending=[False, False, True, True], kind="stable").reset_index(drop=True)
-    n_ops = int(len(ops))
+    n_ops = len(ops)
     multi = ops[ops["entries"] >= 2] if n_ops else ops
-    n_multi = int(len(multi))
+    n_multi = len(multi)
     top_ops = multi.head(10)
     ops_chart = {
         "names": [r["label"] if len(r["label"]) <= 28 else r["label"][:27] + "…"
@@ -348,9 +348,9 @@ def compute(frames):
     # ---- shared sites between lists
     site_valid = sites[sites["site"].str.len() >= 3]
     site_lists = site_valid.groupby("site")["list"].apply(lambda s: sorted(set(s)))
-    n_sites = int(len(site_lists))
+    n_sites = len(site_lists)
     shared = site_lists[site_lists.map(len) >= 2]
-    n_shared = int(len(shared))
+    n_shared = len(shared)
     list_names = [n for n, _, _ in SITE_LISTS if n in set(sites["list"])]
     idx = {n: i for i, n in enumerate(list_names)}
     pair_counts = {}
@@ -375,7 +375,7 @@ def compute(frames):
     t["id"] = pd.to_numeric(t["מזהה"].map(_digits).replace("", None), errors="coerce")
     t["flag"] = t["האם חומר?"].map(_flag)
     t["family"] = t["name"].map(_family)
-    n_types = int(len(t))
+    n_types = len(t)
     fam_tbl = (t.groupby("family").size().rename("n").reset_index()
                .sort_values(["n", "family"], ascending=[False, True], kind="stable"))
     fam_order = list(fam_tbl["family"])
@@ -407,7 +407,7 @@ def compute(frames):
     d["has_phone"] = d["פרטי קשר - טלפון"].map(lambda x: len(_digits(x)) >= 7)
     d["has_email"] = d["כתובת מייל"].map(lambda x: "@" in str(x))
     d["has_owner"] = d["בעל האתר"].map(lambda x: str(x).strip() != "")
-    n_dir = int(len(d))
+    n_dir = len(d)
     n_closed = int(d["closed"].sum())
 
     dist_tot = d["district"].value_counts().sort_index().sort_values(ascending=False, kind="stable")

@@ -52,11 +52,11 @@ OTHER = "אחר"
 WEEKDAYS = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]   # Sun..Sat
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -181,7 +181,7 @@ def insight_weekend(wk, y0, y1):
 def insight_concentration(loads, last_full):
     if len(loads) < 50:
         return None
-    k = max(1, int(round(len(loads) * 0.1)))
+    k = max(1, round(len(loads) * 0.1))
     share = loads.iloc[:k].sum() / loads.sum()
     return (f"המינויים מרוכזים: ב-{last_full} עשירית הסניגורים העמוסים ביותר ({k} מתוך "
             f"{n(len(loads))}) קיבלו {pct(share * 100)} מהמינויים; החציון היה "
@@ -418,7 +418,7 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     names_total = int(df.loc[df["name"] != "לא צוין", "name"].nunique())
-    lf_total = int(len(lf))
+    lf_total = len(lf)
     if ytd_prev:
         ytd_chg = (ytd_now / ytd_prev - 1) * 100
         ytd_kpi = {"value": round(ytd_chg, 1), "display": signed_pct(ytd_chg), "tone": "info"}
@@ -428,7 +428,7 @@ def compute(frames):
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "last_full": {"value": lf_total, "display": n(lf_total), "tone": "brand"},
         "ytd": ytd_kpi,
-        "attorneys": {"value": int(len(lf_att)), "display": n(len(lf_att)), "tone": "brand"},
+        "attorneys": {"value": len(lf_att), "display": n(len(lf_att)), "tone": "brand"},
     }
 
     excl_note = ""
@@ -437,7 +437,7 @@ def compute(frames):
                      f"{d_he(ref)} אינן נכללות בתרשימים.")
     pre_note = (f" {n(pre_start)} המינויים שלפני {start} אינם מוצגים בתרשימי השנים." if pre_start else "")
     partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
-    k_top = max(1, int(round(len(lf_att) * 0.1)))
+    k_top = max(1, round(len(lf_att) * 0.1))
 
     labels = {
         "lede": (f"פנקס המינויים של הסניגוריה הציבורית: {n(total)} מינויים של {n(names_total)} "

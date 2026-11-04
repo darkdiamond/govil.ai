@@ -31,7 +31,6 @@ row reaches the page. No people are named (the data holds none).
 import re
 
 import pandas as pd
-
 from govlib import fmt, frame
 
 TOPICS = [
@@ -375,7 +374,7 @@ def insight_sources(src, n):
 
 def compute(frames):
     df = _prepare(frames["main"])
-    n = int(len(df))
+    n = len(df)
 
     gcodes = sorted(df["g"].unique(), key=_code_key)
     gdesc = {g: _mode(s) for g, s in df.groupby("g")["CategoryDesc1"]}
@@ -409,7 +408,7 @@ def compute(frames):
         if sub.empty:
             continue
         nums = sorted(sub["gnum"].unique())
-        sr.append({"s": s, "rows": int(len(sub)), "range": f"{nums[0]}-{nums[-1]}",
+        sr.append({"s": s, "rows": len(sub), "range": f"{nums[0]}-{nums[-1]}",
                    "groups": len(sub["g"].unique())})
     fam_series = df.groupby(["fam", "series"])["req"].nunique()
     pairs = []

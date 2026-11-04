@@ -19,7 +19,7 @@ import math
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 UNKNOWN = "לא ידוע"
 
@@ -238,7 +238,7 @@ def compute(frames):
 
     # --- code bands
     max_cd = int(df["cd"].max())
-    width = max(200, int(math.ceil(max_cd / 10 / 100.0)) * 100)
+    width = max(200, math.ceil(max_cd / 10 / 100.0) * 100)
     df["band"] = (df["cd"] - 1) // width
     band_ids = sorted(df["band"].unique().tolist())
     band_top = [c for c, _ in ranked[:BAND_COUNTRIES]]
@@ -364,7 +364,7 @@ def compute(frames):
         "dist_note": (f"בכמה ארצות ייצור רשום כל מותג, מבין {n(multi_n)} המותגים שרשומים מיותר "
                       f"ממדינה אחת. {n(dist.get(1, 0))} מתוך {n(n_brands_known)} המותגים עם ארץ ידועה "
                       f"רשומים ממדינה אחת בלבד ואינם מוצגים."),
-        "dist_aria": f"תרשים עמודות: מספר המותגים לפי מספר ארצות הייצור",
+        "dist_aria": "תרשים עמודות: מספר המותגים לפי מספר ארצות הייצור",
         "dist_caption": "מספר המותגים לפי מספר ארצות הייצור",
     }
 

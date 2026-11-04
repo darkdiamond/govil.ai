@@ -241,7 +241,7 @@ def insight_energy(pairs):
         lead += " הדירוג בתעודת שלב ב נמוך מזה שבתעודה המקדמית"
     else:
         return None
-    return (f"{lead}, ב-{pct(same / k)} הוא זהה וב-{pct((down if up > down else up) / k)} "
+    return (f"{lead}, ב-{pct(same / k)} הוא זהה וב-{pct((min(up, down)) / k)} "
             f"{'ירד' if up > down else 'עלה'} (מתוך {n(k)} מבנים שיש להם את שתי התעודות).")
 
 
@@ -501,7 +501,7 @@ def compute(frames):
         "stages_aria": (f"תרשים עמודות: רשומות לפי שלב ההתעדה; {n(stage_b)} רשומות בשלב ב "
                         f"מתוך {n(total)}."),
         "stages_caption": "מספר רשומות לפי שלב ההתעדה.",
-        "years_note": (f"מספר התעודות שהונפקו בכל שנה, לפי סוג התעודה ותאריך הנפקתה."
+        "years_note": ("מספר התעודות שהונפקו בכל שנה, לפי סוג התעודה ותאריך הנפקתה."
                        + (f" שנת השיא: {top_year}." if top_year else "")
                        + (f" {n(excluded_dates)} תאריכים לפני {MIN_YEAR} או אחרי מועד העדכון "
                           f"(שגויים) אינם מוצגים." if excluded_dates else "")

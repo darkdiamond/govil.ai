@@ -25,7 +25,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 PLACEHOLDER = 9000
 TOP_LOCS = 20
 TOP_REGIONS = 20
@@ -233,7 +233,6 @@ def compute(frames):
     # Locality names (the placeholder row carries the locality's own name) and regions.
     city_name = (df.sort_values(["city", "is_off", "code"], ascending=[True, False, True], kind="stable")
                  .drop_duplicates("city").set_index("city")["city_name"])
-    city_region = df.drop_duplicates("city").set_index("city")["region"]
     reg_name = (df.sort_values(["region", "region_name"], kind="stable")
                 .drop_duplicates("region").set_index("region")["region_name"])
     cities = sorted(df["city"].unique())

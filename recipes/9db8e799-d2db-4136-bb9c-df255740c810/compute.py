@@ -20,7 +20,7 @@ TOP_IMPORTERS = 15
 TOP_COUNTRIES = 8
 MIN_BRAND_ENTRIES = 30
 MODELS_SHOWN = 6
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 PRICE_BANDS = [(0, 150_000, "עד 150 אלף"), (150_000, 250_000, "150–250 אלף"),
                (250_000, 400_000, "250–400 אלף"), (400_000, 600_000, "400–600 אלף"),
                (600_000, 1_000_000, "600 אלף–מיליון"), (1_000_000, float("inf"), "מעל מיליון")]
@@ -258,7 +258,7 @@ def compute(frames):
         if j.empty:
             continue
         ch = (j["b"] / j["a"] - 1) * 100
-        l4l[y] = {"matched": int(len(j)), "up": float((ch > 0.05).mean() * 100),
+        l4l[y] = {"matched": len(j), "up": float((ch > 0.05).mean() * 100),
                   "same": float((ch.abs() <= 0.05).mean() * 100),
                   "down": float((ch < -0.05).mean() * 100), "mean": float(ch.mean())}
 
@@ -286,9 +286,9 @@ def compute(frames):
         price_tone = "brand"
     has_med = p_med is not None and last in p_med.index
     kpis = {
-        "entries": {"value": int(len(df)), "display": f"{len(df):,}", "tone": "brand"},
+        "entries": {"value": len(df), "display": f"{len(df):,}", "tone": "brand"},
         "last_year": {"value": last, "display": str(last)},
-        "current": {"value": int(len(cur)), "display": f"{len(cur):,}", "tone": "brand"},
+        "current": {"value": len(cur), "display": f"{len(cur):,}", "tone": "brand"},
         "importers": {"value": int(imp.size), "display": f"{imp.size:,}", "tone": "brand"},
         "median_private": {"value": float(p_med[last]) if has_med else None,
                            "display": f"{p_med[last] / 1000:,.0f}" if has_med else "—",

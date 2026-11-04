@@ -166,7 +166,7 @@ def insight_board_pending(big):
     cand = [b for b in big if b["pend"] > 0]
     if len(big) < 5 or not cand:
         return None
-    w = sorted(cand, key=lambda b: (-b["pend"], b["code"]))[0]
+    w = min(cand, key=lambda b: (-b["pend"], b["code"]))
     if w["pend"] / w["n"] < 0.5:
         return None
     return (f"במרכזייה {w['code']} {_int(w['pend'])} מתוך {_int(w['n'])} עמודים ({_pct(w['pend'] / w['n'])}) "
@@ -202,8 +202,8 @@ def insight_north_south(rows):
     ok = [r for r in rows if r["n"] >= MIN_BAND]
     if len(ok) < 3:
         return None
-    hi = sorted(ok, key=lambda r: (-r["share"], r["label"]))[0]
-    lo = sorted(ok, key=lambda r: (r["share"], r["label"]))[0]
+    hi = min(ok, key=lambda r: (-r["share"], r["label"]))
+    lo = min(ok, key=lambda r: (r["share"], r["label"]))
     if hi["share"] - lo["share"] < NS_GAP_PTS:
         return None
     return (f"שיעור ה-LED שונה בין אזורי העיר: ברצועת קו הרוחב {hi['label']} הוא {_pct(hi['share'])}, "
@@ -236,7 +236,7 @@ def compute(frames):
     total = len(df)
     g = df["group"].value_counts().to_dict()
     done, pend = int(g.get("done", 0)), int(g.get("pend", 0))
-    n_oth, n_unk = int(g.get("oth", 0)), int(g.get("unk", 0))
+    _n_oth, n_unk = int(g.get("oth", 0)), int(g.get("unk", 0))
 
     # ---- status chart
     sc = _ranked(df["status"].replace("", "ללא סטטוס"))
@@ -279,7 +279,7 @@ def compute(frames):
         size_vals = [int((bi == i).sum()) for i in range(SIZE_BINS)]
         size_names = [f"{i * SIZE_BIN + 1}-{(i + 1) * SIZE_BIN}" for i in range(SIZE_BINS - 1)]
         size_names.append(f"מעל {(SIZE_BINS - 1) * SIZE_BIN}")
-        median_board = int(round(float(np.median(sizes))))
+        median_board = round(float(np.median(sizes)))
     else:
         size_vals, size_names, median_board = [], [], 0
     t_size = [{"name": n, "count": _int(v), "share": _pct(v / len(boards), 1)}

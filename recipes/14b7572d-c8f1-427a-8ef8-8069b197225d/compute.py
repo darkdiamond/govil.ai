@@ -28,7 +28,7 @@ MIN_BASE = 20                 # minimum group size for comparative insights
 ATYPE_MIN = 40               # authority-type group size for the type comparison
 STALE_SHARE = 0.25            # "many nurseries not inspected lately" threshold
 EXCEL_MIN, EXCEL_MAX = 36526, 73051   # Excel serials for 2000-01-01 … 2099-12-31
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 COLORS = {INF: "#dc3545", CLEAN: "#198754", STALE: "#c3cfe7"}
@@ -207,7 +207,7 @@ def insight_trend(yearly, last, partial):
     full = [r for r in yearly if not (partial and r["y"] == last.year) and r["total"] >= MIN_YEAR_INSPECTIONS]
     if len(full) < 3:
         return None
-    peak = sorted(full, key=lambda r: (-r["share"], r["y"]))[0]
+    peak = min(full, key=lambda r: (-r["share"], r["y"]))
     cur = full[-1]
     note = (f"; לא כולל {last.year}, שהנתונים עליה חלקיים" if partial else "")
     if peak["y"] == cur["y"]:
@@ -459,8 +459,8 @@ def compute(frames):
         "status_aria": (f"תרשים טבעת: סטטוס עדכני של {n(total)} משתלות — {n(n_inf)} נגועות, "
                         f"{n(n_clean)} ללא נגיעות ו-{n(n_stale)} שלא נבדקו בשנה האחרונה."),
         "status_caption": "סטטוס עדכני של המשתלות לפי המאגר.",
-        "journey_note": (f"כל משתלה עוברת מבדיקה לבדיקה: הרוחב של כל זרם הוא מספר המשתלות. "
-                         f"זרמים אפורים הם משתלות שטרם נבדקו שוב."),
+        "journey_note": ("כל משתלה עוברת מבדיקה לבדיקה: הרוחב של כל זרם הוא מספר המשתלות. "
+                         "זרמים אפורים הם משתלות שטרם נבדקו שוב."),
         "journey_aria": (f"תרשים זרימה: תוצאות הבדיקה הראשונה, השנייה והשלישית של המשתלות ומעברים "
                          f"ביניהן; {n(oc_all_inf)} משתלות נמצאו נגועות בכל הבדיקות."),
         "journey_caption": "מעברים בין תוצאות בדיקות עוקבות (מספר משתלות).",

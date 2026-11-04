@@ -18,7 +18,7 @@ FORKLIFTS = ["מלגזה מנוע חשמל", "מלגזה מנוע שריפה"]
 HP_TYPES = 10
 TOP_MODELS = 12
 RESTRICTION_COLS = ["hagbala_nm_1", "hagbala_nm_2", "hagbala_nm_3", "hagbala_nm_4"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 

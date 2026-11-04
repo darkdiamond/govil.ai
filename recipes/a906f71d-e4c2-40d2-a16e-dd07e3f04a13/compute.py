@@ -25,7 +25,7 @@ OTHER = "אחר"
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -74,7 +74,6 @@ def band_index(v, edges):
 
 def compute(frames):
     raw = frames["centers"].copy()
-    n_raw = len(raw)
     df = pd.DataFrame({
         "idv": num(raw["ID"]),
         "name": raw["Name"].astype(str).str.strip(),
@@ -155,7 +154,7 @@ def compute(frames):
     if has_nn:
         nn_sorted = geo.sort_values(["nn", "label", "address"], ascending=[False, True, True], kind="mergesort").reset_index(drop=True)
         top = nn_sorted.head(NN_TOP)
-        charts["nn"] = {"names": top["label"].tolist(), "values": [int(round(v)) for v in top["nn"]]}
+        charts["nn"] = {"names": top["label"].tolist(), "values": [round(v) for v in top["nn"]]}
         tables["nn"] = {"headers": ["מרכז", "המרכז הקרוב", "מרחק (מ׳)"],
                         "rows": [[a, b, fmt(c)] for a, b, c in zip(top["label"], top["nn_label"], top["nn"])]}
         med_nn = float(geo["nn"].median())
@@ -209,7 +208,6 @@ def compute(frames):
 
     if n_geo >= 5:
         top_s = max(range(len(SECTORS)), key=lambda i: (svals[i], -i))
-        empty = [SECTORS[i] for i in range(len(SECTORS)) if svals[i] == 0]
         extent = f"המרכזים פרושים על כ־{km(ns_span)} ק״מ מצפון לדרום ועל כ־{km(ew_span)} ק״מ ממזרח למערב."
         if svals[top_s] / n_geo >= 0.25:
             txt = (f"הכיוון העמוס ביותר ממרכז החציון של המרכזים הוא {SECTORS[top_s]}, עם {fmt(svals[top_s])} מרכזים "
@@ -224,7 +222,7 @@ def compute(frames):
 
     if n_c >= 5:
         lens = df["name"].str.len()
-        mode_len = int(sorted(lens.value_counts().items(), key=lambda kv: (-kv[1], kv[0]))[0][0])
+        mode_len = int(min(lens.value_counts().items(), key=lambda kv: (-kv[1], kv[0]))[0])
         share = float((lens == mode_len).mean())
         dup_names = int(df["name"].duplicated(keep=False).sum())
         if share >= 0.6 and mode_len <= 12:
@@ -241,7 +239,7 @@ def compute(frames):
     kpis = {
         "centers": {"value": n_c, "display": fmt(n_c), "tone": "brand", "label": "מתנ״סים ומרכזים קהילתיים"},
         "neigh": {"value": n_neigh, "display": fmt(n_neigh), "tone": "brand", "label": "שכונות עם מרכז"},
-        "nn": {"value": int(round(med_nn)), "display": fmt(med_nn), "tone": "info",
+        "nn": {"value": round(med_nn), "display": fmt(med_nn), "tone": "info",
                "label": "מרחק חציוני למרכז הקרוב (מטרים)"},
         "noid": {"value": n_noid, "display": fmt(n_noid), "tone": "warn" if n_noid else "ok",
                  "label": "רשומות ללא מזהה"},

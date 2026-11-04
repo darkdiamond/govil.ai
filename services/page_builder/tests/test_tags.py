@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Optional
 
 import pytest
 
@@ -40,7 +39,7 @@ VOCAB = {
 class E:
     id: str
     tags: list[str]
-    organization_slug: Optional[str] = None
+    organization_slug: str | None = None
 
 
 @pytest.mark.parametrize("raw,expected", [

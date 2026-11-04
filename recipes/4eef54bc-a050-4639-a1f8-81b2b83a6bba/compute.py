@@ -78,7 +78,7 @@ def _num(v):
 
 
 def _int(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _signed(v, digits=1):
@@ -361,7 +361,7 @@ def compute(frames):
     if len(so) >= len(cur) * 0.5:
         for rank, g in so.groupby(so["socio"].round().astype(int)):
             socio_rows.append({
-                "rank": int(rank), "n": int(len(g)),
+                "rank": int(rank), "n": len(g),
                 "deficit": int((g["result"] < 0).sum()),
                 "deficit_share": round(float((g["result"] < 0).mean()) * 100, 1),
                 "collect": _r((_median(_pos(g["pct_collect"])) or 0) * 100, 1),
@@ -374,7 +374,7 @@ def compute(frames):
     for name, g in wide.groupby("name", sort=True):
         g = g.set_index("year")
         last = g.loc[g.index.max()]
-        def ser(colname):
+        def ser(colname, g=g):
             return [_r(_mn(g.loc[y, colname]), 1) if y in g.index and pd.notna(g.loc[y, colname]) else None
                     for y in years]
         inc_own_share = (last["inc_own"] / last["inc_total"]) if last["inc_total"] else None
@@ -530,11 +530,11 @@ def compute(frames):
                          f"ב-{latest}: {L['surplus']:,} בעודף, {L['deficit']:,} בגירעון, {L['balanced']:,} מאוזנות."),
         "balance_aria": (f"גרף עמודות מוערמות: מספר הרשויות בעודף, בגירעון ובאיזון לפי שנה. "
                          f"ב-{latest} {L['deficit']:,} רשויות בגירעון."),
-        "income_lede": (f"מקורות ההכנסה של כלל הרשויות (מיליארדי ₪). "
+        "income_lede": ("מקורות ההכנסה של כלל הרשויות (מיליארדי ₪). "
                         + (f"ב-{latest} הכנסות עצמיות היו {_pct(inc_mix[latest]['inc_own'] / inc_mix[latest]['total'])} מסך ההכנסות."
                            if inc_mix[latest]["total"] else "")),
         "income_aria": f"גרף עמודות מוערמות: מקורות ההכנסה של הרשויות המקומיות לפי שנה, {span}.",
-        "expense_lede": (f"הוצאות כלל הרשויות לפי סעיף (מיליארדי ₪). "
+        "expense_lede": ("הוצאות כלל הרשויות לפי סעיף (מיליארדי ₪). "
                          + (f"ב-{latest} חינוך היה {_pct(exp_mix[latest]['x_edu'] / exp_mix[latest]['total'])} מסך ההוצאות."
                             if exp_mix[latest]["total"] else "")),
         "expense_aria": f"גרף עמודות מוערמות: הוצאות הרשויות המקומיות לפי סעיף ושנה, {span}.",
@@ -542,10 +542,10 @@ def compute(frames):
                         "והגירעון המצטבר של כל הרשויות כאחוז מסך הכנסותיהן. חציון הגבייה אינו כולל רשויות שדיווחו שיעור אפס."),
         "health_aria": (f"גרף קווים: מדדי איתנות פיננסית של הרשויות לפי שנה. ב-{latest} חציון הגבייה "
                         f"{_pct(mc) if mc is not None else '-'}."),
-        "pc_lede": (f"הוצאה ממוצעת לתושב בכל רשות, במחירים שוטפים: החציון, ותחום הרבעונים (רבע מהרשויות מתחת לקו התחתון ורבע מעל העליון). "
+        "pc_lede": ("הוצאה ממוצעת לתושב בכל רשות, במחירים שוטפים: החציון, ותחום הרבעונים (רבע מהרשויות מתחת לקו התחתון ורבע מעל העליון). "
                     + (f"ב-{latest} החציון היה {_int(med_pc[latest])} ₪." if med_pc.get(latest) else "")
                     + " רשויות שדיווחו אפס אינן נכללות."),
-        "pc_aria": (f"גרף קווים: הוצאה לתושב ברשויות המקומיות לפי שנה, חציון ורבעונים."
+        "pc_aria": ("גרף קווים: הוצאה לתושב ברשויות המקומיות לפי שנה, חציון ורבעונים."
                     + (f" ב-{latest} החציון {_int(med_pc[latest])} ₪." if med_pc.get(latest) else "")),
         "acc_lede": (f"{len(top_acc):,} הרשויות עם הגירעון המצטבר הגבוה ביותר ביחס להכנסה השנתית שלהן, סוף {latest}."
                      + (f" בראש: {top_acc[0]['name']}, {_pct(top_acc[0]['v'])}." if top_acc else "")),

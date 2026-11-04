@@ -72,7 +72,7 @@ def insight_volume(df, now):
     trend = ("בדומה לשנה הקודמת" if abs(ch) < 0.03
              else f"{'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch))} לעומת {prev} ({_int(b)})")
     tail = (f" שנת השיא הייתה {peak} עם {_int(vc.max())} החלטות." if peak != full else
-            f" זו שנת השיא במאגר.")
+            " זו שנת השיא במאגר.")
     return f"ב-{full} ניתנו {_int(a)} החלטות — {trend}.{tail}"
 
 

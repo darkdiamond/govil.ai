@@ -17,7 +17,7 @@ the corpus-wide `tag_index` / `topics` / `tag_redirects`).
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -36,18 +36,18 @@ class ResourceEntry(BaseModel):
 
     url: str
     format: str = ""
-    name: Optional[str] = None
-    size_bytes: Optional[int] = None
-    description: Optional[str] = None
+    name: str | None = None
+    size_bytes: int | None = None
+    description: str | None = None
 
     # CKAN resource id — drives the shell's data-explorer section
     # (DatasetExplorer.vue queries /api/3/action/datastore_search with it).
-    id: Optional[str] = None
+    id: str | None = None
     # True/False from CKAN's `datastore_active`. None = unknown (legacy
     # Firestore doc ingested before the flag existed) — omitted from
     # data.json via exclude_none, and the frontend falls back to probing
     # the primary resource at runtime.
-    datastore_active: Optional[bool] = None
+    datastore_active: bool | None = None
 
 
 class SourceInfo(BaseModel):
@@ -60,8 +60,8 @@ class SourceInfo(BaseModel):
     provider: str
     source_name_he: str
     home_url: str
-    source_url: Optional[str] = None
-    terms_url: Optional[str] = None
+    source_url: str | None = None
+    terms_url: str | None = None
     attribution_he: str
     download_label_he: str = "הורדה"
     explorer: bool = False
@@ -79,15 +79,15 @@ class DatasetMeta(BaseModel):
     # the CKAN id. Filled by the publisher (_build_page_slugs); empty until then.
     page_slug: str = ""
     title: str
-    organization: Optional[str] = None           # human-readable ministry title
-    organization_slug: Optional[str] = None      # stable key for /ministries/<slug>/
+    organization: str | None = None           # human-readable ministry title
+    organization_slug: str | None = None      # stable key for /ministries/<slug>/
     tags_he: list[str] = Field(default_factory=list)
-    primary_resource_id: Optional[str] = None
+    primary_resource_id: str | None = None
     formats: list[str] = Field(default_factory=list)
-    metadata_modified: Optional[datetime] = None
+    metadata_modified: datetime | None = None
 
-    license: Optional[str] = None
-    record_count: Optional[int] = None
+    license: str | None = None
+    record_count: int | None = None
     resources: list[ResourceEntry] = Field(default_factory=list)
 
     # CKAN's free-text description. Captured by the scanner so the dataset
@@ -95,11 +95,11 @@ class DatasetMeta(BaseModel):
     # short summary_he is missing (rare — selector gates publish on agent
     # success, but this guarantees a non-empty description even on a
     # transient agent_data.json read failure).
-    notes: Optional[str] = None
+    notes: str | None = None
 
     # When the agent last (re)built the page for this dataset. Rendered as
     # "הדף נוצר ב-" in the sidebar.
-    last_analyzed_at: Optional[datetime] = None
+    last_analyzed_at: datetime | None = None
 
     # Source's `metadata_modified` snapshotted at the moment the agent
     # ran — i.e. the vintage of the data the page's content is based on.
@@ -107,7 +107,7 @@ class DatasetMeta(BaseModel):
     # overwrites on every poll. Rendered as "המידע נכון ל-" in the sidebar
     # when present; legacy sources (analyzed before this field existed)
     # leave it None and the frontend falls back to `last_analyzed_at`.
-    analyzed_metadata_modified: Optional[datetime] = None
+    analyzed_metadata_modified: datetime | None = None
 
     # Availability of the upstream source at data.gov.il. "available" (the
     # default) or "unavailable" — set by the weekly reconcile sweep when a
@@ -116,12 +116,12 @@ class DatasetMeta(BaseModel):
     # and the explorer its gone-state.
     source_status: str = "available"
     # UTC timestamp when the source was first detected as unavailable.
-    unavailable_since: Optional[datetime] = None
+    unavailable_since: datetime | None = None
 
     # Non-CKAN sources only (services/providers): the credit block, and the
     # readable id part of page_slug (CKAN uses 8 chars of its UUID).
-    source: Optional[SourceInfo] = None
-    page_slug_suffix: Optional[str] = None
+    source: SourceInfo | None = None
+    page_slug_suffix: str | None = None
 
     version: int = 1
 
@@ -150,8 +150,8 @@ class AgentData(BaseModel):
     # columns). Emitted into the Dataset JSON-LD as `temporalCoverage` /
     # `spatialCoverage` to help Google Dataset Search ranking. Older pages
     # leave these None and the JSON-LD just omits the fields.
-    temporal_coverage: Optional[str] = None
-    spatial_coverage: Optional[str] = None
+    temporal_coverage: str | None = None
+    spatial_coverage: str | None = None
 
     version: int = 1
 
@@ -170,26 +170,26 @@ class ManifestEntry(BaseModel):
     slug: str
     page_slug: str = ""
     title: str
-    organization: Optional[str] = None
-    organization_slug: Optional[str] = None
+    organization: str | None = None
+    organization_slug: str | None = None
     tags_he: list[str] = Field(default_factory=list)
-    primary_resource_id: Optional[str] = None
+    primary_resource_id: str | None = None
     formats: list[str] = Field(default_factory=list)
-    metadata_modified: Optional[datetime] = None
-    license: Optional[str] = None
-    record_count: Optional[int] = None
+    metadata_modified: datetime | None = None
+    license: str | None = None
+    record_count: int | None = None
     resources: list[ResourceEntry] = Field(default_factory=list)
-    notes: Optional[str] = None
-    last_analyzed_at: Optional[datetime] = None
-    analyzed_metadata_modified: Optional[datetime] = None
-    source: Optional[SourceInfo] = None
-    page_slug_suffix: Optional[str] = None
+    notes: str | None = None
+    last_analyzed_at: datetime | None = None
+    analyzed_metadata_modified: datetime | None = None
+    source: SourceInfo | None = None
+    page_slug_suffix: str | None = None
 
     # AgentData fields (optional — a scanned-but-never-analyzed source has none)
-    summary_he: Optional[str] = None
-    dataset_kind: Optional[DatasetKind] = None
-    temporal_coverage: Optional[str] = None
-    spatial_coverage: Optional[str] = None
+    summary_he: str | None = None
+    dataset_kind: DatasetKind | None = None
+    temporal_coverage: str | None = None
+    spatial_coverage: str | None = None
     suggested_tags: list[str] = Field(default_factory=list)
 
     # Publisher-computed: canonical display tags (tags.py) and related
@@ -198,7 +198,7 @@ class ManifestEntry(BaseModel):
     related_ids: list[str] = Field(default_factory=list, max_length=5)
 
     source_status: str = "available"
-    unavailable_since: Optional[datetime] = None
+    unavailable_since: datetime | None = None
 
     version: int = 1
 
@@ -206,9 +206,9 @@ class ManifestEntry(BaseModel):
 class TagIndexEntry(BaseModel):
     """One paged tag (carried by ≥ TAG_PAGE_MIN datasets)."""
     slug: str
-    topic: Optional[str] = None
+    topic: str | None = None
     count: int
-    intro_he: Optional[str] = None
+    intro_he: str | None = None
     ministries: dict[str, int] = Field(default_factory=dict)
     related: list[str] = Field(default_factory=list)
 

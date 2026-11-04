@@ -22,7 +22,7 @@ CONC_MIN_CARS = 1000    # only rate concentration of a type with at least this m
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, d=1):
@@ -208,7 +208,7 @@ def compute(frames):
     nafa_tot = _ranked(known.groupby("nafa")["n"].sum())
     nafa_priv = _ranked(known[known["owner"] == PRIVATE].groupby("nafa")["n"].sum())
     nafa_district = (known.groupby("nafa")["district"]
-                     .agg(lambda s: sorted(v for v in set(s) if v)[0] if any(s) else UNKNOWN))
+                     .agg(lambda s: min(v for v in set(s) if v) if any(s) else UNKNOWN))
     pivot = (df.assign(nafa_l=df["nafa"].where(df["nafa"] != "", UNKNOWN))
              .pivot_table(index="nafa_l", columns="owner", values="n",
                           aggfunc="sum", fill_value=0))
@@ -357,8 +357,8 @@ def compute(frames):
     top_val = int(nafa_tot.iloc[0]) if len(nafa_tot) else 0
     top_share = top_val / total if total else 0.0
     priv_share = owner_tot.get(PRIVATE, 0) / total if total else 0.0
-    n_nafot = int(len(nafa_tot))
-    n_dist = int(len(dist_tot))
+    n_nafot = len(nafa_tot)
+    n_dist = len(dist_tot)
 
     summary = (f"כמה רכבים חשמליים יש בכל נפה? {_int(total)} רכבים חשמליים פעילים "
                f"ב-{n_nafot} נפות, לפי סוג בעלות. נפת {top_name} מובילה עם {_int(top_val)}.")
@@ -409,13 +409,13 @@ def compute(frames):
         "mix_note": (f"חלקו של כל סוג בעלות בתוך כל מחוז. השיעור הגבוה ביותר של רכבים שאינם "
                      f"בבעלות פרטית נמצא ב{_dist(np_top_d[0])} ({_pct(np_top_d[1])}), "
                      f"והנמוך ביותר ב{_dist(np_low_d[0])} ({_pct(np_low_d[1])})."
-                     + (f" רכבים ללא מחוז אינם נכללים בתרשים זה." if unknown_dist > 0 else "")),
+                     + (" רכבים ללא מחוז אינם נכללים בתרשים זה." if unknown_dist > 0 else "")),
         "mix_aria": (f"תרשים עמודות מוערם באחוזים: הרכב הבעלות בכל מחוז. ב{_dist(np_top_d[0])} "
                      f"{_pct(np_top_d[1])} מהרכבים אינם בבעלות פרטית."),
-        "heat_note": (f"כל תא מראה איזה חלק מהרכבים בנפה שייך לכל סוג בעלות (הצבע לפי האחוז, "
-                      f"המספר המלא בחלון המידע). רוב הנפות כמעט פרטיות לגמרי, וחריגות בולטות "
-                      f"מופיעות כתאים כהים בעמודות שאינן פרטיות."
-                      + (f" רכבים ללא נפה אינם נכללים." if unknown_nafa > 0 else "")),
+        "heat_note": ("כל תא מראה איזה חלק מהרכבים בנפה שייך לכל סוג בעלות (הצבע לפי האחוז, "
+                      "המספר המלא בחלון המידע). רוב הנפות כמעט פרטיות לגמרי, וחריגות בולטות "
+                      "מופיעות כתאים כהים בעמודות שאינן פרטיות."
+                      + (" רכבים ללא נפה אינם נכללים." if unknown_nafa > 0 else "")),
         "heat_aria": (f"מפת חום: שיעור כל סוג בעלות מתוך הרכבים החשמליים בכל אחת "
                       f"מ-{n_nafot} הנפות."),
         "pareto_note": (f"העמודות הן מספר הרכבים בכל נפה, והקו הוא החלק המצטבר מכלל הרכבים. "
@@ -431,13 +431,13 @@ def compute(frames):
                        f"הממוצע הארצי {_pct(national_np)}"
                        + (f", והגבוה ביותר בנפת {fleet_rows[0]['name']} ({_pct(fleet_rows[0]['np'])})."
                           if fleet_rows else ".")),
-        "conc_note": (f"איזה חלק מכל סוג בעלות רשום בשלוש הנפות שבהן הוא נפוץ ביותר."
+        "conc_note": ("איזה חלק מכל סוג בעלות רשום בשלוש הנפות שבהן הוא נפוץ ביותר."
                       + (f" הרכבים {_own(conc_max['owner'])} הם המרוכזים ביותר (מבין סוגי בעלות עם "
                          f"{_int(CONC_MIN_CARS)} רכבים לפחות): {_pct(conc_max['share'])} מהם {_in_nafot(len(conc_max['top']))}"
                          if conc_max else "")
                       + (f", לעומת {_pct(conc_priv['share'])} מהרכבים הפרטיים." if conc_max and conc_priv
                          else ("." if conc_max else ""))),
-        "conc_aria": (f"תרשים עמודות: החלק של כל סוג בעלות שרשום בשלוש הנפות המובילות שלו."
+        "conc_aria": ("תרשים עמודות: החלק של כל סוג בעלות שרשום בשלוש הנפות המובילות שלו."
                       + (f" רכבים {_own(conc_max['owner'])}: {_pct(conc_max['share'])}." if conc_max else "")),
     }
 

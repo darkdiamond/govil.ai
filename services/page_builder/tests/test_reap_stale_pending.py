@@ -7,7 +7,7 @@ queue treats as `new`.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock
 
 from services.shared.firestore import FirestoreStateStore
@@ -27,7 +27,7 @@ def _store(docs: list[MagicMock]) -> tuple[FirestoreStateStore, MagicMock]:
 
 
 def test_reaps_pending_older_than_cutoff():
-    old = datetime.now(timezone.utc) - timedelta(hours=9)
+    old = datetime.now(UTC) - timedelta(hours=9)
     store, client = _store([_doc("stale1", {"analysis_started_at": old})])
 
     reaped = store.reap_stale_pending(older_than_minutes=120)
@@ -40,7 +40,7 @@ def test_reaps_pending_older_than_cutoff():
 
 def test_spares_pending_inside_cutoff():
     """A live session's own pending marker must survive."""
-    fresh = datetime.now(timezone.utc) - timedelta(minutes=5)
+    fresh = datetime.now(UTC) - timedelta(minutes=5)
     store, client = _store([_doc("live1", {"analysis_started_at": fresh})])
 
     assert store.reap_stale_pending(older_than_minutes=120) == []
@@ -55,7 +55,7 @@ def test_reaps_pending_with_no_timestamp():
 
 def test_reaps_naive_timestamp_without_crashing():
     """A naive datetime must not raise on comparison against an aware cutoff."""
-    naive = datetime.now() - timedelta(hours=9)  # noqa: DTZ005 — deliberate
+    naive = datetime.now() - timedelta(hours=9)
     store, _ = _store([_doc("naive1", {"analysis_started_at": naive})])
     assert store.reap_stale_pending(older_than_minutes=120) == ["naive1"]
 
@@ -63,7 +63,7 @@ def test_reaps_naive_timestamp_without_crashing():
 def test_reaped_sources_burn_retry_budget():
     """Recycling as `failed` reuses Track 1b, so 3 interruptions park the
     source instead of it being retried nightly forever."""
-    old = datetime.now(timezone.utc) - timedelta(hours=9)
+    old = datetime.now(UTC) - timedelta(hours=9)
     store, client = _store([_doc("stale1", {"analysis_started_at": old})])
     store.reap_stale_pending(older_than_minutes=120)
     payload = client.collection.return_value.document.return_value.set.call_args.args[0]
@@ -72,7 +72,7 @@ def test_reaped_sources_burn_retry_budget():
 
 def test_reaping_published_source_keeps_it_succeeded():
     """An interrupted Track-2 rebuild must not drop the live page."""
-    old = datetime.now(timezone.utc) - timedelta(hours=9)
+    old = datetime.now(UTC) - timedelta(hours=9)
     store, client = _store(
         [_doc("pub1", {"analysis_started_at": old, "page_path": "datasets/pub1/"})]
     )

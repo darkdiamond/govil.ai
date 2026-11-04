@@ -47,7 +47,7 @@ LEAD_CLASS_SHARE = 0.30
 TOP2_SHARE = 0.25
 LABEL_GAP_SHARE = 0.10
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 
@@ -168,7 +168,7 @@ def aud_order(keys):
 def ai_name(part):
     name = CONC_RE.sub("", part).strip()
     name = name.split(";")[0]
-    name = re.sub(r"\(iso\)", "", name, flags=re.I)
+    name = re.sub(r"\(iso\)", "", name, flags=re.IGNORECASE)
     name = re.sub(r"\s+", " ", name).strip().lower().rstrip("%").strip()
     name = re.sub(r"\s+cis/trans.*$", "", name)
     name = re.sub(r"^([a-z0-9]+)-\s+", r"\1-", name)
@@ -554,7 +554,7 @@ def compute(frames):
                        + (f" עבור {prods(no_pest)} לא צוין ייעוד." if no_pest else "")),
         "pests_aria": f"תרשים עמודות מוערמות של מספר התכשירים לכל מזיק לפי קהל מורשה, {n(len(pest_names))} מזיקים",
         "pests_caption": "תכשירים לפי מזיק וקהל מורשה",
-        "class_note": (f"החומרים הפעילים קובצו למשפחות כימיות; תכשיר נספר בכל משפחה שיש בו חומר ממנה."
+        "class_note": ("החומרים הפעילים קובצו למשפחות כימיות; תכשיר נספר בכל משפחה שיש בו חומר ממנה."
                        + (f" המשפחה הנפוצה: {lead_cls} ({n(cls_tot[lead_cls])} תכשירים)." if lead_cls else "")
                        + " מגבירי פעולה אינם קוטלים בעצמם אלא מעכבים את פירוק החומר הקוטל בגוף המזיק."
                        + (f" עבור {prods(n_ai_missing)} שם החומר הפעיל חסר במקור." if n_ai_missing else "")),

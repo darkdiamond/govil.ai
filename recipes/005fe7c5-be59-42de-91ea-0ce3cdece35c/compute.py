@@ -28,7 +28,7 @@ import pandas as pd
 TOP_SETTLEMENTS = 15
 TOP_EMPLOYERS = 12
 MIN_TYPE_N = 10
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 UNKNOWN_DISTRICT = "לא צוין"
 ROLE_PLURAL = {"קבלן": "קבלנים", "עובד אחראי": "עובדים אחראים", "סוקר": "סוקרים",
                "מפקח": "מפקחים"}
@@ -139,8 +139,6 @@ def insight_expiry(exp, total):
     if exp.empty:
         return None
     years = exp.dt.year.value_counts().sort_index()
-    q = exp.dt.to_period("Q").value_counts().sort_index()
-    first_q = q.index[0]
     fy = int(years.index[0])
     fv = int(years.iloc[0])
     peak_y = int(_ranked(years).index[0])
@@ -157,7 +155,7 @@ def insight_disc_rate(rate_rows, overall, n_disc):
     s = f"ל-{n(n_disc)} רישיונות ({pct(overall * 100)}) רשום היבט משמעתי כלשהו"
     elig = [r for r in rate_rows if r["n"] >= MIN_TYPE_N]
     if elig:
-        top = sorted(elig, key=lambda r: (-r["rate"], r["type"]))[0]
+        top = min(elig, key=lambda r: (-r["rate"], r["type"]))
         if top["rate"] >= 1.5 * overall:
             s += (f"; השיעור הגבוה ביותר בקרב בעלי רישיון {top['type']} — {pct(top['rate'] * 100)} "
                   f"({n(top['k'])} מתוך {n(top['n'])})")
@@ -325,7 +323,6 @@ def compute(frames):
     susp_b = (days.map(lambda v: _bucket(v, SUSP_BUCKETS)).value_counts()
               .reindex([b[0] for b in SUSP_BUCKETS], fill_value=0)) if len(days) else \
         pd.Series([0] * len(SUSP_BUCKETS), index=[b[0] for b in SUSP_BUCKETS])
-    n_susp = int(ev_types.get("התליית רישיון", 0)) if len(ev_types) else 0
 
     # ---- contractors and their responsible workers
     contr = df[df["role"] == "קבלן"]
@@ -335,7 +332,7 @@ def compute(frames):
     n_sole = int(contr["name"].isin(worker_names).sum())
     emp = workers.loc[workers["employer"] != "", "employer"]
     emp_counts = _ranked(emp.value_counts())
-    n_workers = int(len(emp))
+    n_workers = len(emp)
     contr_names = sorted(set(contr.loc[contr["name"] != "", "name"]))
     crew = pd.Series([int(emp_counts.get(c, 0)) for c in contr_names], dtype=int)
     crew_b = (crew.map(lambda v: _bucket(v, CREW_BUCKETS)).value_counts()
@@ -348,7 +345,7 @@ def compute(frames):
     # ---- holders
     named = df[df["name"] != ""]
     per_name = named.groupby("name").size()
-    n_holders = int(len(per_name))
+    n_holders = len(per_name)
     n_multi = int((per_name > 1).sum())
 
     # ---- contact completeness (percent of licences with a value, per role)

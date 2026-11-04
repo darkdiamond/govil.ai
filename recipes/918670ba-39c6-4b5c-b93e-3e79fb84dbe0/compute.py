@@ -71,7 +71,7 @@ def _method_family(s):
     s = s.strip()
     if not s or s in ("בחר", "לא"):
         return "לא צוין"
-    if s.startswith("מדיד") or "ניטור" in s or "נטור" in s or "דיגום" in s or s.startswith("דיג"):
+    if s.startswith(("מדיד", "דיג")) or "ניטור" in s or "נטור" in s or "דיגום" in s:
         return "מדידה"
     if s.startswith("הערכ"):
         return "הערכה הנדסית"
@@ -388,7 +388,7 @@ def compute(frames):
     def ins_waste():
         if ref == y0:
             return None
-        col, label = WASTE[3]
+        col, _label = WASTE[3]
         g = sy.groupby("year")[col].sum()
         a, b = float(g.get(y0, 0.0)), float(g.get(ref, 0.0))
         if a <= 0:

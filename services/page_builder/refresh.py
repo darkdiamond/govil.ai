@@ -37,38 +37,38 @@ import shutil
 import tempfile
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Callable, Optional
 from urllib import error as urllib_error
 
+from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
+
+from . import geo_snapshot
 from .agent_contract import (
     DownloadBlocked,
+    FetchLimitExceeded,
     ResourceRestrictedError,
+    fetch_resource_export,
     fetch_resource_file,
     fetch_resource_preview,
-    FetchLimitExceeded,
-    fetch_resource_export,
     run_host_check,
     sanitize_content_html,
 )
-from . import geo_snapshot
-from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
-
 from .local_sandbox import LocalSandbox
 from .recipe import (
     MANIFEST_FILENAME,
     RECIPE_FILES,
+    PreviewUnavailable,
     Recipe,
     RecipeError,
     RecipeManifest,
-    PreviewUnavailable,
     feature_table,
-    snapshot_table,
     kpi_format_findings,
     render_template,
     resolve_inputs,
+    snapshot_table,
     validate_model,
 )
 
@@ -209,7 +209,7 @@ class LocalRecipeRepo:
     def provider_source_ids(self) -> list[str]:
         return [i for i in self.list_ids() if (self.root / i / SOURCE_CONFIG_FILENAME).is_file()]
 
-    def source_config(self, dataset_id: str) -> Optional[SourceConfig]:
+    def source_config(self, dataset_id: str) -> SourceConfig | None:
         path = self.root / dataset_id / SOURCE_CONFIG_FILENAME
         if not path.is_file():
             return None
@@ -242,7 +242,7 @@ class GcsRecipeRepo:
         ids = self.list_ids()
         return [i for i in ids if i in self._with_source]
 
-    def source_config(self, dataset_id: str) -> Optional[SourceConfig]:
+    def source_config(self, dataset_id: str) -> SourceConfig | None:
         blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{SOURCE_CONFIG_FILENAME}")
         if not blob.exists():
             return None
@@ -268,14 +268,14 @@ class GithubRecipeRepo:
     two versions of a recipe.
     """
 
-    def __init__(self, repo: str, ref: str = "main", token: Optional[str] = None):
+    def __init__(self, repo: str, ref: str = "main", token: str | None = None):
         self.repo, self.ref = repo, ref
         self._headers = {"Accept": "application/vnd.github+json",
                          "X-GitHub-Api-Version": "2022-11-28"}
         if token:
             self._headers["Authorization"] = f"Bearer {token}"
-        self._sha: Optional[str] = None
-        self._ids: Optional[list[str]] = None
+        self._sha: str | None = None
+        self._ids: list[str] | None = None
         self._with_source: set[str] = set()
 
     def _get(self, url: str, **kw):
@@ -311,7 +311,7 @@ class GithubRecipeRepo:
     def provider_source_ids(self) -> list[str]:
         return [i for i in self.list_ids() if i in self._with_source]
 
-    def source_config(self, dataset_id: str) -> Optional[SourceConfig]:
+    def source_config(self, dataset_id: str) -> SourceConfig | None:
         if dataset_id not in set(self.provider_source_ids()):
             return None
         r = self._get(
@@ -380,7 +380,7 @@ class FetchedInput:
     resource_id: str
     resource_name: str
     rows: int
-    via: Optional[str] = None        # CKAN export: "file" | "datastore"
+    via: str | None = None        # CKAN export: "file" | "datastore"
 
 
 @dataclass
@@ -390,10 +390,10 @@ class InputProbe:
     CKAN calls."""
 
     resolved: dict[str, list[dict]]
-    _previews: dict[str, Optional[dict]]
-    _preview_fn: Callable[[str], Optional[dict]]
+    _previews: dict[str, dict | None]
+    _preview_fn: Callable[[str], dict | None]
 
-    def preview(self, rid: str) -> Optional[dict]:
+    def preview(self, rid: str) -> dict | None:
         if rid not in self._previews:
             try:
                 self._previews[rid] = self._preview_fn(rid)
@@ -449,15 +449,15 @@ def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
 def probe_inputs(
     recipe: Recipe,
     resources: list[dict],
-    preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
+    preview_fn: Callable[[str], dict | None] = fetch_resource_preview,
 ) -> InputProbe:
     """Resolve the recipe's inputs. Raises RecipeError `schema_changed` when
     they no longer resolve, StrikeError `preview_unavailable` when a preview
     they needed didn't answer; ResourceRestrictedError passes through."""
-    previews: dict[str, Optional[dict]] = {}
+    previews: dict[str, dict | None] = {}
     probe = InputProbe({}, previews, preview_fn)
 
-    def _fields(rid: str) -> Optional[list[str]]:
+    def _fields(rid: str) -> list[str] | None:
         p = probe.preview(rid)
         return [f["id"] for f in (p or {}).get("fields") or []] if p else None
 
@@ -479,7 +479,7 @@ def _preview_strike(message: str) -> StrikeError:
                        escalate_to="schema_changed")
 
 
-def _strikes_after_probe(state: dict, probe: Optional["InputProbe"]) -> Optional[dict]:
+def _strikes_after_probe(state: dict, probe: InputProbe | None) -> dict | None:
     """The `transient_strikes` to write once this run's previews answered:
     a run of preview failures is broken, so that count restarts. None = leave
     the stored map alone (also when no preview was asked yet, e.g. a `by_id`
@@ -640,7 +640,7 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     return _digest(parts, identity)
 
 
-def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> Optional[str]:
+def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str | None:
     """Check A′: CKAN's md5 + size of every input's uploaded file, the
     preview's row total and columns, plus `recipe_identity`. None when any
     input has no CKAN hash (API-pushed resource, or a source doc scanned before
@@ -673,7 +673,7 @@ _MULTISET_MOD = 1 << 256
 
 
 def inputs_hashes(
-    recipe: Recipe, inputs: dict[str, list["FetchedInput"]], identity: str
+    recipe: Recipe, inputs: dict[str, list[FetchedInput]], identity: str
 ) -> tuple[str, str]:
     """Check B and B′ in one pass over the exported CSVs, + `recipe_identity`.
 
@@ -705,13 +705,13 @@ def inputs_hashes(
 
 
 def inputs_hash(
-    recipe: Recipe, inputs: dict[str, list["FetchedInput"]], identity: str
+    recipe: Recipe, inputs: dict[str, list[FetchedInput]], identity: str
 ) -> str:
     """Check B alone (see `inputs_hashes`)."""
     return inputs_hashes(recipe, inputs, identity)[0]
 
 
-def content_hash(page: "RenderedPage") -> str:
+def content_hash(page: RenderedPage) -> str:
     h = hashlib.sha256()
     h.update(page.content_html.encode("utf-8"))
     h.update(b"\0")
@@ -726,9 +726,9 @@ def fetch_inputs(
     resources: list[dict],
     dest_dir: Path,
     *,
-    preview_fn: Callable[[str], Optional[dict]] = fetch_resource_preview,
+    preview_fn: Callable[[str], dict | None] = fetch_resource_preview,
     fetch_fn: Callable = fetch_resource_export,
-    probe: Optional[InputProbe] = None,
+    probe: InputProbe | None = None,
     snapshot_rows: Callable[[list], list] = lambda rows: rows,
     fetch_file_fn: Callable = fetch_resource_file,
 ) -> dict[str, list[FetchedInput]]:
@@ -997,7 +997,7 @@ def run_compute(
     inputs: dict[str, list[FetchedInput]],
     work_root: Path,
     *,
-    timeout: Optional[int] = None,
+    timeout: int | None = None,
 ) -> dict:
     """`_run_compute_once`, retried on the known sandbox-spawn flake only.
 
@@ -1115,7 +1115,7 @@ def render_page(
     recipe: Recipe,
     raw_model: dict,
     check_root: Path,
-    inputs: Optional[dict[str, list[FetchedInput]]] = None,
+    inputs: dict[str, list[FetchedInput]] | None = None,
 ) -> RenderedPage:
     """Model → validated body. Same gates an agent page passed: sanitizer,
     then the image's check.py on the sanitized output."""
@@ -1144,8 +1144,8 @@ def build_page(
     resources: list[dict],
     work_root: Path,
     *,
-    probe: Optional[InputProbe] = None,
-    after_fetch: Optional[Callable[[dict[str, list[FetchedInput]]], None]] = None,
+    probe: InputProbe | None = None,
+    after_fetch: Callable[[dict[str, list[FetchedInput]]], None] | None = None,
     **fetch_kwargs,
 ) -> tuple[RenderedPage, dict[str, list[FetchedInput]]]:
     """fetch → compute → render, in a scratch dir under `work_root`.
@@ -1166,7 +1166,7 @@ def build_page(
 # ── selection + orchestration ────────────────────────────────────────────
 
 
-def version_key(metadata_modified: Optional[datetime], recipe_version: int) -> str:
+def version_key(metadata_modified: datetime | None, recipe_version: int) -> str:
     mm = metadata_modified.isoformat() if metadata_modified else "none"
     return f"{mm}|v{recipe_version}"
 
@@ -1192,7 +1192,7 @@ def failed_version_key(src, recipe: Recipe) -> str:
     return f"{base}|{code[:16]}"
 
 
-def needs_refresh(src, state: dict, recipe: Recipe) -> Optional[str]:
+def needs_refresh(src, state: dict, recipe: Recipe) -> str | None:
     """Why this source should be refreshed now, or None to skip it."""
     if src is None:
         return None
@@ -1221,7 +1221,7 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     return f"gs://{bucket}/{relpath}"
 
 
-def _read_gcs(bucket: str, relpath: str) -> Optional[bytes]:
+def _read_gcs(bucket: str, relpath: str) -> bytes | None:
     """The staged object's current bytes, or None if there is none."""
     from google.api_core.exceptions import NotFound
     from google.cloud import storage
@@ -1236,15 +1236,15 @@ def _read_gcs(bucket: str, relpath: str) -> Optional[bytes]:
 class RefreshOutcome:
     id: str
     status: str                      # refreshed | unchanged | failed | skipped | retry_later
-    trigger: Optional[str] = None
-    reason: Optional[str] = None
-    error: Optional[str] = None
+    trigger: str | None = None
+    reason: str | None = None
+    error: str | None = None
     elapsed_s: float = 0.0
     rows: dict = field(default_factory=dict)
     kpis: dict = field(default_factory=dict)
     insights: list = field(default_factory=list)
     changes: dict = field(default_factory=dict)
-    issue: Optional[int] = None
+    issue: int | None = None
     # REFRESH_PRECHECK report: {mode, fp_same, fp2_same, inputs_same,
     # inputs_same_unordered, content_same, skipped}
     # (True/False; None = no stored hash to compare against yet).
@@ -1252,7 +1252,7 @@ class RefreshOutcome:
     # Which path served each CKAN input export: {resource id8: "file" | "datastore"}.
     fetch_via: dict = field(default_factory=dict)
     # True on the outcome of the end-of-run second pass (see _DEFAULT_RETRY_CAP).
-    retried: Optional[bool] = None
+    retried: bool | None = None
 
 
 class _Unchanged(Exception):
@@ -1275,15 +1275,15 @@ def _precheck_may_skip(trigger: str, state: dict) -> bool:
     if trigger != "data_updated":
         return False
     stamps = [state.get("last_refreshed_at"), state.get("last_verified_at")]
-    stamps = [t if t.tzinfo else t.replace(tzinfo=timezone.utc) for t in stamps if t]
+    stamps = [t if t.tzinfo else t.replace(tzinfo=UTC) for t in stamps if t]
     if not stamps:
         return False
     last = max(stamps)
     max_age = _env_int("REFRESH_PRECHECK_MAX_AGE_DAYS", _DEFAULT_PRECHECK_MAX_AGE_DAYS)
-    return datetime.now(timezone.utc) - last <= timedelta(days=max_age)
+    return datetime.now(UTC) - last <= timedelta(days=max_age)
 
 
-def _same(new: str, old: Optional[str]) -> Optional[bool]:
+def _same(new: str, old: str | None) -> bool | None:
     return None if old is None else new == old
 
 
@@ -1303,10 +1303,10 @@ def refresh_one(
     staging_bucket: str,
     work_root: Path,
     trigger: str,
-    previous_state: Optional[dict] = None,
+    previous_state: dict | None = None,
     notify: bool = True,
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
-    read_gcs: Callable[[str, str], Optional[bytes]] = _read_gcs,
+    read_gcs: Callable[[str, str], bytes | None] = _read_gcs,
     providers=None,
     defer_transient: bool = False,
     **fetch_kwargs,
@@ -1334,7 +1334,7 @@ def refresh_one(
     state = previous_state or {}
     may_skip = mode != "off" and _precheck_may_skip(trigger, state)
     pc: dict = {"mode": mode} if mode != "off" else {}
-    hashes: dict[str, Optional[str]] = {}  # stored on success; names match mark_refreshed kwargs
+    hashes: dict[str, str | None] = {}  # stored on success; names match mark_refreshed kwargs
     try:
         probe = None
         after_fetch = None
@@ -1475,7 +1475,7 @@ def refresh_one(
             return out
     prefix = "preview/datasets" if preview else "datasets"
     rel = f"{prefix}/{src.id}/{CONTENT_FILENAME}"
-    previous_html: Optional[bytes] = None
+    previous_html: bytes | None = None
     staged = False
     try:
         # Kept so a failed Firestore mark can put it back: the staged body
@@ -1544,8 +1544,8 @@ def refresh_one(
 
 def _mark_unchanged(
     store, src, trigger: str, reason: str, pc: dict, hashes: dict, *,
-    advance_version: bool, preview: bool, started: float, rows: Optional[dict] = None,
-    transient_strikes: Optional[dict] = None,
+    advance_version: bool, preview: bool, started: float, rows: dict | None = None,
+    transient_strikes: dict | None = None,
 ) -> RefreshOutcome:
     """Record a precheck skip (the live page stands). A failed state write is
     a staging failure like a failed `mark_refreshed`: this source only,
@@ -1609,7 +1609,7 @@ def _log_precheck(dataset_id: str, pc: dict) -> None:
                 )
 
 
-def snapshot_diff(before: Optional[dict], after: dict) -> dict:
+def snapshot_diff(before: dict | None, after: dict) -> dict:
     """What moved since the last successful render — the daily "did the
     numbers change, and did the wording follow" view of the demo soak."""
     if not before:
@@ -1624,7 +1624,7 @@ def snapshot_diff(before: Optional[dict], after: dict) -> dict:
     }
 
 
-def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool = False) -> Optional[int]:
+def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool = False) -> int | None:
     """Flag a dataset for local authoring and open its issue (once).
 
     A recorded issue is reused while it is open or was closed as not
@@ -1653,7 +1653,7 @@ def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool 
     return number
 
 
-def _queue_authoring_safely(store, src, reason: str, **kw) -> Optional[int]:
+def _queue_authoring_safely(store, src, reason: str, **kw) -> int | None:
     """queue_authoring for use mid-batch: a Firestore/GitHub error costs this
     source its issue (retried next run), never the rest of the refresh."""
     try:
@@ -1686,11 +1686,11 @@ def run_refresh(
     *,
     preview: bool,
     staging_bucket: str,
-    only_ids: Optional[list[str]] = None,
-    cap: Optional[int] = None,
+    only_ids: list[str] | None = None,
+    cap: int | None = None,
     force: bool = False,
     notify: bool = True,
-    work_root: Optional[Path] = None,
+    work_root: Path | None = None,
     sleep: Callable[[float], None] = time.sleep,
     **kwargs,
 ) -> dict:
@@ -1895,8 +1895,8 @@ def _cli() -> None:
     bucket = os.environ.get("GCS_STAGING_BUCKET", "")
     if not bucket:
         raise SystemExit("GCS_STAGING_BUCKET must be set")
-    run_id = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
-    started = datetime.now(timezone.utc)
+    run_id = f"{datetime.now(UTC):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
+    started = datetime.now(UTC)
     repo = recipe_repo_from_env()
     # Provider sources (BoI, …) get their doc + version from the sync step,
     # as the daily job does. Prod only: it writes `sources/<id>`, and the
@@ -1919,11 +1919,12 @@ def _cli() -> None:
     summary["providers"] = providers_summary
     summary["run_id"] = run_id
     summary["started_at"] = started
-    summary["completed_at"] = datetime.now(timezone.utc)
+    summary["completed_at"] = datetime.now(UTC)
 
     publish = None
     if summary["refreshed"] and not args.no_publish:
         import asyncio
+
         from .pipeline import _trigger_publish_github
 
         publish = asyncio.run(

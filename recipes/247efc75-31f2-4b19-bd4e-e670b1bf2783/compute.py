@@ -169,7 +169,6 @@ def compute(frames):
     first_shown = shown[0]
     early = [b for b in all_bands if b < first_shown]
     app_band = apps["band"].where(apps["band"] >= first_shown, first_shown - 1)
-    people_band = people["band"].where(people["band"] >= first_shown, first_shown - 1)
     band_keys = ([first_shown - 1] if early else []) + shown
     labels = [f"עד {first_shown * BAND // 1000} אלף" if b == first_shown - 1 else _band_label(b)
               for b in band_keys]
@@ -307,7 +306,7 @@ def compute(frames):
                 data.append(round(float((sub["kind"] == k).mean()) * 100, 1) if len(sub) else 0)
             comp["series"].append({"name": lbl, "data": data})
         comp_tot = {k: int((g["kind"] == k).sum()) for k, _ in kinds}
-        comp_n = int(len(g))
+        comp_n = len(g)
         comp_band_rows = [{"band": lbl, "vals": [f"{sr['data'][j]:.1f}" for sr in comp["series"]]}
                           for j, lbl in enumerate(era_labels)]
         comp_rows = [{"name": lbl, "n": _int(comp_tot[k]),

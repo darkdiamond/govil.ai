@@ -76,7 +76,7 @@ _YEAR_RE = re.compile(r"(?<!\d)((?:19|20)\d{2})(?!\d)")
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=1):
@@ -172,7 +172,7 @@ def _prepare(df):
         type_labels = type_labels + ["לא צוין"]
         ftype = np.where(ftype < 0, len(type_labels) - 1, ftype)
 
-    years_present = sorted(set(int(y) for y in np.unique(year[keep])))
+    years_present = sorted({int(y) for y in np.unique(year[keep])})
     y_pos = {y: i for i, y in enumerate(years_present)}
     y_idx = np.full(int(year.max(initial=0)) + 2, -1, dtype="int64")
     for y, i in y_pos.items():
@@ -312,7 +312,7 @@ def insight_exempt(total, reasons):
          + (f" ו-{_m(total['frozen'])} מיליון ₪ בהקפאה." if total["frozen"] >= 50_000 else "."))
     named = [r for r in reasons if r["named"]]
     if named:
-        r = sorted(named, key=lambda r: (-r["amount"], r["name"]))[0]
+        r = min(named, key=lambda r: (-r["amount"], r["name"]))
         s += f" הסיבה שמאחורי הסכום הגדול ביותר: \"{r['name']}\" ({_m(r['amount'])} מיליון ₪)."
     return s
 
@@ -434,13 +434,13 @@ def compute(frames):
         "year": y["year"], "count": _int(y["count"]), "billed": _m(y["billed"]),
         "collected": _m(y["collected"]), "open": _m(y["open"]), "rate": _pct(y["rate"]),
     } for y in yrs]
-    peak = sorted(yrs, key=lambda y: (-y["billed"], y["year"]))[0]
+    peak = min(yrs, key=lambda y: (-y["billed"], y["year"]))
     labels["years_aria"] = (
         f"גרף עמודות מוערמות: חיובים תקפים לפי שנה, {years[0]} עד {years[-1]}, בחלוקה לנגבה ולפתוח. "
         f"השנה עם הסכום הגבוה ביותר: {peak['year']} ({_m(peak['billed'])} מיליון ₪).")
     labels["years_note"] = (
-        f"סכום החיובים התקפים בכל שנה (מיליוני ₪), מפוצל לחלק שנגבה ולחלק שעדיין פתוח, "
-        f"והקו מציג את מספר החיובים בכל הסטטוסים (באלפים). השנה היא שנת הקובץ.")
+        "סכום החיובים התקפים בכל שנה (מיליוני ₪), מפוצל לחלק שנגבה ולחלק שעדיין פתוח, "
+        "והקו מציג את מספר החיובים בכל הסטטוסים (באלפים). השנה היא שנת הקובץ.")
 
     # Units ranking (top N + other), stacked collected / open.
     top = ulist[:TOP_UNITS]

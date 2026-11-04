@@ -21,7 +21,6 @@ the data's own evidence). Scores outside 0–100 are treated as invalid.
 Licence/file numbers are individual identifiers and never reach the page;
 names are used only in aggregate (most common surnames).
 """
-import re
 
 import pandas as pd
 
@@ -37,7 +36,7 @@ INST_MIN = 1000
 EXAM_MIN = 500
 YEAR_MIN = 100
 CURRENT_GAP = 2
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 C_PASS, C_FAIL, C_NONE = "#0068f5", "#dc3545", "#6c757d"
@@ -291,7 +290,7 @@ def compute(frames):
 
     # Score histogram.
     sc = ex.loc[ex["scored"], "score"].round().astype(int)
-    hist = sc.value_counts().reindex(range(0, 101), fill_value=0)
+    hist = sc.value_counts().reindex(range(101), fill_value=0)
     hist_d = {int(k): int(v) for k, v in hist.items()}
     median = float(sc.median()) if len(sc) else 0.0
 
@@ -361,7 +360,7 @@ def compute(frames):
                        "data": [int(a - b) for a, b in zip(py["scored"], py["passed"])]},
                       {"name": "ללא ציון", "color": C_NONE, "data": [int(v) for v in py["none"]]}]},
         "rate": {"x": [str(y) for y in years], "rate": rate_y, "mean": mean_y, "pass": PASS},
-        "dist": {"x": [str(i) for i in range(0, 101)], "y": [hist_d[i] for i in range(0, 101)],
+        "dist": {"x": [str(i) for i in range(101)], "y": [hist_d[i] for i in range(101)],
                  "pass": PASS, "c_pass": C_PASS, "c_fail": C_FAIL},
         "subjects": {"names": list(g.index),
                      "rate": [None if pd.isna(v) else round(float(v), 1) for v in g["rate"]],
@@ -442,8 +441,8 @@ def compute(frames):
                       f"תוכניות קודמות שהופסקו. שמות שנכתבו בקיצור במקור אוחדו."),
         "subj_aria": (f"תרשים עמודות אופקי: שיעור המעבר לפי בחינה, {g.index[0]} בראש."),
         "subj_caption": "ניגשויות, שנות קיום, שיעור מעבר וציון ממוצע לפי בחינה.",
-        "heat_note": (f"מספר הניגשויות לכל בחינה בכל שנה — כאן רואים את החלפת תוכנית הבחינות: "
-                      f"בחינות ותיקות נעלמות ובחינות חדשות נכנסות במקומן."),
+        "heat_note": ("מספר הניגשויות לכל בחינה בכל שנה — כאן רואים את החלפת תוכנית הבחינות: "
+                      "בחינות ותיקות נעלמות ובחינות חדשות נכנסות במקומן."),
         "heat_aria": f"מפת חום: ניגשויות לפי בחינה ושנה, {first_year} עד {ref_year}.",
         "months_note": "כלל הניגשויות בכל השנים לפי חודש הבחינה — מועדי הבחינות מרוכזים בעונות קבועות.",
         "months_aria": f"תרשים עמודות: ניגשויות לפי חודש, {MONTHS_HE[int(mc.idxmax()) - 1]} בראש.",

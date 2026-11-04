@@ -7,7 +7,6 @@ like name, format, organization, and tags.
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .models import Dataset
 
@@ -22,20 +21,20 @@ class DatasetFilter:
     """
     
     # Name filters
-    name_contains: Optional[str] = None
-    name_regex: Optional[str] = None
+    name_contains: str | None = None
+    name_regex: str | None = None
     
     # Resource format filters (e.g., CSV, JSON, XLSX)
     formats: list[str] = field(default_factory=list)
     
     # Organization filter
-    organization: Optional[str] = None
+    organization: str | None = None
     
     # Tag filters
     tags: list[str] = field(default_factory=list)
     
     # Exclude patterns
-    exclude_name_contains: Optional[str] = None
+    exclude_name_contains: str | None = None
     exclude_formats: list[str] = field(default_factory=list)
     
     def __post_init__(self):
@@ -61,20 +60,20 @@ class DatasetFilter:
         """
         # Name contains filter
         if self.name_contains:
-            if self.name_contains.lower() not in dataset.name.lower():
-                if self.name_contains.lower() not in dataset.title.lower():
-                    return False
-        
-        # Name regex filter
-        if self._name_pattern:
-            if not (self._name_pattern.search(dataset.name) or 
-                    self._name_pattern.search(dataset.title)):
+            needle = self.name_contains.lower()
+            if needle not in dataset.name.lower() and needle not in dataset.title.lower():
                 return False
-        
+
+        # Name regex filter
+        if self._name_pattern and not (
+            self._name_pattern.search(dataset.name) or self._name_pattern.search(dataset.title)
+        ):
+            return False
+
         # Exclude name contains
         if self.exclude_name_contains:
-            if (self.exclude_name_contains.lower() in dataset.name.lower() or
-                self.exclude_name_contains.lower() in dataset.title.lower()):
+            needle = self.exclude_name_contains.lower()
+            if needle in dataset.name.lower() or needle in dataset.title.lower():
                 return False
         
         # Format filter - dataset must have at least one resource with matching format
@@ -194,13 +193,13 @@ class DatasetFilter:
 
 
 def create_filter(
-    name_contains: Optional[str] = None,
-    name_regex: Optional[str] = None,
-    formats: Optional[str] = None,
-    organization: Optional[str] = None,
-    tags: Optional[str] = None,
-    exclude_name: Optional[str] = None,
-    exclude_formats: Optional[str] = None,
+    name_contains: str | None = None,
+    name_regex: str | None = None,
+    formats: str | None = None,
+    organization: str | None = None,
+    tags: str | None = None,
+    exclude_name: str | None = None,
+    exclude_formats: str | None = None,
 ) -> DatasetFilter:
     """
     Create a DatasetFilter from CLI-style arguments.

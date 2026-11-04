@@ -54,7 +54,6 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 from .podman_sandbox import _Error, _Execution, _FileEntry, _Logs
 
@@ -64,7 +63,7 @@ _BASE_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 _DEFAULT_SANDBOX_USER = "sandbox"
 
 
-def _resolve_sandbox_identity() -> Optional[tuple[int, int]]:
+def _resolve_sandbox_identity() -> tuple[int, int] | None:
     """(uid, gid) tool commands should drop to, or None to run unchanged.
 
     Only a root host can (and needs to) drop privileges. SANDBOX_USER
@@ -96,7 +95,7 @@ def _resolve_sandbox_identity() -> Optional[tuple[int, int]]:
 
 
 class _Files:
-    def __init__(self, sb: "LocalSandbox"):
+    def __init__(self, sb: LocalSandbox):
         self._sb = sb
 
     def _abs(self, path: str) -> Path:
@@ -124,7 +123,7 @@ class _Files:
 class LocalSandbox:
     """Per-session subprocess executor with a private workdir."""
 
-    def __init__(self, workdir: Path, ident: Optional[tuple[int, int]] = None):
+    def __init__(self, workdir: Path, ident: tuple[int, int] | None = None):
         self.workdir = workdir
         self.ident = ident
         self.files = _Files(self)
@@ -154,7 +153,7 @@ class LocalSandbox:
             self._env["TMPDIR"] = str(workdir / ".tmp")
 
     @classmethod
-    def create(cls, workdir: str | Path) -> "LocalSandbox":
+    def create(cls, workdir: str | Path) -> LocalSandbox:
         wd = Path(workdir)
         (wd / "outputs").mkdir(parents=True, exist_ok=True)
         ident = _resolve_sandbox_identity()
@@ -311,6 +310,7 @@ class LocalSandbox:
                 env=self._env,
                 capture_output=True,
                 timeout=timeout,
+                check=False,  # a failing compute is an _Execution error, not an exception
                 **privsep,
             )
         except subprocess.TimeoutExpired as e:

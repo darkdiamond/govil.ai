@@ -21,7 +21,7 @@ TOP_SPECS = 9
 RECENT_MONTHS = 36
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 AGE_TRACKS = [("עד 50", "עד גיל 50"), ("50-60", "גיל 50–60"), ("60 ומעלה", "גיל 60 ומעלה")]
 EXPOSURES = [("STOCK_MARKET_EXPOSURE", "חשיפה למניות"),
              ("FOREIGN_EXPOSURE", "חשיפה לחו״ל"),
@@ -274,7 +274,6 @@ def compute(frames):
     wy = _weighted(df, "y")
     mfee = _weighted(df, "mfee")
     dfee = _weighted(df, "dfee")
-    net_m = df.dropna(subset=["net"]).groupby("rp")["net"].sum().sort_index()
 
     mgr = (cur.groupby("manager")["assets"].sum().sort_index()
               .sort_values(ascending=False, kind="stable"))
@@ -320,12 +319,12 @@ def compute(frames):
         g = stairs[stairs["sub"] == sub]
         if g.empty or g["assets"].sum() <= 0:
             continue
-        ok, good = _exposure_ok(g, "STOCK_MARKET_EXPOSURE")
+        _ok, good = _exposure_ok(g, "STOCK_MARKET_EXPOSURE")
         eg = g[good]
         equity = (float(eg["STOCK_MARKET_EXPOSURE"].sum() / eg["assets"].sum() * 100)
                   if len(eg) and eg["assets"].sum() > 0 else None)
         ytd = _wavg(g, "ytd", "spec")
-        age.append({"label": label, "assets": float(g["assets"].sum()), "tracks": int(len(g)),
+        age.append({"label": label, "assets": float(g["assets"].sum()), "tracks": len(g),
                     "equity": equity,
                     "ytd": float(ytd.iloc[0]) if len(ytd) else None})
 

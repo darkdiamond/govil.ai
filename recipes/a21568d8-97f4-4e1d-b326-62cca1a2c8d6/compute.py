@@ -277,7 +277,7 @@ def compute(frames):
         if i < len(top_off):
             tot = int(office_counts[o])
         else:
-            tot = int(len(rest))
+            tot = len(rest)
         off_rows.append({"name": o, "primary": off_p[i], "secondary": off_s[i], "total": tot})
 
     # ── instrument form
@@ -351,7 +351,7 @@ def compute(frames):
 
     # ── last update recency (5-year bins)
     upd_years = df["upd"].dropna().dt.year.astype(int)
-    n_upd = int(len(upd_years))
+    n_upd = len(upd_years)
     upd_x, upd_y = [], []
     upd_ref = int(upd_years.max()) if n_upd else None
     recent5 = 0

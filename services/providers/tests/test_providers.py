@@ -6,7 +6,7 @@ FirestoreStateStore surface the sync uses.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import httpx
@@ -328,11 +328,11 @@ class FakeStore:
 
     def __init__(self):
         self.docs: dict[str, dict] = {}
-        self.clock = datetime(2026, 10, 29, tzinfo=timezone.utc)
+        self.clock = datetime(2026, 10, 29, tzinfo=UTC)
 
     def save_provider_source(self, dataset_id, payload):
         old = self.docs.get(dataset_id)
-        hashes = lambda rs: {r["id"]: r["hash"] for r in rs or []}  # noqa: E731
+        hashes = lambda rs: {r["id"]: r["hash"] for r in rs or []}
         changed = old is None or hashes(old["resources"]) != hashes(payload["resources"])
         doc = dict(old or {"analysis_status": "never"})
         doc.update(payload, metadata_modified=self.clock if changed else old["metadata_modified"])
@@ -366,7 +366,7 @@ def test_sync_creates_then_only_bumps_on_new_content(boi, tmp_path):
     first = doc["metadata_modified"]
 
     boi.clear_cache()
-    store.clock = datetime(2026, 10, 30, tzinfo=timezone.utc)
+    store.clock = datetime(2026, 10, 30, tzinfo=UTC)
     s = sync_provider_sources(store, repo, providers={"boi_sdmx": boi})
     assert s["changed"] == [] and store.docs["boi-interest-rate"]["metadata_modified"] == first
 
@@ -497,7 +497,7 @@ def test_selector_never_queues_a_provider_doc():
 
     doc = SimpleNamespace(id="boi-x", provider="boi_sdmx", authoring_status=None,
                           analysis_status="never", page_path=None,
-                          metadata_modified=datetime(2026, 10, 29, tzinfo=timezone.utc))
+                          metadata_modified=datetime(2026, 10, 29, tzinfo=UTC))
     store = SimpleNamespace(list_never_analyzed=lambda limit: [doc],
                             list_failed_retryable=lambda limit, max_attempts: [],
                             iter_changed_sources=lambda: iter([]))

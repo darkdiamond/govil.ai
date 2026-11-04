@@ -213,7 +213,7 @@ def insight_mehadrin(df):
     if m.empty:
         return None
     cities = sorted(set(m["city"]))
-    fmt = sorted(set(m["format"]))[0]
+    fmt = min(set(m["format"]))
     if len(cities) > 10:
         return (f"פורמט {fmt}, בכשרות מהדרין, פועל ב-{len(m):,} סניפים "
                 f"ב-{len(cities):,} יישובים.")
@@ -244,7 +244,7 @@ def insight_multi(df, city_counts):
 
 def compute(frames):
     df = _prepare(frames["main"])
-    n = int(len(df))
+    n = len(df)
     city_counts = _counts(df["city"])
     dist_counts = _counts(df["district"])
     fmt_counts = _counts(df["format"])
@@ -322,7 +322,7 @@ def compute(frames):
                     "branches": [{"format": r["format"], "address": r["address"] or "לא צוינה"}
                                  for _, r in gc.iterrows()],
                 })
-            directory.append({"district": d, "count": int(len(g)), "cities": cities})
+            directory.append({"district": d, "count": len(g), "cities": cities})
     city_rows = [{"city": c, "district": _district(c), "n": int(v)} for c, v in city_counts]
 
     # ---- summary_he = meta description: lookup first
@@ -337,7 +337,6 @@ def compute(frames):
     if len(summary) > SUMMARY_MAX:
         summary = f"{lead}: {tail_parts[0]}."
 
-    top_d = known_d[0] if known_d else None
     lede = (f"רשימת סניפי רשת הסל של ישראל: {n:,} סניפים ב-{nc:,} יישובים"
             + (f" וב-{len(known_d):,} מחוזות" if known_d else "")
             + ". לכל סניף מופיעים היישוב, הכתובת והפורמט"
@@ -346,7 +345,7 @@ def compute(frames):
             "הטבלה למטה מסודרת לפי מחוז ויישוב, וחיפוש חופשי בכל הרשומות זמין בעיון בנתונים.")
 
     unk = sum(v for d, v in dist_counts if d == NO_DISTRICT)
-    district_note = (f"מספר הסניפים בכל מחוז, מפולח לפי פורמט. המחוז נקבע לפי היישוב"
+    district_note = ("מספר הסניפים בכל מחוז, מפולח לפי פורמט. המחוז נקבע לפי היישוב"
                      + (f"; {unk:,} סניפים ביישובים שאינם ממופים מוצגים כ{NO_DISTRICT}." if unk else "."))
     city_note = (f"היישובים עם יותר מסניף אחד ({len(multi):,} יישובים"
                  + (f", מוצגים {len(top):,} המובילים" if len(multi) > len(top) else "")

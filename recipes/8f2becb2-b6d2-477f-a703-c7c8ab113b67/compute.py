@@ -149,7 +149,7 @@ def insight_band(rows, total, which):
 def insight_spacing(nn):
     if len(nn) < 2:
         return None
-    med = int(round(float(np.median(nn))))
+    med = round(float(np.median(nn)))
     near = float((nn <= NN_NEAR).sum()) / len(nn)
     return (f"המרחק החציוני בקו אווירי מברז לברז הקרוב אליו הוא {_int(med)} מטר, "
             f"ו-{_pct(near)} מהנקודות נמצאות במרחק של עד {_int(NN_NEAR)} מטר מברז אחר.")
@@ -230,7 +230,7 @@ def compute(frames):
     cells_n = len(cells)
     flat = sorted((int(c) for c in counts[counts > 0]), reverse=True)
     best_n = flat[0]
-    top_cells = max(1, int(round(cells_n * TOP_CELL_SHARE)))
+    top_cells = max(1, round(cells_n * TOP_CELL_SHARE))
     top_n = sum(flat[:top_cells])
     density_chart = {"x": xs, "y": ys[::-1], "cells": cells, "max": best_n}
 
@@ -258,7 +258,7 @@ def compute(frames):
     nn_chart = {"names": nn_names, "values": nn_vals}
     t_nn = [{"name": n, "count": _int(v), "share": _pct(v / nn_total, 1)}
             for n, v in zip(nn_names, nn_vals)]
-    median_nn = int(round(float(np.median(nn)))) if len(nn) else 0
+    median_nn = round(float(np.median(nn))) if len(nn) else 0
 
     # ---- pressure
     rec = df[df["press"] > 0]

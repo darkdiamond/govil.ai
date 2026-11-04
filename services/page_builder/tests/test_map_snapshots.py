@@ -9,9 +9,9 @@ import json
 import shutil
 import struct
 import zipfile
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 from http.client import IncompleteRead
+from pathlib import Path
 from types import SimpleNamespace
 from urllib.error import HTTPError, URLError
 from urllib.request import Request
@@ -260,7 +260,7 @@ def _prepared(tmp_path, monkeypatch, geo_size):
 
     monkeypatch.setattr(preview, "PREVIEW_ROOT", tmp_path / "preview")
     monkeypatch.setattr(preview, "base_manifest_path", lambda: None)
-    monkeypatch.setattr(author, "runtime_parity_problems", lambda: [])
+    monkeypatch.setattr(author, "runtime_parity_problems", list)
     monkeypatch.setattr(tags, "PENDING_ROOT", tmp_path / "authoring")
     root = tmp_path / "authoring" / DS
     root.mkdir(parents=True)
@@ -593,7 +593,11 @@ def test_map_input_fingerprints(tmp_path):
 
 
 def _refresh_env(tmp_path, monkeypatch):
-    from services.page_builder.tests.test_recipe_refresh import FakeCkan, FakeStore, _rows
+    from services.page_builder.tests.test_recipe_refresh import (
+        FakeCkan,
+        FakeStore,
+        _rows,
+    )
 
     issues = []
     monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
@@ -604,7 +608,7 @@ def _refresh_env(tmp_path, monkeypatch):
     def src(mm):
         return SimpleNamespace(
             id=DS, title="t", organization={"title": "o"}, analysis_status="succeeded",
-            metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=timezone.utc),
+            metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=UTC),
             resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True,
                         "hash": "md5-v1", "size": 1000}, _map_resources()[1]],
         )

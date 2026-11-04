@@ -112,7 +112,7 @@ def compute(frames):
     for c in (C_NUM, C_VALID, C_MODEL, C_MAKER):
         df[c] = df[c].map(_clean)
     df = df[(df[C_NUM] != "") | (df[C_MODEL] != "")].copy()
-    total = int(len(df))
+    total = len(df)
     if total == 0:
         raise ValueError("no approvals in the list")
 
@@ -177,7 +177,7 @@ def compute(frames):
     mg["maker"] = mg["mk"].map(names)
     rep = mg[mg["n"] >= 2].sort_values(["n", "model", "maker", "_k"],
                                        ascending=[False, True, True, True], kind="mergesort")
-    n_rep_models = int(len(rep))
+    n_rep_models = len(rep)
     n_rep_approvals = int(rep["n"].sum())
     rep_top = rep.head(TOP_MODELS)
     models_rows = [{"name": f"{r.model} ({r.maker})", "model": r.model, "maker": r.maker,
@@ -188,7 +188,7 @@ def compute(frames):
 
     # ── expiry timeline ──────────────────────────────────────────────
     dv = df[df["valid"].notna()].copy()
-    n_valid = int(len(dv))
+    n_valid = len(dv)
     n_bad_date = total - n_valid
     has_expiry = n_valid > 0
     expiry_chart = {"x": [], "y": []}
@@ -217,7 +217,7 @@ def compute(frames):
         # peak (ties: earliest)
         mcnt = dv.groupby("m").size()
         pmax = int(mcnt.max())
-        pm = sorted(p for p, v in mcnt.items() if int(v) == pmax)[0]
+        pm = min(p for p, v in mcnt.items() if int(v) == pmax)
         peak = (pm, pmax)
         yc = dv.groupby(dv["valid"].dt.year).size().sort_index()
         year_rows = [{"year": int(y), "n": int(v)} for y, v in yc.items()]
@@ -363,7 +363,7 @@ def compute(frames):
         "pareto_aria": (f"גרף קו: שיעור מצטבר של אישורים לפי דירוג {nm:,} היצרנים. "
                         f"עשרת היצרנים המובילים מחזיקים {_pct(cum[min(9, nm - 1)], total)} מהאישורים."),
         "buckets_lede": (
-            (f"רוב היצרנים ברשימה קטנים: " if singles * 2 > nm else "")
+            ("רוב היצרנים ברשימה קטנים: " if singles * 2 > nm else "")
             + f"{singles:,} מתוך {nm:,} יצרנים מופיעים באישור אחד בלבד, "
             f"ויחד הם מחזיקים {bucket_rows[0]['pct']} מהאישורים."),
         "buckets_aria": (f"גרף עמודות: יצרנים ואישורים לפי גודל היצרן. {singles:,} יצרנים "

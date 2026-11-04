@@ -28,7 +28,7 @@ NEWER_MIN = 10       # appraisers needed for a settlement to enter the newer-sha
 NEWER_EACH = 10      # highest / lowest shown when more than 2*NEWER_EACH settlements qualify
 CURVE_MARKS = [1, 5, 10, 20, 50, 100]
 BUCKETS = [(1, 1), (2, 2), (3, 4), (5, 9), (10, 19), (20, 49), (50, None)]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):

@@ -50,7 +50,7 @@ os.environ.setdefault("FIRESTORE_PROJECT_ID", "govdata-il")
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from services.shared.firestore import SOURCES_COLL, FirestoreStateStore  # noqa: E402
+from services.shared.firestore import SOURCES_COLL, FirestoreStateStore
 
 
 def plan_reset(doc: dict) -> str:

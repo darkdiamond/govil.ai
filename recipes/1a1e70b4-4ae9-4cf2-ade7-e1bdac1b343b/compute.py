@@ -53,7 +53,7 @@ PENDING_MAX = 25
 ID_RE = r'\d{5,}|[A-Za-z]{1,2}\d{4,}|דרכון|ת\.\s?ז|ת["״]ז|תעודת זהות'
 YEAR_MIN_GROUP = 30
 GAP_PP = 5
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):

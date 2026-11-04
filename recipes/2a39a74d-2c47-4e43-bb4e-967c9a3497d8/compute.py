@@ -33,7 +33,7 @@ ADDR_ORDER = ["רחוב ומספר בית", "רחוב, צומת או כיכר ב
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -186,7 +186,7 @@ def compute(frames):
     # nearest neighbour: most isolated first
     nn_sorted = geo.sort_values(["nn", "name", "address"], ascending=[False, True, True], kind="mergesort") if has_nn else geo
     top = nn_sorted.head(NN_TOP)
-    charts["nn"] = {"names": top["name"].tolist(), "values": [int(round(v)) for v in top["nn"]] if has_nn else []}
+    charts["nn"] = {"names": top["name"].tolist(), "values": [round(v) for v in top["nn"]] if has_nn else []}
     tables["nn"] = {"headers": ["אתר", "האתר הקרוב", "מרחק (מ׳)"],
                     "rows": [[a, b, fmt(c)] for a, b, c in zip(top["name"], top["nn_name"], top["nn"])] if has_nn else []}
     nn_more = max(0, n_geo - NN_TOP)
@@ -320,7 +320,7 @@ def compute(frames):
         "fountains": {"value": n_fount, "display": fmt(n_fount), "tone": "info", "label": "מתוכם מזרקות"},
         "videos": {"value": n_vid, "display": fmt(n_vid), "tone": "ok" if n_st and n_vid / n_st >= 0.5 else "warn",
                    "label": "אתרים עם סרטון וידאו"},
-        "nn": {"value": int(round(med_nn)), "display": fmt(med_nn), "tone": "brand",
+        "nn": {"value": round(med_nn), "display": fmt(med_nn), "tone": "brand",
                "label": "מרחק חציוני לאתר הקרוב (מטרים)"},
     }
 

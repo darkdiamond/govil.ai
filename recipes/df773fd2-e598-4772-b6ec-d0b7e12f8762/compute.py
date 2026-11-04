@@ -210,7 +210,7 @@ def insight_cliff(cliff):
 def insight_vintage(med_years, overall_med):
     if not med_years:
         return None
-    g, med, cnt = sorted(med_years, key=lambda t: (t[1], t[0]))[0]
+    g, med, cnt = min(med_years, key=lambda t: (t[1], t[0]))
     if overall_med - med < VINTAGE_GAP:
         return None
     return (f"{_int(cnt)} כלי הרכב בקבוצת {g} ותיקים במיוחד: שנת הייצור החציונית שלהם {int(med)}, "
@@ -433,7 +433,7 @@ def compute(frames):
         s = yv.loc[yv["group"] == g, "year"]
         qs = [_q(s, q) for q in (0.05, 0.25, 0.5, 0.75, 0.95)]
         box_years.append([round(v) for v in qs])
-        med_years.append((g, float(s.median()), int(len(s))))
+        med_years.append((g, float(s.median()), len(s)))
         t_age.append({"name": g, "q1": str(round(qs[1])), "med": str(round(qs[2])), "q3": str(round(qs[3]))})
     overall_med = float(years.median())
     age_order = sorted(range(len(big_groups)), key=lambda i: (box_years[i][2], box_years[i][1], big_groups[i]))
@@ -479,7 +479,7 @@ def compute(frames):
     env = _ranked(ev_["engine"]).head(TOP_ENGINES)
     eng_brand = ev_[ev_["engine"].isin(env.index)].groupby("engine")["brand"].agg(lambda s: _ranked(s).index[0])
     t_engines = [{"name": k, "count": _int(v), "main": eng_brand[k]} for k, v in env.items()]
-    n_engine = int(len(ev_))
+    n_engine = len(ev_)
 
     top_c = list(_ranked(df["country"]).head(TOP_COUNTRIES).index)
     cvals = df["country"].where(df["country"].isin(top_c), OTHER)
@@ -504,7 +504,7 @@ def compute(frames):
     p_order = sorted(range(len(pay_groups)), key=lambda i: (pay_box[i][2], pay_box[i][1], pay_groups[i]))
     payload_chart = {"names": [pay_groups[i] for i in p_order], "data": [pay_box[i] for i in p_order]}
     t_pay = [t_pay[i] for i in p_order]
-    n_pay = int(len(pw))
+    n_pay = len(pw)
 
     # ── Drive layout (powered groups) ──────────────────────────────────────
     dv = df[df["drive"].str.match(r"^\d+X\d+$")]
@@ -546,7 +546,7 @@ def compute(frames):
     seat_rows, seats_chart, bus_med, n_bus_seats = [], None, 0, 0
     if bus_group:
         bs = df.loc[(df["group"] == bus_group) & df["seats"].notna(), "seats"]
-        n_bus_seats = int(len(bs))
+        n_bus_seats = len(bs)
         if n_bus_seats:
             bins = bs.map(_seat_bin).value_counts()
             seat_rows = [{"label": b[2], "n": int(bins.get(b[2], 0))} for b in SEAT_BINS]

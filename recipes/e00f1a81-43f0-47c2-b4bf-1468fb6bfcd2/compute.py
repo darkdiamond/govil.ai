@@ -286,7 +286,7 @@ def ins_cities(d, total):
     c = _counts(d["city"])
     if len(c) < 2:
         return None
-    top, n1 = c[0]
+    _top, n1 = c[0]
     if n1 < 2:
         return None
     leaders = [k for k, v in c if v == n1]
@@ -303,7 +303,7 @@ def ins_cities(d, total):
 
 def compute(frames):
     d = _prepare(frames["houses"])
-    total = int(len(d))
+    total = len(d)
     districts = _ordered(d, "district", "district_code")
     types = _ordered(d, "type", "type_code")
     n_ops = int(d["operator"].nunique())

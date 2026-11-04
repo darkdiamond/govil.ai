@@ -68,7 +68,7 @@ def _group_of(visa):
 
 
 def _fmt(v):
-    v = int(round(v))
+    v = round(v)
     return f"{MINUS}{abs(v):,}" if v < 0 else f"{v:,}"
 
 
@@ -292,7 +292,7 @@ def compute(frames):
         labels["ytd_kpi"] = (f"שינוי ברישיונות החדשים {MONTHS_HE[0]}-{MONTHS_HE[last_month - 1]} {last_year} "
                              f"({_fmt(ytd['cur'])}) לעומת אותם חודשים ב-{last_year - 1}")
     tour_by_full = {y: ysum(y, groups=[TOUR]) for y in hist_full_years} or {ref: ysum(ref, groups=[TOUR])}
-    peak_y = sorted(tour_by_full.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+    peak_y = min(tour_by_full.items(), key=lambda kv: (-kv[1], kv[0]))[0]
     peak_v = tour_by_full[peak_y]
     ref_t = ysum(ref, groups=[TOUR])
     vs_peak = ref_t / peak_v if peak_v else 0.0
@@ -320,7 +320,7 @@ def compute(frames):
     def ins_peak():
         if len(tour_by_full) < 2 or peak_y == ref:
             return None
-        low_y = sorted(tour_by_full.items(), key=lambda kv: (kv[1], kv[0]))[0][0]
+        low_y = min(tour_by_full.items(), key=lambda kv: (kv[1], kv[0]))[0]
         s = (f"רישיונות הביקור (ב/2) הגיעו לשיא של {_fmt(peak_v)} ב-{peak_y}. "
              f"ב-{ref} ניתנו {_fmt(ref_t)}, {_pct(vs_peak, 0)} מרמת השיא")
         if low_y not in (peak_y, ref):
@@ -376,7 +376,7 @@ def compute(frames):
         vals = {y: ysum(y, groups=["s25"]) for y in hist_full_years}
         if len(vals) < 3:
             return None
-        py = sorted(vals.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+        py = min(vals.items(), key=lambda kv: (-kv[1], kv[0]))[0]
         if py == ref or not vals[py] or vals[ref] / vals[py] > 0.5:
             return None
         s = (f"רישיונות חדשים לפי ס' 2(א)(5) ירדו משיא של {_fmt(vals[py])} ב-{py} "
@@ -443,7 +443,7 @@ def compute(frames):
                            f"צבע כהה יותר = יותר רישיונות.")
     labels["heat_aria"] = f"מפת חום: רישיונות ביקור חדשים לפי חודש ושנה, {m_years[0]} עד {m_years[-1]}."
     nt_ref = {k: ysum(ref, groups=[k]) for k in NONTOUR_KEYS}
-    nt_lead = sorted(nt_ref.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+    nt_lead = min(nt_ref.items(), key=lambda kv: (-kv[1], kv[0]))
     nt_total = sum(nt_ref.values())
     labels["mix_lede"] = (f"ללא רישיונות ביקור. ב-{ref} ניתנו {_fmt(nt_total)} רישיונות חדשים מסוגים אחרים; "
                           f"הקטגוריה הגדולה: {GROUP_LABEL[nt_lead[0]]} ({_pct(nt_lead[1] / nt_total if nt_total else 0)})."

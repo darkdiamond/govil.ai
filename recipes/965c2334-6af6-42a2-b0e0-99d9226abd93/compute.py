@@ -144,7 +144,7 @@ def compute(frames):
     free = df[df["category_name"] == FREE]
 
     # user -> set of items (structured + free-text that match a structured item)
-    struct_items = set(i for its in struct["items"] for i in its)
+    struct_items = {i for its in struct["items"] for i in its}
     user_items = defaultdict(set)
     for uid, its in zip(struct["user_id"], struct["items"]):
         user_items[uid].update(its)
@@ -406,7 +406,7 @@ def compute(frames):
                       key=lambda g: (-g[0], g[1]))
         if not gaps or gaps[0][0] < 8:
             return None
-        g, c = gaps[0]
+        _g, c = gaps[0]
         i = struct_cats.index(c)
         return (f"להורים חסרים בעיקר עסקים בקטגוריה {c}: {k['values'][i]:.0f}% מהמשיבים עם ילדים "
                 f"בחרו בה, לעומת {nk['values'][i]:.0f}% מהמשיבים בלי ילדים.")
@@ -423,7 +423,7 @@ def compute(frames):
         diffs = sorted(((cc.get(i, 0) / nc - ch.get(i, 0) / nh, i) for i in cands), key=lambda d: (-d[0], d[1]))
         if not diffs or diffs[0][0] < 0.05:
             return None
-        g, i = diffs[0]
+        _g, i = diffs[0]
         return (f"הביקוש ל{i} גבוה הרבה יותר במרכז העיר מאשר ליד הבית: {_pct(cc.get(i, 0) / nc)} מהמשיבים "
                 f"על מרכז העיר, לעומת {_pct(ch.get(i, 0) / nh)} מהמשיבים על השכונה שלהם.")
     add("context", ins_ctx())

@@ -112,7 +112,7 @@ def r2(v, d=2):
 
 
 def in_(name):
-    return "ב" + (name[1:] if name.startswith("ה") else name)
+    return "ב" + (name.removeprefix("ה"))
 
 
 def region_of(sid):
@@ -196,7 +196,7 @@ def load(df):
 # ── compute ──────────────────────────────────────────────────────────────
 
 def compute(frames):
-    df, bad_year, dups = load(frames["main"])
+    df, _bad_year, dups = load(frames["main"])
     n_rows = len(df)
     stations = sorted(df["sid"].unique(), key=lambda s: (len(s), s))
     n_st = len(stations)
@@ -235,8 +235,8 @@ def compute(frames):
         ok = med[cnt >= MIN_INDEX_STATIONS]
         return ok, cnt, d
 
-    qi, qi_n, qd = index_series("q", base_q)
-    vi, vi_n, vd = index_series("v", base_v)
+    qi, qi_n, _qd = index_series("q", base_q)
+    vi, vi_n, _vd = index_series("v", base_v)
     idx_years = sorted(set(qi.index) | set(vi.index))
     idx_years = [y for y in idx_years if y <= L]
     chart_index = {
@@ -266,7 +266,6 @@ def compute(frames):
                   "q": fnum(q, 1), "region": rg}
                  for s, y, d, q, rg in zip(top_q["sid"], top_q["y"], top_q["date"], top_q["q"],
                                            top_q["region"])]
-    peak_regions = top_q["region"].value_counts()
     south_names = {"שקמה, בשור והנגב הצפוני", "מדבר יהודה וים המלח", "הנגב הדרומי והערבה"}
     south_top = int(top_q["region"].isin(south_names).sum())
 
@@ -384,7 +383,7 @@ def compute(frames):
         "dates": [d if d else "לא צוין" for d in lat["date"]],
     }
     tbl_latest = [{"name": n, "q": fnum(q, 1), "date": d if d else "לא צוין",
-                   "base": fnum(b, 1) if b == b and b is not None else "אין"}
+                   "base": fnum(b, 1) if pd.notna(b) else "אין"}
                   for n, q, d, b in zip(lat["name"], lat["q"], lat["date"], lat["base"])]
 
     # ── network ──
@@ -399,8 +398,7 @@ def compute(frames):
     peak_y = int(per_year.idxmax()) if len(per_year) else None
     peak_n = int(per_year.max()) if len(per_year) else 0
     long_rec = df[df["v"].notna() | df["q"].notna()].groupby("sid")["y"].nunique()
-    longest = long_rec.sort_values(kind="mergesort")
-    longest_sid = sorted(long_rec[long_rec == long_rec.max()].index, key=lambda s: (len(s), s))[0] if len(long_rec) else None
+    longest_sid = min(long_rec[long_rec == long_rec.max()].index, key=lambda s: (len(s), s)) if len(long_rec) else None
 
     # ── notes ──
     nc = df["note"].map(note_class)
@@ -571,7 +569,7 @@ def compute(frames):
         "peaks_caption": f"{len(top_q)} ספיקות השיא השנתיות הגבוהות במאגר",
         "month_note": (f"החודש שבו נרשמה ספיקת השיא השנתית, על פני {m_total:,} שיאים עם תאריך "
                        f"(ללא שנים יבשות שבהן השיא אפס). {pct(winter_share)} מהשיאים בדצמבר עד פברואר."),
-        "month_aria": (f"גרף עמודות: מספר שיאי הספיקה השנתיים לפי חודש. "
+        "month_aria": ("גרף עמודות: מספר שיאי הספיקה השנתיים לפי חודש. "
                        + (f"החודש השכיח: {MONTH_HE[top_month]}." if top_month else "")),
         "month_caption": "שיאי הספיקה השנתיים לפי חודש",
         "vol_note": (f"חציון הנפח השנתי של כל תחנה (מיליון מ\"ק), בתחנות עם {MIN_BASE_YEARS} שנות מדידה "
@@ -607,7 +605,7 @@ def compute(frames):
         "net_aria": (f"גרף קווים: מספר התחנות המדווחות לפי שנה הידרולוגית, שיא של {peak_n:,} תחנות."),
         "notes_note": (f"{n_noted:,} רשומות ({pct(n_noted / n_rows if n_rows else 0)}) נושאות הערה של השירות "
                        f"ההידרולוגי. ההערות סווגו לפי מילות מפתח; הערה שמתאימה לכמה קבוצות נספרת בראשונה."),
-        "notes_aria": (f"גרף עמודות אופקי: רשומות עם הערה לפי סוג ההערה. "
+        "notes_aria": ("גרף עמודות אופקי: רשומות עם הערה לפי סוג ההערה. "
                        + (f"הנפוץ: {chart_notes['names'][0]}." if note_keys else "")),
         "notes_caption": "רשומות עם הערה לפי סוג",
         "dedup_note": (f"{dups:,} רשומות כפולות (אותה תחנה ושנה, בכתיב שנה מקוצר) הושמטו." if dups else ""),

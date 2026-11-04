@@ -136,7 +136,7 @@ def insight_heads(per_num):
     if len(per_num) < MIN_GROUP:
         return None
     vc = per_num.value_counts()
-    top = sorted(vc.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+    top = min(vc.items(), key=lambda kv: (-kv[1], kv[0]))
     mx = int(per_num.max())
     tail = ""
     if mx > top[0]:
@@ -266,7 +266,7 @@ def compute(frames):
     sizes = {"names": snames, "values": svals}
     t_sizes = [{"name": n, "count": _int(v), "share": _pct(v / n_j, 1)}
                for n, v in zip(snames, svals)]
-    modal = sorted(zip(svals, snames), key=lambda t: (-t[0], t[1]))[0]
+    modal = min(zip(svals, snames), key=lambda t: (-t[0], t[1]))
 
     # spacing between junction centres
     gx = gdf["cx"].to_numpy()
@@ -307,7 +307,7 @@ def compute(frames):
     # ---- numbers
     nums = df.loc[has_num, "num"].astype(int)
     per_num = nums.value_counts().sort_index()
-    used = int(len(per_num))
+    used = len(per_num)
     top_num = int(nums.max()) if used else 0
     unused = top_num - used if used else 0
     nb_chart = {"names": [], "used": [], "gap": []}
@@ -342,7 +342,7 @@ def compute(frames):
         for xi, yi in zip(xa.tolist(), ya.tolist()):
             cells[(xi, yi)] = cells.get((xi, yi), 0) + 1
         heat = sorted([[xi, yi, c] for (xi, yi), c in cells.items()])
-        best = sorted(cells.items(), key=lambda kv: (-kv[1], kv[0][1], kv[0][0]))[0]
+        best = min(cells.items(), key=lambda kv: (-kv[1], kv[0][1], kv[0][0]))
         top_cell = (best[1], _label(la_starts[best[0][1]]), _label(lo_starts[best[0][0]]))
         grid = {"x": [_label(a) for a in lo_starts], "y": [_label(a) for a in la_starts],
                 "data": heat, "max": max(c for _, _, c in heat)}
@@ -384,8 +384,8 @@ def compute(frames):
                  f"שמודבק על הרמזור בשטח. המספר מזהה צומת: כל הרמזורים של אותו צומת חולקים אותו, ולכן "
                  f"אפשר לקבץ אותם ל-{_int(n_j)} צמתים בקירוב. {_int(total - n_num)} רמזורים נרשמו בלי מספר, "
                  f"{far_note}{bad_note}"),
-        "map_note": (f"כל הרמזורים על המפה. לחצו על סמן כדי לראות את מספר הרמזור; "
-                     f"לחצו על אשכול כדי להתקרב."),
+        "map_note": ("כל הרמזורים על המפה. לחצו על סמן כדי לראות את מספר הרמזור; "
+                     "לחצו על אשכול כדי להתקרב."),
         "radial_note": (f"הערכים בציר הם הגבול העליון של כל טבעת, בק״מ. מרחק קו אווירי מכל רמזור למרכז הפריסה (חציון קווי הרוחב והאורך), בטבעות של "
                         f"{_int(RING_KM)} ק״מ. הצבע מפריד בין רמזורים עם מספר לרמזורים בלי."),
         "radial_aria": f"תרשים עמודות מוערם: מספר הרמזורים לפי מרחק מהמרכז ולפי קיום מספר, {len(rnames)} טבעות.",

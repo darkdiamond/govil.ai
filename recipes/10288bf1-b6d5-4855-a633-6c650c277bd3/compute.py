@@ -336,7 +336,7 @@ def compute(frames):
     dom_all = first["owner"]
     dom = dom_all[~tied]          # blocks with a strict leader only
     n_types_blk = bo.groupby("block")["owner"].nunique()
-    n_blocks = int(len(dom_all))
+    n_blocks = len(dom_all)
     homogeneous = int((n_types_blk == 1).sum())
     homog_by = dom_all[n_types_blk == 1].value_counts()
     dom_counts = dom.value_counts()
@@ -457,7 +457,7 @@ def compute(frames):
                          f"{_int(len(band_stack['cats']))} טווחים.")
     if top_blocks:
         b0 = top_stack["cats"][0]
-        lbl["top_lede"] = (f"{_int(TOP_BLOCKS if len(top_blocks) >= TOP_BLOCKS else len(top_blocks))} הגושים עם "
+        lbl["top_lede"] = (f"{_int(min(TOP_BLOCKS, len(top_blocks)))} הגושים עם "
                            f"מספר הנכסים הרשומים הגדול ביותר. בראש: {b0} עם {_int(top_stack['totals'][0])} נכסים.")
     else:
         lbl["top_lede"] = "הגושים עם מספר הנכסים הרשומים הגדול ביותר."

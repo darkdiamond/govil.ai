@@ -14,7 +14,7 @@ import pandas as pd
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 DAYS_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 HEAT_YEARS = 12
 MIX_TOP = 5
 TOP_TITLES = 10
@@ -58,7 +58,7 @@ def d_he(ts):
 
 
 def norm_title(s):
-    s = html.unescape(s).replace("״", '"').replace("‏", "").replace("‎", "")
+    s = html.unescape(s).replace("״", '"').replace("\u200f", "").replace("\u200e", "")
     s = re.sub(r"\s+", " ", s).strip()
     s = re.sub(r"\s*/\s*", "/", s)
     s = re.sub(r"\s*[-–]\s*", " - ", s)
@@ -295,7 +295,7 @@ def compute(frames):
             "כלומר המועד האחרון שלהן אינו לפני תאריך זה.")})
 
     # ---- KPIs
-    distinct_titles = int(len(tcount))
+    distinct_titles = len(tcount)
     med_w = float(w.median()) if len(w) else 0.0
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},

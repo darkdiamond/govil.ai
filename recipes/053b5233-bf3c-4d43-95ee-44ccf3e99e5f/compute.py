@@ -59,7 +59,7 @@ TARIFF_BAND = 0.15
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def ils(v):
@@ -419,7 +419,7 @@ def compute(frames):
     rest = int(rp[rp < 3].sum())
     reduction = {"names": [f"{v * 100:g}%" for v in rp_main.index] + ([OTHER] if rest else []),
                  "values": [int(v) for v in rp_main] + ([rest] if rest else []),
-                 "base": int(len(red))}
+                 "base": len(red)}
 
     # --- corporations
     corp = rows[rows["corp"]]
@@ -507,8 +507,8 @@ def compute(frames):
         "red_aria": f"תרשים עמודות: מספר העיצומים לפי שיעור ההפחתה, מתוך {_int(reduction['base'])} הפחתות.",
         "comp_aria": f"תרשים עמודות אופקי: {len(companies['names'])} התאגידים עם מספר העיצומים הגבוה ביותר.",
         "repeat_aria": f"תרשים עמודות: מספר התאגידים לפי כמות העיצומים שספגו, מתוך {_int(n_corp)} תאגידים.",
-        "tariff_note": (f"סכום העיצום נקבע לפי תעריף קבוע לכל סוג הפרה ומתעדכן מדי שנה. "
-                        f"כל עיצום מסווג לפי היחס בינו לבין הסכום הנפוץ באותה שנה."),
+        "tariff_note": ("סכום העיצום נקבע לפי תעריף קבוע לכל סוג הפרה ומתעדכן מדי שנה. "
+                        "כל עיצום מסווג לפי היחס בינו לבין הסכום הנפוץ באותה שנה."),
         "theme_note": "סוג הליקוי נגזר מנוסח סעיף ההפרה; נוסחים שונים של אותו סעיף אוחדו.",
         "obj_note": (f"{_int(sum(outcome_counts.values()))} עיצומים שלגביהם נרשמה החלטת ממונה "
                      f"(דחייה, הפחתה או ביטול)."),

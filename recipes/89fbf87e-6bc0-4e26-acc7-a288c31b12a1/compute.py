@@ -16,6 +16,7 @@ flow through (unknown names fall into the "מוצרים נוספים" group). Ye
 grows by one bar a year; the history charts are step lines per product
 (a few dozen points each), far under the 50KB script cap.
 """
+import itertools
 import re
 
 import pandas as pd
@@ -205,7 +206,7 @@ def _margins(latest):
 def _gap(dates):
     ds = sorted(set(dates))
     best = None
-    for a, b in zip(ds, ds[1:]):
+    for a, b in itertools.pairwise(ds):
         days = (b - a).days
         if best is None or days > best[0]:
             best = (days, a, b)
@@ -261,7 +262,7 @@ def _ins_gap(df):
     if g is None:
         return None
     days, a, b = g
-    months = int(round(days / 30.44))
+    months = round(days / 30.44)
     if months < GAP_MIN_MONTHS:
         return None
     return (f"ההפסקה הארוכה ביותר בין עדכוני מחיר נמשכה כ-{months} חודשים: "
@@ -431,12 +432,12 @@ def compute(frames):
                        "same": [y["same"] for y in yearly]}
         years_table = [{"year": y["year"], "up": y["up"], "down": y["down"],
                         "same": y["same"]} for y in yearly]
-    n_changes = int(len(hist))
+    n_changes = len(hist)
     n_up = int((hist["dir"] == 1).sum()) if n_changes else 0
     n_down = int((hist["dir"] == -1).sum()) if n_changes else 0
     busiest = None
     if yearly:
-        b = sorted(yearly, key=lambda y: (-(y["up"] + y["down"] + y["same"]), y["year"]))[0]
+        b = min(yearly, key=lambda y: (-(y["up"] + y["down"] + y["same"]), y["year"]))
         busiest = b
 
     # ---- margin chart

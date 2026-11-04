@@ -30,7 +30,7 @@ TERT_GAP = 0.20         # min gap in unrestricted share to state the contrast
 POOR_MIN_N = 5          # min facilities in a treatment type for the poor-share rule
 POOR_MIN_SHARE = 0.40
 TOP3_MIN_SHARE = 0.25
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 OTHER = "אחר"
 NA_Q = "לא צוינה"
 
@@ -98,7 +98,7 @@ def mode(values):
         return ""
     vc = pd.Series(vals).value_counts()
     best = max(vc.tolist())
-    return sorted(k for k, c in vc.items() if c == best)[0]
+    return min(k for k, c in vc.items() if c == best)
 
 
 def owner_kind(s):
@@ -136,7 +136,7 @@ def _prepare(df):
 def _facilities(df):
     rows = []
     for key, g in df.groupby("key", sort=True):
-        owners = sorted(set(o for o in g["owner"] if o))
+        owners = sorted({o for o in g["owner"] if o})
         rows.append({
             "key": key,
             "name": mode(g["name"]) or key,
@@ -191,7 +191,7 @@ def _stacked(f, col, top, levels):
 
 
 def compute(frames):
-    df, year, years, dropped = _prepare(frames["main"])
+    df, year, _years, dropped = _prepare(frames["main"])
     f = _facilities(df)
     total = len(f)
     levels = _quality_levels(f)
@@ -229,9 +229,9 @@ def compute(frames):
         own_values.append(int((f["n_owners"] >= cap).sum()))
     own_table = [{"name": a, "count": n(b)} for a, b in zip(own_names, own_values)]
 
-    pairs = sorted(set((k, o) for k, os_ in zip(f["key"], f["owners"]) for o in os_))
+    pairs = sorted({(k, o) for k, os_ in zip(f["key"], f["owners"]) for o in os_})
     owner_records = len(pairs)
-    distinct_owners = len(set(o for _, o in pairs))
+    distinct_owners = len({o for _, o in pairs})
     kinds = pd.Series([owner_kind(o) for _, o in pairs], dtype=object)
     kc = kinds.value_counts()
     kind_order = sorted(kc.items(), key=lambda kv: (kv[0] == OWNER_OTHER, -kv[1], kv[0]))
@@ -267,8 +267,8 @@ def compute(frames):
     def ins_quality():
         if graded < 1:
             return None
-        parts = [f'{n(unres)} מתוך {n(total)} המט"שים ({pct(unres / total)}) מספקים קולחים '
-                 f'באיכות ללא מגבלות השקייה']
+        parts = [(f'{n(unres)} מתוך {n(total)} המט"שים ({pct(unres / total)}) מספקים קולחים '
+                 f'באיכות ללא מגבלות השקייה')]
         if stream:
             parts[0] += f" (מהם {wwtp(stream)} גם באיכות להזרמה לנחל)"
         if poor:
@@ -385,7 +385,7 @@ def compute(frames):
     labels = {
         "lede": lede,
         "year_note": f"נכון לשנת {year}" if year is not None else "",
-        "total_kpi": f'מט"שים ברשימה' + (f" ({year})" if year is not None else ""),
+        "total_kpi": 'מט"שים ברשימה' + (f" ({year})" if year is not None else ""),
         "oper_kpi": "מפעילים שונים",
         "unres_kpi": 'מט"שים עם קולחים ללא מגבלות השקייה',
         "poor_kpi": 'מט"שים עם קולחים באיכות ירודה',

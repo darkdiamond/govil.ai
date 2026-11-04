@@ -230,7 +230,7 @@ def compute(frames):
             continue
         nice_tree.append({
             "name": f"{label} ({len(part)})",
-            "value": int(len(part)),
+            "value": len(part),
             "children": [{"name": f"{int(r.cls)} {r.he}", "value": 1} for r in part.itertuples()],
         })
 

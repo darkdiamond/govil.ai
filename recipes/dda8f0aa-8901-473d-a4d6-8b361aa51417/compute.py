@@ -104,7 +104,7 @@ def eu_kind(he, en):
         return "דירקטיבה"
     if he.startswith("רגולציה"):
         return "רגולציה"
-    if en.startswith("Directive") or en.startswith("Council Directive"):
+    if en.startswith(("Directive", "Council Directive")):
         return "דירקטיבה"
     if "Regulation" in en.split(" of ")[0]:
         return "רגולציה"
@@ -324,7 +324,7 @@ def compute(frames):
     gz_dated = gz.dropna(subset=["date"])
     gz_ref = gz_dated["date"].max()
     gz_year = int(gz_ref.year)
-    gz_partial = not (gz_ref.month == 12)
+    gz_partial = gz_ref.month != 12
     gz_last_full = gz_year - 1 if gz_partial else gz_year
 
     # ---- composition: adoption type, edition year buckets
@@ -447,7 +447,6 @@ def compute(frames):
     act_present = [a for a in ACTION_ORDER if a in actions_all.index]
     gz_series = [{"name": a, "data": [int(by.loc[yv, a]) if (yv in by.index and a in by.columns) else 0 for yv in yrs]}
                  for a in act_present]
-    gz_year_totals = [int(per_year.get(yv, 0)) for yv in yrs]
     partial_info = (gz_year, int(per_year.get(gz_year, 0)), gz_ref) if gz_partial else None
     venue = sorted_counts(gz["venue"])
     no_std = int((gz["refs"].str.len() == 0).sum())
@@ -586,7 +585,7 @@ def compute(frames):
                       f"{n(int((std['mand'] == 'כן').sum()))} תקנים מסומנים במאגר כ\"תקן מחייב\"."),
         "orig_aria": f"תרשים עמודות: {n(total)} תקנים רשמיים לפי אופן האימוץ. הנפוץ: {orig_vc.index[0]} ({n(orig_vc.iloc[0])}).",
         "orig_caption": "מספר תקנים רשמיים לפי אופן האימוץ.",
-        "editions_note": (f"התקנים בתוקף לפי שנת המהדורה העדכנית, בקבוצות של חמש שנים, מקוריים מול מאומצים."
+        "editions_note": ("התקנים בתוקף לפי שנת המהדורה העדכנית, בקבוצות של חמש שנים, מקוריים מול מאומצים."
                           + (f" {n(no_year)} תקנים ללא שנת מהדורה אינם נכללים." if no_year else "")),
         "editions_aria": f"גרף עמודות מוערמות: תקנים בתוקף לפי שנת המהדורה, {lo} עד {ref_year}, מקוריים ומאומצים.",
         "editions_caption": "מספר תקנים בתוקף לפי תקופת המהדורה, מקוריים ומאומצים.",
@@ -637,7 +636,7 @@ def compute(frames):
         "eu_caption": "מספר אסדרות אירופיות לפי שנת הכניסה לתוקף וסוג.",
         "reform_note": (f"קובץ נפרד במאגר — \"מאגר תקנים מעודכן לרפורמת מה שטוב לאירופה\" — כולל {n(len(rf_nums))} מספרי תקן"
                         + (f" (המהדורה המאוחרת בו מ-{rf_latest})" if rf_latest else "")
-                        + f". השוואתו למאגר הנוכחי לפי מספר התקן."),
+                        + ". השוואתו למאגר הנוכחי לפי מספר התקן."),
         "reform_aria": f"תרשים עמודות: {n(both_n)} תקנים בשתי הרשימות, {n(only_rf)} ברשימת הרפורמה בלבד, {n(only_cur)} במאגר הנוכחי בלבד.",
         "reform_caption": "השוואת רשימת הרפורמה למאגר הנוכחי לפי מספר תקן.",
     }

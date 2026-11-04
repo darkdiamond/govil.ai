@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 from collections import Counter
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 DECIMALS = 5
 DEFAULT_MAX_BYTES = 150_000
@@ -102,7 +102,7 @@ def itm_to_wgs(x: float, y: float) -> tuple[float, float]:
 # ── geometry walking ─────────────────────────────────────────────────────
 
 
-def _positions(geom: Optional[dict]):
+def _positions(geom: dict | None):
     """Every [x, y, …] position in a geometry."""
     if not geom:
         return
@@ -259,7 +259,7 @@ def _coords_of(el) -> list:
     return pts
 
 
-def _kml_geometry(el) -> Optional[dict]:
+def _kml_geometry(el) -> dict | None:
     name = _local(el.tag)
     if name == "Point":
         return {"type": "Point", "coordinates": _coords_of(el)[0]}
@@ -307,7 +307,7 @@ def _ring_area(r: list) -> float:
     return sum(x1 * y2 - x2 * y1 for (x1, y1), (x2, y2) in itertools.pairwise(r))
 
 
-def _shp_geometry(rec: bytes) -> Optional[dict]:
+def _shp_geometry(rec: bytes) -> dict | None:
     (stype,) = struct.unpack("<i", rec[:4])
     if stype == 0:
         return None
@@ -395,7 +395,7 @@ def _cpg_encoding(cpg: str) -> str:
         raise SnapshotError(f".cpg names an unknown codepage {cpg.strip()!r}") from None
 
 
-def _read_shp(shp: bytes, dbf: Optional[bytes], cpg: str) -> list[dict]:
+def _read_shp(shp: bytes, dbf: bytes | None, cpg: str) -> list[dict]:
     geoms, pos = [], 100
     while pos + 8 <= len(shp):
         (length,) = struct.unpack(">i", shp[pos + 4:pos + 8])
@@ -462,7 +462,7 @@ def load_map(data: bytes, name: str) -> tuple[list[dict], str]:
         return feats, detect_crs(feats, prj)
     except (SnapshotError, MemoryError):
         raise
-    except Exception as e:  # untrusted bytes: every reader failure is the data's
+    except Exception as e:  # untrusted bytes: every reader failure is the data's  # noqa: BLE001
         raise SnapshotError(f"{name}: malformed map file ({type(e).__name__}: {e})") from None
 
 
@@ -507,7 +507,7 @@ def read_map_bytes(data: bytes, name: str) -> tuple[list[dict], str]:
         _check_unzipped(z, name)
         names = {n.lower(): n for n in z.namelist() if not n.endswith("/")}
 
-        def one(ext: str) -> Optional[str]:
+        def one(ext: str) -> str | None:
             hits = sorted(n for n in names if n.endswith(ext))
             if len(hits) > 1:
                 raise SnapshotError(f"{name}: {len(hits)} {ext} files; extract the one you want")

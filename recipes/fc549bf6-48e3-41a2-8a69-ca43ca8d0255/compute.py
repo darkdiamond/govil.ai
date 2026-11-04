@@ -423,7 +423,7 @@ def compute(frames):
         tot, act, ads = cells_map[g]
         n_located += tot
         if ads:
-            top_ad = sorted(ads.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+            top_ad = min(ads.items(), key=lambda kv: (-kv[1], kv[0]))[0]
             if top_ad not in admin_idx:
                 admin_idx[top_ad] = len(admin_names)
                 admin_names.append(top_ad)
@@ -534,7 +534,7 @@ def compute(frames):
                         f"{owners_rows[0]['total'] if owners_rows else '0'} קידוחים."),
         "owners_aria": (f"תרשים עמודות: בעלי הקידוחים הפרטיים הגדולים. {top_own}: "
                         f"{owners_rows[0]['total'] if owners_rows else '0'} קידוחים."),
-        "basin_lede": (f"קידוחי מקורות רשומים לפי אגן תפעולי. "
+        "basin_lede": ("קידוחי מקורות רשומים לפי אגן תפעולי. "
                        + (f"אגן עם המספר הגדול ביותר: {basin_chart['names'][basin_chart['total'].index(max(basin_chart['total']))]}, "
                           f"{_int(max(basin_chart['total']))} קידוחים." if basins else "")
                        + (f" {_int(n_basin_other)} קידוחים ללא אגן בשם הצרכן אינם מוצגים." if n_basin_other else "")),

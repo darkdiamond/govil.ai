@@ -22,11 +22,11 @@ ANNUAL_BUCKETS = [(0, 20), (20, 40), (40, 60), (60, 80), (80, 100), (100, 120), 
 PROP_ORDER = ["דיזל", "חשמל", "גז טבעי דחוס"]
 OTHER_PROP = "לא ידוע"
 TYPE_ORDER = ["עירוני", "בינעירוני"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -295,7 +295,7 @@ def compute(frames):
     def mval(y, t):
         if t not in med.columns or y not in med.index or med_n.at[y, t] < 10 or pd.isna(med.at[y, t]):
             return None
-        return int(round(med.at[y, t]))
+        return round(med.at[y, t])
 
     km_year = {"x": [str(y) for y in years],
                "series": [{"name": t, "data": [mval(y, t) for y in years]} for t in TYPE_ORDER]}
@@ -359,7 +359,7 @@ def compute(frames):
     ann_med = float(ann["ak"].median()) if len(ann) else 0.0
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
-        "operators": {"value": int(len(ops)), "display": n(len(ops)), "tone": "brand"},
+        "operators": {"value": len(ops), "display": n(len(ops)), "tone": "brand"},
         "clusters": {"value": n_clusters, "display": n(n_clusters), "tone": "brand"},
         "electric": {"value": elec, "display": f"{fleet_share:.1f}%", "tone": elec_tone},
         "age": {"value": med_age, "display": f"{med_age:g}", "tone": age_tone},
@@ -414,8 +414,8 @@ def compute(frames):
         "size_caption": "מספר אוטובוסים לפי גודל וסוג שירות.",
         "seats_aria": "תרשים קופסה: התפלגות מספר מקומות הישיבה לפי גודל אוטובוס.",
         "seats_caption": "מקומות ישיבה לפי גודל: מינימום, רבעון תחתון, חציון, רבעון עליון ומקסימום.",
-        "km_note": (f"הקילומטראז' המצטבר החציוני לפי שנת ייצור — אוטובוסים בינעירוניים מול עירוניים. "
-                    f"נקודות עם פחות מעשרה אוטובוסים אינן מוצגות."),
+        "km_note": ("הקילומטראז' המצטבר החציוני לפי שנת ייצור — אוטובוסים בינעירוניים מול עירוניים. "
+                    "נקודות עם פחות מעשרה אוטובוסים אינן מוצגות."),
         "km_aria": "גרף קווים: קילומטראז' מצטבר חציוני לפי שנת ייצור, עירוני ובינעירוני.",
         "km_caption": "קילומטראז' מצטבר חציוני לפי שנת ייצור וסוג שירות.",
         "annual_note": (f"הערכה: ק״מ מצטבר חלקי גיל האוטובוס (מאמצע שנת הייצור עד {ref_year}). "
@@ -427,8 +427,8 @@ def compute(frames):
                       f"{n(stone_n)} ממוגני אבנים ו-{n(bullet_n)} ממוגני ירי."),
         "prot_aria": "תרשים עמודות אופקי: אוטובוסים ממוגנים לפי מפעיל.",
         "prot_caption": "אוטובוסים ממוגני אבנים וממוגני ירי לפי מפעיל.",
-        "tree_note": (f"כל מלבן הוא מפעיל, ובתוכו אשכולות ההפעלה שלו; השטח יחסי למספר האוטובוסים. "
-                      f"לחיצה על מפעיל מתמקדת בו."),
+        "tree_note": ("כל מלבן הוא מפעיל, ובתוכו אשכולות ההפעלה שלו; השטח יחסי למספר האוטובוסים. "
+                      "לחיצה על מפעיל מתמקדת בו."),
         "tree_aria": f"מפת עץ: {len(ops)} מפעילים ו-{n_clusters} אשכולות הפעלה לפי מספר אוטובוסים.",
         "tree_caption": f"{TOP_CLUSTERS} האשכולות הגדולים לפי מספר אוטובוסים.",
     }

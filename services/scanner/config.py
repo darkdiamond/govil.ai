@@ -4,7 +4,6 @@ Configuration settings for the Scanner Service.
 Firestore-backed — no local database or download directory.
 """
 
-from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -25,7 +24,7 @@ class ScannerSettings(BaseSettings):
     ckan_max_retries: int = 3
 
     # Firestore
-    firestore_project_id: Optional[str] = None  # falls back to GOOGLE_CLOUD_PROJECT
+    firestore_project_id: str | None = None  # falls back to GOOGLE_CLOUD_PROJECT
     firestore_database: str = "(default)"
 
     # Scanner defaults

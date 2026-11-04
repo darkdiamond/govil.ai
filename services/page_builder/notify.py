@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 log = logging.getLogger(__name__)
 
@@ -67,7 +66,7 @@ def issue_body(
     )
 
 
-def _github(token: Optional[str], repo: Optional[str]) -> tuple[str, str]:
+def _github(token: str | None, repo: str | None) -> tuple[str, str]:
     """Explicit args, else the job's env (the publish-dispatch PAT + repo)."""
     return (
         (token or os.environ.get("GITHUB_DISPATCH_TOKEN", "")).strip(),
@@ -91,9 +90,9 @@ def open_authoring_issue(
     reason: str,
     detail: str = "",
     preview: bool = False,
-    repo: Optional[str] = None,
-    token: Optional[str] = None,
-) -> Optional[int]:
+    repo: str | None = None,
+    token: str | None = None,
+) -> int | None:
     """Open the issue; return its number, or None if it couldn't be opened
     (missing token, API error) — the caller retries on the next run."""
     token, repo = _github(token, repo)
@@ -150,7 +149,7 @@ def open_authoring_issue(
 
 
 def add_labels(
-    number: int, labels: list[str], *, repo: Optional[str] = None, token: Optional[str] = None
+    number: int, labels: list[str], *, repo: str | None = None, token: str | None = None
 ) -> bool:
     """Add labels to an existing issue; True on success."""
     token, repo = _github(token, repo)
@@ -176,8 +175,8 @@ def add_labels(
 
 
 def issue_state(
-    number: int, *, repo: Optional[str] = None, token: Optional[str] = None
-) -> Optional[str]:
+    number: int, *, repo: str | None = None, token: str | None = None
+) -> str | None:
     """`open`, `completed` (closed as done — e.g. by a recipe PR), or
     `not_planned` (closed as won't-author). None when it can't be read; the
     caller then keeps the recorded issue rather than risk a duplicate."""

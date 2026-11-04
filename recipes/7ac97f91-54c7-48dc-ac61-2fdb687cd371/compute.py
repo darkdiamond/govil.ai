@@ -78,7 +78,7 @@ LEADER_MIN_SHARE = 0.25
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=1):
@@ -157,7 +157,7 @@ def compute(frames):
     labels["years_range"] = f"{y_first}-{y_last}" if y_first != y_last else str(y_first)
     yearly = {"x": [str(y) for y in years], "y": [int(by_year[y]) for y in years],
               "partial": str(y_last) if partial else None,
-              "yoy": [("" if i == 0 or years[i] - years[i - 1] != 1 or not by_year[years[i - 1]]
+              "yoy": [("" if i == 0 or y - years[i - 1] != 1 or not by_year[years[i - 1]]
                        or (partial and y == y_last)
                        else _signed_pct((by_year[y] - by_year[years[i - 1]]) / by_year[years[i - 1]]))
                       for i, y in enumerate(years)]}
@@ -220,7 +220,7 @@ def compute(frames):
     labels["regions_note"] = (
         f"התפלגות העולים לפי אזור מוצא בכל שנה (אחוזים). {lead_reg} היא אזור המוצא הגדול בכל התקופה, "
         f"{_pct(ry[lead_reg].sum() / total)} מהעולים; ב-{y_last} חלקה {_pct(ry_share.loc[y_last, lead_reg])}. "
-        + (f"אזורים קטנים מאוחדים תחת \"אחר\"." if "אחר" in reg_order else ""))
+        + ("אזורים קטנים מאוחדים תחת \"אחר\"." if "אחר" in reg_order else ""))
     labels["regions_aria"] = (f"גרף עמודות מוערמות: הרכב העולים לפי אזור מוצא בכל שנה. "
                               f"{lead_reg} מובילה עם {_pct(ry[lead_reg].sum() / total)} מהעולים.")
 

@@ -143,7 +143,7 @@ def _order_cats(counts):
 
 
 def _bands(values):
-    idx = [int(math.floor(v * GRID_SCALE + 1e-9)) for v in values]
+    idx = [math.floor(v * GRID_SCALE + 1e-9) for v in values]
     lo, hi = min(idx), max(idx)
     w = max(1, math.ceil((hi - lo + 1) / MAX_BANDS))
     lo = (lo // w) * w
@@ -160,7 +160,6 @@ def compute(frames):
     geo = df[df["geo_ok"]].copy()
     n_geo = len(geo)
     n_nogeo = total - n_geo
-    n_unreadable = int((~df["signs_ok"]).sum())
 
     # ---------- kinds
     cat_counts = {k: int(v) for k, v in df["cat"].value_counts().items()}
@@ -191,7 +190,6 @@ def compute(frames):
     n_signs = int(sum(sizes))
     with_signs = int((df["n_signs"] > 0).sum())
     median_signs = (sizes[(total - 1) // 2] + sizes[total // 2]) / 2 if total else 0
-    mx_idx = int(df["n_signs"].to_numpy().argmax()) if total else 0
     max_signs = int(df["n_signs"].max()) if total else 0
     b_names, b_vals = [], []
     for lo, hi in SIGN_BUCKETS:
@@ -256,7 +254,6 @@ def compute(frames):
     top_cell = None
     inner_share = None
     mix_gap = None
-    center_km = None
     ns_km = ew_km = 0.0
     if n_geo >= MIN_ROWS:
         lats = geo["latf"].tolist()
@@ -325,8 +322,7 @@ def compute(frames):
         geo["gx"] = [(a - lo_lo) // lo_w for a in ilo]
         cells = geo.groupby(["gx", "gy"]).size()
         heat = sorted([[int(x), int(y), int(c)] for (x, y), c in cells.items()])
-        best_cell = sorted(((int(c), int(y), int(x)) for (x, y), c in cells.items()),
-                           key=lambda t: (-t[0], t[1], t[2]))[0]
+        best_cell = min(((int(c), int(y), int(x)) for (x, y), c in cells.items()), key=lambda t: (-t[0], t[1], t[2]))
         cell_df = geo[(geo["gx"] == best_cell[2]) & (geo["gy"] == best_cell[1])]
         cs = cell_df[cell_df["street"] != ""].groupby("street").size()
         cell_street = sorted(((k, int(v)) for k, v in cs.items()), key=lambda kv: (-kv[1], kv[0]))
@@ -346,7 +342,6 @@ def compute(frames):
             insights.append({"id": i, "text_he": t})
 
     # 1 category leader
-    typed_cats = [(k, v) for k, v in cats if k not in (NO_KIND,)]
     lead_pool = [(k, v) for k, v in cats if k not in TAIL_CATS]
     if len(lead_pool) >= 2 and typed:
         (a, av), (b, bv) = lead_pool[0], lead_pool[1]

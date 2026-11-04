@@ -105,7 +105,7 @@ def compute(frames):
 
     gaps = _gaps_weeks(df)
     gap_c = Counter(gaps)
-    cycle, cycle_n = (sorted(gap_c.items(), key=lambda kv: (-kv[1], kv[0]))[0] if gaps else (0, 0))
+    cycle, cycle_n = (min(gap_c.items(), key=lambda kv: (-kv[1], kv[0])) if gaps else (0, 0))
     cycle_share = cycle_n / len(gaps) if gaps else 0
 
     top = list(counts["branch"].head(MAX_BRANCHES))
@@ -133,7 +133,6 @@ def compute(frames):
         g = tl[tl["branch"] == b]
         timeline["series"].append({"name": short[b], "data": [[int(t.timestamp() * 1000), short[b]] for t in g["start"]]})
 
-    wk_idx = pd.Series(range(len(weeks)), index=pd.DatetimeIndex(weeks))
     stride = max(1, math.ceil(len(weeks) / MAX_POINTS))
     sel = list(range(0, len(weeks), stride))
     if sel[-1] != len(weeks) - 1:
@@ -196,7 +195,7 @@ def compute(frames):
 
     def ins_chain():
         firsts = Counter(b.split()[0] + " " + b.split()[1] if len(b.split()) > 1 else b for b in counts["branch"])
-        name, k = sorted(firsts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+        name, k = min(firsts.items(), key=lambda kv: (-kv[1], kv[0]))
         if k < max(3, math.ceil(0.8 * n_branches)):
             return None
         who = f"כל {_int(k)} בתי המרקחת התורנים ברשימה" if k == n_branches else f"{_int(k)} מתוך {_int(n_branches)} בתי המרקחת ברשימה"

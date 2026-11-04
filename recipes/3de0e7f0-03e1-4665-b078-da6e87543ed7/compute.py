@@ -25,7 +25,7 @@ TOP_UNITS = 8
 TOP_RATES_TABLE = 10
 AUTO_RATE_CATS = 8
 END_DATE_MAX_BUCKETS = 12
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 # HS sections → chapter ranges (the fixed international Harmonized System
@@ -244,13 +244,13 @@ def compute(frames):
             continue
         kids = []
         for c, g in sorted(sub.groupby("chapter"), key=lambda kv: kv[0]):
-            kids.append({"name": ch_label(c), "value": int(len(g))})
-        tree.append({"name": sec_label(s), "value": int(len(sub)), "children": kids})
+            kids.append({"name": ch_label(c), "value": len(g)})
+        tree.append({"name": sec_label(s), "value": len(sub), "children": kids})
         sr = sub[sub["cf"] != "none"]
         sd = int(sr["cf"].isin(DUTIABLE).sum())
         sec_rows.append({
-            "sec": s, "name": sec_label(s), "lines": int(len(sub)),
-            "chapters": int(sub["chapter"].nunique()), "rated": int(len(sr)),
+            "sec": s, "name": sec_label(s), "lines": len(sub),
+            "chapters": int(sub["chapter"].nunique()), "rated": len(sr),
             "dut": sd, "share": (sd / len(sr) * 100) if len(sr) else 0.0,
         })
 
@@ -381,7 +381,7 @@ def compute(frames):
                  for i in range(len(keys))]
     duty_dated = int(hs["duty_end"].str.fullmatch(r"\d{4}-\d{2}-\d{2}").sum())
     rated_with_date = int(rated["duty_end"].str.fullmatch(r"\d{4}-\d{2}-\d{2}").sum())
-    top_end = sorted(dc_duty.items(), key=lambda kv: (-kv[1], kv[0]))[0] if len(dc_duty) else None
+    top_end = min(dc_duty.items(), key=lambda kv: (-kv[1], kv[0])) if len(dc_duty) else None
 
     # ---- autonomy book -----------------------------------------------------
     a = frames["autonomy"]
@@ -475,8 +475,6 @@ def compute(frames):
     n_cond = len(cond)
     cond_ch = sorted(cond.groupby("chapter").size().items(), key=lambda kv: (-kv[1], kv[0]))
     n_special = len(special)
-    sp_rated = special[special["cf"] != "none"]
-    sp_exempt = int((sp_rated["cf"] == "exempt").sum())
 
     # ---- Israeli national subdivisions --------------------------------------
     n_il = int((hs["level"] == "סעיף ישראלי").sum())
@@ -662,15 +660,15 @@ def compute(frames):
                          if p_rate_vc else "")),
         "ptax_aria": f"תרשים עמודות מוערמות: שורות חייבות במס קנייה ב-{len(ptop)} הפרקים המובילים.",
         "ptax_caption": "שורות חייבות במס קנייה לפי פרק.",
-        "units_note": (f"יחידת המידה הרשומה לשורות התעריף."
+        "units_note": ("יחידת המידה הרשומה לשורות התעריף."
                        + (f" במכס בסכום קצוב או משולב היחידה הנפוצה היא {spec_units[0][0]} "
                           f"({n(spec_units[0][1])} שורות)." if spec_units else "")),
         "units_aria": "תרשים עמודות: שורות התעריף לפי יחידת מידה.",
         "units_caption": "מספר שורות התעריף לפי יחידת מידה.",
-        "end_note": (("מועדי סיום התוקף הרשומים לשיעורי המכס, למס הקנייה ולסיווג עצמו"
+        "end_note": ("מועדי סיום התוקף הרשומים לשיעורי המכס, למס הקנייה ולסיווג עצמו"
                       + (", מקובצים לפי שנה" if by_year else "")
                       + f". {n(duty_dated)} שורות בפרקי הסיווג נושאות מועד סיום לשיעור המכס; "
-                        f"שורות ללא מועד אינן מוצגות.")),
+                        f"שורות ללא מועד אינן מוצגות."),
         "end_aria": "תרשים עמודות: מספר שורות לפי מועד סיום תוקף, למכס, למס קנייה ולסיווג.",
         "end_caption": "מספר שורות לפי מועד סיום תוקף.",
         "auto_ch_note": (f"שורות ספר האוטונומיה שיש להן שיעור מכס, ב-{len(atop)} הפרקים המובילים, "

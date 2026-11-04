@@ -7,7 +7,7 @@ the refresh share its download cache.
 from __future__ import annotations
 
 import os
-from typing import Mapping, Optional
+from collections.abc import Mapping
 
 from .base import SourceProvider
 from .boi import BoiSdmxProvider
@@ -16,7 +16,7 @@ PROVIDER_CLASSES: dict[str, type[SourceProvider]] = {
     BoiSdmxProvider.key: BoiSdmxProvider,
 }
 
-_enabled: Optional[dict[str, SourceProvider]] = None
+_enabled: dict[str, SourceProvider] | None = None
 
 
 def build_providers(environ: Mapping[str, str] = os.environ) -> dict[str, SourceProvider]:
@@ -41,15 +41,15 @@ def reset_providers() -> None:
     _enabled = None
 
 
-def provider_for_key(key: Optional[str],
-                     providers: Optional[Mapping[str, SourceProvider]] = None
-                     ) -> Optional[SourceProvider]:
+def provider_for_key(key: str | None,
+                     providers: Mapping[str, SourceProvider] | None = None
+                     ) -> SourceProvider | None:
     if not key:
         return None
     return (enabled_providers() if providers is None else providers).get(key)
 
 
-def provider_for_id(dataset_id: str) -> Optional[type[SourceProvider]]:
+def provider_for_id(dataset_id: str) -> type[SourceProvider] | None:
     """The provider class whose id prefix claims `dataset_id` (enabled or not)."""
     for cls in PROVIDER_CLASSES.values():
         if dataset_id.startswith(cls.id_prefix):

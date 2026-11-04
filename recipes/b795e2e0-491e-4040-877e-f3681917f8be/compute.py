@@ -244,7 +244,7 @@ def insight_species_top(species):
 def insight_patch(patches):
     if len(patches) < MIN_PATCHES:
         return None
-    best = sorted(patches, key=lambda r: (-r[0], r[3]))[0]
+    best = min(patches, key=lambda r: (-r[0], r[3]))
     km2 = best[0] / 1e6
     area = (f"{km2:.2f} קמ״ר" if best[0] >= 1_000_000 else f"{_int(best[0])} מ״ר")
     return (f"מתוך {_int(len(patches))} אתרים שמצוין להם גודל, הגדול ביותר הוא "
@@ -313,7 +313,7 @@ def compute(frames):
 
     sp_counts = {}
     for name, rx in SPECIES:
-        n = int(df["name"].map(lambda t: bool(rx.search(t))).sum())
+        n = int(df["name"].map(lambda t, rx=rx: bool(rx.search(t))).sum())
         if n >= MIN_SPECIES:
             sp_counts[name] = n
     species = _ranked(sp_counts)
@@ -334,7 +334,6 @@ def compute(frames):
     ew_km = float((df["lonf"].max() - df["lonf"].min()) * math.radians(1) * R_KM
                   * math.cos(math.radians(mlat)))
     distinct = int(df["name"].nunique())
-    rep_share = 1 - distinct / total
 
     rules = [
         ("leader", insight_leader(cats, total)),

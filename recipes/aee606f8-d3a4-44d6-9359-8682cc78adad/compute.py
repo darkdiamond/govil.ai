@@ -28,7 +28,7 @@ TRAIL_NUM = re.compile(r"[\s,]*\d+[א-ת]?\s*$")
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -186,7 +186,7 @@ def compute(frames):
         nn_sorted = geo.sort_values(["nn", "name", "address"], ascending=[False, True, True], kind="mergesort")
         top = nn_sorted.head(NN_TOP)
         lab = [f"{a} ({s})" if names.count(a) > 1 else a for a, s in zip(top["name"], top["address"])]
-        charts["nn"] = {"names": lab, "values": [int(round(v)) for v in top["nn"]]}
+        charts["nn"] = {"names": lab, "values": [round(v) for v in top["nn"]]}
         tables["nn"] = {"headers": ["מועדון", "המועדון הקרוב", "מרחק (מ׳)"],
                         "rows": [[a, b, fmt(c)] for a, b, c in zip(lab, top["nn_name"], top["nn"])]}
         med_nn = float(geo["nn"].median())

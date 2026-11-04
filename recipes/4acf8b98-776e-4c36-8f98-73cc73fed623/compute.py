@@ -221,7 +221,7 @@ def _simplify_outers(polys, tol):
 
 # --- helpers ---------------------------------------------------------------------
 def _int(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _dun(v):
@@ -427,7 +427,7 @@ def compute(frames):
                    "values": [round(v * 100, 1) for v in sh_top["ashare"]],
                    "avail": [round(v / DUNAM, 1) for v in sh_top["avail"]],
                    "nearly_full": [bool(1 - v >= NEARLY_FULL) for v in sh_top["ashare"]],
-                   "capped": len(sh) > TOP_LAND, "n": int(len(sh))}
+                   "capped": len(sh) > TOP_LAND, "n": len(sh)}
 
     # districts
     g = d.groupby("district")
@@ -453,7 +453,7 @@ def compute(frames):
     chart_area = {"names": list(ar_top["name"]),
                   "values": [round(v / DUNAM, 1) for v in ar_top["area"]],
                   "open": [bool(v) for v in ar_top["open"]],
-                  "capped": len(ar) > TOP_AREA, "n": int(len(ar))}
+                  "capped": len(ar) > TOP_AREA, "n": len(ar)}
 
     # land vs mapped area scatter (zones with both)
     both = d[(d["area"] > 0) & (d["total"] > 0)].sort_values("name", kind="stable")

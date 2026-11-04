@@ -87,7 +87,7 @@ def _mode(values):
         return ""
     c = Counter(vals)
     best = max(c.values())
-    return sorted([v for v, n in c.items() if n == best], key=lambda v: (len(v), v))[0]
+    return min([v for v, n in c.items() if n == best], key=lambda v: (len(v), v))
 
 
 def _fmt_int(n):
@@ -158,7 +158,7 @@ def _capacity(rows):
 
 def compute(frames):
     df = _prepare(frames["main"])
-    n_rows = int(len(df))
+    n_rows = len(df)
 
     alloc = df[df["prov"] != ""]
     providers = sorted(alloc["prov"].unique())
@@ -188,7 +188,7 @@ def compute(frames):
         codes.append({
             "code": code,
             "purpose": _mode(list(g["note"])),
-            "blocks": int(len(blocks)),
+            "blocks": len(blocks),
             "providers": int(blocks["prov"].nunique()),
             "general": bool((g["prov"] == "").any()),
             "cap": _capacity(g),
@@ -318,7 +318,7 @@ def compute(frames):
         withp = [c for c in codes if c["providers"] >= 2]
         if not withp:
             return None
-        top = sorted(withp, key=lambda c: (-c["providers"], -c["blocks"], _code_key(c["code"])))[0]
+        top = min(withp, key=lambda c: (-c["providers"], -c["blocks"], _code_key(c["code"])))
         s = (f"אזור החיוג לשירות {top['code']}"
              + (f" ({top['purpose']})" if top["purpose"] else "")
              + f" מחולק ל-{top['blocks']:,} גושי מספרים בין {top['providers']:,} ספקים, "
@@ -345,7 +345,7 @@ def compute(frames):
         best = None
         for c in cap_codes:
             cap = c["cap"]
-            p, v = sorted(cap["by_prov"].items(), key=lambda kv: (-kv[1], kv[0]))[0]
+            p, v = min(cap["by_prov"].items(), key=lambda kv: (-kv[1], kv[0]))
             share = v / cap["space"]
             key = (-share, _code_key(c["code"]))
             if share >= LEAD_SHARE and (best is None or key < best[0]):
@@ -421,7 +421,7 @@ def compute(frames):
     # ---------------------------------------------------------- KPIs
     kpis = {
         "total": {"value": n_rows, "display": _fmt_int(n_rows), "tone": "brand"},
-        "emergency": {"value": int(len(em)), "display": _fmt_int(len(em)), "tone": "brand"},
+        "emergency": {"value": len(em), "display": _fmt_int(len(em)), "tone": "brand"},
         "codes": {"value": len(codes), "display": _fmt_int(len(codes)), "tone": "brand"},
         "providers": {"value": n_prov, "display": _fmt_int(n_prov), "tone": "brand"},
         "cancel": {"value": n_cancel, "display": _fmt_int(n_cancel),

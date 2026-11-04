@@ -8,14 +8,14 @@ built from.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from services.page_builder.selector import pick_authoring_candidates
 from services.shared.firestore import SourceRecord
 
 # Past the 2026-01-01 default floor so the age gate never interferes.
-MODIFIED = datetime(2026, 5, 1, tzinfo=timezone.utc)
-FLOOR_2025 = datetime(2025, 1, 1, tzinfo=timezone.utc)
+MODIFIED = datetime(2026, 5, 1, tzinfo=UTC)
+FLOOR_2025 = datetime(2025, 1, 1, tzinfo=UTC)
 
 
 class _FakeStore:
@@ -116,9 +116,9 @@ def test_cap_bounds_picks():
 
 
 def test_floor_gates_both_kinds():
-    old = datetime(2024, 6, 1, tzinfo=timezone.utc)
+    old = datetime(2024, 6, 1, tzinfo=UTC)
     store = _FakeStore([_new("old-new", modified=old), _legacy("old-page", modified=old),
-                        _new("in-2025", modified=datetime(2025, 3, 1, tzinfo=timezone.utc))])
+                        _new("in-2025", modified=datetime(2025, 3, 1, tzinfo=UTC))])
     assert pick_authoring_candidates(store, 10) == []  # default floor 2026-01-01
     picks = pick_authoring_candidates(store, 10, min_modified_floor=FLOOR_2025,
                                       max_age_days=100000)

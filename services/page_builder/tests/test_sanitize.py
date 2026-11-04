@@ -213,7 +213,6 @@ def test_stray_close_script_warns_but_unchanged() -> None:
 def test_excess_unclosed_scripts_raises() -> None:
     """If the body is structurally broken (more than the cap of unclosed
     scripts), refuse to publish — a string-append won't safely repair it."""
-    import pytest  # type: ignore
     src = "<script>a\n<script>b\n<script>c\n<script>d\n<script>e\n<script>f\n"
     try:
         sanitize_content_html(src)

@@ -17,8 +17,6 @@ lookup lands in a disclosed "לא סווג" bucket, so new names flow through.
 """
 import re
 
-import pandas as pd
-
 TOP_CITIES = 24
 DIRECTORY_CAP = 120
 NAME, ADDR, TEL, MOB, FAX, MAIL = "שם שמאי", "כתובת", "טלפון", "נייד", "פקס", "דוא~ל"
@@ -156,7 +154,6 @@ def compute(frames):
     empty_d = [d for d, v in mapped if v == 0 and d != "יהודה ושומרון"]
     unmapped_n = int(dist_counts.get(UNMAPPED, 0))
     center_n = int(dist_counts.get("המרכז", 0)) + int(dist_counts.get("תל אביב", 0))
-    periph_n = int(dist_counts.get("הצפון", 0)) + int(dist_counts.get("הדרום", 0))
 
     # Settlements.
     known = df[df["city"] != ""]
@@ -257,7 +254,7 @@ def compute(frames):
     fax = ch[3][1]
     if total >= 5:
         if mob == total:
-            t = f"לכל השמאים ברשימה מופיע טלפון נייד"
+            t = "לכל השמאים ברשימה מופיע טלפון נייד"
         else:
             t = f"ל-{n(mob)} מתוך {n(total)} השמאים מופיע טלפון נייד"
         t += (f", ול-{n(tel)}{' בלבד' if tel * 2 < total else ''} מספר טלפון נוסף" if tel
@@ -316,7 +313,7 @@ def compute(frames):
         "mail_aria": (f"גרף טבעת: סוגי דוא״ל. דומיין משרדי עצמאי ל-{n(own_n)} שמאים, "
                       f"ספק ציבורי ל-{n(web_n)}."),
         "mail_caption": "שמאים לפי סוג כתובת הדוא״ל",
-        "dir_note": (f"שמות השמאים והיישוב שבכתובתם, מקובצים לפי מחוז"
+        "dir_note": ("שמות השמאים והיישוב שבכתובתם, מקובצים לפי מחוז"
                      + (f" (מוצגים {n(len(dir_shown))} הראשונים מתוך {n(total)})" if len(directory) > len(dir_shown) else "")
                      + ". לכתובת, טלפון ודוא״ל: חיפוש לפי שם בתחתית הדף."),
         "dir_caption": "רשימת השמאים המכריעים לפי מחוז ויישוב",

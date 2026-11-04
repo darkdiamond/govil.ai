@@ -85,7 +85,7 @@ def compute(frames):
     for bi, b in enumerate(bank_order):
         sub = df[df["bank"] == b]
         for si, (c, _) in enumerate(SERVICES):
-            cells.append([si, bi, round(float(_yes(sub[c]).mean()) * 100, 1), int(len(sub))])
+            cells.append([si, bi, round(float(_yes(sub[c]).mean()) * 100, 1), len(sub)])
     svc_heat = {"services": [lbl for _, lbl in SERVICES], "banks": bank_order, "cells": cells}
 
     # Location relative to branch, by bank (stacked %)
@@ -192,8 +192,8 @@ def compute(frames):
         },
         "kpis": {
             "atms": {"value": n, "display": _int(n), "tone": "brand"},
-            "banks": {"value": int(len(banks)), "display": _int(len(banks)), "tone": "brand"},
-            "cities": {"value": int(len(cities)), "display": _int(len(cities)), "tone": "brand"},
+            "banks": {"value": len(banks), "display": _int(len(banks)), "tone": "brand"},
+            "cities": {"value": len(cities), "display": _int(len(cities)), "tone": "brand"},
             # Cash deposit is a service: most machines offering it is good,
             # a minority is a gap worth flagging.
             "deposit": {"value": float(_yes(df["Cash_Deposit"]).mean()),

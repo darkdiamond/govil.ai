@@ -150,7 +150,7 @@ def _stack(df, key, names):
         f = int((g["known"] & ~g["is24"]).sum())
         a.append(t)
         b.append(f)
-        c.append(int(len(g)) - t - f)
+        c.append(len(g) - t - f)
     return {"names": names, "yes": a, "no": b, "unknown": c}
 
 
@@ -240,8 +240,8 @@ def _gap_insight(df, key, minimum, gap_min, what):
             rows.append((n, s, k))
     if len(rows) < 2:
         return None
-    hi = sorted(rows, key=lambda r: (-r[1], r[0]))[0]
-    lo = sorted(rows, key=lambda r: (r[1], r[0]))[0]
+    hi = min(rows, key=lambda r: (-r[1], r[0]))
+    lo = min(rows, key=lambda r: (r[1], r[0]))
     if hi[1] - lo[1] < gap_min:
         return None
     return (f"{what}: ב{hi[0]} {_pct(hi[1])} מהמכשירים זמינים מסביב לשעון, לעומת {_pct(lo[1])} "
@@ -361,7 +361,7 @@ def compute(frames):
     t_ud = [{"name": n, "count": _int(v), "share": _pct(v / sum(ud_v), 1)}
             for n, v in zip(ud_n, ud_v)]
 
-    s24, k24 = _share24(df)
+    s24, _k24 = _share24(df)
     last12 = int((df["cdate"] > maxd - pd.Timedelta(days=365)).sum())
     n_cities = int(cities_all.size)
 
@@ -403,7 +403,7 @@ def compute(frames):
                      f"ועל אשכול כדי להתקרב. פרטי קשר אינם מוצגים."
                      + (f" המפה מציגה {_int(n_map)} נקודות, כי שורות עם קואורדינטות שגויות במקור "
                         f"נשארות עליה." if n_map != total else "")),
-        "year_note": (f"מספר המכשירים שנרשמו בכל שנה לפי תאריך היצירה"
+        "year_note": ("מספר המכשירים שנרשמו בכל שנה לפי תאריך היצירה"
                       + (f"; שנת {y1} חלקית (עד {upto})." if partial else ".")),
         "year_aria": f"תרשים עמודות: מכשירים שנוספו בכל שנה, {len(years)} שנים.",
         "year_caption": "מספר המכשירים שנוספו בכל שנה.",

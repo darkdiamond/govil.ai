@@ -197,11 +197,11 @@ def _top_other(g, key, k, sort_col="tot"):
     g = _sorted(g, sort_col, False, [key])
     top = g.head(k)
     rest = g.iloc[k:]
-    rows = [dict(name=r[key], tot=int(r["tot"]), fil=int(r["fil"]), vac=int(r["vac"]))
+    rows = [{"name": r[key], "tot": int(r["tot"]), "fil": int(r["fil"]), "vac": int(r["vac"])}
             for _, r in top.iterrows()]
     if len(rest):
-        rows.append(dict(name="אחר", tot=int(rest["tot"].sum()), fil=int(rest["fil"].sum()),
-                         vac=int(rest["vac"].sum())))
+        rows.append({"name": "אחר", "tot": int(rest["tot"].sum()), "fil": int(rest["fil"].sum()),
+                         "vac": int(rest["vac"].sum())})
     return rows
 
 
@@ -380,7 +380,7 @@ def compute(frames):
         "sw_rate_kpi": "שיעור האיוש בתקני עו\"ס",
         "auth_kpi": "רשויות רווחה",
         "roles_kpi": "סוגי תקנים",
-        "district_note": (f"תקנים מאוישים ופנויים בכל מחוז, ושיעור האיוש (קו, ציר ימני). "
+        "district_note": ("תקנים מאוישים ופנויים בכל מחוז, ושיעור האיוש (קו, ציר ימני). "
                           + (f"המחוז הגדול ביותר: {dl['district']}, עם {fte0(dl['tot'])} תקנים."
                              if dl is not None else "")),
         "district_aria": "גרף עמודות מוערמות: תקנים מאוישים ופנויים לפי מחוז, עם קו שיעור האיוש.",

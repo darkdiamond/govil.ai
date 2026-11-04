@@ -26,7 +26,7 @@ def _num(s):
 
 
 def _fmt(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v, digits=1):
@@ -274,7 +274,7 @@ def compute(frames):
         sr = float(s["rides"].sum()) / occ_rides_tot if occ_rides_tot else 0.0
         sp = float(s["wp"].sum()) / occ_pax_tot if occ_pax_tot else 0.0
         occ_chart["x"].append(lab)
-        occ_chart["n"].append(int(len(s)))
+        occ_chart["n"].append(len(s))
         occ_chart["rides"].append(round(sr * 100, 1))
         occ_chart["pax"].append(round(sp * 100, 1))
         occ_rows.append({"bucket": lab, "n": _fmt(len(s)), "sn": _pct(len(s) / len(oc)) if len(oc) else "",
@@ -380,7 +380,7 @@ def compute(frames):
         g["o"] = g["prio"].map(lambda v: PRIORITY_ORDER.get(v, 9))
         g = g.sort_values(["o", "prio"], kind="mergesort").reset_index(drop=True)
         review = {"x": [f"עדיפות {v}" if v in PRIORITY_ORDER else v for v in g["prio"]],
-                  "n": [int(v) for v in g["n"]], "total": int(len(fl)), "pax": float(fl["wp"].sum()),
+                  "n": [int(v) for v in g["n"]], "total": len(fl), "pax": float(fl["wp"].sum()),
                   "rides": float(fl["rides"].sum())}
         for (_, r), lab in zip(g.iterrows(), review["x"]):
             review_rows.append({"prio": lab, "n": _fmt(r["n"]), "pax": _fmt(r["p"]), "rides": _fmt(r["r"]),

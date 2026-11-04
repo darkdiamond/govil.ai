@@ -194,7 +194,7 @@ def insight_spike(monthly):
     if len(vals) < 24:
         return None
     med = float(np.median(vals))
-    (y, m), v = sorted(monthly, key=lambda t: (-t[1], t[0]))[0]
+    (y, m), v = min(monthly, key=lambda t: (-t[1], t[0]))
     if med <= 0 or v < 3 * med:
         return None
     return (f"החודש עם הכי הרבה מחיקות הוא {MONTHS_HE[m - 1]} {y}: {_int(v)} משכונות נמחקו בו, "
@@ -473,7 +473,7 @@ def compute(frames):
     # asset removals (an asset released from a pledge)
     rem = rows["rem"]
     rem_ok = rem[~np.isnan(rem) & (rem <= reg_max + 366)]
-    n_rem_rows = int(len(rem_ok))
+    n_rem_rows = len(rem_ok)
     rem_y = _year(rem_ok) if n_rem_rows else np.array([], dtype="int64")
     rem_y = rem_y[(rem_y >= y_first) & (rem_y <= y_last)]
     rem_by_year = (np.bincount(rem_y - y_first, minlength=len(years)) if len(rem_y)
@@ -517,7 +517,7 @@ def compute(frames):
     }
 
     # ── labels ──
-    peak_c = sorted(full_canc, key=lambda t: (-t[1], t[0]))[0] if full_canc else None
+    peak_c = min(full_canc, key=lambda t: (-t[1], t[0])) if full_canc else None
     selection = inactive_share >= 0.95
     sel_note = (f"שימו לב: {_pct(inactive_share, 2)} מהמשכונות במאגר אינם פעילים, ומשכונות פעילים "
                 "כמעט אינם מופיעים בו. לכן מספר המשכונות לפי שנת רישום נמוך בשנים האחרונות: "

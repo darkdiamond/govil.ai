@@ -128,7 +128,7 @@ def _prepare(df):
     # .loc assignment: pandas 3 parses to a different datetime resolution than
     # a NaT-initialised column and refuses the setitem (OutOfBoundsDatetime).
     starts, ends = [], []
-    for k, idx in out.groupby("kind_type").groups.items():
+    for idx in out.groupby("kind_type").groups.values():
         starts.append(_parse_dates(out.loc[idx, "Start_Date"]))
         ends.append(_parse_dates(out.loc[idx, "End_Date"]))
     out["start"] = pd.concat(starts).reindex(out.index).astype("datetime64[ns]")

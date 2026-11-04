@@ -15,11 +15,12 @@ kept out of trend rules. Codes recorded at subclass level only (no group,
 e.g. "A01B") are counted and disclosed but left out of the classification
 analysis — many are evident placeholders.
 """
+import itertools
 import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 SECTIONS = ["A", "B", "C", "D", "E", "F", "G", "H"]
 SECTION_HE = {
@@ -131,7 +132,7 @@ BARE_RE = re.compile(r"^[A-H]\d\d[A-Z]$")
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -222,7 +223,7 @@ def ins_depth(stats, full_idx, labels):
     if len(full_idx) < 3:
         return None
     best = None
-    for a, b in zip(full_idx, full_idx[1:]):
+    for a, b in itertools.pairwise(full_idx):
         d = stats["mean"][b] - stats["mean"][a]
         if best is None or d > best[0] + 1e-9:
             best = (d, a, b)

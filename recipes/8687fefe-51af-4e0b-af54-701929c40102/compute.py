@@ -17,7 +17,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 SECTIONS = ["A", "B", "C", "D", "E", "F", "G", "H", "Y"]
 SECTION_HE = {
@@ -115,7 +115,7 @@ IPC_RE = re.compile(r"^([A-HY]\d\d[A-Z])(\d{4})(\d{6})$")
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):

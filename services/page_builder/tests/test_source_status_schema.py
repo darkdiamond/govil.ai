@@ -1,7 +1,7 @@
 """DatasetMeta/ManifestEntry carry the source-availability flag."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from services.page_builder.schema import DatasetMeta, ManifestEntry
 
@@ -13,7 +13,7 @@ def test_dataset_meta_defaults_available():
 
 
 def test_dataset_meta_accepts_unavailable():
-    ts = datetime(2026, 7, 20, tzinfo=timezone.utc)
+    ts = datetime(2026, 7, 20, tzinfo=UTC)
     m = DatasetMeta(
         id="x", slug="x", title="t",
         source_status="unavailable", unavailable_since=ts,

@@ -23,6 +23,7 @@ starts a new comparable segment; year-over-year comparisons only use years
 inside the latest segment, and the page says so. If CKAN repairs the files
 the break disappears and the comparisons extend back on their own.
 """
+import itertools
 import re
 
 import pandas as pd
@@ -46,7 +47,7 @@ COUNCIL_PREFIX = "מועצה אזורית"
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=1):
@@ -323,10 +324,10 @@ def _catalog(raw):
     agg = agg.sort_values(["total", "g"], ascending=[False, True], kind="stable")
     by_sens = agg.sort_values(["sens", "g"], ascending=[False, True], kind="stable").iloc[0]
     return {
-        "total": int(len(df)),
+        "total": len(df),
         "sensitive": int(df["s"].sum()),
         "types": int(df["t"].nunique()),
-        "groups": int(len(agg)),
+        "groups": len(agg),
         "top_sensitive": (by_sens["g"], int(by_sens["sens"]), int(by_sens["total"])),
         "names": agg["g"].tolist(),
         "plain": [int(t - s) for t, s in zip(agg["total"], agg["sens"])],
@@ -354,7 +355,7 @@ def compute(frames):
     # comparable segment (see module docstring)
     brk = None
     seg_start = full_years[0] if full_years else None
-    for a, b in zip(full_years, full_years[1:]):
+    for a, b in itertools.pairwise(full_years):
         r = cases_y[b] / cases_y[a] if cases_y[a] else 0
         if r > BREAK_RATIO or (r and r < 1 / BREAK_RATIO):
             brk = (a, b, r)
@@ -370,7 +371,7 @@ def compute(frames):
         qs = sorted(df.loc[df["year"] == last, "q"].unique().tolist())
         cur = int(cases_y[last])
         prev_cases = cases[(cases["year"] == L) & (cases["q"].isin(qs))]
-        prev = int(len(prev_cases))
+        prev = len(prev_cases)
         partial = (last, qs, cur, prev, L)
 
     # ── quarterly timeline
@@ -527,7 +528,7 @@ def compute(frames):
     bins = ["1", "2", "3", "4", "5 ומעלה"]
     bc = [int((per_case == 1).sum()), int((per_case == 2).sum()), int((per_case == 3).sum()),
           int((per_case == 4).sum()), int((per_case >= 5).sum())]
-    n_cases_L = int(len(per_case))
+    n_cases_L = len(per_case)
     multi_share = (n_cases_L - bc[0]) / n_cases_L if n_cases_L else None
     max_off = int(per_case.max()) if n_cases_L else 0
     multi_rows = [{"name": b, "n": _int(v), "share": _pct(v / n_cases_L * 100 if n_cases_L else 0)}
@@ -601,8 +602,8 @@ def compute(frames):
         ("catalog", ins_catalog(cat)),
     ]
     if top_q:
-        rules.append(("season", f"רבעון {top_q} היה הרבעון העמוס בכל אחת מהשנים "
-                                f"{season_years[0]} עד {season_years[-1]}."))
+        rules.append(("season", (f"רבעון {top_q} היה הרבעון העמוס בכל אחת מהשנים "
+                                f"{season_years[0]} עד {season_years[-1]}.")))
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     # ── labels / ledes
@@ -695,7 +696,7 @@ def compute(frames):
         lab["catalog_lede"] = (f"מילון העבירות מונה {_int(cat['total'])} עבירות ב-{_int(cat['groups'])} קבוצות "
                                f"ו-{_int(cat['types'])} סוגים. {_int(cat['sensitive'])} מהן מסומנות כרגישות: "
                                "מיקומן מוצג רק ברמת יישוב או מועצה אזורית, ולא ברמת אזור סטטיסטי.")
-        lab["catalog_aria"] = f"גרף עמודות מוערמות: מספר העבירות במילון בכל קבוצה, רגישות ושאינן רגישות."
+        lab["catalog_aria"] = "גרף עמודות מוערמות: מספר העבירות במילון בכל קבוצה, רגישות ושאינן רגישות."
     lab["dropped"] = (f"{_int(dropped)} רשומות ללא שנה, רבעון או מזהה תיק אינן נספרות." if dropped else "")
 
     temporal = f"{years[0]}/{years[-1]}" if years[0] != years[-1] else str(years[0])

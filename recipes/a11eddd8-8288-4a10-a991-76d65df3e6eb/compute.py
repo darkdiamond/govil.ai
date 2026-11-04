@@ -87,7 +87,7 @@ HIGH_ROWS = 10
 RECENT_ROWS = 12
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):
@@ -233,8 +233,8 @@ def insight_old_vs_new(df):
     pa = sorted(set(pend[AI]) & set(first.index))
     if len(ca) < 5 or len(pa) < 5:
         return None
-    yc = int(round(quant(first.loc[ca], 50)))
-    yp = int(round(quant(first.loc[pa], 50)))
+    yc = round(quant(first.loc[ca], 50))
+    yp = round(quant(first.loc[pa], 50))
     if yp - yc < 5:
         return None
     lead = ranked(canc.groupby(AI).size())

@@ -173,7 +173,7 @@ def compute(frames):
             vc = g["auth"].value_counts()
             vc = sorted(vc.items(), key=lambda kv: (-kv[1], kv[0]))
             lead = vc[0][0]
-        band_rows.append({"label": f"{lo_b:.2f}-{hi_b:.2f}", "lead": lead, "count": int(len(g)),
+        band_rows.append({"label": f"{lo_b:.2f}-{hi_b:.2f}", "lead": lead, "count": len(g),
                           "zone": zone_of(lo_b)})
     chart_lat = {"names": [f"{r['label']}°" + (f" ({r['lead']})" if r["lead"] else "") for r in band_rows],
                  "values": [r["count"] for r in band_rows],
@@ -232,7 +232,6 @@ def compute(frames):
     close_rival = int((close["company"] != close["nn_co"]).sum())
 
     # ---- KPIs -----------------------------------------------------------
-    max_iso = float(iso["nn"].iloc[0]) if len(iso) else 0.0
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "mapped": {"value": n_geo, "display": n(n_geo), "tone": "ok" if n_bad == 0 else "info"},

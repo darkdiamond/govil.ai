@@ -249,7 +249,7 @@ def compute(frames):
 
     sc = df.groupby("station").size().reset_index(name="n")
     station = sc.sort_values(["n", "station"], ascending=[False, True]).iloc[0]["station"]
-    total = int(len(df))
+    total = len(df)
     y0, y1 = int(df["y"].min()), int(df["y"].max())
     last_date = df["d"].max()
     years_present = sorted(int(y) for y in df["y"].unique())
@@ -392,7 +392,7 @@ def compute(frames):
             rows.append({
                 "label": f"שנות ה-{str(int(dec))[-2:]}" if dec < 2000 else f"{int(dec)}-{int(dec) + 9}",
                 "box": [rnd(lo), rnd(q[1]), rnd(q[2]), rnd(q[3]), rnd(hi)],
-                "n": int(len(g)), "median": fnum(q[2]),
+                "n": len(g), "median": fnum(q[2]),
                 "p5": fnum(lo), "p95": fnum(hi), "max": fnum(q[4]),
             })
         if len(rows) >= 2:
@@ -612,7 +612,7 @@ def compute(frames):
     labels = {
         "lede": lede,
         "method_note": method_note,
-        "years_note": (f"מספר המדידות בכל שנה לפי שיטת המדידה."
+        "years_note": ("מספר המדידות בכל שנה לפי שיטת המדידה."
                        + (f" אין מדידות בשנים {gaps_txt}." if missing else "")
                        + (f" שנת {y1} חלקית (עד {MONTHS_HE[last_date.month - 1]})." if last_partial else "")),
         "years_aria": (f"גרף עמודות מוערמות: מספר המדידות בכל שנה בין {y0} ל-{y1} לפי שיטת מדידה. "

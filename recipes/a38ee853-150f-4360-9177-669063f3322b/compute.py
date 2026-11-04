@@ -40,7 +40,7 @@ BUCKETS = [(1, 4), (5, 9), (10, 19), (20, 49), (50, 99), (100, None)]
 
 
 def _int(v) -> str:
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(v: float, digits: int = 1) -> str:
@@ -319,7 +319,7 @@ def compute(frames):
     for m in months:
         md = daily[daily.index.month == m]
         mdw = dow[md.index]
-        def med(sel):
+        def med(sel, md=md):
             s = md[sel.values]
             return round(float(s.median())) if len(s) else None
         monthly["weekday"].append(med(mdw.isin(WEEKDAYS)))

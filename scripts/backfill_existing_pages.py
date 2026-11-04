@@ -10,7 +10,6 @@ Run: python scripts/backfill_existing_pages.py
 from __future__ import annotations
 
 import asyncio
-import json
 import os
 import sys
 from pathlib import Path
@@ -26,7 +25,6 @@ from google.cloud import storage
 from services.page_builder.schema import ManifestEntry
 from services.scanner.client import CKANClient
 from services.scanner.config import ScannerSettings
-from services.scanner.models import DatasetStatus
 from services.shared.firestore import FirestoreStateStore
 
 STAGING_BUCKET = os.environ.get("GCS_STAGING_BUCKET", "govdata-il-staging")

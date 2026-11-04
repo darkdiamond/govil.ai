@@ -225,7 +225,7 @@ def insight_years(df):
 
 def compute(frames):
     df = _prepare(frames["rules"])
-    total = int(len(df))
+    total = len(df)
 
     by_domain = _ranked(df.groupby("domain").size())
     by_sub = _ranked(df.groupby(["domain", "sub"]).size())
@@ -238,7 +238,7 @@ def compute(frames):
     sub_label = {}
     for d, s in by_sub.index:
         sub_label[(d, s)] = f"{s} ({d})" if s in repeated else s
-    n_subs = int(len(by_sub))
+    n_subs = len(by_sub)
     n_subs_per_domain = df.groupby("domain")["sub"].nunique().to_dict()
 
     # ----- domain chart (pie) + table
@@ -343,7 +343,7 @@ def compute(frames):
             f"ו-{_int(n_subs)} תתי-תחומים (ענפים). "
             + ("לכל כלל מצורף קישור למסמך המלא באתר gov.il. " if n_linked == total
                else f"ל-{_int(n_linked)} מהם מצורף קישור למסמך המלא באתר gov.il. ")
-            + f"בעמוד: התפלגות הכללים לפי ענף וסוג, ומדריך מלא לכל המסמכים.")
+            + "בעמוד: התפלגות הכללים לפי ענף וסוג, ומדריך מלא לכל המסמכים.")
 
     labels = {
         "lede": lede,

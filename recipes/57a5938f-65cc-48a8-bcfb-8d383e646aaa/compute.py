@@ -17,7 +17,7 @@ LON_RANGE = (34.0, 36.0)
 R_KM = 6371.0088
 UNKNOWN = "לא צוין"
 OTHER = "אחר"
-LETTER_HOODS = set("א ב ג ד ה ו ז ח ט י יא יב יג יד טו".split())
+LETTER_HOODS = {"א", "ב", "ג", "ד", "ה", "ו", "ז", "ח", "ט", "י", "יא", "יב", "יג", "יד", "טו"}
 TOP_HOODS = 12
 MIX_HOODS = 10
 MIX_TYPES = 4          # makes shown individually in the mix chart (rest = אחר)
@@ -243,7 +243,7 @@ def compute(frames):
     sub = df[df["hood"].isin(mix_hoods)]
     hood_n = sub["hood"].value_counts()
     ct = pd.crosstab(sub["hood"], sub["type"])
-    mix_series, mix_rows = [], {h: [] for h in mix_hoods}
+    mix_series, _mix_rows = [], {h: [] for h in mix_hoods}
     for t in mix_types + [OTHER]:
         if t == OTHER:
             cols = [c for c in ct.columns if c not in mix_types]
@@ -266,7 +266,6 @@ def compute(frames):
     ux, uy = _xy_km(uniq, lat0)
     nn, sizes = _nearest_and_sites(ux, uy)
     finite = nn[np.isfinite(nn)]
-    median_nn = float(np.median(finite)) if len(finite) else 0.0
 
     if len(finite):
         b = np.minimum((finite // NN_BIN_M).astype(int), NN_BINS - 1)
@@ -300,8 +299,8 @@ def compute(frames):
             continue
         gx, gy = x[idx], y[idx]
         d = np.hypot(gx - np.median(gx), gy - np.median(gy)) * 1000
-        spread.append({"name": t, "count": int(len(idx)),
-                       "radius_m": int(round(float(np.median(d))))})
+        spread.append({"name": t, "count": len(idx),
+                       "radius_m": round(float(np.median(d)))})
     spread = sorted(spread, key=lambda r: (-r["count"], r["name"]))
     spread_chart = {"names": [r["name"] for r in spread],
                     "values": [r["radius_m"] for r in spread]}
@@ -356,7 +355,7 @@ def compute(frames):
         "type_note": "מספר הפחים לפי סוג המיכל (שם היצרן או הספק כפי שרשום במאגר).",
         "type_aria": f"תרשים עמודות אופקי: פחים לפי סוג, {len(tnames)} קבוצות.",
         "type_caption": "מספר הפחים הטמונים לפי סוג.",
-        "hood_note": (f"מספר הפחים בכל שכונה"
+        "hood_note": ("מספר הפחים בכל שכונה"
                       + (f"; {_int(TOP_HOODS)} הגדולות, והשאר מקובצות." if len(hoods) > TOP_HOODS else ".")),
         "hood_aria": f"תרשים עמודות אופקי: פחים לפי שכונה, {len(hnames)} קבוצות.",
         "hood_caption": "מספר הפחים הטמונים לפי שכונה.",

@@ -16,7 +16,7 @@ import pandas as pd
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 WEEKDAYS_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 TOP_CROPS = 15
@@ -233,7 +233,7 @@ def insight_season(df, fam_counts):
         for f in big:
             m = df.loc[df["fam"] == f, "month"]
             sh.append((f, float(m.isin(WINTER).mean()), float(m.isin(SUMMER).mean())))
-        (f1, w1, s1), (f2, w2, s2) = sh
+        (_f1, w1, _s1), (_f2, w2, _s2) = sh
         if abs(w1 - w2) >= 0.15:
             hi, lo = (sh[0], sh[1]) if w1 > w2 else (sh[1], sh[0])
             text += (f"; אך העונה תלויה בגידול — {pct(hi[1] * 100, 0)} מהיתרי ה{hi[0]} ניתנו "
@@ -538,7 +538,7 @@ def compute(frames):
                        f"באותה שנה.{partial_note}"),
         "years_aria": f"גרף עמודות מוערמות: היתרים לפי שנה ומחוז, {years[0]} עד {ref_year}, וקו מספר היישובים.",
         "years_caption": "היתרים ויישובים לפי שנה.",
-        "heat_note": (f"כל תא — מספר ההיתרים שתוקפם התחיל באותו חודש"
+        "heat_note": ("כל תא — מספר ההיתרים שתוקפם התחיל באותו חודש"
                       + (f", ב-{len(hy)} השנים האחרונות" if len(years) > HEAT_YEARS else "")
                       + f".{partial_note}"),
         "heat_aria": f"מפת חום: היתרים לפי שנה וחודש, {hy[0]} עד {ref_year}.",
@@ -561,7 +561,7 @@ def compute(frames):
         "dfam_caption": "היתרים לפי מחוז וקבוצת גידולים.",
         "window_aria": "תרשים עמודות מוערמות: היתרים לפי חודש וחלון שעות השריפה.",
         "window_caption": "היתרים לפי חודש וחלון שעות.",
-        "validity_note": (f"משך התוקף — מיום התחלת התוקף ועד יום סיומו, כולל."
+        "validity_note": ("משך התוקף — מיום התחלת התוקף ועד יום סיומו, כולל."
                           + (f" {n(bad_validity)} היתרים שתאריך הסיום שלהם קודם לתאריך ההתחלה "
                              f"אינם נכללים." if bad_validity else "")
                           + (f" מוצגות {VALIDITY_YEARS} השנים האחרונות." if len(years) > VALIDITY_YEARS else "")),

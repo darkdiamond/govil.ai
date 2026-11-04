@@ -46,7 +46,7 @@ PARTIAL_RATIO = 0.5
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=1):
@@ -79,8 +79,7 @@ def classify(name):
 
 def _is_total_row(name):
     low = name.lower()
-    return low in ("grand total", "total") or name.startswith("סה\"כ") or name.startswith("סה״כ") \
-        or name.startswith("סך הכל") or name.startswith("סך הכול")
+    return low in ("grand total", "total") or name.startswith(('סה"כ', "סה״כ", "סך הכל", "סך הכול"))
 
 
 def _matrix(df):

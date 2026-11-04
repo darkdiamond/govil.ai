@@ -18,19 +18,20 @@ pages still satisfy.)
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import json
-import hashlib
 import logging
 import os
 import re
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
@@ -69,6 +70,7 @@ def run_host_check(
         capture_output=True,
         text=True,
         timeout=60,
+        check=False,  # the exit code is reported below, with the output
     )
     if proc.returncode != 0:
         raise RuntimeError(
@@ -132,12 +134,12 @@ def _http_403_is_restriction(e: urllib_error.HTTPError) -> bool:
     """
     try:
         body = json.loads(e.read().decode("utf-8", errors="replace"))
-    except Exception:
+    except Exception:  # noqa: BLE001
         return True
     return _payload_is_authorization_error(body)
 
 
-def fetch_resource_preview(resource_id: str) -> Optional[dict]:
+def fetch_resource_preview(resource_id: str) -> dict | None:
     """Fetch fields + total + 5 sample rows for a CKAN resource.
 
     Returns ``{"fields": [{id,type}], "total": int, "sample_rows": [...]}``
@@ -156,8 +158,8 @@ def fetch_resource_preview(resource_id: str) -> Optional[dict]:
     )
     url = f"{_CKAN_DATASTORE_URL}?{qs}"
     req = urllib_request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
-    last_err: Optional[BaseException] = None
-    payload: Optional[dict] = None
+    last_err: BaseException | None = None
+    payload: dict | None = None
     for attempt in (1, 2):
         try:
             with urllib_request.urlopen(req, timeout=_PREFETCH_TIMEOUT_S) as resp:
@@ -222,8 +224,8 @@ class FetchOutcome:
     rows: int
     bytes: int
     mode: str                        # "full" | "sample"
-    sample_note: Optional[str] = None
-    via: Optional[str] = None        # "file" | "datastore" (fetch_resource_export)
+    sample_note: str | None = None
+    via: str | None = None        # "file" | "datastore" (fetch_resource_export)
 
 
 # Sequential export paging (`fetch_resource_records_to_file`): the first page
@@ -263,7 +265,7 @@ def _fetch_page(
     offset: int,
     limit: int,
     timeout: float,
-    fields: Optional[list[str]] = None,
+    fields: list[str] | None = None,
 ) -> tuple[list[str], list[dict]]:
     """One datastore_search page → (field ids sans _id, records). Raises on
     any HTTP/parse/success=false problem — callers decide the fallback.
@@ -298,7 +300,7 @@ class _CsvStreamWriter:
         self._max = max_bytes
         self.bytes = 0
         self.rows = 0
-        self._fields: Optional[list[str]] = None
+        self._fields: list[str] | None = None
 
     def write_page(self, fields: list[str], records: list[dict]) -> None:
         buf = io.StringIO()
@@ -332,8 +334,8 @@ def fetch_resource_records_to_file(
     deadline: float,
     sample_target_rows: int,
     prefer_sample: bool = False,
-    fields: Optional[list[str]] = None,
-) -> Optional[FetchOutcome]:
+    fields: list[str] | None = None,
+) -> FetchOutcome | None:
     """Datastore export for one resource, streamed to `dest` as UTF-8 CSV.
 
     Pages datastore_search host-side (same source of truth the agent would
@@ -419,7 +421,7 @@ def fetch_resource_records_to_file(
                 ) from None
             log.warning("data prefetch %s (full) failed: wall budget exceeded", resource_id[:8])
             return None
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             log.warning("data prefetch %s (full) failed: %s", resource_id[:8], e)
             dest.unlink(missing_ok=True)
             return None
@@ -441,7 +443,7 @@ def fetch_resource_records_to_file(
             return FetchOutcome(
                 rows=rows, bytes=nbytes, mode="sample", sample_note=note
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             log.warning("data prefetch %s (sample) failed: %s", resource_id[:8], e)
 
     dest.unlink(missing_ok=True)
@@ -488,7 +490,7 @@ def fetch_resource_file(
     max_bytes: int,
     timeout_s: float,
     deadline: float,
-    user_agent: Optional[str] = None,
+    user_agent: str | None = None,
 ) -> FileOutcome:
     """Download a resource's uploaded file (a map file, say) to `dest`.
 
@@ -609,7 +611,7 @@ def _file_rows(raw: Path, columns: list[str], encoding: str):
     """(header, iterator of non-blank data rows) of the raw file. The
     datastore loader trims headers; a column with no header must be empty.
     A wrong `encoding` raises UnicodeDecodeError while iterating."""
-    f = open(raw, encoding=encoding, newline="")
+    f = open(raw, encoding=encoding, newline="")  # noqa: SIM115 — rows() owns and closes it
     reader = csv.reader(f)
     try:
         header = [h.strip() for h in next(reader, None) or []]
@@ -693,7 +695,7 @@ def _matches_sample(sample: Any, value: str) -> bool:
 
 
 def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
-                   fields: Optional[list[str]], max_bytes: int,
+                   fields: list[str] | None, max_bytes: int,
                    probe: Callable[[int, str], Any], deadline: float) -> int:
     """Rewrite the downloaded CSV `raw` as the datastore export → `dest`:
     UTF-8 (BOM stripped), else Windows-1255. Returns the row count; raises
@@ -767,14 +769,14 @@ def _normalize_as(raw: Path, encoding: str, dest: Path, types: dict, cols: list[
 
 def fetch_resource_csv(
     resource: dict,
-    preview: Optional[dict],
+    preview: dict | None,
     total: int,
     dest: Path,
     *,
     max_bytes: int,
     deadline: float,
-    fields: Optional[list[str]] = None,
-) -> Optional[FetchOutcome]:
+    fields: list[str] | None = None,
+) -> FetchOutcome | None:
     """The resource's uploaded CSV → `dest`, normalized to exactly what the
     datastore export would have written. None when the file can't stand in
     for the export (not a CSV, no preview to check it against, blocked for
@@ -812,7 +814,7 @@ def fetch_resource_csv(
             raise
         log.info("fetch %s: file unusable (%s), using datastore", rid, e)
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         dest.unlink(missing_ok=True)
         log.info("fetch %s: file unusable (%s), using datastore", rid, e)
         return None
@@ -829,14 +831,14 @@ def fetch_resource_export(
     total: int,
     dest: Path,
     *,
-    resource: Optional[dict] = None,
-    preview: Optional[dict] = None,
+    resource: dict | None = None,
+    preview: dict | None = None,
     max_bytes: int,
     deadline: float,
-    fields: Optional[list[str]] = None,
+    fields: list[str] | None = None,
     page_size: int,
     **datastore_kw,
-) -> Optional[FetchOutcome]:
+) -> FetchOutcome | None:
     """Full export of one resource, same contract as
     `fetch_resource_records_to_file`. An input that fits one datastore page
     is one datastore_search call. A bigger one tries its uploaded file first
@@ -900,7 +902,7 @@ _CF_SCRIPT_TAG = re.compile(
 )
 
 
-def _decode_cfemail(hex_str: str) -> Optional[str]:
+def _decode_cfemail(hex_str: str) -> str | None:
     """Decode a Cloudflare `data-cfemail` hex string to a plain address."""
     try:
         raw = bytes.fromhex(hex_str)
@@ -987,7 +989,7 @@ _JS_CTRL_ESCAPES: dict[str, str] = {
     "\u2028": "\\u2028",
     "\u2029": "\\u2029",
 }
-for _i in list(range(0x00, 0x08)) + [0x0e, 0x0f] + list(range(0x10, 0x20)):
+for _i in list(range(0x08)) + [0x0e, 0x0f] + list(range(0x10, 0x20)):
     _JS_CTRL_ESCAPES.setdefault(chr(_i), f"\\u{_i:04x}")
 
 
@@ -1070,7 +1072,7 @@ def _escape_js_string_controls(script_body: str) -> tuple[str, int]:
 def _escape_script_string_controls(body: str, *, tag: str) -> str:
     total = 0
 
-    def handle(match: "re.Match[str]") -> str:
+    def handle(match: re.Match[str]) -> str:
         nonlocal total
         opener, inner, closer = match.group(1), match.group(2), match.group(3)
         # Skip data blocks (JSON-LD, application/json, etc.) — those aren't

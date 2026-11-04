@@ -38,7 +38,7 @@ HANDS_CAP = 10
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, d=1):
@@ -262,8 +262,8 @@ def compute(frames):
     o = _prep_owners(b)
     del b
 
-    n_veh = int(len(v))
-    n_own = int(len(o))
+    n_veh = len(v)
+    n_own = len(o)
     latest = v["reg"].max()
     first_year = int(v["ry"].min())
     last_year = int(latest.year)
@@ -334,7 +334,6 @@ def compute(frames):
             mix_series[t].append(round(sh * 100, 2))
             cells.append(_pct(sh))
         mix_table.append({"year": str(y), "total": _int(tot), "cells": cells})
-    own_type_tot = o["t"].value_counts()
 
     # ── per-vehicle ownership ──
     g = o.groupby("veh", sort=True)
@@ -420,9 +419,9 @@ def compute(frames):
         if share >= KM_COHORT_MIN_SHARE and len(kt):
             q = kt.quantile([0.25, 0.5, 0.75])
             km_chart["x"].append(str(y))
-            km_chart["p25"].append(int(round(q.iloc[0])))
-            km_chart["p50"].append(int(round(q.iloc[1])))
-            km_chart["p75"].append(int(round(q.iloc[2])))
+            km_chart["p25"].append(round(q.iloc[0]))
+            km_chart["p50"].append(round(q.iloc[1]))
+            km_chart["p75"].append(round(q.iloc[2]))
             tested_years.append(y)
             km_rows.append({"year": str(y), "share": _pct(share), "p25": _int(q.iloc[0]),
                             "p50": _int(q.iloc[1]), "p75": _int(q.iloc[2])})
@@ -440,7 +439,7 @@ def compute(frames):
         data = []
         for y in tested_years:
             if (y, name) in kq.index and kq.loc[(y, name), "size"] >= 500:
-                data.append(int(round(kq.loc[(y, name), "median"])))
+                data.append(round(kq.loc[(y, name), "median"]))
             else:
                 data.append(None)
         km_origin["series"].append({"name": name, "data": data})
@@ -516,7 +515,7 @@ def compute(frames):
         "records": {"value": n_own, "display": _int(n_own), "tone": "brand"},
         "avg_hands": {"value": round(avg_hands, 2), "display": f"{avg_hands:.2f}", "tone": "info"},
         "lease": {"value": round(lease_share * 100, 1), "display": _pct(lease_share), "tone": "brand"},
-        "km": {"value": int(round(km_median)), "display": _int(km_median), "tone": "brand"},
+        "km": {"value": round(km_median), "display": _int(km_median), "tone": "brand"},
         "ytd": ytd_kpi,
         "dealer": {"value": round(dealer_share_last * 100, 1), "display": _pct(dealer_share_last),
                    "tone": "brand"},
@@ -531,7 +530,7 @@ def compute(frames):
         ("dealer_share", insight_dealer(mix_years, [y for y in own_years if y < (own_years[-1] if partial else own_years[-1] + 1)])),
         ("still_first", insight_still_first(still_rows)),
         ("km_lease", insight_km(km_origin_rows)),
-        ("hands", insight_hands(hist, int(len(with_own)), max_hands)),
+        ("hands", insight_hands(hist, len(with_own), max_hands)),
         # The newest ownership month may be partial: keep it out of the dip search.
         ("dip", insight_dip({k: v for k, v in own_month.items() if k != max(own_month)}
                             if own_month else own_month)),
@@ -561,7 +560,7 @@ def compute(frames):
         "records_kpi": "רשומות בעלות",
         "avg_hands_kpi": "רשומות בעלות בממוצע לרכב",
         "lease_kpi": "רכבים שמקוריותם החכר (ליסינג)",
-        "km_kpi": f"חציון קילומטראז' במבחן האחרון (רכבים שעברו מבחן שנתי, ק\"מ)",
+        "km_kpi": "חציון קילומטראז' במבחן האחרון (רכבים שעברו מבחן שנתי, ק\"מ)",
         "ytd_kpi": ytd_label,
         "dealer_kpi": f"חלק הסוחרים ברשומות הבעלות ({own_years[-1]})" if own_years else "חלק הסוחרים",
         "reg_year_note": (f"מספר הרכבים הפרטיים שעדיין פעילים, לפי שנת העלייה לכביש. "
@@ -607,7 +606,7 @@ def compute(frames):
         "km_note": (f"הקילומטראז' שנמדד במבחן הרישוי האחרון, לפי שנת העלייה לכביש: חציון ורבעונים. "
                     f"מוצגות רק שנים שבהן {_pct(KM_COHORT_MIN_SHARE, 0)} מהרכבים לפחות רשומים עם "
                     f"{_int(KM_TESTED)} ק\"מ ומעלה; ברכבים חדשים יותר נרשמה רק בדיקת הרישום הראשונה."),
-        "km_aria": (f"תרשים קו עם רצועה: חציון הקילומטראז' במבחן האחרון לפי שנת עלייה לכביש. "
+        "km_aria": ("תרשים קו עם רצועה: חציון הקילומטראז' במבחן האחרון לפי שנת עלייה לכביש. "
                     + (f"ברכבים משנת {km_first['year']}: {km_first['p50']} ק\"מ." if km_first and km_first['p50'] else "")),
         "km_caption": "קילומטראז' במבחן האחרון לפי שנת עלייה לכביש (ק\"מ)",
         "km_origin_note": (f"חציון הקילומטראז' במבחן האחרון לפי שנת עלייה לכביש ומקוריות "

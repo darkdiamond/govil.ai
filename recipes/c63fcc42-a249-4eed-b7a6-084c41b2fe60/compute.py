@@ -32,7 +32,7 @@ ADDR_ORDER = ["רחוב ומספר בית", "רחוב, צומת או תיאור 
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -167,7 +167,6 @@ def compute(frames):
     tables["dist"] = {"headers": ["מרחק מהמרכז", "תחנות", "שיעור"],
                       "rows": [[l, fmt(v), pct(v / n_geo)] for l, v in zip(dl, dvals)] if n_geo else []}
     med_d = float(geo["d"].median()) if n_geo else 0.0
-    within_2k = int((geo["d"] < 2000).sum())
 
     # compass sector x brand (top brands + other)
     sb = [b for b in named["brand"].head(SECTOR_BRANDS)]
@@ -185,7 +184,7 @@ def compute(frames):
 
     # nearest-neighbour distance bands, split by same / other company
     nl = band_labels(NN_EDGES)
-    geo["nb"] = geo["nn"].map(lambda v: band_index(v, NN_EDGES) if v == v else -1)
+    geo["nb"] = geo["nn"].map(lambda v: band_index(v, NN_EDGES) if pd.notna(v) else -1)
     rival_v = [int(((geo["nb"] == i) & geo["rival"]).sum()) for i in range(len(NN_EDGES))]
     same_v = [int(((geo["nb"] == i) & ~geo["rival"]).sum()) for i in range(len(NN_EDGES))]
     charts["nnbands"] = {"names": nl, "rival": rival_v, "same": same_v}
@@ -202,7 +201,7 @@ def compute(frames):
         nn_sorted = geo
     top = nn_sorted.head(NN_TOP)
     charts["nn"] = {"names": [f"{a} ({b})" for a, b in zip(top["name"], top["brand"])],
-                    "values": [int(round(v)) for v in top["nn"]] if has_nn else []}
+                    "values": [round(v) for v in top["nn"]] if has_nn else []}
     tables["nn"] = {"headers": ["תחנה", "חברה", "התחנה הקרובה", "מרחק (מ׳)"],
                     "rows": [[a, b, c, fmt(d)] for a, b, c, d in
                              zip(top["name"], top["brand"], top["nn_name"], top["nn"])] if has_nn else []}
@@ -329,14 +328,14 @@ def compute(frames):
     labels = {
         "lede": lede,
         "map_note": "כל נקודה היא תחנת דלק או אתר בתכנון; לחיצה פותחת את שם התחנה, החברה והכתובת.",
-        "brand_note": (f"מספר התחנות הפעילות לכל חברה, כפי ששמה מופיע בקובץ (מותגים משולבים נספרים כקטגוריה אחת)."
+        "brand_note": ("מספר התחנות הפעילות לכל חברה, כפי ששמה מופיע בקובץ (מותגים משולבים נספרים כקטגוריה אחת)."
                        + (f" מוצגות {fmt(BRAND_TOP)} הגדולות, והשאר תחת ״{OTHER}״." if rest else "")),
         "sectors_note": (f"כמה תחנות פעילות נמצאות בכל כיוון ביחס למרכז החציון של התחנות, לפי חברה "
                          f"({fmt(len(sb))} החברות הגדולות, והשאר תחת ״{OTHER}״)."),
         "dist_note": f"מרחק כל תחנה פעילה ממרכז החציון של {fmt(n_geo)} התחנות; החציון {fmt(med_d)} מ׳.",
         "nnbands_note": (f"המרחק מכל תחנה פעילה לתחנה הפעילה הקרובה אליה, ואם זו שייכת לחברה אחרת או לאותה חברה. "
                          f"החציון {fmt(med_nn)} מ׳."),
-        "nn_note": (f"התחנות הפעילות הרחוקות ביותר מתחנה אחרת"
+        "nn_note": ("התחנות הפעילות הרחוקות ביותר מתחנה אחרת"
                     + (f" ({fmt(NN_TOP)} מתוך {fmt(n_geo)})" if n_geo > NN_TOP else "") + "."),
         "addr_note": f"עד כמה כתובות האתרים מפורטות, מתוך {fmt(n_sites)} אתרים (כולל אתרים בתכנון).",
         "list_note": (f"כל {fmt(n_sites)} האתרים לפי חברה ושם, עם התחנה הפעילה הקרובה ביותר."

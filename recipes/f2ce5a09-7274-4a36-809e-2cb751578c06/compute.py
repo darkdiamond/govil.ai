@@ -214,13 +214,13 @@ def compute(frames):
     city = frame.clean_series(df["city"])
     dt = _parse_dates(df["registration_date"])
     d = pd.DataFrame({"city": city.where(city != "", NO_CITY), "dt": dt})
-    total = int(len(d))
+    total = len(d)
     dated = d[d["dt"].notna()].copy()
     dated["year"] = dated["dt"].dt.year.astype(int)
     odd = _outlier_years(dated.groupby("year").size())
     odd_years = sorted(odd)
     dated = dated[~dated["year"].isin(odd)]
-    undated = total - int(len(dated))
+    undated = total - len(dated)
 
     # ---- years
     yc = dated.groupby("year").size()
@@ -255,7 +255,7 @@ def compute(frames):
     bucket_rows = []
     for lo, hi, label in CITY_BUCKETS:
         sel = cc[(cc >= lo) & ((cc <= hi) if hi is not None else True)]
-        bucket_rows.append({"label": label, "cities": int(len(sel)), "examiners": int(sel.sum())})
+        bucket_rows.append({"label": label, "cities": len(sel), "examiners": int(sel.sum())})
     for r in bucket_rows:
         r["city_share"] = round(100 * r["cities"] / n_cities, 1) if n_cities else 0.0
         r["ex_share"] = round(100 * r["examiners"] / total, 1) if total else 0.0
@@ -282,7 +282,7 @@ def compute(frames):
     for lo, hi, label in BATCH_BUCKETS:
         m = (size_of >= lo) & ((size_of <= hi) if hi is not None else True)
         batch_rows.append({"label": label, "n": int(m.sum())})
-    n_dated = int(len(dated))
+    n_dated = len(dated)
     for r in batch_rows:
         r["share"] = round(100 * r["n"] / n_dated, 1) if n_dated else 0.0
     batch_share = float((size_of >= BIG_BATCH).sum()) / n_dated if n_dated else 0.0
@@ -294,7 +294,7 @@ def compute(frames):
         ts = b["dt"]
         when = fmt.d_he(ts) if ts.day > 12 else f"{_pre('ב', ts.year)}"
         biggest = {"n": int(b["n"]), "when": when}
-    n_dates = int(len(per_date))
+    n_dates = len(per_date)
 
     # ---- city share shift: recent RECENT_YEARS full years vs earlier years
     shift = None

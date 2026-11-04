@@ -39,12 +39,11 @@ Growth: new localities, sub-districts and councils flow through; category
 axes are top-N or fixed band lists; the scatter keeps the MAX_SCATTER largest
 localities.
 """
-import math
 import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 BANDS = ["גיל_0_5", "גיל_6_18", "גיל_19_45", "גיל_46_55", "גיל_56_64", "גיל_65_פלוס"]
@@ -242,9 +241,9 @@ def insight_district(dist_rows):
     rows = [r for r in dist_rows if r["name"] != OTHER and r["total"] > 0]
     if len(rows) < 3:
         return None
-    young = sorted(rows, key=lambda r: (-r["kid_v"], D_IDX[r["name"]]))[0]
-    old = sorted(rows, key=lambda r: (-r["old_v"], D_IDX[r["name"]]))[0]
-    lo_kid = sorted(rows, key=lambda r: (r["kid_v"], D_IDX[r["name"]]))[0]
+    young = min(rows, key=lambda r: (-r["kid_v"], D_IDX[r["name"]]))
+    old = min(rows, key=lambda r: (-r["old_v"], D_IDX[r["name"]]))
+    lo_kid = min(rows, key=lambda r: (r["kid_v"], D_IDX[r["name"]]))
     if young["kid_v"] - lo_kid["kid_v"] < DISTRICT_GAP_PP:
         return None
     return (f"מחוז {young['name']} הוא הצעיר ביותר — {pct(young['kid_v'])} מתושביו בני 18 ומטה ורק "
@@ -277,8 +276,8 @@ def insight_youngest(rows):
 def insight_cities(rows):
     if len(rows) < 5:
         return None
-    hi = sorted(rows, key=lambda r: (-r["kid_v"], r["code"]))[0]
-    lo = sorted(rows, key=lambda r: (r["kid_v"], r["code"]))[0]
+    hi = min(rows, key=lambda r: (-r["kid_v"], r["code"]))
+    lo = min(rows, key=lambda r: (r["kid_v"], r["code"]))
     if hi["kid_v"] < 2 * lo["kid_v"]:
         return None
     return (f"בין {n(len(rows))} הישובים הגדולים הפער עצום: ב{hi['name']} {pct(hi['kid_v'])} מהתושבים "
@@ -290,8 +289,8 @@ def insight_size(size_rows):
     rows = [r for r in size_rows if r["count"] >= 10]
     if len(rows) < 3:
         return None
-    hi = sorted(rows, key=lambda r: (-r["old_v"], r["i"]))[0]
-    lo = sorted(rows, key=lambda r: (r["old_v"], r["i"]))[0]
+    hi = min(rows, key=lambda r: (-r["old_v"], r["i"]))
+    lo = min(rows, key=lambda r: (r["old_v"], r["i"]))
     if hi["old_v"] - lo["old_v"] < SIZE_GAP_PP:
         return None
     return (f"לפי גודל הישוב, שיעור בני 65 ומעלה הגבוה ביותר הוא בישובים של {hi['label']} תושבים "
@@ -409,7 +408,7 @@ def _change(snap, cur, cur_nat):
         "base_old_s": bp["old_s"], "base_kid_s": bp["kid_s"],
         "band_rows": rows, "growth_rows": growth_rows, "abs_top": abs_top,
         "n_new": len(new_codes), "n_gone": len(gone_codes), "new_pop": new_pop,
-        "n_matched": int(len(m)), "n_elig": int(len(elig)), "d_rows": d_rows,
+        "n_matched": len(m), "n_elig": len(elig), "d_rows": d_rows,
         "label_diff": rows[0]["label"] != rows[0]["label_old"],
     }
 
@@ -453,7 +452,7 @@ def compute(frames):
         w = _band_width(b)
         if w:
             dens.append({"i": i, "label": band_labels[i], "width": w,
-                         "per_year": int(round(nat["bands"][i] / w))})
+                         "per_year": round(nat["bands"][i] / w)})
     struct_rows = []
     for i, b in enumerate(BANDS):
         w = _band_width(b)
@@ -461,7 +460,7 @@ def compute(frames):
                             "share": f"{shares[i]:.1f}%",
                             "per_year": n(round(nat["bands"][i] / w)) if w else "—"})
     struct_chart = {"labels": band_labels, "counts": nat["bands"], "shares": shares,
-                    "per_year": [int(round(nat["bands"][i] / _band_width(b))) if _band_width(b) else None
+                    "per_year": [round(nat["bands"][i] / _band_width(b)) if _band_width(b) else None
                                  for i, b in enumerate(BANDS)]}
 
     # Districts — age mix.
@@ -533,7 +532,7 @@ def compute(frames):
         if not len(sub):
             continue
         p = _pool(sub)
-        size_rows.append({"i": i, "label": _size_label(lo, hi), "count": int(len(sub)), "total": p["total"],
+        size_rows.append({"i": i, "label": _size_label(lo, hi), "count": len(sub), "total": p["total"],
                           "kid_v": r1(p["kid_s"]), "old_v": r1(p["old_s"]),
                           "kid": f"{p['kid_s']:.1f}%", "old": f"{p['old_s']:.1f}%",
                           "pop_share": f"{p['total'] / nat['total'] * 100:.1f}%"})
@@ -562,8 +561,8 @@ def compute(frames):
     for c, sub in df[df["in_council"]].groupby("council", sort=True):
         p = _pool(sub)
         crow.append({"name": c, "old_v": p["old_s"], "kid_v": p["kid_s"], "total": p["total"]})
-    c_old = sorted(crow, key=lambda r: (-r["old_v"], r["name"]))[0] if crow else None
-    c_young = sorted(crow, key=lambda r: (-r["kid_v"], r["name"]))[0] if crow else None
+    c_old = min(crow, key=lambda r: (-r["old_v"], r["name"])) if crow else None
+    c_young = min(crow, key=lambda r: (-r["kid_v"], r["name"])) if crow else None
 
     # Scatter.
     sc = by_t[by_t["total"] >= MIN_POP_SCATTER].head(MAX_SCATTER)
@@ -574,7 +573,7 @@ def compute(frames):
             scatter.append({"name": d, "ci": D_IDX[d],
                             "data": [[r1(k), r1(o), int(t), nm] for k, o, t, nm in
                                      zip(sub["kid_s"], sub["old_s"], sub["total"], sub["name"])]})
-    n_scatter = int(len(sc))
+    n_scatter = len(sc)
 
     # Change since the archive snapshot.
     ch = _change(frames.get("snapshot"), df, nat)
@@ -628,8 +627,8 @@ def compute(frames):
     ph_t = (f" שורת ״לא רשום״ ({n(ph['total'])} תושבים ללא ישוב) אינה נכללת בנתוני הישובים." if ph else "")
     bad_t = (f" {n(n_bad)} שורות עם ערך חסר או לא תקין הושמטו." if n_bad else "")
     first_d, mid_d = (dens[0], max(dens[1:], key=lambda r: (r["width"], -r["i"]))) if len(dens) >= 2 else (None, None)
-    young_d = sorted(dist_rows, key=lambda r: (-r["kid_v"], D_IDX[r["name"]]))[0] if dist_rows else None
-    old_d = sorted(dist_rows, key=lambda r: (-r["old_v"], D_IDX[r["name"]]))[0] if dist_rows else None
+    young_d = min(dist_rows, key=lambda r: (-r["kid_v"], D_IDX[r["name"]])) if dist_rows else None
+    old_d = min(dist_rows, key=lambda r: (-r["old_v"], D_IDX[r["name"]])) if dist_rows else None
     top_nafa = nafa_rows[0] if nafa_rows else None
     low_nafa = nafa_rows[-1] if nafa_rows else None
     c_hi = cities_sorted[0] if cities_sorted else None
@@ -645,7 +644,7 @@ def compute(frames):
                  f"בחו״ל, ולכן המספרים שונים מאומדני הלשכה המרכזית לסטטיסטיקה.{ph_t}{bad_t}"),
         "total_kpi": "תושבים רשומים בישובים",
         "localities_kpi": "ישובים ברשימה",
-        "kids_kpi": f"בני 18 ומטה (אחוז מהתושבים)",
+        "kids_kpi": "בני 18 ומטה (אחוז מהתושבים)",
         "old_kpi": f"בני {lab['old_band']} (אחוז מהתושבים)",
         "dep_kpi": f"יחס תלות: צעירים ומבוגרים לכל 100 בני {lab['work_band']}",
         "growth_kpi": "שינוי במספר התושבים מאז קובץ הארכיון",

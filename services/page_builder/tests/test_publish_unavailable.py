@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from services.shared.firestore import SourceRecord
 from services.page_builder import publish
+from services.shared.firestore import SourceRecord
 
 
 def _src(sid: str, status: str, since: datetime | None) -> SourceRecord:
@@ -20,7 +20,7 @@ def _src(sid: str, status: str, since: datetime | None) -> SourceRecord:
         resources=[{"id": "rid-1", "format": "CSV",
                     "url": "https://data.gov.il/dataset/x/resource/rid-1/download/x.csv"}],
         record_count=10,
-        metadata_modified=datetime(2026, 5, 1, tzinfo=timezone.utc),
+        metadata_modified=datetime(2026, 5, 1, tzinfo=UTC),
         analysis_status=status,
         unavailable_since=since,
         agent_data={"summary_he": "ס", "dataset_kind": "registry", "related_ids": [], "version": 1},
@@ -28,7 +28,7 @@ def _src(sid: str, status: str, since: datetime | None) -> SourceRecord:
 
 
 def test_unavailable_source_is_published_with_flag(tmp_path: Path, monkeypatch):
-    since = datetime(2026, 7, 20, tzinfo=timezone.utc)
+    since = datetime(2026, 7, 20, tzinfo=UTC)
     records = [
         _src("alive-1", "succeeded", None),
         _src("dead-1", "unavailable", since),

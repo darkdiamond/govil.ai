@@ -34,7 +34,7 @@ MIN_PROF = 3
 PROF_COLORS = ["#0068f5", "#0b3668", "#6c9fd8", "#3d70b0", "#b7d2f7", "#2658a0"]
 OTHER_COLOR = "#6c757d"
 OTHER_PROF = "תחומים אחרים"
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 NATIONAL = "ארצי"
 OTHER = "אחר"
 UNKNOWN = "לא צוין"
@@ -71,7 +71,7 @@ def pct(v, digits=0):
 
 
 def ils(v):
-    return f"{int(round(v)):,} ₪"
+    return f"{round(v):,} ₪"
 
 
 def _ranked(s):
@@ -371,7 +371,7 @@ def compute(frames):
     inst = ex["employer"]
     inst_valid = inst[(inst != "") & ~inst.str.fullmatch(r"[א-ת]+ית")]
     inst_counts = _ranked(inst_valid.value_counts())
-    n_inst = int(len(inst_valid))
+    n_inst = len(inst_valid)
     top_i = list(inst_counts.index[:TOP_INST])
     rest_i = int(inst_counts.iloc[TOP_INST:].sum())
 
@@ -379,8 +379,6 @@ def compute(frames):
     fees = ex["payment"].map(parse_fee)
     ex["rate"] = fees.map(lambda f: f[0])
     ex["op"] = fees.map(lambda f: f[1])
-    n_fee_text = int((ex["payment"] != "").sum())
-    n_parsed = int(sum(1 for r, o in fees if r is not None or o is not None))
     rates = [float(v) for v in ex["rate"] if v is not None and not pd.isna(v)]
     ops = [float(v) for v in ex["op"] if v is not None and not pd.isna(v)]
     box_rows = []
@@ -492,7 +490,7 @@ def compute(frames):
     if dup_listings:
         excl.append(f"מומחה הרשום בכמה כתובות נספר פעם אחת ({n(dup_listings)} רישומים כפולים)")
     excl_txt = ("; ".join(excl) + ".") if excl else ""
-    opinion_txt = (f" כל המומחים ברשימה מסומנים כנותני חוות דעת." if n_opinion == total
+    opinion_txt = (" כל המומחים ברשימה מסומנים כנותני חוות דעת." if n_opinion == total
                    else f" {n(n_opinion)} מהם מסומנים כנותני חוות דעת.")
     labels = {
         "lede": (f"רשימת המומחים שיחידות הסיוע של משרד הרווחה מעמידות לרשות בתי המשפט לענייני משפחה: "

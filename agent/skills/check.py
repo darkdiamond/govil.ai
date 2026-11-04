@@ -124,7 +124,7 @@ _SAFE_HANDLER_RE = re.compile(
 
 # (rule, pattern, actionable fix). HTML-level rules are case-insensitive
 # (HTML is); JS-API rules are case-sensitive (JS is — `EVAL(` is not eval).
-_SEC_HTML_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
+_SEC_HTML_RULES: list[tuple[str, re.Pattern[str], str]] = [
     (
         "EMBEDDED-DOCUMENT",
         re.compile(
@@ -132,39 +132,39 @@ _SEC_HTML_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
             r"|\ssrcdoc\s*=",
             re.IGNORECASE,
         ),
-        "content.html is a body fragment rendered inside govil.ai — no "
+        ("content.html is a body fragment rendered inside govil.ai — no "
         "<iframe>/<frame>/<object>/<embed>/<base>/<meta> or srcdoc=. Remove "
         "the element; if you want to point at a source page, use a normal "
-        '<a href="https://…" target="_blank" rel="noopener"> link.',
+        '<a href="https://…" target="_blank" rel="noopener"> link.'),
     ),
     (
         "FORM",
         re.compile(r"<form\b|\sformaction\s*=", re.IGNORECASE),
-        "no <form> elements — the page must never submit data anywhere. If "
+        ("no <form> elements — the page must never submit data anywhere. If "
         "you need a filter control, use a bare <input>/<select>/<button> "
-        "wired with addEventListener inside your <script>.",
+        "wired with addEventListener inside your <script>."),
     ),
     (
         "SCRIPT-URL",
         re.compile(r"(?:java|vb)script\s*:|data\s*:\s*text/html", re.IGNORECASE),
-        "no javascript:/vbscript:/data:text/html URLs anywhere (href, src, "
+        ("no javascript:/vbscript:/data:text/html URLs anywhere (href, src, "
         "strings). Links must be plain https:// URLs; behaviour goes in "
-        "your <script> via addEventListener.",
+        "your <script> via addEventListener."),
     ),
     (
         "INLINE-HANDLER",
         re.compile(r"<[a-z][^<>]*?[\s\"'/]on[a-z]+\s*=", re.IGNORECASE),
-        "no inline on*= event-handler attributes (onclick, onload, "
+        ("no inline on*= event-handler attributes (onclick, onload, "
         "onmouseover, …). Give the element an id and attach the handler "
         "with addEventListener inside your <script>. (The only allowed "
         "forms: onerror=\"this.style.display='none'\" on an <img>, and a "
-        "data.gov.il window.open onclick.)",
+        "data.gov.il window.open onclick.)"),
     ),
     (
         "SCRIPT-MODULE",
         re.compile(r"<script\b[^>]*\btype\s*=\s*[\"']?\s*module", re.IGNORECASE),
-        "no <script type=\"module\"> — use a plain <script> (IIFE). Every "
-        "library you may use is already a page global (echarts, L, GovMap).",
+        ("no <script type=\"module\"> — use a plain <script> (IIFE). Every "
+        "library you may use is already a page global (echarts, L, GovMap)."),
     ),
     (
         "EXTERNAL-RESOURCE",
@@ -173,13 +173,13 @@ _SEC_HTML_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
             r"|<image\b|\sxlink:href\s*=",
             re.IGNORECASE,
         ),
-        "no external resource loads from CSS or markup (@import, url(http…), "
+        ("no external resource loads from CSS or markup (@import, url(http…), "
         "ping=, srcset=, SVG <image>/xlink:href). Icons come from /icons/*.svg "
-        "via a plain <img src>.",
+        "via a plain <img src>."),
     ),
 ]
 
-_SEC_JS_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
+_SEC_JS_RULES: list[tuple[str, re.Pattern[str], str]] = [
     (
         "NETWORK-API",
         re.compile(
@@ -188,19 +188,19 @@ _SEC_JS_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
             r"|\bnew\s+Image\b|\.src\s*=(?!=)"
             r"|\bsetAttribute\s*\(\s*['\"`]\s*(?:src|href|srcdoc|on\w+)\b"
         ),
-        "page scripts must not make network requests or create loading "
+        ("page scripts must not make network requests or create loading "
         "elements (fetch, XMLHttpRequest, WebSocket, sendBeacon, new Image, "
         ".src =, setAttribute('src'…)). All data must be computed in Python "
-        "at build time and inlined as a literal in the <script>.",
+        "at build time and inlined as a literal in the <script>."),
     ),
     (
         "STORAGE-API",
         re.compile(
             r"\bdocument\s*\.\s*cookie\b|\b(?:localStorage|sessionStorage|indexedDB)\b"
         ),
-        "page scripts must not touch document.cookie, localStorage, "
+        ("page scripts must not touch document.cookie, localStorage, "
         "sessionStorage or indexedDB — a dataset page keeps no state. "
-        "Remove that code.",
+        "Remove that code."),
     ),
     (
         "DYNAMIC-CODE",
@@ -214,12 +214,12 @@ _SEC_JS_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
             r"|\bdocument\s*\.\s*write(?:ln)?\s*\(|\binsertAdjacentHTML\b"
             r"|\bpostMessage\b|\bdocument\s*\.\s*domain\b"
         ),
-        "no dynamic code or script injection (eval, new Function, import(), "
+        ("no dynamic code or script injection (eval, new Function, import(), "
         "string setTimeout, createElement('script'), window['…'], "
         "globalThis, .constructor, self/top/parent/document[…], "
         "document.write, insertAdjacentHTML, postMessage). Write the chart "
         "code directly as plain JavaScript; for tables use createElement + "
-        "textContent.",
+        "textContent."),
     ),
     (
         "NAVIGATION",
@@ -229,9 +229,9 @@ _SEC_JS_RULES: list[tuple[str, "re.Pattern[str]", str]] = [
             r"|(?<![\w.$])location\s*\.\s*(?:assign|replace)\s*\("
             r"|\bwindow\s*\.\s*open\s*\("
         ),
-        "page scripts must never navigate or open windows (location =, "
+        ("page scripts must never navigate or open windows (location =, "
         "location.href/assign/replace, window.open). Use a normal "
-        '<a href="https://…" target="_blank" rel="noopener"> link.',
+        '<a href="https://…" target="_blank" rel="noopener"> link.'),
     ),
 ]
 
@@ -329,7 +329,7 @@ def check_js_tokens(body: str) -> None:
             continue
         try:
             tokens = _esprima.tokenize(src, {"range": True})
-        except Exception:
+        except Exception:  # noqa: BLE001, S112
             continue  # unparseable — JS-SYNTAX reports it
         for t in tokens:
             if t.type not in ("Identifier", "Keyword"):
@@ -357,7 +357,7 @@ def check_js_tokens(body: str) -> None:
                 )
 
 
-def fail(msg: str, code: int = 1) -> "None":
+def fail(msg: str, code: int = 1) -> None:
     print(msg)
     sys.exit(code)
 
@@ -557,7 +557,7 @@ _HEB_ADJACENT_QUOTE_RE = re.compile("[\u05d0-\u05ea][\"']")
 _RAW_CTRL_IN_JS_RE = re.compile("[\"'][^\"'\\n\\r]*[\\n\\r\u2028\u2029]")
 
 
-def _js_syntax_hint(src: str, idx: "int | None") -> str:
+def _js_syntax_hint(src: str, idx: int | None) -> str:
     # Name the likely cause so RETRY_FEEDBACK gives the next attempt
     # something to act on, not just a parser position. Replaces the
     # per-shape rules this gate absorbed (JS-BALANCE, GERESH-IN-SQ-STR,
@@ -608,7 +608,7 @@ def check_js_parses(body: str) -> None:
             continue
         try:
             _esprima.parseScript(src)
-        except Exception as exc:  # esprima.Error, plus tokenizer surprises
+        except Exception as exc:  # esprima.Error, plus tokenizer surprises  # noqa: BLE001
             idx = getattr(exc, "index", None)
             idx = idx if isinstance(idx, int) else None
             where = "" if idx is None else f" near {src[max(0, idx - 60):idx + 20]!r}"
@@ -685,7 +685,7 @@ def check_json_parse_literals(blocks: list[str]) -> None:
             raw = m.group(1) if m.group(1) is not None else m.group(2)
             try:
                 json.loads(_js_unescape(raw))
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 fail(
                     f"JSON-ESCAPE: <script> block #{i} calls JSON.parse on a "
                     "string literal whose JS-unescaped text is not valid JSON "

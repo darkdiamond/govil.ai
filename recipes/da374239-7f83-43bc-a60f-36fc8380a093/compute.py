@@ -22,7 +22,7 @@ import math
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -113,7 +113,7 @@ LAG_GROUPS = [(365, "עד שנה"), (1826, "שנה עד חמש שנים"), (None
 
 # ---------------------------------------------------------------- helpers
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def pct(v, digits=1):
@@ -439,7 +439,7 @@ def compute(frames):
             sec_files = files[files["court"] == sec]
             if len(sec_files):
                 rc = sec_files["region"].value_counts()
-                top_r = sorted(rc.index, key=lambda r: (-int(rc[r]), r))[0]
+                top_r = min(rc.index, key=lambda r: (-int(rc[r]), r))
                 r_share = int(rc[top_r]) / len(sec_files)
                 tail = ""
                 if top_r != OTHER_REGION and r_share >= 0.8:
@@ -556,7 +556,7 @@ def compute(frames):
 
     regions_list = [r for r in regions_present if r != OTHER_REGION]
     def in_(r):
-        return r[1:] if r.startswith("ה") else r
+        return r.removeprefix("ה")
     if len(regions_list) > 1:
         regions_phrase = ("ב" + ", ב".join(in_(r) for r in regions_list[:-1])
                           + " וב" + in_(regions_list[-1]))
@@ -573,12 +573,12 @@ def compute(frames):
     monthly_note = (f"מספר ההודעות שפורסמו בכל חודש, לפי בית הדין. בחציון {med_month:.0f} הודעות "
                     f"בחודש; החודש האחרון ({MONTHS_HE[lm.month - 1]} {lm.year}) כולל פרסומים עד "
                     f"{d_he(last)}.")
-    years_note = (f"הודעות לפי שנת פרסום ובית דין."
+    years_note = ("הודעות לפי שנת פרסום ובית דין."
                   + (f" {last_year} חלקית — עד {d_he(last)}: {n(ytd)} הודעות, לעומת {n(prev_ytd)} "
                      f"בתקופה המקבילה אשתקד." if year_partial and prev_ytd else ""))
     weekday_note = (f"באיזה יום בשבוע מתפרסמות ההודעות. {n(n_batches)} מועדי פרסום; "
                     f"בחציון {batch_med:.0f} הודעות במועד, ובמועד הגדול ביותר {n(batch_max)}.")
-    map_note = (f"כל עיגול הוא יישוב מגוריו של הנפטר; גודלו לפי מספר התיקים."
+    map_note = ("כל עיגול הוא יישוב מגוריו של הנפטר; גודלו לפי מספר התיקים."
                 + (f" {n(n_other_place)} תיקים מיישובים שלא זוהו אינם מוצגים במפה."
                    if n_other_place else ""))
     places_note = (f"תיקי עזבון לפי יישוב המגורים של הנפטר ({n(TOP_PLACES)} המובילים), "
@@ -621,7 +621,7 @@ def compute(frames):
         "map_aria": "מפה אינטראקטיבית של יישובי הנפטרים לפי מספר תיקי העזבון. גרסה נגישה: ראו טבלה למטה.",
         "regions_caption": "תיקי עזבון לפי אזור",
         "places_note": places_note,
-        "places_aria": (f"גרף עמודות אופקי: תיקי עזבון לפי יישוב. "
+        "places_aria": ("גרף עמודות אופקי: תיקי עזבון לפי יישוב. "
                         + (f"בראש: {known_places[0]} עם {n(p_ct[known_places[0]])} תיקים."
                            if known_places else "")),
         "places_caption": "תיקי עזבון לפי יישוב",
@@ -633,7 +633,7 @@ def compute(frames):
         "lag_year_aria": "גרף עמודות מוערמות באחוזים: חלוקת הבקשות לפי הזמן מהפטירה בכל שנת פרסום.",
         "lag_year_caption": "הזמן מהפטירה לפי שנת פרסום",
         "death_note": death_note,
-        "death_aria": (f"גרף עמודות: תיקי עזבון לפי שנת הפטירה. "
+        "death_aria": ("גרף עמודות: תיקי עזבון לפי שנת הפטירה. "
                        + (f"השנה הבולטת: {top_dy} עם {n(dyc.get(top_dy, 0))} תיקים; "
                           f"{n(older)} תיקים על פטירות לפני {cut}." if top_dy else "")),
         "death_caption": "תיקים לפי שנת הפטירה",

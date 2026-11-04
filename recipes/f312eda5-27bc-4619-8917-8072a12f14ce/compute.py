@@ -30,7 +30,7 @@ LEADER_SHARE = 0.10        # a "leading locality" holds at least this share
 RANKS = [1, 3, 5, 10, 20, 50, 100, 200]
 BUCKETS = [(1, 1, "רב אחד"), (2, 4, "2-4 רבנים"), (5, 9, "5-9 רבנים"),
            (10, 49, "10-49 רבנים"), (50, None, "50 רבנים ומעלה")]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 ABROAD_WORDS = [
     'ארה"ב', "ארצות הברית", "צרפת", "פריז", "לונדון", "אנגליה", "הולנד",
@@ -129,7 +129,7 @@ def compute(frames):
 
     # ---- localities ------------------------------------------------------
     city_counts = il.groupby("key").size()
-    n_loc = int(len(city_counts))
+    n_loc = len(city_counts)
     city_items, c_names, c_vals = _top(city_counts, TOP_CITIES, "אחר ({n} יישובים)")
     leader, leader_n = city_items[0]
     second, second_n = city_items[1] if len(city_items) > 1 else ("", 0)
@@ -138,8 +138,8 @@ def compute(frames):
     multi_spelled = int((raw_variants > 1).sum())
     spell_example = ""
     if multi_spelled:
-        top_var = sorted(((k, int(raw_variants[k]), int(city_counts[k])) for k in raw_variants.index
-                          if raw_variants[k] > 1), key=lambda t: (-t[2], t[0]))[0][0]
+        top_var = min(((k, int(raw_variants[k]), int(city_counts[k])) for k in raw_variants.index
+                          if raw_variants[k] > 1), key=lambda t: (-t[2], t[0]))[0]
         vs = il[il["key"] == top_var]["city_raw"].value_counts()
         vs = sorted(vs.items(), key=lambda kv: (-kv[1], kv[0]))
         spell_example = f"{vs[0][0]} ו{vs[1][0]}"
@@ -182,7 +182,7 @@ def compute(frames):
     s_names, s_vals = s_names[:TOP_NAMES], s_vals[:TOP_NAMES]
     chart_surnames = {"names": s_names, "values": s_vals}
     tbl_surnames = [{"name": a, "count": n(b)} for a, b in zip(s_names, s_vals)]
-    n_surnames = int(len(sur_counts))
+    n_surnames = len(sur_counts)
     n_cohen = int(named_last["last"].isin(COHEN).sum())
     n_levi = int(named_last["last"].isin(LEVI).sum())
     unique_sur = int((sur_counts == 1).sum())

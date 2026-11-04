@@ -261,7 +261,7 @@ def compute(frames):
     split_counts = _sorted_counts(splits["split"])
     split_rows = []
     for sp, v in split_counts.items():
-        yrs = sorted(set(y for y in splits.loc[splits["split"] == sp, "split_year"] if y))
+        yrs = sorted({y for y in splits.loc[splits["split"] == sp, "split_year"] if y})
         yr = yrs[0] if len(yrs) == 1 else f"{yrs[0]}-{yrs[-1]}"
         split_rows.append({"name": sp, "value": int(v), "years": yr})
 
@@ -567,8 +567,8 @@ def compute(frames):
                              if not pair.empty else "")),
             "cont_aria": (f"גרף עמודות כפולות: מספר הארצות בכל יבשת לפי רשות האוכלוסין ולפי הגיאוגרפיה. "
                           f"{_int(len(mism))} ארצות שונות בין השתיים."),
-            "sys_lede": (f"כל ארץ נושאת קוד לפי התקן הישראלי; לא לכולן יש גם קוד של רשות האוכלוסין "
-                         f"או סמל או״ם, ולכן חשוב לבחור את מערכת הקוד הנכונה בעת חיבור מערכות."),
+            "sys_lede": ("כל ארץ נושאת קוד לפי התקן הישראלי; לא לכולן יש גם קוד של רשות האוכלוסין "
+                         "או סמל או״ם, ולכן חשוב לבחור את מערכת הקוד הנכונה בעת חיבור מערכות."),
             "sys_aria": (f"גרף עמודות: {_int(n_countries)} הארצות לפי מערכות הקוד שבהן הן מופיעות. "
                          f"{_int(sys_rows[0]['value']) if sys_rows else '0'} {sys_rows[0]['name'] if sys_rows else ''}."),
             "splits_lede": (f"{_int(len(splits))} ארצות מסומנות כנגזרות מישות קודמת ברשות האוכלוסין, "
@@ -596,8 +596,8 @@ def compute(frames):
                             f"נרשמת במרשם: רח, שכ, שד, סמ ועוד."),
             "stypes_aria": (f"גרף עמודות אופקי: שמות הרחובות לפי סוג הדרך שמופיע בשם. "
                             f"הנפוץ: {stype_rows[0]['name'] if stype_rows else ''} ({stype_rows[0]['share'] if stype_rows else ''})."),
-            "snames_lede": (f"השמות שחוזרים הכי הרבה פעמים במילון (שמות ללא קידומת סוג). כל יישוב רושם את רחובותיו "
-                            f"בנפרד, ולכן שם נפוץ מופיע פעם אחת בכל יישוב שבו הוא קיים."),
+            "snames_lede": ("השמות שחוזרים הכי הרבה פעמים במילון (שמות ללא קידומת סוג). כל יישוב רושם את רחובותיו "
+                            "בנפרד, ולכן שם נפוץ מופיע פעם אחת בכל יישוב שבו הוא קיים."),
             "snames_aria": (f"גרף עמודות אופקי: {_int(len(sname_rows))} שמות הרחובות הנפוצים. "
                             f"המוביל: {sname_rows[0]['name'] if sname_rows else ''} עם {_int(sname_rows[0]['value']) if sname_rows else '0'} הופעות."),
             "prof_lede": (f"{_int(n_prof)} מקצועות לימוד מקובצים לפי תחומי לימודים. "

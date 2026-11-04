@@ -19,7 +19,6 @@ Regions come from the spring id: its leading digits (all but the last three)
 are the Hydrological Service drainage-basin code. Known codes map to a broad
 region; unknown codes fall into "אזורים אחרים".
 """
-import math
 import re
 
 import pandas as pd

@@ -22,7 +22,7 @@ LATEST_N = 10                      # newest term numbers table
 APPELL_MAX = 20                    # appellation-of-origin table cap
 MIN_CLASS_ROWS = 500               # min wordings for a class to lead a rate rule
 VARIANT_BUCKETS = [(1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 9), (10, None)]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 SRC_INTL = "GMS"
 SRC_IL = "מחלקת סימני מסחר"

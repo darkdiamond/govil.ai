@@ -39,7 +39,7 @@ _TOKEN_RE = re.compile(r"[א-ת\"״׳'/]+")
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _ils(n):
@@ -277,7 +277,7 @@ def compute(frames):
         q = s.quantile([0, 0.25, 0.5, 0.75, 1.0]).tolist()
         box.append([round(float(v), 1) for v in q])
         fam_rows.append({
-            "family": f, "n_items": int(len(s)),
+            "family": f, "n_items": len(s),
             "subjects": int(df[df["family"] == f]["subject"].nunique()),
             "min": _int(q[0]), "median": _int(q[2]), "max": _int(q[4]),
         })
@@ -296,7 +296,7 @@ def compute(frames):
     kind_med = [round(float(v), 1) for v in top_k["median"]]
     if len(rest):
         kind_names.append("אגרות אחרות")
-        kind_counts.append(int(len(rest)))
+        kind_counts.append(len(rest))
         kind_med.append(round(float(rest["fee"].median()), 1))
     top_kind = kinds.index[0] if len(kinds) else None
     top_kind_n = int(kinds["size"].iloc[0]) if len(kinds) else 0
@@ -320,7 +320,7 @@ def compute(frames):
             })
         lookup.append({
             "family": f,
-            "n_items": int(len(sub)),
+            "n_items": len(sub),
             "subjects": len(groups),
             "range": (f"{_int(sub['fee'].min())}–{_int(sub['fee'].max())}"
                       if sub["fee"].min() != sub["fee"].max()
@@ -346,7 +346,7 @@ def compute(frames):
         shares = [(mix[BANDS[2]][i] / fam_rows[i]["n_items"], fams[i])
                   for i in range(len(fams)) if fam_rows[i]["n_items"] >= 3]
         if shares:
-            mix_lead = sorted(shares, key=lambda t: (-t[0], t[1]))[0]
+            mix_lead = min(shares, key=lambda t: (-t[0], t[1]))
 
     meta = (f"איתור אגרת בית הדין הרבני לפי סוג ההליך: {_int(n)} סעיפי אגרה "
             f"ב-{_int(len(subjects))} נושאי תביעה, מ-{_int(mn)} ועד {_ils(mx)}; "

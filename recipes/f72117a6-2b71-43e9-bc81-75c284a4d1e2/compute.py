@@ -63,7 +63,7 @@ WET_MIN_STATIONS = 30  # stations with a peak needed to rank a year
 # ── formatting ───────────────────────────────────────────────────────────
 
 def _int(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _q(v):
@@ -338,7 +338,7 @@ def compute(frames):
 
     # Latest hydrological year: complete if readings reach September.
     last_t = d.loc[d["hy"] == hy_max, "t"].max()
-    latest_partial = not (last_t.month == 9)
+    latest_partial = last_t.month != 9
     latest_full = hy_max - 1 if latest_partial else hy_max
 
     # Active stations per year.
@@ -402,7 +402,7 @@ def compute(frames):
     sew_days = sew_days[sew_days >= 1].sort_index().sort_values(ascending=False, kind="mergesort")
     sew_top = sew_days.head(TOP_N)
     sew_share = {n: float(sew_days[n]) / float(st_tot[n]) for n in sew_top.index}
-    n_sew_stations = int(len(sew_days))
+    n_sew_stations = len(sew_days)
     n_sew_ever = int(dur.loc[dur["cls"] == SEWAGE, "name"].nunique())
 
     # Heatmap: stations with flood flow, last HEAT_YEARS years x month.
@@ -429,7 +429,7 @@ def compute(frames):
         n_h = int(hist_n.get(name, 0))
         med = float(hist_med[name]) if n_h >= MIN_HIST_YEARS else None
         latest_rows.append({"name": name, "peak": float(q), "median": med})
-    n_active_latest = int(len(lap))
+    n_active_latest = len(lap)
 
     # Longest records.
     span = ap.groupby("name").agg(first=("hy", "min"), last=("hy", "max"), years=("hy", "nunique"))
@@ -442,7 +442,7 @@ def compute(frames):
     dec_rows = []
     d_dec = (d["hy"] // 10 * 10)
     rec_by_dec = d.groupby(d_dec)["recon"].mean()
-    for dec in sorted(set(int(x) for x in d_dec.unique())):
+    for dec in sorted({int(x) for x in d_dec.unique()}):
         ys = [y for y in range(dec, dec + 10) if hy_min <= y <= hy_max]
         a = active.loc[ys]
         a = a[a > 0]
@@ -506,7 +506,7 @@ def compute(frames):
     }
     sewage_chart = {
         "names": [n for n in sew_top.index],
-        "values": [int(round(v)) for v in sew_top],
+        "values": [round(v) for v in sew_top],
         "share": [round(sew_share[n] * 100, 1) for n in sew_top.index],
     }
     latest_cmp = [r for r in latest_rows if r["median"] is not None][:LATEST_N]
@@ -559,8 +559,8 @@ def compute(frames):
                          f"בשנת {peak_active_y}; בשנת {latest_full} פעלו {active_latest:,}.{partial_txt}"),
         "network_aria": (f"גרף עמודות: מספר התחנות הפעילות בכל שנה הידרולוגית, {hy_min} עד {latest_full}. "
                          f"השיא {peak_active:,} תחנות בשנת {peak_active_y}."),
-        "peaks_lede": (f"לכל תחנה נלקחה הספיקה הגבוהה ביותר בשנה. הקו העליון הוא השיא הגבוה בכל הרשת, "
-                       f"והתחתון הוא החציון של השיאים בתחנות, מדד לעוצמת השנה. ציר לוגריתמי."),
+        "peaks_lede": ("לכל תחנה נלקחה הספיקה הגבוהה ביותר בשנה. הקו העליון הוא השיא הגבוה בכל הרשת, "
+                       "והתחתון הוא החציון של השיאים בתחנות, מדד לעוצמת השנה. ציר לוגריתמי."),
         "peaks_aria": (f"גרף קווים בציר לוגריתמי: השיא הארצי והחציון של השיאים השנתיים בתחנות, "
                        f"{hy_min} עד {hy_max}."),
         "records_lede": (f"הספיקה הרגעית הגבוהה ביותר שנרשמה בכל תחנה, {len(top):,} התחנות המובילות. "
@@ -588,7 +588,7 @@ def compute(frames):
                         f"בשנים {sew_from}-{latest_full}. אלה {len(sew_top):,} התחנות עם הכי הרבה ימי זרימת ביוב "
                         f"בתקופה זו, והשיעור מזמן המדידה בתחנה."),
         "sewage_aria": (f"תרשים עמודות אופקי: התחנות עם מספר ימי זרימת הביוב הגבוה ביותר, {sew_from} עד {latest_full}. "
-                        + (f"המובילה {sew_top.index[0]} עם {int(round(sew_top.iloc[0])):,} ימים."
+                        + (f"המובילה {sew_top.index[0]} עם {round(sew_top.iloc[0]):,} ימים."
                            if len(sew_top) else "")),
         "latest_lede": (f"השיא בשנה ההידרולוגית {latest_full} ({n_active_latest:,} תחנות פעילות) לעומת החציון "
                         f"של השיאים השנתיים באותה תחנה בשנים הקודמות. מוצגות {len(latest_cmp):,} התחנות עם השיא "
@@ -621,7 +621,7 @@ def compute(frames):
                    for m in HY_MONTHS],
         "storms": [{"date": s["date"], "n": f"{s['n']:,}", "max_name": s["max_name"], "max_q": s["max_q"]}
                    for s in storms],
-        "sewage": [{"name": n, "days": f"{int(round(v)):,}", "share": _pct(sew_share[n])}
+        "sewage": [{"name": n, "days": f"{round(v):,}", "share": _pct(sew_share[n])}
                    for n, v in sew_top.items()],
         "latest": [{"name": r["name"], "peak": _q(r["peak"]), "median": _q(r["median"]),
                     "ratio": f"{r['peak'] / r['median']:.1f}" if r["median"] > 0 else "-"}

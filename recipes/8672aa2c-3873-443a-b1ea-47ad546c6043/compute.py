@@ -471,7 +471,7 @@ def compute(frames):
             "med_year": {"value": med_year, "display": str(med_year), "tone": "info"},
             "pre_share": {"value": round(pre_share, 4), "display": _pct(pre_share),
                           "tone": "warn" if pre_share >= 0.5 else "brand"},
-            "makers": {"value": int(len(mvc)), "display": _int(len(mvc)), "tone": "brand"},
+            "makers": {"value": len(mvc), "display": _int(len(mvc)), "tone": "brand"},
         },
         "charts": {
             "families": {"names": fam_names, "values": [int(fam_vc[f]) for f in fam_names]},

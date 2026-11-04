@@ -49,7 +49,7 @@ ALIASES = {
     "בורמה": "מיאנמר (בורמה)",
     "קונגו קינשאסה": "קונגו, רפ. דמוק.",
 }
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 RLM = "\u200f"   # makes a mixed digits+Hebrew axis label read right-to-left on the LTR chart canvas
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
@@ -354,7 +354,7 @@ def compute(frames):
 
     kpis = {
         "decisions": {"value": total, "display": n(total), "tone": "brand"},
-        "persons": {"value": int(len(per)), "display": n(len(per)), "tone": "brand"},
+        "persons": {"value": len(per), "display": n(len(per)), "tone": "brand"},
         "last_year": {"value": full_v, "display": n(full_v), "tone": last_tone},
         "multi": {"value": round(multi_share * 100, 1), "display": f"{multi_share * 100:.1f}%",
                   "tone": "info"},

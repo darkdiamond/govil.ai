@@ -312,7 +312,7 @@ def compute(frames):
     for xi, yi in zip(xa.tolist(), ya.tolist()):
         cells[(xi, yi)] = cells.get((xi, yi), 0) + 1
     heat = sorted([[xi, yi, c] for (xi, yi), c in cells.items()])
-    best = sorted(cells.items(), key=lambda kv: (-kv[1], kv[0][1], kv[0][0]))[0]
+    best = min(cells.items(), key=lambda kv: (-kv[1], kv[0][1], kv[0][0]))
     top_cell = (best[1], _label(la_starts[best[0][1]], la_w), _label(lo_starts[best[0][0]], lo_w))
     grid_chart = {"x": [_label(a, lo_w) for a in lo_starts],
                   "y": [_label(a, la_w) for a in la_starts],

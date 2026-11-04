@@ -54,7 +54,7 @@ SEASON_YEARS = 10
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 DAYS_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 YTD_MIN_DAYS = 45  # year-to-date comparison only once the new year has this many days
 MINUS = "−"
 
@@ -132,7 +132,7 @@ def compute(frames):
     dec_d = _date(df[C_DEC_D])
     clo = _date(df[C_CLOSE_D])
 
-    total = int(len(df))
+    total = len(df)
     dated = sub.notna()
     n_dated = int(dated.sum())
     n_undated = total - n_dated
@@ -154,7 +154,6 @@ def compute(frames):
         full_years.append(y)
     partial_last = last_year not in full_years
     last_full = full_years[-1] if full_years else None
-    first_full = full_years[0] if full_years else None
 
     is_core = typ.isin(CORE)
     grp = pd.Series("other", index=df.index)
@@ -290,7 +289,7 @@ def compute(frames):
         tot_ly = sum(type_ly.values())
         top_type_ly = {"name": clean(tl[0][0]), "n": tl[0][1], "share": tl[0][1] / tot_ly,
                        "is_copy": tl[0][0] == T_COPY}
-        copy_first = years[[i for i, v in enumerate(ct["copy"]) if v > 0][0]] if ct["copy"].sum() else None
+        copy_first = years[next(i for i, v in enumerate(ct["copy"]) if v > 0)] if ct["copy"].sum() else None
         top_type_ly["copy_first"] = copy_first
 
     # ---- outcomes of core order requests ---------------------------------
@@ -341,10 +340,10 @@ def compute(frames):
     q = dur_y.quantile([0.25, 0.5, 0.75, 0.9]).unstack()
     dur_years = [y for y in years if y in q.index]
     dur_chart = {"x": [str(y) for y in dur_years],
-                 "p25": [int(round(q.at[y, 0.25])) for y in dur_years],
-                 "p50": [int(round(q.at[y, 0.5])) for y in dur_years],
-                 "p75": [int(round(q.at[y, 0.75])) for y in dur_years],
-                 "p90": [int(round(q.at[y, 0.9])) for y in dur_years]}
+                 "p25": [round(q.at[y, 0.25]) for y in dur_years],
+                 "p50": [round(q.at[y, 0.5]) for y in dur_years],
+                 "p75": [round(q.at[y, 0.75]) for y in dur_years],
+                 "p90": [round(q.at[y, 0.9]) for y in dur_years]}
     dur_rows = [{"year": str(y), "p50": n(round(q.at[y, 0.5])), "p75": n(round(q.at[y, 0.75])),
                  "p90": n(round(q.at[y, 0.9]))} for y in reversed(dur_years)]
     med = {y: float(q.at[y, 0.5]) for y in dur_years}
@@ -359,7 +358,7 @@ def compute(frames):
         cnt_b = days[mb].groupby(dist[mb]).size()
         order = sorted(qq.index, key=lambda d: (float(qq.at[d, 0.5]), d))
         box = {"names": list(order),
-               "data": [[int(round(qq.at[d, p])) for p in (0.1, 0.25, 0.5, 0.75, 0.9)] for d in order],
+               "data": [[round(qq.at[d, p]) for p in (0.1, 0.25, 0.5, 0.75, 0.9)] for d in order],
                "y0": str(box_years[0]), "y1": str(box_years[-1])}
         box_rows = [{"name": d, "p25": n(round(qq.at[d, 0.25])), "p50": n(round(qq.at[d, 0.5])),
                      "p75": n(round(qq.at[d, 0.75])), "p90": n(round(qq.at[d, 0.9])),
@@ -434,7 +433,7 @@ def compute(frames):
                 tone = "ok"
             elif b and med_ly >= b * 1.1:
                 tone = "warn"
-        kpis["median_days"] = {"value": int(round(med_ly)), "display": n(round(med_ly)), "tone": tone}
+        kpis["median_days"] = {"value": round(med_ly), "display": n(round(med_ly)), "tone": tone}
         labels["median_days_kpi"] = f"ימים (חציון) מהגשה ועד סגירה, צו ירושה וקיום צוואה, {last_full}"
     if last_full is not None:
         m = closed_core & (year == last_full)
@@ -495,7 +494,8 @@ def compute(frames):
     def ins_wills():
         if len(will_share) < 2:
             return None
-        y0, y1 = list(will_share)[0], list(will_share)[-1]
+        keys = list(will_share)
+        y0, y1 = keys[0], keys[-1]
         a, b = will_share[y0], will_share[y1]
         if abs(b - a) < 0.02:
             return (f"היחס בין בקשות לצו ירושה (ללא צוואה) לבקשות לצו קיום צוואה ב-{y1} דומה לזה של {y0}: "
@@ -507,7 +507,8 @@ def compute(frames):
     def ins_district():
         if len(dist_share) < 2 or not dist_names:
             return None
-        y0, y1 = list(dist_share)[0], list(dist_share)[-1]
+        keys = list(dist_share)
+        y0, y1 = keys[0], keys[-1]
         ranked = sorted(dist_names, key=lambda d: (-dist_share[y1][d], d))
         lead = ranked[0]
         a, b = dist_share[y0][lead], dist_share[y1][lead]
@@ -608,14 +609,14 @@ def compute(frames):
                        "בשנים מלאות בלבד."),
         "share_aria": ("גרף קו: שיעור הבקשות לצו קיום צוואה מתוך הבקשות לצו לפי שנה"
                        + (f", {share_chart['y'][-1]}% ב-{share_chart['x'][-1]}." if share_chart["x"] else ".")),
-        "heat_note": (f"בקשות לפי חודש ושנת הגשה; צבע כהה יותר מציין יותר בקשות."
+        "heat_note": ("בקשות לפי חודש ושנת הגשה; צבע כהה יותר מציין יותר בקשות."
                       + (f" ב-{season['y0']} עד {season['y1']} החודש החלש ביותר הוא {MONTHS_HE[season['lo'] - 1]} "
                          f"והחזק ביותר {MONTHS_HE[season['hi'] - 1]}." if season else "") + partial_note),
         "heat_aria": f"מפת חום: בקשות לרשם הירושה לפי חודש ושנה, {first_year} עד {last_year}.",
         "weekday_note": (f"התפלגות הבקשות לפי יום בשבוע של תאריך ההגשה. {pct(workweek_share)} הוגשו בימים "
                          f"ראשון עד חמישי."),
         "weekday_aria": f"גרף עמודות: בקשות לפי יום בשבוע. {pct_plain(workweek_share)} בימים ראשון עד חמישי.",
-        "types_note": (f"{n_types} סוגי בקשות במאגר; {TOP_TYPES if n_types > TOP_TYPES else n_types} "
+        "types_note": (f"{n_types} סוגי בקשות במאגר; {min(n_types, TOP_TYPES)} "
                        f"הנפוצים מוצגים בנפרד, השאר מקובצים ב\"אחר\"."),
         "types_aria": (f"גרף עמודות אופקי: סוגי הבקשות הנפוצים. המוביל: {types_chart['names'][0]} "
                        f"עם {n(types_chart['y'][0])} בקשות." if types_chart["names"] else "גרף עמודות אופקי: סוגי הבקשות."),

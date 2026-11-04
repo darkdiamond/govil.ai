@@ -72,7 +72,6 @@ def compute(frames):
     df, n_rows, n_unique, n_empty = _prepare(frames["clinics"])
     total = len(df)
     ops = _ranked(df["op"])
-    named_ops = [o for o in ops.index if o not in (NO_OPERATOR,)]
     top_ops = list(ops.index[:TOP_OPS])
     rest_ops = len(ops) > TOP_OPS
     op_group = df["op"].where(df["op"].isin(top_ops), "אחר")

@@ -164,7 +164,7 @@ def insight_leaders(yoys, labels):
 def insight_share(shares, labels):
     if not shares:
         return None
-    k, v = sorted(shares.items(), key=lambda kv: (-kv[1], kv[0]))[0]
+    k, v = min(shares.items(), key=lambda kv: (-kv[1], kv[0]))
     if v < 15:
         return None
     return (f"הענף הגדול ביותר הוא {labels[k]}: {_pct(v)} מסך הרכישות בענפים "
@@ -174,7 +174,7 @@ def insight_share(shares, labels):
 def insight_drop(drops):
     if not drops:
         return None
-    d = sorted(drops, key=lambda x: (x["pct"], x["to"]))[0]
+    d = min(drops, key=lambda x: (x["pct"], x["to"]))
     days = (d["to"] - d["from"]).days
     return (f"הצניחה החדה ביותר בנתונים: {abs(d['pct']):.1f}% בתוך {days:,} ימים, "
             f"מ-{_m(d['peak'])} מיליון ₪ ביום ({_date(d['from'])}) ל-{_m(d['low'])} ({_date(d['to'])}).")
@@ -204,8 +204,8 @@ def insight_tourism(series, labels, end):
 def insight_growth_leader(growth, labels):
     if len(growth) < 3:
         return None
-    k, v = sorted(growth.items(), key=lambda kv: (-kv[1], kv[0]))[0]
-    lo, lv = sorted(growth.items(), key=lambda kv: (kv[1], kv[0]))[0]
+    k, v = min(growth.items(), key=lambda kv: (-kv[1], kv[0]))
+    lo, lv = min(growth.items(), key=lambda kv: (kv[1], kv[0]))
     return (f"מאז {BASE_YEAR} צמחו הכי הרבה הרכישות בענף {labels[k]} ({_signed(v)}%), "
             f"והכי מעט בענף {labels[lo]} ({_signed(lv)}%).")
 

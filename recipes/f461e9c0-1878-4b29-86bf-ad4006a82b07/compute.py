@@ -119,7 +119,7 @@ def _sig(v, digits=4):
     v = float(v)
     if v == 0:
         return 0.0
-    mag = int(math.floor(math.log10(abs(v))))
+    mag = math.floor(math.log10(abs(v)))
     return round(v, max(0, digits - 1 - mag))
 
 
@@ -288,8 +288,8 @@ def compute(frames):
             if e is None or r is None:
                 continue
             change[(s, key)] = {"early": e, "recent": r, "e_from": int(first[0]),
-                                "e_to": int(first[-1]), "ne": int(len(early)),
-                                "nr": int(len(rec)), "ratio": r / e}
+                                "e_to": int(first[-1]), "ne": len(early),
+                                "nr": len(rec), "ratio": r / e}
     heat_params = [k for k, *_ in PARAMS if any((s, k) in change for s in streams)]
     heat_streams = [s for s in streams if any((s, k) in change for k in heat_params)]
     heat_cells = []
@@ -328,8 +328,8 @@ def compute(frames):
             q = v.quantile([0.05, 0.25, 0.5, 0.75, 0.95]).tolist()
             names.append(s)
             data.append([_sig(x) for x in q])
-            ns.append(int(len(v)))
-            box_rows.append({"param": PKEY[k][3], "unit": PKEY[k][4], "stream": s, "n": int(len(v)),
+            ns.append(len(v))
+            box_rows.append({"param": PKEY[k][3], "unit": PKEY[k][4], "stream": s, "n": len(v),
                              "q": [_fmt(x) for x in q]})
         box[k] = {"label": PKEY[k][2], "unit": PKEY[k][4], "names": names, "data": data, "n": ns}
 
@@ -342,7 +342,7 @@ def compute(frames):
             v = g[k].dropna()
             m = _pos_median(v) if len(v) >= STATION_MIN_N else None
             row[k] = _sig(m) if m is not None else None
-            row[k + "_n"] = int(len(v))
+            row[k + "_n"] = len(v)
             okay = okay or m is not None
         if okay:
             st_rows.append(row)
@@ -378,11 +378,11 @@ def compute(frames):
             names.append(s)
             sp.append(_sig(ma))
             au.append(_sig(mb))
-            nsp.append(int(len(a)))
-            nau.append(int(len(b)))
+            nsp.append(len(a))
+            nau.append(len(b))
             season_rows.append({"param": PKEY[k][3], "unit": PKEY[k][4], "stream": s,
                                 "spring": _fmt(ma), "autumn": _fmt(mb),
-                                "ns": int(len(a)), "na": int(len(b))})
+                                "ns": len(a), "na": len(b)})
         season[k] = {"label": PKEY[k][2], "unit": PKEY[k][4], "names": names,
                      "spring": sp, "autumn": au, "ns": nsp, "na": nau}
     season_opts = [{"key": k, "label": PKEY[k][2], "unit": PKEY[k][4]} for k in SEASON_PARAMS]
@@ -428,14 +428,14 @@ def compute(frames):
                 q = v.quantile([0.05, 0.25, 0.5, 0.75, 0.95]).tolist()
                 names.append(s)
                 data.append([_sig(x) for x in q])
-                ns.append(int(len(v)))
+                ns.append(len(v))
                 ls = float((v < LOW_DO_SAT).mean())
                 low_share.append(round(ls, 4))
                 row["low"] = _pct(ls)
-                row["n"] = int(len(v))
+                row["n"] = len(v)
             else:
                 row["low"] = "-"
-                row["n"] = int(len(v))
+                row["n"] = len(v)
             if any(x != "-" for x in row["vals"]):
                 field_rows.append(row)
         if names:
@@ -448,7 +448,7 @@ def compute(frames):
     if len(lab):
         lc = lab.groupby(LAB).size().reset_index(name="n")
         lc = lc.sort_values(["n", LAB], ascending=[False, True], kind="mergesort")
-        top_lab, top_n = lc.iloc[0][LAB], int(lc.iloc[0]["n"])
+        top_lab, _top_n = lc.iloc[0][LAB], int(lc.iloc[0]["n"])
         ly = lab[lab[LAB] == top_lab].groupby("_y").size()
         tot_y = dated.groupby("_y").size()
         # start of the lab's final unbroken run of majority years, ending at
@@ -463,7 +463,7 @@ def compute(frames):
                 break
         run = lab[lab["_y"] >= since] if since is not None else lab.iloc[0:0]
         run_share = float((run[LAB] == top_lab).mean()) if len(run) else 0.0
-        lab_info = {"name": top_lab, "since": since, "share": run_share, "n_labs": int(len(lc))}
+        lab_info = {"name": top_lab, "since": since, "share": run_share, "n_labs": len(lc)}
 
     # ── KPIs ──
     latest_n = int(year_tot.get(y_max, 0))
@@ -486,7 +486,7 @@ def compute(frames):
             m = _median(v[v > 0])
             if m is not None:
                 at_floor = "bod" in floors and m <= floors["bod"]
-                bod_rec.append((s, floors["bod"] if at_floor else m, int(len(v)), at_floor))
+                bod_rec.append((s, floors["bod"] if at_floor else m, len(v), at_floor))
     kpis = {
         "samples": {"value": n_total, "display": f"{n_total:,}", "tone": "brand"},
         "stations": {"value": n_stations, "display": f"{n_stations:,}", "tone": "brand"},
@@ -518,7 +518,7 @@ def compute(frames):
             insights.append({"id": iid, "text_he": text})
 
     # 1. coverage
-    top_st = sorted(st_n.items(), key=lambda t: (-t[1], st_name[t[0]]))[0]
+    top_st = min(st_n.items(), key=lambda t: (-t[1], st_name[t[0]]))
     add("coverage",
         f"המאגר כולל {n_total:,} דגימות מ-{n_stations} תחנות ב-{len(streams)} נחלים וקטעי נחל "
         f"({_join(streams)}), בין {y_min} ל-{y_max}. התחנה שנדגמה הכי הרבה היא "
@@ -592,7 +592,7 @@ def compute(frames):
             # its all-record median), so a move at the detection limit
             # (0.05 → 0.1) is not called a deterioration
             if mb / ma >= WORSEN_RATIO and mb > overall_med[key]:
-                worse.append((s, key, ma, mb, int(len(a)), int(len(b)), int(b["_st"].nunique()), below))
+                worse.append((s, key, ma, mb, len(a), len(b), int(b["_st"].nunique()), below))
     if worse:
         worse.sort(key=lambda t: (-(t[3] / t[2]), t[0], t[1]))
         s, key, ma, mb, na, nb, nst, below = worse[0]

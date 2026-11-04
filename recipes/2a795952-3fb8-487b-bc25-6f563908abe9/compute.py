@@ -138,7 +138,7 @@ def _road_stats(df):
     lists = {}
     for road, g in long.groupby("road", sort=True):
         partners = sorted({o for t in g["others"] for o in t})
-        stats.append({"road": int(road), "n": int(len(g)), "partners": len(partners)})
+        stats.append({"road": int(road), "n": len(g), "partners": len(partners)})
         lists[int(road)] = g.sort_values(["name", "code"], kind="stable")
     st = pd.DataFrame(stats).sort_values(["n", "road"], ascending=[False, True], kind="stable")
     return st.reset_index(drop=True), lists
@@ -205,7 +205,7 @@ def _lat_bands(loc):
         a = lo + b * step
         sub = loc[band == b]
         rc = _counts(pd.Series([r for rs in sub["roads"] for r in rs], dtype=object))
-        bands.append({"lo": a, "label": f"{a:.2f}°-{a + step:.2f}°", "n": int(len(sub)),
+        bands.append({"lo": a, "label": f"{a:.2f}°-{a + step:.2f}°", "n": len(sub),
                       "road": f"כביש {rc.index[0]}" if len(rc) else ""})
     return bands, step
 
@@ -221,7 +221,7 @@ def _spacing(loc, st):
             continue
         d = _dist_matrix(sub["lon"].to_numpy(), sub["lat"].to_numpy())
         ext = float(d.max())
-        out.append({"road": r, "n": int(len(sub)), "extent": ext, "gap": ext / (len(sub) - 1)})
+        out.append({"road": r, "n": len(sub), "extent": ext, "gap": ext / (len(sub) - 1)})
         if len(out) >= SPACING_ROADS:
             break
     out.sort(key=lambda x: (x["gap"], x["road"]))
@@ -401,12 +401,12 @@ def insight_spacing(sp):
 
 def compute(frames):
     df = _prepare(frames["geo"])
-    total = int(len(df))
+    total = len(df)
 
     types = _counts(df["type"])
     auths = _counts(df["auth"])
     st, lists = _road_stats(df)
-    n_roads_served = int(len(st))
+    n_roads_served = len(st)
 
     # Authority x type (stacked), top authorities + אחר.
     auth_order = list(auths.index[:TOP_AUTH])
@@ -463,7 +463,7 @@ def compute(frames):
     junctions = [{"name": r["MIHNAME"], "code": r["MIHCODE"], "type": r["type"],
                   "roads": ", ".join(str(x) for x in r["roads"]) or MISSING,
                   "auth": r["auth"]} for _, r in jx.head(JUNCTION_ROWS).iterrows()]
-    n_junctions = int(len(jx))
+    n_junctions = len(jx)
 
     # Directory: interchanges along the busiest roads.
     road_dirs = []
@@ -477,7 +477,7 @@ def compute(frames):
 
     # ---------------- geometry (located interchanges only)
     loc = df[df["lat"].notna()].reset_index(drop=True)
-    n_loc = int(len(loc))
+    n_loc = len(loc)
     n_unloc = total - n_loc
     has_geo = n_loc >= 2
     nn, nn_idx = _nearest(loc)

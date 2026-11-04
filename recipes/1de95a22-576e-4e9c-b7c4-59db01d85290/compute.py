@@ -13,7 +13,6 @@ yet declared). Shape_STAr = polygon area in m² (ITM).
 from __future__ import annotations
 
 import json
-import math
 import re
 
 import pandas as pd
@@ -34,7 +33,7 @@ def _num(s: pd.Series) -> pd.Series:
 
 
 def _fmt(v) -> str:
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _pct(x: float) -> str:

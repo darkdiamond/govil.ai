@@ -10,7 +10,6 @@ Every number and sentence on the page is computed here. Products are not
 hardcoded: gasoline / diesel / LPG are found by name pattern, and every rule
 that needs one of them returns None when it is missing.
 """
-import math
 import re
 
 import pandas as pd
@@ -231,7 +230,7 @@ def _gap_series(ga, di):
 def ins_gap(ga, di, gap):
     if ga is None or di is None or len(gap) < 3:
         return None
-    d_last, cur = gap[-1]
+    _d_last, cur = gap[-1]
     n_above = sum(1 for _, v in gap if v > 1e-9)
     share = n_above / len(gap) * 100
     if abs(cur) < 0.005:
@@ -327,7 +326,7 @@ def ins_volatility(per_year, pr):
     full = per_year[:-1]  # the latest year may be partial
     if len(full) < 2:
         return None
-    top = sorted(full, key=lambda r: (-r["gas"], r["year"]))[0]
+    top = min(full, key=lambda r: (-r["gas"], r["year"]))
     med = sorted(r["gas"] for r in full)[len(full) // 2]
     if top["gas"] < max(4, med * 2):
         return None
@@ -518,8 +517,8 @@ def compute(frames):
     labels["lede"] = " ".join(lede_bits)
     labels["liter_aria"] = (f"גרף מדרגות: הבלו בשקלים לליטר על {len(liter_keys)} מוצרי דלק נוזליים, "
                             f"{y0} עד {y1}" + (f". {ga['short']} כיום {_num(ga['current'])} ₪ לליטר." if ga else "."))
-    labels["liter_note"] = (f"השיעור בשקלים לליטר (השיעור בצו הוא לקילו ליטר, חלקי 1,000). "
-                            f"כל מדרגה היא שינוי בצו; גררו את הסרגל התחתון כדי להתמקד בתקופה."
+    labels["liter_note"] = ("השיעור בשקלים לליטר (השיעור בצו הוא לקילו ליטר, חלקי 1,000). "
+                            "כל מדרגה היא שינוי בצו; גררו את הסרגל התחתון כדי להתמקד בתקופה."
                             + (f" מוצגים {MAX_SERIES} המוצרים העיקריים." if liter_dropped else ""))
     labels["ton_aria"] = (f"גרף מדרגות: הבלו על מוצרים הנמדדים בטון ({len(other_keys)} סעיפים), {y0} עד {y1}.")
     labels["ton_note"] = ("שיעורים לטון מטרי." + (" ציר לוגריתמי: השיעורים נבדלים זה מזה בסדרי גודל." if ch_ton["log"] else "")

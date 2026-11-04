@@ -217,7 +217,7 @@ def compute(frames):
 
     top_area = ar.sort_values(["area", ID], ascending=[False, True], kind="mergesort").head(TOP_AREA)
     chart_toparea = {"names": top_area[NAME].tolist(),
-                     "values": [int(round(v)) for v in top_area["area"]],
+                     "values": [round(v) for v in top_area["area"]],
                      "active": top_area["active"].tolist(),
                      "status": top_area["status"].tolist()}
     t_toparea = [{"name": r[NAME], "basin": r["basin"], "area": _int(round(r["area"])),
@@ -229,7 +229,7 @@ def compute(frames):
     grp = df[df[GROUP] != ""]
     g_sizes = grp.groupby(GROUP).size()
     multi = g_sizes[g_sizes >= 2]
-    n_groups = int(len(multi))
+    n_groups = len(multi)
     n_in_groups = int(multi.sum())
 
     newest = dated.sort_values(["date", ID], ascending=[False, True], kind="mergesort").head(NEWEST_N)
@@ -260,7 +260,7 @@ def compute(frames):
                            f"לעומת {_pct(sn)} מבין {_int(len(new))} התחנות שהוקמו מ-{ERA_NEW_START} ואילך: "
                            f"שיעור פעילות {more} בהרבה ברשת החדשה.")
         dc = dated["decade"].value_counts()
-        peak = sorted(dc.index, key=lambda d: (-int(dc[d]), d))[0]
+        peak = min(dc.index, key=lambda d: (-int(dc[d]), d))
         add("peak_decade", f"עשור ההקמה העמוס ביותר הוא {peak}-{peak + 9}, עם {_int(dc[peak])} תחנות "
                            f"({_pct(dc[peak] / len(dated))} מהתחנות שתאריך הקמתן ידוע); "
                            f"הוותיקה ביותר הוקמה ב-{first_year}.")
@@ -268,7 +268,7 @@ def compute(frames):
     if len(top_b):
         lead = top_b[0]
         lead_act = df.loc[df["basin"] != NO_BASIN].groupby("basin")["active"].sum()
-        act_lead = sorted(lead_act.index, key=lambda b: (-int(lead_act[b]), b))[0]
+        act_lead = min(lead_act.index, key=lambda b: (-int(lead_act[b]), b))
         txt = (f"אגן {lead} מרכז את מספר התחנות הגדול ביותר: {_int(b_cnt[lead])} "
                f"({_pct(b_cnt[lead] / n)} מהרשימה).")
         if act_lead != lead and int(lead_act[act_lead]) > 0:
@@ -347,10 +347,10 @@ def compute(frames):
                  f"{_int(n_active)} מהן פעילות כיום."),
         "share_kpi": "מהתחנות פעילות כיום",
         "median_area_kpi": f"חציון שטח היקוות (קמ\"ר, {_int(n_area)} תחנות)",
-        "map_note": (f"כל נקודה היא תחנה; לחיצה מציגה את שמה, מספרה, האגן, הסטטוס ותאריך ההקמה. "
-                     f"התחנות נטענות ישירות מהמאגר, ותחנות ללא נקודת ציון אינן מוצגות."),
-        "decade_note": (f"תחנות לפי עשור ההקמה, מפוצלות לפי הסטטוס הנוכחי; הקו מציג איזה שיעור מתחנות כל עשור "
-                        f"פעיל כיום." + (f" ל-{_int(n_undated)} תחנות אין תאריך הקמה תקין." if n_undated else "")),
+        "map_note": ("כל נקודה היא תחנה; לחיצה מציגה את שמה, מספרה, האגן, הסטטוס ותאריך ההקמה. "
+                     "התחנות נטענות ישירות מהמאגר, ותחנות ללא נקודת ציון אינן מוצגות."),
+        "decade_note": ("תחנות לפי עשור ההקמה, מפוצלות לפי הסטטוס הנוכחי; הקו מציג איזה שיעור מתחנות כל עשור "
+                        "פעיל כיום." + (f" ל-{_int(n_undated)} תחנות אין תאריך הקמה תקין." if n_undated else "")),
         "decade_aria": (f"תרשים עמודות מוערם וקו: תחנות לפי עשור הקמה ושיעור הפעילות בכל עשור, "
                         f"{len(decades)} עשורים, מ-{first_year} עד {last_year}."
                         if first_year is not None else "תרשים עמודות: תחנות לפי עשור הקמה."),

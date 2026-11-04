@@ -228,8 +228,8 @@ def compute(frames):
     for g in GROUPS:
         m = grp == g
         if m.any():
-            med_by_group[g] = int(round(float(np.median(dist_c[m]))))
-    med_all = int(round(float(np.median(dist_c))))
+            med_by_group[g] = round(float(np.median(dist_c[m])))
+    med_all = round(float(np.median(dist_c)))
 
     # ---- nearest school for each kindergarten
     gm, sm = grp == GAN, grp == SCHOOL
@@ -248,7 +248,7 @@ def compute(frames):
         counts, nnames = [], []
     t_near = [{"name": n, "count": _int(v), "share": _pct(v / len(fin), 1)}
               for n, v in zip(nnames, counts)] if len(fin) else []
-    med_near = int(round(float(np.median(fin)))) if len(fin) else 0
+    med_near = round(float(np.median(fin))) if len(fin) else 0
 
     # ---- heat grid (0.01-degree cells) + latitude bands by group
     lat_i, lat_lo, lat_hi, lat_w = _band_index(df["latf"].to_numpy())
@@ -299,7 +299,7 @@ def compute(frames):
                  "addr": f"{a:.1f}%", "old": f"{o:.1f}%"}
                 for g, a, o in zip(fields_groups, addr_share, old_share)]
 
-    ns_km = float((y.max() - y.min()))
+    ns_km = float(y.max() - y.min())
     ew_km = float(x.max() - x.min())
     n_old = int((df["old"] != "").sum())
 

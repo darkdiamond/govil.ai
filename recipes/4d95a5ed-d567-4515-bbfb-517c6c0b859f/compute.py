@@ -36,7 +36,7 @@ OUTLIER_X = 10        # x group median for the outlier insight
 LEADER_MIN = 0.40     # share of items for the producer-concentration insight
 VARIANT_MIN = 5       # items per product for the variants insight
 INTENSITY_GAP = 1.3   # ratio between classifications for the intensity insight
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MINUS = "−"
 
 STAGES = [  # (key, label, columns)
@@ -91,7 +91,7 @@ def num_disp(v, sig=3):
     if a >= 1000:
         s = f"{a:,.0f}"
     elif a >= 0.01:
-        digits = max(0, sig - 1 - int(math.floor(math.log10(a))))
+        digits = max(0, sig - 1 - math.floor(math.log10(a)))
         s = f"{a:.{digits}f}"
     else:
         s = f"{a:.{sig - 1}e}"
@@ -153,7 +153,7 @@ def fsum(vals):
 def _mode(series):
     vc = series.value_counts()
     top = vc.max()
-    return sorted(vc[vc == top].index)[0]
+    return min(vc[vc == top].index)
 
 
 # ── preparation ─────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ def _products(df):
 
     rows = []
     for (prod, name), g in df.groupby(["producer", "name"], sort=True):
-        r = {"producer": prod, "name": name, "items": int(len(g)),
+        r = {"producer": prod, "name": name, "items": len(g),
              "unit": _mode(g["unit"]), "cls": _mode(g["cls"]), "sub": _mode(g["sub"]),
              "site": _mode(g["site"])}
         for c in num_cols:
@@ -262,7 +262,7 @@ def insight_eol(stage_rows):
     cand = [r for r in stage_rows if r["n"] >= 2]
     if not cand:
         return None
-    top = sorted(cand, key=lambda r: (-r["eol"], r["name"]))[0]
+    top = min(cand, key=lambda r: (-r["eol"], r["name"]))
     if top["eol"] < EOL_MIN:
         return None
     return (f"ב{top['name']} סוף החיים (C1–C4) אחראי בממוצע ל-{pct(top['eol'])} מהפליטות הגולמיות, "
@@ -306,7 +306,7 @@ def insight_outlier(p):
                         m2 = g[c2].dropna().median()
                         if m2 > 0:
                             others.append(r[c2] / m2)
-                    best = (x, label, r, int(len(v)), max(others) if others else None)
+                    best = (x, label, r, len(v), max(others) if others else None)
     if best is None:
         return None
     x, label, r, k, other_max = best
@@ -332,8 +332,8 @@ def insight_intensity(intens):
 def insight_expiry(df, decl):
     if not decl:
         return None
-    first = sorted(decl, key=lambda r: (r["valid_ts"], r["producer"]))[0]
-    last = sorted(decl, key=lambda r: (r["valid_ts"], r["producer"]))[-1]
+    ordered = sorted(decl, key=lambda r: (r["valid_ts"], r["producer"]))
+    first, last = ordered[0], ordered[-1]
     txt = (f"כל ההצהרות אומתו לתקופה של {first['years']} שנים. התוקף המוקדם ביותר במאגר — "
            f"{d_disp(first['valid_ts'])}, להצהרות של {first['producer']} ({n(first['items'])} פריטים)")
     if last["valid_ts"] != first["valid_ts"]:
@@ -347,7 +347,7 @@ def insight_expiry(df, decl):
 def compute(frames):
     raw = frames["main"]
     df, p, odd_units = _products(raw)
-    total_rows, total_prod = int(len(df)), int(len(p))
+    total_rows, total_prod = len(df), len(p)
     producers = sorted(p["producer"].unique())
 
     # comparison groups
@@ -406,7 +406,7 @@ def compute(frames):
     stage_rows = []
     for s in sub_names:
         g = pp[pp["sub2"] == s]
-        r = {"name": s, "n": int(len(g))}
+        r = {"name": s, "n": len(g)}
         for key, _, _ in STAGES + [("D", None, None)]:
             r[key] = fsum(g["sh_" + key]) / len(g)
         r["prod"] = sum(r[k] for k in PROD_KEYS)
@@ -428,7 +428,7 @@ def compute(frames):
                      "d": pct(r["D"]).replace("-", MINUS)} for r in stage_rows]
     all_prod_share = float(pp[[f"sh_{k}" for k in PROD_KEYS]].sum(axis=1).median()) if len(pp) else 0.0
     eol_cand = [r for r in stage_rows if r["n"] >= 2] or stage_rows
-    eol_top = sorted(eol_cand, key=lambda r: (-r["eol"], r["name"]))[0] if eol_cand else None
+    eol_top = min(eol_cand, key=lambda r: (-r["eol"], r["name"])) if eol_cand else None
 
     # carbon intensity per MJ (A1–A3; unit-free)
     gcol, ecol = "GWP_total_A1_A3", "nonrenewable_energy_resources_depletion_sum_A1-A3"
@@ -440,7 +440,7 @@ def compute(frames):
     scatter = []
     for c in corder:
         g = ip[ip["clabel"] == c].sort_values(["name"], kind="mergesort")
-        intens.append({"name": c, "n": int(len(g)), "median": float(g["int"].median()),
+        intens.append({"name": c, "n": len(g), "median": float(g["int"].median()),
                        "min": float(g["int"].min()), "max": float(g["int"].max())})
         scatter.append({"name": c, "ci": SCATTER_CI[len(scatter) % len(SCATTER_CI)], "data": [[round(r[ecol], 6), round(r[gcol], 6), r["disp"], r["unit"]]
                                             for _, r in g.iterrows()]})
@@ -473,9 +473,9 @@ def compute(frames):
     dd = df.dropna(subset=["vdate", "valid"])
     decl = []
     for (prod, vd, va), g in dd.groupby(["producer", "vdate", "valid"], sort=True):
-        decl.append({"producer": prod, "vdate_ts": vd, "valid_ts": va, "items": int(len(g)),
+        decl.append({"producer": prod, "vdate_ts": vd, "valid_ts": va, "items": len(g),
                      "products": int(g["name"].nunique()),
-                     "site": _mode(g["site"]), "years": int(round((va - vd).days / 365.25))})
+                     "site": _mode(g["site"]), "years": round((va - vd).days / 365.25)})
     decl = sorted(decl, key=lambda r: (r["vdate_ts"], r["producer"]))
     years_set = sorted({r["years"] for r in decl})
     if len(years_set) != 1:
@@ -588,7 +588,7 @@ def compute(frames):
                       + (f" (מוצגים {n(HEAT_MAX)} הראשונים)." if len(p[p['grp'].isin(multi)]) > HEAT_MAX else ".")),
         "heat_aria": (f"מפת חום של {n(len(INDICATORS))} מדדי השפעה סביבתית ל-{n(len(hp))} מוצרים, "
                       f"יחסית לערך הגבוה בקבוצת ההשוואה."),
-        "valid_note": (f"חלון התוקף של כל הצהרה, מתאריך האימות ועד פקיעתה. "
+        "valid_note": ("חלון התוקף של כל הצהרה, מתאריך האימות ועד פקיעתה. "
                        + (f"כל ההצהרות במאגר תקפות ל-{years_set[0]} שנים." if len(years_set) == 1 else "")),
         "valid_aria": (f"תרשים ציר זמן של {n(len(decl))} חלונות תוקף הצהרה; התוקף המוקדם פג ב-"
                        f"{d_disp(earliest) if earliest is not None else '—'}."),

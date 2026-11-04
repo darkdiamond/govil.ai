@@ -19,7 +19,6 @@ Order-independent: every ranking is a total sort with name / coordinate
 tie-breaks.
 """
 import math
-import re
 
 import pandas as pd
 
@@ -63,7 +62,7 @@ KEYWORDS = [
 
 
 def fmt(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def pct(x):
@@ -123,7 +122,6 @@ def compute(frames):
     n_zero = int((df["units"] == 0).sum())
     n_zero_other = int(((df["units"] == 0) & (df["other"] != "")).sum())
     med_units = float(df["units"].median())
-    n_special = int((df["SpecialCom"] > 0).sum())
 
     charts, tables = {}, {}
 
@@ -151,8 +149,8 @@ def compute(frames):
 
     # variety: number of distinct equipment types
     kmax = int(df["kinds"].max()) if n else 0
-    kl = [str(k) for k in range(0, kmax + 1)]
-    kv = [int((df["kinds"] == k).sum()) for k in range(0, kmax + 1)]
+    kl = [str(k) for k in range(kmax + 1)]
+    kv = [int((df["kinds"] == k).sum()) for k in range(kmax + 1)]
     charts["kinds"] = {"names": kl, "values": kv}
     tables["kinds"] = {"headers": ["סוגי מתקנים שונים בגן", "גני משחקים"],
                        "rows": [[l, fmt(v)] for l, v in zip(kl, kv)]}
@@ -165,7 +163,7 @@ def compute(frames):
     tables["top"] = {"headers": ["גן משחקים", "יחידות מתקן", "סוגים שונים", "משטח"],
                      "rows": [[a, fmt(b), fmt(c), d] for a, b, c, d in
                               zip(top["label"], top["units"], top["kinds"], top["surface"])]}
-    top_decile = max(1, int(math.ceil(n * 0.1)))
+    top_decile = max(1, math.ceil(n * 0.1))
     top_share = (float(df["units"].sort_values(ascending=False, kind="mergesort").head(top_decile).sum()) / total_units
                  if total_units else 0.0)
 
@@ -415,7 +413,6 @@ def compute(frames):
                    "label": "חציון יחידות מתקן לגן"},
     }
 
-    ls = surf_names[0] if surf_names else ""
     summary = (
         f"מפת {fmt(n)} גני המשחקים בבאר שבע: איתור גן לפי שם, סוגי מתקנים, משטח והצללה. "
         + (f"{pct(shade_share)} מהגנים מוצלים." if shade_share is not None else "")

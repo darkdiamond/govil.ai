@@ -58,7 +58,7 @@ def pct(x, digits=1):
 
 def iso(label):
     """LTR isolates so numeric ranges keep their order on the RTL canvas."""
-    return f"⁦{label}⁩"
+    return f"\u2066{label}\u2069"
 
 
 def _ranked(counts):
@@ -121,7 +121,7 @@ def insight_outside(d, total):
     if total == 0 or len(out) / total < OUTSIDE_MIN:
         return None
     top = _ranked(out["city"].value_counts())[:3]
-    unk = int((d["mcode"] <= -2).sum() + ((d["mcode"] == 0)).sum())
+    unk = int((d["mcode"] <= -2).sum() + (d["mcode"] == 0).sum())
     s = (f"{pct(len(out) / total)} מהתחנות ({n(len(out))}) נמצאות מחוץ למטרופולינים "
          f"(מסומנות \"לא מוגדר\"); המובילים שם: "
          + ", ".join(f"{c} ({n(v)})" for c, v in top) + ".")

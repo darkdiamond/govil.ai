@@ -30,7 +30,7 @@ CLUSTER_MIN = 3          # an authority needs this many stations for the "none a
 DISTRICT_MIN = 3         # a district needs this many stations for the best/worst rule
 ACCESS_GAP = 0.25        # best vs worst district accessibility gap worth a sentence
 VENUE_MIN = 2            # hotels/venue-type insight needs at least this many stations
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 DISTRICTS = {
     "north": "מחוז הצפון", "haifa": "מחוז חיפה", "center": "מחוז המרכז",
@@ -150,7 +150,7 @@ def _acc_counts(sub):
 def compute(frames):
     df = _prepare(frames["main"])
     total = len(df)
-    n_yes, n_no, n_na = _acc_counts(df)
+    n_yes, _n_no, n_na = _acc_counts(df)
     has_na = n_na > 0
 
     # ---- per district ----------------------------------------------------
@@ -262,8 +262,8 @@ def compute(frames):
             s += f", {in_stations(n_na)} הנגישות לא צוינה"
         elig = [r for r in dist_rows if r["total"] >= DISTRICT_MIN]
         if len(elig) >= 2:
-            best = sorted(elig, key=lambda r: (-r["yes"] / r["total"], -r["total"], r["name"]))[0]
-            worst = sorted(elig, key=lambda r: (r["yes"] / r["total"], -r["total"], r["name"]))[0]
+            best = min(elig, key=lambda r: (-r["yes"] / r["total"], -r["total"], r["name"]))
+            worst = min(elig, key=lambda r: (r["yes"] / r["total"], -r["total"], r["name"]))
             bs, ws = best["yes"] / best["total"], worst["yes"] / worst["total"]
             if bs - ws >= ACCESS_GAP:
                 s += (f". הפער בין המחוזות גדול: ב{best['name']} {n(best['yes'])} מתוך "

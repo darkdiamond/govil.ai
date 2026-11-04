@@ -16,16 +16,16 @@ from .models import Dataset, DatasetStatus, Resource, ScanResult, ScanSummary
 from .state import StateDB
 
 __all__ = [
+    "CKANClient",
+    "ChangeDetector",
     "Dataset",
-    "Resource",
+    "DatasetFilter",
     "DatasetStatus",
+    "Resource",
     "ScanResult",
     "ScanSummary",
-    "CKANClient",
     "ScannerSettings",
-    "settings",
     "StateDB",
-    "ChangeDetector",
-    "DatasetFilter",
     "create_filter",
+    "settings",
 ]

@@ -22,7 +22,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TOP_CITIES = 15
 TOP_MANAGERS = 10
 MAX_RES_ROWS = 60
@@ -299,7 +299,6 @@ def compute(frames):
     labels_sg = {t: TYPE_INFO[t][1] if t in TYPE_INFO else raw_name_of.get(t, t) for t in types}
     type_counts = ranked(df["type"].value_counts())
     n_inp = int(type_counts.get(INPATIENT, 0))
-    n_res = int(df["type"].isin(RESIDENTIAL).sum())
 
     # ---- ownership × type
     owner_counts = ranked(df["owner"].value_counts())
@@ -402,7 +401,7 @@ def compute(frames):
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "inpatient": {"value": n_inp, "display": n(n_inp), "tone": "info"},
-        "cities": {"value": int(len(city_counts)), "display": n(len(city_counts)), "tone": "brand"},
+        "cities": {"value": len(city_counts), "display": n(len(city_counts)), "tone": "brand"},
         "no_inp": {"value": len(no_inp), "display": n(len(no_inp)),
                    "tone": "warn" if no_inp else "ok"},
     }
@@ -413,7 +412,7 @@ def compute(frames):
     lead_d = lead_dist.index[0] if len(lead_dist) else ""
     lead_city = city_counts.index[0] if len(city_counts) else ""
     focus_lead = focus_rows[0] if focus_rows else None
-    contact_low = sorted(contact, key=lambda c: (c["share"], c["key"]))[0]
+    contact_low = min(contact, key=lambda c: (c["share"], c["key"]))
     labels = {
         "lede": (f"מאגר משרד הבריאות של מסגרות הטיפול בהתמכרויות לסמים ולאלכוהול: {n(total)} מסגרות "
                  f"ב-{n(len(city_counts))} יישובים. לצד האשפוזיות לגמילה גופנית הוא כולל גם מרכזי גמילה "
@@ -441,7 +440,7 @@ def compute(frames):
                               if n_unmapped else "")),
         "districts_aria": f"גרף עמודות מוערמות אופקי: מסגרות לפי מחוז וסוג; מחוז {lead_d} בראש.",
         "districts_caption": "מסגרות לפי מחוז וסוג.",
-        "cities_note": (f"היישובים עם מספר המסגרות הגדול ביותר, בחלוקה לסוג."
+        "cities_note": ("היישובים עם מספר המסגרות הגדול ביותר, בחלוקה לסוג."
                         + (f" {n(n_other_c)} יישובים נוספים ({facilities_word(other_c)}) מופיעים בשורה האחרונה בטבלה."
                            if other_c else "")),
         "cities_aria": (f"גרף עמודות מוערמות אופקי: יישובים לפי מספר מסגרות; {lead_city} בראש עם "

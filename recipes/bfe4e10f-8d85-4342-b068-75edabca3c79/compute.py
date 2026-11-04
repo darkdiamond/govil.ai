@@ -45,13 +45,13 @@ STATUS_COLOR = {"הליך פתוח": "#9a6700", "הליך סגור": "#0068f5", 
 DED_BUCKETS = [("ללא הפחתה", 0, 0), ("1% עד 19%", 1, 19), ("20% עד 29%", 20, 29),
                ("30% עד 39%", 30, 39), ("40% עד 49%", 40, 49), ("50% עד 99%", 50, 99),
                ("הפחתה מלאה", 100, 100)]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def fines(c):
@@ -304,7 +304,7 @@ def insight_withheld(df):
     if w:
         s = f"ב-{n(w)} עיצומים שם המפר אינו מפורסם — במקומו מופיע מספר"
     if s_n:
-        yrs = int(round(df.loc[short, "pub_years"].median()))
+        yrs = round(df.loc[short, "pub_years"].median())
         part = (f"{n(s_n)} עיצומים מתפרסמים ל-{n(yrs)} שנים בלבד"
                 + (f", לעומת {n(long_years.iloc[0])} שנים ברוב המאגר" if not long_years.empty else ""))
         s = (s + "; " + part) if s else part
@@ -339,7 +339,6 @@ def compute(frames):
     # Laws.
     law_n = _counts(df["law"])
     law_amt = _sum_by(df, "law")
-    law_orig = _sum_by(df, "law", "orig")
     # Cap at TOP_LAWS + "אחר", but never bucket a single leftover law.
     cap = TOP_LAWS if len(law_n) > TOP_LAWS + 1 else len(law_n)
     laws_top = list(law_n.index[:cap])
@@ -485,8 +484,8 @@ def compute(frames):
         "q_note": (f"מספר העיצומים בכל רבעון לפי החוק שהופר ({TOP_LAWS_STACK} החוקים השכיחים, "
                    f"השאר תחת \"{OTHER_LAWS}\"), והסכום הרבעוני לאחר הפחתה (קו).{partial_note}"),
         "q_aria": (f"גרף עמודות מוערמות: עיצומים לפי רבעון וחוק, {q_labels[0]} עד {q_labels[-1]}."),
-        "law_note": (f"מספר העיצומים והסכום לפי החוק שהופר. בתרשים הסכום, החלק הבהיר הוא ההפחתה "
-                     f"מהסכום המקורי."
+        "law_note": ("מספר העיצומים והסכום לפי החוק שהופר. בתרשים הסכום, החלק הבהיר הוא ההפחתה "
+                     "מהסכום המקורי."
                      + (f" {n(len(rest_laws))} חוקים נוספים מקובצים תחת \"{OTHER}\"." if rest_laws else "")),
         "law_count_aria": (f"תרשים עמודות אופקי: עיצומים לפי חוק — {law_n.index[0]} בראש עם "
                            f"{n(law_n.iloc[0])} עיצומים."),

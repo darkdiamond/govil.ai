@@ -60,7 +60,7 @@ T_BANDS = [(-1e9, 16, "פחות מ-16"), (16, 18, "16 עד 18"), (18, 20, "18 ע
 
 
 def _i(v) -> str:
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def _n(v, d=1) -> str:

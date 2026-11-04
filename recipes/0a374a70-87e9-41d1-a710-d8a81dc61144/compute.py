@@ -334,7 +334,7 @@ def compute(frames):
     pb = []
     for lo, hi, lab in PROLIFIC:
         sel = acount[(acount >= lo) & (acount <= hi)]
-        pb.append((lab, int(len(sel)), int(sel.sum())))
+        pb.append((lab, len(sel), int(sel.sum())))
     pb = [r for r in pb if r[1]]
     prolific = {"names": [r[0] for r in pb], "values": [r[1] for r in pb]}
     prolific_rows = [{"bucket": r[0], "appl": _int(r[1]), "apps": _int(r[2]),
@@ -583,13 +583,13 @@ def compute(frames):
             "in_force_kpi": f"עיצובים רשומים כיום ({_pct(force_share, 0)} מהבקשות)",
             "last_year_kpi": f"בקשות שהוגשו ב-{full_last} ({ch_txt})",
             "foreign_kpi": "מהבקשות עם דין קדימה מחו״ל",
-            "years_note": (f"מספר הבקשות לפי שנת ההגשה, ושיעור הבקשות עם דין קדימה מחו״ל (קו, ציר ימני)."
+            "years_note": ("מספר הבקשות לפי שנת ההגשה, ושיעור הבקשות עם דין קדימה מחו״ל (קו, ציר ימני)."
                            + partial_note
                            + (f" {_int(pre_rows)} בקשות מלפני {first_year} אינן מוצגות בגרף." if pre_rows else "")),
             "status_note": (f"מצב {_int(n)} הבקשות כיום, בחמש קבוצות. ״רשום, חידוש לא שולם״ — עיצוב שמועד "
                             f"החידוש שלו הגיע והאגרה טרם שולמה."),
-            "cohort_note": (f"מצב הבקשות כיום לפי תקופת ההגשה (באחוזים מהבקשות בכל תקופה). בקשות ותיקות "
-                            f"פגו ברובן; בקשות חדשות עדיין רשומות או בבחינה."
+            "cohort_note": ("מצב הבקשות כיום לפי תקופת ההגשה (באחוזים מהבקשות בכל תקופה). בקשות ותיקות "
+                            "פגו ברובן; בקשות חדשות עדיין רשומות או בבחינה."
                             + (" התקופה האחרונה חלקית." if p_last_partial else "")),
             "classes_note": (f"{_int(n_cls)} בקשות לפי סוג המוצר בסיווג לוקרנו — {TOP_CLASSES} הסוגים הגדולים."
                              + (f" {_int(n - n_cls)} בקשות ללא סיווג תקין אינן נכללות." if n - n_cls else "")),
@@ -605,8 +605,8 @@ def compute(frames):
                          + (f" {_int(n_noappl)} בקשות ללא קוד מבקש אינן נכללות." if n_noappl else "")),
             "prolific_note": (f"{_int(n_applicants)} המגישים לפי מספר הבקשות שכל אחד מהם הגיש "
                               f"(סקלה לוגריתמית)."),
-            "lag_note": (f"חציון החודשים מהגשת הבקשה ועד פרסומה, לפי שנת ההגשה; הרצועה מציגה את הרבעון "
-                         f"התחתון והעליון."
+            "lag_note": ("חציון החודשים מהגשת הבקשה ועד פרסומה, לפי שנת ההגשה; הרצועה מציגה את הרבעון "
+                         "התחתון והעליון."
                          + (f" {_int(lag_bad)} בקשות עם פער שלילי או חריג אינן נכללות." if lag_bad else "")),
             "prio_note": (f"{_int(n_plag)} בקשות עם דין קדימה, לפי מספר החודשים בין הבקשה המקורית להגשה "
                           f"בישראל."),

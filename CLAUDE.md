@@ -574,6 +574,9 @@ manual` command after the connection exists.
 ```sh
 source .venv/bin/activate
 
+# Lint (CI runs this; ruff.toml pins the version, requirements-dev.txt installs it)
+ruff check .
+
 # Firestore emulator (so nothing hits prod)
 gcloud emulators firestore start --host-port=localhost:8080 &
 export FIRESTORE_EMULATOR_HOST=localhost:8080 FIRESTORE_PROJECT_ID=local-dev

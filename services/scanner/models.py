@@ -6,9 +6,8 @@ as returned from the CKAN API and stored locally.
 """
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Optional
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
@@ -36,7 +35,7 @@ class Organization(BaseModel):
     id: str
     name: str
     title: str
-    logo_url: Optional[str] = None
+    logo_url: str | None = None
 
 
 class Resource(BaseModel):
@@ -45,20 +44,20 @@ class Resource(BaseModel):
     name: str
     format: str = ""
     url: str
-    size: Optional[int] = None
-    last_modified: Optional[datetime] = None
-    description: Optional[str] = None
+    size: int | None = None
+    last_modified: datetime | None = None
+    description: str | None = None
     # Whether the resource is queryable via /api/3/action/datastore_search.
     # Drives the shell's data-explorer section on the dataset page.
     datastore_active: bool = False
     # CKAN's md5 of the uploaded file (empty for API-pushed resources).
     # Unlike last_modified it survives byte-identical re-uploads unchanged —
     # the recipe-refresh precheck's file fingerprint (check A′) keys on it.
-    hash: Optional[str] = None
+    hash: str | None = None
 
     # Local tracking fields (not from CKAN)
-    file_hash: Optional[str] = None
-    storage_path: Optional[str] = None
+    file_hash: str | None = None
+    storage_path: str | None = None
     download_status: DownloadStatus = DownloadStatus.PENDING
 
     class Config:
@@ -71,18 +70,18 @@ class Dataset(BaseModel):
     name: str
     title: str
     slug: str = ""                                # deterministic Hebrew→Latin slug from title
-    notes: Optional[str] = Field(default=None, description="Dataset description")
-    organization: Optional[Organization] = None
-    license_title: Optional[str] = None
-    update_frequency: Optional[str] = None
+    notes: str | None = Field(default=None, description="Dataset description")
+    organization: Organization | None = None
+    license_title: str | None = None
+    update_frequency: str | None = None
     tags: list[str] = Field(default_factory=list)
     resources: list[Resource] = Field(default_factory=list)
-    record_count: Optional[int] = None             # populated by Scanner.scan via datastore_search
-    metadata_created: Optional[datetime] = None
-    metadata_modified: Optional[datetime] = None
+    record_count: int | None = None             # populated by Scanner.scan via datastore_search
+    metadata_created: datetime | None = None
+    metadata_modified: datetime | None = None
 
     # Local tracking fields
-    last_scanned_at: Optional[datetime] = None
+    last_scanned_at: datetime | None = None
     status: str = "active"
 
     @classmethod
@@ -141,7 +140,7 @@ class ScanResult(BaseModel):
     dataset: Dataset
     status: DatasetStatus
     resources_downloaded: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
     class Config:
         use_enum_values = True
@@ -150,7 +149,7 @@ class ScanResult(BaseModel):
 class ScanSummary(BaseModel):
     """Summary of a complete scan run."""
     started_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     datasets_scanned: int = 0
     datasets_new: int = 0
     datasets_updated: int = 0
@@ -191,7 +190,7 @@ def _public_resource_url(url: str) -> str:
     return _LOCALE_PREFIX_RE.sub("https://data.gov.il/", url)
 
 
-def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
+def _parse_datetime(value: str | None) -> datetime | None:
     """Parse datetime string from CKAN API. Always returns tz-aware UTC —
     CKAN frequently returns naive ISO timestamps (e.g. `2024-01-15T10:30:00`)
     that would be silently stored as UTC by Firestore and then come back
@@ -199,10 +198,10 @@ def _parse_datetime(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
     try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(value)
     except (ValueError, TypeError):
         return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt
 

@@ -7,8 +7,6 @@ here. Chemical families come from an ordered keyword classifier with an
 """
 import re
 
-import pandas as pd
-
 OTHER = "אחר"
 NO_TYPE = "סוג דיגום לא צוין"
 OTHER_TYPES = "סוגי דיגום אחרים"
@@ -135,10 +133,10 @@ def insight_code_gap(type_rows):
     cand = [r for r in type_rows if r["rows"] >= 20]
     if len(cand) < 1:
         return None
-    worst = sorted(cand, key=lambda r: (r["coded_share"], r["name"]))[0]
+    worst = min(cand, key=lambda r: (r["coded_share"], r["name"]))
     if worst["coded_share"] >= 0.7:
         return None
-    best = sorted(cand, key=lambda r: (-r["coded_share"], r["name"]))[0]
+    best = min(cand, key=lambda r: (-r["coded_share"], r["name"]))
     tail = ""
     if best["name"] != worst["name"] and best["coded_share"] - worst["coded_share"] >= 0.2:
         tail = f", לעומת {_pct(best['coded_share'])} ב\"{best['name']}\""
@@ -167,7 +165,7 @@ def insight_family(fam_type, t1, t2):
         s = {f: v for f, v in s.items() if f != OTHER and v > 0}
         if not s:
             return None
-        f = sorted(s, key=lambda k: (-s[k], FAMILY_ORDER.index(k)))[0]
+        f = min(s, key=lambda k: (-s[k], FAMILY_ORDER.index(k)))
         return f, s[f], sum(fam_type[t].values())
     a, b = top(t1) if t1 else None, top(t2) if t2 else None
     if not a or not b:

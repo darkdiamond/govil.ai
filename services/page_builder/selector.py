@@ -36,14 +36,14 @@ than trusting the flag.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 
 log = logging.getLogger(__name__)
 
 DEFAULT_MAX_AGE_DAYS = 365
-DEFAULT_MIN_MODIFIED_FLOOR = datetime(2026, 1, 1, tzinfo=timezone.utc)
+DEFAULT_MIN_MODIFIED_FLOOR = datetime(2026, 1, 1, tzinfo=UTC)
 # Runaway guard for every candidate scan. `change_status` is sticky, so the
 # changed stream can approach the whole corpus; the DESC-order age_cutoff
 # break is the real terminator, this only bounds a pathological run (e.g. a
@@ -64,7 +64,7 @@ def pick_authoring_candidates(
 ) -> list[tuple[SourceRecord, str]]:
     """Up to `n` `(source, reason)` pairs, `new` first, newest CKAN
     change first within each kind."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     age_cutoff = max(now - timedelta(days=max_age_days), _as_utc(min_modified_floor))
     picks: list[tuple[SourceRecord, str]] = []
     seen: set[str] = set()
@@ -130,5 +130,5 @@ def pick_authoring_candidates(
 
 def _as_utc(dt: datetime) -> datetime:
     if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=UTC)
     return dt

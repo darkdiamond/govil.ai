@@ -16,6 +16,7 @@ the page stays near the budget.
 Order-independent: rows are sorted by a total key first and float sums use
 math.fsum.  Plan numbers are public plan identifiers, not personal data.
 """
+import itertools
 import json
 import math
 import re
@@ -69,7 +70,7 @@ RE_OLD = re.compile(r"/0\d/\d+")
 
 
 def _int(n):
-    return f"{int(round(n)):,}"
+    return f"{round(n):,}"
 
 
 def _pct(x, digits=0):
@@ -207,7 +208,7 @@ def _enc_ring(pts, tol_m, kx, ox, oy):
         sm = m if len(m) <= 4 else [m[0], m[len(m) // 3], m[far], m[2 * len(m) // 3]]
     q = []
     for x, y in sm:
-        p = (int(round(x / (kx * M_PER_DEG) * Q)) - ox, int(round(y / M_PER_DEG * Q)) - oy)
+        p = (round(x / (kx * M_PER_DEG) * Q) - ox, round(y / M_PER_DEG * Q) - oy)
         if not q or q[-1] != p:
             q.append(p)
     if len(q) > 1 and q[0] == q[-1]:
@@ -215,7 +216,7 @@ def _enc_ring(pts, tol_m, kx, ox, oy):
     if len(q) < 3:
         return None
     out = [q[0][0], q[0][1]]
-    for (x1, y1), (x2, y2) in zip(q, q[1:]):
+    for (x1, y1), (x2, y2) in itertools.pairwise(q):
         out += [x2 - x1, y2 - y1]
     return out
 
@@ -257,7 +258,7 @@ def _map(d, status_order):
     f = f.sort_values(["narrow", "rank", "area_k", "plan", "reg", "gkey"],
                       ascending=[True, True, False, True, True, True],
                       kind="stable", na_position="last")
-    ox, oy = int(math.floor(min(lons) * Q)), int(math.floor(min(lats) * Q))
+    ox, oy = math.floor(min(lons) * Q), math.floor(min(lats) * Q)
     kx = math.cos(math.radians((min(lats) + max(lats)) / 2))
     rows = list(zip(f["rank"], f["plan"], f["reg"], f["area"], f["rings"], f["wide"]))
 
@@ -267,8 +268,8 @@ def _map(d, status_order):
             enc = [e for e in (_enc_ring(pts, tol, kx, ox, oy) for _, pts in rings) if e]
             if not enc:
                 continue
-            feats.append([int(rk), plan, int(reg) if reg == reg else -1,
-                          round(float(area) / 1000, 1) if area == area else -1, enc,
+            feats.append([int(rk), plan, int(reg) if pd.notna(reg) else -1,
+                          round(float(area) / 1000, 1) if pd.notna(area) else -1, enc,
                           1 if wide else 0])
         return feats
 
@@ -371,7 +372,7 @@ def _hist(values, edges):
 
 def _edge_labels(edges, unit=""):
     out = [f"עד {_int(edges[0])}{unit}"]
-    for a, b in zip(edges, edges[1:]):
+    for a, b in itertools.pairwise(edges):
         out.append(f"{_int(a)} עד {_int(b)}{unit}")
     out.append(f"מעל {_int(edges[-1])}{unit}")
     return out
@@ -477,7 +478,7 @@ def compute(frames):
         reg_names.append(f"{_int(a * 1000)} עד {_int((a + bw) * 1000 - 1)}")
         f = int((g["status"] == in_force_label).sum())
         reg_force.append(f)
-        reg_rest.append(int(len(g)) - f)
+        reg_rest.append(len(g) - f)
     regno = {"names": reg_names, "force": reg_force, "rest": reg_rest}
     t_regno = [{"name": n, "force": _int(f), "rest": _int(r)}
                for n, f, r in zip(reg_names, reg_force, reg_rest)]

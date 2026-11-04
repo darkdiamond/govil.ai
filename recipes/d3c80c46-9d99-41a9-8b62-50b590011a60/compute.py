@@ -15,7 +15,7 @@ import pandas as pd
 
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
              "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 TYPE_ORDER = ["שקליות בריבית קבועה", "צמודות מדד", "ריבית משתנה", "קצרות", "צמודות דולר", "אחר"]
 # Ordered prefix rules (longest first) for issuance BONDS and trading BONDNAME.
 TYPE_PREFIXES = [
@@ -265,7 +265,6 @@ def compute(frames):
     red_year = red.groupby("y")["p"].sum().sort_index()
     red_split = (red.pivot_table(index="y", columns="tradable", values="p", aggfunc="sum")
                     .fillna(0).sort_index())
-    fc_year = red[is_fc].groupby("y")["p"].sum()
     upcoming = red[red["d"] > actual_last] if pd.notna(actual_last) else red.iloc[0:0]
     up_bond = (upcoming.groupby("bond")["p"].sum().sort_index()
                        .sort_values(ascending=False, kind="stable"))

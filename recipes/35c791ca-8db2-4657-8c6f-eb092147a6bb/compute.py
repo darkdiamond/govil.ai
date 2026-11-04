@@ -26,7 +26,7 @@ import re
 
 import pandas as pd
 
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 UNASSIGNED = "לא משויך"
 DIST_ORDER = ["תל אביב", "מרכז", "חיפה", "צפון", "ירושלים", "דרום", "יהודה ושומרון"]
 TOP_SETTLEMENTS = 15
@@ -589,7 +589,7 @@ def compute(frames):
         "types_note": (f"כל מתקן נספר פעם אחת לפי סוג הרישיון שלו. {n(auth)} מוסכים מורשים הם "
                        f"{pct(auth / total * 100 if total else 0)} מהמאגר."),
         "types_aria": "תרשים עמודות אופקי: מספר המתקנים לפי סוג מתקן.",
-        "districts_note": (f"מחוז לפי שם היישוב הרשום."
+        "districts_note": ("מחוז לפי שם היישוב הרשום."
                            + (f" {n(unassigned)} מתקנים ללא יישוב מזוהה נספרים תחת „{UNASSIGNED}”."
                               if unassigned else "")),
         "districts_aria": "תרשים עמודות מוערמות: מתקנים לפי מחוז וסוג מתקן.",

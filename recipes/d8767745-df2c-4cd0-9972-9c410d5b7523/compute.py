@@ -33,6 +33,7 @@ coloured by class, with a road-number search, and adds a north-south view
 chaining and simplifying lines in compute (MAP_BUDGET), so a bigger upload
 only coarsens the drawing.
 """
+import itertools
 import json
 import math
 
@@ -55,11 +56,11 @@ LEN_BINS = [(0, 1, "עד 1"), (1, 2, "1-2"), (2, 5, "2-5"), (5, 10, "5-10"),
             (100, float("inf"), "100 ומעלה")]
 ALIGN_SHARE = 0.9          # "digits encode the class" needs >= this share per length
 TOP10_SHARE = 0.15         # concentration insight threshold
-LRI, PDI = "⁦", "⁩"
+LRI, PDI = "\u2066", "\u2069"
 
 
 def n(v):
-    return f"{int(round(v)):,}"
+    return f"{round(v):,}"
 
 
 def km(v, digits=1):
@@ -270,7 +271,7 @@ def geo_section(df):
             continue
         lo_hi = per_road.setdefault(rn, [90.0, -90.0])
         for ln in lines:
-            for a, b in zip(ln, ln[1:]):
+            for a, b in itertools.pairwise(ln):
                 pieces.append(((a[1] + b[1]) / 2, _haversine_m(a, b), k))
             ys = [y for _, y in ln]
             lo_hi[0], lo_hi[1] = min(lo_hi[0], min(ys)), max(lo_hi[1], max(ys))
@@ -307,13 +308,13 @@ def geo_section(df):
         net_lo = min(v[0] for v in per_road.values())
         net_hi = max(v[1] for v in per_road.values())
         span_net = (net_hi - net_lo) * KM_PER_DEG_LAT
-        rn_x, (lo_x, hi_x) = sorted(per_road.items(), key=lambda kv: (kv[1][0] - kv[1][1], kv[0]))[0]
+        rn_x, (lo_x, hi_x) = min(per_road.items(), key=lambda kv: (kv[1][0] - kv[1][1], kv[0]))
         span_x = (hi_x - lo_x) * KM_PER_DEG_LAT
         if span_net > 0 and span_x / span_net >= EXTENT_SHARE:
             insights.append(("extent",
-                f"על המפה, כביש {rn_x} נפרש על פני כ-{n(span_x)} ק\"מ מצפון לדרום, "
+                (f"על המפה, כביש {rn_x} נפרש על פני כ-{n(span_x)} ק\"מ מצפון לדרום, "
                 f"{pct(span_x / span_net, 0)} ממרחק הצפון-דרום של כל רשת הדרכים הממוספרות "
-                f"(כ-{n(span_net)} ק\"מ)."))
+                f"(כ-{n(span_net)} ק\"מ).")))
     # concentration in the north: where half the road length lies
     if total_m > 0 and len(bands) >= 3:
         pts = sorted(pieces, key=lambda p: (-p[0], p[1], p[2]))
@@ -329,9 +330,9 @@ def geo_section(df):
             north_part = (lat_hi - med) / (lat_hi - lat_lo)
             if north_part <= 0.4:
                 insights.append(("north",
-                    f"חצי מאורך הדרכים הממוספרות ({km(total_m / 2000, 0)} ק\"מ) עובר בחלק הצפוני "
+                    (f"חצי מאורך הדרכים הממוספרות ({km(total_m / 2000, 0)} ק\"מ) עובר בחלק הצפוני "
                     f"של הארץ, מצפון לקו רוחב {med:.2f}°, שהוא רק {pct(north_part, 0)} ממרחק "
-                    f"הצפון-דרום של הרשת."))
+                    f"הצפון-דרום של הרשת.")))
 
     model = {
         "chunks": chunks, "origin": org, "scale": geo.SCALE, "kinds": [class_label(k) if k in CLASS_ORDER else k for k in kinds],
@@ -382,7 +383,6 @@ def compute(frames):
     df["cls"] = df["ROADCLASS"].where(~df["ROADCLASS"].isin(["", "<Null>"]), "")
     df["num"] = pd.to_numeric(df["ROADNUMBER"], errors="coerce")
     seg_total = len(df)
-    km_total = df["L"].sum() / 1000
 
     # ---- link types ---------------------------------------------------
     lt = (df.assign(lt=df["LINKTYPE"].replace("", "לא צוין"))

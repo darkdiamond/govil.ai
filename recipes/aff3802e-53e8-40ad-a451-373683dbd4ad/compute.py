@@ -199,7 +199,7 @@ def _services(series):
     if not rows:
         return [], 0
     counts = pd.Series(rows).value_counts()
-    top = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0][0]
+    top = min(counts.items(), key=lambda kv: (-kv[1], kv[0]))[0]
     item_count = {}
     for r in rows:
         for it in set(r):
