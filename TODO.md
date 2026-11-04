@@ -121,6 +121,12 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `govlib.geo` + `GovMap.islands` / `ring` / `popup` as they're next touched, the way the six in
   the map-govlib PR were: keep the non-geometry model byte-identical and bump `recipe_version`.
   (2026-11-01)
+- **Cloud Run → Bank of Israel connects still drop SYNs.** About half of the TCP connects to
+  `edge.boi.org.il` from the job stall (up to ~135s); from outside GCP none do. The provider
+  now reuses one connection and reconnects after `connect_timeout_s` (10s), which hides it but
+  doesn't fix it. Check how often `reconnecting (n/5)` shows up in the job logs after the
+  deploy. If it's frequent, or a sync fails after 5 reconnects, try a static egress IP (VPC +
+  Cloud NAT) to tell whether BoI is filtering Google's shared egress range. (2026-11-04)
 
 ## Shared recipe code (govlib, gov.j2, page libs)
 

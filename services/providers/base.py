@@ -72,8 +72,8 @@ class ProviderSettings(BaseModel):
     # TCP connect only. From Cloud Run, SYNs to some hosts are dropped at
     # random (BoI 2026-11: ~half of connects stalled, up to ~135s, before the
     # kernel's retransmit got through). A short connect timeout plus a fresh
-    # connect beats waiting out the backoff; these retries don't spend
-    # `retries`.
+    # connect beats waiting out the backoff. `connect_retries` covers those
+    # stalls and pooled sockets the server dropped, and doesn't spend `retries`.
     connect_timeout_s: float = 10.0
     connect_retries: int = 5
     min_interval_s: float = 0.0
@@ -381,14 +381,15 @@ class SourceProvider(abc.ABC):
                 time.sleep(slot - time.monotonic())
             try:
                 r = self._send(url, params=params, headers=headers)
-            except httpx.ConnectTimeout as e:
+            # A stalled connect, or a pooled keep-alive socket the server closed
+            # just as we reused it: reconnect at once, without backoff.
+            except (httpx.ConnectTimeout, httpx.RemoteProtocolError) as e:
                 last = e
                 if connect_stalls < self.settings.connect_retries:
                     connect_stalls += 1
-                    log.info("provider %s: connect to %s timed out after %.0fs, "
-                             "reconnecting (%d/%d)", self.key, httpx.URL(url).host,
-                             self.settings.connect_timeout_s, connect_stalls,
-                             self.settings.connect_retries)
+                    log.info("provider %s: %s to %s (%s), reconnecting (%d/%d)",
+                             self.key, type(e).__name__, httpx.URL(url).host, e,
+                             connect_stalls, self.settings.connect_retries)
                     continue
             except httpx.HTTPError as e:
                 last = e

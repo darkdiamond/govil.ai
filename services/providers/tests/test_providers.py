@@ -251,6 +251,37 @@ def test_connect_stalls_give_up_after_the_budget(boi, monkeypatch):
     assert len(calls) == 3
 
 
+def test_spent_connect_budget_falls_back_to_retries(boi, monkeypatch):
+    boi.settings = boi.settings.model_copy(update={"connect_retries": 1, "retries": 2})
+    sleeps, calls = [], []
+    monkeypatch.setattr("services.providers.base.time.sleep", sleeps.append)
+
+    def send(url, **kw):
+        calls.append(url)
+        raise httpx.ConnectTimeout("stalled")
+
+    monkeypatch.setattr(boi, "_send", send)
+    with pytest.raises(ProviderError, match="after 4 attempts"):
+        boi.http_get("https://edge.boi.org.il/x")
+    assert len(calls) == 4 and sleeps == [1, 2]  # 1 reconnect + 1 try + 2 backed-off retries
+
+
+def test_a_dropped_keepalive_socket_reconnects_at_once(boi, monkeypatch):
+    sleeps = []
+    monkeypatch.setattr("services.providers.base.time.sleep", sleeps.append)
+    seq = [httpx.RemoteProtocolError("Server disconnected"), FakeResp(200, b"ok")]
+
+    def send(url, **kw):
+        r = seq.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return r
+
+    monkeypatch.setattr(boi, "_send", send)
+    assert boi.http_get("https://edge.boi.org.il/x").status_code == 200
+    assert sleeps == []
+
+
 def test_requests_share_one_client_with_a_short_connect_timeout(monkeypatch):
     p = BoiSdmxProvider(BoiSdmxProvider.default_settings.model_copy(
         update={"enabled": True, "min_interval_s": 0.0}))
