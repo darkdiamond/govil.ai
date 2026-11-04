@@ -258,7 +258,7 @@
     var meta = {{ {"n": model.charts.map.chunks | length, "depots": model.charts.map.depots, "bounds": model.charts.map.bounds} | tojson }};
     var ZOOM_SHAPES = 13;
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var popup = function (dp) {
       var box = document.createElement("div");
       var title = document.createElement("strong");

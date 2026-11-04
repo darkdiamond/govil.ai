@@ -113,7 +113,7 @@
     var colors = [pal[0], pal[1], pal[2], pal[3], pal[6], pal[5], pal[7]];
     var map = L.map(el, { center: [31.25, 34.79], zoom: 13, zoomSnap: 0.25, scrollWheelZoom: false });
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18, attribution: "© OpenStreetMap"
+      maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>"
     }).addTo(map);
     d.points.forEach(function (p) {
       var col = colors[p[2] % colors.length];

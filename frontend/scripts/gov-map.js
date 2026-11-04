@@ -26,6 +26,16 @@
 ;(function () {
   'use strict';
 
+  // Drop Leaflet's default attribution prefix (a "Leaflet" link with a
+  // flag icon) from every map on the page — GovMap's and any body calling
+  // L.map directly — since this file loads after leaflet.js and before the
+  // body's inline scripts. The prefix is optional: Leaflet's BSD-2 license
+  // only requires the copyright header kept in leaflet.js. Tile-layer
+  // credits (OSM, required by the ODbL) are unaffected.
+  if (window.L && L.Control && L.Control.Attribution) {
+    L.Control.Attribution.prototype.options.prefix = false;
+  }
+
   // EPSG:2039 (Israeli Transverse Mercator) inverse transform parameters.
   // Source: EPSG database. Snyder/USGS Bulletin 1532 standard TM inverse,
   // GRS80 ellipsoid (the Israeli 1993 datum is GRS80-based).

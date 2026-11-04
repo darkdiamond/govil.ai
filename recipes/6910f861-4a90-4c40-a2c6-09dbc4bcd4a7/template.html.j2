@@ -172,7 +172,7 @@
     if (!el || !window.L) { return; }
     var meta = {{ {"n": model.charts.map.chunks | length, "ops": model.charts.map.ops, "bounds": model.charts.map.bounds} | tojson }};
     var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var group = L.markerClusterGroup ? L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 45 }) : L.layerGroup();
     for (var c = 0; c < meta.n; c++) {
       var node = document.getElementById("map-pts-" + c);

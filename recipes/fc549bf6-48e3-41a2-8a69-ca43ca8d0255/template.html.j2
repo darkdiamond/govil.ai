@@ -158,7 +158,7 @@
     if (!el || !window.L) { return; }
     var meta = {{ {"n": model.charts.map.chunks | length, "max": model.charts.map.max, "bounds": model.charts.map.bounds, "admins": model.charts.map.admins} | tojson }};
     var map = L.map(el, { preferCanvas: true, scrollWheelZoom: false, zoomSnap: 0.25 });
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap" }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
     var fmt = function (v) { return Number(v).toLocaleString("he-IL"); };
     for (var c = 0; c < meta.n; c++) {
       var node = document.getElementById("map-pts-" + c);
