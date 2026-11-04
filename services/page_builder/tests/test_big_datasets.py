@@ -197,6 +197,25 @@ def test_columns_reach_the_fetcher_and_compute_sees_only_them(env, tmp_path):
     assert s["refreshed"] == [DS]
 
 
+@pytest.mark.parametrize("env_value, want", [(None, rf._DEFAULT_FILE_MAX_BYTES), ("123", 123)])
+def test_the_file_download_cap_reaches_the_fetcher(tmp_path, monkeypatch, env_value, want):
+    if env_value is None:
+        monkeypatch.delenv("REFRESH_FILE_MAX_BYTES", raising=False)
+    else:
+        monkeypatch.setenv("REFRESH_FILE_MAX_BYTES", env_value)
+    recipe = Recipe.load(_fixture_copy(tmp_path, lambda d: None) / DS)
+    ckan = FakeCkan(_rows([2024, 2025]))
+    seen = []
+
+    def fetch(rid, total, dest, **kw):
+        seen.append(kw.get("file_max_bytes"))
+        return ckan.fetch(rid, total, dest, **kw)
+
+    rf.fetch_inputs(recipe, _src().resources, tmp_path / "data",
+                    preview_fn=ckan.preview, fetch_fn=fetch)
+    assert seen == [want]
+
+
 def test_column_listed_but_gone_is_schema_changed(env, tmp_path):
     recipes = _fixture_copy(tmp_path, lambda d: d["inputs"][0].update(columns=[*COLS, "נעלמה"]))
     store = FakeStore(_src())

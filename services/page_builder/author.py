@@ -336,6 +336,7 @@ def prepare(dataset_id: str) -> Path:
 
     from .agent_contract import fetch_resource_export, fetch_resource_preview
     from .refresh import (
+        _DEFAULT_FILE_MAX_BYTES,
         _DEFAULT_MAX_BYTES,
         _DEFAULT_MAX_RECORDS,
         _DEFAULT_PAGE_SIZE,
@@ -386,6 +387,7 @@ def prepare(dataset_id: str) -> Path:
                 fetch_resource_export, res["id"], total, dest,
                 resource=by_id.get(res["id"]), preview=preview,
                 max_bytes=max_bytes, page_size=_DEFAULT_PAGE_SIZE, page_timeout_s=60.0,
+                file_max_bytes=_env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES),
                 deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
             )
             if skipped:
