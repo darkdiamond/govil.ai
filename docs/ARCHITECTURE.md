@@ -8,7 +8,7 @@ landing pages. For repository conventions and the detailed
 ## The big picture
 
 ```
-Cloud Scheduler (daily 06:00 Asia/Jerusalem)
+Cloud Scheduler (06:00 + 14:00 Asia/Jerusalem)
         │
         ▼
 Cloud Run job: govdata-builder-job  (1 task, no LLM)

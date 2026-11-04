@@ -1,7 +1,7 @@
 # Deployment
 
-Three one-time setups, then the runtime flow is: Cloud Scheduler (daily
-06:00 Asia/Jerusalem) → Cloud Run **job** `govdata-builder-job` (scan
+Three one-time setups, then the runtime flow is: Cloud Scheduler (06:00 and
+14:00 Asia/Jerusalem) → Cloud Run **job** `govdata-builder-job` (scan
 CKAN → re-render every recipe'd page whose data moved, no LLM → open a
 `needs-authoring` GitHub issue per new/changed dataset without a recipe →
 stage to GCS + Firestore) → GitHub Actions publisher (generate Nuxt site →
@@ -69,12 +69,12 @@ bash infra/builder-job.deploy.sh
 on the live job and that isn't in the script is dropped on the next
 deploy. Diff against `gcloud run jobs describe` first.
 
-| Flag                        | Value                                              |
-| --------------------------- | -------------------------------------------------- |
-| `--tasks` / `--parallelism` | 1 / 1 (one container per execution)                |
-| `--max-retries`             | 0 (a failed run is retried by the next day's tick) |
-| `--cpu / --memory`          | 2 / 4Gi (full CKAN exports are held in memory)     |
-| `--task-timeout`            | 21600 s (6 h wall-clock ceiling for one run)       |
+| Flag                        | Value                                          |
+| --------------------------- | ---------------------------------------------- |
+| `--tasks` / `--parallelism` | 1 / 1 (one container per execution)            |
+| `--max-retries`             | 0 (a failed run is retried by the next tick)   |
+| `--cpu / --memory`          | 2 / 4Gi (full CKAN exports are held in memory) |
+| `--task-timeout`            | 21600 s (6 h wall-clock ceiling for one run)   |
 
 Manual runs after deploy:
 
@@ -97,7 +97,7 @@ shows FAILED; an idle day (nothing re-rendered) is a success.
 
 ## 3. Cloud Scheduler — `infra/scheduler.setup.sh`
 
-Creates the scheduler job **PAUSED** (`0 6 * * *`, Asia/Jerusalem —
+Creates the scheduler job **PAUSED** (`0 6,14 * * *`, Asia/Jerusalem —
 Cloud Scheduler applies DST). Each tick starts a job execution via the
 Admin API's `:run` method. Enable it only after a manual execution looks
 good.

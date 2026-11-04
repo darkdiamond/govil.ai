@@ -18,7 +18,7 @@ ministries and topics. The live site is [govil.ai](https://govil.ai).
 ## How it works
 
 ```
-Cloud Scheduler (daily 06:00 Asia/Jerusalem)
+Cloud Scheduler (06:00 + 14:00 Asia/Jerusalem)
         │
         ▼
 Cloud Run job: govdata-builder-job (1 task, no LLM)
@@ -83,7 +83,7 @@ agent/
   solve-authoring-issues/      daily batch over open needs-authoring issues
 infra/
   builder-job.deploy.sh        Cloud Run job deploy (env: SCAN_LIMIT, REFRESH_PRECHECK, …)
-  scheduler.setup.sh           Cloud Scheduler (0 6 * * *, Asia/Jerusalem)
+  scheduler.setup.sh           Cloud Scheduler (0 6,14 * * *, Asia/Jerusalem)
   publish-local.sh             manual publish path (same steps as CI)
   DEPLOY.md                    full runbook
 frontend/                      Nuxt 3 (shell + home + category pages)

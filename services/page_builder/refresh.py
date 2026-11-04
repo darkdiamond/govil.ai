@@ -97,12 +97,14 @@ _DEFAULT_FILE_MAX_BYTES = 1_500_000_000
 _DEFAULT_WALL_BUDGET_S = 900.0
 # A wall-budget overrun is transient (slow CKAN); this many in a row since
 # the last full fetch means the dataset outgrew its budget → `too_large`.
-_DEFAULT_WALL_BUDGET_STRIKES = 3
+# Counted in RUNS: the job runs twice a day (06:00 + 14:00), so 6 ≈ 3 days.
+_DEFAULT_WALL_BUDGET_STRIKES = 6
 # Same idea for every `StrikeError` (a map-file download the WAF blocked):
 # this many runs in a row → its `escalate_to` reason, which opens an issue.
-_DEFAULT_TRANSIENT_STRIKES = 3
+# Also 6 runs ≈ 3 days at two runs a day.
+_DEFAULT_TRANSIENT_STRIKES = 6
 # In-run second pass: a source whose CKAN fetch/preview failed transiently is
-# retried once at the end of the run instead of waiting a day (CKAN slowness
+# retried once at the end of the run instead of waiting for the next run (CKAN slowness
 # comes in bursts — 2026-11-02 lost 16 previews in a 40-minute window while
 # other sources fetched fine). At most this many sources are deferred per run
 # (REFRESH_RETRY_CAP; later ones fail as before), so an outage can't double

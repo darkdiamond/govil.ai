@@ -5,7 +5,7 @@ description: Daily batch — work through the open `needs-authoring` GitHub issu
 
 # /solve-authoring-issues [max=10]
 
-The daily job (06:00 Israel, `govdata-builder-job`) refreshes every recipe'd
+The builder job (06:00 + 14:00 Israel, `govdata-builder-job`) refreshes every recipe'd
 page and opens one `needs-authoring` issue per dataset that needs a recipe:
 `new` (no page), `legacy_updated` (legacy agent page, data moved on),
 `recipe_failed` / `schema_changed` / `too_large` (a recipe exists but broke).

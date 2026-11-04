@@ -8,8 +8,8 @@
 #     Reads `sources/*` (the prod scanner keeps it fresh),
 #     writes ONLY `preview_sources/*` + gs://<staging>/preview/datasets/.
 #   - Cloud Scheduler job govdata-refresh-preview-daily: 00:00 UTC (it reads
-#     whatever the prod job's last scan wrote; the prod job runs 06:00
-#     Asia/Jerusalem).
+#     whatever the prod job's last scan wrote; the prod job runs 06:00 and
+#     14:00 Asia/Jerusalem).
 #   - On ≥1 refresh it dispatches publish.yml with target=preview, which
 #     deploys the `recipes-demo` Hosting preview channel (never live).
 #

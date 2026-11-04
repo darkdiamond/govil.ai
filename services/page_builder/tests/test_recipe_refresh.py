@@ -662,7 +662,7 @@ def _strikes(store):
 def test_repeated_wall_budget_overrun_escalates_to_too_large(env):
     store = FakeStore(_src())
     slow = _LimitedCkan(_rows([2024, 2025]), "wall_budget")
-    for n in (1, 2):
+    for n in range(1, rf._DEFAULT_WALL_BUDGET_STRIKES):
         s = _run(env, store, slow)
         assert s["outcomes"][0]["reason"] == "fetch_failed" and _strikes(store) == n
     assert env.issues == []
