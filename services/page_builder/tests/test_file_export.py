@@ -5,6 +5,7 @@ datastore_search on any doubt."""
 from __future__ import annotations
 
 import io
+import threading
 import time
 import urllib.error as urllib_error
 
@@ -254,7 +255,7 @@ def test_blocked_builder_ua_retries_with_a_browser_ua(monkeypatch, tmp_path):
 
 @pytest.mark.parametrize("case", [
     "both_uas_blocked", "html_page", "row_count", "header", "sample_row",
-    "timestamp_column", "bad_number", "headerless_data", "xlsx", "no_preview", "too_big",
+    "timestamp_column", "bad_number", "xlsx", "no_preview", "too_big",
 ])
 def test_anything_doubtful_falls_back_to_the_datastore(monkeypatch, tmp_path, case):
     body, preview, total, resource = GOOD, _preview(), 2, RES
@@ -273,8 +274,6 @@ def test_anything_doubtful_falls_back_to_the_datastore(monkeypatch, tmp_path, ca
         preview = _preview(fields=FIELDS[:3] + [{"id": "קוד", "type": "timestamp"}])
     elif case == "bad_number":
         body = "שם,ערך,קוד\r\nא,\"1,000\",ב\r\nג,2,ד\r\n".encode()
-    elif case == "headerless_data":
-        body = "שם,ערך,קוד,\r\nא,1,ב,x\r\nג,2,ד,\r\n".encode()
     elif case == "xlsx":
         resource = {**RES, "format": "XLSX"}
     elif case == "no_preview":
@@ -380,3 +379,122 @@ def test_canonical_number_refuses(raw):
     # A huge exponent must be refused before int() expands it.
     with pytest.raises(ac._FileMismatch):
         ac._canonical_number(raw, False)
+
+
+# ── malformed rows and CESU-8 ────────────────────────────────────────────
+
+def _rows_datastore(monkeypatch, records):
+    """Fake whole-row datastore reads: records[offset]; returns the offsets asked."""
+    asked = []
+
+    def fake(rid, offset, limit, timeout, fields=None):
+        assert limit == 1 and fields
+        asked.append(offset)
+        rec = records.get(offset)
+        return fields, ([{"_id": offset + 1, **{c: rec[c] for c in fields}}] if rec else [])
+
+    monkeypatch.setattr(ac, "_fetch_page", fake)
+    return asked
+
+
+# Row 2's stray quotes push data past the named columns (the trademarks
+# registry's ד"ר ... בע"מ); CKAN's loader kept it as one cell.
+MALFORMED = ('שם,ערך,קוד\r\nחיפה,1.50,007\r\nצפת,2,"ד"ר כהן, בע"מ"\r\n'
+             'עכו,3,y\r\n').encode()
+# The datastore's row 3, which the float-column probe reads (`3` is whole).
+ROW3 = {"שם": "עכו", "ערך": 3, "קוד": "y"}
+
+
+def test_a_malformed_row_is_read_from_the_datastore(monkeypatch, tmp_path):
+    _serve(monkeypatch, MALFORMED)
+    ds = _datastore(monkeypatch)
+    asked = _rows_datastore(monkeypatch, {1: {"שם": "צפת", "ערך": 2, "קוד": 'דר כהן, בע"מ"'},
+                                          2: ROW3})
+    out, dest = _export(tmp_path, _preview(), total=3)
+    assert out.via == "file" and not ds and 1 in asked
+    assert dest.read_bytes().decode("utf-8") == (
+        'שם,ערך,קוד\r\nחיפה,1.5,007\r\nצפת,2,"דר כהן, בע""מ"""\r\nעכו,3,y\r\n')
+
+
+def test_a_malformed_row_the_datastore_disagrees_with_falls_back(monkeypatch, tmp_path):
+    # The first named column is the row-alignment check (the trademarks
+    # registry's running number); a damaged one there also falls back.
+    _serve(monkeypatch, MALFORMED)
+    ds = _datastore(monkeypatch)
+    _rows_datastore(monkeypatch, {1: {"שם": "אחר", "ערך": 2, "קוד": "x"}, 2: ROW3})
+    out, _ = _export(tmp_path, _preview(), total=3)
+    assert out.via == "datastore" and len(ds) == 1
+
+
+def test_too_many_malformed_rows_fall_back(monkeypatch, tmp_path):
+    monkeypatch.setattr(ac, "_MAX_REFETCHED_ROWS", 0)
+    _serve(monkeypatch, MALFORMED)
+    ds = _datastore(monkeypatch)
+    asked = _rows_datastore(monkeypatch, {2: ROW3})
+    out, _ = _export(tmp_path, _preview(), total=3)
+    assert out.via == "datastore" and len(ds) == 1 and 1 not in asked
+
+
+def test_a_cesu8_surrogate_pair_reads_as_its_character(monkeypatch, tmp_path):
+    # U+100003 as two 3-byte surrogate sequences, as the trademarks registry
+    # has it; the datastore stored the character.
+    body = "שם,ערך,קוד\r\nחיפה,1,Ltd".encode() + b"\xed\xaf\x80\xed\xb0\x83" + b"\r\n"
+    _serve(monkeypatch, body)
+    _datastore(monkeypatch)
+    out, dest = _export(tmp_path, _preview(), total=1, page_size=0)
+    assert out.via == "file"
+    assert dest.read_bytes().decode("utf-8") == "שם,ערך,קוד\r\nחיפה,1,Ltd\U00100003\r\n"
+
+
+def test_an_unpaired_surrogate_falls_back(monkeypatch, tmp_path):
+    _serve(monkeypatch, "שם,ערך,קוד\r\nחיפה,1,".encode() + b"\xed\xaf\x80\r\n")
+    ds = _datastore(monkeypatch)
+    out, _ = _export(tmp_path, _preview(), total=1, page_size=0)
+    assert out.via == "datastore" and len(ds) == 1
+
+
+def test_a_short_row_with_a_stray_quote_is_read_from_the_datastore(monkeypatch, tmp_path):
+    # The quote swallowed a delimiter: two cells read as one, the row is short.
+    body = ('שם,ערך,קוד\r\nחיפה,1.50,007\r\nצפת,"2,בע"מ"\r\nעכו,3,y\r\n').encode()
+    _serve(monkeypatch, body)
+    ds = _datastore(monkeypatch)
+    asked = _rows_datastore(monkeypatch, {1: {"שם": "צפת", "ערך": 2, "קוד": 'בע"מ'}, 2: ROW3})
+    out, dest = _export(tmp_path, _preview(), total=3)
+    assert out.via == "file" and not ds and 1 in asked
+    assert dest.read_bytes().decode("utf-8").splitlines()[2] == 'צפת,2,"בע""מ"'
+
+
+def test_a_short_row_without_quotes_keeps_its_empty_tail(monkeypatch, tmp_path):
+    _serve(monkeypatch, "שם,ערך,קוד\r\nחיפה,1.50\r\n".encode())
+    _datastore(monkeypatch)
+    out, dest = _export(tmp_path, _preview(), total=1, page_size=0)
+    assert out.via == "file"
+    assert dest.read_bytes().decode("utf-8") == "שם,ערך,קוד\r\nחיפה,1.5,\r\n"
+
+
+def test_a_line_with_no_line_end_in_sight_falls_back(monkeypatch, tmp_path):
+    # Bare-CR line ends: without the per-line cap the whole file is one line.
+    monkeypatch.setattr(ac, "_MAX_LINE_BYTES", 32)
+    _serve(monkeypatch, ("שם,ערך,קוד\r" + "חיפה,1,א\r" * 10).encode())
+    ds = _datastore(monkeypatch)
+    out, _ = _export(tmp_path, _preview(), total=10, page_size=0)
+    assert out.via == "datastore" and len(ds) == 1
+
+
+def test_the_refetch_respects_the_wall_budget(monkeypatch, tmp_path):
+    _serve(monkeypatch, MALFORMED)
+    ds = _datastore(monkeypatch)
+    _rows_datastore(monkeypatch, {1: {"שם": "צפת", "ערך": 2, "קוד": "x"}, 2: ROW3})
+    real = ac._check_deadline
+
+    def deadline_after_the_normalize(deadline):
+        # The refetch runs in pool threads; the normalize pass doesn't.
+        if threading.current_thread() is not threading.main_thread():
+            raise FetchLimitExceeded("wall_budget", "out of wall budget")
+        return real(deadline)
+
+    monkeypatch.setattr(ac, "_check_deadline", deadline_after_the_normalize)
+    with pytest.raises(FetchLimitExceeded) as e:
+        _export(tmp_path, _preview(), total=3)
+    assert e.value.limit == "wall_budget" and not ds
+    assert not list(tmp_path.glob("*.patch"))
