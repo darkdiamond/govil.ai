@@ -19,7 +19,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 DatasetKind = Literal[
     "map",          # geographic entities (e.g., antennas, vaccination centers)
@@ -126,6 +126,89 @@ class DatasetMeta(BaseModel):
     version: int = 1
 
 
+# Limits for the recipe-owned search metadata (AgentData.seo). Google cuts a
+# title at ~60 chars and a snippet at ~155-160. agent/skills/check.py mirrors
+# these (it is standalone, so the numbers are repeated there).
+SEO_TITLE_MAX = 60
+SEO_DESCRIPTION_MIN = 70
+SEO_DESCRIPTION_MAX = 160
+SEO_NAME_MAX = 80
+SEO_ALTERNATE_NAMES_MAX = 5
+# `author verify` wants this much slack inside the description bounds: the
+# text usually quotes computed numbers and names, so its length moves with the
+# data, and a refresh that crosses a bound fails the page as recipe_invalid.
+SEO_DESCRIPTION_HEADROOM = 10
+
+
+def _seo_text(value: object, field: str) -> str:
+    if not isinstance(value, str):
+        # ValueError, not TypeError: pydantic turns only ValueError into a
+        # ValidationError.
+        raise ValueError(f"seo.{field} must be a string")  # noqa: TRY004
+    value = value.strip()
+    if not value:
+        raise ValueError(f"seo.{field} is empty")
+    if "\n" in value or "\r" in value:
+        raise ValueError(f"seo.{field} must be one line")
+    return value
+
+
+class SeoMeta(BaseModel):
+    """Search metadata a recipe chooses for its page. Every field is optional;
+    the frontend falls back per field to what it showed before.
+
+    - `title`: the page `<title>`, og:title and twitter:title, verbatim (no
+      brand suffix is added). Fallback: CKAN title (+ ministry if it fits).
+    - `description`: the meta / og / JSON-LD description. Fallback:
+      `summary_he`, which stays the card / search blurb either way.
+    - `name`: the name people search (the page's h1): the JSON-LD Dataset
+      `name` and the breadcrumb. The CKAN title then becomes an
+      `alternateName`.
+    - `alternate_names`: spelling / naming variants (כח/כוח, רשם/פנקס), emitted
+      as JSON-LD `alternateName` instead of a keyword block in the body.
+    """
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = Field(default=None, max_length=SEO_TITLE_MAX)
+    description: str | None = Field(
+        default=None, min_length=SEO_DESCRIPTION_MIN, max_length=SEO_DESCRIPTION_MAX
+    )
+    name: str | None = Field(default=None, max_length=SEO_NAME_MAX)
+    alternate_names: list[str] = Field(
+        default_factory=list, max_length=SEO_ALTERNATE_NAMES_MAX
+    )
+
+    @field_validator("title", "description", "name", mode="before")
+    @classmethod
+    def _one_line(cls, value: object, info: ValidationInfo) -> str | None:
+        if value is None:
+            return None
+        text = _seo_text(value, info.field_name)
+        # The brand is govil.ai: the upstream portal is credited in the body
+        # and the description, never in the title or the name.
+        if info.field_name in ("title", "name") and "data.gov.il" in text.lower():
+            raise ValueError(f"seo.{info.field_name} must not mention data.gov.il")
+        return text
+
+    @field_validator("alternate_names", mode="before")
+    @classmethod
+    def _names(cls, value: object) -> list[str]:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("seo.alternate_names must be a list")  # noqa: TRY004
+        out: list[str] = []
+        for item in value:
+            text = _seo_text(item, "alternate_names")
+            if len(text) > SEO_NAME_MAX:
+                raise ValueError(
+                    f"seo.alternate_names entry is longer than {SEO_NAME_MAX} chars"
+                )
+            if text not in out:
+                out.append(text)
+        return out
+
+
 class AgentData(BaseModel):
     """Agent-derived per-dataset judgments. Written to `agent_data.json`
     by the publisher from the Firestore `sources/<id>.agent_data` field.
@@ -152,6 +235,10 @@ class AgentData(BaseModel):
     # leave these None and the JSON-LD just omits the fields.
     temporal_coverage: str | None = None
     spatial_coverage: str | None = None
+
+    # Recipe-owned search metadata. None on legacy pages and on recipes
+    # written before it existed; the frontend then keeps its old head tags.
+    seo: SeoMeta | None = None
 
     version: int = 1
 

@@ -74,6 +74,20 @@ export interface DatasetMeta {
   version: number;
 }
 
+/** Recipe-owned search metadata (`agent_data.seo`, services/page_builder/
+ *  schema.py SeoMeta). Every field is optional; the dataset page falls back
+ *  per field to the CKAN title / summary_he. */
+export interface SeoMeta {
+  /** <title>, og:title, twitter:title — verbatim, ≤60 chars. */
+  title?: string;
+  /** meta/og/twitter/JSON-LD description, 70–160 chars. */
+  description?: string;
+  /** The name people search (the page's h1): JSON-LD name + breadcrumb. */
+  name?: string;
+  /** Spelling/naming variants → JSON-LD alternateName. */
+  alternate_names?: string[];
+}
+
 /** Agent-derived judgments. Single source of truth: Firestore `sources/<id>.agent_data` */
 export interface AgentData {
   summary_he: string;
@@ -86,6 +100,7 @@ export interface AgentData {
   spatial_coverage?: string;
   /** Deprecated: displayed tags are the manifest's canonical `tags`. */
   suggested_tags?: string[];
+  seo?: SeoMeta;
   version: number;
   // `extra='allow'` on the pydantic side — future fields land here.
   [key: string]: unknown;
@@ -117,6 +132,8 @@ export interface ManifestEntry {
   temporal_coverage?: string;
   spatial_coverage?: string;
   suggested_tags?: string[];
+  /** Dataset page only (read from agent_data.json); not in manifest.json. */
+  seo?: SeoMeta;
 
   // Publisher-computed: canonical display tags (taxonomy/, see
   // services/page_builder/tags.py) and content-based related datasets.

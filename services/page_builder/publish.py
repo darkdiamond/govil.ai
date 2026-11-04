@@ -140,8 +140,22 @@ def agent_data_from_source(src: SourceRecord) -> AgentData | None:
     try:
         return AgentData.model_validate(src.agent_data)
     except Exception as e:  # noqa: BLE001
-        log.warning("malformed agent_data for %s: %s", src.id, e)
-        return None
+        error = e
+    # A builder image older than SeoMeta stores `seo` unvalidated (extra keys
+    # pass), so a bad one must cost only the seo block, not the page's whole
+    # agent data: the frontend falls back to its pre-seo head tags.
+    if "seo" in src.agent_data:
+        try:
+            data = AgentData.model_validate(
+                {k: v for k, v in src.agent_data.items() if k != "seo"}
+            )
+        except Exception:  # noqa: BLE001, S110
+            pass
+        else:
+            log.warning("malformed agent_data.seo for %s, dropped it: %s", src.id, error)
+            return data
+    log.warning("malformed agent_data for %s: %s", src.id, error)
+    return None
 
 
 def _build_page_slugs(metas: dict[str, DatasetMeta]) -> dict[str, str]:

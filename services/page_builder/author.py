@@ -32,6 +32,7 @@ import argparse
 import ast
 import csv
 import hashlib
+import html
 import json
 import random
 import re
@@ -59,6 +60,7 @@ from .recipe import (
     snapshot_table,
 )
 from .refresh import fetch_inputs, render_page, run_compute
+from .schema import SEO_DESCRIPTION_HEADROOM, SEO_DESCRIPTION_MAX, SEO_DESCRIPTION_MIN
 from .tags import PENDING_ROOT
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -767,6 +769,42 @@ def _strip_js_comments(js: str) -> str:
     return _JS_STRING_OR_COMMENT_RE.sub(lambda c: c.group(1) or _keep_newlines(c), js)
 
 
+_H1_RE = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.IGNORECASE | re.DOTALL)
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _seo_findings(agent_data: dict, content_html: str) -> tuple[list[str], list[str]]:
+    """Every authored recipe sets the search title and description
+    (`agent_data.seo`); the limits themselves are enforced by SeoMeta at
+    render. Returns (problems, notes), the notes being a SERP preview."""
+    seo = agent_data.get("seo") or {}
+    problems = [
+        f"SEO: agent_data.seo.{key} is missing (see SKILL.md \"Search (SEO)\")"
+        for key in ("title", "description") if not seo.get(key)
+    ]
+    desc = seo.get("description") or ""
+    lo = SEO_DESCRIPTION_MIN + SEO_DESCRIPTION_HEADROOM
+    hi = SEO_DESCRIPTION_MAX - SEO_DESCRIPTION_HEADROOM
+    if desc and not lo <= len(desc) <= hi:
+        problems.append(
+            f"SEO: seo.description is {len(desc)} chars; keep it within {lo}-{hi} so "
+            "the computed numbers and names in it can grow or shrink on new data "
+            f"without crossing SeoMeta's {SEO_DESCRIPTION_MIN}-{SEO_DESCRIPTION_MAX} "
+            "(a refresh that crosses it fails the page)"
+        )
+    notes = []
+    for key in ("title", "description", "name"):
+        if seo.get(key):
+            notes.append(f"seo.{key} ({len(seo[key])} chars): {seo[key]}")
+    if seo.get("alternate_names"):
+        notes.append("seo.alternate_names: " + " | ".join(seo["alternate_names"]))
+    h1 = _H1_RE.search(content_html)
+    if h1:
+        # seo.name is the breadcrumb + JSON-LD name: the h1 should say the same.
+        notes.append("h1: " + " ".join(html.unescape(_TAG_RE.sub("", h1.group(1))).split()))
+    return problems, notes
+
+
 def _em_dash_findings(recipe: Recipe) -> list[str]:
     out = []
     py = recipe.compute_path.read_text(encoding="utf-8")
@@ -1026,6 +1064,9 @@ def verify(dataset_id: str, recipes_root: Path = RECIPES_ROOT, *, allow_order_de
         notes.append(f"full run OK — rows {rows}, {charts} chart(s), "
                      f"{len(raw.get('insights') or [])} insights, "
                      f"{len(page.content_html):,} bytes")
+        seo_problems, seo_notes = _seo_findings(page.agent_data, page.content_html)
+        problems += seo_problems
+        notes += seo_notes
         problems += _fallback_findings(page.content_html)
         problems += _source_link_findings(page.content_html)
         problems += kpi_format_findings(page.content_html)
