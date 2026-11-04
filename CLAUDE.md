@@ -148,8 +148,14 @@ landing pages. Five layers:
    (builder UA, then a browser UA if the WAF refuses it) and normalizes it to
    the datastore's exact shape: trimmed cells, line breaks as spaces, numbers
    as `2` or `2.0` per column (settled by the preview's samples or one
-   datastore cell). Any doubt (header, row count, a non-text/numeric column,
-   the preview's sample rows) falls back to the pages. The download is
+   datastore cell). The delimiter is whichever of `,` `|` `;` tab makes the
+   header read as the datastore's columns; a UTF-8 line with a CESU-8
+   surrogate pair, or a Windows-1255 byte the code page leaves undefined,
+   decodes as the loader stored it. A row that stray quotes split past the
+   named columns (or short of them) is read from the datastore by offset
+   (≤1,000 rows, checked against the file's first column). Any other doubt
+   (header, row count, a non-text/numeric column, the preview's sample
+   rows) falls back to the pages. The download is
    capped by `REFRESH_FILE_MAX_BYTES` (1.5GB), not the export caps: it holds
    every column, while `REFRESH_MAX_BYTES`/`_TOTAL_BYTES`/`limits` bound the
    normalized output (the recipe's `columns` only). The file and the

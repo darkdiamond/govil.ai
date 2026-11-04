@@ -28,6 +28,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
@@ -619,16 +620,57 @@ _MAX_CP1255_REPLACED = 100
 # 2026-11-04), and their datastore copies hold the split columns.
 _DELIMITERS = (",", "|", ";", "\t")
 
+# A row whose stray quotes split it past the named columns is read from the
+# datastore instead (_Malformed). CKAN's loader read such quotes its own way
+# (the trademarks registry: 122 of 364k rows, 2026-11-04); past this many
+# the file is too far from the datastore to stand in for it.
+_MAX_REFETCHED_ROWS = 1000
+_REFETCH_WORKERS = 8
+
+
+class _Malformed(list):
+    """A file row with data outside the named columns."""
+
+
+def _join_surrogates(s: str) -> str:
+    """A surrogate pair written as two UTF-8 sequences (CESU-8, e.g. ED AF 80
+    ED B0 83 in the trademarks registry) → its one character, which is what
+    CKAN's loader stored. An unpaired surrogate raises UnicodeDecodeError."""
+    return s.encode("utf-16", "surrogatepass").decode("utf-16")
+
+
+def _decoded_lines(f, encoding: str, state: dict):
+    """The binary file's lines, decoded. Only a line that fails the strict
+    decode pays for the fallbacks: UTF-8 joins CESU-8 surrogate pairs,
+    Windows-1255 replaces undefined bytes (counted against the cap)."""
+    rest = "utf-8" if encoding == "utf-8-sig" else encoding
+    enc = encoding  # the BOM can only lead the first line
+    for line in f:
+        try:
+            yield line.decode(enc)
+        except UnicodeDecodeError:
+            if enc == "cp1255":
+                text = line.decode(enc, "replace")
+                state["replaced"] += text.count("\ufffd")
+                if state["replaced"] > _MAX_CP1255_REPLACED:
+                    raise _FileMismatch(
+                        f"over {_MAX_CP1255_REPLACED} bytes undefined in Windows-1255") from None
+                yield text
+            else:
+                yield _join_surrogates(line.decode(enc, "surrogatepass"))
+        enc = rest
+
 
 def _file_rows(raw: Path, columns: list[str], encoding: str):
     """(header, iterator of non-blank data rows) of the raw file. The
     datastore loader trims headers; a column with no header must be empty.
+    A row with data outside the named columns, or short of them with a quote
+    in a cell (stray quotes the loader read another way), is a _Malformed.
     The delimiter is the one whose header reads exactly as the datastore's
     columns. A wrong `encoding` raises UnicodeDecodeError while iterating."""
-    errors = "replace" if encoding == "cp1255" else "strict"
     for delimiter in _DELIMITERS:
-        f = open(raw, encoding=encoding, errors=errors, newline="")  # noqa: SIM115 — rows() owns and closes it
-        reader = csv.reader(f, delimiter=delimiter)
+        f = open(raw, "rb")  # noqa: SIM115 — rows() owns and closes it
+        reader = csv.reader(_decoded_lines(f, encoding, {"replaced": 0}), delimiter=delimiter)
         try:
             header = [h.strip() for h in next(reader, None) or []]
         except BaseException:
@@ -646,19 +688,17 @@ def _file_rows(raw: Path, columns: list[str], encoding: str):
 
     def rows():
         with f:
-            n = replaced = 0
             for row in reader:
                 if not any(row):
                     continue
-                n += 1
-                if any(row[len(header):]) or any(i < len(row) and row[i] for i in blank):
-                    raise _FileMismatch(f"row {n} has data outside the named columns")
-                if errors == "replace":
-                    replaced += sum(v.count("\ufffd") for v in row)
-                    if replaced > _MAX_CP1255_REPLACED:
-                        raise _FileMismatch(
-                            f"over {_MAX_CP1255_REPLACED} bytes undefined in Windows-1255")
-                yield row
+                if (any(row[len(header):]) or any(i < len(row) and row[i] for i in blank)
+                        # A stray quote can also swallow a delimiter (13 such
+                        # rows in the trademarks registry); a short row with
+                        # no quote is a plain short row, its tail empty.
+                        or (len(row) < len(header) and any('"' in v for v in row))):
+                    yield _Malformed(row)
+                else:
+                    yield row
 
     return header, rows()
 
@@ -692,6 +732,8 @@ def _float_columns(raw: Path, encoding: str, columns: list[str], numeric: list[s
         for n, row in enumerate(rows):
             if n % 10_000 == 0:
                 _check_deadline(deadline)
+            if isinstance(row, _Malformed):
+                continue
             for c, i in list(pending.items()):
                 if i < len(row) and _canonical_number(row[i], False).lstrip("-").isdigit():
                     first[c] = n
@@ -719,11 +761,15 @@ def _matches_sample(sample: Any, value: str) -> bool:
 
 def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
                    fields: list[str] | None, max_bytes: int,
-                   probe: Callable[[int, str], Any], deadline: float) -> int:
+                   probe: Callable[[int, str], Any], deadline: float,
+                   fetch_rows: Callable[[list[int], list[str]], dict[int, dict]] | None = None,
+                   ) -> int:
     """Rewrite the downloaded CSV `raw` as the datastore export → `dest`:
     UTF-8 (BOM stripped), else Windows-1255. Returns the row count; raises
     _FileMismatch when it can't match. `probe(offset, column)` reads one
-    datastore cell (see _float_columns)."""
+    datastore cell (see _float_columns); `fetch_rows(offsets, columns)` reads
+    whole datastore rows, for the file's malformed ones (None: a malformed
+    row is a mismatch)."""
     types = {f["id"]: (f.get("type") or "") for f in preview.get("fields") or []
              if f.get("id") and f["id"] != "_id"}
     cols = list(fields) if fields else list(types)
@@ -735,7 +781,7 @@ def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
     for encoding in _ENCODINGS:
         try:
             return _normalize_as(raw, encoding, dest, types, cols, preview, total,
-                                 max_bytes, probe, deadline)
+                                 max_bytes, probe, deadline, fetch_rows)
         except UnicodeDecodeError:
             continue
     raise _FileMismatch("neither UTF-8 nor Windows-1255")
@@ -743,7 +789,9 @@ def _normalize_csv(raw: Path, dest: Path, preview: dict, total: int,
 
 def _normalize_as(raw: Path, encoding: str, dest: Path, types: dict, cols: list[str],
                   preview: dict, total: int, max_bytes: int,
-                  probe: Callable[[int, str], Any], deadline: float) -> int:
+                  probe: Callable[[int, str], Any], deadline: float,
+                  fetch_rows: Callable[[list[int], list[str]], dict[int, dict]] | None,
+                  ) -> int:
     samples = preview.get("sample_rows") or []
     floats = _float_columns(
         raw, encoding, list(types), [c for c in cols if types[c] in _NUMERIC_TYPES],
@@ -757,10 +805,21 @@ def _normalize_as(raw: Path, encoding: str, dest: Path, types: dict, cols: list[
     # cell into a space (parity sweeps, 2026-11-03).
     conv = [(header.index(c), types[c] != "text", c in floats) for c in cols]
     rows = 0
+    malformed: dict[int, list[str]] = {}
     with closing(reader), open(dest, "w", encoding="utf-8", newline="") as out:
         w = csv.writer(out)
         w.writerow(cols)
         for row in reader:
+            if isinstance(row, _Malformed):
+                if fetch_rows is None or len(malformed) >= _MAX_REFETCHED_ROWS:
+                    raise _FileMismatch(f"row {rows + 1} has data outside the named columns")
+                # A one-line placeholder, replaced from the datastore below.
+                malformed[rows] = row
+                w.writerow([""] * len(cols))
+                rows += 1
+                if rows > total:
+                    raise _FileMismatch(f"more rows than the datastore's {total:,}")
+                continue
             vals = []
             for i, num, float_only in conv:
                 v = row[i] if i < len(row) else ""
@@ -785,9 +844,45 @@ def _normalize_as(raw: Path, encoding: str, dest: Path, types: dict, cols: list[
         raise _FileMismatch("not UTF-8, and no Hebrew when read as Windows-1255")
     if rows != total:
         raise _FileMismatch(f"{rows:,} rows, the datastore has {total:,}")
+    if malformed:
+        _check_deadline(deadline)
+        _patch_rows(dest, malformed, header, types, cols, fetch_rows)
     if dest.stat().st_size > max_bytes:
         raise FetchLimitExceeded("bytes", "normalized file crossed the byte cap")
     return rows
+
+
+def _patch_rows(dest: Path, malformed: dict[int, list[str]], header: list[str],
+                types: dict, cols: list[str],
+                fetch_rows: Callable[[list[int], list[str]], dict[int, dict]]) -> None:
+    """Replace the placeholder lines of `dest` (one physical line per row:
+    the normalizer turns line breaks into spaces) with the datastore's rows
+    at the same offsets. Each must agree with the file on its first named
+    column, the check that the file and the datastore are still row-aligned."""
+    key = next(h for h in header if h)
+    ki = header.index(key)
+    recs = fetch_rows(sorted(malformed), list(dict.fromkeys([*cols, key])))
+    for offset, row in malformed.items():
+        got = recs[offset].get(key)
+        cell = row[ki].strip() if ki < len(row) else ""
+        if types[key] == "text":
+            same = (got or "") == cell
+        else:
+            same = got is not None and _canonical_number(cell, isinstance(got, float)) == str(got)
+        if not same:
+            raise _FileMismatch(f"row {offset + 1}: datastore {key!r} is {got!r}, the file has {cell!r}")
+    patched = dest.with_suffix(".patch")
+    with open(dest, "rb") as src, open(patched, "w", encoding="utf-8", newline="") as out:
+        w = csv.writer(out)
+        out.write(src.readline().decode("utf-8"))
+        for i, line in enumerate(src):
+            if i in malformed:
+                rec = recs[i]
+                w.writerow(["" if rec.get(c) is None else rec[c] for c in cols])
+            else:
+                out.write(line.decode("utf-8"))
+    patched.replace(dest)
+    log.info("file: %d malformed row(s) read from the datastore", len(malformed))
 
 
 def fetch_resource_csv(
@@ -838,7 +933,18 @@ def fetch_resource_csv(
             _, records = _fetch_page(resource["id"], offset, 1, _FILE_PROBE_TIMEOUT_S, [column])
             return records[0].get(column) if records else None
 
-        rows = _normalize_csv(raw, dest, preview, total, fields, max_bytes, probe, deadline)
+        def fetch_rows(offsets: list[int], columns: list[str]) -> dict[int, dict]:
+            def one(offset: int) -> tuple[int, dict]:
+                _, records = _fetch_page(resource["id"], offset, 1, _FILE_PROBE_TIMEOUT_S, columns)
+                if not records:
+                    raise _FileMismatch(f"datastore has no row {offset + 1}")
+                return offset, records[0]
+
+            with ThreadPoolExecutor(_REFETCH_WORKERS) as pool:
+                return dict(pool.map(one, offsets))
+
+        rows = _normalize_csv(raw, dest, preview, total, fields, max_bytes, probe, deadline,
+                              fetch_rows)
     except FetchLimitExceeded as e:
         dest.unlink(missing_ok=True)
         if e.limit == "wall_budget":
