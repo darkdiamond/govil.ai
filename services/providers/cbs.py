@@ -331,10 +331,14 @@ class CbsReleasesProvider(SourceProvider):
         return data["value"]
 
     def releases(self) -> list[Release]:
-        """The newest releases, newest first; one list query per run."""
+        """The newest releases, newest first; one list query per run. A page
+        item CBS created ahead of its publication time (CbsDataPublishDate
+        still in the future) is embargoed and left out until then."""
         with self._lock:
             if self._releases is None:
-                rels = [r for r in map(_release, self.list_items()) if r is not None]
+                now = dt.datetime.now(dt.UTC)
+                rels = [r for r in map(_release, self.list_items())
+                        if r is not None and r.published <= now]
                 rels.sort(key=lambda r: (r.published, r.year, r.number.zfill(5)), reverse=True)
                 self._releases = rels
             return self._releases
@@ -500,7 +504,8 @@ class CbsReleasesProvider(SourceProvider):
     # ── liveness ─────────────────────────────────────────────────────────
 
     def healthcheck(self) -> bool:
-        return isinstance(self.list_items(top=1), list)
+        self.list_items(top=1)  # raises on an HTTP error or a non-list answer
+        return True
 
     # probe_available: the base "unknown". A discontinued report just stops
     # updating; CBS gives no definite "gone" signal.

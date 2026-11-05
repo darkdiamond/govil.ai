@@ -173,6 +173,14 @@ def test_matching_newest_first_with_filters(cbs):
     assert got[1].date == "2026-10-07"
 
 
+def test_embargoed_release_is_left_out(cbs):
+    """A page item created ahead of its publication time isn't matched yet."""
+    cbs.items.insert(0, item("399", "כניסות של מבקרים לישראל בנובמבר 2026",
+                             "2999-12-01T09:00:00Z"))
+    cbs.folders["2026/399"] = ["28_26_399t1.xlsx"]
+    assert cbs.matching(REPORT, 1)[0].pub_no == "345/2026"
+
+
 def test_regex_alone_also_takes_special_editions(cbs):
     got = cbs.matching({"title_regex": "כניסות של מבקרים לישראל"}, 10)
     assert {r.pub_no for r in got} >= {"006/2026", "341/2026"}

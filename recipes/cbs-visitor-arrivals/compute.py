@@ -24,10 +24,9 @@ CONTINENTS = ("אסיה", "אפריקה", "אירופה", "אמריקה", "או�
 TOP_COUNTRIES = 15
 RECOVERY_MONTHS = 12
 DOMINANT_SHARE = 0.8
-ROMAN = cbs.ROMAN
-_YEAR = cbs.YEAR
-_grid, _row_with, _after, _val = cbs.grid, cbs.row_with, cbs.col_after, cbs.val
-_periods = cbs.periods
+MONTHS_EN = ("January", "February", "March", "April", "May", "June", "July", "August",
+             "September", "October", "November", "December")
+_EN_RANGE = re.compile(rf"^({'|'.join(MONTHS_EN)})-({'|'.join(MONTHS_EN)})$")
 
 
 # ── tables ───────────────────────────────────────────────────────────────
@@ -35,23 +34,23 @@ _periods = cbs.periods
 
 def _t1(rows):
     """Yearly arrivals by mode, and the year-to-date pair."""
-    h = _row_with(rows, "Cruise", name="t1")
+    h = cbs.row_with(rows, "Cruise", name="t1")
     sub = rows[h]
-    cruise = _after(sub, "Cruise", 0)
-    d_land, d_air = _after(sub, "By Land", cruise), _after(sub, "By Air", cruise)
-    d_tot = _after(sub, "Total", cruise)
-    t_land, t_air = _after(sub, "By Land", d_tot), _after(sub, "By Air", d_tot)
-    g = _row_with(rows, "Grand Total", max(0, h - 4), name="t1")
-    grand = _after(rows[g], "Grand Total", 0)
-    t_tot = _after(rows[g], "Total", 0)
+    cruise = cbs.col_after(sub, "Cruise", 0)
+    d_land, d_air = cbs.col_after(sub, "By Land", cruise), cbs.col_after(sub, "By Air", cruise)
+    d_tot = cbs.col_after(sub, "Total", cruise)
+    t_land, t_air = cbs.col_after(sub, "By Land", d_tot), cbs.col_after(sub, "By Air", d_tot)
+    g = cbs.row_with(rows, "Grand Total", max(0, h - 4), name="t1")
+    grand = cbs.col_after(rows[g], "Grand Total", 0)
+    t_tot = cbs.col_after(rows[g], "Total", 0)
     stop = next((i for i in range(h, len(rows)) if any(
         "Percentage of change" in c for c in rows[i])), len(rows))
     years, ytd = [], []
-    for i, y, m, end in _periods(rows, h + 1, stop):
+    for i, y, m, end in cbs.periods(rows, h + 1, stop):
         r = rows[i]
-        rec = {"year": y, "grand": _val(r, grand), "tourists": _val(r, t_tot),
-               "air": _val(r, t_air), "land": _val(r, t_land), "day": _val(r, d_tot),
-               "day_air": _val(r, d_air), "day_land": _val(r, d_land), "cruise": _val(r, cruise)}
+        rec = {"year": y, "grand": cbs.val(r, grand), "tourists": cbs.val(r, t_tot),
+               "air": cbs.val(r, t_air), "land": cbs.val(r, t_land), "day": cbs.val(r, d_tot),
+               "day_air": cbs.val(r, d_air), "day_land": cbs.val(r, d_land), "cruise": cbs.val(r, cruise)}
         if rec["grand"] is None:
             continue
         if m is None:
@@ -65,25 +64,25 @@ def _t1(rows):
 
 def _t2(rows):
     """Monthly tourist arrivals (total): original, SA, trend, trend % change."""
-    e = _row_with(rows, "change in trend", name="t2")
-    head = _row_with(rows, "Total", max(0, e - 6), name="t2")
-    total = _after(rows[head], "Total", 0)
+    e = cbs.row_with(rows, "change in trend", name="t2")
+    head = cbs.row_with(rows, "Total", max(0, e - 6), name="t2")
+    total = cbs.col_after(rows[head], "Total", 0)
     sub = rows[e]
-    pct = _after(sub, "change in trend", total)
-    trend, sa, orig = (_after(sub, "Trend", pct), _after(sub, "adjusted", pct),
-                       _after(sub, "data", pct))
+    pct = cbs.col_after(sub, "change in trend", total)
+    trend, sa, orig = (cbs.col_after(sub, "Trend", pct), cbs.col_after(sub, "adjusted", pct),
+                       cbs.col_after(sub, "data", pct))
     stop = next((i for i in range(e, len(rows)) if any(
         "Percentage of change" in c for c in rows[i])), len(rows))
     out = []
-    for i, y, m, end in _periods(rows, e + 1, stop):
+    for i, y, m, end in cbs.periods(rows, e + 1, stop):
         r = rows[i]
         if m is None or end:
             continue
-        o = _val(r, orig)
+        o = cbs.val(r, orig)
         if o is None:
             continue
-        out.append({"t": (y, m), "orig": o, "sa": _val(r, sa), "trend": _val(r, trend),
-                    "trend_pct": _val(r, pct)})
+        out.append({"t": (y, m), "orig": o, "sa": cbs.val(r, sa), "trend": cbs.val(r, trend),
+                    "trend_pct": cbs.val(r, pct)})
     out.sort(key=lambda r: r["t"])
     return out
 
@@ -97,24 +96,24 @@ def _t3(rows):
     if p is None:
         raise ValueError("t3: period header row not found")
     blocks = [j for j, c in enumerate(rows[p]) if re.match(r"^[IVX]+(-[IVX]+)? \d{4}$", c)]
-    tok = _row_with(rows, "Cruise", p, name="t3")
-    grand_row = tok - 1 if "Grand" in rows[tok - 1] else _row_with(rows, "Grand", p, name="t3")
-    name_col = _after(rows[_row_with(rows, "ארץ אזרחות", name="t3")], "ארץ אזרחות", 0)
+    tok = cbs.row_with(rows, "Cruise", p, name="t3")
+    grand_row = tok - 1 if "Grand" in rows[tok - 1] else cbs.row_with(rows, "Grand", p, name="t3")
+    name_col = cbs.col_after(rows[cbs.row_with(rows, "ארץ אזרחות", name="t3")], "ארץ אזרחות", 0)
 
     def cols(b):
-        air = _after(rows[tok], "Air", b)
-        return {"air": air, "tourists": _after(rows[tok], "Total", air),
-                "grand": _after(rows[grand_row], "Grand", b)}
+        air = cbs.col_after(rows[tok], "Air", b)
+        return {"air": air, "tourists": cbs.col_after(rows[tok], "Total", air),
+                "grand": cbs.col_after(rows[grand_row], "Grand", b)}
 
     month, ytd = cols(blocks[0]), cols(blocks[-1])
     countries, continents, grand = [], [], None
     for r in rows[tok + 1:]:
         name = r[name_col] if name_col < len(r) else ""
-        g = _val(r, ytd["grand"])
+        g = cbs.val(r, ytd["grand"])
         if not name or g is None:
             continue
-        rec = {"name": name, "ytd": _val(r, ytd["tourists"]) or 0.0, "ytd_grand": g,
-               "month": _val(r, month["tourists"]) or 0.0, "ytd_air": _val(r, ytd["air"])}
+        rec = {"name": name, "ytd": cbs.val(r, ytd["tourists"]) or 0.0, "ytd_grand": g,
+               "month": cbs.val(r, month["tourists"]) or 0.0, "ytd_air": cbs.val(r, ytd["air"])}
         if name == "סך כולל":
             grand = rec
         elif name.endswith("- סך הכל"):
@@ -132,25 +131,31 @@ def _t3(rows):
 
 def _t4(rows):
     """Tourist arrivals by border crossing, year to date, for three years."""
-    yrow = next((i for i, r in enumerate(rows) if sum(bool(_YEAR.match(c)) for c in r) >= 4),
+    yrow = next((i for i, r in enumerate(rows) if sum(bool(cbs.YEAR.match(c)) for c in r) >= 4),
                 None)
     if yrow is None:
         raise ValueError("t4: year header row not found")
-    ycols = [j for j, c in enumerate(rows[yrow]) if _YEAR.match(c)]
+    ycols = [j for j, c in enumerate(rows[yrow]) if cbs.YEAR.match(c)]
     half = len(ycols) // 2
     if half < 2 or len(ycols) != 2 * half:
         raise ValueError(f"t4: expected two blocks of years, got {ycols}")
-    heb = re.compile("[א-ת]")
+    # The English block labels ("January-October", "October") say which
+    # block is which; the range must be the left one. In January both read
+    # "January" (year to date = the month), so there is no range to check.
     lrow = next((rows[i] for i in range(yrow - 1, -1, -1)
-                 if any(heb.search(c) and "-" in c for c in rows[i])), None)
-    if lrow is None or "-" not in next(c for c in lrow if heb.search(c)):
-        raise ValueError("t4: the year-to-date block (ינואר-…) must come first")
-    name_col = _after(rows[_row_with(rows, "דרך מעבר", name="t4")], "דרך מעבר", 0)
+                 if any(c in MONTHS_EN or _EN_RANGE.match(c) for c in rows[i])), None)
+    if lrow is None:
+        raise ValueError("t4: block label row (January-…) not found")
+    ranges = [j for j, c in enumerate(lrow) if _EN_RANGE.match(c)]
+    singles = [j for j, c in enumerate(lrow) if c in MONTHS_EN]
+    if ranges and singles and min(ranges) > min(singles):
+        raise ValueError("t4: the year-to-date block (January-…) must come first")
+    name_col = cbs.col_after(rows[cbs.row_with(rows, "דרך מעבר", name="t4")], "דרך מעבר", 0)
     years = [int(rows[yrow][j]) for j in ycols[:half]]
     section, out = None, []
     for r in rows[yrow + 1:]:
         name = r[name_col] if name_col < len(r) else ""
-        vals = [_val(r, j) for j in ycols]
+        vals = [cbs.val(r, j) for j in ycols]
         if not name or all(v is None for v in vals):
             continue
         if name.startswith("מבקרים - סך"):
@@ -165,10 +170,10 @@ def _t4(rows):
 
 def _t5(rows):
     """Tourist arrivals by air, monthly: [{t: (year, month), orig, trend}]."""
-    h = _row_with(rows, "Original Data נתונים מקוריים", name="t5")
-    orig = _after(rows[h], "Original Data נתונים מקוריים", 0)
-    trend = _after(rows[h], "Trend מגמה", orig)
-    return [{"t": (y, m), "orig": _val(rows[i], orig), "trend": _val(rows[i], trend)}
+    h = cbs.row_with(rows, "Original Data נתונים מקוריים", name="t5")
+    orig = cbs.col_after(rows[h], "Original Data נתונים מקוריים", 0)
+    trend = cbs.col_after(rows[h], "Trend מגמה", orig)
+    return [{"t": (y, m), "orig": cbs.val(rows[i], orig), "trend": cbs.val(rows[i], trend)}
             for i, y, m in cbs.monthly_runs(rows, h + 1, len(rows), orig)]
 
 
@@ -221,11 +226,11 @@ def compute(frames):
         raise ValueError("releases: no edition listed")
     latest_rel = rel.iloc[-1]
 
-    years, ytd = _t1(_grid(frames["t1"], "t1"))
-    monthly = _t2(_grid(frames["t2"], "t2"))
-    countries, continents, grand3, (month_lbl, _) = _t3(_grid(frames["t3"], "t3"))
-    t4_years, crossings = _t4(_grid(frames["t4"], "t4"))
-    air = _t5(_grid(frames["t5"], "t5"))
+    years, ytd = _t1(cbs.grid(frames["t1"], "t1"))
+    monthly = _t2(cbs.grid(frames["t2"], "t2"))
+    countries, continents, grand3, (month_lbl, _) = _t3(cbs.grid(frames["t3"], "t3"))
+    t4_years, crossings = _t4(cbs.grid(frames["t4"], "t4"))
+    air = _t5(cbs.grid(frames["t5"], "t5"))
     if not monthly:
         raise ValueError("t2: no monthly rows")
     if not years:
@@ -235,9 +240,9 @@ def compute(frames):
     # The release's own month (t3's period header, e.g. "X 2026"): t4's
     # month block is for it. t2's last row is normally the same month.
     pm = re.match(r"^([IVX]+) (\d{4})$", month_lbl)
-    if not pm or pm.group(1) not in ROMAN:
+    if not pm or pm.group(1) not in cbs.ROMAN:
         raise ValueError(f"t3: month block label {month_lbl!r} is not 'MM YYYY'")
-    lt = (int(pm.group(2)), ROMAN[pm.group(1)])
+    lt = (int(pm.group(2)), cbs.ROMAN[pm.group(1)])
 
     vis = next((c for c in crossings if c["section"] == "visitors"), None)
     if vis is None or vis["month"][-1] is None:

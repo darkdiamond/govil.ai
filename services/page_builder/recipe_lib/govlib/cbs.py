@@ -54,13 +54,23 @@ def val(row, j):
     return num(cell(row, j))
 
 
+def _release_key(release_no: str):
+    """"345/2026" → (2026, 345): CBS numbers releases within a year."""
+    m = re.fullmatch(r"\s*(\d+)\s*/\s*(\d{4})\s*", str(release_no))
+    return (int(m.group(2)), int(m.group(1))) if m else (0, 0)
+
+
 def grid(df, name="table") -> list:
     """The newest edition's rows of one table (all sheets, in sheet and row
-    order) as lists of cleaned cells; index j is column C(j+1)."""
+    order) as lists of cleaned cells; index j is column C(j+1). Exactly one
+    edition: the newest date, and of two editions that share it, the higher
+    release number."""
     if df.empty:
         raise ValueError(f"{name}: empty grid")
     latest = df["RELEASE_DATE"].max()
-    df = df[df["RELEASE_DATE"] == latest].sort_values(["SHEET_NO", "ROW"], kind="stable")
+    df = df[df["RELEASE_DATE"] == latest]
+    newest = max(df["RELEASE_NO"].unique(), key=lambda n: (_release_key(n), n))
+    df = df[df["RELEASE_NO"] == newest].sort_values(["SHEET_NO", "ROW"], kind="stable")
     cols = sorted((c for c in df.columns if _CELL.fullmatch(c)), key=lambda c: int(c[1:]))
     return [[clean(v) for v in row] for row in df[cols].itertuples(index=False)]
 

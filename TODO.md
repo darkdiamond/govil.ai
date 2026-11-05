@@ -175,6 +175,13 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **CPI and other price indices aren't press releases in this list.** They come from the CBS
   Index API (`api.cbs.gov.il/index/data/price?id=120010`), which needs its own provider.
   (2026-11-05)
+- **A CBS table dropped from the latest edition freezes its page silently.** `facts()` raises
+  when the newest edition lacks a configured `table` stem, so the provider sync fails for that
+  dataset every run; the refresh never runs, so no `needs-authoring` issue opens and the page
+  stays last-good indefinitely (only the run summary's `provider sync … failed` shows it).
+  Fix: have the sync open an issue (or record a strike that escalates like
+  `REFRESH_TRANSIENT_STRIKES`) after N consecutive `provider_error`s for one dataset.
+  (2026-11-05)
 - **Every run downloads every CBS table to version it.** ~0.1s a file now; with ~20 pages × ~5
   tables it costs about a minute a run. If it grows, give `version()` a cheap path that hashes
   the release number + file names and sizes from the folder listing, and download only when

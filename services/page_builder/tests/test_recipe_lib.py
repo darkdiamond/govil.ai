@@ -49,6 +49,13 @@ def test_cbs_grid_takes_the_newest_edition_in_row_order():
         cbs.grid(old.iloc[0:0], "t1")
 
 
+def test_cbs_grid_takes_one_edition_when_two_share_a_date():
+    a = _cbs_frame([["a1"], ["a2"]]).assign(RELEASE_NO="99/2026")
+    b = _cbs_frame([["b1"], ["b2"]]).assign(RELEASE_NO="345/2026")
+    rows = cbs.grid(pd.concat([a, b]).sample(frac=1, random_state=1), "t1")
+    assert rows == [["b1"], ["b2"]]  # the higher release number, not interleaved
+
+
 def test_cbs_header_lookups_raise_when_missing():
     rows = [["", "Total", "Grand Total"], ["Cruise", "By Air", "Total"]]
     assert cbs.row_with(rows, "Cruise") == 1

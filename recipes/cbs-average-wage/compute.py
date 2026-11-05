@@ -323,8 +323,7 @@ def compute(frames):
             add("gap", f"הפער בין הענפים גדול: ב{ind[0]} השכר הממוצע {_ils(wage_by[ind[0]])} ₪, "
                        f"פי {fmt.num_he(ratio, 1)} מאשר ב{ind[-1]} ({_ils(wage_by[ind[-1]])} ₪).")
     if hitech_total and total_wage:
-        isr = rec["orig"].get(lt)
-        isr_jobs = dict(t1["orig"]["israelis"]).get(lt, {}).get("jobs") if isr else None
+        isr_jobs = dict(t1["orig"]["israelis"]).get(lt, {}).get("jobs")
         share = (hitech_total["jobs"] / isr_jobs) if isr_jobs and hitech_total["jobs"] else None
         add("hitech", f"בהייטק השכר הממוצע {_ils(hitech_total['wage'])} ₪, פי "
                       f"{fmt.num_he(hitech_total['wage'] / total_wage, 1)} מהממוצע לעובדים ישראלים"
@@ -339,10 +338,9 @@ def compute(frames):
     if len(real_s) >= 25 and real_s[-1]["trend"] and real_s[0]["trend"]:
         first, lastr = real_s[0], real_s[-1]
         c = _chg(lastr["trend"], first["trend"])
-        add("real_long", f"מאז {_mname(first['t'])} עלה השכר הממוצע במחירים קבועים "
-                         f"(לפי קו המגמה) ב-{fmt.pct(c)}." if c and c > 0 else
-                         f"מאז {_mname(first['t'])} ירד השכר הממוצע במחירים קבועים "
-                         f"(לפי קו המגמה) ב-{fmt.pct(abs(c))}." if c else None)
+        if c:
+            add("real_long", f"מאז {_mname(first['t'])} {'עלה' if c > 0 else 'ירד'} השכר "
+                             f"הממוצע במחירים קבועים (לפי קו המגמה) ב-{fmt.pct(abs(c))}.")
     if jobs_chg is not None and abs(jobs_chg) >= 0.005:
         add("jobs", f"מספר משרות השכיר ב{_mname(lt)}: {fmt.num_he(last['jobs'], 1)} אלף, "
                     f"{_word(jobs_chg)} של {fmt.pct(abs(jobs_chg))} בשנה.")
