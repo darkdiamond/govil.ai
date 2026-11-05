@@ -1,0 +1,5 @@
+{
+  "stations.מספר תחנת ניטור": "chart-blocks, kpi:span, insight:numbering, insight:tests, insight:duplicates, insight:links, table:directory — numbering blocks of 100 (1000 once numbers pass 2000)",
+  "stations.שם תחנת ניטור": "chart-kinds, chart-places, kpi:stations, kpi:fixed, kpi:mobile, kpi:tests, insight:mix, insight:tests, insight:cluster, insight:operator, table:directory — kind (fixed/mobile/test) and place cluster derived from the name",
+  "stations.קישור לתחנת ניטור": "insight:links — host, ZIP format and file name vs station number; links are http on a -dev host, so not linked from the page (the explorer shows them)"
+}
