@@ -13,12 +13,82 @@ from services.page_builder import refresh as rf
 from services.page_builder.recipe import Recipe, render_template
 
 sys.path.insert(0, str(rf.RECIPE_LIB_DIR))
-from govlib import fmt, frame, geo
+from govlib import cbs, fmt, frame, geo
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
 DS = "11111111-2222-3333-4444-555555555555"
 RID = "aaaaaaaa-0000-0000-0000-000000000001"
 COLS = ["שנה", "חודש", "מחוז", "מספר אירועים"]
+
+
+# ── cbs ──────────────────────────────────────────────────────────────────
+
+
+def _cbs_frame(rows, release="2026-11-04"):
+    width = max(len(r) for r in rows)
+    return pd.DataFrame([{"RELEASE_NO": "1/2026", "RELEASE_DATE": release, "SHEET_NO": "01",
+                          "SHEET": "s", "ROW": f"{i:05d}",
+                          **{f"C{j + 1:02d}": (r[j] if j < len(r) else "") for j in range(width)}}
+                         for i, r in enumerate(rows, 1)])
+
+
+def test_cbs_clean_and_num():
+    assert cbs.clean(" 2026 * ") == "2026"
+    assert cbs.clean("Trend(R)") == "Trend"
+    assert cbs.clean("תיירים (1) (2)  - סך הכל") == "תיירים - סך הכל"
+    assert [cbs.num(v) for v in ("152.4", "..", "-", "x", "1,234", "abc")] == [
+        152.4, None, None, None, 1234.0, None]
+
+
+def test_cbs_grid_takes_the_newest_edition_in_row_order():
+    old = _cbs_frame([["old"]], release="2026-10-07")
+    new = _cbs_frame([["b"], ["a"]]).iloc[::-1]  # shuffled
+    rows = cbs.grid(pd.concat([old, new]), "t1")
+    assert rows == [["b"], ["a"]]
+    with pytest.raises(ValueError, match="empty grid"):
+        cbs.grid(old.iloc[0:0], "t1")
+
+
+def test_cbs_grid_takes_one_edition_when_two_share_a_date():
+    a = _cbs_frame([["a1"], ["a2"]]).assign(RELEASE_NO="99/2026")
+    b = _cbs_frame([["b1"], ["b2"]]).assign(RELEASE_NO="345/2026")
+    rows = cbs.grid(pd.concat([a, b]).sample(frac=1, random_state=1), "t1")
+    assert rows == [["b1"], ["b2"]]  # the higher release number, not interleaved
+
+
+def test_cbs_header_lookups_raise_when_missing():
+    rows = [["", "Total", "Grand Total"], ["Cruise", "By Air", "Total"]]
+    assert cbs.row_with(rows, "Cruise") == 1
+    assert cbs.col_after(rows[1], "Total", 1) == 2
+    assert cbs.row_with(rows, "Grand", contains=True) == 0
+    with pytest.raises(ValueError, match="'Trend' not found"):
+        cbs.row_with(rows, "Trend", name="t2")
+    with pytest.raises(ValueError):
+        cbs.col_after(rows[1], "Cruise", 1)
+
+
+def test_cbs_periods_find_label_columns_by_content():
+    rows = [
+        ["2900", "", "2016"],       # a data value that looks like a year
+        ["3613", "", "2017"],
+        ["957", "I-X", "2026"],
+        ["58.6", "I", "2024"],
+        ["67.5", "II", ""],
+        ["foot", "", ""],
+    ]
+    got = cbs.periods(rows, 0, len(rows))
+    assert got == [(0, 2016, None, None), (1, 2017, None, None), (2, 2026, 1, 10),
+                   (3, 2024, 1, None), (4, 2024, 2, None)]
+
+
+def test_cbs_monthly_runs_count_months_and_check_marks():
+    rows = [["2019", "I", "250"], ["", "", "298"], ["", "III", "368"],
+            ["2020", "I", "268"], ["", "", ""], ["", "", "302"]]
+    assert cbs.monthly_runs(rows, 0, len(rows), 2) == [
+        (0, 2019, 1), (1, 2019, 2), (2, 2019, 3), (3, 2020, 1), (5, 2020, 2)]
+    rows[2][1] = "VI"
+    with pytest.raises(ValueError, match="month mark VI on month 3"):
+        cbs.monthly_runs(rows, 0, len(rows), 2)
 
 
 # ── fmt ──────────────────────────────────────────────────────────────────

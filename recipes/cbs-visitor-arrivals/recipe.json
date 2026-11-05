@@ -1,0 +1,79 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-visitor-arrivals",
+  "recipe_version": 1,
+  "authored_at": "2026-11-05T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-04T11:00:00Z",
+    "rows": {
+      "t1": 73,
+      "t2": 75,
+      "t3": 115,
+      "t4": 31,
+      "t5": 99,
+      "releases": 12
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": [
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C08",
+        "C13"
+      ]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": [
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C12",
+        "C16"
+      ]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": [
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C15",
+        "C16"
+      ]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C10"]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C08"]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

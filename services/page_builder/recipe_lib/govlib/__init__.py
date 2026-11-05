@@ -3,12 +3,14 @@
 The builder copies this package into every compute sandbox next to
 `recipe_exec.py`, so a recipe imports it like any module:
 
-    from govlib import fmt, frame, geo
+    from govlib import cbs, fmt, frame, geo
 
 Modules:
   fmt    Hebrew number, percent, date and list text
   frame  pandas idioms: stable ranked counts, top-N + "אחר", cleaning, parsing
   geo    map geometry: simplify, delta-encode rings, pack JSON islands
+  cbs    CBS release tables (the cbs_releases grid): find headers by label,
+         periods by content, parse CBS's missing-value marks
 
 Self-contained on purpose (stdlib + pandas only, no `services.*` imports),
 like recipe_exec.py.

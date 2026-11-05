@@ -161,6 +161,32 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   deploy. If it's frequent, or a sync fails after 5 reconnects, try a static egress IP (VPC +
   Cloud NAT) to tell whether BoI is filtering Google's shared egress range. (2026-11-04)
 
+## CBS reports (cbs_releases provider)
+
+- **Only 2 of ~22 recurring monthly/quarterly CBS reports have pages.** `cbs-visitor-arrivals`
+  and `cbs-average-wage` drove the provider. The rest come from
+  `python -m services.providers.cbs catalog` (labour force survey, foreign trade, credit-card
+  spending, national accounts, …). Merge the labour-force "נתונים עיקריים" edition with the
+  full one into one page. Author in PRs of 5–10. (2026-11-05)
+- **Yearly CBS reports (~50) have no pages.** Run `catalog --months 24` to find the ones
+  published in both years; skip holiday collections ("לרגל …"). The release-list window
+  (`LIST_WINDOW`, newest 400 items, ~13 months) is too short for them: raise it, or query
+  per report, before authoring one. (2026-11-05)
+- **CPI and other price indices aren't press releases in this list.** They come from the CBS
+  Index API (`api.cbs.gov.il/index/data/price?id=120010`), which needs its own provider.
+  (2026-11-05)
+- **A CBS table dropped from the latest edition freezes its page silently.** `facts()` raises
+  when the newest edition lacks a configured `table` stem, so the provider sync fails for that
+  dataset every run; the refresh never runs, so no `needs-authoring` issue opens and the page
+  stays last-good indefinitely (only the run summary's `provider sync … failed` shows it).
+  Fix: have the sync open an issue (or record a strike that escalates like
+  `REFRESH_TRANSIENT_STRIKES`) after N consecutive `provider_error`s for one dataset.
+  (2026-11-05)
+- **Every run downloads every CBS table to version it.** ~0.1s a file now; with ~20 pages × ~5
+  tables it costs about a minute a run. If it grows, give `version()` a cheap path that hashes
+  the release number + file names and sizes from the folder listing, and download only when
+  that moves. (2026-11-05)
+
 ## Shared recipe code (govlib, gov.j2, page libs)
 
 Recipes adopt the shared code as they're next touched. Each item below is a copy-pasted helper
