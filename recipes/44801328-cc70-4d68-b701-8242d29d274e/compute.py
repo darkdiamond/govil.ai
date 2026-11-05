@@ -142,7 +142,7 @@ def compute(frames):
     just_body = {"names": list(rate_b.index), "values": [round(float(v) * 100, 1) for v in rate_b],
                  "n": [int(cnt_b[b]) for b in rate_b.index]}
     body_rows = [{"name": b, "n": _int(top_b[b]),
-                  "rate": f"{rate_b[b] * 100:.0f}" if b in rate_b.index else "—"} for b in top_b.index]
+                  "rate": f"{rate_b[b] * 100:.0f}" if b in rate_b.index else "–"} for b in top_b.index]
 
     # Decisions by year (% of the year's complaints)
     dec_year = {"x": [str(yy) for yy in years], "series": []}
@@ -183,11 +183,11 @@ def compute(frames):
             return None
         ch = (a - b) / b
         peak = max((int(per_year.get(yy, 0)), yy) for yy in years if yy <= last_full)
-        rec = " — השנה עם הכי הרבה תלונות במאגר" if peak[1] == last_full else ""
+        rec = "; זו השנה עם הכי הרבה תלונות במאגר" if peak[1] == last_full else ""
         if abs(ch) < 0.05:
             return f"ב-{last_full} התקבלו {_int(a)} תלונות, בדומה ל-{last_full - 1} ({_int(b)}){rec}."
         word = "עלייה" if ch > 0 else "ירידה"
-        return f"ב-{last_full} התקבלו {_int(a)} תלונות — {word} של {abs(ch) * 100:.0f}% לעומת {last_full - 1} ({_int(b)}){rec}."
+        return f"ב-{last_full} התקבלו {_int(a)} תלונות, {word} של {abs(ch) * 100:.0f}% לעומת {last_full - 1} ({_int(b)}){rec}."
 
     def ins_ytd():
         if anchor.month < 3:
@@ -199,16 +199,16 @@ def compute(frames):
             return None
         ch = (a - b) / b
         if abs(ch) < 0.05:
-            return f"מתחילת {cur} ועד {d_he(anchor)} התקבלו {_int(a)} תלונות — קצב דומה לתקופה המקבילה אשתקד."
+            return f"מתחילת {cur} ועד {d_he(anchor)} התקבלו {_int(a)} תלונות, קצב דומה לתקופה המקבילה אשתקד."
         word = "יותר" if ch > 0 else "פחות"
-        return (f"מתחילת {cur} ועד {d_he(anchor)} התקבלו {_int(a)} תלונות — {abs(ch) * 100:.0f}% {word} "
+        return (f"מתחילת {cur} ועד {d_he(anchor)} התקבלו {_int(a)} תלונות, {abs(ch) * 100:.0f}% {word} "
                 f"מבתקופה המקבילה ב-{cur - 1} ({_int(b)}).")
 
     def ins_body():
         if bodies.empty:
             return None
         top = bodies.index[0]
-        return (f"{top} הוא הגוף שנגדו הוגשו הכי הרבה תלונות — {_int(bodies.iloc[0])} "
+        return (f"{top} הוא הגוף שנגדו הוגשו הכי הרבה תלונות: {_int(bodies.iloc[0])} "
                 f"({_pct(bodies.iloc[0] / n)} מכלל התלונות), ואחריו {bodies.index[1]} ({_int(bodies.iloc[1])}).")
 
     def ins_justified():
@@ -227,7 +227,7 @@ def compute(frames):
         share = topics.iloc[0] / n
         if share < 0.4:
             return None
-        why = " — הרשות לא השיבה לבקשת המידע" if topics.index[0] == "אי מתן מענה" else ""
+        why = " (הרשות לא השיבה לבקשת המידע)" if topics.index[0] == "אי מתן מענה" else ""
         return f"{_pct(share)} מהתלונות עוסקות ב{topics.index[0]}{why}."
 
     def ins_rate_body():
@@ -286,11 +286,11 @@ def compute(frames):
                                               int(per_year.get(last_full - 1, 0)))},
             # A complaint found justified means a public body failed its FOI
             # duty: a majority is bad, 40%+ is caution.
-            "justified": {"value": just_rate, "display": "—" if just_rate is None else _pct(just_rate),
+            "justified": {"value": just_rate, "display": "–" if just_rate is None else _pct(just_rate),
                           "tone": "brand" if just_rate is None else
                           "danger" if just_rate >= 0.6 else "warn" if just_rate >= 0.4 else "ok"},
             # Handling time: shorter is better, ±20% vs the year before.
-            "median_days": {"value": med_last, "display": "—" if med_last is None else f"{med_last:.0f}",
+            "median_days": {"value": med_last, "display": "–" if med_last is None else f"{med_last:.0f}",
                             "tone": _wait_tone(med_last, float(med_year[last_full - 1])
                                                if (last_full - 1) in med_year.index else None)},
         },
@@ -314,7 +314,7 @@ def compute(frames):
             "median_label": f"חציון ימי טיפול בתלונה ({last_full})",
             "lede": (f"{_int(n)} תלונות מ-{d_he(df['received'].min())} ועד {d_he(anchor)}, משני קבצים: "
                      f"ארכיון עד אפריל 2021 ומאגר שוטף מאז. {_int(open_now)} תלונות עדיין בטיפול."),
-            "volume_note": f"תלונות לפי רבעון קבלה. {cur} חלקית — עד {d_he(anchor)}.",
+            "volume_note": f"תלונות לפי רבעון קבלה. {cur} חלקית (עד {d_he(anchor)}).",
             "bodies_note": "הגופים שנגדם הוגשו הכי הרבה תלונות, וכמה מהן נמצאו מוצדקות.",
             "just_note": f"שיעור התלונות שנמצאו מוצדקות (במלואן או בחלקן) מתוך אלה שהוכרעו, לגופים עם {MIN_RULED_FOR_RATE} הכרעות לפחות.",
             "decisions_note": "התפלגות ההחלטות לפי שנת קבלת התלונה. בשנה האחרונה חלק מהתלונות עדיין בטיפול.",

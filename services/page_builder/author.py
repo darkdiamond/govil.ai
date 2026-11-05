@@ -54,6 +54,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     RecipeInput,
+    RecipeLimits,
     dump_model,
     kpi_format_findings,
     lint_template,
@@ -330,7 +331,60 @@ def _tag_findings(dataset_id: str) -> list[str]:
     return [f"TAGS ({source}): {p}" for p in validate_assignment(tax, tags)]
 
 
-def prepare(dataset_id: str) -> Path:
+# prepare's per-resource export deadline; a recipe's `limits.wall_budget_s` can raise it.
+_PREPARE_WALL_S = 900
+
+
+def _committed_recipe(dataset_id: str, recipes_root: Path | None = None) -> Recipe | None:
+    """The recipe already in recipes/<id>/, or None (first authoring). One
+    that doesn't load is ignored, with a note: prepare is how it gets fixed."""
+    recipes_root = recipes_root or RECIPES_ROOT
+    if not (recipes_root / dataset_id / MANIFEST_FILENAME).is_file():
+        return None
+    try:
+        return Recipe.load(recipes_root / dataset_id)
+    except Exception as e:  # noqa: BLE001
+        print(f"  recipes/{dataset_id} doesn't load ({type(e).__name__}: {e}); "
+              "preparing with the default caps and every column", file=sys.stderr)
+        return None
+
+
+def _export_columns(recipe: Recipe, resources: list[dict],
+                    previews: dict[str, dict | None]) -> dict[str, list[str]]:
+    """resource id → the columns to export, for resources the recipe reads
+    only through inputs that declare `columns` (the refresh fetches just
+    those, and a heavy recipe's byte cap is sized for them). A resource read
+    by an input without `columns`, or not read at all, gets every column.
+    Inputs that no longer resolve, or name a column the preview lacks, get
+    every column too, so verify reports the drift instead of prepare."""
+    from .refresh import probe_inputs
+
+    try:
+        resolved = probe_inputs(recipe, resources, previews.get).resolved
+    except Exception as e:  # noqa: BLE001
+        print(f"  recipe inputs don't resolve ({type(e).__name__}: {e}); "
+              "exporting every column", file=sys.stderr)
+        return {}
+    wanted: dict[str, list[str]] = {}
+    full: set[str] = set()
+    for inp in recipe.manifest.inputs:
+        if inp.snapshot or inp.map:
+            continue
+        for res in resolved.get(inp.name, []):
+            if inp.columns is None:
+                full.add(res["id"])
+            else:
+                wanted.setdefault(res["id"], []).extend(inp.columns)
+    out = {}
+    for rid, cols in wanted.items():
+        have = {f["id"] for f in (previews.get(rid) or {}).get("fields") or []}
+        cols = list(dict.fromkeys(cols))
+        if rid not in full and all(c in have for c in cols):
+            out[rid] = cols
+    return out
+
+
+def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
     from services.shared.firestore import FirestoreStateStore
     from services.shared.resources import select_prefetch_resources
 
@@ -341,6 +395,7 @@ def prepare(dataset_id: str) -> Path:
         _DEFAULT_MAX_RECORDS,
         _DEFAULT_PAGE_SIZE,
         _env_int,
+        _project_csv,
     )
 
     provider = _provider_for_recipe(dataset_id)
@@ -360,13 +415,23 @@ def prepare(dataset_id: str) -> Path:
 
     import time
 
-    max_records = _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
-    max_bytes = _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    # Re-authoring: the committed recipe's `limits` and `columns` apply, as in
+    # the refresh, so a heavy recipe prepares without hand-set env vars.
+    # `all_columns` (a redesign that reads columns the recipe doesn't yet)
+    # still takes the limits.
+    recipe = _committed_recipe(dataset_id)
+    limits = recipe.manifest.limits if recipe else RecipeLimits()
+    max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
+    max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    wall_s = max(_PREPARE_WALL_S, limits.wall_budget_s or 0)
     modified = {r.get("id"): r.get("last_modified") for r in src.resources or []}
     by_id = {r.get("id"): r for r in src.resources or []}  # url + format, for the file fetch
+    selected = select_prefetch_resources(src.resources or [])
+    previews = {res["id"]: fetch_resource_preview(res["id"]) for res in selected}
+    columns = _export_columns(recipe, src.resources or [], previews) if recipe and not all_columns else {}
     manifest = []
-    for i, res in enumerate(select_prefetch_resources(src.resources or []), 1):
-        preview = fetch_resource_preview(res["id"]) or {}
+    for i, res in enumerate(selected, 1):
+        preview = previews[res["id"]] or {}
         total = int(preview.get("total") or 0)
         lm = modified.get(res["id"])
         entry = {
@@ -381,15 +446,28 @@ def prepare(dataset_id: str) -> Path:
             "file": None,
             "rows": 0,
         }
+        if previews[res["id"]] is None:
+            # Recorded, so verify reports "no preview" the way the refresh would.
+            entry["preview_failed"] = True
+        cols = columns.get(res["id"])
+        if cols:
+            entry["columns"] = cols
         if 0 < total <= max_records:
             dest = p["data"] / f"{i}.csv"
             out, skipped = _fetch_or_skip(
                 fetch_resource_export, res["id"], total, dest,
-                resource=by_id.get(res["id"]), preview=preview,
+                resource=by_id.get(res["id"]), preview=preview, fields=cols,
                 max_bytes=max_bytes, page_size=_DEFAULT_PAGE_SIZE, page_timeout_s=60.0,
                 file_max_bytes=_env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES),
-                deadline=time.monotonic() + 900, sample_target_rows=0, prefer_sample=False,
+                deadline=time.monotonic() + wall_s, sample_target_rows=0, prefer_sample=False,
             )
+            if out is not None and cols:
+                try:
+                    _project_csv(dest, cols)
+                except RecipeError as e:  # a header the preview didn't predict
+                    print(f"  {res['id'][:8]}: {e}; kept every column", file=sys.stderr)
+                    cols = None
+                    entry.pop("columns", None)
             if skipped:
                 entry["skipped"] = skipped
             if out is not None:
@@ -526,8 +604,13 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
         "",
     ]
     for m in manifest:
-        if m["file"]:
+        if m["file"] and m.get("columns"):
+            status = (f"`data/{m['file']}` — {m['rows']:,} rows, only the recipe's "
+                      f"`columns` ({len(m['columns'])} of {len(m['fields'])})")
+        elif m["file"]:
             status = f"`data/{m['file']}` — {m['rows']:,} rows"
+        elif m.get("preview_failed"):
+            status = "NOT fetched (the datastore preview didn't answer; re-run prepare)"
         elif m.get("skipped") == "bytes":
             status = (f"NOT fetched ({m['total']:,} rows — export over the byte cap; "
                       "fetch only the `columns` the page reads, or set recipe `limits`)")
@@ -535,7 +618,8 @@ def _brief(facts: dict, manifest: list[dict], siblings: list[dict], p: dict) -> 
             status = (f"NOT fetched ({m['total']:,} rows — export ran out of wall budget; "
                       "fewer `columns`, or a recipe `limits.wall_budget_s`)")
         else:
-            status = f"NOT fetched ({m['total']:,} rows — over REFRESH_MAX_RECORDS or empty)"
+            status = (f"NOT fetched ({m['total']:,} rows — over REFRESH_MAX_RECORDS "
+                      "(or the recipe's `limits.max_records`) or empty)")
         lines += [
             f"### {m['name'] or m['resource_id']}",
             f"- resource_id: `{m['resource_id']}` ({m['format']})",
@@ -604,7 +688,7 @@ class _LocalCkan:
 
     def preview(self, rid: str) -> dict | None:
         m = self.by_id.get(rid)
-        if not m:
+        if not m or m.get("preview_failed"):
             return None
         return {"fields": [{"id": f} for f in m["fields"]], "total": m["total"]}
 
@@ -617,9 +701,16 @@ class _LocalCkan:
         with open(self.data_dir / m["file"], encoding="utf-8", newline="") as f:
             rows = list(csv.reader(f))
         header, body = rows[0], rows[1:]
+        fields = kw.get("fields")
+        if fields and m.get("columns") and not all(c in header for c in fields):
+            raise RecipeError(
+                f"data/{m['file']} holds only the columns prepare exported for the recipe "
+                f"({', '.join(m['columns'])}), not {[c for c in fields if c not in header]}; "
+                "re-run `author prepare` after changing an input's `columns`",
+                reason="schema_changed",
+            )
         if self.transform:
             body = self.transform(body)
-        fields = kw.get("fields")
         if fields and all(c in header for c in fields):
             # The prod export carries only `fields`; measure the cap on that.
             # A missing column is left for fetch_inputs to report.
@@ -668,7 +759,9 @@ def _shuffle(rows: list) -> list:
 
 
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-_IL_PHONE_RE = re.compile(r"(?<!\d)0(?:[2-9]|5\d|7\d)-?\d{7}(?!\d)")
+# Not after "<digit>.": the decimals of a float (a shapefile's Shape_STAr
+# 213.029377738, a coordinate) are not a phone number.
+_IL_PHONE_RE = re.compile(r"(?<!\d)(?<!\d\.)0(?:[2-9]|5\d|7\d)-?\d{7}(?!\d)")
 
 
 def _pii_findings(recipe: Recipe) -> list[str]:
@@ -751,7 +844,7 @@ def _ruff_findings(recipe: Recipe) -> list[str]:
 # recipe source, not the rendered page, so an em dash inside CKAN data values
 # is not flagged. Comments and docstrings are exempt; every other string
 # literal in compute.py counts, since most of them end up on the page.
-# Verify-only: legacy recipes still refresh nightly and comply when next touched.
+# Not enforced by the refresh; every committed recipe complies (test_recipe_refresh).
 
 # The character itself, or an HTML entity that renders as one.
 _EM_DASH_RE = re.compile(r"\u2014|&mdash;|&#0*8212;|&#[xX]0*2014;")
@@ -801,9 +894,18 @@ def _seo_findings(agent_data: dict, content_html: str) -> tuple[list[str], list[
     if seo.get("alternate_names"):
         notes.append("seo.alternate_names: " + " | ".join(seo["alternate_names"]))
     h1 = _H1_RE.search(content_html)
-    if h1:
-        # seo.name is the breadcrumb + JSON-LD name: the h1 should say the same.
-        notes.append("h1: " + " ".join(html.unescape(_TAG_RE.sub("", h1.group(1))).split()))
+    h1_text = " ".join(html.unescape(_TAG_RE.sub("", h1.group(1))).split()) if h1 else None
+    if h1_text is not None:
+        notes.append("h1: " + h1_text)
+    # seo.name is the breadcrumb + JSON-LD name: the visible heading says the same.
+    name = " ".join((seo.get("name") or "").split())
+    if name and h1_text is None:
+        problems.append("SEO: the page has no <h1>; render "
+                        "<h1>{{ model.agent_data.seo.name }}</h1>")
+    elif name and h1_text != name:
+        problems.append(f"SEO: the <h1> ({h1_text!r}) differs from seo.name ({name!r}), which "
+                        "is the breadcrumb and JSON-LD name; render "
+                        "<h1>{{ model.agent_data.seo.name }}</h1>")
     return problems, notes
 
 
@@ -1235,6 +1337,8 @@ def _cli(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sp = sub.add_parser("prepare")
     sp.add_argument("dataset_id")
+    sp.add_argument("--all-columns", action="store_true",
+                    help="export every column, not just a committed recipe's `columns`")
     sv = sub.add_parser("verify")
     sv.add_argument("dataset_id")
     sv.add_argument("--recipes", type=Path, default=RECIPES_ROOT)
@@ -1253,7 +1357,7 @@ def _cli(argv: list[str] | None = None) -> int:
         return snapshot(args.dataset_id, args.map_file, args.resource,
                         name=args.name, max_kb=args.max_kb)
     if args.cmd == "prepare":
-        print(prepare(args.dataset_id))
+        print(prepare(args.dataset_id, all_columns=args.all_columns))
         return 0
     if args.cmd == "verify":
         return verify(args.dataset_id, args.recipes, allow_order_dependent=args.allow_order_dependent)

@@ -206,9 +206,9 @@ def insight_recent(df, ref):
     chg = last / prev - 1
     span = f"בשנה שהסתיימה ב-{d_he(ref)}"
     if abs(chg) < 0.1:
-        return f"{span} נרשמו {n(last)} מאגרים חדשים — בדומה לשנה שקדמה לה ({n(prev)})."
+        return f"{span} נרשמו {n(last)} מאגרים חדשים, בדומה לשנה שקדמה לה ({n(prev)})."
     word = "עלייה" if chg > 0 else "ירידה"
-    return (f"{span} נרשמו {n(last)} מאגרים חדשים, לעומת {n(prev)} בשנה שקדמה לה — "
+    return (f"{span} נרשמו {n(last)} מאגרים חדשים, לעומת {n(prev)} בשנה שקדמה לה, "
             f"{word} של {pct(abs(chg) * 100, 0)}.")
 
 
@@ -262,7 +262,7 @@ def insight_otype(otypes, total):
     lead = next(k for k in otypes.index if k != WITHHELD)
     v = int(otypes[lead])
     w = int(otypes.get(WITHHELD, 0))
-    s = f"סוג הבעלים הנפוץ בפנקס: {lead} — {n(v)} מאגרים ({pct(v / total * 100)})"
+    s = f"סוג הבעלים הנפוץ בפנקס: {lead}, עם {n(v)} מאגרים ({pct(v / total * 100)})"
     if w / total >= 0.02:
         s += f"; ב-{n(w)} מאגרים ({pct(w / total * 100)}) פרטי הבעלים אינם מפורסמים"
     return s + "."
@@ -287,7 +287,7 @@ def insight_abroad(df, purposes_rate):
     if purposes_rate:
         name, r, cnt = purposes_rate[0]
         if r >= 2 * yes / total:
-            s += (f"; השיעור הגבוה ביותר — {pct(r * 100)} — במאגרים שבעליהם {name} "
+            s += (f"; השיעור הגבוה ביותר ({pct(r * 100)}) במאגרים שבעליהם {name} "
                   f"({n(cnt)} מאגרים)")
     return s + "."
 
@@ -472,12 +472,12 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     first_year = years[0]
-    partial_note = f" {m_he(ref_p)} — חודש חלקי, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {m_he(ref_p)} הוא חודש חלקי, עד {d_he(ref)}." if partial else ""
     top_heat = max(cells, key=lambda c: (c[2], -c[1], -c[0])) if cells else None
     labels = {
         "lede": (f"פנקס מאגרי המידע של הרשות להגנת הפרטיות במשרד המשפטים: {n(total)} מאגרי מידע "
-                 f"אישי רשומים, של {n(distinct_owners)} בעלי מאגרים מזוהים — מטרת המאגר, סוגי "
-                 f"המידע שבו, מי מחזיק בו והאם הוא מועבר לחו״ל. הרישום האחרון בפנקס: {d_he(ref)}."),
+                 f"אישי רשומים, של {n(distinct_owners)} בעלי מאגרים מזוהים (מטרת המאגר, סוגי "
+                 f"המידע שבו, מי מחזיק בו והאם הוא מועבר לחו״ל). הרישום האחרון בפנקס: {d_he(ref)}."),
         "approved_kpi": "מהמאגרים בסטטוס ״מאושר״",
         "recent_kpi": ("מאגרים שנרשמו בשנה האחרונה (ללא שינוי משנה קודמת)"
                        if prev12 and round(abs(chg) * 100) == 0 else
@@ -495,7 +495,7 @@ def compute(frames):
         "status_aria": f"תרשים עמודות: מאגרים לפי סטטוס. {pct(appr_share)} בסטטוס מאושר.",
         "status_caption": "מספר מאגרים לפי סטטוס בפנקס.",
         "otypes_note": (f"סוג בעל המאגר לפי מבנה מספר הזיהוי שלו (מספר תאגיד: חברה, עמותה, "
-                        f"אגודה וכו׳). ״{WITHHELD}״ — שם הבעלים ומספרו אינם בקובץ, בהתאם להחרגת "
+                        f"אגודה וכו׳). ״{WITHHELD}״: שם הבעלים ומספרו אינם בקובץ, בהתאם להחרגת "
                         f"פרטים מטעמי פרטיות."),
         "otypes_aria": f"תרשים עמודות: מאגרים לפי סוג בעל המאגר. המוביל: {ot_names[0]}.",
         "otypes_caption": "מספר מאגרים לפי סוג בעל המאגר.",
@@ -504,7 +504,7 @@ def compute(frames):
         "owners_aria": f"תרשים עמודות: {TOP_OWNERS} בעלי המאגרים הגדולים לפי מספר מאגרים.",
         "owners_caption": f"{TOP_OWNERS} בעלי המאגרים עם מספר המאגרים הגדול ביותר.",
         "types_note": (f"מספר המאגרים המחזיקים כל סוג מידע (מאגר יכול להחזיק כמה סוגים). "
-                       f"״אחר״ — מאגרים המחזיקים סוג מידע אחר כלשהו (כולל סוגים שמופיעים "
+                       f"״אחר״: מאגרים המחזיקים סוג מידע אחר כלשהו (כולל סוגים שמופיעים "
                        f"בפחות מ-{n(MIN_CATEGORY)} מאגרים); "
                        f"{n(no_types)} מאגרים רשומים ללא סוג מידע."),
         "types_aria": f"תרשים עמודות: {TOP_TYPES} סוגי המידע הנפוצים במאגרים.",
@@ -512,7 +512,7 @@ def compute(frames):
         "heat_note": (f"באיזה שיעור מהמאגרים של כל סוג בעלים מופיע כל סוג מידע ({HEAT_TYPES} "
                       f"הסוגים הנפוצים; סוגי בעלים עם {n(100)} מאגרים לפחות)."),
         "heat_aria": ("מפת חום: שיעור המאגרים המחזיקים כל סוג מידע, לפי סוג בעל המאגר."
-                      + (f" השיעור הגבוה: {top_heat[2]}% — {heat_types[top_heat[0]]} אצל "
+                      + (f" השיעור הגבוה: {top_heat[2]}%, {heat_types[top_heat[0]]} אצל "
                          f"{heat_rows[top_heat[1]]}." if top_heat else "")),
         "heat_caption": "שיעור המאגרים המחזיקים כל סוג מידע, לפי סוג בעל המאגר.",
         "ntypes_note": (f"כמה סוגי מידע שונים מוחזקים בכל מאגר. החציון: {med_ntypes:g} סוגים "
@@ -525,7 +525,7 @@ def compute(frames):
         "purposes_aria": f"תרשים עמודות: {len(p_names)} מטרות המאגר הנפוצות.",
         "purposes_caption": "מספר מאגרים לפי מטרה.",
         "abroad_note": (f"שיעור המאגרים המדווחים על העברת מידע לחו״ל, לפי סוג בעל המאגר (סוגים עם "
-                        f"{n(ABROAD_MIN)} מאגרים לפחות). הקו המקווקו — השיעור בכלל הפנקס "
+                        f"{n(ABROAD_MIN)} מאגרים לפחות). הקו המקווקו מסמן את השיעור בכלל הפנקס "
                         f"({pct(abroad / total * 100)})."),
         "abroad_aria": ("תרשים עמודות: שיעור המאגרים המעבירים מידע לחו״ל לפי סוג בעל המאגר."
                         + (f" הגבוה: {rates[0][0]}, {rates[0][1] * 100:.1f}%." if rates else "")),
@@ -568,8 +568,8 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"פנקס מאגרי המידע של הרשות להגנת הפרטיות: {n(total)} מאגרי מידע אישי "
-                           f"רשומים — בעל המאגר, מטרתו, סוגי המידע, מחזיקים חיצוניים והעברה "
-                           f"לחו״ל; {pnum(appr_share)} בסטטוס מאושר."),
+                           f"רשומים (בעל המאגר, מטרתו, סוגי המידע, מחזיקים חיצוניים והעברה "
+                           f"לחו״ל); {pnum(appr_share)} בסטטוס מאושר."),
             "dataset_kind": "registry",
             "related_ids": ["669b2652-f75b-4de3-8e6b-0dfa17accef5",
                             "713440a1-9963-4548-a7d9-9d9c9da54f62",

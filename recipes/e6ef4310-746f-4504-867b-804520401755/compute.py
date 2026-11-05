@@ -202,8 +202,8 @@ def insight_grapes(df):
     v = ranked(g["fruits"].value_counts())
     locs = ranked(g["locality"].value_counts())
     names = ", ".join(f"{k} ({n(c)})" for k, c in v.head(3).items())
-    return (f"בענבים רשומים {n(g['fruits'].nunique())} שמות זן שונים אצל {n(g['grower'].nunique())} מגדלים — "
-            f"המובילים {names}. היישוב עם מירב שורות הענבים הוא {locs.index[0]} ({n(locs.iloc[0])}).")
+    return (f"בענבים רשומים {n(g['fruits'].nunique())} שמות זן שונים אצל {n(g['grower'].nunique())} מגדלים. "
+            f"המובילים: {names}. היישוב עם מירב שורות הענבים הוא {locs.index[0]} ({n(locs.iloc[0])}).")
 
 
 def insight_concentration(loc_rows, total):
@@ -258,8 +258,8 @@ def insight_inspectors(insp_rows, total):
     if s1 < 0.15:
         return None
     s2 = (real.iloc[0] + real.iloc[1]) / total
-    return (f"{n(len(real))} בודקי הרבנות חתומים על הרשימה, אך שניים מהם — {real.index[0]} "
-            f"({n(real.iloc[0])} שורות) ו{real.index[1]} ({n(real.iloc[1])}) — בדקו יחד {pct(s2)} מהאישורים.")
+    return (f"{n(len(real))} בודקי הרבנות חתומים על הרשימה, אך שניים מהם, {real.index[0]} "
+            f"({n(real.iloc[0])} שורות) ו{real.index[1]} ({n(real.iloc[1])}), בדקו יחד {pct(s2)} מהאישורים.")
 
 
 def insight_expired(df, ref):
@@ -275,7 +275,7 @@ def insight_expired(df, ref):
                 f"({pct(expired / len(df), 1)}), "
                 + (f"כולן בתוקף \"{lab}\"" if int(by_label.iloc[0]) == expired
                    else f"מהן {n(by_label.iloc[0])} בתוקף \"{lab}\"")
-                + " — והן עדיין מופיעות ברשימה.")
+                + ", והן עדיין מופיעות ברשימה.")
     fixed = df.loc[~df["relative"] & exp.notna(), "expiry"]
     if fixed.empty:
         return None
@@ -299,7 +299,7 @@ def insight_notes(df):
     if fc.empty:
         return None
     fam_total = int((df["family"] == fc.index[0]).sum())
-    return (f"{n(len(revai))} שורות ({pct(len(revai) / len(df), 1)}) מסומנות \"רבעי\" או \"גם רבעי\" — פרי בשנתו הרביעית של העץ, "
+    return (f"{n(len(revai))} שורות ({pct(len(revai) / len(df), 1)}) מסומנות \"רבעי\" או \"גם רבעי\": פרי בשנתו הרביעית של העץ, "
             f"שדינו פדיון. הסימון שכיח במיוחד ב{fam_label(fc.index[0])}: {n(fc.iloc[0])} שורות, "
             f"{pct(fc.iloc[0] / fam_total)} מהקבוצה.")
 
@@ -550,12 +550,12 @@ def compute(frames):
         "families_note": (f"שורות הזן ומספר המגדלים בכל קבוצת גידול. עמודת הפרי מערבבת מינים (\"תמר\") וזנים "
                           f"(\"מרלו\", \"אטינגר/האס\"), ולכן הקבוצות סווגו לפי שם הזן; "
                           f"{pct(classified_share)} מהשורות סווגו, והשאר מוצגות כ\"{UNCLASSIFIED}\"."),
-        "families_aria": (f"תרשים עמודות אופקי: שורות זן ומגדלים לפי קבוצת גידול — {fam_label(top_fam)} בראש עם "
+        "families_aria": (f"תרשים עמודות אופקי: שורות זן ומגדלים לפי קבוצת גידול, {fam_label(top_fam)} בראש עם "
                           f"{n(fam_rows_r.iloc[0]) if len(fam_rows_r) else n(0)} שורות."),
         "families_caption": "שורות זן, מגדלים ושמות זן לפי קבוצת גידול.",
         "varieties_note": (f"{len(var_rows)} שמות הפרי או הזן הנפוצים ברשימה, בצבע קבוצת הגידול. שם שמופיע "
                            f"כזן (\"מרלו\") ושם שמופיע כמין (\"תמר\") נספרים כל אחד בנפרד."),
-        "varieties_aria": (f"תרשים עמודות אופקי: שמות הפרי הנפוצים — {var_rows.index[0]} בראש עם "
+        "varieties_aria": (f"תרשים עמודות אופקי: שמות הפרי הנפוצים, {var_rows.index[0]} בראש עם "
                            f"{n(var_rows.iloc[0])} שורות." if len(var_rows) else "תרשים עמודות אופקי: שמות הפרי הנפוצים."),
         "varieties_caption": "שמות הפרי והזן הנפוצים: שורות ומגדלים.",
         "tree_note": (f"כל מלבן הוא קבוצת גידול, ובתוכו עד {TREE_PER_FAM} הזנים הנפוצים בה; שטח המלבן יחסי "
@@ -563,10 +563,10 @@ def compute(frames):
         "tree_aria": f"מפת שטחים: שורות זן לפי קבוצת גידול וזן, {fam_label(top_fam)} הגדולה.",
         "localities_note": (f"{len(top_locs)} היישובים עם מירב שורות הזן המאושרות, מפולחים לפי קבוצת גידול "
                             f"(מתוך {n(n_localities)} יישובים)."),
-        "localities_aria": (f"תרשים עמודות אופקיות מוערמות: יישובים מובילים — {top_locs[0]} בראש עם "
+        "localities_aria": (f"תרשים עמודות אופקיות מוערמות: יישובים מובילים, {top_locs[0]} בראש עם "
                             f"{n(loc_rows.iloc[0])} שורות." if top_locs else "תרשים יישובים מובילים."),
         "localities_caption": "היישובים המובילים: שורות זן ומגדלים.",
-        "loc_dist_note": ("מספר היישובים לפי כמות שורות הזן המאושרות בהם — רוב היישובים קטנים, ומעטים "
+        "loc_dist_note": ("מספר היישובים לפי כמות שורות הזן המאושרות בהם. רוב היישובים קטנים, ומעטים "
                           "מרכזים חלק גדול מהרשימה."),
         "loc_dist_aria": f"תרשים עמודות: התפלגות {n(n_localities)} היישובים לפי מספר שורות הזן בכל יישוב.",
         "loc_dist_caption": "מספר היישובים לפי כמות שורות הזן.",
@@ -574,25 +574,25 @@ def compute(frames):
         "grower_size_aria": f"תרשים עמודות: התפלגות {n(n_growers)} המגדלים לפי מספר שורות הזן.",
         "grower_size_caption": "מספר המגדלים לפי כמות שורות הזן.",
         "top_growers_note": (f"{len(pg)} המגדלים עם מירב שורות הזן המאושרות, בצבע קבוצת הגידול העיקרית שלהם."),
-        "top_growers_aria": (f"תרשים עמודות אופקי: המגדלים המובילים — {top_g_name} בראש עם {n(top_g_count)} שורות."
+        "top_growers_aria": (f"תרשים עמודות אופקי: המגדלים המובילים, {top_g_name} בראש עם {n(top_g_count)} שורות."
                              if len(pg) else "תרשים המגדלים המובילים."),
         "top_growers_caption": "המגדלים המובילים לפי שורות זן.",
         "inspectors_note": ("שורות הזן שאישר כל בודק, לפי תוקף האישור"
                             + (f" ({len(top_insp)} הבודקים המובילים)" if len(insp_names) > len(top_insp) else "")
                             + ". כל צבע הוא מועד תוקף אחר."),
-        "inspectors_aria": (f"תרשים עמודות אופקיות מוערמות: אישורים לפי בודק ותוקף — {top_insp[0]} בראש."
+        "inspectors_aria": (f"תרשים עמודות אופקיות מוערמות: אישורים לפי בודק ותוקף, {top_insp[0]} בראש."
                             if top_insp else "תרשים אישורים לפי בודק."),
         "inspectors_caption": "שורות זן לפי בודק ותוקף.",
         "validity_note": ("שורות הזן לפי מועד פקיעת האישור. תוקף יחסי (\"חודשים מהבדיקה\") מחושב מתאריך הבדיקה "
                           "שבשורה" + (f"; שורות שתוקפן פג עד {ref_txt} מסומנות באדום." if ref is not None else ".")),
         "validity_aria": (f"תרשים עמודות: שורות זן לפי תוקף האישור, {n(expired_total)} שתוקפן פג."),
         "validity_caption": "שורות זן לפי תוקף האישור.",
-        "notes_note": (f"{n(len(nn))} שורות ({pct(len(nn) / max(total, 1), 1)}) נושאות הערה. \"רבעי\" — פרי "
+        "notes_note": (f"{n(len(nn))} שורות ({pct(len(nn) / max(total, 1), 1)}) נושאות הערה. \"רבעי\": פרי "
                        f"בשנתו הרביעית של העץ; \"גם\" מציין שהאישור חל גם על פרי זה. פילוח לפי קבוצת גידול."),
-        "notes_aria": (f"תרשים עמודות אופקיות מוערמות: הערות לפי קבוצת גידול — \"{top_notes[0]}\" השכיחה."
+        "notes_aria": (f"תרשים עמודות אופקיות מוערמות: הערות לפי קבוצת גידול, \"{top_notes[0]}\" השכיחה."
                        if top_notes else "תרשים הערות."),
         "notes_caption": "שורות זן לפי הערה וקבוצת גידול.",
-        "inspections_note": (f"{n(len(dated))} שורות בלבד נושאות תאריך בדיקה — אלו מספר הבדיקות בכל חודש"
+        "inspections_note": (f"{n(len(dated))} שורות בלבד נושאות תאריך בדיקה. אלו מספר הבדיקות בכל חודש"
                              + ("; החודש האחרון חלקי." if partial else ".")),
         "inspections_aria": (f"תרשים עמודות: בדיקות לפי חודש, {n(len(dated))} שורות עם תאריך."),
         "inspections_caption": "בדיקות לפי חודש.",
@@ -626,7 +626,7 @@ def compute(frames):
 
     agent_data = {
         "summary_he": (f"רשימת הרבנות הראשית של {n(n_growers)} מגדלים ב-{n(n_localities)} יישובים שפירותיהם אושרו "
-                       f"ללא חשש ערלה — {n(total)} שורות זן, לפי קבוצת גידול, זן, יישוב, בודק ותוקף."),
+                       f"ללא חשש ערלה: {n(total)} שורות זן, לפי קבוצת גידול, זן, יישוב, בודק ותוקף."),
         "dataset_kind": "registry",
         "suggested_tags": ["ערלה", "כשרות", "חקלאות", "מטעים", "רבנות ראשית", "פירות"],
         "related_ids": ["1a49cbba-3722-4a67-9c20-9895697d0373",

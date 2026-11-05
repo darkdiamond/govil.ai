@@ -60,7 +60,7 @@ SUBCLASS_HE = {
     "C02F": "טיפול במים ושפכים", "C07B": "שיטות כלליות בכימיה אורגנית",
     "C07C": "תרכובות אציקליות וקרבוציקליות", "C07D": "תרכובות הטרוציקליות",
     "C07F": "תרכובות אורגנו-מתכתיות ואחרות", "C07H": "סוכרים ונוקלאוזידים",
-    "C07K": "פפטידים וחלבונים", "C08G": "פולימרים — תגובות עיבוי",
+    "C07K": "פפטידים וחלבונים", "C08G": "פולימרים: תגובות עיבוי",
     "C08J": "עיבוד פולימרים", "C08K": "תוספים לפולימרים", "C08L": "הרכבים של פולימרים",
     "C09D": "ציפויים וצבעים", "C12M": "ציוד למיקרוביולוגיה",
     "C12N": "מיקרואורגניזמים, אנזימים והנדסה גנטית", "C12P": "תסיסה וסינתזה אנזימטית",
@@ -177,7 +177,7 @@ def ins_lead(main_sec, n_main):
     if sa < 0.25:
         return None
     return (f"לפי הסיווג הראשי, התחום המוביל הוא {sec_label(a)} עם {pct(sa * 100)} מהבקשות, "
-            f"ואחריו {sec_label(b)} ({pct(sb * 100)}) — יחד {pct((sa + sb) * 100)} מהבקשות.")
+            f"ואחריו {sec_label(b)} ({pct(sb * 100)}), ויחד {pct((sa + sb) * 100)} מהבקשות.")
 
 
 def ins_life(life_apps, n_apps, sub_apps):
@@ -225,7 +225,7 @@ def ins_shift(mix, full_idx, labels, groups):
         return None
     word = "עלה" if d > 0 else "ירד"
     return (f"בטווח המספרים המלא האחרון ({labels[last]}) {word} חלקו של {g} בסיווג הראשי ל-"
-            f"{pct(now)}, לעומת ממוצע של {pct(base)} בשלושת הטווחים שלפניו — השינוי הגדול "
+            f"{pct(now)}, לעומת ממוצע של {pct(base)} בשלושת הטווחים שלפניו, השינוי הגדול "
             f"ביותר בתמהיל התחומים.")
 
 
@@ -321,7 +321,7 @@ def compute(frames):
         if rest:
             kids.append({"name": f"אחר ({s})", "value": rest})
         tree.append({"name": sec_label(s), "value": int(sub["n"].sum()), "children": kids})
-    class_table = [{"code": r.cls, "name": CLASS_HE.get(r.cls, "—"), "section": SECTION_HE.get(r.sec, r.sec),
+    class_table = [{"code": r.cls, "name": CLASS_HE.get(r.cls, "–"), "section": SECTION_HE.get(r.sec, r.sec),
                     "count": n(r.n), "share": f"{r.n / max(n_main, 1) * 100:.1f}%"}
                    for r in main_cls.head(TOP_CLASS_TABLE).itertuples()]
 
@@ -387,7 +387,7 @@ def compute(frames):
             key = (a, b) if a < b else (b, a)
             cells.append([xi, yi, int(pc.get(key, 0))])
     cooc_table = [{"sec": sec_label(a),
-                   "cells": ["—" if a == b else n(pc.get((a, b) if a < b else (b, a), 0)) for b in secs]}
+                   "cells": ["–" if a == b else n(pc.get((a, b) if a < b else (b, a), 0)) for b in secs]}
                   for a in secs]
 
     # invention kind from the English title (multi-label)
@@ -456,7 +456,7 @@ def compute(frames):
     }
 
     last_full = full_idx[-1] if full_idx else len(band_starts) - 1
-    partial_note = (f" הטווח האחרון ({labels[-1]}) חלקי — מספרים בו עדיין מוקצים — ואינו נכלל בהשוואות."
+    partial_note = (f" הטווח האחרון ({labels[-1]}) חלקי (מספרים בו עדיין מוקצים) ואינו נכלל בהשוואות."
                     if partial_last else "")
     band_note = (f"מספרי הבקשה ניתנים בסדר עולה, ולכן טווחי מספרים (ברוחב {w:,}) משקפים בקירוב את "
                  f"סדר ההגשה. הטווח הראשון כולל גם את הבקשות הוותיקות שמתחתיו.{partial_note}")
@@ -469,7 +469,7 @@ def compute(frames):
                           f"בקשות עם סיווג ראשי) ושיעור הבקשות שיש להן סיווג כלשהו בסעיף."
                           + (f" ב-{n(multi_main)} בקשות עם יותר מסיווג ראשי אחד נלקח הראשון בסדר האלפבית."
                              if multi_main else "")),
-        "sections_aria": (f"תרשים עמודות: שיעור הבקשות לפי סעיף CPC — לפי סיווג ראשי ולפי סיווג כלשהו. "
+        "sections_aria": (f"תרשים עמודות: שיעור הבקשות לפי סעיף CPC, לפי סיווג ראשי ולפי סיווג כלשהו. "
                           f"המוביל: {sec_label(main_sec.sort_index().sort_values(ascending=False, kind='stable').index[0])}."),
         "sub_note": f"מספר הבקשות שיש להן סיווג אחד לפחות בתת-הסעיף ({len(top_sub)} הנפוצים מתוך {n(sub_apps.size)}).",
         "sub_aria": f"תרשים עמודות אופקי: {len(top_sub)} תתי-הסעיפים הנפוצים לפי מספר בקשות. במקום הראשון {top_sub.index[0]}.",
@@ -492,7 +492,7 @@ def compute(frames):
         "per_app_caption": "מספר בקשות לפי מספר הסיווגים שלהן.",
         "nsec_aria": f"תרשים עמודות: בקשות לפי מספר הסעיפים השונים בסיווגיהן. {multi_share:.1f}% בשני סעיפים ומעלה.",
         "nsec_caption": "מספר בקשות לפי מספר סעיפי CPC שונים בסיווגיהן.",
-        "cooc_note": ("מספר הבקשות שיש להן סיווג בשני הסעיפים גם יחד. האלכסון ריק — הצירוף של סעיף "
+        "cooc_note": ("מספר הבקשות שיש להן סיווג בשני הסעיפים גם יחד. האלכסון ריק, כי הצירוף של סעיף "
                       "עם עצמו אינו מוצג."),
         "cooc_aria": "מפת חום: מספר בקשות המשלבות כל זוג סעיפי CPC.",
         "cooc_caption": "מספר בקשות עם סיווג בשני הסעיפים, לכל זוג סעיפים.",

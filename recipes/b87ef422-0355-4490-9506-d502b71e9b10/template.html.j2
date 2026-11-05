@@ -223,7 +223,7 @@
       c.setOption(window.GovEcharts.option(Object.assign({ color: [P[0], P[1], P[2], P[6]].concat(P.slice(3, 6), P.slice(7)) }, opt)));
       window.addEventListener("resize", function () { c.resize(); });
     }
-    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function fmt(v) { return v == null ? "–" : v.toLocaleString("he-IL"); }
     var t = {{ model.charts.types | tojson }};
     mk("chart-types", {
       tooltip: { trigger: "axis", valueFormatter: fmt },
@@ -247,7 +247,7 @@
 
 <script>
   (function () {
-    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function fmt(v) { return v == null ? "–" : v.toLocaleString("he-IL"); }
     function hbar(id, d, name, colorIdx) {
       var c = echarts.init(document.getElementById(id));
       c.setOption(window.GovEcharts.option({
@@ -275,7 +275,7 @@
       c.setOption(window.GovEcharts.option(Object.assign({ color: [P[0], P[1], P[2], P[6]].concat(P.slice(3, 6), P.slice(7)) }, opt)));
       window.addEventListener("resize", function () { c.resize(); });
     }
-    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function fmt(v) { return v == null ? "–" : v.toLocaleString("he-IL"); }
     var c = {{ model.charts.cities | tojson }};
     mk("chart-cities", {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },

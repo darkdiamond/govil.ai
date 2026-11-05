@@ -395,7 +395,7 @@
 
 <script>
   (function () {
-    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var M = function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " מיליון ₪"; };
     var d = {{ model.charts.dep_year | tojson }};
     var c1 = echarts.init(document.getElementById("chart-dep-year"));
     c1.setOption(window.GovEcharts.option({
@@ -514,7 +514,7 @@
 
 <script>
   (function () {
-    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var M = function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " מיליון ₪"; };
     var d = {{ model.charts.dec_year | tojson }};
     var c1 = echarts.init(document.getElementById("chart-dec-year"));
     c1.setOption(window.GovEcharts.option({
@@ -553,7 +553,7 @@
 
 <script>
   (function () {
-    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var M = function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " מיליון ₪"; };
     var h = {{ model.charts.heat | tojson }};
     var c1 = echarts.init(document.getElementById("chart-heat"));
     c1.setOption(window.GovEcharts.option({

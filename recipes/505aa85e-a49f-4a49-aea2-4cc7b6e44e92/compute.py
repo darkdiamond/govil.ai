@@ -421,7 +421,7 @@ def compute(frames):
         else:
             cmp_ = f"קרוב למספר הקונסולים שמייצגים את ישראל בחו״ל ({n(n_ab)}, ב-{n(len(c_ab))} מדינות)"
         insights.append({"id": "scale", "text_he": (
-            f"בישראל משרתים {n(n_il)} קונסולי כבוד של {n(len(c_il))} מדינות זרות — {cmp_}.")})
+            f"בישראל משרתים {n(n_il)} קונסולי כבוד של {n(len(c_il))} מדינות זרות, מספר שהוא {cmp_}.")})
 
     if len(all_c) >= 10 and len(both) >= 3:
         insights.append({"id": "both", "text_he": (
@@ -432,7 +432,7 @@ def compute(frames):
     if n_il and n_nonres / n_il >= NONRES_MIN_SHARE:
         insights.append({"id": "nonres", "text_he": (
             f"{n(n_nonres)} מקונסולי הכבוד בישראל ({pct(n_nonres / n_il)}), של {n(nonres_countries)} מדינות, "
-            f"מסומנים „{NONRES_TOKEN}” — הם מייצגים מדינה שאין לה שגרירות היושבת בישראל.")})
+            f"מסומנים „{NONRES_TOKEN}”: הם מייצגים מדינה שאין לה שגרירות היושבת בישראל.")})
 
     local = tok_counts[tok_counts.index != NATIONWIDE] if len(tok_counts) else tok_counts
     if len(local) >= 2 and local.iloc[0] > local.iloc[1]:
@@ -440,7 +440,7 @@ def compute(frames):
         nw = int(tok_counts.get(NATIONWIDE, 0))
         nw_txt = f" {n(nw)} קונסולים נוספים אחראים לכל הארץ." if nw else ""
         insights.append({"id": "areas", "text_he": (
-            f"מבין אזורי השיפוט בישראל, {a0} משורתת בידי מספר קונסולי הכבוד הגדול ביותר — {n(local.iloc[0])} "
+            f"מבין אזורי השיפוט בישראל, {a0} משורתת בידי מספר קונסולי הכבוד הגדול ביותר: {n(local.iloc[0])} "
             f"({pct(local.iloc[0] / n_il)}), לפני {a1} עם {n(local.iloc[1])} (קונסול יכול לשרת כמה אזורים).{nw_txt}")})
 
     if order_ab and order_ab[0][1] >= 3:
@@ -448,7 +448,7 @@ def compute(frames):
         leaders = [c for c, v in order_ab if v == mx]
         lead_txt = (f"ב{leaders[0]} פועלים" if len(leaders) == 1 else f"ב{_join(leaders)} פועלים בכל אחת")
         insights.append({"id": "abroad_top", "text_he": (
-            f"{lead_txt} {n(mx)} קונסולי כבוד ישראליים — הפריסה הצפופה ביותר בחו״ל. "
+            f"{lead_txt} {n(mx)} קונסולי כבוד ישראליים, הפריסה הצפופה ביותר בחו״ל. "
             f"{n(n_multi_ab)} מדינות מארחות יותר מקונסול כבוד ישראלי אחד.")})
 
     if mp_il:
@@ -490,7 +490,7 @@ def compute(frames):
     labels = {
         "lede": (f"משרד החוץ מפרסם שתי רשימות של קונסולי כבוד: {n(n_il)} קונסולים המייצגים {n(len(c_il))} "
                  f"מדינות זרות בישראל, ו-{n(n_ab)} קונסולים המייצגים את ישראל ב-{n(len(c_ab))} מדינות. "
-                 f"קונסול כבוד אינו דיפלומט מקצועי אלא תושב המקום שמונה לייצג מדינה — לרוב בעיר שאין בה "
+                 f"קונסול כבוד אינו דיפלומט מקצועי אלא תושב המקום שמונה לייצג מדינה, לרוב בעיר שאין בה "
                  f"שגרירות או קונסוליה. לכל קונסול מופיעים התואר, אזור השיפוט, מועד המינוי ודרכי ההתקשרות."),
         "in_il_kpi": "קונסולי כבוד זרים בישראל",
         "il_countries_kpi": "מדינות המיוצגות בישראל בקונסול כבוד",
@@ -522,7 +522,7 @@ def compute(frames):
                         (f"; מוצגות {n(TOP_COUNTRIES)}." if n_multi_il > TOP_COUNTRIES else ".")),
         "top_il_aria": "גרף עמודות אופקי: מדינות עם כמה קונסולי כבוד בישראל.",
         "top_il_caption": "מדינות עם יותר מקונסול כבוד אחד בישראל ואזורי השיפוט.",
-        "areas_note": (f"אזור השיפוט של קונסולי הכבוד בישראל כפי שפורסם — עיר או מחוז. קונסול שאחראי לכמה "
+        "areas_note": (f"אזור השיפוט של קונסולי הכבוד בישראל כפי שפורסם: עיר או מחוז. קונסול שאחראי לכמה "
                        f"אזורים נספר בכל אחד מהם; „{NATIONWIDE}” מציין שיפוט על כל ישראל. "
                        f"{n(n_nonres)} קונסולים מסומנים גם „{NONRES_TOKEN}”."),
         "areas_aria": "גרף עמודות אופקי: קונסולי כבוד בישראל לפי אזור שיפוט.",

@@ -184,7 +184,7 @@ def compute(frames):
         if debt.empty:
             return None
         name = debt.index[0]
-        return (f"הגורם עם הכי הרבה צווים: {name} — {_int(debt['n'].iloc[0])} צווים ו-"
+        return (f"הגורם עם הכי הרבה צווים: {name}, עם {_int(debt['n'].iloc[0])} צווים ו-"
                 f"{_int(debt['d'].iloc[0])} ליקויים.")
 
     def ins_defects():

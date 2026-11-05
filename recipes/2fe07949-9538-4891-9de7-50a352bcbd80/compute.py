@@ -387,9 +387,9 @@ def insight_trend(t12, p12, last):
     ch = (t12 - p12) / p12
     if abs(ch) < TREND_GAP:
         return (f"ב-12 החודשים שעד {d_he(last)} נסגרו {_int(t12)} אתרי בנייה, לעומת "
-                f"{_int(p12)} ב-12 החודשים שלפניהם — שינוי של פחות מ-{TREND_GAP * 100:.0f}%.")
+                f"{_int(p12)} ב-12 החודשים שלפניהם, שינוי של פחות מ-{TREND_GAP * 100:.0f}%.")
     word = "עלייה" if ch > 0 else "ירידה"
-    return (f"ב-12 החודשים שעד {d_he(last)} נסגרו {_int(t12)} אתרי בנייה — {word} של "
+    return (f"ב-12 החודשים שעד {d_he(last)} נסגרו {_int(t12)} אתרי בנייה, {word} של "
             f"{abs(ch) * 100:.0f}% לעומת 12 החודשים שלפניהם ({_int(p12)}).")
 
 
@@ -399,7 +399,7 @@ def insight_peak_year(yearly, full_years, last_year, last_partial):
         return None
     y = int(full.sort_index().idxmax())
     lo = int(full.sort_index().idxmin())
-    tail = (f"; {last_year} חלקית — {_int(yearly.get(last_year, 0))} סגירות עד כה"
+    tail = (f"; {last_year} חלקית, עם {_int(yearly.get(last_year, 0))} סגירות עד כה"
             if last_partial else "")
     return (f"השנה המלאה עם מספר הסגירות הגבוה ביותר היא {y} ({_int(full[y])}), "
             f"והנמוכה ביותר {lo} ({_int(full[lo])}){tail}.")
@@ -428,7 +428,7 @@ def insight_top_exec(ex):
         nxt = [f"{n} ({_int(v)})" for n, v in zip(ex["names"][1:3], ex["values"][1:3])]
         return (f"החברה עם מספר האתרים שנסגרו הגבוה ביותר: {leaders[0]} ({_int(top)} סגירות)"
                 + (f", ואחריה {', '.join(nxt)}." if nxt else "."))
-    return (f"בראש החברות שאתריהן נסגרו: {' ו'.join(leaders)} — {_int(top)} סגירות לכל אחת.")
+    return (f"בראש החברות שאתריהן נסגרו: {' ו'.join(leaders)}, עם {_int(top)} סגירות לכל אחת.")
 
 
 def insight_city(df):
@@ -452,7 +452,7 @@ def insight_weekday(wd_counts, n):
     lead = max(WEEKDAYS, key=lambda w: (int(wd_counts.get(w[0], 0)), -WEEKDAYS.index(w)))
     return (f"רוב הסגירות נעשות בימי חול: {_pct((n - weekend) / n)} בימים ראשון עד חמישי, "
             f"והיום העמוס ביותר הוא יום {lead[1]} ({_int(wd_counts.get(lead[0], 0))} סגירות); "
-            f"בשישי ובשבת יחד — {_int(weekend)}.")
+            f"בשישי ובשבת יחד נעשו {_int(weekend)}.")
 
 
 def insight_kind(kinds, n):
@@ -462,9 +462,9 @@ def insight_kind(kinds, n):
     unk = int(kinds.get(ADDRESS_ONLY, 0))
     priv = int(kinds.get("בית פרטי", 0))
     lead = spec.index[0]
-    tail = (f"; בתים פרטיים — {_int(priv)} סגירות ({_pct(priv / n)})"
+    tail = (f"; בתים פרטיים: {_int(priv)} סגירות ({_pct(priv / n)})"
             if lead != "בית פרטי" and priv > 0 else "")
-    return (f"לפי מילות המפתח בשם האתר, הסוג הנפוץ ביותר הוא {lead} — {_int(spec.iloc[0])} "
+    return (f"לפי מילות המפתח בשם האתר, הסוג הנפוץ ביותר הוא {lead}, עם {_int(spec.iloc[0])} "
             f"סגירות ({_pct(spec.iloc[0] / n)}){tail}. ב-{_pct(unk / n)} מהסגירות שם האתר "
             f"הוא כתובת בלבד ולא סווג.")
 
@@ -621,7 +621,7 @@ def compute(frames):
         "repeat_kpi": "אתרים שנסגרו יותר מפעם אחת",
         "years_note": (("עמודה בהירה היא שנה שהנתונים מכסים רק בחלקה. ") +
                        "השנה המלאה העמוסה ביותר: "
-                       + (f"{int(yearly[full_years].sort_index().idxmax())}." if full_years else "—")),
+                       + (f"{int(yearly[full_years].sort_index().idxmax())}." if full_years else "–")),
         "years_aria": f"תרשים עמודות: מספר אתרי הבנייה שנסגרו בכל שנה, {first.year}–{last.year}.",
         "monthly_note": (f"סגירות בכל חודש, וקו ממוצע נע של 12 חודשים. החודש העמוס ביותר: "
                          f"{MONTHS_HE[peak_month.month - 1]} {peak_month.year} "
@@ -642,7 +642,7 @@ def compute(frames):
                       f"אינם מדורגים."),
         "exec_aria": f"תרשים עמודות אופקי: {len(executors['names'])} החברות עם מספר האתרים שנסגרו הגבוה ביותר.",
         "city_note": (f"היישוב זוהה אוטומטית מתוך שם האתר ב-{_int(len(known))} מתוך {_int(n)} "
-                      f"הסגירות ({_pct(len(known) / n) if n else '—'})."),
+                      f"הסגירות ({_pct(len(known) / n) if n else '–'})."),
         "city_aria": f"תרשים עמודות אופקי: {len(city_chart['names'])} היישובים עם מספר הסגירות הגבוה ביותר.",
         "dist_note": "לפי חלוקת המחוזות של משרד העבודה, על פי היישוב שזוהה בשם האתר.",
         "dist_aria": "תרשים עמודות: סגירות אתרי בנייה לפי מחוז.",
@@ -654,7 +654,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{_int(n)} אתרי בנייה שנסגרו בידי מינהל הבטיחות במשרד העבודה, "
-                           f"{first.year}–{last.year} — לפי שנה וחודש, יישוב ומחוז, סוג הפרויקט "
+                           f"{first.year}–{last.year}, לפי שנה וחודש, יישוב ומחוז, סוג הפרויקט "
                            f"וחברות הבנייה."),
             "dataset_kind": "timeseries",
             "suggested_tags": ["אתרי בנייה", "בטיחות בעבודה", "צווי סגירה", "בנייה", "פיקוח",

@@ -112,7 +112,7 @@ def insight_metro(metros, total):
         return (f"{metro_label(a['name'], 1)} ו{metro_label(b['name'], 1)} מובילים כמעט בשווה: "
                 f"{n(a['count'])} ו-{n(b['count'])} תחנות.")
     ratio = a["count"] / b["count"]
-    return (f"{metro_label(a['name'], 1)} מוביל עם {n(a['count'])} תחנות ({pct(a['count'] / total)} מכלל התחנות) — "
+    return (f"{metro_label(a['name'], 1)} מוביל עם {n(a['count'])} תחנות ({pct(a['count'] / total)} מכלל התחנות), "
             f"פי {ratio:.1f} מ{metro_label(b['name'], 1)}, השני בגודלו ({n(b['count'])}).")
 
 
@@ -135,7 +135,7 @@ def insight_top_city(cities, total):
         return None
     top = cities[0]
     top10 = sum(c for _, c in cities[:10])
-    return (f"{top[0]} היא היישוב עם מספר התחנות הגדול ביותר — {n(top[1])} ({pct(top[1] / total)}); "
+    return (f"{top[0]} היא היישוב עם מספר התחנות הגדול ביותר: {n(top[1])} ({pct(top[1] / total)}); "
             f"עשרת היישובים המובילים מרכזים יחד {pct(top10 / total)} מכלל התחנות.")
 
 
@@ -147,7 +147,7 @@ def insight_small(city_counts, total):
     if len(small) / m < 0.3:
         return None
     return (f"{n(len(small))} מתוך {n(m)} היישובים והמועצות ({pct(len(small) / m)}) משרתים "
-            f"ב-{SMALL_LOC} תחנות או פחות — ויחד הם מחזיקים רק {pct(small.sum() / total)} מהתחנות.")
+            f"ב-{SMALL_LOC} תחנות או פחות, ויחד הם מחזיקים רק {pct(small.sum() / total)} מהתחנות.")
 
 
 def insight_modes(d, dominant):
@@ -163,7 +163,7 @@ def insight_modes(d, dominant):
             parts.append(f"{op}: {n(cnt)} תחנות, {pct(lc / cnt, 0)} מהן ב{lead}")
     if not parts:
         return None
-    return f"מלבד {dominant} — " + "; ".join(parts) + "."
+    return f"מלבד {dominant}, " + "; ".join(parts) + "."
 
 
 def insight_special(d, regular):
@@ -231,7 +231,7 @@ def compute(frames):
         special = special[:TOP_TYPES] + [(OTHER, rest)]
     type_op = (d.groupby("type")["op"].agg(lambda s: _ranked(s.value_counts())[0][0]).to_dict())
     types_chart = {"names": [t for t, _ in special], "values": [c for _, c in special]}
-    types_table = [{"name": t, "count": n(c), "op": type_op.get(t, "—")} for t, c in special]
+    types_table = [{"name": t, "count": n(c), "op": type_op.get(t, "–")} for t, c in special]
 
     # type × metro heatmap (special types only)
     sp = d[d["type"] != regular]
@@ -320,7 +320,7 @@ def compute(frames):
                    for m, c in zip(metros, m_colors)]
     bands_chart = {"names": [iso(lb) for lb in band_labels], "series": band_series}
     band_tot = [sum(s["data"][i] for s in band_series) for i in range(len(bands))]
-    bands_table = [{"label": lb, "count": n(t), "share": pct(t / len(g)) if len(g) else "—"}
+    bands_table = [{"label": lb, "count": n(t), "share": pct(t / len(g)) if len(g) else "–"}
                    for lb, t in zip(band_labels, band_tot)]
     peak_i = max(range(len(bands)), key=lambda i: (band_tot[i], -i))
 
@@ -361,18 +361,18 @@ def compute(frames):
         "rail": {"value": rail_count, "display": n(rail_count), "tone": "info"},
     }
 
-    lead_city = cities[0] if cities else ("—", 0)
+    lead_city = cities[0] if cities else ("–", 0)
     real_metros = [m for m in metros if m["code"] > 0]
     labels = {
-        "lede": (f"המאגר משייך {n(total)} תחנות תחבורה ציבורית — אוטובוס, מוניות שירות, רכבת קלה, "
-                 f"רכבת ישראל ורכבל — ל-{n(n_locs)} יישובים ומועצות אזוריות ולמטרופולין, עם מיקום מדויק לכל תחנה. "
+        "lede": (f"המאגר משייך {n(total)} תחנות תחבורה ציבורית (אוטובוס, מוניות שירות, רכבת קלה, "
+                 f"רכבת ישראל ורכבל) ל-{n(n_locs)} יישובים ומועצות אזוריות ולמטרופולין, עם מיקום מדויק לכל תחנה. "
                  f"{pct(real_share)} מהתחנות נמצאות במטרופולינים, "
                  f"ו{lead_city[0]} מובילה עם {n(lead_city[1])} תחנות. "
                  f"{pct(reg_share)} מהן מסוג \"{regular}\"."),
         "metro_share_kpi": f"מהתחנות במטרופולינים ({n(real_total)})",
         "rail_kpi": "תחנות רכבת, רכבת קלה ורכבל",
         "metro_note": (f"{metro_label(real_metros[0]['name'], 1)} לבדו מחזיק {pct(real_metros[0]['count'] / total)} מהתחנות. "
-                       f"\"לא מוגדר\" הוא כל מה שמחוץ למטרופולינים — {n(sum(m['count'] for m in metros if m['code'] == -1))} תחנות."
+                       f"\"לא מוגדר\" הוא כל מה שמחוץ למטרופולינים ({n(sum(m['count'] for m in metros if m['code'] == -1))} תחנות)."
                        if real_metros else "התפלגות התחנות לפי מטרופולין."),
         "metro_aria": (f"גרף עמודות: תחנות לפי מטרופולין. מוביל: {metro_chart['names'][0]} עם {n(metro_chart['values'][0])} תחנות."),
         "metro_caption": "מספר התחנות והיישובים לפי מטרופולין",

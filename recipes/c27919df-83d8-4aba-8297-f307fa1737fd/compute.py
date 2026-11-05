@@ -94,7 +94,7 @@ def insight_single(df, per_vet):
     sub = df[df["vet"].isin(singles)].drop_duplicates("vet")
     urban = int(sub["type"].isin(["עירייה", "מועצה מקומית"]).sum())
     who = ("כולם" if urban == len(sub) else f"{_int(urban)} מהם") + " בעירייה או במועצה מקומית"
-    return (f"{_int(len(singles))} רופאים ({_pct(len(singles) / len(per_vet))}) משרתים יישוב אחד בלבד — "
+    return (f"{_int(len(singles))} רופאים ({_pct(len(singles) / len(per_vet))}) משרתים יישוב אחד בלבד, "
             f"{who}; חציון היישובים לרופא הוא {_int(per_vet.median())}.")
 
 
@@ -123,7 +123,7 @@ def insight_bureau(bt):
     if hi["ratio"] < lo["ratio"] * 1.5:
         return None
     return (f"לשכת {big['name']} מכסה את מספר היישובים הגדול ביותר ({_int(big['places'])}). "
-            f"העומס הממוצע הגבוה ביותר בלשכת {hi['name']} — {hi['ratio']:.1f} יישובים לרופא, "
+            f"העומס הממוצע הגבוה ביותר בלשכת {hi['name']}: {hi['ratio']:.1f} יישובים לרופא, "
             f"לעומת {lo['ratio']:.1f} בלשכת {lo['name']}.")
 
 
@@ -153,7 +153,7 @@ def insight_types(tt):
     urb = [r for r in tt if r["name"] in ("עירייה", "מועצה מקומית")]
     ua, up = sum(r["auths"] for r in urb), sum(r["places"] for r in urb)
     tail = (f", לעומת {up / ua:.1f} בעיריות ובמועצות המקומיות" if ua else "")
-    return (f"המועצות האזוריות הן {_pct(sa)} מהרשויות במאגר אך כוללות {_pct(sp)} מהיישובים — "
+    return (f"המועצות האזוריות הן {_pct(sa)} מהרשויות במאגר אך כוללות {_pct(sp)} מהיישובים, "
             f"בממוצע {rc['places'] / rc['auths']:.1f} יישובים למועצה{tail}.")
 
 
@@ -303,7 +303,7 @@ def compute(frames):
             "auth_aria": (f"תרשים עמודות: {TOP_AUTH} הרשויות עם מספר היישובים הגבוה ביותר; "
                           f"בראש {auth_top['names'][0]} עם {_int(auth_top['values'][0])}."),
             "auth_note": (f"{TOP_AUTH} הרשויות עם מספר היישובים הרב ביותר."
-                          + (" בכל רשות — רופא רשותי אחד." if one_per_auth else "")),
+                          + (" בכל רשות יש רופא רשותי אחד." if one_per_auth else "")),
             "multi_aria": "תרשים עמודות: הרופאים לפי מספר הרשויות המקומיות שהם משרתים.",
         },
     }

@@ -233,7 +233,10 @@ Constraints that don't move: every `<script>` block < 50KB (aggregate in
   footprint (about 2.5× the CSV size in pandas), so keep
   `total_bytes` + `compute_memory_mb` under about 3.5GB. Set only the
   limits the data needs, with headroom for growth, and say why in the PR.
-  To explore such a dataset, run `prepare` with the caps raised:
+  Once the recipe is committed, `prepare` and `verify` apply its `limits`
+  and fetch only its inputs' `columns`, as the refresh does (`prepare
+--all-columns` to see the rest for a redesign). Before that
+  (first exploration), run `prepare` with the caps raised:
   `REFRESH_MAX_RECORDS=… REFRESH_MAX_BYTES=… python -m services.page_builder.author prepare <id>`.
 - `map` / `snapshot` (map geometry that exists only in an uploaded file):
   see **Map files** below.
@@ -429,8 +432,7 @@ headings, `summary_he`, tooltips or aria-labels. Rewrite the sentence instead,
 using a colon, a comma, parentheses or a new sentence. `verify` fails on an em
 dash in any `compute.py` string literal or in the template (comments and
 docstrings are exempt; so is an escaped `"\u2014"`, for code that has to match
-one inside the data). Older recipes still have them, so clean the whole recipe
-whenever you touch one.
+one inside the data). An empty-value placeholder is a lone en dash ("–").
 
 Write a numeric range in Hebrew text, tooltips and ECharts labels with an ASCII
 hyphen (2016-2025), or as "2016 עד 2025" in prose. An en dash between digits
@@ -467,9 +469,10 @@ the template still never writes `<title>` or `<meta>`:
   Don't write a stats blurb. It may differ from `summary_he`, which stays the
   blurb on cards, the related sidebar and site search.
 - **`seo.name`** (≤80) is the name people search, which is not always the
-  CKAN title (e.g. "מאגר שומות מכריעות", not "מאגר נתוני שמאות מכריעה"). Make
-  the `<h1>` say the same thing: `name` becomes the JSON-LD Dataset `name`
-  and the breadcrumb, and the CKAN title moves to `alternateName`.
+  CKAN title (e.g. "מאגר שומות מכריעות", not "מאגר נתוני שמאות מכריעה").
+  Render it as the heading, `<h1>{{ model.agent_data.seo.name }}</h1>`
+  (`verify` fails when the h1 text differs): `name` becomes the JSON-LD
+  Dataset `name` and the breadcrumb, and the CKAN title moves to `alternateName`.
 - **`seo.alternate_names`** (≤5) holds the other names and spellings people
   type (כח/כוח, בניה/בנייה, "רשם …"/"פנקס …"), emitted as JSON-LD
   `alternateName`. Also work the most common variant into the lede or an H2

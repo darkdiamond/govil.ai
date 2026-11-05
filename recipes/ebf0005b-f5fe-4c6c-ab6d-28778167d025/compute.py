@@ -85,7 +85,7 @@ def insight_now(df, last):
         return None
     delta = last["lvl"] - prev["lvl"]
     word = "ירד" if delta < 0 else "עלה"
-    return (f"נכון ל-{d_he(last['d'])} מפלס ים המלח עומד על {m(last['lvl'])} מ' — "
+    return (f"נכון ל-{d_he(last['d'])} מפלס ים המלח עומד על {m(last['lvl'])} מ'. "
             f"ב-12 החודשים האחרונים הוא {word} ב-{cm(delta)} ס״מ.")
 
 
@@ -107,14 +107,14 @@ def insight_pace(annual):
         verb = "איטי יותר מאשר"
     else:
         verb = "דומה לקצב של"
-    return (f"בשנים {span_r} ירד המפלס בממוצע {cm(r)} ס״מ בשנה — {verb} "
+    return (f"בשנים {span_r} ירד המפלס בממוצע {cm(r)} ס״מ בשנה, {verb} "
             f"השנים {span_e} ({cm(e)} ס״מ בשנה).")
 
 
 def insight_rises(annual):
     ups = [(y, v) for y, v in annual if v > 0]
     if not ups:
-        return (f"בכל {len(annual)} השנים המלאות במאגר ירד המפלס — אף שנה לא הסתיימה "
+        return (f"בכל {len(annual)} השנים המלאות במאגר ירד המפלס: אף שנה לא הסתיימה "
                 f"במפלס גבוה מקודמתה.")
     y, v = max(ups, key=lambda t: (t[1], t[0]))
     last_up = ups[-1][0]
@@ -131,7 +131,7 @@ def insight_season(season):
     w = MONTHS_HE[worst[1]]
     if rising:
         months = ", ".join(f"ב{r}" for r in rising)
-        return (f"בממוצע המפלס עולה רק {months}, ויורד בשאר השנה — הירידה החודשית "
+        return (f"בממוצע המפלס עולה רק {months}, ויורד בשאר השנה. הירידה החודשית "
                 f"הממוצעת החזקה ביותר היא ב{w} ({cm(worst[0])} ס״מ).")
     return (f"בממוצע המפלס יורד בכל חודשי השנה; הירידה החודשית החזקה ביותר היא "
             f"ב{w} ({cm(worst[0])} ס״מ).")
@@ -147,17 +147,17 @@ def insight_milestones(marks):
     head = (f"הירידה מ-{m(first_mark + STEP_M)} ל-{m(first_mark)} מ' נמשכה כ-{first_gap:.1f} שנים, "
             f"והירידה האחרונה של {STEP_M} מטרים, אל {m(last_mark)} מ', נמשכה כ-{last_gap:.1f} שנים")
     if last_gap < first_gap * 0.8:
-        return head + " — הירידה הואצה."
+        return head + ". הירידה הואצה."
     if last_gap > first_gap * 1.2:
-        return head + " — הירידה הואטה."
-    return head + " — קצב דומה."
+        return head + ". הירידה הואטה."
+    return head + ". הקצב דומה."
 
 
 def insight_total(df, last):
     first = df.iloc[0]
     years = (last["d"] - first["d"]).days / 365.25
     return (f"מאז {d_he(first['d'])} ירד המפלס ב-{abs(last['lvl'] - first['lvl']):.2f} מטרים "
-            f"(מ-{m(first['lvl'])} ל-{m(last['lvl'])} מ') — כ-{cm((last['lvl'] - first['lvl']) / years)} "
+            f"(מ-{m(first['lvl'])} ל-{m(last['lvl'])} מ'), כ-{cm((last['lvl'] - first['lvl']) / years)} "
             f"ס״מ בשנה בממוצע לאורך {years:.0f} שנה.")
 
 
@@ -251,10 +251,10 @@ def compute(frames):
         "level": {"value": float(last["lvl"]), "display": kv(last["lvl"]), "tone": level_tone},
         "as_of": {"value": last["d"].strftime("%Y-%m-%d"), "display": d_he(last["d"])},
         "d12": {"value": change12,
-                "display": "—" if change12 is None else kv(change12 * 100, 0, signed=True),
+                "display": "–" if change12 is None else kv(change12 * 100, 0, signed=True),
                 "tone": d12_tone},
         "rate10": {"value": rate10,
-                   "display": "—" if rate10 is None else kv(rate10 * 100, 0, signed=True),
+                   "display": "–" if rate10 is None else kv(rate10 * 100, 0, signed=True),
                    "tone": rate_tone},
         "total": {"value": total_change, "display": kv(total_change, signed=True),
                   "tone": "danger" if total_change < 0 else "ok"},
@@ -263,11 +263,11 @@ def compute(frames):
     y0, y1 = int(first["d"].year), int(last["d"].year)
     span10 = f"{recent10[0][0]}–{recent10[-1][0]}" if recent10 else ""
     labels = {
-        "lede": (f"מדידות מפלס ים המלח מ-{d_he(first['d'])} ועד {d_he(last['d'])} — "
+        "lede": (f"מדידות מפלס ים המלח מ-{d_he(first['d'])} ועד {d_he(last['d'])}: "
                  f"{len(df):,} מדידות, כמעט אחת לחודש. המדידה האחרונה: {m(last['lvl'])} מ'."),
-        "rate10_label": f"ס״מ לשנה — קצב ממוצע {span10}",
-        "total_label": f"מטר — שינוי מאז {y0}",
-        "level_kpi": f"מטר — מפלס אחרון, {d_he(last['d'])}",
+        "rate10_label": f"ס״מ לשנה: קצב ממוצע {span10}",
+        "total_label": f"מטר: שינוי מאז {y0}",
+        "level_kpi": f"מטר: מפלס אחרון, {d_he(last['d'])}",
         "history_aria": f"גרף קו: מפלס ים המלח החודשי, {y0} עד {y1}.",
         "recent_aria": f"גרף קו: מפלס ים המלח ב-{len(recent_m)} החודשים האחרונים.",
         "annual_aria": f"תרשים עמודות: שינוי המפלס בכל אחת מ-{len(annual)} השנים המלאות, בס״מ.",
@@ -283,10 +283,10 @@ def compute(frames):
     annual_table = [{"year": str(y), "chg": f"{round(v * 100):+d}"} for y, v in annual[-20:]]
     decade_table = [{"dec": x, "avg": f"{v:+.1f}", "n": f"{n}"}
                     for x, v, n in zip(decades["x"], decades["y"], decades["n"])]
-    season_table = [{"m": MONTHS_HE[i], "v": "—" if v is None else f"{v:+.1f}"}
+    season_table = [{"m": MONTHS_HE[i], "v": "–" if v is None else f"{v:+.1f}"}
                     for i, v in enumerate(season_vals)]
     miles_table = [{"mark": f"{LRI}{mk:.0f}{PDI}", "date": d.strftime("%m/%Y"),
-                    "gap": "—" if g is None else f"{g:.1f}"}
+                    "gap": "–" if g is None else f"{g:.1f}"}
                    for (mk, d), g in zip(marks, miles["gap"])]
 
     return {

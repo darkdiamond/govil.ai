@@ -137,7 +137,7 @@ def insight_shift(bands):
     if gain < SHIFT_PP:
         return None
     text = (f"בטווח הקודים {first['label']} רק {pct(share(first, gc))} מהתוצרים היו מ{gc}; "
-            f"בטווח {last['label']}, שנוסף לרשימה מאוחר יותר, חלקה {pct(share(last, gc))} — "
+            f"בטווח {last['label']}, שנוסף לרשימה מאוחר יותר, חלקה {pct(share(last, gc))}, "
             f"עלייה של {pts(gain)}.")
     loss, lc = min(deltas, key=lambda t: (t[0], t[1]))
     if -loss >= LOSS_PP and lc != gc:
@@ -152,7 +152,7 @@ def insight_region(region_ranked, total):
     r1, n1 = region_ranked[0]
     if r1 in (UNKNOWN, OTHER_REGION) or n1 / total < 0.3:
         return None
-    return (f"{r1} מובילה בין האזורים עם {n(n1)} תוצרים — {pct(n1 / total * 100)} מכלל הקודים.")
+    return (f"{r1} מובילה בין האזורים עם {n(n1)} תוצרים ({pct(n1 / total * 100)} מכלל הקודים).")
 
 
 def insight_global(brand_rows, n_brands):
@@ -162,7 +162,7 @@ def insight_global(brand_rows, n_brands):
     if top["countries"] < MULTI_MIN:
         return None
     k = sum(1 for r in brand_rows if r["countries"] >= MULTI_MIN)
-    return (f"ל{top['name']} יש קודי תוצר מ־{n(top['countries'])} ארצות ייצור שונות — הפריסה הרחבה ביותר ברשימה. "
+    return (f"ל{top['name']} יש קודי תוצר מ־{n(top['countries'])} ארצות ייצור שונות, הפריסה הרחבה ביותר ברשימה. "
             f"{n(k)} מותגים רשומים מ־{n(MULTI_MIN)} ארצות או יותר.")
 
 
@@ -261,7 +261,7 @@ def compute(frames):
     bands_tbl = []
     for i, bd in enumerate(bands):
         bands_tbl.append({"label": bd["label"], "total": n(bd["total"]),
-                          "cells": [f"{s['data'][i] / bd['total'] * 100:.0f}%" if bd["total"] else "—"
+                          "cells": [f"{s['data'][i] / bd['total'] * 100:.0f}%" if bd["total"] else "–"
                                     for s in band_series]})
 
     # newest anchored band — KPI
@@ -324,9 +324,9 @@ def compute(frames):
     lede = (f"טבלת הקודים של משרד התחבורה ליצרני כלי הרכב הפעילים: {n(total)} קודי תוצר "
             f"של {n(n_brands)} מותגים מ־{n(n_countries)} ארצות ייצור. כל קוד מייצג צירוף של יצרן "
             f"וארץ ייצור, ולכן מותג אחד יכול להופיע בכמה קודים. {top1[0]} מובילה עם {n(top1[1])} תוצרים. "
-            f"הטבלה אינה כוללת מספרי כלי רכב — היא סופרת יצרנים, לא רכבים.")
+            f"הטבלה אינה כוללת מספרי כלי רכב: היא סופרת יצרנים, לא רכבים.")
 
-    summary = (f"{n(total)} קודי תוצר של כלי רכב פעילים — {n(n_brands)} מותגים מ־{n(n_countries)} "
+    summary = (f"{n(total)} קודי תוצר של כלי רכב פעילים: {n(n_brands)} מותגים מ־{n(n_countries)} "
                f"ארצות ייצור; {top1[0]} מובילה עם {n(top1[1])} תוצרים, ובטווח הקודים החדש ביותר "
                f"{lead_c} מובילה עם {pct(lead_share)}.")
 
@@ -342,7 +342,7 @@ def compute(frames):
     labels = {
         "lede": lede,
         "newest_kpi": f"חלקה של {lead_c} בקודים {last['label']}",
-        "countries_note": (f"מספר קודי התוצר לכל ארץ ייצור — {n(TOP_COUNTRIES)} המובילות, "
+        "countries_note": (f"מספר קודי התוצר לכל ארץ ייצור: {n(TOP_COUNTRIES)} המובילות, "
                            f"והשאר מקובצות. {top1[0]} לבדה: {pct(top1[1] / total * 100)}."),
         "countries_aria": f"תרשים עמודות: מספר התוצרים ב־{n(len(top))} ארצות הייצור המובילות",
         "countries_caption": "מספר קודי תוצר לפי ארץ ייצור",
@@ -356,7 +356,7 @@ def compute(frames):
                        f"מוצגות {n(len(band_top))} ארצות הייצור הגדולות, והשאר מקובצות."),
         "bands_aria": f"תרשים עמודות מוערמות באחוזים: ארץ הייצור של התוצרים ב־{n(len(bands))} טווחי קוד",
         "bands_caption": "חלוקת ארצות הייצור בכל טווח קודים, באחוזים",
-        "brands_note": (f"מותגים הרשומים מהמספר הגדול ביותר של ארצות ייצור — לפי שם המותג כפי "
+        "brands_note": (f"מותגים הרשומים מהמספר הגדול ביותר של ארצות ייצור, לפי שם המותג כפי "
                         f"שנרשם. {top_brands[0]['name'] if top_brands else ''} בראש עם "
                         f"{n(top_brands[0]['countries']) if top_brands else n(0)} ארצות."),
         "brands_aria": f"תרשים עמודות: {n(len(top_brands))} המותגים עם מספר ארצות הייצור הגבוה ביותר",

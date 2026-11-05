@@ -112,7 +112,7 @@ def insight_record(per_year, ref, partial):
         tail = f", אף שהנתונים מגיעים רק עד {d_he(ref)}" if partial else ""
         prev = per_year.drop(last_y)
         p = prev.sort_index().sort_values(ascending=False, kind="stable")
-        return (f"{last_y} היא שנת השיא במאגר, עם {n(best_v)} אירועי כלבת{tail} — "
+        return (f"{last_y} היא שנת השיא במאגר, עם {n(best_v)} אירועי כלבת{tail}, "
                 f"יותר מהשיא הקודם ({n(p.iloc[0])} אירועים ב-{int(p.index[0])}).")
     last_v = int(per_year[last_y])
     tail = f" (עד {d_he(ref)})" if partial else ""
@@ -126,7 +126,7 @@ def insight_12m(cur, prev, ref):
     chg = cur / prev - 1
     head = f"ב-12 החודשים שעד {d_he(ref)} אושרו {n(cur)} אירועי כלבת"
     if abs(chg) < 0.15:
-        return f"{head} — בדומה ל-12 החודשים שקדמו להם ({n(prev)})."
+        return f"{head}, בדומה ל-12 החודשים שקדמו להם ({n(prev)})."
     word = "עלייה" if chg > 0 else "ירידה"
     return f"{head}, {word} של {pct(abs(chg) * 100)} לעומת 12 החודשים שקדמו להם ({n(prev)})."
 
@@ -141,7 +141,7 @@ def insight_dogs(df, ref):
         s1, s0 = (rec["group"] == G_DOG).mean(), (old["group"] == G_DOG).mean()
         if abs(s1 - s0) >= 0.10:
             word = "עלה" if s1 > s0 else "ירד"
-            risk = " — הכלבים הם מקור החשיפה העיקרי של בני אדם לנגיף" if s1 > s0 else ""
+            risk = ". הכלבים הם מקור החשיפה העיקרי של בני אדם לנגיף" if s1 > s0 else ""
             return (f"חלקם של הכלבים באירועים {word} ל-{pct(s1 * 100)} ב-12 החודשים האחרונים "
                     f"({n((rec['group'] == G_DOG).sum())} מתוך {n(len(rec))}), לעומת {pct(s0 * 100)} "
                     f"ב-12 החודשים שקדמו להם{risk}.")
@@ -198,8 +198,8 @@ def insight_waves(per_year):
     if waves.empty or len(waves) > len(per_year) / 3:
         return None
     parts = ", ".join(f"{int(y)} ({n(v)})" for y, v in waves.sort_index().items())
-    return (f"האירועים מגיעים בגלים: שנים שבהן נרשמו לפחות פי שניים מהחציון השנתי "
-            f"({med:g} אירועים) — {parts}.")
+    return (f"האירועים מגיעים בגלים. שנים שבהן נרשמו לפחות פי שניים מהחציון השנתי "
+            f"({med:g} אירועים): {parts}.")
 
 
 def insight_lineage(df, ref):
@@ -393,7 +393,7 @@ def compute(frames):
         chg_display = ("+" if chg >= 0 else "−") + f"{abs(chg) * 100:.0f}%"
         chg_tone = "danger" if chg > 0.15 else ("ok" if chg < -0.15 else "info")
     else:
-        chg_display, chg_tone = "—", "brand"
+        chg_display, chg_tone = "–", "brand"
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "last_year": {"value": last_v, "display": n(last_v), "tone": year_tone},
@@ -402,10 +402,10 @@ def compute(frames):
     }
 
     dropped_note = (f" {n(dropped)} רשומות ללא תאריך תקין אינן נכללות." if dropped else "")
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" שנת {ref_year} חלקית, עד {d_he(ref)}." if partial else ""
     labels = {
         "lede": (f"מאגר אירועי הכלבת של השירותים הווטרינריים: {n(total)} מקרי כלבת שאושרו "
-                 f"במעבדה בבעלי חיים, מ-{first_year} ועד {d_he(ref)} — לפי מין בעל החיים, "
+                 f"במעבדה בבעלי חיים, מ-{first_year} ועד {d_he(ref)}, לפי מין בעל החיים, "
                  f"אזור, יישוב ושושלת גנטית של הנגיף.{dropped_note}"),
         "last_year_kpi": f"אירועים ב-{ref_year}" + (f" (עד {ref.day}.{ref.month})" if partial else ""),
         "trend12_kpi": f"שינוי ב-12 החודשים האחרונים ({n(cur12)} אירועים) לעומת השנה שקדמה",
@@ -436,8 +436,8 @@ def compute(frames):
         "lineage_caption": "אירועים לפי שושלת גנטית, עם שנה ראשונה ואחרונה.",
         "loc_aria": f"תרשים עמודות: {TOP_LOCATIONS} היישובים והאתרים עם מספר אירועי הכלבת הגבוה ביותר.",
         "loc_caption": f"{TOP_LOCATIONS} היישובים והאתרים עם הכי הרבה אירועים.",
-        "map_note": (f"כל עיגול הוא יישוב או אתר, וגודלו לפי מספר האירועים שאושרו בו. באדום — "
-                     f"מקומות עם אירוע מ-{recent_from} ואילך; בכחול — מקומות שבהם האירוע האחרון "
+        "map_note": (f"כל עיגול הוא יישוב או אתר, וגודלו לפי מספר האירועים שאושרו בו. באדום: "
+                     f"מקומות עם אירוע מ-{recent_from} ואילך. בכחול: מקומות שבהם האירוע האחרון "
                      f"מוקדם יותר."
                      + ((" אירוע אחד ללא מיקום תקין אינו מוצג." if no_geo == 1 else
                         f" {n(no_geo)} אירועים ללא מיקום תקין אינם מוצגים.") if no_geo else "")
@@ -478,7 +478,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{n(total)} מקרי כלבת שאושרו בבעלי חיים בישראל מ-{first_year} עד "
-                           f"{d_he(ref)}, מהם {n(dog_n)} בכלבים — לפי שנה, מין, אזור ויישוב, "
+                           f"{d_he(ref)}, מהם {n(dog_n)} בכלבים, לפי שנה, מין, אזור ויישוב, "
                            f"עם מפת מוקדים ועונתיות."),
             "dataset_kind": "map",
             "suggested_tags": ["כלבת", "מחלות בעלי חיים", "וטרינריה", "בריאות הציבור", "חיות בר"],

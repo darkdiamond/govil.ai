@@ -22,41 +22,18 @@ This repo is public: describe a security gap by what to change, never by how to 
   `geo_snapshot` reads only top-level shapefiles, so the recipe skips that layer and says so in
   fixed copy. Fix: let `geo_snapshot` descend one level into nested zips (with the same size
   caps), then add a `mehir` map input to ee626064 and bump its `recipe_version`. (2026-11-04)
-- **`author verify` doesn't check the h1 against `seo.name`.** It only prints the h1 next to
-  the SERP preview, so a recipe whose template hardcodes a different h1 passes, and the
-  JSON-LD name / breadcrumb then disagree with the visible heading. Batch-1 templates render
-  `{{ model.agent_data.seo.name }}`; older and future recipes can still drift. Fix: make verify
-  fail when the rendered h1 text differs from `seo.name`. (2026-11-04)
-- **`author prepare` ignores a recipe's `limits`.** It caps rows and bytes from the env only
-  (`REFRESH_MAX_RECORDS` / `REFRESH_MAX_BYTES`), so a heavy recipe like 273c5e33
-  (`limits.max_records` 12M, 5.5M rows) prepares 0 rows unless the author knows to export the
-  env vars, and `verify` then fails as too_large or empty. Fix: have `prepare` and `verify` read
-  the recipe's `limits` the way the refresh does. (2026-11-04)
-- **131 of 307 committed recipes fail `author verify`'s em-dash lint.** The rule (#124) came after
-  they were authored and only runs at authoring time; the daily refresh doesn't enforce it, so
-  the pages render fine. But any edit to one of these recipes, even a one-line template fix,
-  makes `verify` report FAIL on text the edit didn't touch, which hides real failures. Fix: a
-  one-off sweep that rewrites the em dashes per the rule (colon, comma, parentheses or a new
-  sentence), bumping each `recipe_version`. (2026-11-04)
 - **One broken datastore resource blocks every `by_schema` input of its dataset.**
   `resolve_inputs` raises `PreviewUnavailable` when any datastore-active resource's preview fails,
   even one that never had the input's columns. A resource whose datastore answers
   `success: false` for good (it used to be skipped) now fails the page and, after
   `REFRESH_TRANSIENT_STRIKES` runs, opens a `schema_changed` issue that re-authoring with
   `by_schema` can't clear. Fix: let a recipe exclude resource ids from `by_schema` matching,
-  or ignore an unanswered resource whose CKAN name/format can't be a match. Also, `author
-prepare` records a failed preview as `fields: []`, so verify reports "no resource has
-  columns" where prod would report "no preview". (2026-11-02)
+  or ignore an unanswered resource whose CKAN name/format can't be a match. (2026-11-02)
 - **`sandbox_failed` never escalates.** It opens no issue and keeps no strike count, so a spawn
   abort that turns deterministic (an image that loses `GRPC_ENABLE_FORK_SUPPORT=0`) freezes
   every page with only log lines. Fix: raise `_SpawnFlake` as a `refresh.StrikeError`
   (`strike="sandbox_failed"`, an `escalate_to` reason added to `AUTHORING_REASONS` and
   `notify.REASON_TEXT`); the `transient_strikes` counter does the rest. (2026-10-31)
-- **`author snapshot` keeps long float properties that trip verify's PII check.** Shapefile
-  area/length fields (`Shape_STAr` 213.029377738) match the phone pattern. 1de95a22 got past it
-  with a scratch step that rounds them to 0.1 before `snapshot`, so a re-snapshot after
-  `geometry_stale` needs the same step. Fix: round numeric properties in `geo_snapshot`, or make
-  the PII grep skip numeric GeoJSON values. (2026-10-31)
 - **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP),
   גושים (1d2d0ec1, 65MB) and גבולות תצ"ר (65dafbb0, 84MB) are national layers far over a
   committable snapshot; they'd need a pre-aggregation step (centroids or per-region dissolve).
@@ -110,11 +87,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   same way. A raw numpy ns buffer (as 6d8bf87d had) segfaults instead. Fix: bound both ends
   (`between(pd.Timestamp.min, pd.Timestamp.max)`) wherever a recipe casts to ns, or grep the
   corpus for `datetime64[ns]` and drop the cast. (2026-10-30)
-- **`273c5e33…` (vehicle history) is not authored yet.** Its two resources hold 2.5M and 5.55M
-  rows (167MB and 178MB), over the 2M `REFRESH_MAX_RECORDS` default. Recipes can now carry their
-  own `limits` and fetch fewer `columns`, so it can be authored as a heavy recipe: measure the
-  export with only the columns the page reads, and compute's peak RSS, before choosing limits.
-  (2026-10-30)
 - **Heavy recipes share the job's 4Gi.** A recipe with `limits` runs last and its compute is
   heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, 3072 by default) and first in line for the OOM
   killer, but its exported CSVs sit in the same memory (`/tmp` is RAM on Cloud Run). If heavy

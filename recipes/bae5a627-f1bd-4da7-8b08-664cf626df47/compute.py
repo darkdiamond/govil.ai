@@ -241,7 +241,7 @@ def compute(frames):
         kinds_txt = ", ".join(f"{s} ({r.kinds.count(s)})" if r.kinds.count(s) > 1 else s
                               for s in dict.fromkeys(r.kinds))
         t_multi.append({"country": r.country, "count": _int(r.k), "kinds": kinds_txt,
-                        "cities": ", ".join(cities) if cities else "—"})
+                        "cities": ", ".join(cities) if cities else "–"})
 
     # Contact-detail completeness among resident missions.
     comp = [("כתובת", int(resident["has_address"].sum())), ("טלפון", int(resident["tel"].sum())),
@@ -259,7 +259,7 @@ def compute(frames):
             return None
         return (f"במאגר {_int(n)} נציגויות של {_int(countries)} מדינות: {_int(n_emb)} שגרירויות תושבות, "
                 f"{_int(n_cons)} קונסוליות וקונסוליות כלליות, ו-{_int(n_nonres)} שגרירויות לא תושבות "
-                f"({_pct(n_nonres / n)}) — שגרירים שמכהנים מבירה אחרת ואין להם משרד בישראל.")
+                f"({_pct(n_nonres / n)}), כלומר שגרירים שמכהנים מבירה אחרת ואין להם משרד בישראל.")
 
     def ins_concentration():
         if len(named) < 3:
@@ -303,9 +303,9 @@ def compute(frames):
         lead_kinds = t_multi[0]["kinds"] if len(leaders) == 1 else None
         txt = f"{_int(len(multi))} מדינות מחזיקות יותר מנציגות אחת בישראל; "
         if len(leaders) == 1:
-            txt += f"ל{leaders[0]} הכי הרבה — {_int(lead_k)} ({lead_kinds})."
+            txt += f"ל{leaders[0]} הכי הרבה: {_int(lead_k)} ({lead_kinds})."
         else:
-            txt += f"ל{_join(leaders)} הכי הרבה — {_int(lead_k)} כל אחת."
+            txt += f"ל{_join(leaders)} הכי הרבה: {_int(lead_k)} כל אחת."
         return txt
 
     def ins_contact():
@@ -326,9 +326,9 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"{_int(n)} נציגויות זרות בישראל של {_int(countries)} מדינות — {_int(n_emb)} "
+            "summary_he": (f"{_int(n)} נציגויות זרות בישראל של {_int(countries)} מדינות ({_int(n_emb)} "
                            f"שגרירויות תושבות, {_int(n_cons)} קונסוליות ו-{_int(n_nonres)} שגרירויות לא "
-                           f"תושבות — לפי מעמד, אזור בעולם ועיר המושב."),
+                           f"תושבות), לפי מעמד, אזור בעולם ועיר המושב."),
             "dataset_kind": "registry",
             "related_ids": [
                 "14f2521f-819a-4ea4-87e8-6811d43e4495",
@@ -378,7 +378,7 @@ def compute(frames):
                                "שמקום מושבן בירושלים."),
             "multi_lede": f"{_int(len(t_multi))} מדינות עם יותר מנציגות אחת בישראל.",
             "contact_aria": "תרשים עמודות: שיעור הנציגויות התושבות שבמאגר רשומים להן כתובת, טלפון ופקס.",
-            "contact_lede": (f"מתוך {_int(n_res)} הנציגויות התושבות — לכמה מהן רשומים פרטי קשר במאגר. "
+            "contact_lede": (f"לכמה מתוך {_int(n_res)} הנציגויות התושבות רשומים פרטי קשר במאגר. "
                              "הפרטים עצמם בטבלת הנתונים שבתחתית העמוד."),
         },
     }

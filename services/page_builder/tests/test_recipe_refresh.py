@@ -1766,3 +1766,45 @@ def test_author_verify_wants_headroom_in_the_description(tmp_path, monkeypatch, 
                                        '"מחוזות, עם מגמה שנתית ופילוח חודשי." + "א" * 50'))
     assert author.verify(DS, recipes) == 1
     assert "SEO: seo.description is" in capsys.readouterr().out
+
+
+def test_author_verify_wants_the_h1_to_be_seo_name(tmp_path, monkeypatch, capsys):
+    author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    t = recipes / DS / "template.html.j2"
+    t.write_text(t.read_text().replace("{{ model.agent_data.seo.name }}", "אירועים חודשיים"))
+    assert author.verify(DS, recipes) == 1
+    assert "SEO: the <h1> ('אירועים חודשיים') differs from seo.name" in capsys.readouterr().out
+
+
+def test_seo_findings_h1_rules():
+    from services.page_builder import author
+
+    seo = {"title": "t", "description": "d" * 140, "name": "שם  המאגר"}
+    ok = author._seo_findings({"seo": seo}, "<h1 class='x'>שם <b>המאגר</b></h1>")[0]
+    assert not [p for p in ok if "h1" in p]
+    assert any("no <h1>" in p for p in author._seo_findings({"seo": seo}, "<p>x</p>")[0])
+    # No seo.name: nothing to compare (the shell falls back to the CKAN title).
+    assert not author._seo_findings({"seo": {**seo, "name": None}}, "<h1>אחר</h1>")[0]
+
+
+def test_committed_recipes_have_no_em_dash():
+    """The house rule holds for the whole corpus (swept 2026-11-05), so a
+    one-line edit to any recipe doesn't fail verify on text it didn't touch."""
+    from services.page_builder import author
+
+    found = []
+    for d in sorted(author.RECIPES_ROOT.iterdir()):
+        if (d / "recipe.json").is_file():
+            found += [f"{d.name[:8]} {x}" for x in author._em_dash_findings(Recipe.load(d))
+                      if "rewrite with" not in x]
+    assert not found, "\n".join(found[:20])
+
+
+def test_kpi_placeholder_dash_needs_no_ltr():
+    from services.page_builder.recipe import kpi_format_findings
+
+    box = '<div class="text-2xl font-bold text-brand">{}</div>'
+    assert kpi_format_findings(box.format("–")) == []
+    assert any("dir=" in f for f in kpi_format_findings(box.format("2014–2026")))

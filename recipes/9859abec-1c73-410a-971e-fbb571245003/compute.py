@@ -160,7 +160,7 @@ def insight_first_batch(df):
     s = (f"{n(len(first))} בקשות ({pct(share * 100)} מכלל המאגר) הוגשו כבר ב-{y0}, השנה "
          f"הראשונה במאגר")
     if k >= 0.5 * len(first):
-        s += f" — {n(k)} מהן ביום אחד, {dmy(day)}"
+        s += f", {n(k)} מהן ביום אחד ({dmy(day)})"
     s += f". {pct(reg)} מהן רשומות עד היום."
     return s
 
@@ -180,8 +180,8 @@ def insight_closure_era(df):
         (a, ta), (b, tb) = (ce, early_txt), (cm, modern_txt)
     else:
         (a, ta), (b, tb) = (cm, modern_txt), (ce, early_txt)
-    return (f"{pct(a)} מהבקשות {ta} כבר סגורות, לעומת {pct(b)} מאלה {tb} — "
-            f"{n((d['status'] == CLOSED).sum())} בקשות סגורות בסך הכול.")
+    return (f"{pct(a)} מהבקשות {ta} כבר סגורות, לעומת {pct(b)} מאלה {tb}; "
+            f"בסך הכול {n((d['status'] == CLOSED).sum())} בקשות סגורות.")
 
 
 def insight_top_class(occ, total):
@@ -192,8 +192,8 @@ def insight_top_class(occ, total):
     if v0 / total < 0.3:
         return None
     c1, v1 = int(s.index[1]), int(s.iloc[1])
-    return (f"{pct(v0 / total * 100)} מהבקשות ({n(v0)}) הן לסוג {cls_label(c0)} — יינות, "
-            f"משקאות חריפים וכדומה. במקום השני, הרחק מאחור, סוג {cls_label(c1)} "
+    return (f"{pct(v0 / total * 100)} מהבקשות ({n(v0)}) הן לסוג {cls_label(c0)} (יינות, "
+            f"משקאות חריפים וכדומה). במקום השני, הרחק מאחור, סוג {cls_label(c1)} "
             f"עם {n(v1)} בקשות.")
 
 
@@ -255,8 +255,8 @@ def insight_script(df):
         return None
     txt = (a["he"] + " " + a["en"]).str.upper()
     iran = int(txt.map(lambda s: any(t.upper() in s for t in IRAN_TOKENS)).sum())
-    s = (f"{n(len(a))} בקשות מתוארות בכתב ערבי (פרסית או ערבית), כולן מ-{y0} ואילך — "
-         f"{pct(share)} מהבקשות שהוגשו מאז")
+    s = (f"{n(len(a))} בקשות מתוארות בכתב ערבי (פרסית או ערבית), כולן מ-{y0} ואילך ("
+         f"{pct(share)} מהבקשות שהוגשו מאז)")
     if iran >= 0.5 * len(a):
         s += f"; ב-{n(iran)} מהן מופיע בתיאור שם המדינה ایران (איראן)."
     else:
@@ -272,7 +272,7 @@ def insight_waves(waves, total):
     if k / total < 0.25:
         return None
     dates = ", ".join(w["date"] for w in top3)
-    return (f"הבקשות מגיעות בגלים: בשלושת ימי ההגשה העמוסים ({dates}) הוגשו {n(k)} בקשות — "
+    return (f"הבקשות מגיעות בגלים: בשלושת ימי ההגשה העמוסים ({dates}) הוגשו {n(k)} בקשות, "
             f"{pct(k / total * 100)} מכל המאגר.")
 
 
@@ -337,7 +337,7 @@ def compute(frames):
         cl = next((x["data"][i] for x in cls_series if x["name"] == CLOSED), 0)
         cls_table.append({"cls": lab, "total": n(cls_tot[i]),
                           "v": [n(x["data"][i]) for x in cls_series],
-                          "closed": pct_bare(cl / cls_tot[i] * 100) if cls_tot[i] else "—"})
+                          "closed": pct_bare(cl / cls_tot[i] * 100) if cls_tot[i] else "–"})
     multi = int((df["cls"].map(len) > 1).sum())
     no_cls = int((df["cls"].map(len) == 0).sum())
 
@@ -376,7 +376,7 @@ def compute(frames):
         c = day_cls.get(day)
         waves.append({"date": dmy(day), "count": int(k),
                       "reg": int(day_reg.get(day, 0)),
-                      "cls": cls_label(int(c)) if c is not None and not pd.isna(c) else "—"})
+                      "cls": cls_label(int(c)) if c is not None and not pd.isna(c) else "–"})
     waves_table = [{"date": w["date"], "count": n(w["count"]), "reg": n(w["reg"]),
                     "cls": w["cls"]} for w in waves]
 
@@ -413,11 +413,11 @@ def compute(frames):
     # ---- tables: newest applications, national applications
     def row(r):
         main, alt = (r.he, r.en) if r.he else (r.en, "")
-        return {"num": r.num_s, "name": main or "—", "alt": alt,
-                "cls": ", ".join(cls_label(c) for c in r.cls) or "—",
+        return {"num": r.num_s, "name": main or "–", "alt": alt,
+                "cls": ", ".join(cls_label(c) for c in r.cls) or "–",
                 "status": r.status,
-                "app": dmy(r.app) if not pd.isna(r.app) else "—",
-                "reg": dmy(r.reg) if not pd.isna(r.reg) else "—"}
+                "app": dmy(r.app) if not pd.isna(r.app) else "–",
+                "reg": dmy(r.reg) if not pd.isna(r.reg) else "–"}
 
     newest = dated.sort_values(["app", "num", "num_s"], ascending=[False, False, False],
                                kind="stable").head(LATEST_N)
@@ -456,7 +456,7 @@ def compute(frames):
     first_ar = dated.loc[dated["script"] == "כתב ערבי", "year"]
     labels = {
         "lede": (f"מרשם כינויי המקור של רשם סימני המסחר: {n(total)} בקשות להגנה בישראל על שמות "
-                 f"גאוגרפיים שמזהים מוצר — יין, גבינה, משקה חריף, שטיח או אבן — מ-{y_min} ועד "
+                 f"גאוגרפיים שמזהים מוצר (יין, גבינה, משקה חריף, שטיח או אבן) מ-{y_min} ועד "
                  f"{y_max}. {n(n_intl)} מהן רישומים בינלאומיים ו-{n(n_nat)} בקשות לאומיות "
                  f"ישראליות. לכל בקשה מצוינים מצבה ({n(n_reg)} רשומות), תאריכי ההגשה והרישום "
                  f"וסוגי הסחורות לפי סיווג ניצה."),
@@ -478,16 +478,16 @@ def compute(frames):
         "cls_aria": (f"תרשים עמודות מוערמות: בקשות לפי סוג ניצה. המוביל: סוג "
                      f"{cls_label(top_c) if top_c is not None else ''}."),
         "cls_caption": "בקשות לפי סוג ניצה ומצב, ושיעור הסגורות.",
-        "heat_note": (f"באילו סוגי סחורות הוגשו בקשות בכל עשור — {len(heat_cls)} הסוגים הגדולים"
+        "heat_note": (f"באילו סוגי סחורות הוגשו בקשות בכל עשור: {len(heat_cls)} הסוגים הגדולים"
                       + (" ושאר הסוגים יחד." if heat_rest else ".")),
         "heat_aria": "מפת חום: בקשות לפי סוג ניצה ועשור ההגשה.",
         "heat_caption": "בקשות לפי סוג ניצה ועשור הגשה.",
         "waves_note": (f"{len(waves)} ימי ההגשה שבהם התקבלו הכי הרבה בקשות"
-                       + (f"; בראש — {first_wave['date']} עם {n(first_wave['count'])} בקשות." if first_wave else ".")),
+                       + (f"; בראש: {first_wave['date']} עם {n(first_wave['count'])} בקשות." if first_wave else ".")),
         "waves_aria": "תרשים עמודות: ימי ההגשה העמוסים ביותר ומספר הבקשות בכל אחד.",
         "waves_caption": "ימי ההגשה העמוסים, מספר הבקשות, הרשומות שבהן וסוג הניצה העיקרי.",
         "lag_note": (f"הזמן מתאריך הבקשה ועד תאריך הרישום, בבקשות שהוגשו לפני {ERA_SPLIT} ומ-{ERA_SPLIT} ואילך"
-                     + (f". ב-{n(n_err)} בקשות תאריך הרישום מוקדם מתאריך הבקשה — כנראה טעות הקלדה; הן מוצגות בנפרד." if n_err else ".")),
+                     + (f". ב-{n(n_err)} בקשות תאריך הרישום מוקדם מתאריך הבקשה, כנראה טעות הקלדה; הן מוצגות בנפרד." if n_err else ".")),
         "lag_aria": f"תרשים עמודות: הזמן מהבקשה לרישום, לפני {ERA_SPLIT} ומ-{ERA_SPLIT} ואילך.",
         "lag_caption": "בקשות לפי הזמן מהבקשה לרישום ותקופת ההגשה.",
         "script_note": ("באיזה כתב רשום תיאור הסימן, לפי עשור ההגשה"
@@ -496,7 +496,7 @@ def compute(frames):
         "script_caption": "בקשות לפי עשור ההגשה וכתב התיאור.",
         "latest_note": f"{len(latest_table)} הבקשות האחרונות לפי תאריך ההגשה.",
         "latest_caption": "הבקשות האחרונות: מספר, תיאור, סוג ניצה, מצב ותאריכים.",
-        "national_note": (f"כל {n(len(nat))} הבקשות הלאומיות — כינויי מקור ישראליים שהוגשו ישירות לרשם"
+        "national_note": (f"כל {n(len(nat))} הבקשות הלאומיות: כינויי מקור ישראליים שהוגשו ישירות לרשם"
                           + (f"; מוצגות {NATIONAL_MAX} הראשונות." if len(nat) > NATIONAL_MAX else ".")),
         "national_caption": "הבקשות הלאומיות: מספר, תיאור, סוג ניצה, מצב ותאריכים.",
     }

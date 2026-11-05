@@ -196,10 +196,10 @@ def insight_ytd(ytd, ytd_prev, ref, prev_year):
     chg = ytd / ytd_prev - 1
     span = f"מתחילת {ref.year} ועד {d_he(ref)}"
     if abs(chg) < 0.03:
-        return (f"{span} נפתחו {n(ytd)} תיקים — בדומה לתקופה המקבילה ב-{prev_year} "
+        return (f"{span} נפתחו {n(ytd)} תיקים, בדומה לתקופה המקבילה ב-{prev_year} "
                 f"({n(ytd_prev)}).")
     word = "יותר" if chg > 0 else "פחות"
-    return (f"{span} נפתחו {n(ytd)} תיקים — {pct(abs(chg) * 100)} {word} מאשר בתקופה "
+    return (f"{span} נפתחו {n(ytd)} תיקים, {pct(abs(chg) * 100)} {word} מאשר בתקופה "
             f"המקבילה ב-{prev_year} ({n(ytd_prev)}).")
 
 
@@ -213,7 +213,7 @@ def insight_ramadan(pool):
     drop = 1 - ram / around
     peak = ("שעבאן, החודש שלפני הרמדאן," if before > after else "שוואל, החודש שאחרי הרמדאן,")
     return (f"בחודש הרמדאן נערכים הרבה פחות חוזי נישואין: בממוצע {ram:.1f} חוזים ביום, לעומת "
-            f"{around:.1f} בחודשים שלפניו ואחריו — ירידה של {pct(drop * 100, 0)} "
+            f"{around:.1f} בחודשים שלפניו ואחריו, ירידה של {pct(drop * 100, 0)} "
             f"(ממוצע {years} שנים). {peak} עמוס יותר ({max(before, after):.1f} ביום).")
 
 
@@ -245,7 +245,7 @@ def insight_divorce(rows):
     else:
         trend = f"לעומת {r0:.0f} ב-{first['year']}"
     return (f"ב-{last['year']} נפתחו {n(last['divorce'])} תיקי גירושין והפרדה מול "
-            f"{n(last['contracts'])} חוזי נישואין — כ-{r1:.0f} תיקי גירושין לכל 100 חוזים, "
+            f"{n(last['contracts'])} חוזי נישואין: כ-{r1:.0f} תיקי גירושין לכל 100 חוזים, "
             f"{trend}.")
 
 
@@ -258,7 +258,7 @@ def insight_topic_shift(shift, base, last):
     if new:
         r = max(new, key=lambda x: (x["last"], x["name"]))
         return (f"נושא חדש: ב-{base} לא נפתחו תיקי \"{r['name']}\", וב-{last} נפתחו "
-                f"{n(r['last'])} — {pct(r['last'] / tot_l * 100)} מהתיקים.")
+                f"{n(r['last'])} ({pct(r['last'] / tot_l * 100)} מהתיקים).")
     best = max(shift, key=lambda x: (abs(x["last"] / tot_l - x["base"] / tot_b), x["name"]))
     s0, s1 = best["base"] / tot_b * 100, best["last"] / tot_l * 100
     if abs(s1 - s0) < 2:
@@ -277,7 +277,7 @@ def insight_new_court(court_first, window_start, by_court_last, last_full):
     v = by_court_last.get(c, 0)
     if v == 0:
         return None
-    return (f"בית הדין השרעי ב{court_short(c)} הוא הצעיר ברשימה — התיקים הראשונים בו "
+    return (f"בית הדין השרעי ב{court_short(c)} הוא הצעיר ברשימה: התיקים הראשונים בו "
             f"נפתחו ב-{y}, וב-{last_full} נפתחו בו {n(v)} תיקים.")
 
 
@@ -305,7 +305,7 @@ def insight_appeals(app_out):
     acc = d.get("התקבל", 0) / decided
     rej = d.get("נדחה", 0) / decided
     return (f"בבית הדין השרעי לערעורים, מבין {n(decided)} תיקים שהוכרעו (התקבלו, נדחו או "
-            f"נמחקו), {pct(acc * 100, 0)} התקבלו — כולל החזרה לבית הדין האזורי — "
+            f"נמחקו), {pct(acc * 100, 0)} התקבלו (כולל החזרה לבית הדין האזורי) "
             f"ו-{pct(rej * 100, 0)} נדחו.")
 
 
@@ -608,7 +608,7 @@ def compute(frames):
         ytd_disp = (f"+{chg:.1f}%" if chg >= 0 else f"{MINUS}{abs(chg):.1f}%")
         ytd_tone = "brand" if abs(chg) < 3 else "info"
     else:
-        chg, ytd_disp, ytd_tone = None, "—", "brand"
+        chg, ytd_disp, ytd_tone = None, "–", "brand"
     last_reg = qual_rows[-1] if qual_rows else None
     miss_tone = "brand"
     if last_reg:
@@ -621,20 +621,20 @@ def compute(frames):
                        "tone": ytd_tone},
         "open": {"value": open_total, "display": n(open_total), "tone": "brand"},
         "ramadan": {"value": None if ram_drop is None else round(ram_drop, 1),
-                    "display": "—" if ram_drop is None else f"{MINUS}{ram_drop:.0f}%",
+                    "display": "–" if ram_drop is None else f"{MINUS}{ram_drop:.0f}%",
                     "tone": "info" if ram_drop is not None else "brand"},
         "missing": {"value": last_reg["missing"] if last_reg else None,
-                    "display": f"{last_reg['missing']:.1f}%" if last_reg else "—", "tone": miss_tone},
+                    "display": f"{last_reg['missing']:.1f}%" if last_reg else "–", "tone": miss_tone},
         "qadis": {"value": n_qadis, "display": n(n_qadis), "tone": "brand"},
     }
 
-    partial_note = (f" {ref.year} — שנה חלקית, עד {d_he(ref)}." if partial else "")
+    partial_note = (f" שנת {ref.year} חלקית, עד {d_he(ref)}." if partial else "")
     first_y = int(per_year.index.min())
     ram_n = len(ram_rows)
     md_last = md_rows[-1] if md_rows else None
     labels = {
-        "lede": (f"{n(total_cases)} תיקים שנפתחו בבתי הדין השרעיים — {len([c for c in courts if c != APPEALS_COURT])} בתי דין אזוריים "
-                 f"ובית הדין לערעורים — ו-{n(total_con)} חוזי נישואין שנרשמו בהם. התיקים עוסקים "
+        "lede": (f"{n(total_cases)} תיקים שנפתחו בבתי הדין השרעיים ({len([c for c in courts if c != APPEALS_COURT])} בתי דין אזוריים "
+                 f"ובית הדין לערעורים) ו-{n(total_con)} חוזי נישואין שנרשמו בהם. התיקים עוסקים "
                  f"בענייני המעמד האישי של מוסלמים בישראל: נישואין וגירושין, מזונות, משמורת, "
                  f"אפוטרופסות וירושה. הנתונים מעודכנים עד {d_he(ref)}; הדף מציג סיכומים בלבד, "
                  f"ללא פרטים על הצדדים."),
@@ -656,12 +656,12 @@ def compute(frames):
                        f"ב-{last_full}."),
         "shift_aria": f"גרף עמודות: תיקים לפי נושא, {base} מול {last_full}.",
         "shift_caption": f"תיקים לפי נושא, {base} ו-{last_full}.",
-        "tree_note": (f"נושאי התיקים וסוגי התיקים שבתוכם, {t0}–{last_full} — {n(len(tw))} תיקים "
+        "tree_note": (f"נושאי התיקים וסוגי התיקים שבתוכם, {t0}–{last_full}: {n(len(tw))} תיקים "
                       f"ב-{n_types} סוגים. לחיצה על נושא מתמקדת בו."),
         "tree_aria": f"מפת עץ: תיקים לפי נושא וסוג תיק, {t0} עד {last_full}.",
         "types_caption": f"{TOP_TYPES} סוגי התיקים הנפוצים, {t0}–{last_full}.",
         "courts_note": (f"תיקים שנפתחו וחוזי נישואין שנרשמו ב-{last_full}, לפי בית דין. תיקי גירושין "
-                        f"לכל 100 חוזים הוא יחס גס בין שני רישומים — לא שיעור גירושין."),
+                        f"לכל 100 חוזים הוא יחס גס בין שני רישומים, לא שיעור גירושין."),
         "courts_aria": f"גרף עמודות: תיקים וחוזי נישואין לפי בית דין, {last_full}.",
         "courts_caption": f"תיקים, חוזי נישואין ותיקי גירושין לפי בית דין, {last_full}.",
         "court_heat_note": f"תיקים שנפתחו בכל בית דין בכל שנה, {h0}–{ref.year}.{partial_note}",
@@ -691,14 +691,14 @@ def compute(frames):
                           if dec_from else ""),
         "outcomes_aria": "גרף עמודות אופקיות מוערמות: התפלגות ההחלטות לפי נושא התיק, באחוזים.",
         "outcomes_caption": "התפלגות ההחלטות לפי נושא התיק, באחוזים.",
-        "appeals_note": (f"{n(appeals_total)} תיקים נפתחו בבית הדין השרעי לערעורים — לפי שנה "
+        "appeals_note": (f"{n(appeals_total)} תיקים נפתחו בבית הדין השרעי לערעורים, לפי שנה "
                          f"({a0}–{ref.year}) ולפי ההחלטה שנרשמה בהם.{partial_note}"),
         "appeals_year_aria": f"גרף עמודות: תיקים בבית הדין לערעורים לפי שנה, {a0} עד {ref.year}.",
         "appeals_year_caption": f"תיקים בבית הדין לערעורים לפי שנה, {a0}–{ref.year}.",
         "appeals_out_aria": "גרף עמודות: החלטות בבית הדין לערעורים לפי תוצאה.",
         "appeals_out_caption": "החלטות בבית הדין לערעורים לפי תוצאה.",
         "qadis_note": (f"מספר ההחלטות שנתן כל קאדי בתיקים שנפתחו {q0}–{last_full}, ובית הדין שבו "
-                       f"נתן את רובן. {n(n_qadis)} קאדים נתנו החלטות בתקופה; חמשת הראשונים — "
+                       f"נתן את רובן. {n(n_qadis)} קאדים נתנו החלטות בתקופה; חמשת הראשונים נתנו "
                        f"{pct(top5_share, 0)} מההחלטות."),
         "qadis_aria": f"גרף עמודות: {len(qadi_rows)} הקאדים שנתנו הכי הרבה החלטות, {q0} עד {last_full}.",
         "qadis_caption": f"החלטות לפי קאדי, {q0}–{last_full}.",
@@ -720,9 +720,9 @@ def compute(frames):
         "types": type_rows,
         "courts": [{"court": r["court"], "cases": n(r["cases"]), "contracts": n(r["contracts"]),
                     "divorce": n(r["divorce"]),
-                    "ratio": "—" if r["ratio"] is None else str(r["ratio"])} for r in court_rows],
+                    "ratio": "–" if r["ratio"] is None else str(r["ratio"])} for r in court_rows],
         "md": [{"year": str(r["year"]), "contracts": n(r["contracts"]), "divorce": n(r["divorce"]),
-                "ratio": "—" if r["ratio"] is None else str(r["ratio"])} for r in md_rows],
+                "ratio": "–" if r["ratio"] is None else str(r["ratio"])} for r in md_rows],
         "ramadan": [{"label": r["label"], "before": f"{r['before']:.1f}", "ram": f"{r['ram']:.1f}",
                      "after": f"{r['after']:.1f}"} for r in ram_rows],
         "weekday": [{"name": a, "count": n(b)} for a, b in zip(weekday["names"], weekday["values"])],
@@ -764,7 +764,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"פעילות בתי הדין השרעיים בישראל: {n(total_cases)} תיקים בענייני מעמד "
-                           f"אישי מאז {first_y} ו-{n(total_con)} חוזי נישואין — לפי שנה, בית דין, "
+                           f"אישי מאז {first_y} ו-{n(total_con)} חוזי נישואין, לפי שנה, בית דין, "
                            f"נושא, החלטה וקאדי, ועונתיות החתונות סביב הרמדאן."),
             "dataset_kind": "timeseries",
             "related_ids": ["eda6d5e4-b6ed-478e-a92b-71e0baab84b6",

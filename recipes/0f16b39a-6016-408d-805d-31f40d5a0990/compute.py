@@ -191,7 +191,7 @@ def insight_ytd(ytd):
         return None
     cur, prev, ch, span, prev_label = ytd["cur"], ytd["prev"], ytd["ch"], ytd["span"], ytd["prev_label"]
     if abs(ch) < TREND_BAND:
-        return (f"ב{span} עלו לכביש {_int(cur)} כלי רכב דו-גלגליים שעדיין פעילים — "
+        return (f"ב{span} עלו לכביש {_int(cur)} כלי רכב דו-גלגליים שעדיין פעילים, "
                 f"דומה לתקופה המקבילה ב-{prev_label} ({_int(prev)}).")
     word = "יותר" if ch > 0 else "פחות"
     return (f"ב{span} עלו לכביש {_int(cur)} כלי רכב דו-גלגליים שעדיין פעילים, "
@@ -242,7 +242,7 @@ def insight_brand(df):
         return None
     top3 = (n1 + n2 + n3) / len(df)
     return (f"היצרן הנפוץ ביותר הוא {b1} עם {_int(n1)} כלים ({_pct(share)}), לפני {b2} ({_int(n2)}) "
-            f"ו{b3} ({_int(n3)}); שלושתם יחד — {_pct(top3)} מהצי.")
+            f"ו{b3} ({_int(n3)}); שלושתם יחד מהווים {_pct(top3)} מהצי.")
 
 
 def insight_country(df):
@@ -411,9 +411,9 @@ def compute(frames):
             ceilings[c] = float(h.max())
         t_classes.append({
             "name": _class_label(c), "count": _int(len(sub)), "share": f"{len(sub) / n * 100:.1f}",
-            "hp_med": _num(h.median()) if len(h) else "—",
-            "hp_rng": f"\u2066{_num(h.quantile(0.01))}–{_num(h.quantile(0.99))}\u2069" if len(h) else "—",
-            "cc_med": _int(cv.median()) if len(cv) else "—",
+            "hp_med": _num(h.median()) if len(h) else "–",
+            "hp_rng": f"\u2066{_num(h.quantile(0.01))}–{_num(h.quantile(0.99))}\u2069" if len(h) else "–",
+            "cc_med": _int(cv.median()) if len(cv) else "–",
         })
 
     # ── Electric ───────────────────────────────────────────────────────────
@@ -504,7 +504,7 @@ def compute(frames):
 
     # ── KPIs ───────────────────────────────────────────────────────────────
     if ytd is None:
-        ytd_tone, ytd_display = "brand", "—"
+        ytd_tone, ytd_display = "brand", "–"
     else:
         r = round(ytd["ch"] * 100, 1)
         if r == 0:
@@ -537,14 +537,14 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
-    ceil_parts = [f"{c} — עד {_num(ceilings[c])} כ״ס" for c in ("L1", "L2") if c in ceilings]
+    ceil_parts = [f"{c} עד {_num(ceilings[c])} כ״ס" for c in ("L1", "L2") if c in ceilings]
     ceil_text = "; ".join(ceil_parts)
     partial_note = f" החודש האחרון בנתונים ({_m_he(last_m)}) עשוי להיות חלקי."
     tail_note = (f" {_int(n_tail)} כלים ותיקים יותר (מלפני {start_year}) אינם בתרשים." if n_tail else "")
 
     return {
         "agent_data": {
-            "summary_he": (f"{_int(n)} כלי רכב דו-גלגליים פעילים — אופנועים, קטנועים ותלת-אופנועים — "
+            "summary_he": (f"{_int(n)} כלי רכב דו-גלגליים פעילים (אופנועים, קטנועים ותלת-אופנועים) "
                            f"מ-{_int(n_brands)} יצרנים, שנות ייצור \u2066{y0}–{y1}\u2069. "
                            f"{_pct(young_share)} מהם יוצרו ב-{YOUNG_YEARS} השנים האחרונות שבנתונים, "
                            f"והחשמליים הם {_pct(ev_cur['share'])} מכלי שנת {y1}."),
@@ -600,7 +600,7 @@ def compute(frames):
         "labels": {
             "lede": (f"המאגר מונה {_int(n)} כלי רכב דו-גלגליים פעילים הרשומים במשרד התחבורה: "
                      f"אופנועים, קטנועים, תלת-אופנועים ורכבים זעירים, שנות ייצור \u2066{y0}–{y1}\u2069. "
-                     f"זו תמונת הצי הפעיל היום — כלים שנגרעו מהמרשם אינם בו, ולכן שנים ותיקות "
+                     f"זו תמונת הצי הפעיל היום: כלים שנגרעו מהמרשם אינם בו, ולכן שנים ותיקות "
                      f"מיוצגות חלקית."),
             "total_kpi": "כלי רכב דו-גלגליים פעילים",
             "ytd_kpi": (f"עלייה לכביש ב{ytd['span']} לעומת {ytd['prev_label']}" if ytd
@@ -608,12 +608,12 @@ def compute(frames):
             "ev_kpi": f"חלק החשמליים מכלי שנת ייצור {y1}",
             "hp_kpi": "הספק חציוני (כוח סוס)",
             "road_note": (f"מספר הכלים הפעילים לפי {road_chart['unit']} העלייה לכביש, מ-{start_year}. "
-                          f"השיא — {_m_he(peak_m)} ({_int(peak_sorted.iloc[0]) if len(peak_sorted) else 0} כלים). "
+                          f"השיא: {_m_he(peak_m)} ({_int(peak_sorted.iloc[0]) if len(peak_sorted) else 0} כלים). "
                           f"שנת העלייה לכביש זהה בנתונים לשנת הייצור.{tail_note}{partial_note}"),
             "road_aria": f"תרשים קו: כלי רכב דו-גלגליים פעילים לפי {road_chart['unit']} עלייה לכביש, \u2066{start_year}–{last_m.year}\u2069.",
-            "heat_note": ("כל תא — מספר הכלים הפעילים שעלו לכביש באותו חודש. "
+            "heat_note": ("כל תא מציג את מספר הכלים הפעילים שעלו לכביש באותו חודש. "
                           + (f"בשנים \u2066{season['y0']}–{season['y1']}\u2069 החודש החזק בממוצע הוא "
-                             f"{MONTHS_HE[season['hi'][0] - 1]} והחלש — {MONTHS_HE[season['lo'][0] - 1]}."
+                             f"{MONTHS_HE[season['hi'][0] - 1]} והחלש הוא {MONTHS_HE[season['lo'][0] - 1]}."
                              if season else "")),
             "heat_aria": f"מפת חום: עלייה לכביש לפי חודש ושנה, \u2066{start_year}–{last_m.year}\u2069.",
             "years_note": (f"שנות ייצור \u2066{y0}–{y1}\u2069, כל עמודה מחולקת לפי קטגוריית הכלי. "
@@ -621,13 +621,13 @@ def compute(frames):
             "years_aria": f"תרשים עמודות: כלי רכב פעילים לפי שנת ייצור וקטגוריה, \u2066{y0}–{y1}\u2069.",
             "years_caption": "כלי רכב לפי מחזור שנות ייצור וקטגוריה.",
             "mix_note": (f"חלקה של כל קטגוריה מכלי כל שנת ייצור, \u2066{start_year}–{y1}\u2069. "
-                         f"הקטגוריה נקבעת לפי ההספק: {ceil_text}; L3 — מעליהן."),
+                         f"הקטגוריה נקבעת לפי ההספק: {ceil_text}; L3 מעליהן."),
             "mix_aria": f"תרשים שטח מוערם: חלק כל קטגוריה מכלי שנת הייצור, \u2066{start_year}–{y1}\u2069.",
             "mix_caption": f"חלק כל קטגוריה (%) ב-{min(TABLE_YEARS, len(mix_years))} שנות הייצור האחרונות.",
-            "classes_caption": "הקטגוריות: מספר כלים, הספק ונפח מנוע (טווח ההספק — אחוזון 1 עד 99).",
+            "classes_caption": "הקטגוריות: מספר כלים, הספק ונפח מנוע (טווח ההספק הוא מאחוזון 1 עד 99).",
             "classes_rng_head": "טווח הספק (כ״ס)",
-            "ev_note": (f"{_int(n_ev)} כלי רכב חשמליים בצי. העמודות — מספר החשמליים בכל שנת ייצור; "
-                        f"הקו — חלקם מכלל כלי אותה שנה."),
+            "ev_note": (f"{_int(n_ev)} כלי רכב חשמליים בצי. העמודות מציגות את מספר החשמליים בכל שנת ייצור; "
+                        f"הקו מציג את חלקם מכלל כלי אותה שנה."),
             "ev_aria": f"תרשים משולב: כלי רכב חשמליים וחלקם לפי שנת ייצור, \u2066{start_year}–{y1}\u2069.",
             "ev_caption": f"חשמליים לפי שנת ייצור, {min(TABLE_YEARS, len(ev_years))} השנים האחרונות.",
             "brands_note": (f"{_int(n_brands)} יצרנים בצי. שם היצרן מאוחד מכל ארצות המפעל, "
@@ -641,13 +641,13 @@ def compute(frames):
             "models_note": (f"קוד הדגם כפי שנרשם אצל היצרן ({_int(n_models)} צירופי יצרן ודגם בצי). "
                             f"אותו דגם מסחרי עשוי להופיע בכמה קודים לפי שנה וגרסה."),
             "models_aria": f"תרשים עמודות: {TOP_MODELS} קודי הדגם הנפוצים.",
-            "countries_note": "ארץ המפעל שבו יוצר הכלי — לא ארץ המותג.",
+            "countries_note": "ארץ המפעל שבו יוצר הכלי, לא ארץ המותג.",
             "countries_aria": f"תרשים עמודות: {TOP_COUNTRIES} ארצות הייצור המובילות.",
-            "cc_note": (f"נפח המנוע בסמ״ק. החציון {_int(cc_med)} סמ״ק, והנפח הנפוץ ביותר — {_int(cc_mode)}. "
+            "cc_note": (f"נפח המנוע בסמ״ק. החציון {_int(cc_med)} סמ״ק, והנפח הנפוץ ביותר הוא {_int(cc_mode)}. "
                         f"{_int(n_cc_zero)} כלים ללא נפח רשום אינם בתרשים ({_int(cc_zero_ev)} מהם חשמליים)."),
             "cc_aria": "תרשים עמודות: כלי רכב לפי טווח נפח מנוע.",
-            "box_note": (f"{BOX_BRANDS} היצרנים הנפוצים, מסודרים מההספק הנמוך לגבוה. התיבה — הרבעון התחתון "
-                         f"עד העליון, הקו — החציון, השפמים — אחוזון 5 עד 95. "
+            "box_note": (f"{BOX_BRANDS} היצרנים הנפוצים, מסודרים מההספק הנמוך לגבוה. התיבה מציגה את הרבעון התחתון "
+                         f"עד העליון, הקו את החציון, והשפמים את אחוזון 5 עד 95. "
                          f"ההספק החציוני בכלל הצי {_num(hp_med)} כ״ס."),
             "box_aria": f"תרשים תיבה: הספק בכוח סוס לפי {BOX_BRANDS} היצרנים המובילים.",
             "types_caption": "כלי רכב לפי סוג.",

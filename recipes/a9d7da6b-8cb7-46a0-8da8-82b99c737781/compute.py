@@ -167,7 +167,7 @@ def insight_dominance(df):
         return (f"כל {_int(n_bl)} הרשומות במאגר הן אישורי המשרד לרישיון עסק.")
     parts = ", ".join(f"{_int(v)} היתרי {k}" for k, v in env.items())
     return (f"{_pct(share)} מהרשומות ({_int(n_bl)}) הן אישורי המשרד לבקשות רישיון עסק; "
-            f"ההיתרים שהמשרד מנפיק בעצמו מעטים בהרבה — {parts}.")
+            f"ההיתרים שהמשרד מנפיק בעצמו מעטים בהרבה: {parts}.")
 
 
 def insight_districts(df):
@@ -176,11 +176,11 @@ def insight_districts(df):
         return None
     total = len(df)
     if (d.iloc[0] - d.iloc[2]) / total < NEAR_TIE * 2:
-        return (f"שלושה מחוזות מובילים כמעט בשוויון — {d.index[0]} ({_int(d.iloc[0])} רשומות), "
-                f"{d.index[1]} ({_int(d.iloc[1])}) ו{d.index[2]} ({_int(d.iloc[2])}) — "
+        return (f"שלושה מחוזות מובילים כמעט בשוויון: {d.index[0]} ({_int(d.iloc[0])} רשומות), "
+                f"{d.index[1]} ({_int(d.iloc[1])}) ו{d.index[2]} ({_int(d.iloc[2])}), "
                 f"ויחד הם {_pct(d.iloc[:3].sum() / total)} מהמאגר.")
     if (d.iloc[0] - d.iloc[1]) / total < NEAR_TIE:
-        return (f"מחוזות {d.index[0]} ו{d.index[1]} מובילים כמעט בשוויון — "
+        return (f"מחוזות {d.index[0]} ו{d.index[1]} מובילים כמעט בשוויון: "
                 f"{_int(d.iloc[0])} ו-{_int(d.iloc[1])} רשומות.")
     return f"מחוז {d.index[0]} מוביל עם {_int(d.iloc[0])} רשומות ({_pct(d.iloc[0] / total)})."
 
@@ -217,7 +217,7 @@ def insight_missing(df):
     by = _sub_share_by_district(df, label)
     tail = f" הכי הרבה במחוז {by.index[0]} ({_pct(by.iloc[0])} מאישורי המחוז)." if len(by) else ""
     return (f"ב-{_pct(share)} מאישורי רישיון העסק ({_int((bl['sub'] == label).sum())}) "
-            f"לא צוין תת-הסוג — רישיון או היתר זמני.{tail}")
+            f"לא צוין תת-הסוג (רישיון או היתר זמני).{tail}")
 
 
 def insight_duration(df):
@@ -267,7 +267,7 @@ def insight_top_factory(df):
     name, n = f.index[0], int(f.iloc[0])
     places = int(df.loc[df["factory"] == name, "settle"].nunique())
     where = f" ב-{_int(places)} יישובים שונים" if places > 1 else ""
-    return (f"למפעל {name} יש הכי הרבה רשומות במאגר — {_int(n)}{where}.")
+    return (f"למפעל {name} יש הכי הרבה רשומות במאגר: {_int(n)}{where}.")
 
 
 def insight_kind(df):
@@ -276,7 +276,7 @@ def insight_kind(df):
     if k.empty:
         return None
     covered = bl["kind"].notna().mean()
-    return (f"לפי מילים בשם המפעל, הקבוצה הגדולה בין אישורי רישיון העסק היא {k.index[0]} — "
+    return (f"לפי מילים בשם המפעל, הקבוצה הגדולה בין אישורי רישיון העסק היא {k.index[0]}: "
             f"{_int(k.iloc[0])} אישורים ({_pct(k.iloc[0] / len(bl), 1)}); "
             f"שם המפעל מאפשר לסווג {_pct(covered)} מהאישורים.")
 
@@ -291,8 +291,8 @@ def insight_multi(df):
         return None
     top = _ranked(multi.map(lambda t: " + ".join(t)))
     parts = [("אישור לרישיון עסק" if k == BL else f"היתר {k}") for k in top.index[0].split(" + ")]
-    return (f"{_int(n)} מפעלים מופיעים ביותר מסוג רישוי אחד; השילוב הנפוץ ביותר — "
-            f"{' וגם '.join(parts)} — אצל {_int(top.iloc[0])} מפעלים.")
+    return (f"{_int(n)} מפעלים מופיעים ביותר מסוג רישוי אחד; השילוב הנפוץ ביותר, "
+            f"{' וגם '.join(parts)}, נמצא אצל {_int(top.iloc[0])} מפעלים.")
 
 
 def insight_dated(df):
@@ -305,7 +305,7 @@ def insight_dated(df):
     if share >= 0.2:
         return None
     return (f"רק ל-{_pct(share, 1)} מאישורי רישיון העסק יש תאריך תחילה, לעומת "
-            f"{_pct(env_share, 1)} מההיתרים שהמשרד מנפיק בעצמו — ולכן הניתוח לאורך זמן מבוסס "
+            f"{_pct(env_share, 1)} מההיתרים שהמשרד מנפיק בעצמו, ולכן הניתוח לאורך זמן מבוסס "
             f"בעיקר על ההיתרים.")
 
 
@@ -518,8 +518,8 @@ def compute(frames):
         "env_settle_note": (f"שלושת היישובים המובילים מחזיקים {_pct(env_top_share)} מההיתרים."
                             if n_env else ""),
         "kinds_note": (f"סיווג לפי מילים בשם המפעל (למשל ״תחנת דלק״, ״רפת״, ״מגרסה״). "
-                       f"השם מאפשר לסווג {_pct(covered)} מאישורי רישיון העסק; השאר — לרוב חברות "
-                       f"ששמן אינו מעיד על הפעילות — אינם מוצגים."),
+                       f"השם מאפשר לסווג {_pct(covered)} מאישורי רישיון העסק; השאר (לרוב חברות "
+                       f"ששמן אינו מעיד על הפעילות) אינם מוצגים."),
         "kinds_aria": f"תרשים עמודות אופקי: אישורי רישיון עסק לפי סוג העסק, {len(kinds_top)} סוגים.",
         "kinds_caption": f"{len(kinds_top)} סוגי העסקים הנפוצים לפי שם המפעל.",
         "fac_aria": f"תרשים עמודות אופקי: {len(top_f)} המפעלים עם הכי הרבה רשומות.",

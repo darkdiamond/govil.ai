@@ -456,3 +456,90 @@ def test_by_id_with_a_missing_preview_is_transient():
     res = [{"id": RID, "name": "x", "format": "CSV", "datastore_active": True}]
     with pytest.raises(PreviewUnavailable):
         resolve_inputs(m, res, lambda rid: None)
+
+
+# ── author prepare follows the committed recipe's limits + columns ───────
+
+
+def _prepare_env(tmp_path, monkeypatch, mutate):
+    """prepare() against a fake CKAN + store, with recipes/<DS> mutated."""
+    from services.page_builder import author
+    from services.shared import firestore
+
+    recipes = _fixture_copy(tmp_path, mutate)
+    monkeypatch.setattr(author, "RECIPES_ROOT", recipes)
+    monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
+    src = SimpleNamespace(
+        **vars(_src()), slug="events", notes="", tags=[], update_frequency=None,
+        license_title=None, record_count=36, page_path=None, agent_data=None,
+    )
+    store = SimpleNamespace(get_source=lambda _id: src, list_org_sources=lambda *a, **k: [])
+    monkeypatch.setattr(firestore, "FirestoreStateStore", lambda: store)
+    monkeypatch.setattr(agent_contract, "fetch_resource_preview",
+                        lambda rid: {"total": 36, "fields": [{"id": c} for c in COLS]})
+    calls = []
+
+    def export(rid, total, dest, **kw):
+        calls.append(kw)
+        # Like the uploaded-file path: every column, whatever `fields` asked.
+        with open(dest, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(COLS)
+            w.writerows(_rows([2023]))
+        return agent_contract.FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size, mode="full")
+
+    monkeypatch.setattr(agent_contract, "fetch_resource_export", export)
+    return author, calls
+
+
+def test_prepare_reads_the_recipes_limits_and_columns(tmp_path, monkeypatch):
+    def heavy(d):
+        d["limits"] = {"max_records": 100, "max_bytes": 12345, "wall_budget_s": 2000}
+        d["inputs"][0].update(required_columns=["שנה", "מחוז"], columns=["שנה", "מחוז"])
+
+    monkeypatch.setenv("REFRESH_MAX_RECORDS", "5")  # the env alone would skip it
+    author, calls = _prepare_env(tmp_path, monkeypatch, heavy)
+    author.prepare(DS)
+    data = tmp_path / "authoring" / DS / "data"
+    [m] = json.loads((data / "manifest.json").read_text(encoding="utf-8"))
+    assert m["rows"] == 36 and m["columns"] == ["שנה", "מחוז"]
+    assert m["fields"] == COLS  # the preview's full list, for coverage
+    [kw] = calls
+    assert kw["fields"] == ["שנה", "מחוז"] and kw["max_bytes"] == 12345
+    assert (data / m["file"]).read_text(encoding="utf-8").splitlines()[0] == "שנה,מחוז"
+    brief = (tmp_path / "authoring" / DS / "BRIEF.md").read_text(encoding="utf-8")
+    assert "only the recipe's `columns` (2 of 4)" in brief
+
+
+def test_prepare_exports_every_column_when_an_input_reads_them_all(tmp_path, monkeypatch):
+    def drifted(d):  # a column the preview no longer has: verify reports it, not prepare
+        d["inputs"][0].update(required_columns=["שנה"], columns=["שנה", "עמודה שנעלמה"])
+
+    author, calls = _prepare_env(tmp_path, monkeypatch, drifted)
+    author.prepare(DS)
+    assert calls[0]["fields"] is None
+    assert calls[0]["max_bytes"] == rf._DEFAULT_MAX_BYTES
+
+    author, calls = _prepare_env(tmp_path / "b", monkeypatch, lambda d: None)  # no `columns`
+    author.prepare(DS)
+    assert calls[0]["fields"] is None
+
+
+def test_local_ckan_replays_a_failed_preview(tmp_path):
+    lc = _local_ckan(tmp_path, preview_failed=True)
+    assert lc.preview("r1") is None  # verify sees "no preview", as the refresh would
+
+
+def test_prepare_all_columns_overrides_the_recipes_columns(tmp_path, monkeypatch):
+    def narrow(d):
+        d["inputs"][0].update(required_columns=["שנה"], columns=["שנה"])
+
+    author, calls = _prepare_env(tmp_path, monkeypatch, narrow)
+    author.prepare(DS, all_columns=True)
+    assert calls[0]["fields"] is None
+
+
+def test_local_ckan_says_to_reprepare_when_columns_grew(tmp_path):
+    lc = _local_ckan(tmp_path, columns=["a", "b"])
+    with pytest.raises(RecipeError, match="re-run `author prepare`"):
+        lc.fetch("r1", 50, tmp_path / "out.csv", max_bytes=10**6, fields=["a", "c"])

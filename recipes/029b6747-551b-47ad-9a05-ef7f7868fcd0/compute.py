@@ -206,11 +206,11 @@ def compute(frames):
             return None
         ch = (a - b) / b
         full = [grants["y"][years.index(y)] for y in years if y <= last_full]
-        rec = " — שיא כל הזמנים במאגר" if a == max(full) else ""
+        rec = ". זהו שיא כל הזמנים במאגר" if a == max(full) else ""
         if abs(ch) < 0.03:
             return f"ב-{last_full} ניתנו {_int(a)} פטנטים, בדומה ל-{last_full - 1} ({_int(b)}){rec}."
         word = "עלייה" if ch > 0 else "ירידה"
-        return f"ב-{last_full} ניתנו {_int(a)} פטנטים — {word} של {abs(ch) * 100:.1f}% לעומת {last_full - 1} ({_int(b)}){rec}."
+        return f"ב-{last_full} ניתנו {_int(a)} פטנטים, {word} של {abs(ch) * 100:.1f}% לעומת {last_full - 1} ({_int(b)}){rec}."
 
     def ins_ytd():
         if anchor.month < 3:
@@ -223,8 +223,8 @@ def compute(frames):
         ch = (a - b) / b
         word = "יותר" if ch > 0 else "פחות"
         if abs(ch) < 0.03:
-            return f"מתחילת {cur} ועד {d_he(anchor)} ניתנו {_int(a)} פטנטים — קצב דומה לתקופה המקבילה ב-{cur - 1}."
-        return (f"מתחילת {cur} ועד {d_he(anchor)} ניתנו {_int(a)} פטנטים — {abs(ch) * 100:.0f}% {word} "
+            return f"מתחילת {cur} ועד {d_he(anchor)} ניתנו {_int(a)} פטנטים, קצב דומה לתקופה המקבילה ב-{cur - 1}."
+        return (f"מתחילת {cur} ועד {d_he(anchor)} ניתנו {_int(a)} פטנטים, {abs(ch) * 100:.0f}% {word} "
                 f"מבתקופה המקבילה ב-{cur - 1} ({_int(b)}).")
 
     def ins_filings():
@@ -253,7 +253,7 @@ def compute(frames):
             return None
         a, b = float(med[last_full]), float(med[last_full - 10])
         if abs(a - b) < 0.25:
-            return f"חציון הזמן מהגשה ועד מתן פטנט עמד ב-{last_full} על {a:.1f} שנים — בדומה ל-{last_full - 10}."
+            return f"חציון הזמן מהגשה ועד מתן פטנט עמד ב-{last_full} על {a:.1f} שנים, בדומה ל-{last_full - 10}."
         word = "התקצר" if a < b else "התארך"
         return f"חציון הזמן מהגשה ועד מתן פטנט {word} מ-{b:.1f} שנים ב-{last_full - 10} ל-{a:.1f} שנים ב-{last_full}."
 
@@ -316,7 +316,7 @@ def compute(frames):
                                 if years.index(last_full) > 0 else 0)},
             # Shorter wait for a grant is good: ±0.2 years vs the year before.
             "lag_last": {"value": lag_last,
-                         "display": "—" if lag_last is None else f"{lag_last:.1f}",
+                         "display": "–" if lag_last is None else f"{lag_last:.1f}",
                          "tone": _lag_tone(lag_last, float(med[last_full - 1])
                                            if (last_full - 1) in med.index else None)},
         },
@@ -333,9 +333,9 @@ def compute(frames):
             "lag_last_label": f"חציון השנים עד מתן פטנט ({last_full})",
             "lede": (f"{_int(n_apps)} בקשות לפטנט, מ-{y0} ועד {d_he(anchor)}. כל בקשה מוצגת פעם אחת, "
                      f"בסטטוס המתקדם ביותר שלה; {_int(test_rows)} רשומות בדיקה ({_int(raw_rows)} שורות במאגר) הוסרו."),
-            "filings_note": (f"לפי שנת ההגשה בישראל. {cur} חלקית — עד {d_he(anchor)}. בקשה במסלול PCT "
+            "filings_note": (f"לפי שנת ההגשה בישראל. {cur} חלקית, עד {d_he(anchor)}. בקשה במסלול PCT "
                              "מוגשת בישראל כשנה וחצי אחרי הבקשה הבינלאומית."),
-            "grants_note": f"לפי תאריך מתן הפטנט. {cur} חלקית — עד {d_he(anchor)}.",
+            "grants_note": f"לפי תאריך מתן הפטנט. {cur} חלקית, עד {d_he(anchor)}.",
             "origin_note": (f"בקשות PCT שהוגשו בישראל ב-{last_full - 4}–{last_full}, לפי המשרד שקיבל את "
                             f"הבקשה הבינלאומית. באותן שנים הוגשו עוד {_int(direct_win)} בקשות ישירות בישראל."),
             "lag_note": f"פטנטים שניתנו ב-{last_full - 4}–{last_full} ({_int(len(recent))}), לפי משך הזמן מההגשה בישראל.",

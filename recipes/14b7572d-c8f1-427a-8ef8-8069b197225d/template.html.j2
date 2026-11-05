@@ -322,7 +322,7 @@
         { type: "bar", stack: "t", name: "ללא נגיעות", data: d.clean, itemStyle: { color: "#198754" } },
         { type: "line", name: "שיעור הבדיקות הנגועות", yAxisIndex: 1, data: d.share,
           itemStyle: { color: "#0b3668" }, lineStyle: { width: 2 }, symbolSize: 7,
-          tooltip: { valueFormatter: function (v) { return v == null ? "—" : v + "%"; } } }
+          tooltip: { valueFormatter: function (v) { return v == null ? "–" : v + "%"; } } }
       ]
     }));
     window.addEventListener("resize", function () { c.resize(); });

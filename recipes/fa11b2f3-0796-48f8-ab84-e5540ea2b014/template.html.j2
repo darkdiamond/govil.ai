@@ -283,7 +283,7 @@
     var c = echarts.init(document.getElementById("chart-sw"));
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v + "%"; } },
       legend: { bottom: 0 },
       grid: { left: 16, right: 16, top: 24, bottom: 48, containLabel: true },
       xAxis: { type: "category", data: s.names, axisLabel: { interval: 0, width: 46, overflow: "break", fontSize: 10 } },

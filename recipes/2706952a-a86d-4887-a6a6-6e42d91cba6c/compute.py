@@ -90,7 +90,7 @@ def insight_status(last):
     when = d_he(last["d"])
     if z == "above_upper":
         return (f"נכון ל-{when} המפלס ({m(lvl)} מ') גבוה מהקו האדום העליון "
-                f"ב-{cm(lvl - UPPER_RED)} ס״מ — מצב שבו נשקלת פתיחת סכר דגניה.")
+                f"ב-{cm(lvl - UPPER_RED)} ס״מ, מצב שבו נשקלת פתיחת סכר דגניה.")
     if z == "between":
         return (f"נכון ל-{when} המפלס ({m(lvl)} מ') נמצא בין הקווים האדומים: "
                 f"{cm(lvl - LOWER_RED)} ס״מ מעל הקו האדום התחתון ו-{cm(UPPER_RED - lvl)} "
@@ -98,7 +98,7 @@ def insight_status(last):
     if z == "below_lower":
         return (f"נכון ל-{when} המפלס ({m(lvl)} מ') נמוך מהקו האדום התחתון "
                 f"ב-{cm(LOWER_RED - lvl)} ס״מ, ו-{cm(lvl - BLACK)} ס״מ מעל הקו השחור.")
-    return f"נכון ל-{when} המפלס ({m(lvl)} מ') נמצא בקו השחור או מתחתיו — שפל היסטורי."
+    return f"נכון ל-{when} המפלס ({m(lvl)} מ') נמצא בקו השחור או מתחתיו: שפל היסטורי."
 
 
 def insight_year_change(df, last):
@@ -144,7 +144,7 @@ def insight_winter(gains):
     avg = sum(g for _, g in gains) / len(gains)
     best_hy, best = max(gains, key=lambda t: (t[1], t[0]))
     rel = "מעל" if last_gain > avg else "מתחת ל"
-    return (f"בעונת {hy_label(hy)} עלה המפלס ב-{cm(last_gain)} ס״מ מהשפל לשיא — {rel}ממוצע "
+    return (f"בעונת {hy_label(hy)} עלה המפלס ב-{cm(last_gain)} ס״מ מהשפל לשיא, {rel}ממוצע "
             f"העונות המלאות ({cm(avg)} ס״מ). העלייה הגדולה ביותר נרשמה ב-{hy_label(best_hy)} "
             f"({cm(best)} ס״מ).")
 
@@ -245,8 +245,8 @@ def compute(frames):
         "cols": [hy_label(int(hy)) for hy in season_hys] + ["חציון"],
         "rows": [
             {"month": MONTHS_HE[mo - 1],
-             "vals": [(m(mm[(hy, mo)]) if (hy, mo) in mm.index else "—") for hy in season_hys]
-                     + [m(med_m[mo]) if mo in med_m.index else "—"]}
+             "vals": [(m(mm[(hy, mo)]) if (hy, mo) in mm.index else "–") for hy in season_hys]
+                     + [m(med_m[mo]) if mo in med_m.index else "–"]}
             for mo in hy_month_order
         ],
     }
@@ -308,16 +308,16 @@ def compute(frames):
         "to_lower_red": {"value": to_red, "display": signed_cm(to_red),
                          "tone": "ok" if to_red >= 0 else "danger"},
         "d30": {"value": d30_delta,
-                "display": "—" if d30_delta is None else signed_cm(d30_delta),
+                "display": "–" if d30_delta is None else signed_cm(d30_delta),
                 "tone": change_tone(d30_delta, 0.05, 0.25)},
         "d365": {"value": d365_delta,
-                 "display": "—" if d365_delta is None else signed_cm(d365_delta),
+                 "display": "–" if d365_delta is None else signed_cm(d365_delta),
                  "tone": change_tone(d365_delta, 0.10, 0.50)},
     }
     as_of_num = f"{last['d'].day}.{last['d'].month}.{last['d'].year}"
     kpi_labels = {
         "level": f"מפלס נוכחי, מ' יחסית לפני הים ({as_of_num})",
-        "to_lower_red": f"ס״מ ביחס לקו האדום התחתון — {zone_label}",
+        "to_lower_red": f"ס״מ ביחס לקו האדום התחתון ({zone_label})",
         "d30": "שינוי בחודש האחרון (ס״מ)",
         "d365": "שינוי בשנה האחרונה (ס״מ)",
     }
@@ -332,7 +332,7 @@ def compute(frames):
 
     y0, y1 = int(first["d"].year), int(last["d"].year)
     labels = {
-        "lede": (f"מדידות מפלס הכנרת מ-{d_he(first['d'])} ועד {d_he(last['d'])} — "
+        "lede": (f"מדידות מפלס הכנרת מ-{d_he(first['d'])} ועד {d_he(last['d'])}: "
                  f"{len(df):,} ימי מדידה. המדידה האחרונה: {m(last['lvl'])} מ', {zone_label}."),
         "history_aria": (f"גרף קו: ממוצע חודשי של מפלס הכנרת, {y0} עד {y1}, עם הקווים "
                          f"האדומים והקו השחור."),
@@ -347,7 +347,7 @@ def compute(frames):
                        "בכל 12 החודשים."),
         "heat_aria": f"מפת חום: ממוצע חודשי של המפלס לפי חודש ושנה, {y0} עד {y1}.",
         "table_caption": f"מפלס מינימלי, מקסימלי וממוצע ב-{len(table_years)} השנים האחרונות.",
-        "annual_aria": (f"גרף: טווח המפלס בכל שנה — מינימום, ממוצע ומקסימום — "
+        "annual_aria": (f"גרף: טווח המפלס בכל שנה (מינימום, ממוצע ומקסימום) "
                         f"בשנים {y0} עד {y1}."),
         "below_aria": (f"תרשים עמודות: שיעור המדידות בכל שנה שבהן המפלס היה בקו האדום "
                        f"התחתון או מתחתיו, {y0} עד {y1}."),

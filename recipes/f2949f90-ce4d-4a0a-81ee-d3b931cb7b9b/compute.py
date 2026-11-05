@@ -186,7 +186,7 @@ def insight_country(dep):
     share = m[lead] / total
     if share < 0.25:
         return None
-    s = (f"{lead} היא מקור הכסף הגדול ביותר: {money_he(m[lead])} — {pct(share * 100)} "
+    s = (f"{lead} היא מקור הכסף הגדול ביותר: {money_he(m[lead])}, שהם {pct(share * 100)} "
          f"מסך ההפקדות בשקלים, מתוך {pct(c[lead] / cnt * 100)} בלבד ממספר ההפקדות.")
     by_count = _rank(c).index[0]
     if by_count != lead:
@@ -206,8 +206,8 @@ def insight_concentration(dep):
     big = dep.loc[dep["ils"] > 0].sort_values(["ils", "no"], ascending=[False, True]).iloc[0]
     when = f"ב-{big['dt'].year}" if pd.notna(big["dt"]) else ""
     return (f"הכסף מרוכז בהפקדות מעטות: האחוז העליון ({n(k)} הפקדות) מהווה {pct(share * 100)} "
-            f"מסך ההפקדות בשקלים, וההפקדה הגדולה ביותר — {money_he(big['ils'])} {when} "
-            f"מ{big['country']} — לבדה {pct(big['ils'] / x.sum() * 100)}. "
+            f"מסך ההפקדות בשקלים, וההפקדה הגדולה ביותר ({money_he(big['ils'])} {when} "
+            f"מ{big['country']}) היא לבדה {pct(big['ils'] / x.sum() * 100)}. "
             f"החציון הוא {n(x.median())} ₪ להפקדה.")
 
 
@@ -227,10 +227,10 @@ def insight_ytd(dep, ref):
     chg = c / p - 1
     period = f"מתחילת {y} ועד {d_he(ref)}"
     if abs(chg) < 0.1:
-        return (f"{period} התקבלו {n(len(cur))} הפקדות בסך {money_he(c)} — בדומה לתקופה "
+        return (f"{period} התקבלו {n(len(cur))} הפקדות בסך {money_he(c)}, בדומה לתקופה "
                 f"המקבילה ב-{y - 1} ({money_he(p)}).")
     word = "יותר" if chg > 0 else "פחות"
-    return (f"{period} התקבלו {n(len(cur))} הפקדות בסך {money_he(c)} — {pct(abs(chg) * 100)} "
+    return (f"{period} התקבלו {n(len(cur))} הפקדות בסך {money_he(c)}, {pct(abs(chg) * 100)} "
             f"{word} מאשר בתקופה המקבילה ב-{y - 1} ({money_he(p)}, {n(len(prev))} הפקדות).")
 
 
@@ -258,7 +258,7 @@ def insight_ministry(dec):
     by_count = _rank(c).index[0]
     if by_count != lead:
         s += (f" לפי מספר ההקצאות מוביל {ministry_he(by_count)} "
-              f"({n(c[by_count])} הקצאות, {pct(c[by_count] / c.sum() * 100)}) — הרבה סכומים קטנים יותר.")
+              f"({n(c[by_count])} הקצאות, {pct(c[by_count] / c.sum() * 100)}), כלומר הרבה סכומים קטנים יותר.")
     return s
 
 
@@ -275,7 +275,7 @@ def insight_backlog(by_year, last_full):
     if s0 - s1 < 0.15:
         return None
     return (f"מהכסף שהוועדה הקצתה ב-{last_full} שולמו עד כה {pct(s1 * 100)} בלבד, לעומת "
-            f"{pct(s0 * 100)} מהכסף שהוקצה עד {last_full - 5} — תשלום ההקצאות נמשך "
+            f"{pct(s0 * 100)} מהכסף שהוקצה עד {last_full - 5}. תשלום ההקצאות נמשך "
             f"שנים אחרי ההחלטה.")
 
 
@@ -288,8 +288,8 @@ def insight_cancel(by_year):
     top = _rank(share).index[0]
     if share[top] < 0.2:
         return None
-    return (f"בסך הכול בוטלו {pct(tot * 100)} מהסכומים שהוקצו; השיעור הגבוה ביותר — "
-            f"{pct(share[top] * 100)} — בהחלטות {int(top)} ({money_he(s.loc[top, 'cancelled'])} בוטלו).")
+    return (f"בסך הכול בוטלו {pct(tot * 100)} מהסכומים שהוקצו; השיעור הגבוה ביותר "
+            f"({pct(share[top] * 100)}) היה בהחלטות {int(top)} ({money_he(s.loc[top, 'cancelled'])} בוטלו).")
 
 
 def insight_cases(cases, ref_year):
@@ -552,7 +552,7 @@ def compute(frames):
         ytd_tone = "info" if abs(ytd_chg) < 10 else ("ok" if ytd_chg > 0 else "warn")
         ytd_disp = signed_pct(ytd_chg)
     else:
-        ytd_chg, ytd_tone, ytd_disp = None, "brand", "—"
+        ytd_chg, ytd_tone, ytd_disp = None, "brand", "–"
     paid_tone = "ok" if paid_share >= 85 else ("info" if paid_share >= 65 else "warn")
     open_share = st_counts.get("פתוח", 0) / max(len(cases), 1) * 100
     kpis = {
@@ -636,15 +636,15 @@ def compute(frames):
         "ministries": [{"name": nm, "ils": mil(v), "count": n(c)}
                        for nm, v, c in zip(min_names, min_vals, min_counts)],
         "institutions": [{"name": k, "ils": mil(v), "count": n(inst_cnt[k])} for k, v in inst_sum.items()],
-        "execution": [{"name": nm, "ils": mil(v * 1e6), "share": f"{v * 1e6 / a_tot * 100:.1f}%" if a_tot else "—"}
+        "execution": [{"name": nm, "ils": mil(v * 1e6), "share": f"{v * 1e6 / a_tot * 100:.1f}%" if a_tot else "–"}
                       for nm, v in zip(charts["execution"]["names"], [a_paid / 1e6, a_cancel / 1e6, a_open / 1e6])],
-        "sources": [{"bucket": r["bucket"], "files": n(r["files"]) if r["files"] else "—",
-                     "ils": mil(r["sum"]), "share": f"{r['sum'] / a_tot * 100:.1f}%" if a_tot else "—"}
+        "sources": [{"bucket": r["bucket"], "files": n(r["files"]) if r["files"] else "–",
+                     "ils": mil(r["sum"]), "share": f"{r['sum'] / a_tot * 100:.1f}%" if a_tot else "–"}
                     for r in src_rows],
     }
 
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
-    dec_partial_note = (f" {dec_ref.year} — שנה חלקית, עד {d_he(dec_ref)}." if dec_partial else "")
+    partial_note = f" {ref_year} היא שנה חלקית, עד {d_he(ref)}." if partial else ""
+    dec_partial_note = (f" {dec_ref.year} היא שנה חלקית, עד {d_he(dec_ref)}." if dec_partial else "")
     before_note = (f" {n(len(before))} הפקדות מוקדמות יותר (לפני {dep_from}) אינן מוצגות בגרף."
                    if len(before) else "")
     early_note = (f" {n(early['rows'].sum())} הקצאות מוקדמות יותר (לפני {dec_from}) אינן מוצגות."
@@ -654,7 +654,7 @@ def compute(frames):
                  f"ומ-{n(countries)} מדינות, וּועדה ציבורית מקצה אותם לגופים ללא כוונת רווח דרך משרדי "
                  f"הממשלה. במאגר {n(n_dep)} הפקדות בסך {money_he(total_ils)} (ההפקדה האחרונה: "
                  f"{d_he(ref)}), {n(len(cases))} תיקי עזבון ו-{n(len(dec))} הקצאות של הוועדה בסך "
-                 f"{money_he(d_total)} — ההחלטה האחרונה המדווחת במאגר מ-{d_he(dec_ref)}. "
+                 f"{money_he(d_total)}. ההחלטה האחרונה המדווחת במאגר היא מ-{d_he(dec_ref)}. "
                  f"כל הנתונים בדף מצרפיים; אין בו פרטים על מורישים."),
         "deposits_ils_kpi": "סך ההפקדות (מיליארד ₪)",
         "ytd_kpi": (f"הפקדות בשקלים מתחילת {ref_year} לעומת התקופה המקבילה ב-{ref_year - 1}"
@@ -695,7 +695,7 @@ def compute(frames):
         "methods_aria": "תרשים עמודות: ייעודים לפי אופן ביצוע התשלום.",
         "methods_caption": "ייעודים לפי אופן ביצוע התשלום.",
         "subjects_caption": f"{TOP_SUBJECTS} הנושאים העיקריים המפורטים של הייעוד, לפי מספר תיקים.",
-        "mix_note": ("חלקו של כל נושא מבין ייעודי התיקים, לפי העשור שבו נפתח התיק — כך רואים כיצד "
+        "mix_note": ("חלקו של כל נושא מבין ייעודי התיקים, לפי העשור שבו נפתח התיק. כך רואים כיצד "
                      "השתנו מטרות העזבונות לאורך השנים."),
         "mix_aria": f"תרשים עמודות 100%: התפלגות נושאי הייעוד לפי עשור פתיחת התיק, {len(decades)} עשורים.",
         "mix_caption": "שיעור כל נושא מבין ייעודי התיקים, לפי עשור הפתיחה.",
@@ -713,7 +713,7 @@ def compute(frames):
         "heat_note": (f"הסכום שהוקצה בכל שנה דרך {HEAT_MINISTRIES} המשרדים הגדולים, במיליוני ₪. "
                       f"שנים בולטות משקפות לרוב הקצאה גדולה אחת; סולם הצבע נעצר ב-{heat_max:,.1f} מיליון ₪, וערכים גבוהים ממנו מוצגים בגוון הכהה ביותר."),
         "heat_aria": f"מפת חום: הקצאות לפי משרד ({HEAT_MINISTRIES} הגדולים) ושנה, במיליוני ₪.",
-        "execution_note": (f"קובץ רכיבי ההחלטות מפרט מאילו תיקי עזבון (ברמת החשבון) מומנה כל הקצאה — "
+        "execution_note": (f"קובץ רכיבי ההחלטות מפרט מאילו תיקי עזבון (ברמת החשבון) מומנה כל הקצאה: "
                            f"{money_he(a_tot)} בסך הכול, גם מפרוטוקולים שאינם בקובץ ההחלטות."),
         "execution_aria": "תרשים עוגה: הסכום שהוקצה לפי מצב: שולם, בוטל, טרם שולם.",
         "execution_caption": "סכומי ההקצאות לפי מצב התשלום.",

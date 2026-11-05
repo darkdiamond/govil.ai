@@ -15,7 +15,7 @@
   </div>
   <div class="card p-4 text-center">
     <div class="text-3xl font-bold text-{{ model.kpis.d12.tone }} mb-1" dir="ltr">{{ model.kpis.d12.display }}</div>
-    <div class="text-sm text-subtle">ס״מ — שינוי בשנה האחרונה</div>
+    <div class="text-sm text-subtle">ס״מ: שינוי בשנה האחרונה</div>
   </div>
   <div class="card p-4 text-center">
     <div class="text-3xl font-bold text-{{ model.kpis.rate10.tone }} mb-1" dir="ltr">{{ model.kpis.rate10.display }}</div>
@@ -53,7 +53,7 @@
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">שלוש השנים האחרונות</h2>
   </div>
-  <p class="m-0 text-sm text-subtle mb-3">המפלס החודשי בשלוש השנים האחרונות — המחזור העונתי בולט כשמתמקדים בטווח קצר.</p>
+  <p class="m-0 text-sm text-subtle mb-3">המפלס החודשי בשלוש השנים האחרונות. המחזור העונתי בולט כשמתמקדים בטווח קצר.</p>
   <div id="chart-recent" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.recent_aria }}"></div>
 </section>
 
@@ -228,7 +228,7 @@
     var c6 = echarts.init(document.getElementById("chart-miles"));
     c6.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + " שנים"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v + " שנים"; } },
       grid: { left: 48, right: 16, top: 24, bottom: 40, containLabel: true },
       xAxis: { type: "category", data: mi.x, name: "מטר" },
       yAxis: { type: "value", name: "שנים" },

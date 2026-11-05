@@ -119,7 +119,7 @@ def insight_registrations(n):
         trend = f"בדומה ל-{prev} ({_int(b)})"
     else:
         trend = f"{'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch))} לעומת {prev} ({_int(b)})"
-    return (f"ב-{full} נרשמו {_int(a)} עמותות חדשות — {trend}. ב-{cur} נרשמו עד כה "
+    return (f"ב-{full} נרשמו {_int(a)} עמותות חדשות, {trend}. ב-{cur} נרשמו עד כה "
             f"{_int((yrs == cur).sum())}.")
 
 
@@ -180,7 +180,7 @@ def insight_donations(d, don_now):
              else f"{'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch))} לעומת {prev}")
     recipients = int(d.loc[d["year"] == full, "npo"].nunique())
     return (f"ב-{full} דיווחו {_int(recipients)} עמותות על תרומות מישויות מדיניות זרות בסך "
-            f"{_ils_m(a)} — {trend}.")
+            f"{_ils_m(a)}, {trend}.")
 
 
 def insight_top_recipient(d):

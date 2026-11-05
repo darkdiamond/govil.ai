@@ -167,8 +167,8 @@ def insight_top_product(prod, prod_info, total):
     second = int(prod.iloc[1]) if len(prod) > 1 else 0
     tail = ""
     if second and v >= 2 * second:
-        tail = f" — פי {v / second:.1f} מהתרכיב השני בגודלו, {prod.index[1]} ({n(second)})"
-    return (f"תרכיב אחד מחזיק נתח חריג מהקטלוג: {lead} של {mf} ({vt} — {gloss(vt)}) רשום עם "
+        tail = f", פי {v / second:.1f} מהתרכיב השני בגודלו, {prod.index[1]} ({n(second)})"
+    return (f"תרכיב אחד מחזיק נתח חריג מהקטלוג: {lead} של {mf} ({vt}, {gloss(vt)}) רשום עם "
             f"{n(v)} אצוות, {pct(share * 100)} מכלל {n(total)} האצוות{tail}.")
 
 
@@ -198,7 +198,7 @@ def insight_diverse(cat, batch_tn):
     sub = cat[cat["vt"] == lead]
     with_b = int(sub["tn_code"].isin(batch_tn).sum())
     n_m = sub["mf"].nunique()
-    return (f"לסוג החיסון {lead} ({gloss(lead)}) יש בקטלוג {n(v)} שמות מסחריים של {n(n_m)} יצרנים — "
+    return (f"לסוג החיסון {lead} ({gloss(lead)}) יש בקטלוג {n(v)} שמות מסחריים של {n(n_m)} יצרנים, "
             f"יותר מכל סוג אחר (השני: {per.index[1]}, עם {n(v2)}). רק {n(with_b)} מהם מופיעים "
             f"ברשימת האצוות, והשאר רשומים בקטלוג בלי אצוות.")
 
@@ -261,7 +261,7 @@ def insight_competition(b):
     lead = m_sorted.index[0]
     mfs = sorted(b.loc[b["vt"] == lead, "mf"].unique())
     return (f"ל-{n(len(multi))} מתוך {n(len(per))} סוגי החיסון ברשימת האצוות יש אצוות מיותר מיצרן אחד. "
-            f"המגוון ביותר: {lead} ({gloss(lead)}), עם אצוות של {n(len(mfs))} יצרנים — {_join_names(mfs)}.")
+            f"המגוון ביותר: {lead} ({gloss(lead)}), עם אצוות של {n(len(mfs))} יצרנים ({_join_names(mfs)}).")
 
 
 def insight_integrity(b, cat):
@@ -344,7 +344,7 @@ def compute(frames):
                    "other": [v if t == OTHER else None for t, v in zip(t_names, t_vals)]}
     types_table = [{"name": t, "gloss": (gloss(t) if t != OTHER else "סוגים נוספים"),
                     "kind": ("" if t == OTHER else ("נוגדנים (חיסון סביל)" if passive_of[t] else "תרכיב")),
-                    "count": n(v), "share": pct(v / total * 100) if total else "—"}
+                    "count": n(v), "share": pct(v / total * 100) if total else "–"}
                    for t, v in zip(t_names, t_vals)]
 
     # 2. treemap type -> trade name
@@ -421,7 +421,7 @@ def compute(frames):
         ("ללא שם מסחרי בקטלוג", st_none),
     ]
     status_chart = [{"name": nm, "value": len(d)} for nm, d in status_rows]
-    status_table = [{"name": nm, "count": n(len(d)), "examples": _ex(d) or "—"} for nm, d in status_rows]
+    status_table = [{"name": nm, "count": n(len(d)), "examples": _ex(d) or "–"} for nm, d in status_rows]
 
     # 9. catalogue per vaccine type: with / without batches
     vc = cat.groupby("vt").agg(total=("tn_code", "size"), with_b=("has_b", "sum"), mfs=("mf", "nunique"))
@@ -512,7 +512,7 @@ def compute(frames):
     lead_m = manu_b.index[0]
     lead_p = prod.index[0]
     labels = {
-        "lede": (f"הקטלוג הרשמי של משרד הבריאות לדיווח חיסונים למערכת נחליאלי — פנקס החיסונים הדיגיטלי. "
+        "lede": (f"הקטלוג הרשמי של משרד הבריאות לדיווח חיסונים למערכת נחליאלי, פנקס החיסונים הדיגיטלי. "
                  f"הוא כולל {n(total)} מספרי אצווה של {n(n_tn_b)} שמות מסחריים, {n(types.size)} סוגי חיסון "
                  f"ו-{n(manu_b.size)} יצרנים, לצד קטלוג של {n(len(cat))} שמות מסחריים ורשימה של {n(len(vac))} "
                  f"סוגי חיסון המחייבים דיווח. כל אצווה מקושרת לסוג החיסון, ליצרן ולשם המסחרי, כך שמערכות "
@@ -561,7 +561,7 @@ def compute(frames):
         "status_note": (f"רשימת סוגי החיסון המחייבים דיווח מול הקטלוג ומול רשימת האצוות: "
                         f"ל-{n(len(st_with))} סוגים יש אצוות, {n(len(st_cat))} מופיעים בקטלוג בלי אצוות, "
                         f"ול-{n(len(st_none))} אין שם מסחרי כלל."),
-        "status_aria": (f"תרשים טבעת: {n(len(vac))} סוגי החיסון ברשימת הדיווח — {n(len(st_with))} עם אצוות, "
+        "status_aria": (f"תרשים טבעת: {n(len(vac))} סוגי החיסון ברשימת הדיווח, מהם {n(len(st_with))} עם אצוות, "
                         f"{n(len(st_cat))} בקטלוג בלבד, {n(len(st_none))} ללא שם מסחרי."),
         "typecat_note": (f"{n(len(vc))} סוגי החיסון עם מספר השמות המסחריים הגדול ביותר בקטלוג, ומתוכם "
                          f"כמה מופיעים ברשימת האצוות."),
@@ -577,7 +577,7 @@ def compute(frames):
     if evo:
         labels["evo_title"] = f"השמות המסחריים של {evo['type']} לפי קוד בקטלוג"
         labels["evo_note"] = (f"כל השמות המסחריים של {evo['type']} ({evo['gloss']})"
-                              + (f" — {n(EVO_MAX)} בעלי הקוד הגבוה ביותר" if evo["cut"] else "")
+                              + (f" ({n(EVO_MAX)} בעלי הקוד הגבוה ביותר)" if evo["cut"] else "")
                               + f", מסודרים לפי קוד התרכיב. לכל אחד מספר האצוות הרשומות לו; "
                               f"{n(evo['with_b'])} מתוך {n(evo['n'])} מופיעים באצווה אחת לפחות.")
         labels["evo_aria"] = (f"גרף עמודות: אצוות לכל שם מסחרי של {evo['type']} לפי קוד בקטלוג, "

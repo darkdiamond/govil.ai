@@ -42,7 +42,7 @@
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
-    <h2 class="m-0 text-lg font-semibold text-ink-deep">אירועים בכל שנה — ומה מסתתר מאחורי הירידה</h2>
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">אירועים בכל שנה, ומה מסתתר מאחורי הירידה</h2>
   </div>
   <p class="m-0 text-sm text-subtle mb-3">הסיווגים „לא ידוע” ו„פריקורסר” מוצגים בנפרד משאר הסיווגים. {{ model.labels.decomp_lede }}</p>
   <div id="chart-decomp" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.decomp_aria }}"></div>
@@ -158,7 +158,7 @@
   <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
 </section>
 
-<p class="text-sm text-subtle mb-6">אם אתם או מישהו קרוב אליכם במצוקה — ער״ן, עזרה ראשונה נפשית, זמין בטלפון 1201 בכל שעות היממה.</p>
+<p class="text-sm text-subtle mb-6">אם אתם או מישהו קרוב אליכם במצוקה, ער״ן (עזרה ראשונה נפשית) זמין בטלפון 1201 בכל שעות היממה.</p>
 
 <script>
   (function () {
@@ -236,7 +236,7 @@
       var c5 = echarts.init(shEl);
       c5.setOption(window.GovEcharts.option({
         color: window.GOVIL_PALETTE,
-        tooltip: { trigger: "axis", valueFormatter: function (v) { return (typeof v === "number") ? v.toFixed(1) + "%" : "—"; } },
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return (typeof v === "number") ? v.toFixed(1) + "%" : "–"; } },
         legend: { bottom: 0, type: "scroll" },
         grid: { left: 16, right: 16, top: 24, bottom: 56, containLabel: true },
         xAxis: { type: "category", data: sh.x },

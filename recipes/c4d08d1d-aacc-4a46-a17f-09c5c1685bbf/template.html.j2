@@ -271,7 +271,7 @@
       tooltip: { formatter: function (p) {
         var i = p.value[0];
         return "פרסום " + g.labels[i] + "<br>" + g.count[i].toLocaleString("he-IL") + " חברות<br>" +
-               "מחיקה צפויה: " + (g.end[i] || "—") + (g.open[i] ? " (חלון פתוח)" : " (החלון הסתיים)");
+               "מחיקה צפויה: " + (g.end[i] || "–") + (g.open[i] ? " (חלון פתוח)" : " (החלון הסתיים)");
       } },
       grid: { left: 16, right: 24, top: 36, bottom: 32, containLabel: true },
       xAxis: { type: "time", splitNumber: 3, axisLabel: { fontSize: 10, hideOverlap: true,

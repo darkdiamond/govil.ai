@@ -64,9 +64,9 @@ def insight_month_yoy(df, ref):
         return None
     ch = (a - b) / b
     if abs(ch) < 0.05:
-        return f"ב{_m_he(last_full)} הונפקו {_int(a)} תגים — כמעט כמו ב{_m_he(prev)} ({_int(b)})."
+        return f"ב{_m_he(last_full)} הונפקו {_int(a)} תגים, כמעט כמו ב{_m_he(prev)} ({_int(b)})."
     word = "יותר" if ch > 0 else "פחות"
-    return (f"ב{_m_he(last_full)} הונפקו {_int(a)} תגים — {_pct(abs(ch), 0)} {word} "
+    return (f"ב{_m_he(last_full)} הונפקו {_int(a)} תגים, {_pct(abs(ch), 0)} {word} "
             f"מאשר ב{_m_he(prev)} ({_int(b)}).")
 
 
@@ -96,7 +96,7 @@ def insight_plates(df):
     share8 = (df["plate_fmt"] == "8").mean()
     if share8 == 0:
         return None
-    return (f"ל-{_pct(share8)} מכלי הרכב עם תג יש מספר רישוי בן 8 ספרות — "
+    return (f"ל-{_pct(share8)} מכלי הרכב עם תג יש מספר רישוי בן 8 ספרות, "
             "כלומר רכב שנרשם בשנים האחרונות.")
 
 
@@ -229,7 +229,7 @@ def compute(frames):
         "insights": insights,
         "labels": {
             "lede": (f"המאגר מונה {_int(len(df))} תגי חניה לנכה תקפים, על {_int(vehicles)} כלי רכב. "
-                     f"תאריך ההנפקה הוא של התג הנוכחי — תגים מחודשים מעת לעת, ולכן רוב התגים "
+                     f"תאריך ההנפקה הוא של התג הנוכחי: תגים מחודשים מעת לעת, ולכן רוב התגים "
                      f"הונפקו לאחרונה. ב-30 הימים שעד {_d_he(ref)} הונפקו {_int(last_30)} תגים."),
             "monthly_aria": f"גרף קו: תגים לפי חודש הנפקה, {FIRST_YEAR} עד {_m_he(ref)}.",
             "monthly_note": (f"החודש האחרון ({_m_he(ref)}) חלקי. הנפקות מלפני {FIRST_YEAR} "

@@ -191,7 +191,7 @@ def insight_funding(g):
     tail = ""
     if len(vc) > 1:
         tail = f", ועוד {_int(vc.iloc[1])} ({_pct(vc.iloc[1] / n)}) בשיטת '{vc.index[1]}'"
-    note = (" — כלומר מחלקים רק את התשואה ושומרים על הקרן עצמה" if top == "פירות בלבד" else "")
+    note = (", כלומר מחלקים רק את התשואה ושומרים על הקרן עצמה" if top == "פירות בלבד" else "")
     return (f"{_int(top_n)} מתוך {_int(n)} ההקדשות הרשומים ({_pct(share)}) ממומנים בשיטת "
             f"'{top}'{note}{tail}.")
 
@@ -221,7 +221,7 @@ def insight_median(reg_bal, n_reg):
     z_txt = (f"; {_int(zero)} ({_pct(zs)}) דיווחו על יתרה אפסית" if zs >= 0.05 else "")
     missing = n_reg - len(s)
     m_txt = (f". ל-{_int(missing)} הקדשות רשומים אין דיווח יתרה בשקלים כלל" if missing > 0 else "")
-    return (f"היתרה החציונית של הקדש רשום היא {_ils(med)} — מחצית ההקדשות מחזיקים פחות מכך{z_txt}{m_txt}.")
+    return (f"היתרה החציונית של הקדש רשום היא {_ils(med)}: מחצית ההקדשות מחזיקים פחות מכך{z_txt}{m_txt}.")
 
 
 def insight_re_link(g, re_tiks):
@@ -251,8 +251,8 @@ def insight_note(r):
     tail = ""
     if len(t) >= 2:
         o = sorted(t.itertuples(), key=lambda x: (x.mean, x.Index))
-        tail = (f" הפער לפי סוג הנכס: '{o[0].Index}' — {_pct(o[0].mean)} עם הערה, "
-                f"'{o[-1].Index}' — {_pct(o[-1].mean)}.")
+        tail = (f" הפער לפי סוג הנכס: '{o[0].Index}' ({_pct(o[0].mean)} עם הערה), "
+                f"'{o[-1].Index}' ({_pct(o[-1].mean)}).")
     return (f"ל-{_int(no)} מתוך {_int(n)} נכסי המקרקעין ({_pct(no / n)}) לא רשומה "
             f"במרשם המקרקעין הערה על היותו נכס של הקדש.{tail}")
 
@@ -280,8 +280,8 @@ def insight_orphans(g, per, r, now):
     med = float(orph["ils"].dropna().median()) if orph["has_ils"].any() else 0.0
     old = int((orph["rep"].dt.year < now.year - STALE_YEARS).sum() + orph["rep"].isna().sum())
     re_txt = (f" גם בקובץ המקרקעין יש {_int(len(re_orph))} תיקים שאינם במרשם." if len(re_orph) else "")
-    return (f"קובץ היתרות כולל {_int(len(orph))} תיקים שאינם מופיעים במרשם הכללי — כנראה הקדשות שכבר "
-            f"אינם רשומים כפעילים: היתרה החציונית שלהם {_ils(med)}, ול-{_int(old)} מהם ({_pct(old / len(orph))}) "
+    return (f"קובץ היתרות כולל {_int(len(orph))} תיקים שאינם מופיעים במרשם הכללי (כנראה הקדשות שכבר "
+            f"אינם רשומים כפעילים): היתרה החציונית שלהם {_ils(med)}, ול-{_int(old)} מהם ({_pct(old / len(orph))}) "
             f"הדיווח האחרון ישן מ-{STALE_YEARS} שנים או חסר תאריך.{re_txt}")
 
 
@@ -300,7 +300,7 @@ def insight_peaks(g, now):
     day, day_n = days.index[0], int(days.iloc[0])
     p_txt = ", ".join(f"{yr} ({_int(c)})" for yr, c in peaks)
     d_txt = (f" ביום אחד, {day.day}/{day.month}/{day.year}, נרשמו {_int(day_n)} הקדשות." if day_n >= 10 else "")
-    return (f"הרישום מגיע בגלים. שנות השיא: {p_txt} — בשנת השיא נרשמו פי {peaks[0][1] / med:.1f} מהחציון השנתי "
+    return (f"הרישום מגיע בגלים. שנות השיא: {p_txt}. בשנת השיא נרשמו פי {peaks[0][1] / med:.1f} מהחציון השנתי "
             f"של 30 השנים האחרונות ({_int(med)}).{d_txt}")
 
 
@@ -316,7 +316,7 @@ def insight_trend(g, now):
     else:
         trend = f"{'עלייה' if ch > 0 else 'ירידה'} של {abs(ch) * 100:.0f}% לעומת {prev} ({_int(b)})"
     cur = int((y == now.year).sum())
-    return (f"ב-{full} נרשמו {_int(a)} הקדשות חדשות — {trend}. מתחילת {now.year} ועד "
+    return (f"ב-{full} נרשמו {_int(a)} הקדשות חדשות, {trend}. מתחילת {now.year} ועד "
             f"{now.day}/{now.month} נרשמו {_int(cur)}.")
 
 
@@ -408,7 +408,7 @@ def compute(frames):
     top_chart = {"names": list(top["name"]), "values": [round(float(v)) for v in top["ils"]],
                  "mil": [round(float(v) / 1e6, 1) for v in top["ils"]],
                  "share": [round(float(v) / tot * 100, 1) if tot else 0.0 for v in top["ils"]],
-                 "year": [str(int(d.year)) if pd.notna(d) else "—" for d in top["rep"]]}
+                 "year": [str(int(d.year)) if pd.notna(d) else "–" for d in top["rep"]]}
     s = reg_bal["ils"].sort_values(ascending=False, kind="stable")
     k1 = max(1, len(s) // 100)
     k10 = max(1, len(s) // 10)
@@ -509,7 +509,7 @@ def compute(frames):
         "agent_data": {
             "summary_he": (f"פנקס ההקדשות הציבוריים של רשות התאגידים: {_int(n)} הקדשות רשומים מאז "
                            f"{first_year}, יתרות נכסים מדווחות של {_ils(tot)} בשקלים ו-{_int(n_re)} נכסי "
-                           f"מקרקעין — שיטות מימון, מטרות, ריכוזיות היתרות ועדכניות הדיווח. "
+                           f"מקרקעין. בעמוד: שיטות מימון, מטרות, ריכוזיות היתרות ועדכניות הדיווח. "
                            f"מעודכן עד {now_he}."),
             "dataset_kind": "registry",
             "suggested_tags": ["הקדשות ציבוריים", "רשם ההקדשות", "קרנות", "מלגות", "מקרקעין",
@@ -563,11 +563,11 @@ def compute(frames):
                               f"({status_txt}); קובץ היתרות מכסה {_int(len(A))} תיקים וקובץ המקרקעין "
                               f"{_int(len(R))}. תיקים שמופיעים רק בקבצים המשניים אינם במרשם הכללי."),
             "coverage_aria": "תרשים עמודות: מספר התיקים לפי הקבצים שבהם הם מופיעים.",
-            "years_note": (f"מספר ההקדשות הרשומים כיום לפי שנת הרישום. השנה האחרונה חלקית — עד {now_he}."
+            "years_note": (f"מספר ההקדשות הרשומים כיום לפי שנת הרישום. השנה האחרונה חלקית, עד {now_he}."
                            + (f" ל-{_int(no_reg)} תיקים אין תאריך רישום." if no_reg else "")),
             "years_aria": f"גרף עמודות: הקדשות רשומים לפי שנת רישום, {first_year} עד {now.year}.",
-            "funding_note": ("שיטת המימון שנקבעה להקדש: 'פירות בלבד' — רק התשואה מחולקת והקרן נשמרת; "
-                             "'קרן ופירות' — מותר לממש גם את הקרן; 'שימוש בנכס' — ההקדש מממש את מטרתו "
+            "funding_note": ("שיטת המימון שנקבעה להקדש. 'פירות בלבד': רק התשואה מחולקת והקרן נשמרת. "
+                             "'קרן ופירות': מותר לממש גם את הקרן. 'שימוש בנכס': ההקדש מממש את מטרתו "
                              "באמצעות נכס. מימין: מספר ההקדשות; משמאל: שיעור המחזיקים נכסי מקרקעין."),
             "funding_aria": "תרשים עמודות: הקדשות לפי שיטת מימון.",
             "funding_re_aria": "תרשים עמודות: שיעור ההקדשות שמחזיקים נכסי מקרקעין, לפי שיטת מימון.",
@@ -589,11 +589,11 @@ def compute(frames):
                              + (f" {_int(bad_dates)} תאריכים שחלים אחרי {now_he} נחשבו שגויים." if bad_dates
                                 else "")),
             "reports_aria": "גרף עמודות מוערמות: תיקים לפי שנת הדיווח האחרון על היתרה.",
-            "cur_note": (f"{_int(n_ils_lines)} שורות יתרה רשומות בשקלים. השורות שלהלן במטבעות אחרים — "
-                         f"חלקן במטבעות שכבר אינם בשימוש — ואינן נכללות בסכומים בעמוד."),
+            "cur_note": (f"{_int(n_ils_lines)} שורות יתרה רשומות בשקלים. השורות שלהלן במטבעות אחרים "
+                         f"(חלקן במטבעות שכבר אינם בשימוש) ואינן נכללות בסכומים בעמוד."),
             "cur_aria": "תרשים עמודות: שורות יתרה במטבעות שאינם שקל.",
             "re_types_note": (f"{_int(n_re)} נכסים של {_int(n_re_endow)} הקדשות ({_int(single)} מהם מחזיקים "
-                              f"נכס אחד). 'הערה במרשם' — האם רשומה בטאבו הערה שהנכס שייך להקדש. "
+                              f"נכס אחד). 'הערה במרשם': האם רשומה בטאבו הערה שהנכס שייך להקדש. "
                               f"ל-{_pct(parcel_share)} מהנכסים מצוינים גוש וחלקה, ול-{_int(n_sub)} גם תת-חלקה."),
             "re_types_aria": "גרף עמודות מוערמות: נכסי מקרקעין לפי סוג, עם הערה במרשם וללא.",
             "re_top_note": f"{TOP_RE_ENDOW} ההקדשות שמחזיקים את מספר נכסי המקרקעין הגדול ביותר.",

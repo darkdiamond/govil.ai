@@ -189,7 +189,7 @@ def compute(frames):
 
     # Insights ----------------------------------------------------------------
     def ins_latest():
-        tail = (f" — {anchor.year} עדיין חלקית במאגר ({_int(per_year.get(anchor.year, 0))} פיקוחים עד כה)"
+        tail = (f". שנת {anchor.year} עדיין חלקית במאגר ({_int(per_year.get(anchor.year, 0))} פיקוחים עד כה)"
                 if partial else "")
         return (f"הפיקוח האחרון במאגר נערך ב-{d_he(anchor)}; בסך הכול {_int(n)} תיקי פיקוח עם תוצאה תקינה "
                 f"מ-{first.year}{tail}.")
@@ -241,8 +241,8 @@ def compute(frames):
         ys = ys.sort_values(ascending=False, kind="stable")
         tail = ""
         if len(ys) and ys.iloc[0] / c >= 0.8:
-            tail = (f" — כולם ב-{int(ys.index[0])}" if int(ys.iloc[0]) == c
-                    else f" — {_int(ys.iloc[0])} מהם ב-{int(ys.index[0])}")
+            tail = (f", כולם ב-{int(ys.index[0])}" if int(ys.iloc[0]) == c
+                    else f", {_int(ys.iloc[0])} מהם ב-{int(ys.index[0])}")
         return (f"סוג המקום הנפוץ ביותר: {t} ({_int(c)} פיקוחים{tail}); אחריו {top.index[1]} "
                 f"({_int(top.iloc[1])}).")
 
@@ -254,7 +254,7 @@ def compute(frames):
         tail = ""
         if len(no_city):
             nf = no_city["family"].value_counts().sort_index().sort_values(ascending=False, kind="stable")
-            tail = (f"; ב-{_int(len(no_city))} פיקוחים אין יישוב — רובם בקבוצת {nf.index[0]}"
+            tail = (f"; ב-{_int(len(no_city))} פיקוחים אין יישוב, רובם בקבוצת {nf.index[0]}"
                     if nf.iloc[0] / len(no_city) >= 0.5 else f"; ב-{_int(len(no_city))} פיקוחים אין יישוב")
         names = ", ".join(f"{c} ({_int(v)})" for c, v in top3.items())
         return f"היישובים עם הכי הרבה פיקוחים תקינים: {names}, מתוך {_int(n_cities)} יישובים{tail}."
@@ -318,18 +318,18 @@ def compute(frames):
         "flags": {"map": n_map > 0, "complaints": n_comp >= 5},
         "labels": {
             "lede": (f"{_int(n)} תיקי פיקוח שבהם מפקחי הנציבות בדקו את ביצוע התאמות הנגישות ולא מצאו ליקויים, "
-                     f"או מצאו ליקויים מעטים — מ-{d_he(first)} ועד {d_he(anchor)}, ב-{_int(n_cities)} יישובים. "
+                     f"או מצאו ליקויים מעטים, מ-{d_he(first)} ועד {d_he(anchor)}, ב-{_int(n_cities)} יישובים. "
                      f"התוצאה נכונה ליום הפיקוח ומתייחסת רק למה שנבדק."),
             "yearly_note": ("פיקוחים לפי שנה ולפי מסלול: תוכנית העבודה השנתית של הנציבות או פניית ציבור. "
                             "הקו מראה את חלקן של פניות הציבור."
-                            + (f" {anchor.year} חלקית — הנתונים עד {d_he(anchor)}." if partial else "")),
+                            + (f" {anchor.year} חלקית: הנתונים עד {d_he(anchor)}." if partial else "")),
             "family_note": "סיווג רחב של סוג המקום שנבדק, לפי שם הסוג במאגר.",
             "mix_note": "חלקה של כל קבוצה מתוך הפיקוחים בכל שנה.",
             "complaint_note": f"{_int(n_comp)} פיקוחים שנפתחו בעקבות פניית ציבור, לפי סוג המקום.",
             "building_note": "לפי ציון \"קיים\" או \"חדש\" בסוג המקום שנבדק; לשירותים, אירועים ותחנות רבות אין ציון כזה.",
             "city_note": f"פיקוחים לפי יישוב המקום שנבדק ({_int(len(with_city))} פיקוחים עם יישוב).",
             "map_note": (f"{_int(n_map)} מתוך {_int(n)} פיקוחים עם קואורדינטות"
-                         + (f"; {_int(n_stray)} מהם ממוקמים במאגר מחוץ לישראל — שגיאת מיקום במקור" if n_stray else "")
+                         + (f"; {_int(n_stray)} מהם ממוקמים במאגר מחוץ לישראל (שגיאת מיקום במקור)" if n_stray else "")
                          + ". לחיצה על נקודה מציגה את סוג המקום, היישוב ותאריך הפיקוח."),
             "heat_note": "מספר הפיקוחים בכל חודש. גוון כהה יותר = יותר פיקוחים.",
             "yearly_aria": f"עמודות מוערמות וקו: פיקוחים לפי שנה ומסלול, {years[0]} עד {anchor.year}.",

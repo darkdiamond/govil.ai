@@ -684,7 +684,9 @@ def kpi_format_findings(html: str) -> list[str]:
         where = f"KPI {value[:30]!r}"
         # A bare count reads fine either way; a sign, range, ratio or time
         # does not ("2014–2026" displays reversed in an RTL paragraph).
-        if re.search(r"[−\-–+/:]", value) and 'dir="ltr"' not in attrs:
+        # Only digits can be reordered: a lone dash placeholder ("–") is fine.
+        if (re.search(r"[−\-–+/:]", value) and re.search(r"\d", value)
+                and 'dir="ltr"' not in attrs):
             out.append(f'KPI-FORMAT: {where} needs dir="ltr" on the value box')
         if not _KPI_TONE_RE.search(attrs):
             out.append(f"KPI-FORMAT: {where} colour must be one of text-brand, "

@@ -147,7 +147,7 @@ def insight_growth(assets, last):
     if abs(chg) < 0.01:
         return f"סך הנכסים ({bn(assets[last])}) כמעט לא השתנה לעומת {p_he(prev)}."
     word = "גדל" if chg > 0 else "קטן"
-    return (f"סך הנכסים בקופות הגמל וקרנות ההשתלמות {word} ב-{pct(abs(chg) * 100)} בשנה — "
+    return (f"סך הנכסים בקופות הגמל וקרנות ההשתלמות {word} ב-{pct(abs(chg) * 100)} בשנה, "
             f"מ-{bn(assets[prev])} ב{p_he(prev)} ל-{bn(assets[last])} ב{p_he(last)}.")
 
 
@@ -158,9 +158,9 @@ def insight_leader(shares):
     top3 = shares.head(3).sum()
     if share < 0.15:
         return (f"אין גוף מנהל דומיננטי: הגדול שבהם, {top}, מנהל {pct(share * 100)} מהנכסים, "
-                f"ושלושת הגדולים יחד — {pct(top3 * 100)}.")
+                f"ושלושת הגדולים יחד מנהלים {pct(top3 * 100)}.")
     return (f"{top} מנהל {pct(share * 100)} מהנכסים, ושלושת הגופים הגדולים "
-            f"יחד — {pct(top3 * 100)}.")
+            f"יחד מנהלים {pct(top3 * 100)}.")
 
 
 def insight_return(wy, last):
@@ -251,7 +251,7 @@ def insight_sharpe(cur):
     best = big.sort_values(["sharpe", "fund"], ascending=[False, True]).iloc[0]
     med = big["sharpe"].median()
     return (f"מבין {len(big)} המסלולים הגדולים (נכסים מעל מיליארד ₪) עם נתוני 5 שנים, יחס "
-            f"שארפ הגבוה ביותר — {best['sharpe']:.2f} — שייך ל{best['name']} "
+            f"שארפ הגבוה ביותר ({best['sharpe']:.2f}) שייך ל{best['name']} "
             f"(תשואה שנתית ממוצעת {pct(best['y5'], 2)}); החציון: {med:.2f}.")
 
 
@@ -336,7 +336,7 @@ def compute(frames):
     for y in sorted({r // 100 for r in exp_x}):
         rp = max(r for r in exp_x if r // 100 == y)
         exp_rows.append({"period": p_he(rp),
-                         **{lbl: (num(s[rp]) if rp in s.index else "—") for lbl, s in exp.items()}})
+                         **{lbl: (num(s[rp]) if rp in s.index else "–") for lbl, s in exp.items()}})
 
     flows = (df.dropna(subset=["dep", "wd", "tr"]).groupby(df["rp"] // 100)[["dep", "wd", "tr"]]
                .sum().sort_index())
@@ -441,9 +441,9 @@ def compute(frames):
                    "tone": "brand"},
         "managers": {"value": int(mgr.size), "display": f"{mgr.size:,}", "tone": "brand"},
         "month_yield": {"value": None if last_y is None else float(last_y),
-                        "display": "—" if last_y is None else kpi_pct(last_y, 2, signed=True),
+                        "display": "–" if last_y is None else kpi_pct(last_y, 2, signed=True),
                         "tone": yield_tone},
-        "liquid": {"value": liq, "display": "—" if liq is None else kpi_pct(liq), "tone": "info"},
+        "liquid": {"value": liq, "display": "–" if liq is None else kpi_pct(liq), "tone": "info"},
     }
 
     ytd_label = f"ינואר–{MONTHS_HE[last % 100 - 1]} {last // 100}"
@@ -452,15 +452,15 @@ def compute(frames):
                      for n, v in mgr.items()],
         "net12": [{"name": n, "net": bn(v)} for n, v in net12.items()],
         "spec": [{"name": n, "assets": bn(v), "share": num(v / spec_assets.sum() * 100),
-                  "ytd": num(spec_ytd[n], 2, signed=True) if n in spec_ytd.index else "—",
-                  "y5": num(spec_y5[n], 2) if n in spec_y5.index else "—"}
+                  "ytd": num(spec_ytd[n], 2, signed=True) if n in spec_ytd.index else "–",
+                  "y5": num(spec_y5[n], 2) if n in spec_y5.index else "–"}
                  for n, v in spec_assets.items()],
         "age": [{"label": a["label"], "tracks": f"{a['tracks']:,}", "assets": bn(a["assets"]),
-                 "equity": "—" if a["equity"] is None else num(a["equity"]),
-                 "ytd": "—" if a["ytd"] is None else num(a["ytd"], 2, signed=True)} for a in age],
+                 "equity": "–" if a["equity"] is None else num(a["equity"]),
+                 "ytd": "–" if a["ytd"] is None else num(a["ytd"], 2, signed=True)} for a in age],
         "fees": [{"year": f"{int(y)}{' (חלקית)' if int(y) == partial_year else ''}",
                   "mgmt": num(v, 3),
-                  "dep": num(dfee_y[y], 3) if y in dfee_y.index else "—"}
+                  "dep": num(dfee_y[y], 3) if y in dfee_y.index else "–"}
                  for y, v in mfee_y.items()],
         "tracks": [{"name": n, "ytd": num(v, 2, signed=True), "assets": bn(a)}
                    for n, v, a in zip(tracks["name"], tracks["ytd"], tracks["assets"])],
@@ -471,8 +471,8 @@ def compute(frames):
         "exposure": exp_rows,
         "exposure_labels": [lbl for _, lbl in EXPOSURES],
         "mgr_yield": [{"name": n,
-                       "y3": num(w3[n], 2) if n in w3.index else "—",
-                       "y5": num(w5[n], 2) if n in w5.index else "—"} for n in mgr_order],
+                       "y3": num(w3[n], 2) if n in w3.index else "–",
+                       "y5": num(w5[n], 2) if n in w5.index else "–"} for n in mgr_order],
         "target": [{"name": n, "assets": bn(v), "share": num(v / target_assets.sum() * 100)}
                    for n, v in target_assets.sort_values(ascending=False, kind="stable").items()],
     }
@@ -501,7 +501,7 @@ def compute(frames):
         "rolling_aria": "גרף קו: תשואה מצטברת ל-12 חודשים מתגלגלים, משוקללת לפי נכסים.",
         "fees_aria": "גרף קווים: דמי ניהול ממוצעים מצבירה ומהפקדה לפי שנה, משוקללים לפי נכסים.",
         "fees_note": ("ממוצע שנתי של הממוצע החודשי המשוקלל לפי נכסים. דמי ניהול מהפקדה מדווחים "
-                      "רק בחלק מהמסלולים." + (f" {partial_year} — שנה חלקית." if partial_year else "")),
+                      "רק בחלק מהמסלולים." + (f" {partial_year} היא שנה חלקית." if partial_year else "")),
         "tracks_aria": (f"תרשים עמודות: תשואה מתחילת השנה של {len(tracks)} המסלולים "
                         f"הגדולים ב{p_he(last)}."),
         "exposure_aria": (f"גרף קווים: חשיפה למניות, לחו״ל ולמט״ח כאחוז מהנכסים, משוקללת לפי "
@@ -510,7 +510,7 @@ def compute(frames):
                           f"כאחוז ולא כמיליוני ₪ הוצאו; המסלולים שנכללו מחזיקים לפחות "
                           f"{pct(exp_cover * 100)} מהנכסים בכל אחד מהמדדים."),
         "flows_aria": "תרשים עמודות: הפקדות, משיכות והעברות בין קופות לפי שנה, במיליארדי ₪.",
-        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים — סטיית תקן מול "
+        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים, סטיית תקן מול "
                       f"תשואה שנתית ממוצעת, גודל הנקודה לפי נכסים."),
         "risk_note": (f"כל נקודה היא מסלול השקעה ({len(risk)} מסלולים עם היסטוריה של 5 שנים "
                       f"לפחות, נכון ל{p_he(last)}), בצבע לפי סוג הקופה."),
@@ -531,7 +531,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"נתוני גמל-נט: דיווח חודשי על {n_tracks:,} מסלולי קופות גמל, קרנות "
-                           f"השתלמות וקופות גמל להשקעה — נכסים, תשואות, דמי ניהול והפקדות. סך "
+                           f"השתלמות וקופות גמל להשקעה (נכסים, תשואות, דמי ניהול והפקדות). סך "
                            f"הנכסים ב{p_he(last)}: {bn(assets[last])}."),
             "dataset_kind": "timeseries",
             "related_ids": ["3a1ca8fa-738b-4890-b52f-e8f7ce1e6145",

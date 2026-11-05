@@ -138,7 +138,7 @@ def insight_volume(per_year, full, ref, partial, ref_year):
     ch = (a - b) / b
     trend = (f"ללא שינוי של ממש לעומת {full - 1} ({n(b)})" if abs(ch) < FLAT_CHANGE
              else f"{'עלייה' if ch > 0 else 'ירידה'} של {pct(abs(ch))} לעומת {full - 1} ({n(b)})")
-    s = f"ב-{full} נפתחו ביחידה {n(a)} תיקים — {trend}."
+    s = f"ב-{full} נפתחו ביחידה {n(a)} תיקים, {trend}."
     if partial and ref_year in per_year.index:
         s += f" ב-{ref_year} נרשמו {n(per_year[ref_year])} תיקים עד {d_he(ref)}, התאריך האחרון במאגר."
     return s
@@ -199,8 +199,8 @@ def insight_legacy(df, era_start):
     if untyped / len(old) < 0.8:
         return None
     what = "כולם ללא סוג תיק" if untyped == len(old) else f"{n(untyped)} מהם ללא סוג תיק"
-    s = (f"{n(len(old))} תיקים ({pct(len(old) / len(df))}) נרשמו לפני {era_start}, {what} — "
-         f"רשימה ותיקה מלפני הרישום הסדיר")
+    s = (f"{n(len(old))} תיקים ({pct(len(old) / len(df))}) נרשמו לפני {era_start}, {what}. "
+         f"זוהי רשימה ותיקה מלפני הרישום הסדיר")
     if len(fol) >= MIN_CAT and (fol["year"] < era_start).mean() >= 0.9:
         allf = (fol["year"] < era_start).all()
         s += f"; {'כל' if allf else 'כמעט כל'} התיקים בסטטוס \"במעקב\" ({n(len(fol))}) שייכים אליה."
@@ -381,14 +381,14 @@ def compute(frames):
                    f"מקובצים יחד, כדי לא להבליט תיקים בודדים." if topics_merged else "")
     labels = {
         "lede": (f"{n(total)} תיקים, פניות ואירועים שבטיפול היחידה לתיאום המאבק בסחר בבני אדם "
-                 f"במשרד המשפטים, מ-{years[0]} ועד {d_he(ref)} — לפי שנה, נושא, סוג התיק, הגורם הפונה "
+                 f"במשרד המשפטים, מ-{years[0]} ועד {d_he(ref)}, לפי שנה, נושא, סוג התיק, הגורם הפונה "
                  f"וסטטוס הטיפול. הרישום הסדיר, עם סוג תיק לכל רשומה, מתחיל ב-{era_start}. "
                  f"הדף מציג נתונים מצרפיים בלבד; קטגוריות ותאים קטנים מקובצים או מוסתרים."),
         "last_year_kpi": f"תיקים שנפתחו ב-{full}",
         "open_kpi": "מהתיקים רשומים כפתוחים",
         "latest_kpi": "תאריך הרשומה האחרונה במאגר",
         "yearly_note": ("מספר התיקים לפי שנת היצירה, ולפי סטטוס הטיפול הנוכחי."
-                        + (f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else "")),
+                        + (f" שנת {ref_year} חלקית, עד {d_he(ref)}." if partial else "")),
         "yearly_aria": (f"גרף עמודות מוערמות: תיקים לפי שנה וסטטוס, {years[0]}–{years[-1]}. "
                         f"השיא ב-{int(per_year.idxmax())}."),
         "yearly_caption": f"תיקים לפי שנת יצירה וסטטוס, {years[0]}–{years[-1]}.",
@@ -408,15 +408,15 @@ def compute(frames):
                        f"{n(legacy_n)} רשומות ותיקות ללא סוג מוצגות כ'{NO_TYPE}'."),
         "types_aria": "תרשים עמודות: מספר התיקים לפי סוג התיק.",
         "types_caption": "מספר התיקים לפי סוג התיק.",
-        "sources_note": ("מי פנה ליחידה — לאורך כל התקופה."
+        "sources_note": ("מי פנה ליחידה, לאורך כל התקופה."
                          + (f" גורמים עם פחות מ-{MIN_CAT} תיקים מקובצים יחד." if sources_merged else "")),
         "sources_aria": "תרשים עמודות: מספר התיקים לפי הגורם הפונה.",
         "sources_caption": "מספר התיקים לפי הגורם הפונה.",
-        "strend_note": (f"חלקו של כל גורם פונה מסך התיקים בכל שנה, באחוזים — {len(trend_sources)} "
+        "strend_note": (f"חלקו של כל גורם פונה מסך התיקים בכל שנה, באחוזים: {len(trend_sources)} "
                         f"הגורמים המובילים מאז {era_start}; השאר ב'אחר'."),
         "strend_aria": "גרף שטח מוערם: חלקם של הגורמים הפונים בתיקים בכל שנה, באחוזים.",
         "strend_caption": "חלקם של הגורמים הפונים לפי שנה, באחוזים.",
-        "theat_note": (f"כמה תיקים מכל סוג עוסקים בכל נושא, מ-{era_start} — {len(h_types)} הסוגים "
+        "theat_note": (f"כמה תיקים מכל סוג עוסקים בכל נושא, מ-{era_start}: {len(h_types)} הסוגים "
                        f"ו-{len(h_topics)} הנושאים הנפוצים. תאים עם פחות מ-{MIN_CAT} תיקים מסומנים "
                        f"באפור, ללא מספר."),
         "theat_aria": "מפת חום: תיקים לפי סוג התיק ונושא.",
@@ -460,7 +460,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{n(total)} תיקים, פניות ואירועים של היחידה לתיאום המאבק בסחר בבני אדם "
-                           f"במשרד המשפטים, {years[0]}–{ref_year}: לפי נושא (המוביל — {top_topic}), סוג "
+                           f"במשרד המשפטים, {years[0]}–{ref_year}: לפי נושא (המוביל הוא {top_topic}), סוג "
                            f"התיק, הגורם הפונה וסטטוס. הרשומה האחרונה מ-{ref.day}/{ref.month}/{ref.year}."),
             "dataset_kind": "timeseries",
             "related_ids": ["13449cdd-9d02-44cf-b298-82f598369cd7",

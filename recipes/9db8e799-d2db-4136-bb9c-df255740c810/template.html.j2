@@ -52,7 +52,7 @@
       <summary class="text-sm text-subtle">הצג כטבלה</summary>
       <table class="mt-2 w-full text-sm">
         <caption class="sr-only">{{ model.labels.median_aria }}</caption>
-        <thead><tr><th scope="col">שנת דגם</th>{% for k in model.tables.kinds %}<th scope="col">חציון — {{ k }}</th>{% endfor %}</tr></thead>
+        <thead><tr><th scope="col">שנת דגם</th>{% for k in model.tables.kinds %}<th scope="col">חציון ({{ k }})</th>{% endfor %}</tr></thead>
         <tbody>
 {%- for r in model.tables.years %}
           <tr><th scope="row">{{ r.year }}</th>{% for k in model.tables.kinds %}<td>{{ r['med_' ~ loop.index0] }}</td>{% endfor %}</tr>
@@ -72,7 +72,7 @@
       <summary class="text-sm text-subtle">הצג כטבלה</summary>
       <table class="mt-2 w-full text-sm">
         <caption class="sr-only">{{ model.labels.counts_aria }}</caption>
-        <thead><tr><th scope="col">שנת דגם</th>{% for k in model.tables.kinds %}<th scope="col">רשומות — {{ k }}</th>{% endfor %}</tr></thead>
+        <thead><tr><th scope="col">שנת דגם</th>{% for k in model.tables.kinds %}<th scope="col">רשומות ({{ k }})</th>{% endfor %}</tr></thead>
         <tbody>
 {%- for r in model.tables.years %}
           <tr><th scope="row">{{ r.year }}</th>{% for k in model.tables.kinds %}<td>{{ r['n_' ~ loop.index0] }}</td>{% endfor %}</tr>
@@ -88,7 +88,7 @@
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">אותה גרסה, שנה אחרי</h2>
   </div>
-  <p class="m-0 text-sm text-subtle mb-3">החציון שלמעלה מושפע מתמהיל הגרסאות במחירון. כאן — רק גרסאות שמופיעות אצל אותו יבואן בשתי שנות דגם עוקבות: כמה מהן התייקרו, נשארו באותו מחיר או הוזלו, וממוצע שינוי המחיר.</p>
+  <p class="m-0 text-sm text-subtle mb-3">החציון שלמעלה מושפע מתמהיל הגרסאות במחירון. כאן מוצגות רק גרסאות שמופיעות אצל אותו יבואן בשתי שנות דגם עוקבות: כמה מהן התייקרו, נשארו באותו מחיר או הוזלו, וממוצע שינוי המחיר.</p>
   <div id="chart-l4l" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.l4l_aria }}"></div>
   <details class="mt-3">
     <summary class="text-sm text-subtle">הצג כטבלה</summary>
@@ -234,7 +234,7 @@
 
 <script>
   (function () {
-    function nisFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " ₪"; }
+    function nisFmt(v) { return v === null ? "–" : v.toLocaleString("he-IL") + " ₪"; }
     var m = {{ model.charts.median | tojson }};
     var c1 = echarts.init(document.getElementById("chart-median"));
     c1.setOption(window.GovEcharts.option({
@@ -331,7 +331,7 @@
     var c5 = echarts.init(document.getElementById("chart-models"));
     c5.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + " אלף ₪"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v + " אלף ₪"; } },
       legend: { type: "scroll", bottom: 0 },
       grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: md.x },

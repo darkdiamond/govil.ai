@@ -121,7 +121,7 @@ def compute(frames):
             return None
         a, b = banks.index[0], banks.index[1]
         share = (banks.iloc[0] + banks.iloc[1]) / n
-        return (f"בנק {a} ובנק {b} מפעילים יחד {_int(banks.iloc[0] + banks.iloc[1])} מכשירים — "
+        return (f"בנק {a} ובנק {b} מפעילים יחד {_int(banks.iloc[0] + banks.iloc[1])} מכשירים, "
                 f"{_pct(share)} מכלל {_int(n)} הכספומטים במרשם.")
 
     def ins_cities():
@@ -183,7 +183,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"מרשם הכספומטים של הבנקים בישראל: {_int(n)} מכשירים של {len(banks)} בנקים "
-                           f"ב-{_int(len(cities))} יישובים — מיקום, שירותים, עמלה ונגישות."),
+                           f"ב-{_int(len(cities))} יישובים (מיקום, שירותים, עמלה ונגישות)."),
             "dataset_kind": "map",
             "suggested_tags": ["בנקאות", "כספומטים", "שירותים פיננסיים", "נגישות"],
             "related_ids": ["32348d0b-dc49-4bd0-a931-860e55709689", "9f357b63-99f6-4b52-8c9e-fa53c86e63e4",

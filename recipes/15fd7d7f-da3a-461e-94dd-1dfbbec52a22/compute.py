@@ -278,7 +278,7 @@ def compute(frames):
     for s in sec_present:
         cand = sorted(((k[1], int(v)) for k, v in sa.items() if k[0] == s), key=lambda kv: (-kv[1], kv[0]))
         sec_table.append({"name": section_label(s), "goods": n(sec_items.get(s, 0)),
-                          "top": cand[0][0] if cand else "—",
+                          "top": cand[0][0] if cand else "–",
                           "top_n": n(cand[0][1]) if cand else "0"})
     sec_rank = sorted(((s, int(sec_items.get(s, 0))) for s in sec_present), key=lambda kv: (-kv[1], kv[0]))
 
@@ -488,8 +488,8 @@ def compute(frames):
         (k1, v1), (k2, v2) = auth_rank[0], auth_rank[1]
         if v1 < v2 * 1.1:
             return None
-        return (f"{k1} מעורב בדרישות על {n(v1)} פרטי מכס — {pct(v1 / n_items * 100)} מכלל "
-                f"{n(n_items)} הפרטים שיש עליהם דרישה כלשהי, ולפני {k2} ({n(v2)} פרטים). "
+        return (f"{k1} מעורב בדרישות על {n(v1)} פרטי מכס ({pct(v1 / n_items * 100)} מכלל "
+                f"{n(n_items)} הפרטים שיש עליהם דרישה כלשהי), ולפני {k2} ({n(v2)} פרטים). "
                 f"בסך הכול {n(n_auth)} גופים מוסמכים מופיעים בנתונים.")
 
     def ins_book():
@@ -518,10 +518,10 @@ def compute(frames):
             return None
         k, v = st_rank[0]
         txt = (f"{n(fi_std_items)} מהפרטים בצו יבוא חופשי ({pct(fi_std_items / fi_items * 100)}) "
-               f"קשורים לתקן ישראלי רשמי — {n(n_std)} תקנים שונים ביבוא המסחרי והאישי; "
+               f"קשורים לתקן ישראלי רשמי: {n(n_std)} תקנים שונים ביבוא המסחרי והאישי; "
                f"ת״י {k} מכסה לבדו {n(v)} פרטים.")
         if std_req_n and std_alt / std_req_n >= 0.8 and std_multi_conf / std_req_n >= 0.5:
-            txt += (f" ב-{pct(std_alt / std_req_n * 100, 0)} מדרישות התקינה התנאים חליפיים — "
+            txt += (f" ב-{pct(std_alt / std_req_n * 100, 0)} מדרישות התקינה התנאים חליפיים: "
                     f"די באחד מכמה אישורים.")
         return txt
 
@@ -587,7 +587,7 @@ def compute(frames):
         where = {"פרק": f"פרק {code[:2]}", "פרט": f"פרט {code[:2]}.{code[2:4]}"}.get(lv, f"סיווג {code}")
         txt = (f"הדרישה הרחבה ביותר, של {widest['auth']} ב{GROUP_LABEL[widest['grp']]}, מוגדרת ברמת "
                f"{where} וחלה על {n(widest['items'])} פרטי מכס"
-               + (" — חלקית, רק לטובין שתיאורם מפורט בה." if widest["inc"] == "חלקי" else "."))
+               + (" (באופן חלקי, רק לטובין שתיאורם מפורט בה)." if widest["inc"] == "חלקי" else "."))
         ch = lv_cnt.get("פרק", 0)
         if ch:
             txt += (f" {n(ch)} דרישות מוגדרות ברמת פרק שלם, עם חציון של "
@@ -636,7 +636,7 @@ def compute(frames):
                  f"המוסמך לתת אותם. {n(n_rows)} שורות בארבעה קבצים ({grp_counts}), המכסות "
                  f"{n(n_items)} פרטי מכס ו-{n(n_reqs)} דרישות של {n(n_auth)} גופים, לפי "
                  f"{n(n_pubs)} צווים וחוקים. כל דרישה מוגדרת ברמת סיווג מסוימת וחלה על כל הפרטים "
-                 f"שתחתיה; היא יכולה לדרוש כמה אישורים — כולם או אחד מהם."),
+                 f"שתחתיה; היא יכולה לדרוש כמה אישורים: כולם או אחד מהם."),
         "multi_kpi": "מהפרטים בצו יבוא חופשי כפופים לשתי דרישות ומעלה",
         "passed_kpi": "תנאים שמועד סיומם חלף",
         "pa_kpi": "פרטים בדרישות החלות רק בשטחי הרשות הפלסטינית",
@@ -666,7 +666,7 @@ def compute(frames):
         "src_caption": "מספר הדרישות לפי מקור, בכל קובץ צו.",
         "scope_note": ("באיזו רמת סיווג מוגדרת כל דרישה. דרישה ברמת פרק חלה על כל הפרטים שבו; "
                        "החציון בטבלה הוא מספר פרטי המכס לדרישה."
-                       + (f" {n(inc_abs)} מתוך {n(n_reqs)} הדרישות מוחלטות — חלות על הפרט כולו; "
+                       + (f" {n(inc_abs)} מתוך {n(n_reqs)} הדרישות מוחלטות (חלות על הפרט כולו); "
                           f"השאר חלקיות, רק לטובין שתיאורם מפורט בדרישה." if n_reqs else "")),
         "scope_aria": "תרשים עמודות מוערמות: דרישות לפי רמת הסיווג שבה הוגדרו, בכל קובץ צו.",
         "scope_caption": "דרישות לפי רמת סיווג, וחציון פרטי המכס לדרישה.",
@@ -685,7 +685,7 @@ def compute(frames):
         "terr_aria": "תרשים עמודות מוערמות: פרטי מכס לפי אזור תחולה וגוף מוסמך.",
         "terr_caption": "פרטי מכס ודרישות לפי אזור תחולה, בקובץ הצווים הנוספים.",
         "upd_note": ("מתי עודכנה לאחרונה כל דרישה, לפי שנה."
-                     + (f" השנה {last_year} חלקית — עד {MONTHS_HE[last_year_months - 1]}." if last_year and last_year_months < 12 else "")),
+                     + (f" השנה {last_year} חלקית (עד {MONTHS_HE[last_year_months - 1]})." if last_year and last_year_months < 12 else "")),
         "upd_aria": f"תרשים עמודות מוערמות: דרישות לפי שנת העדכון האחרון, {len(years)} שנים.",
         "upd_caption": "דרישות לפי שנת העדכון האחרון, בכל קובץ צו.",
         "end_note": (f"{n(n_dated_pairs)} מתוך {n(n_pairs)} התנאים (שורה לכל פרט, דרישה ואישור) נושאים מועד סיום; "
@@ -694,7 +694,7 @@ def compute(frames):
         "end_aria": "תרשים עמודות מוערמות: תנאים לפי שנת סיום התוקף.",
         "end_caption": "תנאים לפי שנת סיום, שחלפו ועתידיים.",
         "items_caption": f"{len(top_items)} פרטי המכס עם מספר הגופים המוסמכים הגדול ביותר, פרט אחד לכל פרט ארבע ספרות.",
-        "items_note": ("הפרטים שבהם מעורבים הכי הרבה גופים, בכל הצווים יחד — הפרט המוביל בכל פרט "
+        "items_note": ("הפרטים שבהם מעורבים הכי הרבה גופים, בכל הצווים יחד: הפרט המוביל בכל פרט "
                        "ארבע ספרות. הקוד הוא פרט המכס המלא עם ספרת הביקורת."),
     }
 

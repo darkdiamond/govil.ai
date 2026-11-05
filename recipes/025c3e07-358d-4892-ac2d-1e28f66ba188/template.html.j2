@@ -337,7 +337,7 @@
     c2.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
-                 valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+                 valueFormatter: function (v) { return v === null ? "–" : v + "%"; } },
       legend: { bottom: 0 },
       grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: q.x, axisLabel: { interval: 0, width: 110, overflow: "break" } },

@@ -837,3 +837,14 @@ def test_geo_code_folds_only_into_map_recipes(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "_geo_code_hash", lambda: "changed")
     assert rf.recipe_identity(plain) == before[0]
     assert rf.recipe_identity(mapped) != before[1]
+
+
+def test_pii_phone_pattern_skips_float_decimals():
+    from services.page_builder import author
+
+    rx = author._IL_PHONE_RE
+    assert rx.search("טלפון 03-1234567") and rx.search("נייד 0521234567")
+    assert rx.search("טל.0521234567")  # a dot after a word still counts
+    # A shapefile area field and a coordinate's decimals are not phones.
+    assert not rx.search('"Shape_STAr": 213.029377738')
+    assert not rx.search("[34.0512345678, 31.7]")

@@ -225,7 +225,7 @@
     var cb = echarts.init(document.getElementById("chart-budget"));
     cb.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מ׳ ₪"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v.toLocaleString("he-IL") + " מ׳ ₪"; } },
       legend: { bottom: 0 },
       grid: { left: 48, right: 16, top: 24, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: b.x },
@@ -260,7 +260,7 @@
     var ce = echarts.init(document.getElementById("chart-exec"));
     ce.setOption(window.GovEcharts.option({
       color: ["#0068f5", "#198754"],
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v + "%"; } },
       legend: { bottom: 0 },
       grid: { left: 40, right: 40, top: 24, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: e.x },

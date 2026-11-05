@@ -173,7 +173,7 @@ def insight_growth(assets, last):
         return f"סך הנכסים ({bn(assets[last])}) כמעט לא השתנה לעומת {p_he(prev)}."
     word = "גדל" if chg > 0 else "קטן"
     return (f"סך הנכסים במסלולי ביטוח החיים המשתתפים ברווחים {word} ב-{pct(abs(chg) * 100)} "
-            f"בשנה — מ-{bn(assets[prev])} ב{p_he(prev)} ל-{bn(assets[last])} ב{p_he(last)}.")
+            f"בשנה, מ-{bn(assets[prev])} ב{p_he(prev)} ל-{bn(assets[last])} ב{p_he(last)}.")
 
 
 def insight_leader(shares):
@@ -184,7 +184,7 @@ def insight_leader(shares):
     if share < 0.15:
         return (f"אין חברת ביטוח דומיננטית: שלוש הגדולות מנהלות יחד {pct(top3 * 100)} "
                 f"מהנכסים.")
-    return (f"{top} מנהלת {pct(share * 100)} מהנכסים, ושלוש חברות הביטוח הגדולות יחד — "
+    return (f"{top} מנהלת {pct(share * 100)} מהנכסים, ושלוש חברות הביטוח הגדולות מנהלות יחד "
             f"{pct(top3 * 100)}.")
 
 
@@ -223,9 +223,9 @@ def insight_vintage(vin_ytd, ytd_label):
     if v[hi] - v[lo] < 0.5:
         return (f"התשואה מתחילת השנה ({ytd_label}) דומה בין דורות הפוליסות: בין "
                 f"{pct(v[lo], 2, signed=True)} ל-{pct(v[hi], 2, signed=True)}.")
-    return (f"בין דורות הפוליסות התשואה מתחילת השנה ({ytd_label}) הגבוהה ביותר — "
-            f"{pct(v[hi], 2, signed=True)} — בפוליסות שהונפקו {hi}, והנמוכה ביותר — "
-            f"{pct(v[lo], 2, signed=True)} — בפוליסות שהונפקו {lo}.")
+    return (f"בין דורות הפוליסות התשואה מתחילת השנה ({ytd_label}) הגבוהה ביותר "
+            f"({pct(v[hi], 2, signed=True)}) היא בפוליסות שהונפקו {hi}, והנמוכה ביותר "
+            f"({pct(v[lo], 2, signed=True)}) בפוליסות שהונפקו {lo}.")
 
 
 def insight_fees(fee_year, partial_year):
@@ -277,7 +277,7 @@ def insight_sharpe(cur):
     best = big.sort_values(["sharpe", "fund"], ascending=[False, True]).iloc[0]
     med = big["sharpe"].median()
     return (f"מבין {len(big)} המסלולים הגדולים (נכסים מעל מיליארד ₪) עם נתוני 5 שנים, יחס "
-            f"שארפ הגבוה ביותר — {best['sharpe']:.2f} — שייך ל{best['name']} "
+            f"שארפ הגבוה ביותר ({best['sharpe']:.2f}) שייך ל{best['name']} "
             f"(תשואה שנתית ממוצעת {pct(best['y5'], 2)}); החציון: {med:.2f}.")
 
 
@@ -337,7 +337,7 @@ def compute(frames):
     for y in sorted({r // 100 for r in exp_x}):
         rp = max(r for r in exp_x if r // 100 == y)
         exp_rows.append({"period": p_he(rp),
-                         **{lbl: (num(s[rp]) if rp in s.index else "—") for lbl, s in exp.items()}})
+                         **{lbl: (num(s[rp]) if rp in s.index else "–") for lbl, s in exp.items()}})
 
     risk = cur.dropna(subset=["sd", "y5"])
     risk = risk[risk["assets"] > 0].sort_values(["assets", "fund"], ascending=[False, True])
@@ -416,30 +416,30 @@ def compute(frames):
                    "tone": "brand"},
         "insurers": {"value": int(ins.size), "display": f"{ins.size:,}", "tone": "brand"},
         "month_yield": {"value": None if last_y is None else float(last_y),
-                        "display": "—" if last_y is None else kpi_pct(last_y, 2, signed=True),
+                        "display": "–" if last_y is None else kpi_pct(last_y, 2, signed=True),
                         "tone": yield_tone},
-        "liquid": {"value": liq, "display": "—" if liq is None else kpi_pct(liq), "tone": "info"},
+        "liquid": {"value": liq, "display": "–" if liq is None else kpi_pct(liq), "tone": "info"},
     }
 
     tables = {
         "insurers": [{"name": n, "assets": bn(v), "share": num(v / ins.sum() * 100)} for n, v in ins.items()],
         "annual": [{"year": str(y), "ret": num(v, 2, signed=True)} for y, v in annual.items()],
         "vintage": [{"name": f"פוליסות {c}", "assets": bn(vin_assets[c]),
-                     "ytd": "—" if pd.isna(vin_ytd[c]) else num(vin_ytd[c], 2, signed=True),
-                     "y5": "—" if pd.isna(vin_y5[c]) else num(vin_y5[c], 2)} for c in vin_order],
+                     "ytd": "–" if pd.isna(vin_ytd[c]) else num(vin_ytd[c], 2, signed=True),
+                     "y5": "–" if pd.isna(vin_y5[c]) else num(vin_y5[c], 2)} for c in vin_order],
         "types": [{"name": t, "tracks": f"{int(type_n[t]):,}", "assets": bn(v),
-                   "ytd": num(type_ytd[t], 2, signed=True) if t in type_ytd.index else "—",
-                   "y5": num(type_y5[t], 2) if t in type_y5.index else "—"}
+                   "ytd": num(type_ytd[t], 2, signed=True) if t in type_ytd.index else "–",
+                   "y5": num(type_y5[t], 2) if t in type_y5.index else "–"}
                   for t, v in type_assets.items()],
         "fees": [{"year": f"{int(y)}{' (חלקית)' if int(y) == partial_year else ''}",
-                  "mgmt": num(v, 3), "dep": num(dfee_y[y], 3) if y in dfee_y.index else "—"}
+                  "mgmt": num(v, 3), "dep": num(dfee_y[y], 3) if y in dfee_y.index else "–"}
                  for y, v in mfee_y.items()],
         "tracks": [{"name": n, "ytd": num(v, 2, signed=True), "assets": bn(a)}
                    for n, v, a in zip(tracks["name"], tracks["ytd"], tracks["assets"])],
         "exposure": exp_rows,
         "exposure_labels": [lbl for _, lbl in EXPOSURES],
-        "ins_yield": [{"name": n, "y3": num(w3[n], 2) if n in w3.index else "—",
-                       "y5": num(w5[n], 2) if n in w5.index else "—"} for n in ins_order],
+        "ins_yield": [{"name": n, "y3": num(w3[n], 2) if n in w3.index else "–",
+                       "y5": num(w5[n], 2) if n in w5.index else "–"} for n in ins_order],
     }
 
     n_tracks = cur["fund"].nunique()
@@ -463,12 +463,12 @@ def compute(frames):
         "rolling_aria": "גרף קו: תשואה מצטברת ל-12 חודשים מתגלגלים, משוקללת לפי נכסים.",
         "fees_aria": "גרף קווים: דמי ניהול ממוצעים מצבירה ומהפקדה לפי שנה, משוקללים לפי נכסים.",
         "fees_note": ("ממוצע שנתי של הממוצע החודשי המשוקלל לפי נכסים. דמי ניהול מהפקדה מדווחים "
-                      "רק בחלק מהמסלולים." + (f" {partial_year} — שנה חלקית." if partial_year else "")),
+                      "רק בחלק מהמסלולים." + (f" {partial_year}: שנה חלקית." if partial_year else "")),
         "tracks_aria": f"תרשים עמודות: תשואה מתחילת השנה של {len(tracks)} המסלולים הגדולים.",
         "exposure_aria": f"גרף קווים: חשיפה למניות, לחו״ל ולמט״ח כאחוז מהנכסים, עד {p_he(last)}.",
         "exposure_note": (f"שיעור החשיפה מסך הנכסים, משוקלל לפי נכסים, מאז שהחל הדיווח עליה. "
                           f"המסלולים שנכללו מחזיקים לפחות {pct(exp_cover * 100)} מהנכסים בכל מדד."),
-        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים — סטיית תקן מול תשואה "
+        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים, סטיית תקן מול תשואה "
                       f"שנתית ממוצעת, לפי סוג מסלול."),
         "risk_note": (f"כל נקודה היא מסלול ({len(risk)} מסלולים עם היסטוריה של 5 שנים, נכון "
                       f"ל{p_he(last)}), בצבע לפי סוג המסלול; גודל הנקודה לפי נכסים."),
@@ -486,7 +486,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"נתוני ביטוח-נט: דיווח חודשי על {n_tracks:,} מסלולי השקעה של פוליסות "
-                           f"ביטוח חיים משתתפות ברווחים — נכסים, תשואות, דמי ניהול וחשיפות. סך "
+                           f"ביטוח חיים משתתפות ברווחים (נכסים, תשואות, דמי ניהול וחשיפות). סך "
                            f"הנכסים ב{p_he(last)}: {bn(assets[last])}."),
             "dataset_kind": "timeseries",
             "related_ids": ["3a1ca8fa-738b-4890-b52f-e8f7ce1e6145",

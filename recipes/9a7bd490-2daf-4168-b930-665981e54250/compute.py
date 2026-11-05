@@ -53,7 +53,7 @@ def _prepare(df):
 
 def insight_scale(df, vehicles, campaigns):
     return (f"{_int(vehicles)} כלי רכב טרם תוקנו לפי {_int(campaigns)} קריאות שירות "
-            f"שונות — {_int(len(df))} זוגות רכב–קריאה פתוחים.")
+            f"שונות: {_int(len(df))} זוגות רכב–קריאה פתוחים.")
 
 
 def insight_airbags(df):
@@ -178,7 +178,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{_int(vehicles)} כלי רכב שלא ביצעו תיקון ריקול חצי שנה ויותר אחרי "
-                           f"קבלת המכתב מהיבואן — {_int(len(df))} תיקונים פתוחים ב-{_int(campaigns)} "
+                           f"קבלת המכתב מהיבואן: {_int(len(df))} תיקונים פתוחים ב-{_int(campaigns)} "
                            f"קריאות שירות, לפי סוג התקלה ושנת הקריאה."),
             "dataset_kind": "rankings",
             "related_ids": [

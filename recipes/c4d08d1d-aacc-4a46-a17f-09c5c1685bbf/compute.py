@@ -135,7 +135,7 @@ def insight_window(gaps):
     if share < 0.9:
         return None
     every = "בכל החברות" if share == 1 else f"ב-{pct(share * 100)} מהחברות"
-    return (f"{every} מועד המחיקה הצפוי נקבע {mode} ימים בדיוק לאחר הפרסום — זה חלון הזמן "
+    return (f"{every} מועד המחיקה הצפוי נקבע {mode} ימים בדיוק לאחר הפרסום. זה חלון הזמן "
             f"להגשת התנגדות למחיקה.")
 
 
@@ -145,8 +145,8 @@ def insight_overdue(past, total, ref):
         return None
     lag = int((ref - past["exp"].max()).days)
     first = past["exp"].min()
-    s = (f"ל-{n(k)} חברות ({pct(k / total * 100)}) חלף כבר מועד המחיקה הצפוי — המוקדם "
-         f"שבמועדים {d_he(first)} — והן עדיין ברשימה")
+    s = (f"ל-{n(k)} חברות ({pct(k / total * 100)}) חלף כבר מועד המחיקה הצפוי (המוקדם "
+         f"שבמועדים {d_he(first)}), והן עדיין ברשימה")
     if lag > 0:
         s += (f"; גם המאוחר שבמועדים האלה קדם ב-{n(lag)} ימים לפרסום האחרון במאגר "
               f"({d_he(ref)})")
@@ -158,8 +158,8 @@ def insight_active(status, total):
     if total == 0 or active / total < 0.5:
         return None
     rest = total - active
-    tail = f"; {n(rest)} האחרות כבר בהליך יציאה אחר — פירוק או חיסול" if rest else ""
-    return (f"{pct(active / total * 100)} מהחברות ברשימה עדיין רשומות במעמד ״פעילה״ — "
+    tail = f"; {n(rest)} האחרות כבר בהליך יציאה אחר (פירוק או חיסול)" if rest else ""
+    return (f"{pct(active / total * 100)} מהחברות ברשימה עדיין רשומות במעמד ״פעילה״: "
             f"ההליך מסמן אותן למחיקה אך טרם שינה את מעמדן{tail}.")
 
 
@@ -170,7 +170,7 @@ def insight_liq(df):
     if k == 0:
         return None
     s = (f"{n(k)} חברות ברשימה נמצאות במקביל גם במסלול של פירוק מרצון (לפי המעמד או "
-         f"תת-הסטטוס) — סגירה ביוזמת בעלי החברה, לצד הליך המחיקה של הרשם")
+         f"תת-הסטטוס), כלומר סגירה ביוזמת בעלי החברה, לצד הליך המחיקה של הרשם")
     if int(fast.sum()):
         s += f"; {n(int(fast.sum()))} מהן מסומנות ״{FAST_TRACK}״"
     return s + "."
@@ -180,7 +180,7 @@ def insight_revival(df):
     rev = df[df["flags"].map(lambda f: any(REVIVAL_KEY in x for x in f))]
     if rev.empty:
         return None
-    return (f"ל-{n(len(rev))} חברות ברשימה רשום בתת-הסטטוס גם ״הוגשה בקשה להחייאה״ — "
+    return (f"ל-{n(len(rev))} חברות ברשימה רשום בתת-הסטטוס גם ״הוגשה בקשה להחייאה״; "
             f"רשימתן בטבלה בהמשך.")
 
 
@@ -194,7 +194,7 @@ def insight_land(df):
     base = (df["series"] == top_s).mean()
     if share_in < 0.5 or share_in < 2 * base:
         return None
-    return (f"{n(len(land))} חברות נושאות בשמן ״גוש״ או ״חלקה״ — חברות שהוקמו להחזקת חלקת "
+    return (f"{n(len(land))} חברות נושאות בשמן ״גוש״ או ״חלקה״, כלומר חברות שהוקמו להחזקת חלקת "
             f"קרקע; {pct(share_in * 100)} מהן בסדרת המספרים הוותיקה {top_s}, לעומת "
             f"{pct(base * 100)} מכלל הרשימה.")
 
@@ -274,7 +274,7 @@ def compute(frames):
     gantt = {"labels": w_labels, "start": w_lo, "end": w_exp, "count": w_counts,
              "open": w_open, "ref": ref.strftime("%Y-%m-%d")}
     waves_table = [{"label": lab, "count": n(c),
-                    "exp": d_short(e) if pd.notna(e) else "—",
+                    "exp": d_short(e) if pd.notna(e) else "–",
                     "state": "פתוח" if o else "חלף"}
                    for lab, c, e, o in zip(w_labels, w_counts, g["exp"], w_open)]
 
@@ -325,7 +325,7 @@ def compute(frames):
     # ---- named tables
     recent = df[df["pub"] > ref - pd.Timedelta(days=RECENT_DAYS)]
     recent_rows = [{"name": r["name"], "num": r["num"], "pub": d_short(r["pub"]),
-                    "exp": d_short(r["exp"]) if pd.notna(r["exp"]) else "—",
+                    "exp": d_short(r["exp"]) if pd.notna(r["exp"]) else "–",
                     "status": r["status"]}
                    for _, r in recent.sort_values(["pub", "num"], ascending=[False, True],
                                                   kind="stable").head(RECENT_MAX).iterrows()]
@@ -380,7 +380,7 @@ def compute(frames):
         "active_kpi": "עדיין במעמד ״פעילה״",
         "past_kpi": f"חלף מועד המחיקה הצפוי (נכון ל-{d_short(ref)})",
         "recent_kpi": f"פורסמו ב-{RECENT_DAYS} הימים האחרונים",
-        "waves_note": (f"מספר החברות שפורסמו בכל {unit} פרסום. ציר אנכי לוגריתמי — אחרת גל הפרסום "
+        "waves_note": (f"מספר החברות שפורסמו בכל {unit} פרסום. ציר אנכי לוגריתמי, כי אחרת גל הפרסום "
                        f"הגדול ({n(w_counts[big_i]) if w_counts else 0} חברות ב-{w_labels[big_i] if w_labels else ''}) "
                        f"מסתיר את הפרסומים הבודדים."),
         "waves_aria": (f"גרף עמודות: חברות שפורסמו כמיועדות למחיקה לפי {unit} פרסום, "
@@ -389,7 +389,7 @@ def compute(frames):
         "waves_caption": f"מספר החברות שפורסמו בכל {unit} פרסום, מועד המחיקה הצפוי ומצב חלון ההתנגדות.",
         "waves_col": "חודש פרסום" if by_month else "מועד פרסום",
         "gantt_note": (f"לכל {unit} פרסום: מהפרסום ועד מועד המחיקה הצפוי ({gap_txt}). הקו האנכי הוא "
-                       f"הפרסום האחרון במאגר, {d_he(ref)}; חלון שהסתיים לפניו צבוע כהה — החברות "
+                       f"הפרסום האחרון במאגר, {d_he(ref)}; חלון שהסתיים לפניו צבוע כהה: החברות "
                        f"שבו עדיין ברשימה אף שתקופת ההתנגדות תמה."),
         "gantt_aria": (f"תרשים ציר זמן: חלון ההתנגדות של כל {unit} פרסום, מהפרסום ועד מועד המחיקה הצפוי, "
                        f"ביחס לפרסום האחרון ב-{d_he(ref)}. {n(len(past))} חברות בחלונות שהסתיימו."),
@@ -398,7 +398,7 @@ def compute(frames):
         "status_aria": (f"תרשים עמודות: חברות לפי מעמד במרשם. {st_names[0]}: {n(st_vals[0])}."
                         if st_names else "תרשים מעמד."),
         "status_caption": "מספר החברות לפי מעמד במרשם.",
-        "flags_note": (f"הליכים נוספים הרשומים בתת-הסטטוס לצד ״{BASE_SUB}״ — ל-{n(flags_total)} חברות "
+        "flags_note": (f"הליכים נוספים הרשומים בתת-הסטטוס לצד ״{BASE_SUB}״. ל-{n(flags_total)} חברות "
                        f"יש לפחות אחד. חברה יכולה לשאת יותר מסימון אחד."),
         "flags_aria": (f"תרשים עמודות: סימוני תת-סטטוס נוספים. הנפוץ: {f_names[0]}, {n(f_vals[0])} חברות."
                        if f_names else "תרשים סימונים."),
@@ -416,7 +416,7 @@ def compute(frames):
                        f"{n(words_chart['values'][0])} שמות." if top_words else "תרשים מילים."),
         "words_caption": "מספר שמות החברות שבהם מופיעה כל מילה.",
         "years_note": (f"{n(yr_n)} חברות ({pct(yr_n / total * 100 if total else 0)}) נושאות שנה "
-                       f"בסוגריים בשמן, למשל ״(1998)״ — לרוב שנת ההקמה או הארגון מחדש. "
+                       f"בסוגריים בשמן, למשל ״(1998)״, לרוב שנת ההקמה או הארגון מחדש. "
                        f"התפלגות השנים בקבוצות של {YEAR_BIN} (כל עמודה מסומנת בשנה הראשונה שלה); השיא: {LRI}{yr_peak}{PDI}."),
         "years_aria": (f"גרף עמודות: שנים המופיעות בסוגריים בשמות החברות, בקבוצות של {YEAR_BIN} שנים. "
                        f"השיא: {yr_peak}."),

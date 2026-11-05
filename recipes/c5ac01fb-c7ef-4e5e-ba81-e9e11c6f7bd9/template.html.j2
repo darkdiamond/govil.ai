@@ -150,12 +150,12 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
-    {{ head("חברות לתועלת הציבור — סטטוס", "building-2") }}
+    {{ head("חברות לתועלת הציבור לפי סטטוס", "building-2") }}
     <div id="chart-pbc" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pbc_aria }}"></div>
     {{ table(model.labels.pbc_aria, "סטטוס", "חברות", model.charts.pbc) }}
   </section>
   <section class="card p-5">
-    {{ head("חברות לתועלת הציבור — תחום", "building-2") }}
+    {{ head("חברות לתועלת הציבור לפי תחום", "building-2") }}
     <div id="chart-pbc-sector" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.pbc_sector_aria }}"></div>
     {{ table(model.labels.pbc_sector_aria, "תחום", "חברות", model.charts.pbc_sector) }}
   </section>

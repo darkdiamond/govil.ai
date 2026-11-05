@@ -169,8 +169,8 @@ def insight_concentration(df, total):
     share = int(top.sum()) / total
     if share < 0.05:
         return None
-    return (f"{n(len(c))} עסקים (לפי שם) מחזיקים ברישיונות, והחמישה המובילים — "
-            f"{', '.join(top.index)} — מחזיקים יחד {n(top.sum())} רישיונות ({pct(share * 100)}).")
+    return (f"{n(len(c))} עסקים (לפי שם) מחזיקים ברישיונות, והחמישה המובילים ("
+            f"{', '.join(top.index)}) מחזיקים יחד {n(top.sum())} רישיונות ({pct(share * 100)}).")
 
 
 def insight_streets(df):
@@ -358,7 +358,7 @@ def compute(frames):
         "soon": {"value": soon, "display": n(soon), "tone": "warn" if soon_share >= 10 else "info"},
     }
 
-    partial_note = (f" החודש האחרון ({mlabels[-1]}) חלקי — עד {d_he(ref)}." if partial_last else "")
+    partial_note = (f" החודש האחרון ({mlabels[-1]}) חלקי, עד {d_he(ref)}." if partial_last else "")
     labels = {
         "lede": (f"רישיונות עסק בתוקף בעיריית באר שבע: {n(total)} רישיונות של {n(len(b_counts))} עסקים "
                  f"(לפי שם), ב-{len(ok['street'].unique())} רחובות."
@@ -371,8 +371,8 @@ def compute(frames):
         "sectors_caption": "מספר רישיונות ושיעורם לפי תחום עיסוק.",
         "status_aria": "תרשים טבעת: חלוקת הרישיונות לפי סטטוס.",
         "status_caption": "מספר רישיונות ושיעורם לפי סטטוס.",
-        "expiry_note": (f"שנת תוקף הרישיון, לפי סטטוס. \"פג תוקף\" — תאריך שקדם ל-{d_he(ref)}; "
-                        f"\"ללא תפוגה\" — תאריך רחוק בשנות ה-2090 שמשמש במאגר לרישיונות ללא מועד פקיעה."
+        "expiry_note": (f"שנת תוקף הרישיון, לפי סטטוס. \"פג תוקף\": תאריך שקדם ל-{d_he(ref)}. "
+                        f"\"ללא תפוגה\": תאריך רחוק בשנות ה-2090 שמשמש במאגר לרישיונות ללא מועד פקיעה."
                         if ref is not None else "שנת תוקף הרישיון, לפי סטטוס."),
         "expiry_aria": "תרשים עמודות מוערמות: מספר רישיונות לפי שנת תוקף וסטטוס.",
         "expiry_caption": "מספר רישיונות לפי שנת תוקף וסטטוס.",

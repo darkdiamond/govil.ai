@@ -73,7 +73,7 @@ def insight_latest(mon, end):
     if prev in mon.index:
         d = (r["on"] - mon.loc[prev, "on"]) * 100
         tail = (f", בדומה ל{mlabel(prev)}" if abs(d) < 0.5 else
-                f" — {'שיפור' if d > 0 else 'הרעה'} של {abs(d):.1f} נקודות אחוז לעומת {mlabel(prev)}")
+                f", {'שיפור' if d > 0 else 'הרעה'} של {abs(d):.1f} נקודות אחוז לעומת {mlabel(prev)}")
     return f"ב{mlabel(end)} הגיעו {pct(r['on'])} מהעצירות בתחנות בזמן{tail}."
 
 
@@ -83,7 +83,7 @@ def insight_12m(cur, prv):
     d = (cur["on"] - prv["on"]) * 100
     trend = (f"דומה ל-12 החודשים שקדמו להם ({pct(prv['on'])})" if abs(d) < 0.5 else
              f"{'שיפור' if d > 0 else 'הרעה'} של {abs(d):.1f} נקודות אחוז לעומת 12 החודשים שקדמו להם")
-    return f"ב-12 החודשים האחרונים {pct(cur['on'])} מהעצירות היו בזמן — {trend}."
+    return f"ב-12 החודשים האחרונים {pct(cur['on'])} מהעצירות היו בזמן, {trend}."
 
 
 def insight_worst(st):

@@ -162,7 +162,7 @@ def insight_sharpe(cur):
     best = big.sort_values(["sharpe", "fund"], ascending=[False, True]).iloc[0]
     med = big["sharpe"].median()
     return (f"מבין {len(big)} המסלולים הגדולים (נכסים מעל מיליארד ₪) עם נתוני 5 שנים, יחס "
-            f"שארפ הגבוה ביותר — {best['sharpe']:.2f} — שייך ל{best['name']} "
+            f"שארפ הגבוה ביותר ({best['sharpe']:.2f}) שייך ל{best['name']} "
             f"(תשואה שנתית ממוצעת {pct(best['y5'], 2)}); החציון: {med:.2f}.")
 
 
@@ -174,7 +174,7 @@ def insight_growth(assets, last):
     if abs(chg) < 0.01:
         return f"סך הנכסים ({bn(assets[last])}) כמעט לא השתנה לעומת {p_he(prev)}."
     word = "גדל" if chg > 0 else "קטן"
-    return (f"סך הנכסים בקרנות הפנסיה {word} ב-{pct(abs(chg) * 100)} בשנה — "
+    return (f"סך הנכסים בקרנות הפנסיה {word} ב-{pct(abs(chg) * 100)} בשנה, "
             f"מ-{bn(assets[prev])} ב{p_he(prev)} ל-{bn(assets[last])} ב{p_he(last)}.")
 
 
@@ -187,7 +187,7 @@ def insight_leader(shares):
         return (f"אין מנהל דומיננטי: שלושת הגדולים מנהלים יחד {pct(top3 * 100)} "
                 f"מהנכסים.")
     return (f"{top} מנהלת {pct(share * 100)} מנכסי הפנסיה, ושלושת הגופים הגדולים "
-            f"יחד — {pct(top3 * 100)}.")
+            f"מנהלים יחד {pct(top3 * 100)}.")
 
 
 def insight_return(wy, last):
@@ -295,7 +295,7 @@ def compute(frames):
     for y in exp_years:
         rp = max(r for r in exp_x if r // 100 == y)
         exp_rows.append({"period": p_he(rp),
-                         **{lbl: (num(s[rp]) if rp in s.index else "—") for lbl, s in exp.items()}})
+                         **{lbl: (num(s[rp]) if rp in s.index else "–") for lbl, s in exp.items()}})
 
     flows = df.dropna(subset=["dep", "wd", "tr"]).groupby(df["rp"] // 100)[["dep", "wd", "tr"]].sum().sort_index()
     flow_rows = [{"year": f"{int(y)}{' (חלקית)' if y == partial_year else ''}",
@@ -316,8 +316,8 @@ def compute(frames):
           / m3.groupby("manager")["assets"].sum())
     mgr_order = [n for n in mgr.index if n in w5.index or n in w3.index]
     mgr_rows = [{"name": n,
-                 "y3": num(w3[n], 2) if n in w3.index else "—",
-                 "y5": num(w5[n], 2) if n in w5.index else "—"} for n in mgr_order]
+                 "y3": num(w3[n], 2) if n in w3.index else "–",
+                 "y5": num(w5[n], 2) if n in w5.index else "–"} for n in mgr_order]
 
     liq_c = cur.dropna(subset=["liq"])
     liq_c = liq_c[liq_c["assets"] > 0]
@@ -325,7 +325,7 @@ def compute(frames):
 
     fee_rows = [{"year": f"{x}{' (חלקית)' if int(x) == partial_year else ''}",
                  "mgmt": num(v, 3),
-                 "dep": "—" if d is None else num(d, 3)}
+                 "dep": "–" if d is None else num(d, 3)}
                 for x, v, d in zip([str(int(y)) for y in mfee_y.index], mfee_y.values,
                                    [dfee_y.get(y) for y in mfee_y.index])]
     track_rows = [{"name": n, "ytd": num(v, 2, signed=True), "assets": bn(a)}
@@ -399,12 +399,12 @@ def compute(frames):
         # Last month's asset-weighted return: green when positive, red when
         # negative (a flat month stays neutral).
         "month_yield": {"value": None if last_y is None else float(last_y),
-                        "display": "—" if last_y is None else kv(last_y, 2, signed=True, suffix="%"),
+                        "display": "–" if last_y is None else kv(last_y, 2, signed=True, suffix="%"),
                         "tone": ("brand" if last_y is None or round(last_y, 2) == 0
                                  else "ok" if last_y > 0 else "danger")},
     }
 
-    kpis["liquid"] = {"value": liq, "display": "—" if liq is None else kv(liq, suffix="%"),
+    kpis["liquid"] = {"value": liq, "display": "–" if liq is None else kv(liq, suffix="%"),
                       "tone": "info"}
 
     table = [{"name": n, "assets": bn(v), "share": num(v / mgr.sum() * 100)}
@@ -414,7 +414,7 @@ def compute(frames):
         "period": p_he(last),
         "lede": (f"דיווחים חודשיים של {cur['fund'].nunique():,} מסלולי השקעה ב-{mgr.size} "
                  f"גופים מנהלים, נכון ל{p_he(last)}. סך הנכסים: {bn(assets[last])}."),
-        "scope_note": (f"הנתונים מ{p_he(FROM_PERIOD)} ואילך — עד סוף 2016 דווחו נכסים גם "
+        "scope_note": (f"הנתונים מ{p_he(FROM_PERIOD)} ואילך: עד סוף 2016 דווחו נכסים גם "
                        f"ברמת קרן וגם ברמת מסלול, וסכימה שלהם הייתה כופלת. סכומים במיליארדי ₪, "
                        f"תשואות נומינליות ברוטו."),
         "assets_aria": (f"גרף שטח: סך נכסי קרנות הפנסיה לפי סוג קרן, {p_he(FROM_PERIOD)} "
@@ -425,7 +425,7 @@ def compute(frames):
         "rolling_aria": "גרף קו: תשואה מצטברת ל-12 חודשים מתגלגלים, משוקללת לפי נכסים.",
         "fees_aria": "גרף קווים: דמי ניהול ממוצעים מצבירה ומהפקדה לפי שנה, משוקללים לפי נכסים.",
         "fees_note": ("ממוצע שנתי של הממוצע החודשי המשוקלל."
-                      + (f" {partial_year} — שנה חלקית." if partial_year else "")),
+                      + (f" {partial_year}: שנה חלקית." if partial_year else "")),
         "net_aria": (f"תרשים עמודות: הפקדות נטו חודשיות ב-{len(recent_n)} החודשים "
                      f"האחרונים, במיליארדי ₪."),
         "tracks_aria": (f"תרשים עמודות: תשואה מתחילת השנה של {len(tracks)} המסלולים "
@@ -438,7 +438,7 @@ def compute(frames):
                           f"שנכללו מחזיקים לפחות {pct(exp_cover * 100)} מהנכסים בכל אחד מהמדדים."),
         "flows_aria": ("תרשים עמודות: הפקדות, משיכות והעברות בין קופות לפי שנה, "
                        "במיליארדי ₪."),
-        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים — סטיית תקן מול "
+        "risk_aria": (f"תרשים פיזור: {len(risk)} מסלולים עם נתוני 5 שנים, סטיית תקן מול "
                       f"תשואה שנתית ממוצעת, גודל הבועה לפי נכסים."),
         "risk_note": (f"כל נקודה היא מסלול השקעה ({len(risk)} מסלולים עם היסטוריה של 5 שנים "
                       f"לפחות, נכון ל{p_he(last)}). גודל הנקודה מבטא את היקף הנכסים."),
@@ -454,7 +454,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"נתוני פנסיה-נט: דיווח חודשי על {cur['fund'].nunique():,} מסלולי "
-                           f"קרנות פנסיה — נכסים, תשואות, דמי ניהול והפקדות. סך הנכסים "
+                           f"קרנות פנסיה (נכסים, תשואות, דמי ניהול והפקדות). סך הנכסים "
                            f"ב{p_he(last)}: {bn(assets[last])}."),
             "dataset_kind": "timeseries",
             "related_ids": ["5265b154-c2e2-4f3d-a22e-fba593240d9a",

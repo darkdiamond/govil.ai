@@ -320,7 +320,7 @@ def compute(frames):
                      "files": n(p_ct[p]),
                      "share": pct(int(p_ct[p]) / n_files * 100)} for p in top]
     if rest:
-        places_table.append({"place": "שאר היישובים", "region": "—", "court": "—",
+        places_table.append({"place": "שאר היישובים", "region": "–", "court": "–",
                              "files": n(rest), "share": pct(rest / n_files * 100)})
 
     r_ct = files["region"].value_counts()
@@ -457,7 +457,7 @@ def compute(frames):
         if s3 / n_files < 0.25:
             return None
         return (f"בראש רשימת היישובים: {t3[0]}, עם {n(p_ct[t3[0]])} תיקי עזבון ({pct(p_ct[t3[0]] / n_files * 100)}); "
-                f"יחד עם {t3[1]} ו{t3[2]} — שלושת היישובים מרכזים {pct(s3 / n_files * 100)} "
+                f"יחד עם {t3[1]} ו{t3[2]}, שלושת היישובים מרכזים {pct(s3 / n_files * 100)} "
                 f"מכלל {n(n_files)} התיקים, מתוך {n(n_places)} יישובים שמופיעים במאגר.")
     add("places", ins_places())
 
@@ -469,7 +469,7 @@ def compute(frames):
                f"ו־{pct(within_year / n_lag * 100, 0)} מהבקשות פורסמו בתוך שנה מהפטירה.")
         if over10 / n_lag >= 0.1:
             txt += (f" מנגד, {pct(over10 / n_lag * 100, 0)} ({n(over10)} תיקים) נוגעים לפטירות "
-                    f"שאירעו יותר מעשר שנים לפני הפרסום — עזבונות ישנים שמוסדרים באיחור רב.")
+                    f"שאירעו יותר מעשר שנים לפני הפרסום, עזבונות ישנים שמוסדרים באיחור רב.")
         return txt
     add("lag", ins_lag())
 
@@ -488,7 +488,7 @@ def compute(frames):
         else:
             trend = (f"ירידה של {pct(abs(ytd_chg), 0)} לעומת התקופה המקבילה ב־{last_year - 1} "
                      f"({n(prev_ytd)})")
-        return f"{period} פורסמו {n(ytd)} הודעות — {trend}."
+        return f"{period} פורסמו {n(ytd)} הודעות, {trend}."
     add("ytd", ins_ytd())
 
     # 5. publication rhythm
@@ -509,7 +509,7 @@ def compute(frames):
             return None
         return (f"{pct(winter_share * 100, 0)} מהפטירות שתאריכן ידוע אירעו בחודשי החורף "
                 f"(דצמבר עד פברואר), לעומת {pct(summer_share * 100, 0)} בחודשי הקיץ "
-                f"(יוני עד אוגוסט) — יותר מהרבע הצפוי בפיזור אחיד על פני השנה.")
+                f"(יוני עד אוגוסט), יותר מהרבע הצפוי בפיזור אחיד על פני השנה.")
     add("winter", ins_winter())
 
     # 7. busiest month
@@ -527,14 +527,14 @@ def compute(frames):
         "ytd": {"value": ytd, "display": n(ytd), "tone": "brand"},
         "ytd_change": {
             "value": None if ytd_chg is None else round(ytd_chg, 1),
-            "display": "—" if ytd_chg is None else signed_pct(ytd_chg),
+            "display": "–" if ytd_chg is None else signed_pct(ytd_chg),
             "tone": "brand" if ytd_chg is None or abs(ytd_chg) < 10 else "info",
         },
         "lag": {"value": None if lag_med_months is None else round(lag_med_months, 1),
-                "display": "—" if lag_med_months is None else f"{lag_med_months:.1f}",
+                "display": "–" if lag_med_months is None else f"{lag_med_months:.1f}",
                 "tone": "info"},
         "old": {"value": round(over10 / n_lag * 100, 1) if n_lag else None,
-                "display": f"{over10 / n_lag * 100:.1f}%" if n_lag else "—",
+                "display": f"{over10 / n_lag * 100:.1f}%" if n_lag else "–",
                 "tone": "warn" if n_lag and over10 / n_lag >= 0.2 else "brand"},
         "places": {"value": n_places, "display": n(n_places), "tone": "brand"},
     }
@@ -566,7 +566,7 @@ def compute(frames):
         regions_phrase = ""
     lede = (f"הודעות שמפרסמים בתי הדין הדתיים הדרוזיים על בקשות לצו ירושה, כדי שמי שמתנגד "
             f"יוכל להגיש התנגדות. במאגר {n(total)} הודעות שפורסמו {span}, על עזבונות של נפטרים "
-            f"מ־{n(n_places)} יישובים {regions_phrase}.{lead_txt} העמוד מציג נתונים מצרפיים בלבד — "
+            f"מ־{n(n_places)} יישובים {regions_phrase}.{lead_txt} העמוד מציג נתונים מצרפיים בלבד, "
             f"ללא שמות הנפטרים, היורשים או המבקשים וללא מספרי תיקים.")
 
     lm = last.to_period("M")
@@ -574,7 +574,7 @@ def compute(frames):
                     f"בחודש; החודש האחרון ({MONTHS_HE[lm.month - 1]} {lm.year}) כולל פרסומים עד "
                     f"{d_he(last)}.")
     years_note = ("הודעות לפי שנת פרסום ובית דין."
-                  + (f" {last_year} חלקית — עד {d_he(last)}: {n(ytd)} הודעות, לעומת {n(prev_ytd)} "
+                  + (f" {last_year} חלקית, עד {d_he(last)}: {n(ytd)} הודעות, לעומת {n(prev_ytd)} "
                      f"בתקופה המקבילה אשתקד." if year_partial and prev_ytd else ""))
     weekday_note = (f"באיזה יום בשבוע מתפרסמות ההודעות. {n(n_batches)} מועדי פרסום; "
                     f"בחציון {batch_med:.0f} הודעות במועד, ובמועד הגדול ביותר {n(batch_max)}.")
@@ -627,7 +627,7 @@ def compute(frames):
         "places_caption": "תיקי עזבון לפי יישוב",
         "lag_note": lag_note,
         "lag_aria": (f"היסטוגרמה: הזמן מהפטירה ועד פרסום ההודעה. החציון "
-                     f"{'—' if lag_med_months is None else f'{lag_med_months:.1f}'} חודשים."),
+                     f"{'–' if lag_med_months is None else f'{lag_med_months:.1f}'} חודשים."),
         "lag_caption": "תיקים לפי הזמן מהפטירה ועד הפרסום",
         "lag_year_note": lag_year_note,
         "lag_year_aria": "גרף עמודות מוערמות באחוזים: חלוקת הבקשות לפי הזמן מהפטירה בכל שנת פרסום.",

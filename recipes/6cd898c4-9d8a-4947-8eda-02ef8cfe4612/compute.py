@@ -194,14 +194,14 @@ def insight_mixed(n_mixed, n_un_in_mixed):
     if not n_mixed:
         return None
     return (f"ב-{_int(n_mixed)} צמתים יש רמזורים ממוספרים לצד רמזורים בלי מספר "
-            f"({_int(n_un_in_mixed)} רמזורים) — כנראה שהמספר חסר ברשומות אלה.")
+            f"({_int(n_un_in_mixed)} רמזורים), כנראה שהמספר חסר ברשומות אלה.")
 
 
 def insight_grid(n_top, core_n, lat_l, lon_l, cell_km):
     if core_n < MIN_GROUP or n_top / core_n < GRID_MIN_SHARE:
         return None
     return (f"בליבת העיר (עד {_int(CORE_KM)} ק״מ מהמרכז) תא הצפיפות הגבוה ביותר, בקו רוחב {lat_l} "
-            f"וקו אורך {lon_l}, מכיל {_int(n_top)} רמזורים — {_pct(n_top / core_n, 1)} מליבת העיר.")
+            f"וקו אורך {lon_l}, מכיל {_int(n_top)} רמזורים ({_pct(n_top / core_n, 1)} מליבת העיר).")
 
 
 # ----------------------------------------------------------------- compute

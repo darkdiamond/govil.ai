@@ -230,7 +230,7 @@ def insight_concentration(top_rows, n_streets, n_locs):
     a, b = top_rows[0], top_rows[1]
     if a["count"] <= b["count"]:
         return None
-    return (f"עשרת הישובים עם מספר הרחובות הגדול ביותר מרכזים {n(s10)} רחובות — "
+    return (f"עשרת הישובים עם מספר הרחובות הגדול ביותר מרכזים {n(s10)} רחובות, "
             f"{share(s10, n_streets)} מכלל הרחובות ב-{n(n_locs)} הישובים. {a['name']} מובילה עם "
             f"{n(a['count'])} רחובות, פי {LRI}{a['count'] / b['count']:.1f}{PDI} מ{b['name']} ({n(b['count'])}).")
 
@@ -240,7 +240,7 @@ def insight_no_streets(counts, n_locs):
     if zero == 0 or not n_locs:
         return None
     med = float(counts.median())
-    return (f"{n(zero)} ישובים ({share(zero, n_locs)}) רשומים בלי אף רחוב — הכתובת בהם היא שם הישוב "
+    return (f"{n(zero)} ישובים ({share(zero, n_locs)}) רשומים בלי אף רחוב: הכתובת בהם היא שם הישוב "
             f"בלבד. החציון הוא {n(round(med))} רחובות לישוב, לעומת ממוצע של "
             f"{n(round(counts.mean()))}, שהערים הגדולות מושכות כלפי מעלה.")
 
@@ -281,7 +281,7 @@ def insight_people(people_rows):
     if a["locs"] < 10:
         return None
     if a["locs"] > b["locs"]:
-        lead = (f"מבין האישים שנבדקו, {a['name']} זוכה לרחוב בהכי הרבה ישובים — {n(a['locs'])}, "
+        lead = (f"מבין האישים שנבדקו, {a['name']} זוכה לרחוב בהכי הרבה ישובים ({n(a['locs'])}), "
                 f"לפני {b['name']} ({n(b['locs'])}) ו{c['name']} ({n(c['locs'])})")
     else:
         lead = (f"מבין האישים שנבדקו, {a['name']} ו{b['name']} מובילים יחד עם רחוב ב-{n(a['locs'])} "
@@ -331,7 +331,7 @@ def insight_renames(ren):
     k = ren["from_number"]
     if k >= 5:
         ex = ren["number_examples"][:1]
-        ex_t = f" — למשל {ex[0]['old']} ב{ex[0]['loc']} הוא היום {ex[0]['new']}" if ex else ""
+        ex_t = f", למשל {ex[0]['old']} ב{ex[0]['loc']} הוא היום {ex[0]['new']}" if ex else ""
         return (f"{n(t)} רחובות שינו את שמם מאז הקבצים הקודמים כשסמל הרחוב נשמר (לא כולל שינויי כתיב); {n(k)} מהם "
                 f"היו רחובות ממוספרים שקיבלו שם{ex_t}.")
     return f"{n(t)} רחובות שינו את שמם מאז הקבצים הקודמים כשסמל הרחוב נשמר (לא כולל שינויי כתיב)."

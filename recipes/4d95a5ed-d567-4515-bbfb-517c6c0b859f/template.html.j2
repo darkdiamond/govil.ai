@@ -85,7 +85,7 @@
     <summary class="text-sm text-subtle">הצג כטבלה</summary>
     <div class="overflow-x-auto">
       <table class="mt-2 w-full text-sm">
-        <caption class="sr-only">{{ g.chart.unit }} — {{ g.title }}</caption>
+        <caption class="sr-only">{{ g.title }}: {{ g.chart.unit }}</caption>
         <thead><tr><th scope="col">מוצר</th><th scope="col">יצרן</th><th scope="col">פריטים</th><th scope="col">{{ model.labels.th_prod }}</th><th scope="col">{{ model.labels.th_eol }}</th><th scope="col">{{ model.labels.th_d }}</th><th scope="col">נטו</th></tr></thead>
         <tbody>
 {%- for r in g.table %}

@@ -428,7 +428,7 @@ def compute(frames):
     if pet_n and ev_n:
         insights.append({"id": "ev", "text_he": (
             f"{n(ev_n)} מתקנים ({pct(ev_n / total * 100)}) מורשים ל{ev_label}, לעומת {n(pet_n)} "
-            f"המורשים ל{labels_by_code.get(PETROL_CODE, '')} — כ-{n(round(ev_n / pet_n * 100))} "
+            f"המורשים ל{labels_by_code.get(PETROL_CODE, '')}, כ-{n(round(ev_n / pet_n * 100))} "
             f"על כל מאה.")})
     if pet_n and die_n:
         diff = (die_n - pet_n) / pet_n
@@ -456,7 +456,7 @@ def compute(frames):
                 "values": [pnum(r[2] / r[1] * 100) if r[1] else 0 for r in ev_rows],
                 "counts": [r[2] for r in ev_rows], "totals": [r[1] for r in ev_rows],
                 "national": pnum(ev_n / total * 100) if total else 0}
-    ev_table = [{"name": r[0], "share": pct(r[2] / r[1] * 100) if r[1] else "—",
+    ev_table = [{"name": r[0], "share": pct(r[2] / r[1] * 100) if r[1] else "–",
                  "ev": n(r[2]), "total": n(r[1])} for r in ev_rows]
     big = [r for r in ev_rows if r[1] >= MIN_DIST_GARAGES]
     if len(big) >= 3:
@@ -482,7 +482,7 @@ def compute(frames):
             c = int(fam_ct.get((x, f), 0))
             v = pnum(c / tot * 100) if tot else 0
             cells.append([xi, yi, v, c])
-            row.append(pct(c / tot * 100, 0) if tot else "—")
+            row.append(pct(c / tot * 100, 0) if tot else "–")
         heat_table.append({"name": x, "cells": row})
     heat_chart = {"x": fams, "y": hm_d, "cells": cells, "max": _vmax(cells)}
 
@@ -497,7 +497,7 @@ def compute(frames):
             v = pnum(inter / len(sets[a]) * 100) if sets[a] else 0
             if a != b:
                 co_cells.append([xi, yi, v, inter])
-            row.append("—" if a == b else pct(inter / len(sets[a]) * 100, 0))
+            row.append("–" if a == b else pct(inter / len(sets[a]) * 100, 0))
             if a != b and len(sets[a]) >= 100 and {a, b} != {PETROL_CODE, DIESEL_CODE}:
                 key = (inter / len(sets[a]), inter, labels_by_code[a], labels_by_code[b])
                 if best is None or key > best[0]:
@@ -544,7 +544,7 @@ def compute(frames):
     stations_chart = {"names": [r["name"] for r in st_rows], "values": [r["st"] for r in st_rows],
                       "ratio": [r["ratio"] for r in st_rows]}
     stations_table = [{"name": r["name"], "st": n(r["st"]), "g": n(r["g"]),
-                       "ratio": n(r["ratio"]) if r["ratio"] is not None else "—"} for r in st_rows]
+                       "ratio": n(r["ratio"]) if r["ratio"] is not None else "–"} for r in st_rows]
     cmp_ = [r for r in st_rows if r["ratio"] is not None and r["g"] >= MIN_DIST_GARAGES and r["name"] != UNASSIGNED]
     cmp_.sort(key=lambda r: (r["ratio"], r["name"]))
     if len(cmp_) >= 3 and cmp_[-1]["ratio"] >= 1.5 * cmp_[0]["ratio"]:
@@ -553,7 +553,7 @@ def compute(frames):
             f"במחוז {cmp_[0]['name']} מכון אחד לכל {n(cmp_[0]['ratio'])} מתקנים, ובמחוז {cmp_[-1]['name']} "
             f"אחד לכל {n(cmp_[-1]['ratio'])}.")})
     st_list = st.sort_values(["district", "place", "name", "id"], kind="mergesort")
-    station_list = [{"name": r["name"], "place": r["place"] or "—", "district": r["district"]}
+    station_list = [{"name": r["name"], "place": r["place"] or "–", "district": r["district"]}
                     for _, r in st_list.head(STATIONS_CAP).iterrows()]
 
     # ── managers (counted, never named) ───────────────────────────────
@@ -582,8 +582,8 @@ def compute(frames):
 
     top_spec = sp.iloc[0]
     labels = {
-        "lede": (f"מאגר משרד התחבורה של מפעלי שירותי התחזוקה לרכב: {n(total)} מתקנים — מוסכים מורשים, "
-                 f"מוסכי רישוי ומכוני רישוי — ב-{n(n_places)} יישובים, עם {n(len(lic))} הרשאות ב-{n(len(sp))} "
+        "lede": (f"מאגר משרד התחבורה של מפעלי שירותי התחזוקה לרכב: {n(total)} מתקנים (מוסכים מורשים, "
+                 f"מוסכי רישוי ומכוני רישוי) ב-{n(n_places)} יישובים, עם {n(len(lic))} הרשאות ב-{n(len(sp))} "
                  f"תחומי מקצוע. העמוד מציג את סוגי המתקנים, פריסתם במחוזות וביישובים, את תחומי ההתמחות "
                  f"והצירופים ביניהם, את רשתות המוסכים ואת מכוני הרישוי."),
         "types_note": (f"כל מתקן נספר פעם אחת לפי סוג הרישיון שלו. {n(auth)} מוסכים מורשים הם "
@@ -607,7 +607,7 @@ def compute(frames):
         "ev_note": (f"שיעור המתקנים המורשים ל{ev_label} מכלל המתקנים בכל מחוז; הקו המקווקו הוא "
                     f"השיעור הארצי ({pct(ev_n / total * 100 if total else 0)}).") if ev_label else "",
         "ev_aria": "תרשים עמודות: שיעור המתקנים המורשים לרכב חשמלי והיברידי לפי מחוז.",
-        "heat_note": "איזה חלק מהמתקנים בכל מחוז מורשה לכל משפחת תחומים — מבט על אופי שירותי הרכב באזור.",
+        "heat_note": "איזה חלק מהמתקנים בכל מחוז מורשה לכל משפחת תחומים, וכך מתקבל מבט על אופי שירותי הרכב באזור.",
         "heat_aria": "מפת חום: שיעור המתקנים המורשים לכל משפחת תחומים, לפי מחוז.",
         "cooc_note": (f"בין {n(len(top_codes))} התחומים הנפוצים: איזה חלק מהמתקנים המורשים לתחום שבשורה "
                       f"מורשים גם לתחום שבעמודה."),
@@ -647,7 +647,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"מאגר משרד התחבורה של {n(total)} מוסכים מורשים, מוסכי רישוי ומכוני רישוי ב-{n(n_places)} "
-                           f"יישובים — סוג המתקן, היישוב ותחומי המקצוע שבהם הוא מורשה לטפל ברכב."),
+                           f"יישובים: סוג המתקן, היישוב ותחומי המקצוע שבהם הוא מורשה לטפל ברכב."),
             "dataset_kind": "registry",
             "suggested_tags": ["מוסכים", "מכוני רישוי", "תחזוקת רכב", "רכב חשמלי", "משרד התחבורה"],
             "related_ids": ["392abd0a-64f6-4c18-9d56-0111001411e6",

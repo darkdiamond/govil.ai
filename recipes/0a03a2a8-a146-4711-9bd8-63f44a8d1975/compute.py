@@ -228,7 +228,7 @@ def compute(frames):
             verdict = f"בקצב נמוך ב-{pct(abs(ch), 0)}"
         insights.append({"id": "pace", "text_he": (
             f"ב-{ly} (עד {MONTHS_HE[months_in_last - 1]}) פורסמו {n(ycount[ly])} מודעות, "
-            f"כ-{pace:.1f} בחודש — {verdict} ביחס ל-{prev} המלאה ({prev_pace:.1f} בחודש).")})
+            f"כ-{pace:.1f} בחודש, {verdict} ביחס ל-{prev} המלאה ({prev_pace:.1f} בחודש).")})
 
     known = [(k, v) for k, v in unit_pairs if k != UNCLASSIFIED]
     if len(known) >= 2 and known[0][1] / total >= 0.15:

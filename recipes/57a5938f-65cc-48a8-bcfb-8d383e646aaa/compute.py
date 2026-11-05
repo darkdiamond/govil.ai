@@ -176,7 +176,7 @@ def insight_uniform(df):
     if not uni:
         return None
     return (f"ב-{_int(len(uni))} מתוך {_int(len(big))} השכונות הגדולות (לפחות {_int(MIN_HOOD)} פחים) "
-            f"סוג אחד מהווה לפחות {_pct(UNIFORM_SHARE)} מהפחים — השכונה כמעט אחידה "
+            f"סוג אחד מהווה לפחות {_pct(UNIFORM_SHARE)} מהפחים, כך שהשכונה כמעט אחידה "
             f"מבחינת סוג.")
 
 
@@ -212,7 +212,7 @@ def insight_unknown(df, total):
         return None
     nh = int((df["hood"] == UNKNOWN).sum())
     nt = int((df["type"] == UNKNOWN).sum())
-    return (f"{_int(n)} רשומות ({_pct(n / total, 1)}) חסרות שכונה או סוג — {_int(nh)} בלי שכונה "
+    return (f"{_int(n)} רשומות ({_pct(n / total, 1)}) חסרות שכונה או סוג: {_int(nh)} בלי שכונה "
             f"ו-{_int(nt)} בלי סוג.")
 
 
@@ -370,7 +370,7 @@ def compute(frames):
                        f"התרשים סופר כמה אתרים יש לפי מספר הפחים בהם."),
         "sites_aria": f"תרשים עמודות: מספר האתרים לפי מספר הפחים באתר, {len(site_names)} קבוצות.",
         "sites_caption": "מספר האתרים לפי מספר הפחים באתר.",
-        "spread_note": ("חציון המרחק של פחי כל סוג ממרכז הסוג — ככל שהערך נמוך, "
+        "spread_note": ("חציון המרחק של פחי כל סוג ממרכז הסוג. ככל שהערך נמוך, "
                         "הסוג מרוכז באזור קטן יותר בעיר."),
         "spread_aria": f"תרשים עמודות אופקי: רדיוס הפיזור במטרים של {len(spread)} סוגים.",
         "spread_caption": "רדיוס הפיזור (חציון, במטרים) לפי סוג.",

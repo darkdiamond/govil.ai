@@ -50,7 +50,7 @@ EXPIRED_OK, EXPIRED_WARN = 0.02, 0.05
 
 SEGMENTS = ["M1", "M2", "M3"]
 SEG_NAME = {"M1": "מוניות", "M2": "אוטובוסים זעירים", "M3": "אוטובוסים"}
-SEG_DESC = {"M1": "M1 — מוניות", "M2": "M2 — אוטובוסים זעירים", "M3": "M3 — אוטובוסים"}
+SEG_DESC = {"M1": "M1: מוניות", "M2": "M2: אוטובוסים זעירים", "M3": "M3: אוטובוסים"}
 ACTIVE_CODE = "0"
 CHINA = "סין"
 
@@ -210,7 +210,7 @@ def _seg_label(s):
 def insight_segments(seg_counts, n):
     if n == 0 or len(seg_counts) < 2:
         return None
-    parts = [f"{SEG_NAME.get(s, s)} — {_int(v)} ({_pct(v / n)})" for s, v in seg_counts]
+    parts = [f"{_int(v)} {SEG_NAME.get(s, s)} ({_pct(v / n)})" for s, v in seg_counts]
     return f"הקובץ מונה {_int(n)} כלי רכב ציבוריים: " + "; ".join(parts) + "."
 
 
@@ -232,7 +232,7 @@ def insight_age_gap(type_med):
     if new["med"] - old["med"] < AGE_GAP:
         return None
     return (f"הוותיקים בצי הם כלי הסוג \"{old['name']}\" (שנת ייצור חציונית {old['med']}), "
-            f"והחדשים — \"{new['name']}\" ({new['med']}).")
+            f"והחדשים הם כלי הסוג \"{new['name']}\" ({new['med']}).")
 
 
 def insight_leader(df, seg_set, label):
@@ -289,7 +289,7 @@ def insight_cancelled(df, n):
     vc = _ranked(canc["reason"])
     r1, c1 = vc.index[0], int(vc.iloc[0])
     taxi = int((canc["seg"] == "M1").sum())
-    return (f"{_int(len(canc))} כלים ({_pct(len(canc) / n)}) מסומנים כמבוטלים; הסיבה הנפוצה — "
+    return (f"{_int(len(canc))} כלים ({_pct(len(canc) / n)}) מסומנים כמבוטלים; הסיבה הנפוצה היא "
             f"\"{r1}\" ({_int(c1)}), ו-{_pct(taxi / len(canc))} מהמבוטלים הם מוניות.")
 
 
@@ -312,7 +312,7 @@ def insight_color(df):
         return None
     taxis = df[df["seg"] == "M1"]
     t_share = (taxis["color"] == c1).mean() if len(taxis) else 0.0
-    return (f"{_pct(share)} מהכלים צבועים \"{c1}\" — ובקרב המוניות {_pct(t_share)}.")
+    return (f"{_pct(share)} מהכלים צבועים \"{c1}\", ובקרב המוניות {_pct(t_share)}.")
 
 
 # ── compute ──────────────────────────────────────────────────────────────────
@@ -341,11 +341,11 @@ def compute(frames):
     for name, v in zip(t_names, t_vals):
         if name == OTHER:
             t_types.append({"name": name, "count": _int(v), "share": f"{v / n * 100:.1f}",
-                            "seats": "—", "year": "—"})
+                            "seats": "–", "year": "–"})
         else:
             t_types.append({"name": name, "count": _int(v), "share": f"{v / n * 100:.1f}",
                             "seats": _int(type_stats.loc[name, "med_seats"]),
-                            "year": str(int(type_year[name])) if name in type_year.index else "—"})
+                            "year": str(int(type_year[name])) if name in type_year.index else "–"})
     types_seg = df.groupby("vtype")["seg"].agg(lambda s: _ranked(s).index[0])
     type_colors = [SEGMENTS.index(types_seg[t]) if t in types_seg.index and types_seg[t] in SEGMENTS else 3
                    for t in t_names]
@@ -459,7 +459,7 @@ def compute(frames):
     t_segs = [{"name": _seg_label(s), "count": _int(dict(seg_counts)[s]),
                "share": f"{dict(seg_counts)[s] / n * 100:.1f}",
                "seats": _int(seg_seats[s]), "seat_med": _int(seg_seat_med[s]),
-               "weight": _int(seg_weight_med[s]) if seg_weight_med[s] else "—"} for s in segs]
+               "weight": _int(seg_weight_med[s]) if seg_weight_med[s] else "–"} for s in segs]
 
     # ── Colours ────────────────────────────────────────────────────────────
     col_names, _ = _top_other(df["color"], TOP_COLORS)
@@ -512,7 +512,7 @@ def compute(frames):
 
     # ── KPIs ───────────────────────────────────────────────────────────────
     if exp is None:
-        exp_disp, exp_tone, exp_val = "—", "brand", None
+        exp_disp, exp_tone, exp_val = "–", "brand", None
     else:
         exp_disp, exp_val = _pct(exp["share"]), round(exp["share"], 4)
         exp_tone = "ok" if exp["share"] < EXPIRED_OK else ("warn" if exp["share"] < EXPIRED_WARN else "danger")
@@ -536,13 +536,13 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     ref_txt = _date_he(ref) if ref is not None else ""
-    partial_note = (f" שנת {y1} עדיין בעיצומה — כלים מתווספים אליה לאורך השנה." if partial_year else "")
+    partial_note = (f" שנת {y1} עדיין בעיצומה, וכלים מתווספים אליה לאורך השנה." if partial_year else "")
     taxi_n = dict(seg_counts).get("M1", 0)
 
     return {
         "agent_data": {
-            "summary_he": (f"{_int(n)} כלי רכב ציבוריים — {_int(taxi_n)} מוניות לצד אוטובוסים "
-                           f"ואוטובוסים זעירים — שנות ייצור \u2066{y0}–{y1}\u2069. "
+            "summary_he": (f"{_int(n)} כלי רכב ציבוריים ({_int(taxi_n)} מוניות לצד אוטובוסים "
+                           f"ואוטובוסים זעירים), שנות ייצור \u2066{y0}–{y1}\u2069. "
                            f"{_pct(young_share)} מהם יוצרו בשנים \u2066{y_cmp - YOUNG_YEARS + 1}–{y_cmp}\u2069, "
                            f"והם מציעים יחד {_int(total_seats)} מקומות ישיבה."),
             "dataset_kind": "registry",
@@ -596,26 +596,26 @@ def compute(frames):
         },
         "insights": insights,
         "labels": {
-            "lede": (f"המאגר מונה {_int(n)} כלי רכב ציבוריים הרשומים במשרד התחבורה — מוניות, "
-                     f"מוניות שירות, אוטובוסים זעירים ואוטובוסים עירוניים, בין-עירוניים, להסעות ולסיורים — "
+            "lede": (f"המאגר מונה {_int(n)} כלי רכב ציבוריים הרשומים במשרד התחבורה (מוניות, "
+                     f"מוניות שירות, אוטובוסים זעירים ואוטובוסים עירוניים, בין-עירוניים, להסעות ולסיורים), "
                      f"שנות ייצור \u2066{y0}–{y1}\u2069. {_int(n_canc)} מהרשומות ({_pct(n_canc / n)}) כבר נושאות "
                      f"סימון ביטול, והן נכללות בספירות ומוצגות בנפרד בפרק מצב הרישום."),
             "total_kpi": "כלי רכב ציבוריים בקובץ",
             "seats_kpi": "מקומות ישיבה לנוסעים",
             "year_kpi": "שנת ייצור חציונית",
-            "expired_kpi": (f"מהכלים הלא מבוטלים — רישיון שפג לפני {ref_txt}" if ref is not None
+            "expired_kpi": (f"מהכלים הלא מבוטלים: רישיון שפג לפני {ref_txt}" if ref is not None
                             else "רישיון שפג תוקפו"),
             "segs_caption": "הצי לפי קטגוריית הגודל: כלים, מקומות ישיבה ומשקל כולל חציוני.",
             "types_note": (f"{_int(df['vtype'].nunique())} סוגי כלים ציבוריים. הצבע מציין את קטגוריית "
                            f"הגודל של רוב הכלים בסוג. מקומות הישיבה כוללים את המושבים שליד הנהג."),
             "types_aria": f"תרשים עמודות: כלי רכב ציבוריים לפי סוג, {len(t_names)} קטגוריות.",
-            "years_note": (f"כל עמודה — הכלים משנת ייצור אחת, לפי קטגוריית הגודל. "
+            "years_note": (f"כל עמודה מציגה את הכלים משנת ייצור אחת, לפי קטגוריית הגודל. "
                            f"{_pct(young_share)} מהצי יוצרו בשנים \u2066{y_cmp - YOUNG_YEARS + 1}–{y_cmp}\u2069."
                            f"{partial_note}"),
             "years_aria": f"תרשים עמודות מוערם: כלי רכב לפי שנת ייצור וקטגוריה, \u2066{y0}–{y1}\u2069.",
             "years_caption": "כלי רכב לפי שנת ייצור וקטגוריית גודל.",
             "box_note": (f"שנת הייצור בכל סוג שיש בו לפחות {BOX_MIN} כלים, מהוותיק לחדש. "
-                         f"התיבה — רבעון תחתון עד עליון, הקו — החציון, השפמים — אחוזון 5 עד 95."),
+                         f"התיבה מציגה רבעון תחתון עד עליון, הקו את החציון והשפמים את אחוזון 5 עד 95."),
             "box_aria": f"תרשים תיבה: שנת ייצור לפי סוג כלי, {len(box_rows)} סוגים.",
             "taxi_brands_note": (f"{_int(n_taxi_brands)} יצרנים בין {_int(len(taxis))} המוניות. "
                                  f"מפעלי אותו יצרן בארצות שונות אוחדו."),
@@ -640,12 +640,12 @@ def compute(frames):
             "seats_aria": "תרשים עמודות מוערם: כלי רכב לפי מספר מקומות ישיבה וקטגוריה.",
             "colors_note": "הצבע הרשום של הכלי, לפי קטגוריית גודל.",
             "colors_aria": f"תרשים עמודות: {len(col_names)} הצבעים הנפוצים לפי קטגוריה.",
-            "status_note": (f"{_int(n_canc)} רשומות ({_pct(n_canc / n)}) נושאות סימון ביטול — הפקדת לוחית, "
-                            f"פירוק, אובדן גמור, ביטול לפני מכירה ועוד. שיעור המבוטלים: "
+            "status_note": (f"{_int(n_canc)} רשומות ({_pct(n_canc / n)}) נושאות סימון ביטול (הפקדת לוחית, "
+                            f"פירוק, אובדן גמור, ביטול לפני מכירה ועוד). שיעור המבוטלים: "
                             + "; ".join(f"{r['name']} {r['share']}%" for r in seg_canc) + "."),
             "status_aria": "תרשים עמודות: רשומות מבוטלות לפי סיבת הביטול וקטגוריה.",
             "tokef_note": ((f"מועד פקיעת הרישיון של {_int(len(act))} הכלים שאינם מבוטלים, לפי חודש. "
-                            f"באדום — רישיונות שפגו לפני {ref_txt}, התאריך האחרון בנתונים; "
+                            f"באדום: רישיונות שפגו לפני {ref_txt}, התאריך האחרון בנתונים; "
                             f"בשלושת החודשים הבאים ({MONTHS_HE[ref.month % 12]}–{MONTHS_HE[(ref.month + 2) % 12]}) "
                             f"פוקעים עוד {_int(due3)}.") if ref is not None else
                            f"מועד פקיעת הרישיון של {_int(len(act))} הכלים שאינם מבוטלים, לפי חודש."),

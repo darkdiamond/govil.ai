@@ -92,7 +92,7 @@ def date_he(ts):
 
 def cat_label(c):
     d = CAT_DESC.get(c)
-    return f"{c} — {d}" if d else c
+    return f"{c}: {d}" if d else c
 
 
 def cat_short(c):
@@ -152,7 +152,7 @@ def insight_tail(by_year, total_dated, last_date):
         return None
     first = int(after.index.min())
     years = int(last_date.year) - first + 1
-    return (f"מאז {first} נרשמו {n(k)} התקנות בלבד ({pct(k / total_dated)}) — "
+    return (f"מאז {first} נרשמו {n(k)} התקנות בלבד ({pct(k / total_dated)}), "
             f"בממוצע {k / years:,.0f} בשנה, לעומת {n(by_year[peak])} ב-{peak} "
             f"(הנתונים עד {date_he(last_date)}).")
 
@@ -164,7 +164,7 @@ def insight_leader(cats, total):
         return None
     s = f"{pct(share)} מכלי הרכב ({n(cats.iloc[0])}) הם בקטגוריית {cat_short(c)}"
     if len(cats) > 1:
-        s += f"; אחריה {cat_short(cats.index[1])} — {pct(cats.iloc[1] / total)}"
+        s += f"; אחריה {cat_short(cats.index[1])} עם {pct(cats.iloc[1] / total)}"
     return s + "."
 
 
@@ -176,7 +176,7 @@ def insight_wave(med_dates):
     if gap < WAVE_GAP_DAYS:
         return None
     return (f"הקטגוריות צוידו בגלים נפרדים: חציון מועד ההתקנה בקטגוריית {cat_short(first)} הוא "
-            f"{month_he(med_dates.iloc[0])}, ובקטגוריית {cat_short(last)} — {month_he(med_dates.iloc[-1])}, "
+            f"{month_he(med_dates.iloc[0])}, ובקטגוריית {cat_short(last)} הוא {month_he(med_dates.iloc[-1])}, "
             f"כ-{gap / 30.44:,.0f} חודשים מאוחר יותר.")
 
 
@@ -194,7 +194,7 @@ def insight_vintage(years, total_years):
     later = int(counts[counts.index > cut].sum())
     lo = int(big.index.min())
     core = counts[(counts.index >= lo) & (counts.index <= cut)].sum() / total_years
-    s = f"{pct(share)} מכלי הרכב יוצרו עד {cut} — {pct(core)} בשנים {lo} עד {cut}"
+    s = f"{pct(share)} מכלי הרכב יוצרו עד {cut} ({pct(core)} בשנים {lo} עד {cut})"
     if later:
         s += f"; רק {n(later)} יוצרו אחרי {cut}"
     return s + "."
@@ -221,7 +221,7 @@ def insight_bulk(day_counts, total_dated):
         return None
     d0 = top.index[0]
     return (f"ההתקנות רשומות בריכוזים: ב-{TOP_DAYS} התאריכים העמוסים ביותר נרשמו {pct(share)} "
-            f"מכלל ההתקנות, וביום העמוס ביותר ({date_he(d0)}) — {n(top.iloc[0])} התקנות, "
+            f"מכלל ההתקנות, וביום העמוס ביותר ({date_he(d0)}) נרשמו {n(top.iloc[0])} התקנות, "
             f"מתוך {n(len(day_counts))} תאריכים שונים במאגר.")
 
 
@@ -397,7 +397,7 @@ def compute(frames):
         "peak": {"value": round(peak_share * 100, 1), "display": f"{peak_share * 100:.1f}%",
                  "tone": "info" if peak_share >= PEAK_SHARE else "brand"},
         "age": {"value": round(med_age, 1) if med_age is not None else None,
-                "display": f"{med_age:.1f}" if med_age is not None else "—",
+                "display": f"{med_age:.1f}" if med_age is not None else "–",
                 "tone": ("warn" if med_age is not None and med_age >= 15 else "brand")},
         "vintage": {"value": med_year, "display": str(med_year), "tone": "brand"},
     }
@@ -420,28 +420,28 @@ def compute(frames):
         "peak_kpi": f"מההתקנות בוצעו ב-{peak_year}",
         "age_kpi": "גיל חציוני בהתקנה (שנים מהרישום הראשון)",
         "vintage_kpi": "שנת ייצור חציונית",
-        "cats_note": (f"מספר כלי הרכב בכל קטגוריה אירופית (M — נוסעים, N — משא). "
+        "cats_note": (f"מספר כלי הרכב בכל קטגוריה אירופית (M: נוסעים, N: משא). "
                       f"הקטגוריה {cat_short(cats_ranked.index[0])} מהווה {pct(cats_ranked.iloc[0] / total)} "
                       f"מהמאגר."),
         "cats_aria": f"תרשים עמודות: {n(total)} כלי רכב לפי קטגוריה אירופית.",
-        "tl_note": (f"מספר ההתקנות בכל {gran}, והקו — השיעור המצטבר מכלל ההתקנות. "
+        "tl_note": (f"מספר ההתקנות בכל {gran}, והקו מציג את השיעור המצטבר מכלל ההתקנות. "
                     f"ה{gran} העמוס ביותר: {peak_p_lab}, עם {n(tl[peak_p])} התקנות. "
                     f"אפשר לגרור את הסרגל שבתחתית כדי להתמקד בטווח."),
         "tl_aria": f"תרשים עמודות וקו: התקנות מסננים לפי {gran}, {date_he(first_date)} עד "
                    f"{date_he(last_date)}.",
         "yc_note": ("התקנות בכל שנה לפי קטגוריית רכב." +
-                    (f" השנה {last_year} חלקית — הנתונים עד {date_he(last_date)}." if partial else "")),
+                    (f" השנה {last_year} חלקית: הנתונים עד {date_he(last_date)}." if partial else "")),
         "yc_aria": "תרשים עמודות מוערמות: התקנות לפי שנה וקטגוריית רכב.",
         "yc_caption": "מספר התקנות לפי שנה וקטגוריית רכב.",
-        "wave_note": (f"לכל קטגוריה — איזה חלק מכלי הרכב שלה כבר צויד במסנן בכל {gran}. "
+        "wave_note": (f"לכל קטגוריה: איזה חלק מכלי הרכב שלה כבר צויד במסנן בכל {gran}. "
                       f"קו שמטפס מוקדם מסמן קטגוריה שצוידה ראשונה.{small_note}"),
         "wave_aria": "תרשים קווים: שיעור מצטבר של כלי רכב שצוידו במסנן, לפי קטגוריה.",
         "my_note": (f"כלי הרכב לפי שנת הייצור וקטגוריה (כלי רכב שיוצרו לפני {YEAR_FROM} מקובצים "
                     f"יחד" + (f", וכך גם כלי הרכב שיוצרו אחרי {top_y} ({n((yr['year'] > top_y).sum())})"
                               if max_y > top_y else "") + f"). שנת הייצור החציונית: {med_year}."),
         "my_aria": "תרשים עמודות מוערמות: כלי רכב לפי שנת ייצור וקטגוריה.",
-        "age_note": (f"הזמן שעבר מהרישום הראשון ועד התקנת המסנן, בשנים: הקופסה — הרבעון התחתון "
-                     f"עד העליון, הקו — החציון, והשפמים — אחוזון 5 עד 95.{small_note}"),
+        "age_note": (f"הזמן שעבר מהרישום הראשון ועד התקנת המסנן, בשנים. הקופסה מציגה את הרבעון התחתון "
+                     f"עד העליון, הקו את החציון, והשפמים את אחוזון 5 עד 95.{small_note}"),
         "age_aria": "תרשים קופסה: גיל כלי הרכב בעת התקנת המסנן לפי קטגוריה.",
         "agehist_note": ("התפלגות גיל כלי הרכב בעת ההתקנה (שנים מהרישום הראשון) בכלל המאגר."
                          + (f" חציון: {med_age:.1f} שנים." if med_age is not None else "")),

@@ -181,8 +181,8 @@ def insight_no_validity(df, label):
                           ) if len(full_codes) > 1 else label(full_codes[0])
         rest = int(len(miss) - sum(int(by[c]) for c in full_codes))
         extra = f", ועוד {n(rest)} רשומות בהכשרות אחרות" if rest else ""
-        return (f"ל-{n(len(miss))} רשומות לא רשום תאריך תוקף: כל רשומות {names}{extra} — "
-                f"הכשרות שמופיעות ברשימה ללא מועד פקיעה.")
+        return (f"ל-{n(len(miss))} רשומות לא רשום תאריך תוקף: כל רשומות {names}{extra} ("
+                f"הכשרות שמופיעות ברשימה ללא מועד פקיעה).")
     return f"ל-{n(len(miss))} רשומות ({pct(len(miss) / len(df))}) לא רשום תאריך תוקף."
 
 
@@ -210,7 +210,7 @@ def insight_seniority(sen_share, label, counts):
     if newest == oldest or sen_share[newest][0] < 0.3:
         return None
     return (f"{label(newest)} היא ההכשרה הצעירה: {pct(sen_share[newest][0], 0)} מבעליה הוסמכו בשלוש "
-            f"השנים האחרונות. ב{label(oldest)} הוותק הגבוה ביותר — "
+            f"השנים האחרונות. ב{label(oldest)} הוותק הגבוה ביותר: "
             f"{pct(sen_share[oldest][2] + sen_share[oldest][3], 0)} הוסמכו לפני עשור ויותר.")
 
 
@@ -234,7 +234,7 @@ def insight_quality(n_early, n_future, earliest):
         parts.append(f"{n(n_early)} לפני {MIN_YEAR} (המוקדם: {earliest})")
     if n_future:
         parts.append(f"{n(n_future)} אחרי מועד הייחוס")
-    return (f"ל-{n(n_early + n_future)} רשומות תאריך קבלה שאינו סביר — {' ו-'.join(parts)}; "
+    return (f"ל-{n(n_early + n_future)} רשומות תאריך קבלה שאינו סביר: {' ו-'.join(parts)}; "
             f"הן נספרות בסיכומים אך לא בתרשימים לפי מועד הקבלה.")
 
 
@@ -289,10 +289,10 @@ def compute(frames):
     for c in codes_all:
         g = df[df["code"] == c]
         tbl_types.append({
-            "code": c, "prefix": prefixes.get(c, "—"), "count": n(len(g)),
+            "code": c, "prefix": prefixes.get(c, "–"), "count": n(len(g)),
             "share": pct(len(g) / total),
             "holders": n(g.loc[g["person"] != "", "person"].nunique()),
-            "first": str(int(dated.loc[dated["code"] == c, "year"].min())) if (dated["code"] == c).any() else "—",
+            "first": str(int(dated.loc[dated["code"] == c, "year"].min())) if (dated["code"] == c).any() else "–",
         })
     charts = {"types": {"names": [short(c) for c in codes_all][::-1],
                         "values": [int(type_counts[c]) for c in codes_all][::-1]}}
@@ -371,7 +371,7 @@ def compute(frames):
         med = float(sub.median()) if k else float("nan")
         sen_rows.append({"name": glabel(g), "count": n(k),
                          "vals": [pct(s, 0) for s in shares],
-                         "median": f"{med:.1f}" if k else "—"})
+                         "median": f"{med:.1f}" if k else "–"})
     charts["seniority"] = {"names": [glabel(g) for g in groups],
                            "series": [{"name": SENIORITY[i][0], "data": sen_series[i]} for i in range(len(SENIORITY))]}
 
@@ -382,7 +382,7 @@ def compute(frames):
         buckets.append((f"{k}", int(dist.get(k, 0))))
     buckets.append(("5 ומעלה", int(dist[dist.index >= 5].sum())))
     charts["multi"] = {"names": [b[0] for b in buckets], "values": [b[1] for b in buckets]}
-    tbl_multi = [{"name": b[0], "count": n(b[1]), "share": pct(b[1] / holders) if holders else "—"} for b in buckets]
+    tbl_multi = [{"name": b[0], "count": n(b[1]), "share": pct(b[1] / holders) if holders else "–"} for b in buckets]
 
     # ── chart: co-occurrence of types among multi-type holders
     pc = ppl[["person", "grp"]].drop_duplicates()
@@ -441,20 +441,20 @@ def compute(frames):
 
     pref_note = ("סוג ההכשרה מפורסם במאגר כקוד מספרי בלבד, ללא שם; לצד כל קוד מוצגת הקידומת "
                  "האופיינית למספרי התעודה שלו.")
-    partial_note = f" {as_of_year} — שנה חלקית, עד {d_he(as_of)}." if partial else ""
+    partial_note = f" שנת {as_of_year} חלקית, עד {d_he(as_of)}." if partial else ""
     bad_note = (f" לא נכללו {n(n_bad)} רשומות שתאריך הקבלה שלהן אינו סביר." if n_bad else "")
     approx = "בעלי הכשרות מזוהים לפי צירוף שם משפחה ושם פרטי, כך שבעלי שם זהה נספרים כאדם אחד."
     no_valid = total - total_dated
     labels = {
         "lede": (f"רשימת ההכשרות בתוקף בתחום בריאות הסביבה של משרד הבריאות: {n(total)} הכשרות "
-                 f"ב-{n(len(codes_all))} סוגים, של כ-{n(holders)} בעלי הכשרות. מועד הייחוס של הנתונים — "
-                 f"ההכשרה האחרונה שניתנה לפני מועד הפקיעה המוקדם ברשימה — הוא {d_he(as_of)}. {pref_note}"),
+                 f"ב-{n(len(codes_all))} סוגים, של כ-{n(holders)} בעלי הכשרות. מועד הייחוס של הנתונים ("
+                 f"ההכשרה האחרונה שניתנה לפני מועד הפקיעה המוקדם ברשימה) הוא {d_he(as_of)}. {pref_note}"),
         "total_kpi": "הכשרות בתוקף",
         "holders_kpi": "בעלי הכשרות (לפי צירוף שם)",
         "new_kpi": f"הכשרות שניתנו ב-{last_full}{chg_txt}",
         "window_kpi": f"פגות בתוך {WINDOW_MONTHS} חודשים ({pct(win_share)} מבעלות תאריך תוקף)",
         "types_note": f"מספר ההכשרות בתוקף לפי קוד ההכשרה. {pref_note}",
-        "types_aria": (f"תרשים עמודות אופקי: הכשרות לפי סוג — {label(codes_all[0])} בראש עם "
+        "types_aria": (f"תרשים עמודות אופקי: הכשרות לפי סוג, {label(codes_all[0])} בראש עם "
                        f"{n(type_counts.iloc[0])} רשומות."),
         "types_caption": "הכשרות בתוקף לפי סוג ההכשרה.",
         "years_note": (f"הכשרות בתוקף לפי שנת הקבלה, ב-{TOP_STACK} הסוגים הגדולים והשאר מקובצים. "
@@ -463,28 +463,28 @@ def compute(frames):
         "years_aria": (f"גרף עמודות מוערמות: הכשרות לפי שנת קבלה, {first_year} עד {as_of_year}; "
                        f"שיא ב-{int(per_year[per_year.index <= last_full].sort_index().idxmax())}."),
         "heat_note": (f"מספר ההכשרות שהתקבלו בכל חודש, {hy[0]} עד {as_of_year}. התאים הכהים "
-                      f"הם מחזורי הסמכה — ההכשרות ניתנות בקבוצות, לא באופן רציף."),
+                      f"הם מחזורי הסמכה: ההכשרות ניתנות בקבוצות, לא באופן רציף."),
         "heat_aria": f"מפת חום: הכשרות לפי חודש ושנת קבלה, {hy[0]} עד {as_of_year}.",
         "expiry_note": ("הכשרות לפי שנת פקיעת התוקף."
-                        + (f" שנת מועד הייחוס, {as_of_year}, מודגשת — הכשרות שיפוגו בה בחודשים הקרובים."
+                        + (f" שנת מועד הייחוס, {as_of_year}, מודגשת: הכשרות שיפוגו בה בחודשים הקרובים."
                            if as_of_year in exp_year.index else "")
                         + (f" {n(no_valid)} רשומות ללא תאריך תוקף אינן מוצגות." if no_valid else "")),
         "expiry_aria": (f"תרשים עמודות: הכשרות לפי שנת פקיעה, {exp_year.index[0]} עד {exp_year.index[-1]}."
                         if len(exp_year) else "תרשים עמודות: הכשרות לפי שנת פקיעה."),
         "expiry_caption": "הכשרות לפי שנת פקיעת התוקף.",
-        "window_note": (f"הכשרות שתוקפן פג בכל חודש, מ-{d_he(as_of)} ועד {d_he(win_end)} — "
+        "window_note": (f"הכשרות שתוקפן פג בכל חודש, מ-{d_he(as_of)} ועד {d_he(win_end)}: "
                         f"{n(n_window)} בסך הכול, לפי סוג."),
         "window_aria": f"גרף עמודות מוערמות: הכשרות שתוקפן פג בכל חודש ב-{WINDOW_MONTHS} החודשים שאחרי מועד הייחוס.",
         "window_caption": "הכשרות שתוקפן פג לפי חודש.",
-        "seniority_note": ("ותק ההכשרה — הזמן מתאריך הקבלה ועד מועד הייחוס — בכל סוג. "
+        "seniority_note": ("ותק ההכשרה (הזמן מתאריך הקבלה ועד מועד הייחוס) בכל סוג. "
                            "סוג צעיר נפתח או התרחב לאחרונה; סוג ותיק מוחזק בעיקר על ידי מי שחידשו."),
         "seniority_aria": "גרף עמודות מוערמות באחוזים: ותק ההכשרה לפי סוג.",
         "seniority_caption": "ותק ההכשרה לפי סוג (שיעור מההכשרות, וחציון בשנים).",
         "multi_note": f"בכמה סוגי הכשרה שונים מחזיק כל בעל הכשרה. {approx}",
-        "multi_aria": (f"תרשים עמודות: בעלי הכשרות לפי מספר סוגי ההכשרה — "
+        "multi_aria": (f"תרשים עמודות: בעלי הכשרות לפי מספר סוגי ההכשרה, "
                        f"{n(buckets[0][1])} מחזיקים בסוג אחד."),
         "multi_caption": "בעלי הכשרות לפי מספר סוגי ההכשרה.",
-        "pairs_note": (f"כמה בעלי הכשרות מחזיקים בכל צירוף של שני סוגים — אילו הכשרות נלמדות יחד. {approx}"),
+        "pairs_note": (f"כמה בעלי הכשרות מחזיקים בכל צירוף של שני סוגים: אילו הכשרות נלמדות יחד. {approx}"),
         "pairs_aria": "מפת חום: מספר בעלי הכשרות המחזיקים בכל זוג סוגי הכשרה.",
         "pairs_caption": "זוגות סוגי ההכשרה הנפוצים.",
     }

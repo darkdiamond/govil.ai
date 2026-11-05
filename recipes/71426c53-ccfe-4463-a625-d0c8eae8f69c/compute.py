@@ -278,7 +278,7 @@ def compute(frames):
         if a["cnt"] < b["cnt"] * LEAD_RATIO:
             return None
         top5 = int(offices["cnt"].head(5).sum())
-        return (f"אזור הרישוי {a['office']} מוביל עם {n(a['cnt'])} בתי ספר לנהיגה ({pct(p1(a['cnt'], total))} מהרשימה) — "
+        return (f"אזור הרישוי {a['office']} מוביל עם {n(a['cnt'])} בתי ספר לנהיגה ({pct(p1(a['cnt'], total))} מהרשימה), "
                 f"לעומת {n(b['cnt'])} ב{b['office']} שבמקום השני. חמשת האזורים הגדולים מרכזים יחד "
                 f"{n(top5)} בתי ספר ({pct(p1(top5, total))}) מתוך {n(n_off)} אזורים.")
 
@@ -292,8 +292,8 @@ def compute(frames):
             hv = d[d["seg"] == SEG_HEAVY].groupby("combo").size().reset_index(name="k")
             hv = hv.sort_values(["k", "combo"], ascending=[False, False], kind="mergesort")
             if len(hv) and hv["k"].iloc[0] >= 2 and hv["k"].iloc[0] * 3 >= heavy_n:
-                s += (f". הצירוף הנפוץ בקרב המתמחים: {_combo_label(hv['combo'].iloc[0])} — "
-                      f"{n(hv['k'].iloc[0])} בתי ספר")
+                s += (f". הצירוף הנפוץ בקרב המתמחים: {_combo_label(hv['combo'].iloc[0])} ("
+                      f"{n(hv['k'].iloc[0])} בתי ספר)")
         return s + "."
 
     def ins_truck():
@@ -305,7 +305,7 @@ def compute(frames):
         if sh < 50:
             return None
         return (f"רוב בתי הספר לרכב פרטי מלמדים גם נהיגה במשאית: {n(both)} מתוך {n(len(cars))} ({pct(sh)}). "
-                f"הצירוף הנפוץ ביותר ברשימה הוא {_combo_label(top_cb['combo'].iloc[0])} — "
+                f"הצירוף הנפוץ ביותר ברשימה הוא {_combo_label(top_cb['combo'].iloc[0])}, עם "
                 f"{n(top_cb['cnt'].iloc[0])} בתי ספר.")
 
     def ins_gap():
@@ -348,7 +348,7 @@ def compute(frames):
     def ins_none():
         if not none_n:
             return None
-        s = (f"{n(none_n)} רשומות ({pct(p1(none_n, total))}) אינן מסמנות אף סוג רכב — "
+        s = (f"{n(none_n)} רשומות ({pct(p1(none_n, total))}) אינן מסמנות אף סוג רכב, "
              f"ככל הנראה פער ברישום ולא בתי ספר ללא הרשאה")
         if n_fake:
             s += (f"; {records(n_fake, 'סומנה כפיקטיבית', 'סומנו כפיקטיביות')} "
@@ -382,7 +382,7 @@ def compute(frames):
     labels = {
         "lede": (f"רשימת משרד התחבורה של {n(total)} בתי ספר לנהיגה ב-{n(n_off)} אזורי רישוי, "
                  f"עם סוגי הרכב שכל בית ספר מורשה ללמד. {n(car_n)} מהם ({pct(car_share)}) מלמדים רכב פרטי; "
-                 f"{rare_cls[1]} הוא הסוג הנדיר ביותר — {n(cls_n[rare_cls[0]])} בתי ספר בלבד.{fake_note}"),
+                 f"{rare_cls[1]} הוא הסוג הנדיר ביותר: {n(cls_n[rare_cls[0]])} בתי ספר בלבד.{fake_note}"),
         "total_kpi": "בתי ספר לנהיגה ברשימה",
         "offices_kpi": "אזורי רישוי",
         "car_kpi": "מלמדים רכב פרטי",
@@ -416,7 +416,7 @@ def compute(frames):
                       "למשל, השורה „אוטובוס” מראה מה עוד מציעים בתי הספר לאוטובוסים."),
         "cooc_aria": "מפת חום: שיעור בתי הספר המלמדים סוג רכב אחד שמלמדים גם סוג אחר",
         "cooc_caption": "שיעור בתי הספר המלמדים גם סוג רכב נוסף (שורה: הסוג הנלמד; עמודה: הסוג הנוסף)",
-        "distclass_note": "אחוז בתי הספר בכל מחוז המורשים ללמד כל סוג רכב — היכן קל יותר למצוא הכשרה לרכב כבד.",
+        "distclass_note": "אחוז בתי הספר בכל מחוז המורשים ללמד כל סוג רכב, כדי לראות היכן קל יותר למצוא הכשרה לרכב כבד.",
         "distclass_aria": "מפת חום: אחוז בתי הספר המלמדים כל סוג רכב, לפי מחוז",
         "distclass_caption": "אחוז בתי הספר המלמדים כל סוג רכב, לפי מחוז",
         "gaps_note": (f"בכמה מתוך {n(n_off)} אזורי הרישוי אין אף בית ספר המורשה ללמד כל סוג רכב, "
@@ -444,7 +444,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשימת משרד התחבורה של {n(total)} בתי ספר לנהיגה ב-{n(n_off)} אזורי רישוי — "
+            "summary_he": (f"רשימת משרד התחבורה של {n(total)} בתי ספר לנהיגה ב-{n(n_off)} אזורי רישוי, "
                            f"היכן הם פועלים ואילו סוגי רכב כל אחד מהם מורשה ללמד: רכב פרטי, משאית, אופנוע, "
                            f"אוטובוס, גורר וטרקטור."),
             "dataset_kind": "registry",

@@ -62,7 +62,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
     {{ head("מצב הקרקע") }}
-    <p class="m-0 text-sm text-subtle mb-3">סיווג כל אתר לפי מצב הקרקע בו — שדה נפרד מהשלב המנהלי שמוצג בהמשך.</p>
+    <p class="m-0 text-sm text-subtle mb-3">סיווג כל אתר לפי מצב הקרקע בו (שדה נפרד מהשלב המנהלי שמוצג בהמשך).</p>
     <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
     {{ table(model.labels.status_aria, "סיווג", "אתרים", model.charts.status) }}
   </section>

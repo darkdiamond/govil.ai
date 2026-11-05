@@ -121,7 +121,7 @@ def insight_leader(df, ops):
     tail = [f"{o} ({_int(c)})" for o, c in list(ops.items())[1:]]
     rest = tail[0] if len(tail) == 1 else ", ".join(tail[:-1]) + f" ו{tail[-1]}"
     if (v - v2) / n < LEAD_GAP:
-        return (f"{lead} ו{second} מגישות כמעט אותו מספר בקשות — {_int(v)} ו-{_int(v2)} "
+        return (f"{lead} ו{second} מגישות כמעט אותו מספר בקשות: {_int(v)} ו-{_int(v2)} "
                 f"מתוך {_int(n)}.")
     return (f"{lead} מגישה הכי הרבה בקשות להקמת אתרים: {_int(v)} מתוך {_int(n)} "
             f"({_pct(v / n)}), ואחריה {rest}.")
@@ -145,7 +145,7 @@ def insight_trend(months, full, counts):
         return (f"קצב ההגשה יציב: כ-{a:.0f} בקשות בחודש ב{span_old} וכ-{b:.0f} ב{span_new}{note}.")
     word = "עלה" if ch > 0 else "ירד"
     return (f"קצב ההגשה {word}: ממוצע של {a:.1f} בקשות בחודש ב{span_old}, לעומת {b:.1f} "
-            f"ב{span_new} — {'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch), 0)}{note}.")
+            f"ב{span_new}, {'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch), 0)}{note}.")
 
 
 def insight_peak(months, full, counts):
@@ -157,7 +157,7 @@ def insight_peak(months, full, counts):
     avg = sum(counts.get(m, 0) for m in fm) / len(fm)
     if v < avg * 1.3:
         return None
-    return (f"החודש העמוס ביותר היה {_month_he(best)}, עם {_int(v)} בקשות — "
+    return (f"החודש העמוס ביותר היה {_month_he(best)}, עם {_int(v)} בקשות, "
             f"פי {v / avg:.1f} מהממוצע החודשי ({avg:.1f}).")
 
 
@@ -214,7 +214,7 @@ def insight_refile(df):
     rep = s[s > 1]
     if len(rep) < REFILE_MIN:
         return None
-    return (f"{_int(len(rep))} אתרים מופיעים ביותר מבקשה אחת (בסך הכול {_int(rep.sum())} בקשות) — "
+    return (f"{_int(len(rep))} אתרים מופיעים ביותר מבקשה אחת (בסך הכול {_int(rep.sum())} בקשות): "
             f"אותו מספר אתר הוגש שוב בתאריך אחר.")
 
 
@@ -245,7 +245,7 @@ def insight_weekday(df):
     we = ("אף בקשה לא הוגשה בשישי או בשבת" if weekend == 0 else
           "רק בקשה אחת הוגשה בשישי או בשבת" if weekend == 1 else
           f"רק {_int(weekend)} בקשות הוגשו בשישי או בשבת")
-    return (f"הבקשות מוגשות בימי חול — {we}; היום העמוס הוא יום "
+    return (f"הבקשות מוגשות בימי חול: {we}; היום העמוס הוא יום "
             f"{WEEKDAYS_HE[best]} ({_int(wd.get(best, 0))} בקשות).")
 
 
@@ -407,7 +407,7 @@ def compute(frames):
                          f"ממוצע {avg_full:.1f} בקשות בחודש מלא."),
         "monthly_caption": "בקשות לפי חודש וחברה.",
         "companies_note": (f"{lead} מובילה עם {_pct(lead_share)} מהבקשות. לצד מספר הבקשות מוצג מספר "
-                           f"האתרים השונים — חלק מהאתרים הוגשו יותר מפעם אחת."),
+                           f"האתרים השונים, כי חלק מהאתרים הוגשו יותר מפעם אחת."),
         "companies_aria": f"תרשים עמודות: בקשות ואתרים שונים לפי חברה; {lead} מובילה עם {_int(ops.iloc[0])} בקשות.",
         "companies_caption": "בקשות ואתרים שונים לפי חברה.",
         "mix_note": "חלקה של כל חברה מתוך הבקשות בכל רבעון (באחוזים); הריחוף מציג גם את מספר הבקשות.",
@@ -418,7 +418,7 @@ def compute(frames):
         "family_aria": (f"תרשים עמודות אופקי מוערם: בקשות לפי משפחת סוג מוקד וחברה; הנפוצה {fam_names[0]} "
                         f"עם {_int(fam.iloc[0])} בקשות."),
         "family_caption": "בקשות לפי משפחת סוג מוקד וחברה.",
-        "types_note": (f"כל חברה מתארת את סוג המוקד במונחים משלה — {_int(n_labels)} תיאורים שונים במאגר. "
+        "types_note": (f"כל חברה מתארת את סוג המוקד במונחים משלה: {_int(n_labels)} תיאורים שונים במאגר. "
                        f"הטבעת הפנימית היא החברה, החיצונית התיאור כפי שנרשם."),
         "types_aria": f"תרשים שמש: {_int(n_labels)} תיאורי סוג מוקד כפי שנרשמו, לפי חברה.",
         "types_caption": "סוג המוקד כפי שנרשם, לפי חברה.",

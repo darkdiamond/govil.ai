@@ -106,7 +106,7 @@ def _localities(cur, rank):
 
     def profile(g):
         pairs = sorted({(rank[c], c, s) for c, s in zip(g["cls"], g["status"])})
-        return " · ".join(f"{cls_label(c)} — {STATUS_LABEL.get(s, s)}" for _, c, s in pairs)
+        return " · ".join(f"{cls_label(c)}: {STATUS_LABEL.get(s, s)}" for _, c, s in pairs)
 
     loc["profile"] = cur.groupby("name")[["cls", "status"]].apply(profile).reindex(loc.index)
     loc["split"] = cur.groupby("name")["cls"].nunique().reindex(loc.index) > 1
@@ -191,7 +191,7 @@ def insight_split(loc, cur):
     by = sp["best"].value_counts().sort_index().sort_values(ascending=False, kind="stable")
     lead = by.index[0]
     return (f"הסיווג תלוי בסוג התוכנית: ל-{n(len(sp))} יישובים ואזורים ({pct(len(sp) / total * 100)}) "
-            f"יש יותר מדרגה אחת — לרוב {cls_label(lead)} להרחבת מפעל קיים ומרכז הארץ להקמת מפעל "
+            f"יש יותר מדרגה אחת, לרוב {cls_label(lead)} להרחבת מפעל קיים ומרכז הארץ להקמת מפעל "
             f"חדש ({n(by.iloc[0])} מקרים).")
 
 
@@ -235,7 +235,7 @@ def insight_trend(years, series, classes):
         return (f"היקף המפה יציב יחסית לאורך השנים: אף דרגה לא ירדה ביותר מ-{pct(20, 0)} משיאה "
                 f"(תמונת מצב ב-{SNAP_DAY} ב{MONTHS_HE[SNAP_MONTH - 1]} בכל שנה, {years[0]}–{years[-1]}).")
     return (f"{cls_label(c)} הצטמצמה במידה הניכרת ביותר: {n(peak)} יישובים ואזורים בשיאה ({py}) "
-            f"לעומת {n(last)} ב-{years[-1]} — ירידה של {pct(drop * 100)}"
+            f"לעומת {n(last)} ב-{years[-1]}, ירידה של {pct(drop * 100)}"
             + (f"; הצניחה החדה ביותר בין {bp} ל-{by} ({n(big)} פחות)." if big > 0 else ".")
             )
 
@@ -298,7 +298,7 @@ def insight_industrial(loc, classes):
     a = int((ind["best"] == lead).sum())
     share = a / len(ind)
     return (f"במפה {n(len(ind))} אזורי תעשייה ופארקי תעסוקה; {pct(share * 100)} מהם "
-            f"({n(a)}) ב{cls_label(lead)} — לעומת {pct((loc['best'] == lead).mean() * 100)} "
+            f"({n(a)}) ב{cls_label(lead)}, לעומת {pct((loc['best'] == lead).mean() * 100)} "
             f"מכלל היישובים והאזורים.")
 
 
@@ -483,7 +483,7 @@ def compute(frames):
     labels = {
         "lede": (f"מפת אזורי הפיתוח של משרד הכלכלה והתעשייה קובעת את דרגת ההטבה לפי מיקום "
                  f"המפעל: {n(total)} יישובים ואזורי תעשייה בה כיום{to_txt}. לצדה מפת העדיפות "
-                 f"הלאומית — {n(len(nap_names))} יישובים ואזורים{nap_to_txt}. המאגר שומר גם "
+                 f"הלאומית, עם {n(len(nap_names))} יישובים ואזורים{nap_to_txt}. המאגר שומר גם "
                  f"{n(dev['hist'].sum())} סיווגים היסטוריים{since}."),
         "k_localities": "יישובים ואזורי תעשייה במפת אזורי הפיתוח",
         "k_class_a": f"מהם ב{split_word} (הדרגה המטיבה ביותר)",
@@ -497,7 +497,7 @@ def compute(frames):
                          f"{n(split_cnt)} מהם מקבלים דרגה שונה להקמת מפעל חדש ולהרחבת מפעל קיים."),
         "profile_aria": f"תרשים עמודות: יישובים ואזורים לפי צירוף הדרגות שלהם, {len(p_names)} צירופים.",
         "profile_caption": "מספר היישובים והאזורים לפי צירוף דרגה וסוג תוכנית במפה הנוכחית.",
-        "status_note": (f"{n(len(cur))} סיווגים בתוקף — כל יישוב מופיע פעם אחת לכל סוג תוכנית "
+        "status_note": (f"{n(len(cur))} סיווגים בתוקף: כל יישוב מופיע פעם אחת לכל סוג תוכנית "
                         f"שמסווג אצלו בנפרד."),
         "status_aria": "תרשים עמודות מוערמות: סיווגים בתוקף לפי דרגה וסוג תוכנית.",
         "status_caption": "מספר הסיווגים בתוקף לפי דרגה וסוג תוכנית.",
@@ -509,7 +509,7 @@ def compute(frames):
                          f"{n(n_none)} רשומים ללא נפה."),
         "nap_sub_aria": f"תרשים עמודות: יישובים ואזורים בעדיפות לאומית לפי נפה, {len(nap_sub_names)} קבוצות.",
         "nap_sub_caption": "מספר היישובים והאזורים במפת העדיפות הלאומית לפי נפה.",
-        "history_note": (f"כמה יישובים ואזורים היו בכל דרגה, לפי תקופות התוקף שבמאגר — תמונת "
+        "history_note": (f"כמה יישובים ואזורים היו בכל דרגה, לפי תקופות התוקף שבמאגר: תמונת "
                          f"מצב ב-{snap_label} בכל שנה, {years[0]}–{years[-1]}." if years else "")
                         + (f" {n(invalid)} רשומות עם תאריכי תוקף חסרים או הפוכים אינן נכללות."
                            if invalid else ""),
@@ -517,7 +517,7 @@ def compute(frames):
                          if years else "גרף שטח מוערם: יישובים ואזורים לפי דרגה לאורך השנים."),
         "history_caption": f"מספר היישובים והאזורים בכל דרגה, נכון ל-{snap_label} בכל שנה.",
         "waves_note": (f"מספר הסיווגים שנכנסו לתוקף בכל מועד שבו נכנסו לתוקף לפחות {WAVE_MIN} "
-                       f"סיווגים — גלי ההחלטות על מפת אזורי הפיתוח. {n(wave_rest)} סיווגים "
+                       f"סיווגים (גלי ההחלטות על מפת אזורי הפיתוח). {n(wave_rest)} סיווגים "
                        f"נוספים נכנסו לתוקף בעדכונים נקודתיים ואינם מוצגים."),
         "waves_aria": f"תרשים עמודות מוערמות: סיווגים לפי מועד כניסה לתוקף ודרגה, {len(waves)} מועדים.",
         "waves_caption": "מספר הסיווגים שנכנסו לתוקף בכל גל החלטות, לפי דרגה.",
@@ -588,7 +588,7 @@ def compute(frames):
 
     last_year = max([d.year for d in [valid_to, nap_to] if d is not None], default=None)
     summary = (f"מפת אזורי הפיתוח הנוכחית של משרד הכלכלה והתעשייה כוללת {n(total)} יישובים ואזורי "
-               f"תעשייה — {n(a_cnt)} ב{cls_label(lead)} — ומפת העדיפות הלאומית כוללת "
+               f"תעשייה ({n(a_cnt)} ב{cls_label(lead)}), ומפת העדיפות הלאומית כוללת "
                f"{n(len(nap_names))}. המאגר כולל גם את היסטוריית הסיווגים{since}, לפי דרגה, "
                f"סוג תוכנית ונפה.")
     agent_data = {

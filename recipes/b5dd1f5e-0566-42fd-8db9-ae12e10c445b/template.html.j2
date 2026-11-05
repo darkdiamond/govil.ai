@@ -276,8 +276,8 @@
 
 <script>
   (function () {
-    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
-    function pctFmt(v) { return v === null ? "—" : v + "%"; }
+    function bnFmt(v) { return v === null ? "–" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    function pctFmt(v) { return v === null ? "–" : v + "%"; }
     function redNeg(arr) { return arr.map(function (v) { return v !== null && v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v; }); }
 
     var a = {{ model.charts.assets | tojson }};
@@ -367,7 +367,7 @@
 
 <script>
   (function () {
-    function pctFmt(v) { return v === null ? "—" : v + "%"; }
+    function pctFmt(v) { return v === null ? "–" : v + "%"; }
     function redNeg(arr) { return arr.map(function (v) { return v !== null && v < 0 ? { value: v, itemStyle: { color: "#dc3545" } } : v; }); }
 
     var y = {{ model.charts.yields | tojson }};

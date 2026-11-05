@@ -314,7 +314,7 @@
 
 <script>
   (function () {
-    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    function bnFmt(v) { return v === null ? "–" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
     var a = {{ model.charts.assets | tojson }};
     var c1 = echarts.init(document.getElementById("chart-assets"));
     c1.setOption(window.GovEcharts.option({
@@ -360,7 +360,7 @@
 
 <script>
   (function () {
-    function pctFmt(v) { return v === null ? "—" : v + "%"; }
+    function pctFmt(v) { return v === null ? "–" : v + "%"; }
     var s = {{ model.charts.spec | tojson }};
     var c4 = echarts.init(document.getElementById("chart-spec"));
     c4.setOption(window.GovEcharts.option({
@@ -436,7 +436,7 @@
 
 <script>
   (function () {
-    function pctFmt(v) { return v === null ? "—" : v + "%"; }
+    function pctFmt(v) { return v === null ? "–" : v + "%"; }
     var t = {{ model.charts.tracks | tojson }};
     var c9 = echarts.init(document.getElementById("chart-tracks"));
     c9.setOption(window.GovEcharts.option({
