@@ -28,12 +28,6 @@ import re
 import sys
 
 
-# Pure-Python ES parser backing the JS-SYNTAX catch-all below (there is
-# no Node in the builder image). Optional import so this script still
-# runs standalone elsewhere; without it the parse gate no-ops, which is
-# why services/page_builder/requirements.txt pins it and
-# services/page_builder/tests/test_check_js_parse.py asserts it is
-# importable — the gate must not silently vanish from prod.
 def _fast_esprima_character():
     """A stand-in for `esprima.character`, installed before esprima loads.
 
@@ -138,6 +132,12 @@ def _install_fast_esprima_character() -> None:
     sys.modules.setdefault("esprima.character", _fast_esprima_character())
 
 
+# Pure-Python ES parser backing the JS-SYNTAX catch-all below (there is
+# no Node in the builder image). Optional import so this script still
+# runs standalone elsewhere; without it the parse gate no-ops, which is
+# why services/page_builder/requirements.txt pins it and
+# services/page_builder/tests/test_check_js_parse.py asserts it is
+# importable — the gate must not silently vanish from prod.
 try:
     _install_fast_esprima_character()
     import esprima as _esprima
