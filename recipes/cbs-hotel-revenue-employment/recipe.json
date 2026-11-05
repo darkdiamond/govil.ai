@@ -1,0 +1,82 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-hotel-revenue-employment",
+  "recipe_version": 1,
+  "authored_at": "2026-11-05T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-24T10:00:00Z",
+    "rows": {
+      "t1": 160,
+      "t2": 76,
+      "t3": 70,
+      "t4": 166,
+      "releases": 4
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C12",
+        "C14"
+      ]
+    },
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C07",
+        "C09"
+      ]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C04"
+      ]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C11"
+      ]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

@@ -1,0 +1,240 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["ytd_killed", "ytd_chg", "ytd_serious", "month_killed", "year_killed"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "נפגעים בתאונות דרכים לפי חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.trend_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "מגמה"], model.tables.trend, ltr=(1, 2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הרוגים לפי חודש, שנה מול שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.season_note }}</p>
+  {{ gov.chart("chart-season", model.labels.season_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.season_caption, ["חודש"] + model.labels.season_years, model.tables.season, ltr=range(1, model.labels.season_years | length + 1) | list) }}
+</section>
+
+{%- if model.flags.ytd %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "מתחילת השנה, לעומת שנים קודמות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ytd_note }}</p>
+  {{ gov.chart("chart-ytd", model.labels.ytd_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.ytd_caption, ["שנה", "הרוגים", "פצועים קשה", "כל הנפגעים", "תאונות קטלניות", "כל התאונות"], model.tables.ytd, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.annual %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הרוגים ופצועים קשה לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ gov.chart("chart-annual", model.labels.annual_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.annual_caption, ["שנה", "הרוגים", "פצועים קשה", "כל הנפגעים", "תאונות קטלניות", "תאונות קשות", "כל התאונות"], model.tables.annual, ltr=(1, 2, 3, 4, 5, 6)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.severity %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה חמורות התאונות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.severity_note }}</p>
+  {{ gov.chart("chart-severity", model.labels.severity_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.severity_caption, ["שנה", "הרוגים לכל אלף נפגעים", "תאונות קטלניות וקשות"], model.tables.severity, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תאונות דרכים עם נפגעים לפי חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.acc_note }}</p>
+  {{ gov.chart("chart-accidents", model.labels.acc_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.acc_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "מגמה", "קטלניות", "קשות"], model.tables.accidents, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+
+{%- if model.flags.revision %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הפרסום הראשון מול הנתון העדכני") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.revision_note }}</p>
+  {{ gov.chart("chart-revision", model.labels.revision_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.revision_caption, ["חודש", "נפגעים, פרסום ראשון", "נפגעים, עדכני", "שינוי", "הרוגים, פרסום ראשון", "הרוגים, עדכני"], model.tables.revision, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים בעמוד לקוחים מלוח של ההודעה החודשית: תאונות דרכים עם נפגעים מסוג ת"ד מורחב (לפי הגדרת הלמ"ס), כולל תאונות באזור יהודה והשומרון. סיכומים בטקסט של ההודעה (למשל מספר ההרוגים מתחילת השנה) יכולים להתבסס על מקורות נוספים, ולכן לפעמים הם שונים מהמספרים בעמוד.</li>
+    <li>נפגעים: הרוגים, פצועים קשה ופצועים קל. תאונה קטלנית היא תאונה שבה נהרג לפחות אדם אחד, ותאונה קשה היא תאונה שבה הנפגע החמור ביותר נפצע קשה.</li>
+    <li>מנוכה עונתיות ומגמה: עיבודים של הלמ"ס שמנטרלים את ההבדלים הקבועים בין חודשי השנה, כדי שאפשר יהיה לראות את הכיוון הכללי.</li>
+    <li>{{ model.labels.provisional }}</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.season | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-season"));
+    const n = d.years.length;
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : k === n - 2 ? pal[1] : k === n - 3 ? pal[2] : pal[6]),
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " הרוגים" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", min: 0 },
+      series: d.years.map((y, k) => ({
+        type: "line", name: y, data: d.series[k], connectNulls: false,
+        symbolSize: k === n - 1 ? 6 : 4,
+        lineStyle: { width: k === n - 1 ? 3 : 1.5 }
+      }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.ytd %}
+  (function () {
+    const d = {{ model.charts.ytd | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-ytd"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", min: 0, name: "הרוגים" }, { type: "value", min: 0, name: "פצועים קשה", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "הרוגים", data: d.killed, label: { show: true, position: "top", formatter: (p) => Number(p.value).toLocaleString("he-IL") } },
+        { type: "bar", name: "פצועים קשה", data: d.serious, yAxisIndex: 1, label: { show: true, position: "top", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.annual %}
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[0], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value", min: 0 }, { type: "value", min: 0, name: "כל הנפגעים", splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "הרוגים", data: d.killed },
+        { type: "bar", name: "פצועים קשה", data: d.serious },
+        { type: "line", name: "כל הנפגעים", data: d.cas, yAxisIndex: 1, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.severity %}
+  (function () {
+    const d = {{ model.charts.severity | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-severity"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[0]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", min: 0, name: "הרוגים לאלף" },
+        { type: "value", min: 0, name: "%", splitLine: { show: false }, axisLabel: { formatter: (v) => v + "%" } }
+      ],
+      series: [
+        { type: "line", name: "הרוגים לכל אלף נפגעים", data: d.per_k, lineStyle: { width: 3 }, label: { show: true, position: "top" } },
+        { type: "line", name: "תאונות קטלניות וקשות (%)", data: d.share, yAxisIndex: 1, label: { show: true, position: "bottom", formatter: (p) => p.value + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.accidents | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-accidents"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.revision %}
+  (function () {
+    const d = {{ model.charts.revision | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-revision"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " נפגעים" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", min: 0 },
+      series: [
+        { type: "bar", name: "פרסום ראשון", data: d.first },
+        { type: "bar", name: "נתון עדכני", data: d.now }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

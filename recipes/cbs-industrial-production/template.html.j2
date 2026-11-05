@@ -1,0 +1,285 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["index", "mom", "yoy", "trend", "hitech"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מדד הייצור בחודשים האחרונים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  {{ gov.chart("chart-recent", model.labels.recent_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.recent_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "שינוי חודשי", "מגמה"], model.tables.recent, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.long %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הייצור התעשייתי לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.long_note }}</p>
+  {{ gov.chart("chart-long", model.labels.long_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.long_caption, ["שנה", "מדד ממוצע", "חודשים בנתונים"], model.tables.long, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.tech %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "הייצור לפי עוצמה טכנולוגית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tech_note }}</p>
+  {{ gov.chart("chart-tech", model.labels.tech_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.tech_caption, ["עוצמה טכנולוגית", "מדד אחרון", "שינוי בשנה", model.labels.tech_since], model.tables.tech, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.excl %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "התעשייה עם ובלי ההייטק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.excl_note }}</p>
+  {{ gov.chart("chart-excl", model.labels.excl_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.excl_caption, ["חודש", "כל התעשייה", "ללא טכנולוגיה עילית"], model.tables.excl, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.market %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יצוא מול שוק מקומי") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.market_note }}</p>
+  {{ gov.chart("chart-market", model.labels.market_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.market_caption, ["חודש", "מקומי, מנוכה עונתיות", "מקומי, מגמה", "יצוא, מנוכה עונתיות", "יצוא, מגמה"], model.tables.market, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.techexp %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "היצוא לפי עוצמה טכנולוגית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.techexp_note }}</p>
+  {{ gov.chart("chart-techexp", model.labels.techexp_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.techexp_caption, ["עוצמה טכנולוגית", "מדד אחרון", "שינוי בשנה", model.labels.techexp_since], model.tables.techexp, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.matrix %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מי צומח במה: שינוי שנתי לפי עוצמה טכנולוגית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.matrix_note }}</p>
+  {{ gov.chart("chart-matrix", model.labels.matrix_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.matrix_caption, ["עוצמה טכנולוגית"] + model.charts.matrix.measures, model.tables.matrix, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.inputs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "ייצור, משרות ושעות עבודה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inputs_note }}</p>
+  {{ gov.chart("chart-inputs", model.labels.inputs_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.inputs_caption, ["שנה", "ייצור", "משרות שכיר", "שעות עבודה"], model.tables.inputs, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.techjobs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "משרות השכיר לפי עוצמה טכנולוגית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.techjobs_note }}</p>
+  {{ gov.chart("chart-techjobs", model.labels.techjobs_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.techjobs_caption, ["עוצמה טכנולוגית", "מדד אחרון", "שינוי בשנה", model.labels.techjobs_since], model.tables.techjobs, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>מדד הייצור התעשייתי מודד את היקף הייצור הפיזי של ענפי התעשייה, הכרייה והחציבה, ביחס לממוצע של שנת הבסיס. מדד של מאה ועשרים פירושו ייצור גבוה בחמישית משנת הבסיס.</li>
+    <li>מנוכה עונתיות: הנתון אחרי ניכוי השפעות של עונות, חגים ומספר ימי העבודה בחודש. קו המגמה מחליק גם את התנודות האקראיות, ולכן הוא מתאים להשוואה לאורך זמן.</li>
+    <li>עוצמה טכנולוגית: הלמ"ס מחלקת את ענפי התעשייה לארבע קבוצות לפי שיעור ההוצאה על מחקר ופיתוח. טכנולוגיה עילית כוללת למשל תרופות, אלקטרוניקה ותעשייה אווירית.</li>
+    <li>נתוני החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.recent | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-recent"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- if model.flags.long %}
+<script>
+  (function () {
+    const d = {{ model.charts.long | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-long"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+<script>
+  window.govTechChart = function (id, d) {
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById(id));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[4], pal[7]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.names.map((n, k) => ({
+        type: "line", name: n, data: d.series[k], showSymbol: false,
+        lineStyle: { width: k === 0 ? 3 : 2 }
+      }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  };
+</script>
+{%- if model.flags.tech %}
+<script>
+  window.govTechChart("chart-tech", {{ model.charts.tech | tojson }});
+</script>
+{%- endif %}
+{%- if model.flags.excl %}
+<script>
+  (function () {
+    const d = {{ model.charts.excl | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-excl"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "line", name: "כל התעשייה", data: d.all, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "ללא טכנולוגיה עילית", data: d.excl, showSymbol: false, lineStyle: { width: 3, type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.market %}
+<script>
+  (function () {
+    const d = {{ model.charts.market | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-market"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5], pal[0], pal[5]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0, data: ["יצוא, מגמה", "שוק מקומי, מגמה"] },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "line", name: "יצוא, מגמה", data: d.exp, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "שוק מקומי, מגמה", data: d.loc, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "יצוא, מנוכה עונתיות", data: d.exp_sa, showSymbol: false, lineStyle: { width: 1, opacity: 0.6 } },
+        { type: "line", name: "שוק מקומי, מנוכה עונתיות", data: d.loc_sa, showSymbol: false, lineStyle: { width: 1, opacity: 0.6 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.techexp %}
+<script>
+  window.govTechChart("chart-techexp", {{ model.charts.techexp | tojson }});
+</script>
+{%- endif %}
+{%- if model.flags.matrix %}
+<script>
+  (function () {
+    const d = {{ model.charts.matrix | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-matrix"));
+    const fmt = (v) => v == null ? "" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + "%";
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[4], pal[7]],
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.groups, axisLabel: { interval: 0, width: 80, overflow: "break" } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: d.measures.map((m, k) => ({ type: "bar", name: m, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.inputs %}
+<script>
+  (function () {
+    const d = {{ model.charts.inputs | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-inputs"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[4], pal[7]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "ייצור", data: d.prod, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "משרות שכיר", data: d.jobs, showSymbol: false },
+        { type: "line", name: "שעות עבודה", data: d.hours, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.techjobs %}
+<script>
+  window.govTechChart("chart-techjobs", {{ model.charts.techjobs | tojson }});
+</script>
+{%- endif %}

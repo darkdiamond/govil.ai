@@ -1,0 +1,100 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-national-accounts",
+  "recipe_version": 1,
+  "authored_at": "2026-11-05T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-18T00:00:00Z",
+    "rows": {
+      "t2": 141,
+      "t3": 73,
+      "t4": 72,
+      "t5": 66,
+      "t6": 206,
+      "t7": 56,
+      "releases": 10
+    }
+  },
+  "inputs": [
+    {
+      "name": "t2",
+      "by_id": "t2",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t4",
+      "by_id": "t4",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t5",
+      "by_id": "t5",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "t7",
+      "by_id": "t7",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01"
+      ]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

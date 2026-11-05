@@ -1,0 +1,188 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["balance", "mom", "avg12", "positive"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "המאזן הכולל לאורך זמן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.total_note }}</p>
+  {{ gov.chart("chart-total", model.labels.total_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.total_caption, ["שנה", "מאזן כולל (נקודות אחוז)", "שינוי במדד הפדיון (%)", "חודשים"], model.tables.total, ltr=(1, 2, 3)) }}
+</section>
+
+{%- if model.flags.sectors %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "המאזן לפי ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sectors_note }}</p>
+  {{ gov.chart("chart-sectors", model.labels.sectors_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.sectors_caption, ["ענף", model.charts.sectors.now_label, model.charts.sectors.yago_label], model.tables.sectors, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "מפת חום: ענפים לאורך החודשים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, "h-80 md:h-[420px]") }}
+  {{ gov.table(model.labels.heat_caption, model.labels.heat_cols, model.tables.heat, ltr=range(1, model.labels.heat_cols | length) | list) }}
+</section>
+
+{%- for s in model.sections %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", s.title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ s.note }}</p>
+  {{ gov.chart("chart-" ~ s.id, s.aria, "h-72 md:h-96") }}
+  {{ gov.table(s.caption, s.cols, s.rows, ltr=(1, 2, 3)) }}
+</section>
+{%- endfor %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "המצב הביטחוני כמגבלה על העסקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.security_note }}</p>
+  {{ gov.chart("chart-security", model.labels.security_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.security_caption, ["ענף", "לפני המלחמה", model.charts.security.now_label], model.tables.security, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מחסור בעובדים כמגבלה על העסקים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.labor_note }}</p>
+  {{ gov.chart("chart-labor", model.labels.labor_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.labor_caption, ["ענף", "לפני המלחמה", model.charts.labor.now_label], model.tables.labor, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>מאזן נטו: שיעור המנהלים שדיווחו על עלייה בפעילות פחות שיעור המדווחים על ירידה, בנקודות אחוז. מאזן חיובי פירושו שיותר עסקים מתרחבים מאשר מצטמצמים, ולא שהפעילות עצמה גדלה בשיעור הזה.</li>
+    <li>המנהלים נשאלים בכל סקר על החודש הקודם, ולכן הנתון של כל חודש מתפרסם בהודעה של החודש שאחריו. בעמוד הנתונים מוצגים לפי חודש הפעילות.</li>
+    <li>שינויי המדדים (הפדיון, הייצור התעשייתי) הם הנתונים הרשמיים שהסקר מנסה להקדים. הם מתפרסמים מאוחר יותר, ולכן החודש האחרון בגרפים מופיע לרוב בלי נתון מדד.</li>
+    <li>שינויי המדדים מחושבים על נתונים מקוריים, לא מנוכי עונתיות, ולכן הם תנודתיים מחודש לחודש. כדאי להשוות את הכיוון ולא את הגודל.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.total | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmt = (v) => v == null ? "" : (v > 0 ? "+" : "") + Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 });
+    const chart = echarts.init(document.getElementById("chart-total"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { top: 0, data: ["מאזן כולל", "השינוי במדד הפדיון (%)"] },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "מאזן כולל", data: d.a.map((v) => v == null ? null : { value: v, itemStyle: { color: v < 0 ? "#dc3545" : pal[0] } }) },
+        { type: "line", name: "השינוי במדד הפדיון (%)", data: d.b, showSymbol: false, connectNulls: false, lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.sectors %}
+  (function () {
+    const d = {{ model.charts.sectors | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sectors"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : (v > 0 ? "+" : "") + v + " נקודות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", name: d.now_label, data: d.now.map((v) => v == null ? null : { value: v, itemStyle: { color: v < 0 ? "#dc3545" : pal[0] } }) },
+        { type: "bar", name: d.yago_label, data: d.yago }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const chart = echarts.init(document.getElementById("chart-heat"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        trigger: "item",
+        formatter: (p) => echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.x[p.value[0]]) +
+          ": " + (p.value[2] > 0 ? "+" : "") + p.value[2] + " נקודות"
+      },
+      grid: { left: 8, right: 8, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { rotate: 60, fontSize: 10 } },
+      yAxis: { type: "category", data: d.y, inverse: true },
+      visualMap: {
+        min: -d.max, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        itemHeight: 120, inRange: { color: ["#dc3545", "#f8d7da", "#f1f7ff", "#6c9fd8", "#0068f5"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- for s in model.sections %}
+  (function () {
+    const d = {{ model.charts[s.id] | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmt = (v) => v == null ? "" : (v > 0 ? "+" : "") + Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 });
+    const chart = echarts.init(document.getElementById("chart-{{ s.id }}"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: fmt },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: d.a_name, data: d.a.map((v) => v == null ? null : { value: v, itemStyle: { color: v < 0 ? "#dc3545" : pal[0] } }) },
+        { type: "line", name: d.b_name + (d.b_balance ? "" : " (%)"), data: d.b, showSymbol: false, lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endfor %}
+{%- for key in ["security", "labor"] %}
+  (function () {
+    const d = {{ model.charts[key] | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-{{ key }}"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 48, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "break" } },
+      series: [
+        { type: "bar", name: "לפני המלחמה", data: d.before },
+        { type: "bar", name: d.now_label, data: d.now, label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endfor %}
+</script>

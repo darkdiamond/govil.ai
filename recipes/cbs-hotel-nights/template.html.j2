@@ -1,0 +1,223 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["month", "month_chg", "ytd", "ytd_chg", "tour_share", "tour_base"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "לינות במלונות לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  {{ gov.chart("chart-years", model.labels.years_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.years_caption, ["שנה", "סך הכול", "ישראלים", "מזה מפונים", "תיירים", "חלק התיירים"], model.tables.years, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "השנה עד עכשיו, מול השנים הקודמות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ytd_note }}</p>
+  {{ gov.chart("chart-ytd", model.labels.ytd_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.ytd_caption, ["שנה", "סך הכול", "ישראלים", "תיירים", "שינוי משנה קודמת"], model.tables.ytd, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "לינות בכל חודש: ישראלים ותיירים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  {{ gov.chart("chart-monthly", model.labels.monthly_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.monthly_caption, ["חודש", "סך הכול", "ישראלים", "תיירים", "שינוי לעומת שנה קודמת"], model.tables.monthly, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "עונתיות: חודש מול שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.heat_caption, ["שנה", "ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי", "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"], model.tables.heat, ltr=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) }}
+</section>
+
+{%- if model.flags.sa %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "נתון מקורי, מנוכה עונתיות ומגמה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sa_note }}</p>
+  {{ gov.chart("chart-sa", model.labels.sa_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.sa_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "מגמה"], model.tables.sa, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.share %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "חלק התיירים מהלינות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.share_note }}</p>
+  {{ gov.chart("chart-share", model.labels.share_aria, "h-64 md:h-80") }}
+  {{ gov.table("חלק התיירים מהלינות לפי שנה", ["שנה", "חלק התיירים"], model.tables.share, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.evac %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מפונים במלונות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.evac_note }}</p>
+  {{ gov.chart("chart-evac", model.labels.evac_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.evac_caption, ["חודש", "לינות מפונים", "כל לינות הישראלים", "חלק המפונים"], model.tables.evac, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>לינה היא לילה אחד של אורח אחד במלון. שני אורחים ששוהים שלושה לילות הם שש לינות. הנתונים הם של מלונות התיירות בלבד, באלפי לינות.</li>
+    <li>"תיירים" הם אורחים מחו"ל, ו"ישראלים" הם תושבי ישראל. בחודשים שבהם שוכנו במלונות מפונים ממלחמת חרבות ברזל, לינות הישראלים כוללות גם את לינותיהם. הלמ"ס אומדת אותן לפי הדיווחים למערכת "יחד".</li>
+    <li>הנתונים של החודש האחרון ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+    <li>הנתון המנוכה עונתיות ונתוני המגמה מחושבים בידי הלמ"ס, ומאפשרים להשוות בין חודשים בלי השפעת העונה והחגים.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.years | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-years"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "v", name: "ישראלים", data: d.isr },
+        { type: "bar", stack: "v", name: "מפונים", data: d.evac },
+        { type: "bar", stack: "v", name: "תיירים", data: d.tour }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.ytd | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-ytd"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "v", name: "ישראלים", data: d.isr },
+        { type: "bar", stack: "v", name: "תיירים", data: d.tour }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-monthly"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", stack: "v", name: "ישראלים", data: d.isr },
+        { type: "bar", stack: "v", name: "תיירים", data: d.tour }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-heat"));
+    const narrow = window.innerWidth < 640;
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: (p) => d.months[p.value[0]] + " " + d.years[p.value[1]] + ": " + Number(p.value[2]).toLocaleString("he-IL") + " אלף לינות" },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: false }, axisLabel: { interval: 0, rotate: narrow ? 90 : 0 } },
+      yAxis: { type: "category", data: d.years, inverse: true, splitArea: { show: false } },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0, itemHeight: 120, inRange: { color: ["#f1f7ff", pal[0], "#0b3668"] }, formatter: (v) => Math.round(v).toLocaleString("he-IL") },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontSize: 10, formatter: (p) => Math.round(p.value[2]).toLocaleString("he-IL") }, emphasis: { itemStyle: { borderColor: "#0c3058", borderWidth: 1 } } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.sa %}
+  (function () {
+    const d = {{ model.charts.sa | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sa"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.share %}
+  (function () {
+    const d = {{ model.charts.share | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-share"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : v + "%" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", min: 0, axisLabel: { formatter: (v) => v + "%" } },
+      series: [{ type: "line", data: d.y, areaStyle: { opacity: 0.12 }, symbolSize: 6 }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.evac %}
+  (function () {
+    const d = {{ model.charts.evac | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-evac"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "v", name: "ישראלים שאינם מפונים", data: d.rest },
+        { type: "bar", stack: "v", name: "מפונים", data: d.evac }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

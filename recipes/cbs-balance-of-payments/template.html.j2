@@ -1,0 +1,267 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["current", "trade", "primary", "fdi", "annual", "iip"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "החשבון השוטף לפי רכיבים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.current_note }}</p>
+  {{ gov.chart("chart-current", model.labels.current_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.current_caption, ["רבעון", "סחר סחורות ושירותים", "הכנסות ראשוניות", "הכנסות משניות", "החשבון השוטף"], model.tables.current, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יצוא ויבוא: סחורות מול שירותים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trade_note }}</p>
+  {{ gov.chart("chart-trade", model.labels.trade_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.trade_caption, ["רבעון", "יצוא סחורות", "יצוא שירותים", "יבוא סחורות", "יבוא שירותים"], model.tables.trade, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יצוא השירותים לפי סוג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.services_note }}</p>
+  {{ gov.chart("chart-services", model.labels.services_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.services_caption, model.labels.services_cols, model.tables.services, ltr=range(1, model.labels.services_cols | length) | list) }}
+</section>
+
+{%- if model.flags.goods %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יצוא הסחורות לפי סוג") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.goods_note }}</p>
+  {{ gov.chart("chart-goods", model.labels.goods_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.goods_caption, ["רבעון", "סחורות (ללא יהלומים, אניות ומטוסים)", "יהלומים", "אניות ומטוסים", "לרשות הפלסטינית", "סך הכל"], model.tables.goods, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.income %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הכנסות ראשוניות: ריבית, דיבידנדים ורווחים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.income_note }}</p>
+  {{ gov.chart("chart-income", model.labels.income_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.income_caption, model.labels.income_cols, model.tables.income, ltr=range(1, model.labels.income_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.fdi %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השקעות ישירות בישראל ובחו\"ל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.fdi_note }}</p>
+  {{ gov.chart("chart-fdi", model.labels.fdi_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.fdi_caption, ["רבעון", "השקעה ישירה בישראל", "השקעה ישירה בחו\"ל", "ניירות ערך: בישראל", "ניירות ערך: בחו\"ל"], model.tables.fdi, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.annual %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מאזן התשלומים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ gov.chart("chart-annual", model.labels.annual_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.annual_caption, ["שנה", "יצוא סחורות ושירותים", "יבוא סחורות ושירותים", "סחר נטו", "הכנסות ראשוניות", "החשבון השוטף"], model.tables.annual, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.iip %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "נכסים והתחייבויות מול חו\"ל וחוב חיצוני") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.iip_note }}</p>
+  {{ gov.chart("chart-iip", model.labels.iip_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.iip_caption, ["סוף רבעון", "נכסים", "התחייבויות", "עודף נכסים נטו", "חוב חיצוני ברוטו"], model.tables.iip, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>מאזן התשלומים מסכם את כל העסקאות בין תושבי ישראל לתושבי חו"ל. החשבון השוטף מודד סחר, הכנסות והעברות; החשבון הפיננסי מודד השקעות והלוואות.</li>
+    <li>כל הסכומים במיליוני דולרים, אלא אם צוין אחרת. נתונים מנוכי עונתיות מאפשרים להשוות רבעון לרבעון הקודם; נתונים מקוריים הם הסכומים כפי שנרשמו.</li>
+    <li>הנתונים של הרבעונים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. ההודעה של הרבעון הרביעי מתפרסמת כסיכום שנתי. העמוד מציג תמיד את הגרסה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.current | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmtv = (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $";
+    const chart = echarts.init(document.getElementById("chart-current"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: fmtv },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "סחר סחורות ושירותים", stack: "c", data: d.trade },
+        { type: "bar", name: "הכנסות ראשוניות", stack: "c", data: d.primary },
+        { type: "bar", name: "הכנסות משניות", stack: "c", data: d.secondary },
+        { type: "line", name: "החשבון השוטף", data: d.current, lineStyle: { width: 3 }, symbolSize: 6, z: 5 }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.trade | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trade"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "line", name: "יצוא סחורות", data: d.x_goods, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "יצוא שירותים", data: d.x_serv, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "יבוא סחורות", data: d.m_goods, showSymbol: false, lineStyle: { type: "dashed" } },
+        { type: "line", name: "יבוא שירותים", data: d.m_serv, showSymbol: false, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.services | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-services"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[3], pal[4], pal[6]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: d.names.map((n, k) => ({ type: "bar", name: n, stack: "s", data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.goods %}
+  (function () {
+    const d = {{ model.charts.goods | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-goods"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3], pal[2], pal[4]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "סחורות", stack: "g", data: d.main },
+        { type: "bar", name: "יהלומים", stack: "g", data: d.diamonds },
+        { type: "bar", name: "אניות ומטוסים", stack: "g", data: d.ships },
+        { type: "bar", name: "לרשות הפלסטינית", stack: "g", data: d.pa }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.income %}
+  (function () {
+    const d = {{ model.charts.income | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-income"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[0], pal[2], pal[4], pal[6], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 72, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: d.names.map((n, k) => ({ type: "bar", name: n, stack: "i", data: d.series[k] }))
+        .concat([{ type: "line", name: "סך הכל", data: d.total, lineStyle: { width: 3 }, symbolSize: 6, z: 5 }])
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.fdi %}
+  (function () {
+    const d = {{ model.charts.fdi | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-fdi"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3], pal[2], pal[4]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $" },
+      legend: { top: 0, selected: { "ניירות ערך: בישראל": false, "ניירות ערך: בחו\"ל": false } },
+      grid: { left: 16, right: 16, top: 64, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "השקעה ישירה בישראל", data: d.israel },
+        { type: "bar", name: "השקעה ישירה בחו\"ל", data: d.abroad },
+        { type: "bar", name: "ניירות ערך: בישראל", data: d.pf_israel },
+        { type: "bar", name: "ניירות ערך: בחו\"ל", data: d.pf_abroad }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.annual %}
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליון $" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "יצוא", data: d.exports },
+        { type: "bar", name: "יבוא", data: d.imports },
+        { type: "bar", name: "החשבון השוטף", data: d.current }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.iip %}
+  (function () {
+    const d = {{ model.charts.iip | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-iip"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " מיליארד $" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "line", name: "נכסים", data: d.assets, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "התחייבויות", data: d.liab, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "bar", name: "עודף נכסים נטו", data: d.net },
+        { type: "line", name: "חוב חיצוני ברוטו", data: d.debt, showSymbol: false, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

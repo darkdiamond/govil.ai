@@ -1,0 +1,33 @@
+{
+  "provider": "cbs_releases",
+  "title": "יציאות ישראלים לחו\"ל",
+  "notes": "יציאות ישראלים לחו\"ל לפי חודש, דרך יציאה ומעבר גבול, מתוך ההודעה החודשית לתקשורת של הלשכה המרכזית לסטטיסטיקה. הנתונים מתעדכנים בכל חודש עם פרסום ההודעה הבאה.",
+  "tags": [
+    "תיירות",
+    "תיירות יוצאת",
+    "נסיעות לחו\"ל",
+    "הלשכה המרכזית לסטטיסטיקה"
+  ],
+  "update_frequency": "חודשי",
+  "source_url": "https://www.cbs.gov.il/he/mediarelease/Pages/default.aspx",
+  "config": {
+    "report": {
+      "title_regex": "^יציאות ישראלים לחו\"ל ב(?!שנת)",
+      "chapter": "28",
+      "interval": "חודשי"
+    },
+    "history_releases": 1,
+    "resources": [
+      { "id": "t1", "name": "לוח 1", "table": "t1" },
+      { "id": "t2", "name": "לוח 2", "table": "t2" },
+      { "id": "t3", "name": "לוח 3", "table": "t3" },
+      { "id": "t4", "name": "לוח 4", "table": "t4" },
+      { "id": "t5", "name": "לוח 5", "table": "t5" },
+      {
+        "id": "releases",
+        "name": "ההודעות החודשיות לתקשורת",
+        "kind": "releases"
+      }
+    ]
+  }
+}

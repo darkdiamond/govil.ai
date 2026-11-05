@@ -1,0 +1,236 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["yoy3", "sa_mom", "trend", "annual", "index"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מדד הרכישות בכל חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.total_note }}</p>
+  {{ gov.chart("chart-total", model.labels.total_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.total_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "מגמה", "שינוי חודשי (מנוכה עונתיות)"], model.tables.total, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.subs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "על מה מוציאים יותר: שינוי שנתי לפי ענף משנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.subs_note }}</p>
+  {{ gov.chart("chart-subs", model.labels.subs_aria, "h-[560px] md:h-[620px]") }}
+  {{ gov.table(model.labels.subs_caption, ["ענף משנה", "שינוי לעומת אשתקד"], model.tables.subs, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.groups %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "ארבע קבוצות הרכישה: מי צומחת מהר יותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+  {{ gov.chart("chart-groups", model.labels.groups_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.groups_caption, ["קבוצת רכישה", "מדד מנוכה עונתיות", "שינוי חודשי", "שלושה חודשים לעומת אשתקד", "מגמה לעומת לפני שנה"], model.tables.groups, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.shocks %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "חודשי זעזוע: סטייה מהמגמה בכל ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shocks_note }}</p>
+  {{ gov.chart("chart-shocks", model.labels.shocks_aria, "h-[560px] md:h-[600px]") }}
+  {{ gov.table(model.labels.shocks_caption, ["ענף משנה", "החודש החלש ביותר", "סטייה מהמגמה", "סטייה בחודש האחרון"], model.tables.shocks, ltr=(2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.annual %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הצמיחה השנתית במחירים קבועים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ gov.chart("chart-annual", model.labels.annual_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.annual_caption, ["שנה", "מדד שנתי", "שינוי לעומת השנה הקודמת"], model.tables.annual, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.groups_long %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הצמיחה המצטברת לפי קבוצת רכישה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_long_note }}</p>
+  {{ gov.chart("chart-groups-long", model.labels.groups_long_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.groups_long_caption, ["שנה"] + model.labels.group_names + [model.labels.total_name], model.tables.groups_long, ltr=range(1, model.labels.group_names | length + 2) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הרכישות לפי חודש, שנה מול שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seasons_note }}</p>
+  {{ gov.chart("chart-seasons", model.labels.seasons_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.seasons_caption, ["חודש"] + model.labels.season_years, model.tables.seasons, ltr=range(1, model.labels.season_years | length + 1) | list) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים מגיעים מכל חברות כרטיסי האשראי בישראל וכוללים רק רכישות של צרכנים פרטיים. הענף נקבע לפי סיווג בית העסק אצל חברת האשראי.</li>
+    <li>המדד הוא מדד ערך במחירים קבועים: סכום הרכישות אחרי ניכוי עליית המחירים, כך שהוא משקף שינוי בכמות ולא במחיר. המדד אינו סכום בשקלים.</li>
+    <li>נתון מנוכה עונתיות מנטרל את השפעת החגים, העונות ומספר ימי העסקים. קו המגמה מחליק גם את התנודות האקראיות.</li>
+    <li>הלמ"ס מפרסמת בכל חודש הודעה על שלושת החודשים האחרונים ומעדכנת נתונים קודמים. העמוד מציג תמיד את ההודעה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.total | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-total"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.subs %}
+  (function () {
+    const d = {{ model.charts.subs | tojson }};
+    const chart = echarts.init(document.getElementById("chart-subs"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", valueFormatter: (v) => (v > 0 ? "+" : "") + Number(v).toLocaleString("he-IL") + "%" },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 150, overflow: "break" } },
+      series: [{
+        type: "bar",
+        data: d.pct.map((v) => ({ value: v, itemStyle: { color: v < 0 ? "#dc3545" : "#0068f5" } })),
+        label: { show: true, position: "right", formatter: (p) => (p.value > 0 ? "+" : "") + p.value + "%" }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.groups %}
+  (function () {
+    const d = {{ model.charts.groups | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-groups"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], "#198754", pal[1], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: d.names.map((n, k) => ({ type: "line", name: n, data: d.series[k], showSymbol: false, lineStyle: { width: 2.5 } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.shocks %}
+  (function () {
+    const d = {{ model.charts.shocks | tojson }};
+    const chart = echarts.init(document.getElementById("chart-shocks"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: {
+        position: "top",
+        formatter: (p) => echarts.format.encodeHTML(d.y[p.value[1]]) + "<br>" + echarts.format.encodeHTML(d.x[p.value[0]]) +
+          ": " + (p.value[2] > 0 ? "+" : "") + p.value[2] + "% מהמגמה"
+      },
+      grid: { left: 16, right: 16, top: 8, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true } },
+      yAxis: { type: "category", data: d.y, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+      visualMap: {
+        min: -d.max, max: d.max, calculable: true, dimension: 2, precision: 0,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#dc3545", "#ffffff", "#0068f5"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{ type: "heatmap", data: d.cells }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.annual %}
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : (v > 0 ? "+" : "") + v + "%" },
+      grid: { left: 16, right: 16, top: 24, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: [{
+        type: "bar", data: d.pct,
+        markLine: d.avg == null ? undefined : { silent: true, symbol: "none", data: [{ yAxis: d.avg }], label: { show: false }, lineStyle: { color: pal[1], type: "dashed" } }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.groups_long %}
+  (function () {
+    const d = {{ model.charts.groups_long | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-groups-long"));
+    const n = d.names.length;
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], "#198754", pal[1], pal[2], "#6c757d"],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: d.names.map((nm, k) => ({
+        type: "line", name: nm, data: d.series[k], showSymbol: false,
+        lineStyle: { width: k === n - 1 ? 2 : 2.5, type: k === n - 1 ? "dashed" : "solid" }
+      }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.seasons | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-seasons"));
+    const n = d.years.length;
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : k === n - 2 ? pal[1] : pal[6]),
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: d.years.map((y, k) => ({
+        type: "line", name: y, data: d.series[k], showSymbol: false,
+        lineStyle: { width: k === n - 1 ? 3 : 1.5 }
+      }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>

@@ -1,0 +1,245 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+{%- if model.release.headline %}
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+{%- endif %}
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["sold", "yoy", "sub", "stock", "supply"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "דירות שנמכרו בכל חודש: חדשות ויד שנייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  {{ gov.chart("chart-monthly", model.labels.monthly_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.monthly_caption, ["חודש", "סך הכל", "יד שנייה", "חדשות", "מזה בסבסוד ממשלתי", "מגמה (סך הכל)"], model.tables.monthly, ltr=(1, 2, 3, 4, 5)) }}
+{%- if model.flags.years %}
+  {{ gov.table(model.labels.years_caption, ["שנה", "סך הכל", "יד שנייה", "חדשות", "מזה בסבסוד ממשלתי"], model.tables.years, ltr=(1, 2, 3, 4)) }}
+{%- endif %}
+</section>
+
+{%- if model.flags.ytd %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מתחילת השנה, מול אותם חודשים אשתקד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ytd_note }}</p>
+  {{ gov.chart("chart-ytd", model.labels.ytd_aria, "h-80 md:h-96") }}
+  {{ gov.table(model.labels.ytd_caption, ["סוג הדירה", model.labels.ytd_then, model.labels.ytd_now, "שינוי"], model.tables.ytd, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מגמת המכירות לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.trend_note }}</p>
+  {{ gov.chart("chart-trend", model.labels.trend_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.trend_caption, ["שנה", "סך הכל", "חדשות", "יד שנייה", "חודשים בנתונים"], model.tables.trend, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.sub %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "דירות בסבסוד ממשלתי (מחיר למשתכן ודומיו)") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sub_note }}</p>
+  {{ gov.chart("chart-sub", model.labels.sub_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.sub_caption, ["שנה", "בסבסוד ממשלתי", "כל הדירות החדשות", "חלק בסבסוד", "חודשים בנתונים"], model.tables.sub, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.stock %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "דירות חדשות שנותרו למכירה וחודשי היצע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stock_note }}</p>
+  {{ gov.chart("chart-stock", model.labels.stock_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.stock_caption, ["חודש", "נותרו למכירה (מגמה)", "חודשי היצע"], model.tables.stock, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "דירות חדשות למכירה לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.district_caption, ["מחוז", "נותרו למכירה", "חלק מהמלאי"], model.tables.district, ltr=(1, 2)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "דירות חדשות למכירה בערים הגדולות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+  {{ gov.chart("chart-cities", model.labels.cities_aria, "h-[560px] md:h-[620px]") }}
+  {{ gov.table(model.labels.cities_caption, ["עיר", "נותרו למכירה"], model.tables.cities, ltr=(1,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>דירות חדשות הן דירות שנמכרו לראשונה, ודירות יד שנייה הן דירות קיימות שעברו מיד ליד. סך הכל הוא סכום שני הסוגים.</li>
+    <li>דירות בסבסוד ממשלתי (כמו מחיר למשתכן) הן חלק מהדירות החדשות שנמכרו, ובתרשים החודשי הן מוצגות בנפרד משאר הדירות החדשות.</li>
+    <li>נתוני מגמה ונתונים מנוכי עונתיות מנטרלים את השפעת החגים ואת התנודות המקריות. נתוני החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+    <li>חודשי היצע: מספר הדירות החדשות שנותרו למכירה בסוף החודש, חלקי מספר הדירות החדשות שנמכרו באותו חודש (לפי נתוני המגמה).</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-monthly"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[6], pal[9]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "יד שנייה", stack: "s", data: d.second },
+        { type: "bar", name: "חדשות", stack: "s", data: d.plain },
+        { type: "bar", name: "חדשות בסבסוד ממשלתי", stack: "s", data: d.sub },
+        { type: "line", name: "מגמה (סך הכל)", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.ytd %}
+  (function () {
+    const d = {{ model.charts.ytd | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-ytd"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 64, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [
+        { type: "bar", name: d.years[0], data: d.then, label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } },
+        { type: "bar", name: d.years[1], data: d.now, label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.trend | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-trend"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "סך הכל", data: d.total, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "חדשות", data: d.new, showSymbol: false },
+        { type: "line", name: "יד שנייה", data: d.second, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.sub %}
+  (function () {
+    const d = {{ model.charts.sub | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sub"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[3], pal[1]],
+      tooltip: {
+        trigger: "axis",
+        formatter: (ps) => echarts.format.encodeHTML(ps[0].axisValue) + ps.map((p) => "<br>" + p.marker +
+          echarts.format.encodeHTML(p.seriesName) + ": " + (p.value == null ? "" : Number(p.value).toLocaleString("he-IL") +
+          (p.seriesIndex === 1 ? "%" : ""))).join("")
+      },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "דירות" },
+        { type: "value", name: "%", splitLine: { show: false }, axisLabel: { formatter: (v) => v + "%" } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "דירות בסבסוד ממשלתי", data: d.sub },
+        { type: "line", name: "חלק מהדירות החדשות", yAxisIndex: 1, data: d.share, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.stock %}
+  (function () {
+    const d = {{ model.charts.stock | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-stock"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[4]],
+      tooltip: {
+        trigger: "axis",
+        formatter: (ps) => echarts.format.encodeHTML(ps[0].axisValue) + ps.filter((p) => p.value != null).map((p) => "<br>" +
+          p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + Number(p.value).toLocaleString("he-IL")).join("")
+      },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "דירות", scale: true },
+        { type: "value", name: "חודשים", splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "נותרו למכירה", data: d.stock, showSymbol: false, lineStyle: { width: 3 }, areaStyle: { opacity: 0.12 } },
+        { type: "line", name: "חודשי היצע", yAxisIndex: 1, data: d.supply, showSymbol: false, connectNulls: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.district | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-district"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      grid: { left: 16, right: 64, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.cities | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-cities"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      grid: { left: 16, right: 64, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [{ type: "bar", data: d.values, label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
