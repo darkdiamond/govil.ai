@@ -11,9 +11,11 @@ from collections.abc import Mapping
 
 from .base import SourceProvider
 from .boi import BoiSdmxProvider
+from .cbs import CbsReleasesProvider
 
 PROVIDER_CLASSES: dict[str, type[SourceProvider]] = {
     BoiSdmxProvider.key: BoiSdmxProvider,
+    CbsReleasesProvider.key: CbsReleasesProvider,
 }
 
 _enabled: dict[str, SourceProvider] | None = None

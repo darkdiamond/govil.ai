@@ -1,0 +1,240 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["wage", "nominal", "real", "jobs", "hitech"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכר הממוצע בחודשים האחרונים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  {{ gov.chart("chart-recent", model.labels.recent_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.recent_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "מגמה", "במחירים קבועים"], model.tables.recent, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.real %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכר הריאלי לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.real_note }}</p>
+  {{ gov.chart("chart-real", model.labels.real_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.real_caption, ["שנה", "שכר ממוצע במחירים קבועים", "חודשים בנתונים"], model.tables.real, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.seasons %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכר לפי חודש, שנה מול שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seasons_note }}</p>
+  {{ gov.chart("chart-seasons", model.labels.seasons_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.seasons_caption, ["חודש"] + model.labels.season_years, model.tables.seasons, ltr=range(1, model.labels.season_years | length + 1) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "השכר הממוצע לפי ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.industry_note }}</p>
+  {{ gov.chart("chart-industry", model.labels.industry_aria, "h-[560px] md:h-[620px]") }}
+  {{ gov.table(model.labels.industry_caption, ["ענף", "שכר ממוצע", "לעומת הממוצע"], model.tables.industry, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.scatter %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "גודל הענף מול גובה השכר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  {{ gov.chart("chart-scatter", model.labels.scatter_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.scatter_caption, ["ענף", "משרות (אלפים)", "שכר ממוצע (₪)", "חלק מסך השכר"], model.tables.scatter, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.hitech %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השכר בהייטק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hitech_note }}</p>
+  {{ gov.chart("chart-hitech", model.labels.hitech_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.hitech_caption, ["ענף", "שכר ממוצע (₪)", "משרות (אלפים)"], model.tables.hitech, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.jobs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מספר משרות השכיר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.jobs_note }}</p>
+  {{ gov.chart("chart-jobs", model.labels.jobs_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.jobs_caption, ["שנה", "משרות (אלפים)", "חודשים בנתונים"], model.tables.jobs, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>השכר הוא שכר ברוטו ממוצע למשרת שכיר, לפי דיווחי המעסיקים לביטוח הלאומי. אדם שעובד בשתי משרות נספר פעמיים, ולכן הממוצע הוא למשרה ולא לעובד.</li>
+    <li>במחירים קבועים: השכר אחרי ניכוי עליית המחירים (מדד המחירים לצרכן), כך שאפשר להשוות כוח קנייה בין תקופות.</li>
+    <li>נתוני החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.recent | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-recent"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.real %}
+  (function () {
+    const d = {{ model.charts.real | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-real"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.seasons %}
+  (function () {
+    const d = {{ model.charts.seasons | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-seasons"));
+    const n = d.years.length;
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : k === n - 2 ? pal[1] : pal[6]),
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: d.years.map((y, k) => ({
+        type: "line", name: y, data: d.series[k], showSymbol: false,
+        lineStyle: { width: k === n - 1 ? 3 : 1.5 }
+      }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.industry | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-industry"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " ₪" },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 150, overflow: "break" } },
+      series: [{
+        type: "bar", data: d.wage,
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") },
+        markLine: { silent: true, symbol: "none", data: [{ xAxis: d.total }], label: { show: false }, lineStyle: { color: pal[1], type: "dashed" } }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.scatter %}
+  (function () {
+    const d = {{ model.charts.scatter | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-scatter"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: {
+        trigger: "item",
+        formatter: (p) => echarts.format.encodeHTML(p.name) + "<br>" + Number(p.value[0]).toLocaleString("he-IL") +
+          " אלף משרות<br>שכר ממוצע: " + Number(p.value[1]).toLocaleString("he-IL") + " ₪"
+      },
+      grid: { left: 16, right: 24, top: 24, bottom: 32, containLabel: true },
+      xAxis: { type: "value", name: "משרות (אלפים)", nameLocation: "middle", nameGap: 24 },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => Number(v).toLocaleString("he-IL") + " ₪" } },
+      series: [{ type: "scatter", data: d, symbolSize: 12 }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.hitech %}
+  (function () {
+    const d = {{ model.charts.hitech | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-hitech"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: {
+        trigger: "axis",
+        formatter: (ps) => {
+          const i = ps[0].dataIndex;
+          return echarts.format.encodeHTML(d.names[i]) + "<br>שכר ממוצע: " + d.wage[i].toLocaleString("he-IL") +
+            " ₪" + (d.jobs[i] == null ? "" : "<br>" + Number(d.jobs[i]).toLocaleString("he-IL") + " אלף משרות");
+        }
+      },
+      grid: { left: 16, right: 56, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 150, overflow: "break" } },
+      series: [{ type: "bar", data: d.wage, label: { show: true, position: "right", formatter: (p) => Number(p.value).toLocaleString("he-IL") } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.jobs %}
+  (function () {
+    const d = {{ model.charts.jobs | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-jobs"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

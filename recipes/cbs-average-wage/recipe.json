@@ -1,0 +1,70 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-average-wage",
+  "recipe_version": 1,
+  "authored_at": "2026-11-05T09:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-04T11:00:00Z",
+    "rows": {
+      "t1": 71,
+      "t8": 16,
+      "t9": 21,
+      "t10": 120,
+      "t11": 20,
+      "t12": 120,
+      "t13": 12,
+      "releases": 12
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C12"]
+    },
+    {
+      "name": "t8",
+      "by_id": "t8",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C02"]
+    },
+    {
+      "name": "t9",
+      "by_id": "t9",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C02"]
+    },
+    {
+      "name": "t10",
+      "by_id": "t10",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C02"]
+    },
+    {
+      "name": "t11",
+      "by_id": "t11",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C02"]
+    },
+    {
+      "name": "t12",
+      "by_id": "t12",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C02"]
+    },
+    {
+      "name": "t13",
+      "by_id": "t13",
+      "required_columns": ["RELEASE_DATE", "SHEET_NO", "ROW", "C01", "C02"]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

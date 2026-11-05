@@ -196,7 +196,7 @@ landing pages. Five layers:
    deferred try writes nothing; only the retry's outcome counts (`retried` in
    its `refresh_outcome` log line). Wall-budget overruns and map-download
    strikes aren't retried. **Shared recipe code:** `compute.py` can
-   `from govlib import fmt, frame, geo` and a template can
+   `from govlib import fmt, frame, geo, cbs` and a template can
    `{% import "gov.j2" as gov %}` (`services/page_builder/recipe_lib/`; the
    refresh copies `govlib` into the sandbox, and folds the lib's hash into
    `recipe_identity` only for recipes that import it). It ships in the builder
@@ -282,7 +282,15 @@ target=preview` deploys the `recipes-demo` Hosting channel.
    Hebrew series name (`SERIES_NAME_HE`, from the same query as SDMX-JSON)
    to every download; recipes select series by dimension codes and use
    the name only as a label. BoI recipes: `boi-interest-rate`,
-   `boi-mortgage-rates`, `boi-card-spending`. The daily job runs
+   `boi-mortgage-rates`, `boi-card-spending`. CBS (`cbs_releases`, ids
+   `cbs-*`, `services/providers/cbs.py`) gives one page per recurring CBS
+   press release (monthly visitor arrivals, average wage, …): one SharePoint
+   list query per run finds the newest edition by `title_regex`, and each
+   Excel table (`.xls` or `.xlsx`, which flip between editions; read with
+   python-calamine) becomes a grid CSV (`RELEASE_NO, RELEASE_DATE, SHEET_NO,
+SHEET, ROW, C01..`) that compute.py reads by label.
+   `python -m services.providers.cbs catalog` lists the recurring reports.
+   The daily job runs
    `providers.sync.sync_provider_sources` after loading the recipe list.
    It writes `sources/<id>` (`provider`, `presentation`, `page_slug_suffix`,
    resources stored `datastore_active: false`) and moves `metadata_modified`

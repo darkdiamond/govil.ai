@@ -60,10 +60,10 @@ itself writes is search-indexed and regenerated unattended, so:
 
 ### Provider sources (not data.gov.il)
 
-A dataset from another source (Bank of Israel today, ids `boi-*`) is
-declared by `recipes/<id>/source.json`, written **before** `prepare`:
-`provider`, `title` (the H1 people search), `notes`, `tags`,
-`update_frequency`, `source_url`, and the provider's `config` (for
+A dataset from another source (Bank of Israel, ids `boi-*`; CBS press
+releases, ids `cbs-*`) is declared by `recipes/<id>/source.json`, written
+**before** `prepare`: `provider`, `title` (the H1 people search), `notes`,
+`tags`, `update_frequency`, `source_url`, and the provider's `config` (for
 `boi_sdmx`: `resources: [{id, name, dataflow, key?, startperiod?}]`).
 The id must start with the provider's prefix. `prepare` then needs no
 Firestore and fetches from the source. BRIEF.md ends with the provider's
@@ -71,6 +71,33 @@ Firestore and fetches from the source. BRIEF.md ends with the provider's
 so every chart gets its own `<details><table>`; no GovExplorer/GovMap; no
 data.gov.il links. `recipe.json` `by_id` is the resource `id` from
 source.json. Commit `source.json` with the recipe.
+
+**CBS (`cbs_releases`)**: one page per recurring CBS report (monthly visitor
+arrivals, average wage, …). Find the report with
+`python -m services.providers.cbs catalog` (count, interval, file chapter,
+suggested `title_regex`, the last edition's table stems). Config:
+
+```json
+"config": {
+  "report": {"title_regex": "^כניסות של מבקרים לישראל ב(?!שנת)",
+             "chapter": "28", "interval": "חודשי"},
+  "history_releases": 1,
+  "resources": [
+    {"id": "t1", "name": "כניסות מבקרים לפי דרך כניסה", "table": "t1"},
+    {"id": "releases", "name": "פרסומי הלמ\"ס", "kind": "releases"}
+  ]
+}
+```
+
+Check the regex against the catalog's titles: special editions (a yearly
+summary, a holiday collection) often share the prefix and carry the same
+interval label, so exclude them with a lookahead. Each table resource is a
+grid (`RELEASE_NO, RELEASE_DATE, SHEET_NO, SHEET, ROW, C01..`): read it with
+`from govlib import cbs` (header lookups by label that raise when a label is
+gone, period rows found by content) and follow BRIEF.md's Source rules.
+`history_releases` > 1 only when a table shows just the current period. The
+`releases` resource gives the latest edition's headline and links. Worked
+examples: `recipes/cbs-visitor-arrivals/`, `recipes/cbs-average-wage/`.
 
 ## 2. Explore
 

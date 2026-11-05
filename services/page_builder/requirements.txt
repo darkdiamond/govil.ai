@@ -16,6 +16,10 @@ pandas>=3.0.5,<4
 # int (numpy 1.x returned np.float64, which formats as "2.0"). Already what
 # pandas 3 resolves to; pinned so it can't silently regress.
 numpy>=2,<3
+# CBS release tables (services/providers/cbs.py): one reader for .xls (BIFF,
+# cp1255) and .xlsx, which the same report flips between editions. Host-only
+# (the provider), never imported by a recipe's compute.py.
+python-calamine>=0.9.1,<0.10
 
 # Google Cloud
 google-cloud-firestore>=2.28.0
