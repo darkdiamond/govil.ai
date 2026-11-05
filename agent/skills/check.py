@@ -27,6 +27,120 @@ import json
 import re
 import sys
 
+
+def _fast_esprima_character():
+    """A stand-in for `esprima.character`, installed before esprima loads.
+
+    Upstream 4.0.1 builds its identifier tables by calling
+    `unicodedata.category` on all 1.1M code points at import (~0.3s per
+    check.py run, ~40s per nightly job). This module answers the same
+    questions from the same `unicodedata` tables, one character at a time.
+    test_check_js_parse.py asserts it agrees with upstream on every code
+    point, and requirements.txt pins esprima==4.0.1 so the names it
+    provides (Character, HEX_CONV, OCTAL_CONV, ...) can't drift. Must stay
+    inline: check.py runs under `python -I`, so it can't import a sibling.
+    """
+    import types
+    import unicodedata
+
+    letter_cats = frozenset(("Lu", "Ll", "Lt", "Lm", "Lo", "Nl"))
+    part_cats = letter_cats | {"Mn", "Mc", "Nd", "Pc"}
+    other_id_start = frozenset((
+        "\u1885", "\u1886", "\u2118", "\u212E", "\u309B", "\u309C",
+        "\u08B3", "\u0AF9", "\u13F8", "\u9FCD", "\uAB60", "\U00010CC0",
+        "\U000108E0", "\U0002B820", "\u1C80", "\U000104DB", "\U0001E922",
+        "\U0001EE00", "\U0001EE06", "\U0001EE0A",
+    ))
+    other_id_continue = frozenset((
+        "\xB7", "\u0387", "\u1369", "\u136A", "\u136B", "\u136C",
+        "\u136D", "\u136E", "\u136F", "\u1370", "\u1371", "\u19DA",
+        "\u08E3", "\uA69E", "\U00011730", "\u08D4", "\u1DFB", "\uA8C5",
+        "\U00011450", "\U0001EE03", "\U0001EE0B",
+    ))
+    start_extra = other_id_start | {"$", "_", "\\"}
+    part_extra = start_extra | other_id_continue | {"\u200D", "\u200C"}
+    white_space = frozenset((
+        "\x09", "\x0B", "\x0C", "\x20", "\xA0",
+        "\u1680", "\u180E", "\u2000", "\u2001", "\u2002",
+        "\u2003", "\u2004", "\u2005", "\u2006", "\u2007",
+        "\u2008", "\u2009", "\u200A", "\u202F", "\u205F",
+        "\u3000", "\uFEFF",
+    ))
+    line_terminator = frozenset(("\x0A", "\x0D", "\u2028", "\u2029"))
+    decimal_conv = {c: n for n, c in enumerate("0123456789")}
+    octal_conv = {c: n for n, c in enumerate("01234567")}
+    hex_conv = {c: n for n, c in enumerate("0123456789abcdef")}
+    hex_conv.update({c: n for n, c in enumerate("ABCDEF", 10)})
+    category = unicodedata.category
+
+    def _cat(ch):
+        # Upstream does `ch in <set of 1-char str>`: anything that isn't a
+        # single character is simply not a member.
+        return category(ch) if type(ch) is str and len(ch) == 1 else ""
+
+    class Character:
+        @staticmethod
+        def fromCodePoint(code):
+            return chr(code)
+
+        @staticmethod
+        def isWhiteSpace(ch):
+            return ch in white_space
+
+        @staticmethod
+        def isLineTerminator(ch):
+            return ch in line_terminator
+
+        @staticmethod
+        def isIdentifierStart(ch):
+            return ch in start_extra or _cat(ch) in letter_cats
+
+        @staticmethod
+        def isIdentifierPart(ch):
+            return ch in part_extra or _cat(ch) in part_cats
+
+        @staticmethod
+        def isDecimalDigit(ch):
+            return ch in decimal_conv
+
+        @staticmethod
+        def isHexDigit(ch):
+            return ch in hex_conv
+
+        @staticmethod
+        def isOctalDigit(ch):
+            return ch in octal_conv
+
+    mod = types.ModuleType("esprima.character")
+    mod.Character = Character
+    mod.WHITE_SPACE = white_space
+    mod.LINE_TERMINATOR = line_terminator
+    mod.DECIMAL_CONV = decimal_conv
+    mod.OCTAL_CONV = octal_conv
+    mod.HEX_CONV = hex_conv
+    mod.DECIMAL_DIGIT = frozenset(decimal_conv)
+    mod.OCTAL_DIGIT = frozenset(octal_conv)
+    mod.HEX_DIGIT = frozenset(hex_conv)
+    return mod
+
+
+def _install_fast_esprima_character() -> None:
+    # Only for the release the stand-in was checked against: any other
+    # version gets upstream's own module (slow but correct). A stand-in
+    # missing a name a newer scanner imports would turn into ImportError
+    # below and silently switch the parse gate off.
+    from importlib import metadata
+
+    if "esprima" in sys.modules:
+        return
+    try:
+        if metadata.version("esprima") != "4.0.1":
+            return
+    except metadata.PackageNotFoundError:
+        return
+    sys.modules.setdefault("esprima.character", _fast_esprima_character())
+
+
 # Pure-Python ES parser backing the JS-SYNTAX catch-all below (there is
 # no Node in the builder image). Optional import so this script still
 # runs standalone elsewhere; without it the parse gate no-ops, which is
@@ -34,6 +148,7 @@ import sys
 # services/page_builder/tests/test_check_js_parse.py asserts it is
 # importable — the gate must not silently vanish from prod.
 try:
+    _install_fast_esprima_character()
     import esprima as _esprima
 except ImportError:  # pragma: no cover - exercised via monkeypatch
     _esprima = None

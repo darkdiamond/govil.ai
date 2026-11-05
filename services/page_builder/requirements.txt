@@ -4,7 +4,9 @@ httpx>=0.28.1
 # catch-all in agent/skills/check.py — every page <script> block must
 # actually parse before the body persists. Validated against the 587
 # published script blocks with zero false positives.
-esprima>=4.0.1,<5
+# Pinned exactly: check.py replaces its slow `esprima.character` module
+# (_fast_esprima_character), which must match this release's names.
+esprima==4.0.1
 pydantic>=2.13.4
 pydantic-settings>=2.14.2
 jinja2>=3.1.6
