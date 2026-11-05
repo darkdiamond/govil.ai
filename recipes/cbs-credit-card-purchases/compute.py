@@ -402,7 +402,9 @@ def compute(frames):
         lv = [(g["years"][ly][0], g["name"]) for g in groups if ly in g["years"]]
         if len(lv) >= 2:
             (vh, nh), (vl, nl) = max(lv), min(lv)
-            if vh / vl >= 1.3:
+            # "גדלו פי" needs both groups above the base (100): an index
+            # under it is a fall, not growth.
+            if vl > 100 and vh / vl >= 1.3:
                 add("long", f"לפי מדד {ly}, מאז {base} הרכישות ב{_short(nh)} גדלו פי "
                             f"{fmt.num_he(vh / 100, 1)} במחירים קבועים, לעומת פי "
                             f"{fmt.num_he(vl / 100, 1)} ב{_short(nl)}.")

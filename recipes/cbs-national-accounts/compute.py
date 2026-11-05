@@ -377,12 +377,18 @@ def compute(frames):
     # ── composition of uses at current prices ────────────────────────────
     share_cols = [("private", "צריכה פרטית"), ("public", "צריכה ציבורית"),
                   ("gcf", "השקעה גולמית"), ("exports", "יצוא")]
-    periods = [(str(k[0]), v) for k, v in cur_a if v["uses"]]
+    sum_cols = [c for c, _ in share_cols] + ["uses", "gdp"]
+
+    def complete(v):
+        return v["uses"] and all(v[c] is not None for c in sum_cols)
+
+    periods = [(str(k[0]), v) for k, v in cur_a if complete(v)]
     full_years = {k[0] for k, _ in cur_a}
     part = [(k, v) for k, v in cur_q if k[0] > max(full_years)]
-    if part:
-        sums = {c: sum(v[c] or 0 for _, v in part) for c, _ in share_cols + [("uses", ""),
-                                                                              ("gdp", "")]}
+    # A partial year whose quarters miss a value would be a short sum (and a
+    # zero "uses" a division by zero): leave it out instead.
+    if part and all(complete(v) for _, v in part):
+        sums = {c: sum(v[c] for _, v in part) for c in sum_cols}
         qn = len(part)
         periods.append((f"{part[0][0][0]} (" + ("רבעון 1" if qn == 1 else f"רבעונים 1-{qn}")
                         + ")", sums))

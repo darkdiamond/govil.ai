@@ -204,15 +204,20 @@ def compute(frames):
     for y in sorted({m["t"][0] for m in monthly}):
         ms = [by_t.get((y, k)) for k in range(1, end + 1)]
         if all(ms):
-            ytd.append({"year": y, "isr": sum(m["isr"] or 0 for m in ms),
-                        "tour": sum(m["tour"] or 0 for m in ms), "tot": sum(m["tot"] for m in ms)})
+            # A split with a missing month is None, not a short sum.
+            part = {k: sum(m[k] for m in ms) if all(m[k] is not None for m in ms) else None
+                    for k in ("isr", "tour")}
+            ytd.append({"year": y, **part, "tot": sum(m["tot"] for m in ms)})
     ytd_by = {y["year"]: y for y in ytd}
     ytd_now, ytd_prev = ytd_by.get(cur_year), ytd_by.get(cur_year - 1)
     ytd_chg = _chg(ytd_now["tot"], ytd_prev["tot"]) if ytd_now and ytd_prev else None
     base = ytd_by.get(BASE_YEAR) if BASE_YEAR != cur_year else None
-    tour_vs_base = (ytd_now["tour"] / base["tour"]) if ytd_now and base and base["tour"] else None
-    tour_share = (ytd_now["tour"] / ytd_now["tot"]) if ytd_now and ytd_now["tot"] else None
-    base_share = (base["tour"] / base["tot"]) if base and base["tot"] else None
+    tour_now = ytd_now["tour"] if ytd_now else None
+    tour_vs_base = (tour_now / base["tour"]) if tour_now is not None and base and base["tour"] \
+        else None
+    tour_share = (tour_now / ytd_now["tot"]) if tour_now is not None and ytd_now["tot"] else None
+    base_share = (base["tour"] / base["tot"]) \
+        if base and base["tour"] is not None and base["tot"] else None
 
     # Whole years: drop the current year if the yearly block lists it while
     # the months say it is still running.
@@ -298,7 +303,8 @@ def compute(frames):
 
     charts["ytd"] = {"x": [str(y["year"]) for y in ytd], "isr": [_r(y["isr"]) for y in ytd],
                      "tour": [_r(y["tour"]) for y in ytd]}
-    tables["ytd"] = [[str(y["year"]), _k(y["tot"]), _k(y["isr"]), _k(y["tour"]),
+    tables["ytd"] = [[str(y["year"]), _k(y["tot"]), _k(y["isr"]) if y["isr"] is not None else "",
+                      _k(y["tour"]) if y["tour"] is not None else "",
                       fmt.signed_pct(c) if (c := _chg(y["tot"], (ytd_by.get(y["year"] - 1) or {})
                                                       .get("tot"))) is not None else ""]
                      for y in ytd]

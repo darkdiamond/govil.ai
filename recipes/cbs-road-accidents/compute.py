@@ -169,12 +169,16 @@ def compute(frames):
     full_years = sorted(years)
 
     # Year to date: Jan..cm of every year whose months are all in the table.
+    # A measure with a missing month ("..") is None, not a short sum.
     ytd = {}
     for y in sorted({t[0] for t in mts}):
         if all((y, m) in months for m in range(1, cm + 1)):
-            ytd[y] = {k: sum(months[(y, m)][k] or 0 for m in range(1, cm + 1))
-                      for k in MEASURES}
+            vals = {k: [months[(y, m)][k] for m in range(1, cm + 1)] for k in MEASURES}
+            ytd[y] = {k: sum(v) if all(x is not None for x in v) else None
+                      for k, v in vals.items()}
     cur = ytd.get(cy)
+    if cur and cur["killed"] is None:
+        cur = None  # the headline YTD figure needs every month's killed count
     prev = ytd.get(cy - 1)
 
     # ── KPIs ─────────────────────────────────────────────────────────────
@@ -192,7 +196,7 @@ def compute(frames):
                            "tone": "danger" if k_chg > 0.02 else "ok" if k_chg < -0.02
                            else "warn"}
         labels["ytd_chg_kpi"] = f"שינוי בהרוגים לעומת {span_txt} {cy - 1}"
-    if cur:
+    if cur and cur["serious_inj"] is not None:
         kpis["ytd_serious"] = {"value": cur["serious_inj"],
                                "display": fmt.int_he(cur["serious_inj"]), "tone": "brand"}
         labels["ytd_serious_kpi"] = f"פצועים קשה, {span_txt} {cy} (ארעי)"

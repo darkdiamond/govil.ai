@@ -167,6 +167,16 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   page lags one period a year (the page says so). Fix: a second report config per recipe for
   the year-end edition (its own table map), or have compute read either layout.
   (2026-11-05)
+- **Each CBS recipe picks its "latest release" with its own copy of the same sort.** All 23
+  `recipes/cbs-*/compute.py` sort the `releases` frame by `RELEASE_DATE`, then `RELEASE_NO` as
+  a string, so of two editions on one date "99/2026" wins over "100/2026", while `cbs.grid`
+  reads the higher number (`_release_key`). The release card would then name a different
+  edition than the numbers. Fix: a `cbs.latest_release(df)` helper using `_release_key`
+  (deploy the job first), then swap the 23 copies for it. (2026-11-05)
+- **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
+  twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
+  the whole page's sync (item above). Drop them from `source.json` if the downloads aren't
+  worth that, or make them `optional` once that flag exists. (2026-11-05)
 - **Every run downloads every CBS table to version it.** ~0.1s a file now; with ~20 pages × ~5
   tables it costs about a minute a run. If it grows, give `version()` a cheap path that hashes
   the release number + file names and sizes from the folder listing, and download only when
