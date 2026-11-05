@@ -66,9 +66,7 @@ def test_fast_character_matches_upstream_on_every_code_point():
 
     for name in ("HEX_CONV", "OCTAL_CONV", "DECIMAL_CONV", "WHITE_SPACE",
                  "LINE_TERMINATOR", "DECIMAL_DIGIT", "OCTAL_DIGIT", "HEX_DIGIT"):
-        assert set(getattr(fast, name)) == set(getattr(upstream, name)), name
-    assert fast.HEX_CONV == upstream.HEX_CONV
-    assert fast.OCTAL_CONV == upstream.OCTAL_CONV
+        assert getattr(fast, name) == getattr(upstream, name), name
 
     up, fc = upstream.Character, fast.Character
     preds = ("isWhiteSpace", "isLineTerminator", "isIdentifierStart",

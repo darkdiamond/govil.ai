@@ -46,27 +46,27 @@ def _fast_esprima_character():
     letter_cats = frozenset(("Lu", "Ll", "Lt", "Lm", "Lo", "Nl"))
     part_cats = letter_cats | {"Mn", "Mc", "Nd", "Pc"}
     other_id_start = frozenset((
-        "ᢅ", "ᢆ", "℘", "℮", "゛", "゜",
-        "ࢳ", "ૹ", "ᏸ", "鿍", "ꭠ", "\U00010CC0",
-        "\U000108E0", "\U0002B820", "ᲀ", "\U000104DB", "\U0001E922",
+        "\u1885", "\u1886", "\u2118", "\u212E", "\u309B", "\u309C",
+        "\u08B3", "\u0AF9", "\u13F8", "\u9FCD", "\uAB60", "\U00010CC0",
+        "\U000108E0", "\U0002B820", "\u1C80", "\U000104DB", "\U0001E922",
         "\U0001EE00", "\U0001EE06", "\U0001EE0A",
     ))
     other_id_continue = frozenset((
-        "\xB7", "·", "፩", "፪", "፫", "፬",
-        "፭", "፮", "፯", "፰", "፱", "᧚",
-        "ࣣ", "ꚞ", "\U00011730", "ࣔ", "᷻", "ꣅ",
+        "\xB7", "\u0387", "\u1369", "\u136A", "\u136B", "\u136C",
+        "\u136D", "\u136E", "\u136F", "\u1370", "\u1371", "\u19DA",
+        "\u08E3", "\uA69E", "\U00011730", "\u08D4", "\u1DFB", "\uA8C5",
         "\U00011450", "\U0001EE03", "\U0001EE0B",
     ))
     start_extra = other_id_start | {"$", "_", "\\"}
-    part_extra = start_extra | other_id_continue | {"‍", "‌"}
+    part_extra = start_extra | other_id_continue | {"\u200D", "\u200C"}
     white_space = frozenset((
         "\x09", "\x0B", "\x0C", "\x20", "\xA0",
-        " ", "᠎", " ", " ", " ",
-        " ", " ", " ", " ", " ",
-        " ", " ", " ", " ", " ",
-        "　", "﻿",
+        "\u1680", "\u180E", "\u2000", "\u2001", "\u2002",
+        "\u2003", "\u2004", "\u2005", "\u2006", "\u2007",
+        "\u2008", "\u2009", "\u200A", "\u202F", "\u205F",
+        "\u3000", "\uFEFF",
     ))
-    line_terminator = frozenset(("\x0A", "\x0D", " ", " "))
+    line_terminator = frozenset(("\x0A", "\x0D", "\u2028", "\u2029"))
     decimal_conv = {c: n for n, c in enumerate("0123456789")}
     octal_conv = {c: n for n, c in enumerate("01234567")}
     hex_conv = {c: n for n, c in enumerate("0123456789abcdef")}
@@ -125,9 +125,18 @@ def _fast_esprima_character():
 
 
 def _install_fast_esprima_character() -> None:
-    import importlib.util
+    # Only for the release the stand-in was checked against: any other
+    # version gets upstream's own module (slow but correct). A stand-in
+    # missing a name a newer scanner imports would turn into ImportError
+    # below and silently switch the parse gate off.
+    from importlib import metadata
 
-    if "esprima" in sys.modules or importlib.util.find_spec("esprima") is None:
+    if "esprima" in sys.modules:
+        return
+    try:
+        if metadata.version("esprima") != "4.0.1":
+            return
+    except metadata.PackageNotFoundError:
         return
     sys.modules.setdefault("esprima.character", _fast_esprima_character())
 
