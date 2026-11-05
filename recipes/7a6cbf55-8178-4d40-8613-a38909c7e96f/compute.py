@@ -63,8 +63,8 @@ BEE_ORDER = ["רעיל מאוד לדבורים", "רעילות בינונית ל
 ENV_KEYS = [("דבורים", "דבורים"), ("ימיים", "יצורים ימיים"), ("דגים", "דגים"),
             ("צפורים", "ציפורים"), ("אצות", "אצות")]
 PHI_BUCKETS = [(0, 0), (1, 3), (4, 7), (8, 14), (15, 21), (22, 30), (31, 60), (61, None)]
-REENTRY_ORDER = ["מיד / ללא מגבלה", "עם התייבשות התרסיס", "עד 4 שעות", "5–12 שעות",
-                 "13–24 שעות", "מעל 24 שעות", OTHER, UNSPEC]
+REENTRY_ORDER = ["מיד / ללא מגבלה", "עם התייבשות התרסיס", "עד 4 שעות", "5-12 שעות",
+                 "13-24 שעות", "מעל 24 שעות", OTHER, UNSPEC]
 UN_NAMES = {"3082": "חומר מסוכן לסביבה, נוזלי", "3077": "חומר מסוכן לסביבה, מוצק"}
 LRI, PDI = "\u2066", "\u2069"
 MONTHS_HE = ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי",
@@ -137,7 +137,7 @@ def phi_bucket(v):
         if v >= lo and (hi is None or v <= hi):
             if lo == hi:
                 return "ללא המתנה"
-            return f"{lo}+ ימים" if hi is None else f"{lo}–{hi} ימים"
+            return f"{lo}+ ימים" if hi is None else f"{lo}-{hi} ימים"
     return OTHER
 
 
@@ -155,13 +155,13 @@ def reentry_class(s):
         if h <= 4:
             return "עד 4 שעות"
         if h <= 12:
-            return "5–12 שעות"
+            return "5-12 שעות"
         if h <= 24:
-            return "13–24 שעות"
+            return "13-24 שעות"
         return "מעל 24 שעות"
     m = DAYS_RE.search(s)
     if m:
-        return "13–24 שעות" if int(m.group(1)) <= 1 else "מעל 24 שעות"
+        return "13-24 שעות" if int(m.group(1)) <= 1 else "מעל 24 שעות"
     return OTHER
 
 
@@ -265,8 +265,8 @@ def insight_trend(per_year, last_full):
     if b == 0:
         return None
     chg = r / b - 1
-    span_r = f"{last_full - w + 1}–{last_full}"
-    span_b = f"{last_full - 2 * w + 1}–{last_full - w}"
+    span_r = f"{last_full - w + 1}-{last_full}"
+    span_b = f"{last_full - 2 * w + 1}-{last_full - w}"
     if abs(chg) < TREND_THRESH:
         return (f"קצב אישור השימושים החדשים יציב: כ-{n(round(r))} בשנה ב-{span_r}, "
                 f"בדומה ל-{n(round(b))} ב-{span_b} (לפי תאריך האישור של שימושים שבתוקף).")
@@ -536,7 +536,7 @@ def compute(frames):
                    f"(ככל הנראה שגיאת הקלדה) אינם מוצגים." if len(future) else "")
     phi_hi = stats[0] if stats else None
     labels = {
-        "lede": (f"מרשם תכשירי ההדברה המורשים לשימוש בחקלאות בישראל: {n(total)} תכשירים "
+        "lede": (f"מאגר חומרי ההדברה של משרד החקלאות הוא מרשם תכשירי ההדברה המורשים לשימוש בחקלאות בישראל: {n(total)} תכשירים "
                  f"של {n(holder_counts.size)} בעלי רישיון, המבוססים על {n(ai_counts.size)} "
                  f"חומרים פעילים ומאושרים ל-{n(n_uses)} שימושים (צירופים של גידול ונגע) "
                  f"ב-{n(crop_counts.size)} גידולים. לכל שימוש רשומים מינון, תקופת המתנה "
@@ -690,6 +690,18 @@ def compute(frames):
                                "דבורים", "גידולים"],
             "temporal_coverage": f"{y0}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "מאגר חומרי הדברה: תכשירים ותוויות להגנת הצומח | משרד החקלאות",
+                "description": (f"מאגר חומרי הדברה של משרד החקלאות: חיפוש תכשיר לפי חומר פעיל, גידול ונגע, "
+                                f"עם קישור לתווית. {n(total)} תכשירים ו-{n(ai_counts.size)} חומרים פעילים."),
+                "name": "מאגר חומרי הדברה",
+                "alternate_names": [
+                    "מאגר תכשירי הדברה",
+                    "מאגר תכשירי הדברה להגנת הצומח",
+                    "מאגר תוויות חומרי הדברה",
+                    "חומרי הדברה משרד החקלאות",
+                ],
+            },
         },
         "kpis": kpis,
         "charts": charts,

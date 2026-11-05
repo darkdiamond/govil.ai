@@ -481,7 +481,7 @@ def compute(frames):
     labels = {
         "period": p_he(last),
         "ytd_label": ytd_label,
-        "lede": (f"דיווחים חודשיים של {n_tracks:,} מסלולי השקעה בקופות גמל, קרנות השתלמות "
+        "lede": (f"נתוני גמל נט של רשות שוק ההון במשרד האוצר: דיווחים חודשיים של {n_tracks:,} מסלולי השקעה בקופות גמל, קרנות השתלמות "
                  f"וקופות גמל להשקעה, ב-{mgr.size} גופים מנהלים, נכון ל{p_he(last)}. "
                  f"סך הנכסים: {bn(assets[last])}."),
         "scope_note": (f"הנתונים מ{p_he(FROM_PERIOD)} ואילך: בשנים קודמות היקף הקופות המדווחות "
@@ -528,6 +528,11 @@ def compute(frames):
         "target_caption": f"נכסים לפי אוכלוסיית היעד של הקופה, {p_he(last)}.",
     }
 
+    seo_desc = (f"נתוני גמל נט של משרד האוצר: תשואות, דמי ניהול ונכסים של {n_tracks:,} מסלולי קופות "
+                f"גמל וקרנות השתלמות. סך הנכסים ב{p_he(last)}: {bn(assets[last])}.")
+    if len(seo_desc) > 150:
+        seo_desc = "נתוני גמל נט של משרד האוצר: תשואות, דמי ניהול ונכסים לפי מסלול בקופות גמל וקרנות השתלמות."
+
     return {
         "agent_data": {
             "summary_he": (f"נתוני גמל-נט: דיווח חודשי על {n_tracks:,} מסלולי קופות גמל, קרנות "
@@ -539,6 +544,13 @@ def compute(frames):
             "suggested_tags": ["קופות גמל", "קרנות השתלמות", "חיסכון", "דמי ניהול", "תשואות", "שוק ההון"],
             "temporal_coverage": f"{p_iso(FROM_PERIOD)}/{p_iso(last)}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "נתוני גמל נט, משרד האוצר: תשואות ודמי ניהול לפי קופה ומסלול",
+                "description": seo_desc,
+                "name": "גמל נט",
+                "alternate_names": ["גמל-נט", "גמלנט", "גמל נט משרד האוצר", "גמל נט רשות שוק ההון",
+                                    "Gemel Net"],
+            },
         },
         "kpis": kpis,
         "charts": charts,
