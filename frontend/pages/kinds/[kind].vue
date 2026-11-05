@@ -2,14 +2,8 @@
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
 import { loadSearchIndex } from "~/utils/search-index";
 import hubIntros from "~/content/hub-intros.json";
-
-const KIND_LABELS: Record<string, string> = {
-  map: "גיאוגרפי",
-  timeseries: "סדרת זמן",
-  registry: "רשימת ישויות",
-  rankings: "דירוגים",
-  misc: "אחר",
-};
+import { KIND_INFO } from "~/composables/useKindLabels";
+import type { DatasetKind } from "~/types/manifest";
 
 const route = useRoute();
 const kind = computed(() => String(route.params.kind));
@@ -21,7 +15,9 @@ const { data } = await useAsyncData(`kind-${kind.value}`, async () => {
 });
 
 const entries = computed(() => data.value ?? []);
-const label = computed(() => KIND_LABELS[kind.value] ?? kind.value);
+const label = computed(
+  () => KIND_INFO[kind.value as DatasetKind]?.label ?? kind.value
+);
 
 if (entries.value.length === 0) {
   throw createError({

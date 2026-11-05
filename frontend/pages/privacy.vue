@@ -3,11 +3,11 @@ const lastUpdated = "5 בנובמבר 2026";
 
 // Deployment-specific analytics ID (empty in forks/local builds — the
 // service isn't loaded then either).
-const { gtag } = useRuntimeConfig().public;
+// plugins/clarity.client.ts loads Clarity only when clarityId is set.
+const { gtag, clarityId: clarityIdRaw } = useRuntimeConfig().public;
 // nuxt-gtag fills `public.gtag` only when an id is set, so its type is `{}`.
 const gtagId = (gtag as { id?: string } | undefined)?.id || "";
-// plugins/clarity.client.ts loads Clarity only when this is set.
-const clarityId = useRuntimeConfig().public.clarityId || "";
+const clarityId = clarityIdRaw || "";
 const services = clarityId
   ? "Google Analytics, Microsoft Clarity"
   : "Google Analytics";
@@ -174,7 +174,9 @@ useSeo({
         עיבוד הנתונים נעשה במסגרת חוק הגנת הפרטיות, התשמ״א-1981, ובהתאם להוראות
         רשם מאגרי המידע. למבקרים מהאיחוד האירופי או מהממלכה המאוחדת, הבסיס
         המשפטי לעיבוד הוא אינטרס לגיטימי (סעיף 6(1)(f) ל-GDPR) למדידת שימוש
-        כללית באתר.
+        כללית באתר<template v-if="clarityId">
+          ולשיפור השימושיות שלו (הקלטות הביקור ומפות החום של Clarity)</template
+        >.
       </p>
 
       <h2 class="font-display mt-8">6. זכויות המשתמש</h2>
@@ -206,8 +208,11 @@ useSeo({
       <h2 class="font-display mt-8">7. אבטחת מידע</h2>
       <p class="text-ink/85 leading-relaxed">
         כל התעבורה לאתר מאובטחת ב-HTTPS. האתר עצמו הוא סטטי — אין לנו מסד נתונים
-        משלנו, אין שמירה של פרופילי משתמשים, ואין חשבונות. הנתונים היחידים שאנו
-        רואים בעצמנו הם פניות שהגעת אלינו באופן יזום בדוא״ל.
+        משלנו, אין שמירה של פרופילי משתמשים, ואין חשבונות. מלבד פניות שהגיעו
+        אלינו באופן יזום בדוא״ל, אנו רואים רק את מה ששירותי הצד השלישי שלעיל
+        מציגים לנו: דוחות שימוש מצרפיים<template v-if="clarityId"
+          >, והקלטות ביקור ומפות חום שאינן משויכות לשם</template
+        >.
       </p>
 
       <h2 class="font-display mt-8">8. שינויים במדיניות</h2>

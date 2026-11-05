@@ -26,7 +26,7 @@ const { data } = await useAsyncData("kinds-index", async () => {
   const index = await loadSearchIndex();
   const counts: Partial<Record<DatasetKind, number>> = {};
   for (const d of index.datasets) {
-    const k = d.dataset_kind as DatasetKind | undefined;
+    const k = d.dataset_kind;
     if (k && k in KIND_INFO) counts[k] = (counts[k] ?? 0) + 1;
   }
   return counts;
@@ -60,6 +60,7 @@ const kinds = computed(() =>
         v-for="t in kinds"
         :key="t.kind"
         :to="`/kinds/${t.kind}/`"
+        :aria-label="`${t.info.label}, ${t.count} מאגרים`"
         class="card card-hover p-4 no-underline hover:no-underline flex items-start gap-3"
       >
         <img :src="t.info.icon" alt="" class="w-6 h-6 mt-0.5 opacity-75" />
