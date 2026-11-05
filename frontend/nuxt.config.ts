@@ -36,7 +36,7 @@ function categoryRoutes(): string[] {
     return [];
   }
 
-  const routes = new Set<string>(["/ministries/", "/tags/"]);
+  const routes = new Set<string>(["/ministries/", "/tags/", "/kinds/"]);
   // Every paged tag in the publisher's tag_index (the only tags dataset pages
   // link). Pass the slug raw — Nitro's prerender expects decoded routes and
   // writes Unicode-named directories from them.

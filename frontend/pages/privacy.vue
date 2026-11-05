@@ -1,21 +1,26 @@
 <script setup lang="ts">
-const lastUpdated = "2 בנובמבר 2026";
+const lastUpdated = "5 בנובמבר 2026";
 
 // Deployment-specific analytics ID (empty in forks/local builds — the
 // service isn't loaded then either).
 const { gtag } = useRuntimeConfig().public;
 // nuxt-gtag fills `public.gtag` only when an id is set, so its type is `{}`.
 const gtagId = (gtag as { id?: string } | undefined)?.id || "";
+// plugins/clarity.client.ts loads Clarity only when this is set.
+const clarityId = useRuntimeConfig().public.clarityId || "";
+const services = clarityId
+  ? "Google Analytics, Microsoft Clarity"
+  : "Google Analytics";
 
 useSeo({
   title: "מדיניות פרטיות באתר govil.ai",
-  description:
-    "מדיניות הפרטיות של govil.ai — אילו נתונים אנו אוספים, באילו שירותי צד שלישי אנו משתמשים (Google Analytics), ואילו זכויות עומדות לכם.",
+  description: `מדיניות הפרטיות של govil.ai — אילו נתונים אנו אוספים, באילו שירותי צד שלישי אנו משתמשים (${services}), ואילו זכויות עומדות לכם.`,
   path: "/privacy/",
   keywords: [
     "מדיניות פרטיות",
     "cookies",
     "Google Analytics",
+    ...(clarityId ? ["Microsoft Clarity"] : []),
     "חוק הגנת הפרטיות",
   ],
   breadcrumbs: [
@@ -55,7 +60,10 @@ useSeo({
         לצורך אבטחה ותפעול בלבד.
       </p>
       <p class="text-ink/85 leading-relaxed">
-        בנוסף אנו משתמשים בשירות צד שלישי של Google שמציב cookies בדפדפן:
+        בנוסף אנו משתמשים
+        <template v-if="clarityId">בשירותי צד שלישי שמציבים</template
+        ><template v-else>בשירות צד שלישי של Google שמציב</template>
+        cookies בדפדפן:
       </p>
       <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
@@ -66,6 +74,13 @@ useSeo({
           >
           — לצורך הבנת דפוסי שימוש מצרפיים: כמה מבקרים, אילו עמודים נצפים, ממה
           הם הגיעו לאתר. הנתונים מצרפיים ואינם משויכים לשם.
+        </li>
+        <li v-if="clarityId">
+          <strong>Microsoft Clarity</strong> — לצורך הבנת אופן השימוש בעמודים:
+          Clarity מתעד את האינטראקציה עם העמוד (לחיצות, גלילה ותנועות עכבר)
+          ומפיק ממנה הקלטות ביקור ומפות חום, כדי שנוכל לזהות עמודים שקשה להשתמש
+          בהם. התיעוד אינו משויך לשם, ו-Clarity מסתיר כברירת מחדל את התוכן
+          שמוקלד בשדות טופס.
         </li>
       </ul>
       <p class="text-ink/85 leading-relaxed">
@@ -89,13 +104,20 @@ useSeo({
 
       <h2 class="font-display mt-8">3. Cookies וטכנולוגיות דומות</h2>
       <p class="text-ink/85 leading-relaxed">
-        כתוצאה משירות הצד השלישי שלעיל מוצבות בדפדפן שלכם cookies מהמשפחות
-        הבאות:
+        כתוצאה
+        <template v-if="clarityId">משירותי הצד השלישי</template
+        ><template v-else>משירות הצד השלישי</template>
+        שלעיל מוצבות בדפדפן שלכם cookies מהמשפחות הבאות:
       </p>
       <ul class="text-ink/85 leading-relaxed list-disc ps-6 space-y-2">
         <li>
           <code>_ga</code>, <code>_ga_*</code> — Google Analytics, מזהה ביקורים
           מצרפי.
+        </li>
+        <li v-if="clarityId">
+          <code>_clck</code>, <code>_clsk</code> — Microsoft Clarity, מזהה מבקר
+          ומקבץ את הצפיות של אותו ביקור להקלטה אחת. Clarity עשוי להציב גם
+          cookies של Microsoft (כגון <code>MUID</code>, <code>CLID</code>).
         </li>
       </ul>
       <p class="text-ink/85 leading-relaxed">
@@ -124,6 +146,16 @@ useSeo({
             >Google</a
           >
           — חל על Firebase Hosting ו-Google Analytics.
+        </li>
+        <li v-if="clarityId">
+          <a
+            href="https://privacy.microsoft.com/privacystatement"
+            target="_blank"
+            rel="noopener"
+            class="text-brand-700 underline"
+            >Microsoft</a
+          >
+          — חל על Microsoft Clarity.
         </li>
         <li>
           <a
@@ -154,8 +186,14 @@ useSeo({
         <li>זכות לתיקון מידע שגוי.</li>
         <li>זכות למחיקת מידע ולביטול הסכמה לעיבוד עתידי.</li>
         <li>
-          זכות הגשת תלונה לרשות להגנת הפרטיות
-          (israel.gov.il/he/departments/the_privacy_protection_authority).
+          זכות הגשת תלונה
+          <a
+            href="https://www.gov.il/he/departments/the_privacy_protection_authority"
+            target="_blank"
+            rel="noopener"
+            class="text-brand-700 underline"
+            >לרשות להגנת הפרטיות</a
+          >.
         </li>
       </ul>
       <p class="text-ink/85 leading-relaxed">

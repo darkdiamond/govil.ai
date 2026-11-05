@@ -43,6 +43,7 @@ add("/", "1.0", "daily", manifestLastmod);
 add("/datasets/", "0.9", "daily", manifestLastmod);
 add("/ministries/", "0.7", "weekly", manifestLastmod);
 add("/tags/", "0.7", "weekly", manifestLastmod);
+add("/kinds/", "0.6", "weekly", manifestLastmod);
 add("/about/", "0.5", "monthly");
 add("/how-it-works/", "0.5", "monthly");
 add("/faq/", "0.5", "monthly");

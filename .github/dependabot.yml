@@ -12,6 +12,27 @@ updates:
         patterns:
           - "*"
 
+  # Root requirements.txt + requirements-dev.txt (ruff). ruff gets its own
+  # PR: CI fails it until `required-version` in ruff.toml is bumped to match
+  # and the new version's findings are fixed, and that shouldn't hold back
+  # the other root pins.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      ruff:
+        patterns:
+          - "ruff"
+      pip-root:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "ruff"
+
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:

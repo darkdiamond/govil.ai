@@ -568,7 +568,9 @@ are still read by the authoring selector.
   report-only from PR #93 until 2026-10-30. The policy has no reporting
   endpoint, so a violation shows only in the visitor's browser console.
   Adding a third-party script, fetch target, frame or form target means
-  adding its host to the allowlist, or the browser blocks it. AdSense's
+  adding its host to the allowlist, or the browser blocks it. Ads are off
+  (since 2026-11-02) but the AdSense hosts stay allowlisted on purpose, so
+  ads can come back without a CSP change; don't prune them. AdSense's
   host set drifts: if ads or a page break with `Refused to …` in the
   console, add the host, or revert the promotion (push-to-deploy re-ships
   `firebase.json`; Cloudflare caches HTML with its headers for up to an
