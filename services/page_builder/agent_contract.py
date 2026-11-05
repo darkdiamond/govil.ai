@@ -37,6 +37,8 @@ from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
 
+from services.shared.ckan import EXACT_TOTAL_THRESHOLD
+
 log = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -103,18 +105,13 @@ _CKAN_BROWSER_UA = (
     os.environ.get("CKAN_USER_AGENT", "").strip()
     or "Mozilla/5.0 (compatible; govdata-builder/1.0)"
 )
-_PREFETCH_TIMEOUT_S = 4.0
+# The preview asks for an exact count (EXACT_TOTAL_THRESHOLD), a count(*)
+# that takes ~1.2s on a 4.2M-row table even when CKAN is idle. Keep headroom:
+# a preview that times out twice is a strike that escalates to schema_changed.
+_PREFETCH_TIMEOUT_S = 10.0
 _PREFETCH_SAMPLE_LIMIT = 5
 _PREFETCH_VALUE_TRUNC = 80
 _PREFETCH_JSON_CAP = 2048
-# data.gov.il's CKAN answers `include_total` on a large table with Postgres's
-# planner estimate (`total_was_estimated: true`), which goes stale when a
-# re-upload shrinks the table: 2026-11-05, 36bf1404 reported 161,025 rows
-# while it held 125,718, so the file (125,718) was rejected as short and the
-# datastore export failed as cut off at the same row. Above this threshold
-# CKAN estimates; set past any table we read, it counts exactly
-# (`count(*)`: +0.6s on a 4.2M-row table).
-_EXACT_TOTAL_THRESHOLD = 1_000_000_000
 
 def _truncate_value(v: Any) -> Any:
     if isinstance(v, str) and len(v) > _PREFETCH_VALUE_TRUNC:
@@ -163,7 +160,7 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             "resource_id": resource_id,
             "limit": _PREFETCH_SAMPLE_LIMIT,
             "include_total": "true",
-            "total_estimation_threshold": _EXACT_TOTAL_THRESHOLD,
+            "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
         }
     )
     url = f"{_CKAN_DATASTORE_URL}?{qs}"
@@ -206,6 +203,11 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
         log.warning("ckan prefetch %s success=false", resource_id[:8])
         return None
     result = payload.get("result") or {}
+    if result.get("total_was_estimated"):
+        # CKAN ignored the threshold: this total can be stale, and the export
+        # is checked against it (a shrunk table then fails as cut off).
+        log.warning("ckan prefetch %s: total %s is an estimate despite "
+                    "total_estimation_threshold", resource_id[:8], result.get("total"))
     fields = [
         {"id": f.get("id"), "type": f.get("type")}
         for f in (result.get("fields") or [])

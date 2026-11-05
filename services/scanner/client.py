@@ -17,6 +17,8 @@ from tenacity import (
     wait_exponential,
 )
 
+from services.shared.ckan import EXACT_TOTAL_THRESHOLD
+
 from .config import ScannerSettings, settings
 from .models import Dataset
 
@@ -209,11 +211,8 @@ class CKANClient:
                     "resource_id": resource_id,
                     "limit": 0,
                     "include_total": "true",
-                    # Exact count, not Postgres's planner estimate, which
-                    # CKAN returns for large tables and which goes stale
-                    # when a re-upload shrinks one (see agent_contract's
-                    # _EXACT_TOTAL_THRESHOLD).
-                    "total_estimation_threshold": 1_000_000_000,
+                    # Exact count, not a stale planner estimate.
+                    "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
                 },
             )
         except (httpx.HTTPError, httpx.TimeoutException):

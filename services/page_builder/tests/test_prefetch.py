@@ -146,13 +146,6 @@ class _EstimatingCkan:
         return ["plate"], [{k: v for k, v in r.items() if k != "_id"} for r in rows]
 
 
-def _export(total: int, dest):
-    return agent_contract.fetch_resource_records_to_file(
-        "rid", total, dest, max_bytes=1_000_000, page_size=100_000,
-        page_timeout_s=5.0, deadline=float("inf"), sample_target_rows=0,
-    )
-
-
 def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
     # 2026-11-05, 9a7bd490: CKAN estimated 161,025 rows for a table holding
     # 125,718. The file was rejected as short and the datastore export failed
@@ -165,14 +158,23 @@ def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
     assert preview is not None
     assert preview["total"] == 7
     assert "total_estimation_threshold=" in ckan.urls[0]
-    # The export checks its row count against that total: the whole table
-    # now exports as full.
-    out = _export(preview["total"], tmp_path / "out.csv")
+    # The export checks its row count against that total (its cut-off guard
+    # is test_data_prefetch's test_an_empty_page_before_total_is_a_failed_export):
+    # the whole table now exports as full.
+    out = agent_contract.fetch_resource_records_to_file(
+        "rid", preview["total"], tmp_path / "out.csv", max_bytes=1_000_000,
+        page_size=100_000, page_timeout_s=5.0, deadline=float("inf"),
+        sample_target_rows=0,
+    )
     assert out is not None and out.mode == "full" and out.rows == 7
 
 
-def test_export_short_of_its_total_still_fails(monkeypatch, tmp_path):
-    # The guard stays: a table that ends before its (exact) total is a cut-off
-    # export (seen mid-reload 2026-11-03), never staged as full.
-    monkeypatch.setattr(agent_contract, "_fetch_page", _EstimatingCkan().page)
-    assert _export(_EstimatingCkan.ESTIMATE, tmp_path / "out.csv") is None
+def test_an_estimated_total_is_logged(monkeypatch, caplog):
+    # A CKAN that ignores the threshold must not go back to silent estimates.
+    ckan = _EstimatingCkan()
+    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", ckan.urlopen)
+    monkeypatch.setattr(agent_contract, "EXACT_TOTAL_THRESHOLD", 0)
+    with caplog.at_level("WARNING", logger=agent_contract.log.name):
+        preview = fetch_resource_preview("rid")
+    assert preview is not None and preview["total"] == _EstimatingCkan.ESTIMATE
+    assert "is an estimate" in caplog.text
