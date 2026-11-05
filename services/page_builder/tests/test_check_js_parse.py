@@ -47,6 +47,58 @@ def test_esprima_is_installed():
     assert check._esprima is not None
 
 
+def test_fast_character_matches_upstream_on_every_code_point():
+    # check.py swaps esprima's import-time 1.1M-code-point table build for
+    # per-character unicodedata lookups. It must classify exactly as the
+    # upstream module does, for every code point and every predicate, and
+    # export every name upstream does.
+    import sys as _sys
+
+    import esprima
+
+    upstream_path = Path(esprima.__file__).with_name("character.py")
+    spec = importlib.util.spec_from_file_location(
+        "esprima._character_upstream", upstream_path
+    )
+    upstream = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(upstream)
+    fast = check._fast_esprima_character()
+
+    for name in ("HEX_CONV", "OCTAL_CONV", "DECIMAL_CONV", "WHITE_SPACE",
+                 "LINE_TERMINATOR", "DECIMAL_DIGIT", "OCTAL_DIGIT", "HEX_DIGIT"):
+        assert set(getattr(fast, name)) == set(getattr(upstream, name)), name
+    assert fast.HEX_CONV == upstream.HEX_CONV
+    assert fast.OCTAL_CONV == upstream.OCTAL_CONV
+
+    up, fc = upstream.Character, fast.Character
+    preds = ("isWhiteSpace", "isLineTerminator", "isIdentifierStart",
+             "isIdentifierPart", "isDecimalDigit", "isHexDigit", "isOctalDigit")
+    for pred in preds:
+        u, f = getattr(up, pred), getattr(fc, pred)
+        bad = [cp for cp in range(_sys.maxunicode + 1) if u(chr(cp)) != f(chr(cp))]
+        assert not bad, (pred, [hex(cp) for cp in bad[:10]])
+        for odd in ("", None, "ab", "\\u0041"):
+            assert u(odd) == f(odd), (pred, odd)
+    assert fc.fromCodePoint(0x1F600) == up.fromCodePoint(0x1F600)
+
+
+def test_check_script_skips_the_upstream_table_build():
+    # The point of the stand-in: a `python -I check.py` run must not load
+    # esprima's own character module.
+    import subprocess
+    import sys as _sys
+
+    out = subprocess.run(
+        [_sys.executable, "-I", "-c",
+         ("import runpy, sys; sys.argv=['check.py']; "
+         f"g = runpy.run_path({str(_CHECK_PATH)!r}, run_name='agent_check'); "
+         "print(g['_esprima'] is not None, "
+         "not hasattr(sys.modules['esprima.character'], 'U_CATEGORIES'))")],
+        capture_output=True, text=True, check=True,
+    )
+    assert out.stdout.split() == ["True", "True"]
+
+
 # --- the regression -------------------------------------------------
 
 def test_gershayim_in_double_quoted_string_fails():

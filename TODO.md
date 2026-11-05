@@ -234,11 +234,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 
 ## Validation speed
 
-- **Every `check.py` run spends ~0.2s importing esprima.** `esprima/character.py` builds its
-  identifier tables by calling `unicodedata.category` on all 1.1M code points at import. That is
-  ~40s per nightly job and ~1s per `author verify` (one check per render, four renders). Fix: a vendored
-  esprima whose tables are precomputed literals or computed lazily, kept pinned in
-  `services/page_builder/requirements.txt`. (2026-11-01)
 - **`author verify` runs its four compute passes one after another.** The determinism, truncated
   and shuffled passes depend only on the first (full) pass, so they could run concurrently and
   cut verify's wall time about in half. The catch is memory: each pass may use up to
