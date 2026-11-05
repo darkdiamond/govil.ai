@@ -77,9 +77,9 @@ def insight_trend(yearly):
     v0, v1 = int(yearly[y0]), int(yearly[y1])
     change = (v1 - v0) / v0
     if abs(change) < 0.05:
-        return f"ב-{y1} נרשמו {_int(v1)} הודעות ריקול — כמעט ללא שינוי לעומת {y0} ({_int(v0)})."
+        return f"ב-{y1} נרשמו {_int(v1)} הודעות ריקול, כמעט ללא שינוי לעומת {y0} ({_int(v0)})."
     word = "עלייה" if change > 0 else "ירידה"
-    return (f"ב-{y1} נרשמו {_int(v1)} הודעות ריקול — {word} של {_pct(abs(change))} "
+    return (f"ב-{y1} נרשמו {_int(v1)} הודעות ריקול, {word} של {_pct(abs(change))} "
             f"לעומת {y0} ({_int(v0)}).")
 
 
@@ -91,7 +91,7 @@ def insight_so_far(yearly):
     prev_y = full[-1]
     v, vp = int(yearly[last_y]), int(yearly[prev_y])
     if v >= vp:
-        return (f"ב-{last_y} (נתונים עד מועד העדכון האחרון) כבר נרשמו {_int(v)} הודעות — "
+        return (f"ב-{last_y} (נתונים עד מועד העדכון האחרון) כבר נרשמו {_int(v)} הודעות, "
                 f"יותר מכל שנת {prev_y} ({_int(vp)}).")
     return (f"ב-{last_y} נרשמו עד כה {_int(v)} הודעות, {_pct(v / vp)} מסך ההודעות "
             f"בכל שנת {prev_y} ({_int(vp)}).")
@@ -107,7 +107,7 @@ def insight_top_fault(df):
         return None
     second = named.index[1] if len(named) > 1 else None
     tail = f", לפני {second} ({_int(named.iloc[1])})" if second else ""
-    return (f"מבין סוגי התקלות המוגדרים, {name} היא הנפוצה ביותר — {_int(v)} הודעות "
+    return (f"מבין סוגי התקלות המוגדרים, {name} היא הנפוצה ביותר: {_int(v)} הודעות "
             f"({_pct(share)} מכלל ההודעות){tail}.")
 
 
@@ -143,7 +143,7 @@ def insight_importer(df):
     share = top3 / len(df)
     if share < 0.3:
         return None
-    return (f"שלוש היבואניות המובילות — {imp.index[0]}, {imp.index[1]} ו{imp.index[2]} — "
+    return (f"שלוש היבואניות המובילות ({imp.index[0]}, {imp.index[1]} ו{imp.index[2]}) "
             f"אחראיות ל-{_pct(share)} מהודעות הריקול.")
 
 
@@ -164,7 +164,7 @@ def insight_top_model(df):
     name, v = models.index[0], int(models.iloc[0])
     tail = (f", ואחריו {models.index[1]} ({_int(models.iloc[1])})"
             if len(models) > 1 else "")
-    return f"הדגם עם מספר הודעות הריקול הגבוה ביותר הוא {name} — {_int(v)} הודעות{tail}."
+    return f"הדגם עם מספר הודעות הריקול הגבוה ביותר הוא {name}, עם {_int(v)} הודעות{tail}."
 
 
 def _vintage(df, last_year):
@@ -181,7 +181,7 @@ def insight_vintage(years, counts, n_spans):
         return None
     peak_i = max(range(len(counts)), key=lambda i: (counts[i], -years[i]))
     return (f"רכבים משנת הייצור {years[peak_i]} מושפעים מהמספר הגדול ביותר של הודעות "
-            f"ריקול — {_int(counts[peak_i])} הודעות שטווח הייצור שלהן כולל את השנה הזו.")
+            f"ריקול: {_int(counts[peak_i])} הודעות שטווח הייצור שלהן כולל את השנה הזו.")
 
 
 def compute(frames):
@@ -306,7 +306,7 @@ def compute(frames):
         "total": {"value": total, "display": _int(total), "tone": "brand",
                   "label": "הודעות ריקול במאגר"},
         "last_full": {"value": None if last_full is None else int(yearly[last_full]),
-                      "display": "—" if last_full is None else _int(yearly[last_full]),
+                      "display": "–" if last_full is None else _int(yearly[last_full]),
                       "tone": lf_tone, "label": lf_label},
         "makers": {"value": int(makers.size), "display": _int(makers.size), "tone": "brand",
                    "label": "יצרני רכב"},

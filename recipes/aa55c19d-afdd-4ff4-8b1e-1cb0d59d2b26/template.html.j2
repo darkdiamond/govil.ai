@@ -256,7 +256,7 @@
       tooltip: { trigger: "axis", formatter: function (ps) {
         var i = ps[0].dataIndex;
         var s = f.ranges[i] + "<br>מורי דרך: " + f.counts[i].toLocaleString("he-IL");
-        s += f.fill[i] === null ? "<br>(טווח חלקי — ללא שיעור)" : "<br>שיעור מילוי: " + f.fill[i] + "%";
+        s += f.fill[i] === null ? "<br>(טווח חלקי, ללא שיעור)" : "<br>שיעור מילוי: " + f.fill[i] + "%";
         return s;
       } },
       grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },

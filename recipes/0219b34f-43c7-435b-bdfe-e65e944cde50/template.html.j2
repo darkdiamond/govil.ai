@@ -53,7 +53,7 @@
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">המעבר לחשמל</h2>
   </div>
-  <p class="m-0 text-sm text-subtle mb-3">שיעור הכלים בהנעה חשמלית (סוללות או רשת) מבין הכלים שנרשמו בכל שנה — בכלל הצמ״ה ובמלגזות בלבד.</p>
+  <p class="m-0 text-sm text-subtle mb-3">שיעור הכלים בהנעה חשמלית (סוללות או רשת) מבין הכלים שנרשמו בכל שנה, בכלל הצמ״ה ובמלגזות בלבד.</p>
   <div id="chart-electric" data-fallback="explorer" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.electric_aria }}"></div>
 </section>
 
@@ -263,7 +263,7 @@
     var c2 = echarts.init(document.getElementById("chart-electric"));
     c2.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v + "%"; } },
       legend: { bottom: 0 },
       grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: e.x },

@@ -224,10 +224,10 @@ def insight_gazette(per_year, last_full, partial_year):
         if med > 0:
             chg = v / med - 1
             if abs(chg) < 0.1:
-                s += f". ב-{last_full} פורסמו {n(v)} — בדומה לחציון חמש השנים שקדמו לה ({med:g})"
+                s += f". ב-{last_full} פורסמו {n(v)}, בדומה לחציון חמש השנים שקדמו לה ({med:g})"
             else:
                 word = "מעל ל" if chg > 0 else "מתחת ל"
-                s += f". ב-{last_full} פורסמו {n(v)} — {word}חציון חמש השנים שקדמו לה ({med:g})"
+                s += f". ב-{last_full} פורסמו {n(v)}, {word}חציון חמש השנים שקדמו לה ({med:g})"
     if partial_year is not None:
         s += f"; {partial_year[0]} חלקית ({n(partial_year[1])} פרסומים עד {d_he(partial_year[2])})"
     return s + "."
@@ -253,7 +253,7 @@ def insight_top_std(ref_counts, std_names):
         return None
     nm = std_names.get(top)
     label = f"{top} ({nm})" if nm else top
-    return f"התקן שהוזכר במספר הפרסומים הרב ביותר ברשומות הוא {label} — {n(v)} פרסומים."
+    return f"התקן שהוזכר במספר הפרסומים הרב ביותר ברשומות הוא {label}, עם {n(v)} פרסומים."
 
 
 def insight_topic(topics, total):
@@ -262,7 +262,7 @@ def insight_topic(topics, total):
     name, v = topics.index[0], int(topics.iloc[0])
     if v < 10:
         return None
-    return (f"הנושא עם מספר החלקים הרב ביותר הוא \"{name}\" — {n(v)} תקנים רשמיים "
+    return (f"הנושא עם מספר החלקים הרב ביותר הוא \"{name}\", עם {n(v)} תקנים רשמיים "
             f"({pct(v / total)} מהמאגר).")
 
 
@@ -306,7 +306,7 @@ def insight_process(proc_counts, total, revising):
     if total == 0 or revising == 0:
         return None
     s = f"{n(revising)} תקנים ({pct(revising / total)}) נמצאים בתהליך עדכון כלשהו"
-    parts = [f"{k} — {n(v)}" for k, v in proc_counts]
+    parts = [f"{k} ({n(v)})" for k, v in proc_counts]
     if parts:
         s += ": " + "; ".join(parts[:3])
     return s + "."
@@ -419,11 +419,11 @@ def compute(frames):
         others = others[(others["index"] != r["index"]) & others["vto_d"].isna()]
         newer = others.sort_values(["ym", "index"], ascending=False, kind="stable")
         trans_rows.append({
-            "num": r["num"], "name": r["name"], "edition": r["edition"] or "—",
+            "num": r["num"], "name": r["name"], "edition": r["edition"] or "–",
             "until": r["vto_d"].strftime("%d.%m.%Y"),
-            "new": newer.iloc[0]["edition"] if len(newer) else "—",
+            "new": newer.iloc[0]["edition"] if len(newer) else "–",
             "new_from": (newer.iloc[0]["vfrom_d"].strftime("%d.%m.%Y")
-                         if len(newer) and pd.notna(newer.iloc[0]["vfrom_d"]) else "—"),
+                         if len(newer) and pd.notna(newer.iloc[0]["vfrom_d"]) else "–"),
         })
 
     # ---- gazette
@@ -562,10 +562,10 @@ def compute(frames):
         "transition": trans_rows,
     }
 
-    venue_txt = "; ".join(f"{k} — {n(v)}" for k, v in venue.items())
+    venue_txt = "; ".join(f"{k} ({n(v)})" for k, v in venue.items())
     early_txt = (f" {n(early)} פרסומים מוקדמים יותר ({first_year}–{start - 1}) אינם מוצגים בתרשים."
                  if early else "")
-    partial_txt = (f" {gz_year} — שנה חלקית, עד {d_he(gz_ref)}." if gz_partial else "")
+    partial_txt = (f" שנת {gz_year} חלקית, עד {d_he(gz_ref)}." if gz_partial else "")
     labels = {
         "lede": (f"מאגר התקנים הרשמיים של משרד הכלכלה והתעשייה: {n(total)} תקנים רשמיים בתוקף "
                  f"({n(editions)} מהדורות, כולל מהדורות במקביל בתקופת מעבר), מסלולי היבוא שלהם, "
@@ -581,7 +581,7 @@ def compute(frames):
                         + (f" (חציון חמש השנים הקודמות: {gz_med:g})" if gz_med is not None else "")),
         "eu_regs_kpi": "אסדרות אירופיות שאומצו",
         "orig_note": (f"אופן אימוץ המהדורה העדכנית של כל תקן. {n(int(is_orig.sum()))} תקנים מקוריים (ישראליים), "
-                      f"השאר מאומצים מתקן בין-לאומי או זר — עם שינויים או בלעדיהם. "
+                      f"השאר מאומצים מתקן בין-לאומי או זר, עם שינויים או בלעדיהם. "
                       f"{n(int((std['mand'] == 'כן').sum()))} תקנים מסומנים במאגר כ\"תקן מחייב\"."),
         "orig_aria": f"תרשים עמודות: {n(total)} תקנים רשמיים לפי אופן האימוץ. הנפוץ: {orig_vc.index[0]} ({n(orig_vc.iloc[0])}).",
         "orig_caption": "מספר תקנים רשמיים לפי אופן האימוץ.",
@@ -589,7 +589,7 @@ def compute(frames):
                           + (f" {n(no_year)} תקנים ללא שנת מהדורה אינם נכללים." if no_year else "")),
         "editions_aria": f"גרף עמודות מוערמות: תקנים בתוקף לפי שנת המהדורה, {lo} עד {ref_year}, מקוריים ומאומצים.",
         "editions_caption": "מספר תקנים בתוקף לפי תקופת המהדורה, מקוריים ומאומצים.",
-        "topics_note": (f"הנושא הוא שם התקן עד הנקודתיים — תקן רב-חלקי נספר לפי מספר חלקיו בתוקף. "
+        "topics_note": (f"הנושא הוא שם התקן עד הנקודתיים. תקן רב-חלקי נספר לפי מספר חלקיו בתוקף. "
                         f"{n(len(multi))} נושאים כוללים יותר מחלק אחד; {TOP_TOPICS} הנושאים המוצגים "
                         f"מכסים {n(t_cover)} מתוך {n(total)} התקנים."),
         "topics_aria": f"תרשים עמודות: {TOP_TOPICS} הנושאים עם מספר התקנים הרשמיים הרב ביותר. בראש: {topics.index[0]} ({n(topics.iloc[0])}).",
@@ -615,12 +615,12 @@ def compute(frames):
                          f"{n(partial_sections)} תקנים רשמיים רק בחלק מסעיפיהם."),
         "process_aria": f"תרשים עמודות: {n(revising)} תקנים בתהליך עדכון לפי סוג התהליך.",
         "process_caption": "מספר תקנים לפי תהליך העדכון שבו הם נמצאים.",
-        "amend_note": f"מספר גיליונות התיקון שפורסמו למהדורה העדכנית של כל תקן; המרבי — {n(am_max)}.",
+        "amend_note": f"מספר גיליונות התיקון שפורסמו למהדורה העדכנית של כל תקן; המרבי: {n(am_max)}.",
         "amend_aria": f"תרשים עמודות: תקנים לפי מספר גיליונות התיקון. {n(am_vals[0])} תקנים ללא גיליון תיקון.",
         "amend_caption": "מספר תקנים לפי מספר גיליונות התיקון.",
         "transition_caption": "מהדורות תקן עם תאריך סיום תוקף, והמהדורה שמחליפה אותן במאגר.",
         "transition_note": (f"{n(len(trans))} מהדורות רשומות עם תאריך סיום תוקף (מוצגות עד עשרים, לפי התאריך)."
-                            f" כשהמהדורה החדשה של אותו תקן כבר במאגר — היא מוצגת לצידה."),
+                            f" כשהמהדורה החדשה של אותו תקן כבר במאגר, היא מוצגת לצידה."),
         "gazette_note": (f"פרסומי התקינה ברשומות לפי שנה וסוג פעולה, מ-{start}.{early_txt}{partial_txt}"),
         "gazette_aria": f"גרף עמודות מוערמות: פרסומי תקינה ברשומות לפי שנה וסוג פעולה, {start} עד {gz_year}.",
         "actions_note": f"כל {n(gz_total)} הפרסומים לפי סוג הפעולה. לפי סוג הפרסום: {venue_txt}.",
@@ -634,7 +634,7 @@ def compute(frames):
                     f"ל-{n(eu_terms)} אסדרות נקבעו תנאים לתחולה, ול-{n(eu_comments)} הערות על מועדים שונים למוצרים מסוימים."),
         "eu_aria": f"גרף עמודות מוערמות: {n(len(eu))} אסדרות אירופיות לפי שנת הכניסה לתוקף.",
         "eu_caption": "מספר אסדרות אירופיות לפי שנת הכניסה לתוקף וסוג.",
-        "reform_note": (f"קובץ נפרד במאגר — \"מאגר תקנים מעודכן לרפורמת מה שטוב לאירופה\" — כולל {n(len(rf_nums))} מספרי תקן"
+        "reform_note": (f"קובץ נפרד במאגר, \"מאגר תקנים מעודכן לרפורמת מה שטוב לאירופה\", כולל {n(len(rf_nums))} מספרי תקן"
                         + (f" (המהדורה המאוחרת בו מ-{rf_latest})" if rf_latest else "")
                         + ". השוואתו למאגר הנוכחי לפי מספר התקן."),
         "reform_aria": f"תרשים עמודות: {n(both_n)} תקנים בשתי הרשימות, {n(only_rf)} ברשימת הרפורמה בלבד, {n(only_cur)} במאגר הנוכחי בלבד.",

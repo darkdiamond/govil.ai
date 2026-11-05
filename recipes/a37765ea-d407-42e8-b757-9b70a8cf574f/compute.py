@@ -264,7 +264,7 @@ def insight_conc(conc_rows):
     top = conc_rows[0]
     return (f"אותו חומר פעיל, ריכוז אחר: מבין {n(len(conc_rows))} חומרים פעילים שמופיעים גם בתכשירים "
             f"לציבור וגם בתכשירים למדבירים בלבד, ב-{n(len(higher))} הריכוז המרבי בתכשירי המדבירים גבוה יותר. "
-            f"הפער הגדול ביותר — {LRI}{top['name']}{PDI}: עד {LRI}{conc_s(top['pub'])}{PDI} לציבור "
+            f"הפער הגדול ביותר הוא ב-{LRI}{top['name']}{PDI}: עד {LRI}{conc_s(top['pub'])}{PDI} לציבור "
             f"לעומת עד {LRI}{conc_s(top['pro'])}{PDI} למדבירים (פי {top['ratio_s']}).")
 
 
@@ -307,7 +307,7 @@ def insight_mix(n_ai_per, syn_products, total, top_syn):
     syn_txt = ""
     if syn_products and top_syn:
         syn_txt = (f"; {prods(syn_products, 'ב')} משולב מגביר פעולה "
-                   f"(הנפוץ — {LRI}{top_syn}{PDI}) שאינו קוטל בעצמו אך מעצים את החומר הקוטל")
+                   f"(הנפוץ: {LRI}{top_syn}{PDI}) שאינו קוטל בעצמו אך מעצים את החומר הקוטל")
     return (f"{n(multi)} תכשירים ({pct(multi / total)}) הם תערובות של שני חומרים פעילים או יותר"
             f"{syn_txt}.")
 
@@ -330,7 +330,7 @@ def insight_holders(h_counts, h_display, total):
 def insight_label(no_label, total):
     if total == 0 or no_label / total < LABEL_GAP_SHARE:
         return None
-    return (f"{prods(no_label, 'ל')} ({pct(no_label / total)}) אין במאגר קישור לתווית התכשיר — "
+    return (f"{prods(no_label, 'ל')} ({pct(no_label / total)}) אין במאגר קישור לתווית התכשיר, "
             f"ואת הוראות התווית חובה לקרוא לפני השימוש.")
 
 
@@ -533,8 +533,8 @@ def compute(frames):
     lead_pest = pest_names[0] if pest_names else None
     lead_cls = ranked(cls_tot.drop(labels=[CLS_SYN], errors="ignore")).index[0] if len(cls_tot) else None
     labels = {
-        "lede": (f"המרשם של המשרד להגנת הסביבה מונה {n(total)} תכשירי הדברה לשימוש ביתי ותברואתי — "
-                 f"נגד חרקים, מכרסמים ומזיקים אחרים — של {n(n_holders)} בעלי רישום, "
+        "lede": (f"המרשם של המשרד להגנת הסביבה מונה {n(total)} תכשירי הדברה לשימוש ביתי ותברואתי "
+                 f"(נגד חרקים, מכרסמים ומזיקים אחרים) של {n(n_holders)} בעלי רישום, "
                  f"המבוססים על {n(ai_tot.size)} חומרים פעילים. {n(pub_ok)} מהם מותרים לשימוש הקהל הרחב "
                  f"ו-{n(pro_only)} למדבירים מורשים בלבד. העמוד מפרק את המרשם לפי מזיק, משפחה כימית, "
                  f"ריכוז, תוארית ובעל רישום."),
@@ -544,7 +544,7 @@ def compute(frames):
         "ai_kpi": "חומרים פעילים",
         "holders_kpi": "בעלי רישום",
         "label_kpi": "עם קישור לתווית",
-        "audience_note": f"חלוקת התכשירים לפי מי שרשאי להשתמש בהם — {aud_parts}.",
+        "audience_note": f"חלוקת התכשירים לפי מי שרשאי להשתמש בהם: {aud_parts}.",
         "audience_aria": f"תרשים טבעת: {aud_parts}",
         "audience_caption": "תכשירים לפי קהל מורשה",
         "pests_note": (f"מספר התכשירים שנרשמו נגד כל מזיק, לפי קהל מורשה. תכשיר אחד יכול להיות רשום נגד כמה מזיקים "
@@ -560,7 +560,7 @@ def compute(frames):
                        + (f" עבור {prods(n_ai_missing)} שם החומר הפעיל חסר במקור." if n_ai_missing else "")),
         "class_aria": f"תרשים עמודות מוערמות של מספר התכשירים לפי משפחה כימית וקהל מורשה, {n(len(cls_names))} משפחות",
         "class_caption": "תכשירים לפי משפחה כימית וקהל מורשה",
-        "heat_note": (f"איזו משפחה כימית משמשת נגד איזה מזיק — מספר התכשירים בכל צירוף, "
+        "heat_note": (f"איזו משפחה כימית משמשת נגד איזה מזיק: מספר התכשירים בכל צירוף, "
                       f"עבור {n(len(heat_pests))} המזיקים הנפוצים."),
         "heat_aria": f"מפת חום של מזיקים מול משפחות כימיות, {n(len(heat_pests))} מזיקים ו-{n(len(cls_names))} משפחות",
         "heat_caption": "תכשירים לפי מזיק ומשפחה כימית",
@@ -568,7 +568,7 @@ def compute(frames):
                     f"השמות מאוחדים לשם המקובל (למשל איזומרים וכתיב כימי מלא)."),
         "ai_aria": f"תרשים עמודות מוערמות של {n(len(ai_names))} החומרים הפעילים הנפוצים לפי קהל מורשה",
         "ai_caption": "החומרים הפעילים הנפוצים",
-        "conc_note": (f"לכל חומר פעיל שמופיע גם בתכשירים לקהל הרחב וגם בתכשירים למדבירים בלבד — הריכוז המרבי "
+        "conc_note": (f"לכל חומר פעיל שמופיע גם בתכשירים לקהל הרחב וגם בתכשירים למדבירים בלבד: הריכוז המרבי "
                       f"בכל ערוץ ({n(len(conc_rows))} חומרים; ציר לוגריתמי). התכשירים למדבירים הם לרוב תרכיזים "
                       f"שמדוללים לפני השימוש, ולכן הפער משקף גם את צורת התכשיר."),
         "conc_aria": f"תרשים משקולות של הריכוז המרבי לציבור מול מדבירים עבור {n(len(conc_top))} חומרים פעילים",

@@ -143,7 +143,7 @@ def insight_leader(df, chain_vc):
         return None
     k = min(5, len(chain_vc))
     top_k = int(chain_vc.head(k).sum())
-    return (f"{top} היא הרשת עם מספר סניפי הברזל הגבוה ביותר — {_int(v)} סניפים, "
+    return (f"{top} היא הרשת עם מספר סניפי הברזל הגבוה ביותר: {_int(v)} סניפים, "
             f"{_pct(v / n)} מהרשימה. {k} הרשתות הגדולות ({', '.join(chain_vc.index[:k])}) "
             f"מחזיקות יחד {_pct(top_k / n)} מהסניפים.")
 
@@ -154,7 +154,7 @@ def insight_cities(df, city_vc):
     top3 = city_vc.head(3)
     share = int(top3.sum()) / len(df)
     parts = ", ".join(f"{k} ({_int(v)})" for k, v in top3.items())
-    return (f"היישובים עם מספר הסניפים הגבוה ביותר: {parts} — יחד {_pct(share)} מהסניפים, "
+    return (f"היישובים עם מספר הסניפים הגבוה ביותר: {parts}. יחד הם מרכזים {_pct(share)} מהסניפים, "
             f"מתוך {_int(len(city_vc))} יישובים ברשימה.")
 
 
@@ -188,7 +188,7 @@ def insight_dense(nn):
     med = float(np.median(valid))
     within = int((valid <= 1).sum())
     return (f"הרשימה צפופה ברובה: לחצי מהסניפים יש סניף ברזל נוסף במרחק של עד "
-            f"{_km(med)} ק״מ בקו אווירי, ול-{_pct(within / len(valid))} מהם — "
+            f"{_km(med)} ק״מ בקו אווירי, ול-{_pct(within / len(valid))} מהם יש סניף כזה "
             f"במרחק של עד ק״מ אחד.")
 
 
@@ -202,7 +202,7 @@ def insight_regional(box):
         return None
     return (f"בין הרשתות עם 10 סניפים ומעלה, סניפי {narrow['chain']} הם המרוכזים ביותר על ציר "
             f"צפון–דרום: מחציתם האמצעית בתוך רצועה של כ-{_int(round(narrow['iqr_km']))} ק״מ "
-            f"(סביב {narrow['median_city']}). הרצועה הרחבה ביותר — כ-{_int(round(wide['iqr_km']))} ק״מ — "
+            f"(סביב {narrow['median_city']}). הרצועה הרחבה ביותר (כ-{_int(round(wide['iqr_km']))} ק״מ) "
             f"היא של {wide['chain']}.")
 
 
@@ -210,7 +210,7 @@ def insight_dupes(df):
     d = int(df.duplicated(["chain", "address"]).sum())
     if d < 3:
         return None
-    return (f"{_int(d)} רשומות חוזרות על כתובת שכבר מופיעה ברשימה עבור אותה רשת — "
+    return (f"{_int(d)} רשומות חוזרות על כתובת שכבר מופיעה ברשימה עבור אותה רשת. "
             f"ייתכן שמדובר ברישום כפול או בכמה סניפים באותו מתחם. בסך הכול יש ברשימה "
             f"{_int(df['address'].nunique())} כתובות ייחודיות ל-{_int(len(df))} רשומות.")
 
@@ -273,7 +273,7 @@ def compute(frames):
                  .drop_duplicates("band").set_index("band")["city"])
         for b in range(int(geo["band"].max()), int(geo["band"].min()) - 1, -1):
             lo, hi = b * BAND_DEG, (b + 1) * BAND_DEG
-            bands["names"].append(str(bcity.get(b, "—")))
+            bands["names"].append(str(bcity.get(b, "–")))
             bands["ranges"].append(f"{lo:.1f}°–{hi:.1f}°")
             bands["values"].append(int(bcount.get(b, 0)))
 
@@ -347,7 +347,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשימת סניפי הברזל — סניפי רשתות מזון שיישארו פתוחים בשעת חירום: "
+            "summary_he": (f"רשימת סניפי הברזל (סניפי רשתות מזון שיישארו פתוחים בשעת חירום): "
                            f"{_int(n)} סניפים של {_int(n_chains)} רשתות ב-{_int(n_cities)} יישובים, "
                            f"נכון ל-{as_of_he}. {chain_vc.index[0]} מחזיקה {_pct(top_share)} מהסניפים."),
             "dataset_kind": "map",
@@ -396,7 +396,7 @@ def compute(frames):
                          "שם הסניף והכתובת." + (f" ל-{_int(no_geo)} סניפים אין קואורדינטות תקינות."
                                                   if no_geo else "")),
             "chains_note": ("מספר הסניפים ומספר היישובים שבהם פועלת כל רשת. שמות משנה של רשת "
-                            f"(כמו תת-מותג או שם עם תוספת) אוחדו לשם הרשת — {_int(folded)} רשומות."),
+                            f"(כמו תת-מותג או שם עם תוספת) אוחדו לשם הרשת ({_int(folded)} רשומות)."),
             "chains_aria": (f"תרשים עמודות: סניפי הברזל לפי רשת, {len(chains['names'])} קטגוריות. "
                             f"{chain_vc.index[0]} מובילה עם {_int(chain_vc.iloc[0])} סניפים."),
             "cities_note": ("וריאציות כתיב של שם יישוב (קריית/קרית) אוחדו."),
@@ -421,6 +421,6 @@ def compute(frames):
                         "מרחק קצר מאוד פירושו סניפים באותו מתחם או ברישום כפול."),
             "isolated_aria": (f"תרשים עמודות: {len(iso)} הסניפים שסניף הברזל הקרוב אליהם רחוק ביותר."
                               + (f" המבודד: {iso[0]['label']}, {_km(iso[0]['km'])} ק״מ." if iso else "")),
-            "isolated_note": "הסניפים שהמרחק מהם לסניף הברזל הקרוב (בקו אווירי) הוא הגדול ביותר — שם אין חלופה קרובה.",
+            "isolated_note": "הסניפים שהמרחק מהם לסניף הברזל הקרוב (בקו אווירי) הוא הגדול ביותר: שם אין חלופה קרובה.",
         },
     }

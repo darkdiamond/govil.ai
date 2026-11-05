@@ -318,7 +318,7 @@
     var c = echarts.init(el);
     c.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        return "קודם: " + t.labels[p.value[1]] + " · היום: " + t.labels[p.value[0]] + " — " + p.value[2].toLocaleString("he-IL");
+        return "קודם: " + t.labels[p.value[1]] + " · היום: " + t.labels[p.value[0]] + " (" + p.value[2].toLocaleString("he-IL") + ")";
       } },
       grid: { left: 16, right: 16, top: 32, bottom: 72, containLabel: true },
       xAxis: { type: "category", data: t.labels, position: "top", splitArea: { show: true } },

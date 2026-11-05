@@ -224,7 +224,7 @@ def compute(frames):
     n_p1 = int((pre_s != "").sum())
     mob = [(k, v) for k, v in pre_counts if k.startswith("נייד")]
     non_mob = [(k, v) for k, v in pre_counts if not k.startswith("נייד")]
-    prefix_rows = mob[:8] + ([("נייד — קידומת אחרת", sum(v for _, v in mob[8:]))] if mob[8:] else []) + non_mob
+    prefix_rows = mob[:8] + ([("נייד (קידומת אחרת)", sum(v for _, v in mob[8:]))] if mob[8:] else []) + non_mob
     prefixes = {"names": [k for k, _ in prefix_rows], "values": [v for _, v in prefix_rows]}
     mobile_total = sum(v for _, v in mob)
 
@@ -366,7 +366,7 @@ def compute(frames):
     def ins_titles():
         if n_titled < 10:
             return None
-        return (f"{_n(n_titled)} מורי דרך ({_pct(n_titled, total)}) רשומים עם תואר אקדמי בשמם — "
+        return (f"{_n(n_titled)} מורי דרך ({_pct(n_titled, total)}) רשומים עם תואר אקדמי בשמם: "
                 f"{_n(n_dr)} עם התואר ד״ר ו־{_n(n_prof)} עם התואר פרופ׳.")
 
     def ins_surname():
@@ -375,7 +375,7 @@ def compute(frames):
         (s1, c1), (s2, c2) = lasts[0], lasts[1]
         if c1 < 20:
             return None
-        return (f"שם המשפחה הנפוץ ביותר הוא {s1} — {_n(c1)} מורי דרך ({_pct(c1, n_named)}), "
+        return (f"שם המשפחה הנפוץ ביותר הוא {s1}, עם {_n(c1)} מורי דרך ({_pct(c1, n_named)}), "
                 f"פי {c1 / c2:.1f} מ{s2} שבמקום השני ({_n(c2)}); ברשימה {_n(distinct_last)} "
                 f"שמות משפחה שונים.")
 
@@ -394,7 +394,7 @@ def compute(frames):
         k, v = reg_counts[0]
         if v / n_land < 0.25:
             return None
-        return (f"בקרב {_n(n_land)} מורי הדרך שרשמו מספר קווי, אזור החיוג הנפוץ הוא {k} — "
+        return (f"בקרב {_n(n_land)} מורי הדרך שרשמו מספר קווי, אזור החיוג הנפוץ הוא {k}: "
                 f"{_n(v)} ({_pct(v, n_land)}). זהו מדד חלקי למקום המגורים: רוב מורי הדרך רשמו נייד בלבד.")
 
     def ins_fields():
@@ -411,7 +411,7 @@ def compute(frames):
         both_empty = ("שדות שפת ההדרכה והרכב ריקים בכל הרשומות"
                       if lang_fill == 0 and veh_fill == 0 else
                       f"שדות שפת ההדרכה והרכב ריקים ב־{empty_l:.1f}% וב־{empty_v:.1f}% מהרשומות")
-        return f"{both_empty}, {third} — אי אפשר ללמוד מהרשימה באילו שפות מדריך כל מורה דרך."
+        return f"{both_empty}, {third}, ולכן אי אפשר ללמוד מהרשימה באילו שפות מדריך כל מורה דרך."
 
     for iid, fn in [("fill", ins_fill), ("gap", ins_gap), ("contact", ins_contact),
                     ("providers", ins_providers), ("titles", ins_titles), ("surname", ins_surname),
@@ -460,7 +460,7 @@ def compute(frames):
     tables = {
         "contact": [{"name": k, "count": _n(v), "share": _pct(v, total)} for k, v in contact_cats],
         "bands": [{"range": b["plain"] + (" (חלקי)" if b["partial"] else ""), "count": _n(b["n"]),
-                   "fill": "—" if b["partial"] else f"{b['fill']*100:.1f}%",
+                   "fill": "–" if b["partial"] else f"{b['fill']*100:.1f}%",
                    "none": _pct(b["none"], b["n"]), "titled": _pct(b["titled"], b["n"])}
                   for b in band_rows],
         "kinds": [{"range": b["plain"], "vals": [_pct(b["kinds"][k], b["ne"]) for k in KIND_ORDER]}
@@ -479,7 +479,7 @@ def compute(frames):
     o = full_bands[0] if full_bands else None
     lede = (f"רשימת מורי הדרך המורשים של משרד התיירות כוללת {_n(total)} מורי דרך. לכל אחד מופיעים "
             f"מספר רישיון, שם ופרטי התקשרות; {_pct(with_contact, total)} מהם מפורסמים עם דוא״ל או טלפון. "
-            f"אין ברשימה תאריכי רישוי, ולכן העמוד משתמש בטווחי מספרי הרישיון כציר — בהנחה שהמספרים ניתנים לפי סדר, מספר נמוך מעיד על רישיון ותיק יותר. "
+            f"אין ברשימה תאריכי רישוי, ולכן העמוד משתמש בטווחי מספרי הרישיון כציר: בהנחה שהמספרים ניתנים לפי סדר, מספר נמוך מעיד על רישיון ותיק יותר. "
             f"מספרי רישיון, כתובות דוא״ל ומספרי טלפון אינם מוצגים כאן, אלא רק בסיכום.")
     labels = {
         "lede": lede,
@@ -500,7 +500,7 @@ def compute(frames):
                          f"{_n(no_contact)} ללא פרטי קשר."),
         "contact_caption": "זמינות פרטי הקשר של מורי הדרך",
         "cband_note": (f"שיעור מורי הדרך ללא דוא״ל וללא טלפון בכל טווח של {cw:,} מספרי רישיון"
-                       + (f" — מ־{o['none']/o['n']*100:.1f}% בטווח הוותיק ביותר ({o['range']})"
+                       + (f": מ־{o['none']/o['n']*100:.1f}% בטווח הוותיק ביותר ({o['range']})"
                           f" ל־{newest['none']/newest['n']*100:.1f}% בטווח {newest['range']}."
                           if o and newest and o is not newest else ".")),
         "cband_aria": f"גרף עמודות: שיעור מורי הדרך ללא פרטי קשר לפי טווחי מספר רישיון של {cw:,}.",
@@ -521,7 +521,7 @@ def compute(frames):
                         f"בראש עם {_n(prefix_rows[0][1]) if prefix_rows else 0}."),
         "prefix_caption": "קידומות הטלפון הראשי של מורי הדרך",
         "region_note": (f"אזור החיוג של {_n(n_land)} מורי הדרך ({_pct(n_land, total)}) שרשמו מספר קווי באחד "
-                        f"משדות הטלפון. מדד חלקי בלבד — רוב מורי הדרך רשמו נייד."),
+                        f"משדות הטלפון. מדד חלקי בלבד, כי רוב מורי הדרך רשמו נייד."),
         "region_aria": ("גרף עמודות: אזורי חיוג של מספרים קוויים. "
                         + (f"{reg_counts[0][0]} מוביל עם {_n(reg_counts[0][1])}." if reg_counts else "")),
         "region_caption": "אזורי חיוג של מורי דרך שרשמו מספר קווי",
@@ -542,7 +542,7 @@ def compute(frames):
 
     summary = (f"{_n(total)} מורי דרך מורשים מטעם משרד התיירות; {_pct(with_contact, total)} מפורסמים עם "
                f"דוא״ל או טלפון, {_n(n_titled)} רשומים עם תואר ד״ר או פרופ׳, ושם המשפחה הנפוץ הוא "
-               f"{lasts[0][0] if lasts else '—'}.")
+               f"{lasts[0][0] if lasts else '–'}.")
     return {
         "agent_data": {
             "summary_he": summary,

@@ -134,7 +134,7 @@ def insight_importer(imp_points, points_n):
         return None
     second, c2 = imp_points.index[1], int(imp_points.iloc[1])
     return (f"היבואן «{lead}» מספק את המוצרים ב־{n(c)} מתוך {n(points_n)} נקודות המכירה "
-            f"({pct(share * 100)}) — פי {c / c2:.1f} מהיבואן השני, «{second}» ({n(c2)} נקודות).")
+            f"({pct(share * 100)}), פי {c / c2:.1f} מהיבואן השני, «{second}» ({n(c2)} נקודות).")
 
 
 def insight_spread(prod_stats, short):
@@ -146,7 +146,7 @@ def insight_spread(prod_stats, short):
     gap = (s["max"] / s["min"] - 1) * 100
     if gap < 5:
         return None
-    return (f"ב«{short[s['product']]}» התקרה נעה בין {ils(s['min'])} ל־{ils(s['max'])} ל־100 גרם — "
+    return (f"ב«{short[s['product']]}» התקרה נעה בין {ils(s['min'])} ל־{ils(s['max'])} ל־100 גרם, "
             f"פער של {pct(gap, 0)}: הזולה ביותר אצל {s['min_who']} ({n(s['min_points'])} נקודות), "
             f"והיקרה ביותר אצל {s['max_who']} ({n(s['max_points'])} נקודות).")
 
@@ -157,7 +157,7 @@ def insight_chain_mixed(mixed):
         return None
     parts = [f"{m['chain']} ({' עד '.join(ils(v) for v in (m['lo'], m['hi']))})" for m in mixed[:3]]
     more = f" ועוד {n(len(mixed) - 3)}" if len(mixed) > 3 else ""
-    return (f"באותה רשת התקרה יכולה להשתנות בין סניף לסניף — תלוי באיזה יבואן ובאיזו התחייבות מחיר "
+    return (f"באותה רשת התקרה יכולה להשתנות בין סניף לסניף, תלוי באיזה יבואן ובאיזו התחייבות מחיר "
             f"מדובר. כך ב־{n(len(mixed))} רשתות, ובהן " + ", ".join(parts) + more
             + "; כדאי לבדוק את התקרה של הסניף הספציפי.")
 
@@ -174,7 +174,7 @@ def insight_city_cheap(main_short, only_top, city_n, top_price):
     if city_n == 0 or only_top == 0 or only_top / city_n < 0.1:
         return None
     return (f"ב־{n(only_top)} מתוך {n(city_n)} היישובים שבהם נמכר המוצר «{main_short}» "
-            f"({pct(only_top / city_n * 100)}) התקרה הנמוכה ביותר הזמינה היא {ils(top_price)} — "
+            f"({pct(only_top / city_n * 100)}) התקרה הנמוכה ביותר הזמינה היא {ils(top_price)}, "
             f"התקרה הגבוהה ברשימה; אין בהם נקודה במחיר מרבי נמוך יותר.")
 
 
@@ -185,7 +185,7 @@ def insight_both(both, points_n, short_names):
     if share < 0.05:
         return None
     allp = "את שני המוצרים" if len(short_names) == 2 else f"את כל {n(len(short_names))} המוצרים"
-    return (f"{pct(share * 100)} מנקודות המכירה — {n(both)} מתוך {n(points_n)} — מציעות {allp}"
+    return (f"{pct(share * 100)} מנקודות המכירה ({n(both)} מתוך {n(points_n)}) מציעות {allp}"
             ": " + " ו".join(f"«{x}»" for x in short_names) + "; השאר מציעות מוצר אחד בלבד.")
 
 
@@ -418,21 +418,21 @@ def compute(frames):
     lead_imp = importers[0] if importers else ""
     lead_city = top_c[0] if top_c else ""
     lead_chain = top_ch[0] if top_ch else ""
-    stats_txt = "; ".join(f"«{short[s['product']]}» — התקרה השכיחה {s['mode']} ₪ "
+    stats_txt = "; ".join(f"«{short[s['product']]}»: התקרה השכיחה {s['mode']} ₪ "
                           f"({pct(s['mode_share'] * 100, 0)} מהנקודות)" for s in prod_stats)
     labels = {
         "lede": (f"משרד הכלכלה מתיר יבוא של מוצרי מזון במכסות פטורות ממכס, בתנאי שהיבואן מתחייב למחיר מרבי לצרכן. "
                  f"הרשימה מפרטת {n(points_n)} נקודות מכירה ב־{n(len(cities))} יישובים שבהן נמכרים "
-                 f"{n(len(products))} מוצרים — {prod_list} — מאת {n(len(importers))} יבואנים, "
+                 f"{n(len(products))} מוצרים ({prod_list}) מאת {n(len(importers))} יבואנים, "
                  f"עם המחיר המרבי (כולל מע״מ) לכל נקודה. הדף משווה את התקרות בין יבואנים, רשתות ויישובים."),
         "points_kpi": "נקודות מכירה",
         "cities_kpi": "יישובים",
         "chains_kpi": "רשתות וקמעונאים",
         "range_kpi": "טווח המחיר המרבי (₪ ל־100 גרם, כולל מע״מ)",
         "prices_note": (f"מספר נקודות המכירה בכל רמת מחיר מרבי, לכל מוצר (₪ ל־100 גרם). {stats_txt}. "
-                        f"המחיר הוא תקרה — בפועל מותר למכור בזול יותר."),
+                        f"המחיר הוא תקרה: בפועל מותר למכור בזול יותר."),
         "prices_aria": f"נקודות מכירה לפי מחיר מרבי ומוצר; טווח \u2066{kpis['range']['display']}\u2069 ₪ ל־100 גרם",
-        "matrix_note": "המחיר המרבי של כל יבואן לכל מוצר — טווח וממוצע על פני נקודות המכירה (₪ ל־100 גרם).",
+        "matrix_note": "המחיר המרבי של כל יבואן לכל מוצר: טווח וממוצע על פני נקודות המכירה (₪ ל־100 גרם).",
         "importers_note": (f"מספר נקודות המכירה שכל יבואן מספק להן, לפי מוצר. «{lead_imp}» מספק ל־"
                            f"{n(imp_points.iloc[0]) if len(imp_points) else 0} נקודות."),
         "importers_aria": f"נקודות מכירה לפי יבואן ומוצר; המוביל {lead_imp}",
@@ -448,7 +448,7 @@ def compute(frames):
                         f"פזורות ב־{n(max(len(cities) - len(top_c), 0))} יישובים נוספים. שמות יישובים "
                         f"אוחדו בין כתיבים שונים."),
         "cities_aria": f"נקודות מכירה לפי יישוב; המוביל {lead_city}",
-        "cheap_note": (f"לכל יישוב שבו נמכר המוצר «{short.get(main_prod, '')}» — המחיר המרבי הנמוך ביותר בין "
+        "cheap_note": (f"לכל יישוב שבו נמכר המוצר «{short.get(main_prod, '')}», המחיר המרבי הנמוך ביותר בין "
                        f"נקודות המכירה בו ({n(city_main_n)} יישובים)."),
         "cheap_aria": f"יישובים לפי המחיר המרבי הנמוך ביותר הזמין בהם עבור {short.get(main_prod, '')}",
         "assort_note": f"אילו מוצרים מציעה כל נקודת מכירה ({n(points_n)} נקודות).",

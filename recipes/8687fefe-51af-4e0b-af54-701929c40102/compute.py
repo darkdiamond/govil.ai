@@ -73,7 +73,7 @@ SUBCLASS_HE = {
     "C07B": "שיטות כלליות בכימיה אורגנית",
     "C07C": "תרכובות אציקליות וקרבוציקליות", "C07D": "תרכובות הטרוציקליות",
     "C07F": "תרכובות אורגנו-מתכתיות ואחרות", "C07H": "סוכרים ונוקלאוזידים",
-    "C07K": "פפטידים וחלבונים", "C08G": "פולימרים — תגובות עיבוי",
+    "C07K": "פפטידים וחלבונים", "C08G": "פולימרים: תגובות עיבוי",
     "C08J": "עיבוד פולימרים", "C08K": "תוספים לפולימרים", "C08L": "הרכבים של פולימרים",
     "C09D": "ציפויים וצבעים", "C12M": "ציוד למיקרוביולוגיה",
     "C12N": "מיקרואורגניזמים, אנזימים והנדסה גנטית", "C12P": "תסיסה וסינתזה אנזימטית",
@@ -245,7 +245,7 @@ def ins_ipc(rel_counts, total):
     with_ipc = total - none
     if total == 0 or with_ipc == 0 or none / total < 0.1:
         return None
-    return (f"ל-{n(none)} קודים ({pct(none / total * 100)}) אין מקביל בסיווג הבינלאומי IPC — הם קיימים "
+    return (f"ל-{n(none)} קודים ({pct(none / total * 100)}) אין מקביל בסיווג הבינלאומי IPC, והם קיימים "
             f"רק ב-CPC. מבין הקודים שיש להם מקביל, רק {pct(same / with_ipc * 100)} זהים לקוד IPC, "
             f"ו-{pct(anc / with_ipc * 100)} הם פירוט עדין יותר של קוד IPC רחב.")
 
@@ -276,7 +276,7 @@ def ins_biggest(grp_counts, sec_counts, total):
     name = f" ({', '.join(tags)})" if tags else ""
     smaller = _top(sec_counts, len(sec_counts))
     smaller = smaller[smaller < v]
-    tail = (f" — יותר מכל הסעיף {sec_label(smaller.index[-1])}" if len(smaller) and smaller.index[-1] != g[0]
+    tail = (f"; זה יותר מכל הסעיף {sec_label(smaller.index[-1])}" if len(smaller) and smaller.index[-1] != g[0]
             else "")
     return (f"קבוצה ראשית אחת, {code_ltr(g)}{name}, מכילה {n(v)} קבוצות-משנה, "
             f"{pct(v / total * 100)} מכל קודי השיטה{tail}.")
@@ -298,7 +298,7 @@ def ins_leaves(leaf_share, kids, total):
     if total == 0 or leaf_share < 0.5 or kids.empty:
         return None
     top_p, top_v = kids.index[0], int(kids.iloc[0])
-    return (f"{pct(leaf_share * 100)} מהקודים הם עלים — קצה הענף, ללא קודים מתחתיהם. לקוד אב טיפוסי "
+    return (f"{pct(leaf_share * 100)} מהקודים הם עלים (קצה הענף, ללא קודים מתחתיהם). לקוד אב טיפוסי "
             f"יש {n(kids.median())} קודי-משנה ישירים, אבל לקוד {code_ltr(top_p)} יש {n(top_v)}.")
 
 
@@ -309,7 +309,7 @@ def ins_fragments(df):
     share = lc.mean()
     if share < 0.25:
         return None
-    return (f"{pct(share * 100)} מכותרות הקודים פותחות באות קטנה — המשך של כותרת קוד האב (כמו "
+    return (f"{pct(share * 100)} מכותרות הקודים פותחות באות קטנה: המשך של כותרת קוד האב (כמו "
             f"\"for\" או \"by\"), שמובן רק יחד עם הרמות שמעליו.")
 
 
@@ -382,7 +382,7 @@ def compute(frames):
         if rest:
             kids.append({"name": f"אחר ({s})", "value": rest})
         tree.append({"name": sec_label(s), "value": int(sub["n"].sum()), "children": kids})
-    class_table = [{"code": r.cls, "name": CLASS_HE.get(r.cls, "—"), "section": SECTION_HE.get(r.sec, r.sec),
+    class_table = [{"code": r.cls, "name": CLASS_HE.get(r.cls, "–"), "section": SECTION_HE.get(r.sec, r.sec),
                     "count": n(r.n), "share": f"{r.n / total * 100:.1f}%"}
                    for r in cls_counts.head(TOP_CLASS_TABLE).itertuples()]
 
@@ -446,7 +446,7 @@ def compute(frames):
     top_g = grp_counts.head(TOP_GROUPS)
     groups = {"names": [f"{g} · {SUBCLASS_HE[g[:4]]}" if g[:4] in SUBCLASS_HE else g for g in top_g.index],
               "values": [int(v) for v in top_g.values]}
-    groups_table = [{"code": g, "name": SUBCLASS_HE.get(g[:4], "—"), "count": n(v),
+    groups_table = [{"code": g, "name": SUBCLASS_HE.get(g[:4], "–"), "count": n(v),
                      "share": f"{v / total * 100:.1f}%"} for g, v in top_g.items()]
 
     # fan-out: direct children per parent code (main groups included)
@@ -494,7 +494,7 @@ def compute(frames):
         "lede": (f"מערכת הסיווג הפטנטי המשותפת CPC, שבה רשות הפטנטים מסווגת בקשות פטנט לפי תחום טכנולוגי: "
                  f"{n(total)} קודי סיווג תחת {n(n_main)} קבוצות ראשיות, ב-{n(n_sub)} תתי-סעיפים ו-{len(secs)} "
                  f"סעיפים. לכל קוד כותרת באנגלית, קוד אב שמעליו בעץ והמקביל שלו בסיווג הבינלאומי IPC, אם יש. "
-                 f"העץ מגיע לעומק של {n(max_dep)} רמות. זו טבלת הקודים עצמה — השימוש בהם בבקשות הישראליות "
+                 f"העץ מגיע לעומק של {n(max_dep)} רמות. זו טבלת הקודים עצמה. השימוש בהם בבקשות הישראליות "
                  f"מוצג במאגר סיווגי CPC לבקשות פטנט."),
         "sections_note": ("מספר הקודים בכל סעיף, לפי היחס לסיווג הבינלאומי IPC: קוד זהה, פירוט של קוד IPC רחב "
                           "יותר (קוד ה-IPC הוא אחד מאבותיו בעץ), מיפוי לקבוצת IPC אחרת, או קוד שאין לו מקביל."),
@@ -510,10 +510,10 @@ def compute(frames):
         "sub_aria": f"תרשים עמודות אופקי מוערם: {len(top_sub)} תתי-הסעיפים הגדולים. במקום הראשון {top_sub.index[0]}.",
         "sub_caption": "תתי-הסעיפים הגדולים, מספר קודים ומתוכם קודי מפתוח.",
         "scatter_note": (f"כל נקודה היא תת-סעיף ({n(n_sub)} בסך הכול): גודלו במספר קודים (ציר לוגריתמי) "
-                         f"ושיעור הקודים בו שאין להם מקביל IPC. בראש הציר — תתי-סעיפים שקיימים כמעט רק ב-CPC."),
+                         f"ושיעור הקודים בו שאין להם מקביל IPC. בראש הציר: תתי-סעיפים שקיימים כמעט רק ב-CPC."),
         "scatter_aria": "תרשים פיזור: תתי-סעיפים לפי מספר קודים ושיעור הקודים ללא מקביל IPC.",
         "depth_note": ("רמה היא מספר הצעדים מהקוד עד הקבוצה הראשית שמעליו (\"נקודות\" בסימון CPC). "
-                       "עמודות: מספר הקודים בכל רמה. קו: שיעור העלים — קודים שאין מתחתיהם קודים נוספים."),
+                       "עמודות: מספר הקודים בכל רמה. קו: שיעור העלים (קודים שאין מתחתיהם קודים נוספים)."),
         "depth_aria": f"תרשים משולב: קודים ושיעור עלים לפי רמה בעץ, עד רמה {n(max_dep)}.",
         "depth_caption": "קודים ושיעור עלים לפי רמה בעץ הסיווג.",
         "depth_sec_note": "התפלגות הקודים בכל סעיף לפי רמת העומק, ועומק ממוצע.",

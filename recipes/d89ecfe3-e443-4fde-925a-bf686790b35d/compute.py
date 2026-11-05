@@ -102,7 +102,7 @@ def insight_electric(df, last_full):
         return (f"שיעור האוטובוסים החשמליים נותר דומה בין שנות הייצור {base} ({pct(s0 * 100)}) "
                 f"ו-{last_full} ({pct(s1 * 100)}){tail}.")
     word = "זינק" if s1 - s0 >= 0.2 else ("עלה" if s1 > s0 else "ירד")
-    lead = " — רוב האוטובוסים החדשים חשמליים" if s1 > 0.5 else ""
+    lead = " (רוב האוטובוסים החדשים חשמליים)" if s1 > 0.5 else ""
     return (f"שיעור האוטובוסים החשמליים {word} מ-{pct(s0 * 100)} בשנת הייצור {base} "
             f"ל-{pct(s1 * 100)} בשנת {last_full}{lead}{tail}.")
 
@@ -117,7 +117,7 @@ def insight_country(df):
     if share < 0.25:
         return None
     el = known[known["prop"] == "חשמל"]
-    s = f"{name} היא מדינת הייצור המובילה — {n(v)} אוטובוסים ({pct(share * 100)})"
+    s = f"{name} היא מדינת הייצור המובילה, עם {n(v)} אוטובוסים ({pct(share * 100)})"
     if len(el) >= 50:
         el_share = (el["country"] == name).mean()
         s += f", ו-{pct(el_share * 100)} מהאוטובוסים החשמליים יוצרו בה"
@@ -134,7 +134,7 @@ def insight_concentration(ops, total):
     if top1 < 0.1:
         return None
     names = ", ".join(ops.index[:3])
-    return (f"{ops.index[0]} מפעילה את הצי הגדול ביותר — {n(ops.iloc[0])} אוטובוסים "
+    return (f"{ops.index[0]} מפעילה את הצי הגדול ביותר, עם {n(ops.iloc[0])} אוטובוסים "
             f"({pct(top1 * 100)}); שלושת הגדולים ({names}) מחזיקים יחד {pct(top3 * 100)} מהצי, "
             f"מתוך {len(ops)} מפעילים.")
 
@@ -185,7 +185,7 @@ def insight_mileage(ann):
     if u <= 0 or i / u < 1.2:
         return None
     return (f"אוטובוס בינעירוני נוסע כ-{n(i)} ק״מ בשנה (חציון), פי {i / u:.1f} מאוטובוס עירוני "
-            f"(כ-{n(u)} ק״מ) — הערכה לפי ק״מ מצטבר חלקי גיל.")
+            f"(כ-{n(u)} ק״מ). זו הערכה לפי ק״מ מצטבר חלקי גיל.")
 
 
 def insight_zero(df, total, ref_year):
@@ -195,7 +195,7 @@ def insight_zero(df, total, ref_year):
     newest = (z["year"] == ref_year).mean()
     if newest < 0.5:
         return None
-    return (f"{n(len(z))} אוטובוסים רשומים עם 0 ק״מ — {pct(newest * 100)} מהם משנת הייצור "
+    return (f"{n(len(z))} אוטובוסים רשומים עם 0 ק״מ. {pct(newest * 100)} מהם משנת הייצור "
             f"{ref_year}, ככל הנראה אוטובוסים חדשים שטרם נכנסו לשירות.")
 
 
@@ -299,7 +299,7 @@ def compute(frames):
 
     km_year = {"x": [str(y) for y in years],
                "series": [{"name": t, "data": [mval(y, t) for y in years]} for t in TYPE_ORDER]}
-    km_rows = [{"year": str(y), "cells": [n(mval(y, t)) if mval(y, t) is not None else "—" for t in TYPE_ORDER]}
+    km_rows = [{"year": str(y), "cells": [n(mval(y, t)) if mval(y, t) is not None else "–" for t in TYPE_ORDER]}
                for y in years]
 
     # 9. estimated annual km
@@ -380,7 +380,7 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
-    partial = f"שנת הייצור {ref_year} עדיין מתעדכנת — אוטובוסים חדשים נקלטים במאגר לאורך השנה."
+    partial = f"שנת הייצור {ref_year} עדיין מתעדכנת: אוטובוסים חדשים נקלטים במאגר לאורך השנה."
     missing_note = f" {n(missing)} רשומות ללא שנת ייצור אינן נכללות." if missing else ""
     old_note = f" שנים מוקדמות מ-{first} מקובצות יחד." if has_old else ""
     elec_label = "מהצי בהנעה חשמלית"
@@ -388,7 +388,7 @@ def compute(frames):
         elec_label += f" ({new_share * 100:.1f}% משנת הייצור {last_full})"
     labels = {
         "lede": (f"מרשם האוטובוסים של מפעילי התחבורה הציבורית: "
-                 f"{n(total)} אוטובוסים של {len(ops)} מפעילים ב-{n_clusters} אשכולות הפעלה — "
+                 f"{n(total)} אוטובוסים של {len(ops)} מפעילים ב-{n_clusters} אשכולות הפעלה, עם פרטי "
                  f"גודל וסוג, מקומות ישיבה, שנת ומדינת ייצור, סוג הנעה, קילומטראז' ומיגון. שנת הייצור האחרונה במאגר: {ref_year}."),
         "electric_kpi": elec_label,
         "age_kpi": f"גיל חציוני בשנים (ביחס ל-{ref_year})",
@@ -404,7 +404,7 @@ def compute(frames):
         "ops_aria": f"תרשים עמודות אופקי מוערם: {TOP_OPS} המפעילים הגדולים לפי סוג הנעה.",
         "ops_caption": "מספר אוטובוסים ושיעור החשמליים לפי מפעיל.",
         "scatter_note": (f"כל עיגול הוא מפעיל עם {SCATTER_MIN} אוטובוסים לפחות (עד {SCATTER_MAX} הגדולים): "
-                         f"גיל ממוצע של הצי מול שיעור האוטובוסים החשמליים; גודל העיגול — גודל הצי."),
+                         f"גיל ממוצע של הצי מול שיעור האוטובוסים החשמליים; גודל העיגול מייצג את גודל הצי."),
         "scatter_aria": "תרשים פיזור: גיל צי ממוצע מול שיעור אוטובוסים חשמליים, לפי מפעיל.",
         "scatter_caption": "גיל ממוצע ושיעור חשמליים לפי מפעיל.",
         "country_note": f"{TOP_COUNTRIES} מדינות הייצור הנפוצות, בחלוקה לסוג הנעה.",
@@ -414,7 +414,7 @@ def compute(frames):
         "size_caption": "מספר אוטובוסים לפי גודל וסוג שירות.",
         "seats_aria": "תרשים קופסה: התפלגות מספר מקומות הישיבה לפי גודל אוטובוס.",
         "seats_caption": "מקומות ישיבה לפי גודל: מינימום, רבעון תחתון, חציון, רבעון עליון ומקסימום.",
-        "km_note": ("הקילומטראז' המצטבר החציוני לפי שנת ייצור — אוטובוסים בינעירוניים מול עירוניים. "
+        "km_note": ("הקילומטראז' המצטבר החציוני לפי שנת ייצור, אוטובוסים בינעירוניים מול עירוניים. "
                     "נקודות עם פחות מעשרה אוטובוסים אינן מוצגות."),
         "km_aria": "גרף קווים: קילומטראז' מצטבר חציוני לפי שנת ייצור, עירוני ובינעירוני.",
         "km_caption": "קילומטראז' מצטבר חציוני לפי שנת ייצור וסוג שירות.",
@@ -445,7 +445,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"ציי האוטובוסים בתחבורה הציבורית: {n(total)} אוטובוסים של {len(ops)} מפעילים, "
-                           f"{fleet_share:.1f}% מהם חשמליים — לפי מפעיל, שנת ומדינת ייצור, הנעה וקילומטראז'."),
+                           f"{fleet_share:.1f}% מהם חשמליים, בפילוח לפי מפעיל, שנת ומדינת ייצור, הנעה וקילומטראז'."),
             "dataset_kind": "registry",
             "related_ids": ["27047419-e1fc-4f1d-bb15-7f5f0805d226",
                             "1e9d4542-97af-47ac-a780-f2a6b291b1f5",

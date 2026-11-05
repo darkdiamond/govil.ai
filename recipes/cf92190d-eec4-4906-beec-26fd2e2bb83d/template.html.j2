@@ -133,7 +133,7 @@
   </section>
   <section class="card p-5">
     {{ head("מספר ההחלטות בתיק") }}
-    <p class="m-0 text-sm text-subtle mb-3">כמה החלטות ניתנו בכל תיק — בערר עצמו ובבקשות שהוגשו במהלכו.</p>
+    <p class="m-0 text-sm text-subtle mb-3">כמה החלטות ניתנו בכל תיק: בערר עצמו ובבקשות שהוגשו במהלכו.</p>
     <div id="chart-cases" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.cases_aria }}"></div>
     {{ table(model.labels.cases_aria, "החלטות בתיק", "תיקים", model.charts.cases) }}
   </section>

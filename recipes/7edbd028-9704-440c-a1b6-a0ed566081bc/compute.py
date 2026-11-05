@@ -170,7 +170,7 @@ def insight_board_pending(big):
     if w["pend"] / w["n"] < 0.5:
         return None
     return (f"במרכזייה {w['code']} {_int(w['pend'])} מתוך {_int(w['n'])} עמודים ({_pct(w['pend'] / w['n'])}) "
-            f"עדיין ממתינים להחלפה — המספר הגדול ביותר של עמודים ממתינים במרכזייה אחת.")
+            f"עדיין ממתינים להחלפה, המספר הגדול ביותר של עמודים ממתינים במרכזייה אחת.")
 
 
 def insight_street_top(streets, total_streeted):

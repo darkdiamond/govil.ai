@@ -177,7 +177,7 @@ def insight_types(types, total):
     if share < 0.4:
         return None
     rest = [f"{t} ({n(v)})" for t, v in types.iloc[1:].items()]
-    return (f"רוב התעודות בתוקף הן מסוג «{lead}» — {n(c)} מתוך {n(total)} ({pct(share * 100)}); "
+    return (f"רוב התעודות בתוקף הן מסוג «{lead}»: {n(c)} מתוך {n(total)} ({pct(share * 100)}); "
             f"שאר התעודות מתחלקות בין " + ", ".join(rest) + ".")
 
 
@@ -203,7 +203,7 @@ def insight_cities(cities, known, total):
     top = cities.iloc[:3]
     share = top.sum() / known
     names = ", ".join(f"{c} ({n(v)})" for c, v in top.items())
-    return (f"שלושת היישובים המובילים — {names} — מרכזים יחד {pct(share * 100)} מהתעודות "
+    return (f"שלושת היישובים המובילים, {names}, מרכזים יחד {pct(share * 100)} מהתעודות "
             f"שהיישוב שלהן זוהה מתוך הכתובת ({n(known)} מתוך {n(total)}); השאר פזורות "
             f"ב־{n(len(cities) - 3)} יישובים נוספים.")
 
@@ -250,7 +250,7 @@ def insight_legal(legal, holders_n):
     if c / holders_n < 0.5:
         return None
     none = int(legal.get(LEGAL_NONE, 0))
-    tail = (f"; {n(none)} ({pct(none / holders_n * 100)}) רשומים ללא צורה משפטית מזוהה — "
+    tail = (f"; {n(none)} ({pct(none / holders_n * 100)}) רשומים ללא צורה משפטית מזוהה, "
             f"ככל הנראה עוסקים יחידים." if none else ".")
     return f"{pct(c / holders_n * 100)} ממחזיקי התעודות ({n(c)}) הם בצורת «{top}»{tail}"
 
@@ -394,7 +394,7 @@ def compute(frames):
     labels = {
         "lede": (f"מרשם תעודות רישום היבואן של שירות המזון הארצי במשרד הבריאות: {n(total)} תעודות בתוקף, "
                  f"המוחזקות בידי {n(holders_n)} יבואנים ומשווקים. התעודה היא תנאי מקדים ליבוא מזון לישראל, "
-                 f"והיא ניתנת ב־{n(len(type_order))} מסלולים — {', '.join(type_order)}. הדף מציג את חלוקת המסלולים, "
+                 f"והיא ניתנת ב־{n(len(type_order))} מסלולים: {', '.join(type_order)}. הדף מציג את חלוקת המסלולים, "
                  f"את ותק הרישומים לפי מספר הרישום, את מחזיקי התעודות המרובות ואת פריסתם לפי יישוב."),
         "total_kpi": "תעודות רישום בתוקף",
         "holders_kpi": "יבואנים ומשווקים (מחזיקים ייחודיים)",

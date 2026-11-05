@@ -1,4 +1,4 @@
-<h1>רכבת ישראל — דיוק בתחנות</h1>
+<h1>רכבת ישראל: דיוק בתחנות</h1>
 
 <section class="card p-5 mb-6">
   <div class="flex items-center gap-2 mb-3 text-brand">
@@ -166,7 +166,7 @@
 
 <script>
   (function () {
-    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "–"; }
     var mo = {{ model.charts.monthly | tojson }};
     var c1 = echarts.init(document.getElementById("chart-monthly"));
     c1.setOption(window.GovEcharts.option({
@@ -206,7 +206,7 @@
 
 <script>
   (function () {
-    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "—"; }
+    function pct(v) { return (typeof v === "number") ? v.toFixed(2) + "%" : "–"; }
     function hbar(id, data, name) {
       var c = echarts.init(document.getElementById(id));
       c.setOption(window.GovEcharts.option({

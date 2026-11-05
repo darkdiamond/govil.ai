@@ -107,7 +107,7 @@ def _merge(iv):
 def parse_hours(s):
     """-> ({day_letter: [(start_min, end_min), ...]}, has_dated_entries)."""
     t = (s.replace("\t", " ").replace("׳", "'").replace("’", "'")
-         .replace("–", "-").replace("—", "-"))
+         .replace("–", "-").replace("\u2014", "-"))
     t = DATE2.sub(" @DATE@ ", DATE3.sub(" @DATE@ ", t))
     t = DOTTIME.sub(r"\1:\2", t)
     sched, group, has_range, dated, any_date = {}, [], False, False, False
@@ -256,7 +256,7 @@ def insight_friday(day_counts):
     if avg <= 0 or fri / avg >= 0.85:
         return None
     return (f"ביום שישי פתוחות {n(fri)} תחנות בלבד, לעומת ממוצע של {n(round(avg))} "
-            f"בימים ראשון עד חמישי — כ-{pct(fri / avg)} מהזמינות של אמצע השבוע.")
+            f"בימים ראשון עד חמישי, כ-{pct(fri / avg)} מהזמינות של אמצע השבוע.")
 
 
 def insight_evening(df, scheduled):
@@ -383,7 +383,7 @@ def compute(frames):
               for c, k in city_rank[:TOP_CITIES]]
     if rest_c:
         t_city.append({"city": x_c[-1], "count": n(sum(k for _, k in rest_c)),
-                       "share": pct_bare(sum(k for _, k in rest_c) / total), "op": "—"})
+                       "share": pct_bare(sum(k for _, k in rest_c) / total), "op": "–"})
 
     # districts
     dist_rank = _ranked(df["district"].value_counts().to_dict())
@@ -421,7 +421,7 @@ def compute(frames):
         "series": [{"name": short_op(o), "data": [int(day_op.get((d, o), 0)) for d in days_used]} for o in opb_order],
     }
     t_week = [{"day": DAY_NAMES[DAYS.index(d)], "count": n(day_counts[d]),
-               "share": pct_bare(day_counts[d] / scheduled) if scheduled else "—"} for d in days_used]
+               "share": pct_bare(day_counts[d] / scheduled) if scheduled else "–"} for d in days_used]
 
     # heatmap: stations open per day × half-hour slot
     all_iv = [(a, b) for s in sched_df["sched"] for iv in s.values() for a, b in iv]
@@ -455,7 +455,7 @@ def compute(frames):
             m &= wh < b
         hb.append((bucket_label(a, b), int(m.sum())))
     chart_hours = {"x": [l for l, _ in hb], "y": [k for _, k in hb]}
-    t_hours = [{"bucket": l, "count": n(k), "share": pct_bare(k / scheduled) if scheduled else "—"} for l, k in hb]
+    t_hours = [{"bucket": l, "count": n(k), "share": pct_bare(k / scheduled) if scheduled else "–"} for l, k in hb]
     dcount = sched_df["days_open"].value_counts().to_dict()
     dmax = max(dcount) if dcount else 0
     chart_days = {"x": [str(i) for i in range(1, dmax + 1)], "y": [int(dcount.get(i, 0)) for i in range(1, dmax + 1)]}
@@ -496,7 +496,7 @@ def compute(frames):
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "cities": {"value": n_cities, "display": n(n_cities), "tone": "brand"},
         "ops": {"value": len(named_ops), "display": n(len(named_ops)), "tone": "brand"},
-        "median_h": {"value": med_h, "display": f"{med_h:.1f}" if med_h is not None else "—", "tone": "info"},
+        "median_h": {"value": med_h, "display": f"{med_h:.1f}" if med_h is not None else "–", "tone": "info"},
         "evening": {"value": ev_share, "display": pct_bare(ev_share),
                     "tone": "ok" if ev_share >= 0.5 else "warn"},
         "friday": {"value": fri_share, "display": pct_bare(fri_share),
@@ -531,7 +531,7 @@ def compute(frames):
     inf_note = (f" {stations(inferred_k, 'ב')} הגוף המפעיל זוהה לפי שם התחנה, כי השדה ריק."
                 if inferred_k else "")
 
-    hb_top = max(hb, key=lambda r: r[1]) if hb else ("—", 0)
+    hb_top = max(hb, key=lambda r: r[1]) if hb else ("–", 0)
     labels = {
         "lede": (f"רשימת משרד הבריאות של {n(total)} תחנות שבהן אפשר להתחסן נגד חצבת, ב-{n(n_cities)} יישובים "
                  f"ובהפעלת {n(len(named_ops))} גופים. לכל תחנה מופיעים הגוף המפעיל, אוכלוסיית היעד, הכתובת "

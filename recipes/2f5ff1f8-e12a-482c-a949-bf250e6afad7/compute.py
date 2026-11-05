@@ -168,7 +168,7 @@ def compute(frames):
         k = int((counts["duties"] == top_n).sum())
         if k < 3:
             return None
-        return (f"{_int(k)} מתוך {_int(n_branches)} בתי המרקחת תורנו בדיוק {_int(top_n)} פעמים כל אחד — חלוקת העומס שווה "
+        return (f"{_int(k)} מתוך {_int(n_branches)} בתי המרקחת תורנו בדיוק {_int(top_n)} פעמים כל אחד. חלוקת העומס שווה "
                 f"בין מי שנכללו ברשימה לכל אורך התקופה.")
 
     def ins_changes():
@@ -199,7 +199,7 @@ def compute(frames):
         if k < max(3, math.ceil(0.8 * n_branches)):
             return None
         who = f"כל {_int(k)} בתי המרקחת התורנים ברשימה" if k == n_branches else f"{_int(k)} מתוך {_int(n_branches)} בתי המרקחת ברשימה"
-        return f"{who} נושאים את השם '{name}' — {'הרשימה כולה מסניפי רשת אחת' if k == n_branches else 'רובה המכריע מסניפי רשת אחת'}."
+        return f"{who} נושאים את השם '{name}': {'הרשימה כולה מסניפי רשת אחת' if k == n_branches else 'רובה המכריע מסניפי רשת אחת'}."
 
     def ins_drift():
         k = int((variants > 1).sum())

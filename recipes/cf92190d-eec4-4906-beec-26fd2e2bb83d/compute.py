@@ -73,7 +73,7 @@ def insight_volume(df, now):
              else f"{'עלייה' if ch > 0 else 'ירידה'} של {_pct(abs(ch))} לעומת {prev} ({_int(b)})")
     tail = (f" שנת השיא הייתה {peak} עם {_int(vc.max())} החלטות." if peak != full else
             " זו שנת השיא במאגר.")
-    return f"ב-{full} ניתנו {_int(a)} החלטות — {trend}.{tail}"
+    return f"ב-{full} ניתנו {_int(a)} החלטות, {trend}.{tail}"
 
 
 def insight_topic(df):
@@ -101,7 +101,7 @@ def insight_topic_now(df, now):
 def insight_court(df):
     vc = _vc(df["court"])
     return (f"{vc.index[0]} נתן {_pct(vc.iloc[0] / len(df))} מכלל ההחלטות ({_int(vc.iloc[0])}); "
-            f"{vc.index[1]} — {_pct(vc.iloc[1] / len(df))}.")
+            f"{vc.index[1]} נתן {_pct(vc.iloc[1] / len(df))}.")
 
 
 def insight_judge(df, now):
@@ -223,7 +223,7 @@ def compute(frames):
                      f"מ-{years[0]} ועד {now_he}. המאגר אינו כולל את שמות העוררים."),
             "full_year": str(full),
             "yearly_aria": f"גרף עמודות מוערמות: החלטות לפי שנה ובית דין, {years[0]}–{years[-1]}.",
-            "yearly_note": f"השנה האחרונה ({years[-1]}) חלקית — עד {now_he}.",
+            "yearly_note": f"השנה האחרונה ({years[-1]}) חלקית (עד {now_he}).",
             "topics_aria": f"תרשים עמודות: ההחלטות לפי נושא, {len(topics)} נושאים.",
             "heat_aria": "מפת חום: חלקו של כל נושא מסך ההחלטות בכל שנה, באחוזים.",
             "rtypes_aria": f"תרשים עמודות: ההחלטות לפי סוג הבקשה, {TOP_TYPES} הנפוצים.",

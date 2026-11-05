@@ -99,7 +99,7 @@ def insight_lift(df):
                 f"(כ-{e:.1f} טון).")
     word = "נמוך" if e < c else "גבוה"
     return (f"כושר ההרמה החציוני של מלגזה חשמלית ({e:.1f} טון) {word} מזה של מלגזה בעלת מנוע "
-            f"שריפה ({c:.1f} טון) — החשמליות נפוצות יותר במשימות קלות.")
+            f"שריפה ({c:.1f} טון). החשמליות נפוצות יותר במשימות קלות.")
 
 
 def _top(counts, k):
@@ -138,7 +138,7 @@ def insight_forklift_electric(df, last_full):
         return (f"שיעור המלגזות החשמליות מבין המלגזות החדשות שנרשמו נותר דומה: "
                 f"{pct(s0 * 100)} ב-{last_full - 10} ו-{pct(s1 * 100)} ב-{last_full}.")
     word = "עלה" if s1 > s0 else "ירד"
-    lead = (" — רוב המלגזות החדשות כבר חשמליות" if s1 > 0.5 and s0 <= 0.5 else "")
+    lead = (", כך שרוב המלגזות החדשות כבר חשמליות" if s1 > 0.5 and s0 <= 0.5 else "")
     return (f"שיעור המלגזות החשמליות מבין המלגזות שנרשמו {word} מ-{pct(s0 * 100)} "
             f"ב-{last_full - 10} ל-{pct(s1 * 100)} ב-{last_full}{lead}.")
 
@@ -151,11 +151,11 @@ def insight_registrations(per_year, last_full):
         return None
     chg = v1 / v0 - 1
     window = per_year[(per_year.index >= TREND_FROM) & (per_year.index <= last_full)]
-    record = " — שנת השיא ברישום כלים שעדיין פעילים" if window.idxmax() == last_full else ""
+    record = ". שנת השיא ברישום כלים שעדיין פעילים" if window.idxmax() == last_full else ""
     if abs(chg) < 0.03:
         return f"ב-{last_full} נרשמו {n(v1)} כלים שעדיין פעילים, בדומה ל-{last_full - 1}{record}."
     word = "יותר" if chg > 0 else "פחות"
-    return (f"ב-{last_full} נרשמו {n(v1)} כלים שעדיין פעילים — {pct(abs(chg) * 100)} {word} "
+    return (f"ב-{last_full} נרשמו {n(v1)} כלים שעדיין פעילים, {pct(abs(chg) * 100)} {word} "
             f"מאשר ב-{last_full - 1}{record}.")
 
 
@@ -309,7 +309,7 @@ def compute(frames):
         + (f" ({new_share:.1f}% מהרישומים ב-{last_full})" if new_share is not None else "")
     )
 
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {ref_year}: שנה חלקית, עד {d_he(ref)}." if partial else ""
     labels = {
         "electric_kpi": electric_kpi_label,
         "lede": (f"מרשם כלי הצמ\"ה הפעילים של משרד התחבורה: {n(total)} כלים מ-{types.size} "
@@ -336,8 +336,8 @@ def compute(frames):
                          f"רשומים ללא משקל (0) ואינם נכללים."),
         "weights_caption": "מספר כלים לפי קבוצת משקל עצמי.",
         "hp_aria": f"תרשים עמודות: כוח סוס חציוני ב-{len(hp_list)} סוגי הכלים הנפוצים.",
-        "hp_note": ("חציון כוח הסוס של כלים שיש להם ערך רשום; רשומות ללא ערך (0) — בעיקר כלים "
-                    "חשמליים — אינן נכללות."),
+        "hp_note": ("חציון כוח הסוס של כלים שיש להם ערך רשום; רשומות ללא ערך (0), בעיקר כלים "
+                    "חשמליים, אינן נכללות."),
         "hp_caption": "כוח סוס חציוני ומספר הכלים שנכללו, לפי סוג.",
         "lift_aria": "תרשים עמודות: מלגזות חשמליות ובעלות מנוע שריפה לפי כושר הרמה.",
         "lift_caption": "מספר מלגזות לפי כושר הרמה וסוג מנוע.",
@@ -360,7 +360,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"מרשם כלי הצמ\"ה (ציוד מכני הנדסי) הפעילים בישראל: {n(total)} כלים — "
+            "summary_he": (f"מרשם כלי הצמ\"ה (ציוד מכני הנדסי) הפעילים בישראל: {n(total)} כלים, לפי "
                            f"סוג, יצרן, שנת ייצור, הנעה ומועד רישום."),
             "dataset_kind": "registry",
             "related_ids": ["273c5e33-25ab-4980-8522-a2f7ba0bb62d",

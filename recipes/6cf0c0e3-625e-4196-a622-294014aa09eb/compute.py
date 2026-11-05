@@ -161,7 +161,7 @@ def insight_district(dist, total):
     if s1 < 0.3 or v1 <= v2:
         return None
     dl, vl = dist.index[-1], int(dist.iloc[-1])
-    tail = (f"; ב{dl} — {n(vl)} בלבד ({pct(vl / total * 100)})" if len(dist) > 2 else "")
+    tail = (f"; ב{dl} יש {n(vl)} בלבד ({pct(vl / total * 100)})" if len(dist) > 2 else "")
     return (f"{d1} מוביל עם {n(v1)} הצעות קורס "
             f"({pct(s1 * 100)}), ואחריו {d2} עם {n(v2)} ({pct(v2 / total * 100)}){tail}.")
 
@@ -185,7 +185,7 @@ def insight_domain(dom, total):
     if va / total < 0.12:
         return None
     return (f"התחום הגדול ביותר הוא {a}, עם {n(va)} הצעות ({pct(va / total * 100)}), "
-            f"ואחריו {b} ({n(vb)}, {pct(vb / total * 100)}) — לפי סיווג שם הקורס לתחומים.")
+            f"ואחריו {b} ({n(vb)}, {pct(vb / total * 100)}), לפי סיווג שם הקורס לתחומים.")
 
 
 def insight_special(mix, dist, dom, total):
@@ -207,7 +207,7 @@ def insight_special(mix, dist, dom, total):
         return None
     r, c, d, g = best
     return (f"ב{d} בולט במיוחד תחום {g}: {pct(c / int(dist[d]) * 100)} מההצעות במחוז "
-            f"({n(c)}), לעומת {pct(dom[g] / total * 100)} בכלל הארץ — פי "
+            f"({n(c)}), לעומת {pct(dom[g] / total * 100)} בכלל הארץ, פי "
             f"{LRI}{r:.1f}{PDI} משקלו הארצי.")
 
 
@@ -392,41 +392,41 @@ def compute(frames):
     top10 = int(inst.head(10).sum())
     labels = {
         "lede": (f"רשימת הקורסים שמשרד העבודה אישר למימון במסגרת מענק ההכשרה לחיילים "
-                 f"משוחררים: {n(total)} הצעות קורס — {n(n_courses)} קורסים שונים ב-{n(n_inst)} "
-                 f"מוסדות, ב-{n(cities.size)} ישובים ו-{n(n_districts)} מחוזות של המשרד. "
+                 f"משוחררים: {n(total)} הצעות קורס ({n(n_courses)} קורסים שונים ב-{n(n_inst)} "
+                 f"מוסדות, ב-{n(cities.size)} ישובים ו-{n(n_districts)} מחוזות של המשרד). "
                  f"הרשימה משקפת את הקורסים המאושרים כעת"
                  + (f"; {n(dups)} רשומות כפולות במקור הוסרו." if dups else ".")),
         "all_reach_kpi": f"קורסים המוצעים בכל {n(n_districts)} המחוזות",
         "district_note": (f"מספר הצעות הקורס בכל מחוז של משרד העבודה. {districts[0]} מוביל עם "
                           f"{n(dist.iloc[0])} הצעות ({dist.iloc[0] / total * 100:.1f}%). "
                           f"המחוז הוא המחוז המנהלי של המשרד, ולא תמיד תואם את המחוז הגאוגרפי."),
-        "district_aria": (f"תרשים עמודות: הצעות קורס לפי מחוז — {districts[0]} בראש עם "
+        "district_aria": (f"תרשים עמודות: הצעות קורס לפי מחוז, {districts[0]} בראש עם "
                           f"{n(dist.iloc[0])}."),
         "district_caption": "הצעות קורס, מוסדות, קורסים שונים וישובים לפי מחוז.",
-        "treemap_note": (f"הטבעת הפנימית היא המחוזות, והחיצונית — הישובים בכל מחוז, בגודל יחסי למספר הצעות הקורס. "
+        "treemap_note": (f"הטבעת הפנימית היא המחוזות, והחיצונית היא הישובים בכל מחוז, בגודל יחסי למספר הצעות הקורס. "
                          f"{cities.index[0]} הוא הישוב הגדול ביותר, עם {n(cities.iloc[0])} הצעות."),
         "treemap_aria": (f"תרשים שמש: הצעות קורס ב-{n(cities.size)} ישובים, מקובצים ב-"
                          f"{n(n_districts)} מחוזות."),
         "cities_note": (f"{TOP_CITIES} הישובים עם מספר הצעות הקורס הגדול ביותר; יחד הם מרכזים "
                         f"{cities.head(TOP_CITIES).sum() / total * 100:.1f}% מההיצע."),
-        "cities_aria": (f"תרשים עמודות אופקי: {TOP_CITIES} הישובים המובילים — {cities.index[0]} "
+        "cities_aria": (f"תרשים עמודות אופקי: {TOP_CITIES} הישובים המובילים, {cities.index[0]} "
                         f"בראש עם {n(cities.iloc[0])} הצעות."),
         "cities_caption": f"הצעות קורס ומוסדות ב-{TOP_CITIES} הישובים המובילים.",
         "domains_note": (f"הקורסים סווגו לתחומים לפי מילות מפתח בשם הקורס. {domains[0]} הוא התחום "
                          f"הגדול ביותר, עם {n(dom.iloc[0])} הצעות."
                          + (f" {n(other_n)} הצעות ({other_n / total * 100:.1f}%) לא שויכו לתחום "
                             f"וסומנו „{OTHER}”." if other_n else "")),
-        "domains_aria": (f"תרשים עמודות אופקי: הצעות קורס לפי תחום — {domains[0]} בראש עם "
+        "domains_aria": (f"תרשים עמודות אופקי: הצעות קורס לפי תחום, {domains[0]} בראש עם "
                          f"{n(dom.iloc[0])}."),
         "domains_caption": "הצעות קורס, קורסים שונים ומוסדות לפי תחום.",
         "mix_note": ("שיעור כל תחום מתוך הצעות הקורס במחוז (כל עמודה מסתכמת במאה אחוז). "
-                     "צבע כהה יותר — משקל גבוה יותר של התחום במחוז."),
+                     "צבע כהה יותר מסמן משקל גבוה יותר של התחום במחוז."),
         "mix_aria": f"מפת חום: שיעור כל תחום מההצעות בכל אחד מ-{n(n_districts)} המחוזות.",
         "mix_caption": "שיעור כל תחום (באחוזים) מתוך הצעות הקורס בכל מחוז.",
         "courses_note": (f"{TOP_COURSES} הקורסים שמוצעים במספר המוסדות הגדול ביותר. "
                          f"{top_k[0]} מוצע ב-{n(c_inst[top_k[0]])} מוסדות."),
         "courses_aria": (f"תרשים עמודות אופקי: {TOP_COURSES} הקורסים הנפוצים לפי מספר המוסדות "
-                         f"המציעים אותם — {top_k[0]} בראש."),
+                         f"המציעים אותם, {top_k[0]} בראש."),
         "courses_caption": f"מספר המוסדות ומספר המחוזות שבהם מוצע כל אחד מ-{TOP_COURSES} הקורסים.",
         "reach_note": (f"בכמה מחוזות מוצע כל קורס. {n(reach_rows[0][1])} קורסים מוצעים במחוז "
                        f"אחד בלבד, ו-{n(all_reach)} בכל המחוזות."),
@@ -439,7 +439,7 @@ def compute(frames):
         "supply_caption": "מספר הקורסים לפי מספר המוסדות המציעים אותם.",
         "inst_note": (f"{TOP_INST} המוסדות עם מספר הקורסים המאושרים הגדול ביותר, כפי ששמם מופיע "
                       f"ברשימה (סניפים של אותה רשת רשומים לעיתים בשמות שונים)."),
-        "inst_aria": (f"תרשים עמודות אופקי: {TOP_INST} המוסדות המובילים — {top_i[0]} בראש עם "
+        "inst_aria": (f"תרשים עמודות אופקי: {TOP_INST} המוסדות המובילים, {top_i[0]} בראש עם "
                       f"{n(inst.iloc[0])} קורסים."),
         "inst_caption": f"מספר הקורסים המאושרים ב-{TOP_INST} המוסדות המובילים.",
         "size_note": (f"כמה קורסים מאושרים יש לכל מוסד. החציון הוא {med(inst.median())} קורסים "
@@ -477,8 +477,8 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"רשימת הקורסים המאושרים למימון לחיילים משוחררים: {n(total)} הצעות "
-                           f"קורס — {n(n_courses)} קורסים שונים ב-{n(n_inst)} מוסדות "
-                           f"וב-{n(cities.size)} ישובים, לפי מחוז, ישוב, מוסד ותחום."),
+                           f"קורס ({n(n_courses)} קורסים שונים ב-{n(n_inst)} מוסדות "
+                           f"וב-{n(cities.size)} ישובים), לפי מחוז, ישוב, מוסד ותחום."),
             "dataset_kind": "registry",
             "related_ids": ["e1721717-3e0a-4d6d-93b3-0129df2a57e2",
                             "c8205c2e-78df-4def-b0ec-0fcb35acffd3",

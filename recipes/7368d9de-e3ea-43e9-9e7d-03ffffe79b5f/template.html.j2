@@ -490,7 +490,7 @@
           { type: "bar", stack: "d", name: "תביעת גירושין", data: d.contested },
           { type: "bar", stack: "d", name: "אחר", data: d.other },
           { type: "line", name: "שיעור בהסכמה", yAxisIndex: 1, data: d.share,
-            tooltip: { valueFormatter: function (v) { return v == null ? "—" : v + "%"; } } }
+            tooltip: { valueFormatter: function (v) { return v == null ? "–" : v + "%"; } } }
         ]
       }));
       window.addEventListener("resize", function () { c.resize(); });

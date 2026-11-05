@@ -142,7 +142,7 @@ def insight_nafa(nafa_counts, total):
     (a, va), (b, vb), (c, vc) = list(nafa_counts.items())[:3]
     if va <= vb:
         return None
-    return (f"נפת {a} מרכזת את מספר הישובים הגדול ביותר — {n(va)} ישובים "
+    return (f"נפת {a} מרכזת את מספר הישובים הגדול ביותר: {n(va)} ישובים "
             f"({share(va, total)} מהרשימה), ואחריה נפות {b} ({n(vb)}) ו{c} ({n(vc)}).")
 
 
@@ -194,7 +194,7 @@ def insight_changes(ch):
         if v / a >= 0.5:
             lead = f" {n(v)} מהישובים שנוספו ({share(v, a, 0)}) נמצאים במחוז {d}."
     return (f"לעומת הקובץ הקודם שפורסם במאגר ({n(ch['old_total'])} ישובים), ברשימה הנוכחית "
-            f"נוספו {n(a)} סמלי ישוב והוסרו {n(r)} — {net_t}.{lead}")
+            f"נוספו {n(a)} סמלי ישוב והוסרו {n(r)}, {net_t}.{lead}")
 
 
 def insight_renames(renames):
@@ -203,7 +203,7 @@ def insight_renames(renames):
     ex = renames[:2]
     ex_t = " ו".join(f"{x['old']} ← {x['new']}" for x in ex)
     word = "ישוב אחד שינה את שמו" if len(renames) == 1 else f"{n(len(renames))} ישובים שינו את שמם"
-    return f"{word} מאז הקובץ הקודם, כשסמל הישוב נשמר — למשל {ex_t}."
+    return f"{word} מאז הקובץ הקודם, כשסמל הישוב נשמר, למשל {ex_t}."
 
 
 def insight_words(word_counts, total):
@@ -212,7 +212,7 @@ def insight_words(word_counts, total):
     (a, va), (b, vb), (c, vc) = list(word_counts.items())[:3]
     if va <= vb or va < MIN_WORD:
         return None
-    return (f"״{a}״ היא המילה הפותחת הנפוצה ביותר בשמות הישובים — {n(va)} שמות "
+    return (f"״{a}״ היא המילה הפותחת הנפוצה ביותר בשמות הישובים: {n(va)} שמות "
             f"({share(va, total)}), לפני ״{b}״ ({n(vb)}) ו״{c}״ ({n(vc)}).")
 
 
@@ -228,7 +228,7 @@ def insight_latin(df):
         parts.append(f"{n(miss)} ישובים מופיעים ללא שם לועזי")
     if dup:
         parts.append(f"{n(dup)} שמות לועזיים משותפים לשני ישובים או יותר")
-    return "באיכות הנתונים: " + "; ".join(parts) + " — סמל הישוב הוא המזהה החד-ערכי."
+    return "באיכות הנתונים: " + "; ".join(parts) + ". סמל הישוב הוא המזהה החד-ערכי."
 
 
 def insight_tribes(df):
@@ -239,7 +239,7 @@ def insight_tribes(df):
     a, va = by.index[0], int(by.iloc[0])
     where = (f"כולם בנפת {a}" if va == len(t)
              else f"{n(va)} מהם בנפת {a}")
-    return f"ברשימה {n(len(t))} ישובים המסומנים כשבט — {where}."
+    return f"ברשימה {n(len(t))} ישובים המסומנים כשבט, {where}."
 
 
 # ---------------------------------------------------------------- compute
@@ -334,7 +334,7 @@ def compute(frames):
                             "districts": int((bmat.loc[b] > 0).sum())})
     if rest_b:
         bureau_rows.append({"name": f"אחר ({n(len(rest_b))} לשכות)",
-                            "count": int(bureau_counts[rest_b].sum()), "home": "—",
+                            "count": int(bureau_counts[rest_b].sum()), "home": "–",
                             "districts": int((bmat.loc[rest_b].sum() > 0).sum())})
     bureaus_chart = {"names": names_b, "series": series_b}
 
@@ -468,7 +468,7 @@ def compute(frames):
                       f"מחוז {top_dist['name']} הוא הגדול ביותר."),
         "bureaus_note": (f"הלשכה של רשות האוכלוסין וההגירה שמשרתת את תושבי כל ישוב, צבועה לפי מחוז "
                          f"הישוב. מחוז הלשכה הוא מחוז הישוב שעל שמו היא קרויה ({n(n_namesake)} "
-                         f"מתוך {n(len(modal))} לשכות), ואם אין ישוב כזה — המחוז שבו רוב ישוביה. "
+                         f"מתוך {n(len(modal))} לשכות), ואם אין ישוב כזה, המחוז שבו רוב ישוביה. "
                          f"{n(n_cross)} ישובים ({share(n_cross, total)}) משויכים ללשכה במחוז אחר."),
         "bureaus_aria": (f"גרף עמודות אופקי מוערם: מספר הישובים לפי לשכת רשות האוכלוסין ומחוז הישוב. "
                          f"לשכת {bureau_counts.index[0]} משרתת את המספר הגדול ביותר, {n(bureau_counts.iloc[0])} ישובים."),

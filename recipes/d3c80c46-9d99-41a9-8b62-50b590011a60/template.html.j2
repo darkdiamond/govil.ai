@@ -109,7 +109,7 @@
     <img src="/icons/database.svg" alt="" class="w-5 h-5" />
     <h2 class="m-0 text-lg font-semibold text-ink-deep">התשואה במכרזים</h2>
   </div>
-  <p class="m-0 text-sm text-subtle mb-3">תשואה ברוטו ממוצעת, משוקללת לפי הכמות שנמכרה, בכל חודש ולפי סוג אג״ח. באג״ח הצמודות — תשואה ריאלית.</p>
+  <p class="m-0 text-sm text-subtle mb-3">תשואה ברוטו ממוצעת, משוקללת לפי הכמות שנמכרה, בכל חודש ולפי סוג אג״ח. באג״ח הצמודות התשואה ריאלית.</p>
   <div id="chart-yields" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.yields_aria }}"></div>
 </section>
 
@@ -274,7 +274,7 @@
 
 <script>
   (function () {
-    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    function bnFmt(v) { return v === null ? "–" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
     function stacked(id, d, extra) {
       var c = echarts.init(document.getElementById(id));
       c.setOption(window.GovEcharts.option(Object.assign({
@@ -317,12 +317,12 @@
 
 <script>
   (function () {
-    function bnFmt(v) { return v === null ? "—" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
+    function bnFmt(v) { return v === null ? "–" : v.toLocaleString("he-IL") + " מיליארד ₪"; }
     var y = {{ model.charts.yields | tojson }};
     var c1 = echarts.init(document.getElementById("chart-yields"));
     c1.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v + "%"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v + "%"; } },
       legend: { bottom: 0 },
       grid: { left: 40, right: 16, top: 24, bottom: 56, containLabel: true },
       xAxis: { type: "category", data: y.x },

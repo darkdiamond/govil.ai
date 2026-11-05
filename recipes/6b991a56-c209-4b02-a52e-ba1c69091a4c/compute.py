@@ -123,7 +123,7 @@ def insight_polluting(grades, total, n_unauth):
     p = int(grades.get(POLLUTING, 0))
     if total == 0 or p / total < 0.05:
         return None
-    s = f"{n(p)} כלים ({pct(p / total * 100)}) מדורגים \"{POLLUTING}\" — הדרגה הגבוהה ביותר."
+    s = f"{n(p)} כלים ({pct(p / total * 100)}) מדורגים \"{POLLUTING}\", הדרגה הגבוהה ביותר."
     if p and n_unauth:
         s += f" {pct(n_unauth / p * 100)} מהם ({n(n_unauth)}) אינם מורשים לפעול."
     return s
@@ -142,7 +142,7 @@ def insight_unauth(df, n_unauth):
     else:
         return None
     others = df[df["grade"] != POLLUTING]
-    tail = (" — אין אף כלי בדרגה אחרת שנמנעה ממנו פעילות."
+    tail = (": אין אף כלי בדרגה אחרת שנמנעה ממנו פעילות."
             if not others["unauth"].any() else ".")
     return lead + tail
 
@@ -169,7 +169,7 @@ def insight_power(band_rows):
               if big["pol_unauth"] == 0 else
               f" ו-{pct(big['pol_unauth'] / big['pol'] * 100)} מהכלים של {LARGE_MAX} "
               f"קילוואט ומעלה")
-    return s + " — ההגבלה חלה בפועל על טווח ההספק הבינוני."
+    return s + ". ההגבלה חלה בפועל על טווח ההספק הבינוני."
 
 
 def insight_last_polluting(df, max_year):
@@ -412,8 +412,8 @@ def compute(frames):
         "ay_note": ((f"מספר הכלים לפי שנת ייצור והרשאת פעילות. הכלי הצעיר ביותר שאינו מורשה "
                      f"לפעול יוצר ב-{last_unauth_year}.") if last_unauth_year else
                     "מספר הכלים לפי שנת ייצור והרשאת פעילות."),
-        "ay_aria": "תרשים עמודות מוערמות: כלים לפי שנת ייצור — לא מורשים, מזהמים מורשים ואחרים.",
-        "power_note": (f"כלים לפי טווח הספק המנוע ודרגת הזיהום, והקו — שיעור הכלים שאינם מורשים "
+        "ay_aria": "תרשים עמודות מוערמות: כלים לפי שנת ייצור (לא מורשים, מזהמים מורשים ואחרים).",
+        "power_note": (f"כלים לפי טווח הספק המנוע ודרגת הזיהום, והקו מציג את שיעור הכלים שאינם מורשים "
                        f"לפעול מבין הכלים המזהמים בכל טווח. {n(no_kw)} כלים ללא הספק רשום "
                        f"(בעיקר חשמליים) אינם נכללים."),
         "power_aria": "תרשים עמודות מוערמות וקו: כלים לפי טווח הספק בקילוואט ודרגת זיהום.",
@@ -440,7 +440,7 @@ def compute(frames):
                     "unauth": n(r["unauth"])} for r in grade_rows],
         "flow": flow_rows,
         "power": [{"band": r["band"], "n": n(r["n"]), "pol": n(r["pol"]),
-                   "rate": pct_plain(r["pol_unauth"] / r["pol"] * 100) if r["pol"] else "—"}
+                   "rate": pct_plain(r["pol_unauth"] / r["pol"] * 100) if r["pol"] else "–"}
                   for r in band_rows],
         "types": mix_table(type_keys, t_ct, t_tot, t_un),
         "makers": mix_table(maker_keys, m_ct, m_tot, m_un),
@@ -466,7 +466,7 @@ def compute(frames):
         "agent_data": {
             "summary_he": (f"דרגת זיהום האוויר של {n(total)} כלי צמ״ה פעילים בישראל: "
                            f"{pct(pol_share)} מדורגים \"{POLLUTING}\" ו-{n(n_unauth)} אינם "
-                           f"מורשים לפעול — לפי סוג, יצרן, שנת ייצור, הספק והנעה."),
+                           f"מורשים לפעול (לפי סוג, יצרן, שנת ייצור, הספק והנעה)."),
             "dataset_kind": "registry",
             "related_ids": ["0219b34f-43c7-435b-bdfe-e65e944cde50",
                             "5fc5c912-4fa5-4474-93c1-326e505e22cf",

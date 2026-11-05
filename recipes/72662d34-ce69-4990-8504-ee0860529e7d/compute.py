@@ -162,9 +162,9 @@ def insight_peak(per_year, last_full):
     drop = 1 - lv / pv
     if abs(drop) < 0.1:
         return (f"שנת השיא ברישוי הייתה {peak} ({n(pv)} רישיונות); ב-{last_full} ניתנו "
-                f"{n(lv)} — קרוב לשיא.")
+                f"{n(lv)}, קרוב לשיא.")
     return (f"שנת השיא ברישוי הייתה {peak}, עם {n(pv)} רישיונות חדשים; ב-{last_full} ניתנו "
-            f"{n(lv)} — {pct(drop * 100, 0)} פחות מהשיא.")
+            f"{n(lv)}, {pct(drop * 100, 0)} פחות מהשיא.")
 
 
 def insight_ytd(dated, ref, partial):
@@ -184,7 +184,7 @@ def insight_ytd(dated, ref, partial):
     else:
         trend = (f"{pct(abs(chg) * 100, 0)} {'יותר' if chg > 0 else 'פחות'} מבתקופה המקבילה "
                  f"ב-{y - 1} ({n(p)}, מתוך {n(full_prev)} בכל השנה)")
-    return f"מתחילת {y} ועד {d_he(ref)} ניתנו {n(c)} רישיונות חדשים — {trend}."
+    return f"מתחילת {y} ועד {d_he(ref)} ניתנו {n(c)} רישיונות חדשים, {trend}."
 
 
 def insight_decades(dec_counts, last_full):
@@ -197,7 +197,7 @@ def insight_decades(dec_counts, last_full):
         return None
     ch = va / vb - 1
     if abs(ch) < 0.05:
-        return (f"בשנות ה-{a} ניתנו {n(va)} רישיונות — בדומה לשנות ה-{b} ({n(vb)}).")
+        return (f"בשנות ה-{a} ניתנו {n(va)} רישיונות, בדומה לשנות ה-{b} ({n(vb)}).")
     return (f"בשנות ה-{a} ניתנו {n(va)} רישיונות, {'עלייה' if ch > 0 else 'ירידה'} של "
             f"{pct(abs(ch) * 100, 0)} לעומת שנות ה-{b} ({n(vb)}).")
 
@@ -252,7 +252,7 @@ def insight_shift(fam_dec, last_full):
     lb = _ranked(sb).index[0]
     if la != lb:
         return (f"מוקד ההתמחות השתנה: בשנות ה-{b} התחום המוביל בהכרה במומחיות היה {lb} "
-                f"({pct(sb[lb] * 100, 0)} מהמומחיות שהוכרו), ובשנות ה-{a} — {la} "
+                f"({pct(sb[lb] * 100, 0)} מהמומחיות שהוכרו), ובשנות ה-{a} הוביל {la} "
                 f"({pct(sa[la] * 100, 0)}).")
     diff = (sa - sb)
     mover = _ranked(diff.abs()).index[0]
@@ -298,7 +298,7 @@ def insight_surname(surnames, total):
 def insight_types(type_counts):
     if len(type_counts) < 2:
         return None
-    parts = [f"{t} — {n(v)}" for t, v in type_counts.items()]
+    parts = [f"{t} ({n(v)})" for t, v in type_counts.items()]
     return "סוגי הרישיון במרשם: " + "; ".join(parts) + "."
 
 
@@ -487,7 +487,7 @@ def compute(frames):
         "fields": {"value": int(spec_counts.size), "display": n(spec_counts.size), "tone": "brand"},
     }
 
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" שנת {ref_year} חלקית, עד {d_he(ref)}." if partial else ""
     type_note = f" כל הרישיונות במאגר הם מסוג \"{sole_type}\"." if sole_type else ""
     labels = {
         "lede": (f"מרשם הרופאים הווטרינרים בעלי רישיון של משרד החקלאות: {n(total)} וטרינרים, "
@@ -519,7 +519,7 @@ def compute(frames):
         "heat_note": f"מספר הרישיונות בכל חודש, {hy[0]}–{ref_year}.",
         "heat_aria": f"מפת חום: רישיונות לפי חודש ושנה, {hy[0]} עד {ref_year}.",
         "days_note": f"{TOP_DAYS} הימים שבהם ניתנו הכי הרבה רישיונות, {pf}–{ref_year}.",
-        "days_aria": (f"תרשים עמודות אופקי: {TOP_DAYS} ימי הרישוי הגדולים — "
+        "days_aria": (f"תרשים עמודות אופקי: {TOP_DAYS} ימי הרישוי הגדולים, "
                       f"{d_he(top_days.index[0])} בראש עם {n(top_days.iloc[0])} רישיונות."),
         "days_caption": "ימי הרישוי הגדולים ומספר הרישיונות בכל אחד.",
         "specshare_note": "כמה מהווטרינרים הרשומים מחזיקים במומחיות מוכרת אחת או יותר.",
@@ -528,7 +528,7 @@ def compute(frames):
         "specs_note": (f"{TOP_SPECS} המומחיות הנפוצות, לפי תחום"
                        + (f"; {n(len(other_specs))} מומחיות נוספות מקובצות ב\"אחר\"." if len(other_specs) else ".")
                        + " שמות שנקטעו במקור הושלמו; תחומי המיקרוביולוגיה הקלינית מוצגים בשם תת־התחום."),
-        "specs_aria": (f"תרשים עמודות אופקי: המומחיות הנפוצות — {spec_counts.index[0]} בראש עם "
+        "specs_aria": (f"תרשים עמודות אופקי: המומחיות הנפוצות, {spec_counts.index[0]} בראש עם "
                        f"{n(spec_counts.iloc[0])} בעלי מומחיות."),
         "specs_caption": "מספר בעלי מומחיות לפי מומחיות ותחום.",
         "families_note": "מומחיות שהוכרו בכל עשור, לפי שנת ההכרה ותחום המומחיות."
@@ -540,7 +540,7 @@ def compute(frames):
                      f"{int(gaps.dropna().median()) if gaps.notna().any() else 0} שנים."),
         "gap_caption": "מספר מומחיות לפי השנים שחלפו מהרישוי.",
         "surnames_note": f"{TOP_NAMES} שמות המשפחה הנפוצים בכלל המרשם.",
-        "surnames_aria": f"תרשים עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים — {surnames.index[0]} בראש.",
+        "surnames_aria": f"תרשים עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים, {surnames.index[0]} בראש.",
         "surnames_caption": "מספר וטרינרים לפי שם משפחה.",
         "firsts_note": f"{TOP_NAMES} השמות הפרטיים הנפוצים בקרב מי שקיבלו רישיון ב-{ref_year - 9}–{ref_year}.",
         "firsts_aria": f"תרשים עמודות אופקי: {TOP_NAMES} השמות הפרטיים הנפוצים בקרב בעלי רישיון מ-{ref_year - 9}.",
@@ -550,7 +550,7 @@ def compute(frames):
         "decades": [{"name": lab, "count": n(dec_counts[d]), "share": f"{s:.1f}%"}
                     for d, lab, s in zip(decs, dec_labels, spec_share)],
         "cumulative": [{"month": MONTHS_SHORT[i],
-                        "vals": [("—" if s["data"][i] is None else n(s["data"][i])) for s in cum_series]}
+                        "vals": [("–" if s["data"][i] is None else n(s["data"][i])) for s in cum_series]}
                        for i in range(12)],
         "cum_cols": [s["name"] for s in cum_series],
         "months": [{"month": MONTHS_HE[i], "count": n(v)} for i, v in enumerate(months.values)],
@@ -569,7 +569,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"מרשם הרופאים הווטרינרים בישראל: {n(total)} בעלי רישיון, מהם {n(n_spec)} "
-                           f"בעלי מומחיות מוכרת — תאריך הרישוי ותחומי המומחיות, מ-{first_year} ועד {ref_year}."),
+                           f"בעלי מומחיות מוכרת, עם תאריך הרישוי ותחומי המומחיות, מ-{first_year} ועד {ref_year}."),
             "dataset_kind": "registry",
             "related_ids": ["c27919df-83d8-4aba-8297-f307fa1737fd",
                             "a25e63f2-4f22-4eff-a696-e7c6d20c9e27",

@@ -194,7 +194,7 @@ def insight_leader(groups, n):
     (g1, n1), (g2, n2) = groups[0], groups[1]
     if n1 / n < LEAD_SHARE:
         return None
-    return (f"{g1} הם הקבוצה הגדולה במאגר — {_int(n1)} כלי רכב ({_pct(n1 / n)}), "
+    return (f"{g1} הם הקבוצה הגדולה במאגר: {_int(n1)} כלי רכב ({_pct(n1 / n)}), "
             f"לפני {g2} ({_int(n2)}, {_pct(n2 / n)}).")
 
 
@@ -203,7 +203,7 @@ def insight_cliff(cliff):
         return None
     return (f"שנת הייצור הנפוצה במאגר היא {cliff['peak']} ({_int(cliff['peak_n'])} כלי רכב), "
             f"ומיד אחריה המספר צונח: משנות הייצור {cliff['y_from']} עד {cliff['y_to']} רשומים יחד "
-            f"{_int(cliff['after_n'])} בלבד — בממוצע {_int(cliff['after_avg'])} לשנה. "
+            f"{_int(cliff['after_n'])} בלבד, בממוצע {_int(cliff['after_avg'])} לשנה. "
             f"הירידה משקפת את היקף המאגר, ולא בהכרח את מכירות כלי הרכב.")
 
 
@@ -226,7 +226,7 @@ def insight_country(df, n):
     g1, gn = sub.index[0], int(sub.iloc[0])
     if gn / n1 < COUNTRY_GROUP_SHARE:
         return None
-    return (f"{c1} היא ארץ הייצור הנפוצה — {_int(n1)} כלי רכב ({_pct(n1 / n)}), "
+    return (f"{c1} היא ארץ הייצור הנפוצה: {_int(n1)} כלי רכב ({_pct(n1 / n)}), "
             f"ו-{_pct(gn / n1)} מהם {g1}.")
 
 
@@ -275,7 +275,7 @@ def insight_axles(df, group_name):
         return None
     four = (ax >= 4).mean()
     return (f"{_pct(multi)} מכלי הרכב בקבוצת {group_name} שתצורת ההנעה שלהם רשומה הם בעלי שלושה סרנים "
-            f"או יותר, ו-{_pct(four)} — ארבעה ומעלה.")
+            f"או יותר, ו-{_pct(four)} בעלי ארבעה ומעלה.")
 
 
 def insight_seats(seat_rows, n_bus, med):
@@ -352,7 +352,7 @@ def compute(frames):
     eu_vc = _ranked(df["eu"])
     fam = df["eu"].str[0].map(EU_FAMILY).fillna(OTHER)
     fam_vc = _ranked(fam)
-    fam_text = ", ".join(f"{k} — {_int(v)}" for k, v in fam_vc.items())
+    fam_text = ", ".join(f"{k} ({_int(v)})" for k, v in fam_vc.items())
 
     # ── Road entry by month ───────────────────────────────────────────────
     rd_year = df["road"].dropna().dt.year
@@ -562,10 +562,10 @@ def compute(frames):
         hook = (s["tow"] != "אין וו גרירה") & (s["tow"] != "")
         t_profile.append({
             "name": g, "count": _int(len(s)),
-            "year": str(int(s["year"].median())) if s["year"].notna().any() else "—",
-            "gross": _int(s["gross"].median()) if s["gross"].notna().any() else "—",
-            "own": _int(s["own"].median()) if s["own"].notna().any() else "—",
-            "payload": _int(s["payload"].median()) if s["payload"].notna().any() else "—",
+            "year": str(int(s["year"].median())) if s["year"].notna().any() else "–",
+            "gross": _int(s["gross"].median()) if s["gross"].notna().any() else "–",
+            "own": _int(s["own"].median()) if s["own"].notna().any() else "–",
+            "payload": _int(s["payload"].median()) if s["payload"].notna().any() else "–",
             "tow": f"{hook.mean() * 100:.0f}",
         })
     tow_any = ((df["tow"] != "אין וו גרירה") & (df["tow"] != "")).mean()
@@ -598,13 +598,13 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
-    small_note = (f" קבוצות קטנות ({', '.join(small_names)} — {_int(n_small)} כלים) מאוחדות תחת \"{OTHER}\"."
+    small_note = (f" קבוצות קטנות ({', '.join(small_names)}: {_int(n_small)} כלים) מאוחדות תחת \"{OTHER}\"."
                   if small_names else "")
 
     return {
         "agent_data": {
-            "summary_he": (f"{_int(n)} כלי רכב פעילים מעל 3.5 טון וכלי רכב חסרי קוד דגם — גרורים, משאיות, "
-                           f"טרקטורים, אוטובוסים, רכבי עבודה ורכב מסחרי ופרטי ותיק — שנות ייצור {y0} עד {y1}. "
+            "summary_he": (f"{_int(n)} כלי רכב פעילים מעל 3.5 טון וכלי רכב חסרי קוד דגם (גרורים, משאיות, "
+                           f"טרקטורים, אוטובוסים, רכבי עבודה ורכב מסחרי ופרטי ותיק), שנות ייצור {y0} עד {y1}. "
                            f"הקבוצה הגדולה: {groups_all[0][0]} ({_pct(groups_all[0][1] / n)}); "
                            f"ל-{_pct(heavy_share)} מהם משקל כולל מעל {_int(HEAVY_KG)} ק״ג."),
             "dataset_kind": "registry",
@@ -662,41 +662,41 @@ def compute(frames):
         "insights": insights,
         "labels": {
             "title": "כלי רכב מעל 3 וחצי טון וכלי רכב חסרי קוד דגם",
-            "lede": (f"המאגר מונה {_int(n)} כלי רכב פעילים במשרד התחבורה — כלי רכב כבדים וכלי רכב חסרי "
+            "lede": (f"המאגר מונה {_int(n)} כלי רכב פעילים במשרד התחבורה, כלי רכב כבדים וכלי רכב חסרי "
                      f"קוד דגם: גרורים, משאיות, טרקטורים, אוטובוסים, רכבי עבודה, ולצידם רכב מסחרי ופרטי "
-                     f"ותיק. שנות הייצור {y0} עד {y1}. זו תמונת הצי הפעיל — כלים שנגרעו אינם בו — "
+                     f"ותיק. שנות הייצור {y0} עד {y1}. זו תמונת הצי הפעיל (כלים שנגרעו אינם בו), "
                      f"ולכן שנים ותיקות מיוצגות חלקית."),
             "total_kpi": "כלי רכב פעילים במאגר",
             "heavy_kpi": f"משקל כולל מעל {_int(HEAVY_KG)} ק״ג (מהכלים שמשקלם רשום)",
             "median_year_kpi": "שנת ייצור חציונית",
             "ev_kpi": "כלי רכב חשמליים",
             "groups_note": (f"{len(groups_all)} קבוצות סוג רכב ו-{len(eu_vc)} קטגוריות תקינה אירופית. "
-                            f"הטבעת הפנימית — קבוצת הסוג, החיצונית — קטגוריית התקינה. "
+                            f"הטבעת הפנימית היא קבוצת הסוג, והחיצונית היא קטגוריית התקינה. "
                             f"לפי משפחת התקינה: {fam_text}."),
             "groups_aria": f"תרשים שמש: {_int(n)} כלי רכב לפי קבוצת סוג וקטגוריית תקינה אירופית.",
             "road_note": (f"מספר הכלים הפעילים לפי {road_chart['unit']} העלייה לכביש, מ-{start_year} "
                           f"(מאז רוב הכלים נושאים את השדה; {_int(n_road_series)} מתוך {_int(n_road)} "
-                          f"הכלים שמועד העלייה שלהם רשום). שנת העלייה לכביש זהה בנתונים לשנת הייצור. השיא — {_m_he(peak_m)} "
+                          f"הכלים שמועד העלייה שלהם רשום). שנת העלייה לכביש זהה בנתונים לשנת הייצור. השיא: {_m_he(peak_m)} "
                           f"({_int(peak_sorted.iloc[0])} כלים). החודש האחרון ({_m_he(last_m)}) עשוי להיות חלקי."),
             "road_aria": f"תרשים קו: כלי רכב פעילים לפי {road_chart['unit']} עלייה לכביש, {start_year} עד {last_m.year}.",
             "season_note": ((f"החלק הממוצע של כל חודש מהעליות לכביש בשנה, בשנים {season['y0']} עד {season['y1']} "
                              f"(שנים מלאות עם {_int(SEASON_MIN_YEAR)} עליות לפחות).") if season else ""),
             "season_aria": "תרשים עמודות: חלק כל חודש מהעליות לכביש בשנה.",
-            "years_note": (f"כל עמודה — שנת ייצור, מחולקת לפי קבוצת הסוג. השיא בשנת {peak_year} "
+            "years_note": (f"כל עמודה היא שנת ייצור, מחולקת לפי קבוצת הסוג. השיא בשנת {peak_year} "
                            f"({_int(yc[peak_year])} כלים). מספר הכלים משנות הייצור המאוחרות משקף את היקף המאגר, "
                            f"ולא בהכרח את המכירות.{small_note}"),
             "years_aria": f"תרשים עמודות מוערם: כלי רכב לפי שנת ייצור וקבוצת סוג, {y0} עד {y1}.",
             "years_caption": "כלי רכב לפי מחזור שנות ייצור וקבוצת סוג.",
-            "age_note": (f"שנת הייצור בכל קבוצה: התיבה — הרבעון התחתון עד העליון, הקו — החציון, "
-                         f"השפמים — אחוזון 5 עד 95. החציון בכלל המאגר: {int(overall_med)}."),
+            "age_note": (f"שנת הייצור בכל קבוצה. התיבה מציגה את הרבעון התחתון עד העליון, הקו את החציון, "
+                         f"והשפמים את אחוזון 5 עד 95. החציון בכלל המאגר: {int(overall_med)}."),
             "age_aria": "תרשים תיבה: שנת ייצור לפי קבוצת סוג.",
-            "fuel_note": (f"תמהיל הדלק בכל קבוצה (באחוזים). ל-{_int(n_no_fuel)} כלים לא רשום סוג דלק — "
+            "fuel_note": (f"תמהיל הדלק בכל קבוצה (באחוזים). ל-{_int(n_no_fuel)} כלים לא רשום סוג דלק, "
                           f"בעיקר {no_fuel_top} ({_int(no_fuel_groups.iloc[0]) if len(no_fuel_groups) else 0})."),
             "fuel_aria": "תרשים עמודות 100%: סוג הדלק לפי קבוצת סוג.",
             "fuel_caption": "כלי רכב לפי קבוצת סוג וסוג דלק.",
             "makers_note": (f"{_int(n_brands)} יצרנים במאגר; {TOP_MAKERS} המובילים מחזיקים {_pct(top15_share)} "
                             f"מהכלים. שם היצרן מאוחד מכל ארצות המפעל (למשל וולבו שבדיה ובלגיה), וכל עמודה "
-                            f"מחולקת לפי קבוצת הסוג — יצרני גרורים מקומיים לצד יצרני משאיות וטרקטורים."),
+                            f"מחולקת לפי קבוצת הסוג: יצרני גרורים מקומיים לצד יצרני משאיות וטרקטורים."),
             "makers_aria": f"תרשים עמודות מוערם: {TOP_MAKERS} היצרנים המובילים לפי קבוצת סוג.",
             "models_note": (f"שם הדגם כפי שנרשם ({_int(n_models)} צירופי יצרן ודגם). "
                             f"אותו דגם עשוי להופיע בכמה כתיבים."),
@@ -707,14 +707,14 @@ def compute(frames):
             "countries_aria": f"תרשים עמודות מוערם: {TOP_COUNTRIES} ארצות הייצור המובילות לפי קבוצת סוג.",
             "payload_note": (f"כושר ההעמסה (משקל מטען מותר) כאחוז מהמשקל הכולל, לכל קבוצה. "
                              f"מבוסס על {_int(n_pay)} כלים שגם המשקל הכולל וגם כושר ההעמסה שלהם רשומים. "
-                             f"התיבה — רבעון תחתון עד עליון, השפמים — אחוזון 5 עד 95."),
+                             f"התיבה מציגה רבעון תחתון עד עליון, והשפמים אחוזון 5 עד 95."),
             "payload_aria": "תרשים תיבה: כושר העמסה כאחוז מהמשקל הכולל לפי קבוצת סוג.",
-            "drive_note": (f"תצורת ההנעה: מספר נקודות הגלגל × מספר המונעות מהן — כל שתי נקודות הן סרן אחד. "
-                           f"ל-{_int(n_drive_unknown)} כלים — בעיקר {drive_unknown_top} — התצורה אינה ידועה "
+            "drive_note": (f"תצורת ההנעה: מספר נקודות הגלגל × מספר המונעות מהן. כל שתי נקודות הן סרן אחד. "
+                           f"ל-{_int(n_drive_unknown)} כלים (בעיקר {drive_unknown_top}) התצורה אינה ידועה "
                            f"או שאין להם הנעה."),
             "drive_aria": "תרשים עמודות 100%: תצורת ההנעה לפי קבוצת סוג.",
             "drive_caption": "כלי רכב לפי קבוצת סוג ותצורת הנעה.",
-            "cc_note": (f"נפח המנוע בסמ״ק לכל קבוצה (התיבה — רבעון תחתון עד עליון, השפמים — אחוזון 5 עד 95). "
+            "cc_note": (f"נפח המנוע בסמ״ק לכל קבוצה (התיבה מציגה רבעון תחתון עד עליון, והשפמים אחוזון 5 עד 95). "
                         f"{_int(n_cc_out)} כלים ללא נפח רשום אינם בתרשים, וכן קבוצות שלרובן לא רשום נפח"
                         + (f" ({', '.join(cc_skipped)})." if cc_skipped else ".")),
             "cc_aria": "תרשים תיבה: נפח מנוע לפי קבוצת סוג.",

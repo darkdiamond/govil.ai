@@ -145,7 +145,7 @@ def insight_blocks(block_rows, total):
     if len(rows) < 3 or rows[0]["total"] <= rows[1]["total"]:
         return None
     a, b, c = rows[:3]
-    return (f"גוש {a['block']} (סמלים {a['range']}) מחזיק את מספר הסמלים הגדול ביותר — "
+    return (f"גוש {a['block']} (סמלים {a['range']}) מחזיק את מספר הסמלים הגדול ביותר: "
             f"{n(a['total'])} ({share(a['total'], total)} מהרשימה), לפני {b['block']} "
             f"({n(b['total'])}) ו{c['block']} ({n(c['total'])}).")
 
@@ -171,7 +171,7 @@ def insight_changes(ch):
     if ch["added_rows"]:
         names = [x["name"] for x in ch["added_rows"][:3]]
         joined = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " ו" + names[-1]
-        ex = (" — ביניהם " if a > len(names) else ": ") + joined
+        ex = (", ביניהם " if a > len(names) else ": ") + joined
     rem = f"; הוסרו {n(r)}" if r else "; לא הוסר אף סמל"
     return (f"לעומת הקובץ הקודם שפורסם במאגר ({n(ch['old_total'])} סמלים), ברשימה הנוכחית "
             f"נוספו {n(a)} סמלים{ex}{rem}.")
@@ -190,7 +190,7 @@ def insight_general(gen, total):
     status = [k for k in ("בדרך לארץ", "בלב ים") if (gen["name"] == k).any()]
     if status:
         parts.append("מצבים כמו " + " ו".join(f"״{k}״" for k in status))
-    detail = (" — " + ", ".join(parts[:-1]) + (" ו" if len(parts) > 1 else "") + parts[-1]) if parts else ""
+    detail = (": " + ", ".join(parts[:-1]) + (" ו" if len(parts) > 1 else "") + parts[-1]) if parts else ""
     return (f"{n(len(gen))} סמלים ({share(len(gen), total)}) אינם ארץ מסוימת אלא קודים כלליים"
             f"{detail}.")
 
@@ -213,7 +213,7 @@ def insight_shared_eng(df):
         r = miss.iloc[0]
         one = f"{r['name']} ({r['code']})" if len(miss) == 1 else f"{n(len(miss))} סמלים"
         parts.append(f"ל{one} אין שם לועזי")
-    return "באיכות הנתונים: " + "; ".join(parts) + " — הסמל המספרי הוא המזהה החד-ערכי."
+    return "באיכות הנתונים: " + "; ".join(parts) + ". הסמל המספרי הוא המזהה החד-ערכי."
 
 
 def insight_islands(df):
@@ -224,7 +224,7 @@ def insight_islands(df):
     a, va = by.index[0], int(by.iloc[0])
     if len(by) > 1 and va <= int(by.iloc[1]):
         return None
-    return (f"{n(len(isl))} שמות ברשימה פותחים במילה ״איי״ — ארכיפלגים וטריטוריות "
+    return (f"{n(len(isl))} שמות ברשימה פותחים במילה ״איי״: ארכיפלגים וטריטוריות "
             f"איים; {n(va)} מהם בגוש {a}.")
 
 
@@ -233,7 +233,7 @@ def insight_former_names(df):
     if len(m) < 2:
         return None
     ex = [f"{r['name']}" for _, r in m.head(3).iterrows()]
-    return (f"{n(len(m))} שמות עבריים נושאים בסוגריים את שמה הקודם של המדינה — "
+    return (f"{n(len(m))} שמות עבריים נושאים בסוגריים את שמה הקודם של המדינה: "
             + ", ".join(ex) + ".")
 
 
@@ -247,7 +247,7 @@ def insight_codes(cell_rows, total):
         f0 = full[0]
         tail = (f" {n(len(full))} עשרות מלאות לגמרי, למשל {f0['lo']} עד {f0['hi']}." if len(full) > 1
                 else f" העשרת {f0['lo']} עד {f0['hi']} מלאה לגמרי.")
-    return (f"הרשימה משתמשת ב-{n(total)} סמלים מתוך טווח של אלף, ב-{n(used)} עשרות שונות — "
+    return (f"הרשימה משתמשת ב-{n(total)} סמלים מתוך טווח של אלף, ב-{n(used)} עשרות שונות, "
             f"ובכל גוש נותרו סמלים פנויים להוספת ארצות.{tail}")
 
 
@@ -273,7 +273,7 @@ def compute(frames):
             "code": code, "name": by_code.at[code, "name"], "eng": by_code.at[code, "eng"],
             "kind": kind, "succ_codes": present,
             "n_succ": len({by_code.at[c, "eng"] or by_code.at[c, "name"] for c in present}),
-            "succ": ", ".join(by_code.at[c, "name"] for c in present) if present else "—",
+            "succ": ", ".join(by_code.at[c, "name"] for c in present) if present else "–",
         })
     hist_rows.sort(key=lambda r: (KIND_ORDER.index(r["kind"]), r["code"]))
     hist_codes = {r["code"] for r in hist_rows}
@@ -308,7 +308,7 @@ def compute(frames):
     cell_rows = []
     for (h, t), sub in df[df["code"] <= 999].groupby(["h", "t"]):
         sub = sub.sort_values("code", kind="stable")
-        names = ", ".join(f"{c} {nm or '—'}" for c, nm in zip(sub["code"], sub["name"]))
+        names = ", ".join(f"{c} {nm or '–'}" for c, nm in zip(sub["code"], sub["name"]))
         lo = int(h) * 100 + int(t) * 10
         cells.append([int(t), int(h), len(sub)])
         info.append({"range": f"{lo} עד {lo + 9}", "names": names})
@@ -335,9 +335,9 @@ def compute(frames):
         for code, nm, eng in zip(both["code"], both["name"], both["eng"]):
             on, oe = old_i.at[code, "name"], old_i.at[code, "eng"]
             if nm != on:
-                renamed.append({"code": int(code), "old": on or "—", "new": nm or "—"})
+                renamed.append({"code": int(code), "old": on or "–", "new": nm or "–"})
             if eng != oe:
-                eng_changed.append({"code": int(code), "name": nm, "old": oe or "—", "new": eng or "—"})
+                eng_changed.append({"code": int(code), "name": nm, "old": oe or "–", "new": eng or "–"})
         # Whitespace-only fixes: raw strings differ but the cleaned ones match.
         raw_old = (frames["snapshot"].assign(code=pd.to_numeric(frames["snapshot"]["סמל_ארץ"].str.strip(), errors="coerce"))
                    .dropna(subset=["code"]))
@@ -355,15 +355,15 @@ def compute(frames):
                 ws_fix += 1
         ch = {
             "old_total": len(old), "added": len(added), "removed": len(removed),
-            "added_rows": [{"code": int(c), "name": nm or "—", "eng": e or "—", "block": b}
+            "added_rows": [{"code": int(c), "name": nm or "–", "eng": e or "–", "block": b}
                            for c, nm, e, b in zip(added["code"], added["name"], added["eng"], added["block"])],
-            "removed_rows": [{"code": int(c), "name": nm or "—", "eng": e or "—"}
+            "removed_rows": [{"code": int(c), "name": nm or "–", "eng": e or "–"}
                              for c, nm, e in zip(removed["code"], removed["name"], removed["eng"])],
             "renamed": renamed, "eng_changed": eng_changed, "ws_fix": ws_fix,
         }
 
     gen = df[df["general"]].sort_values("code", kind="stable")
-    general_rows = [{"code": int(c), "name": nm or "—", "eng": e or "—", "block": b}
+    general_rows = [{"code": int(c), "name": nm or "–", "eng": e or "–", "block": b}
                     for c, nm, e, b in zip(gen["code"], gen["name"], gen["eng"], gen["block"])]
 
     # KPIs.

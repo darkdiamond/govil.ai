@@ -89,8 +89,8 @@ def insight_top_banks(act):
     top = banks.head(3)
     share = top.sum() / len(act)
     names = ", ".join(f"{n} ({_int(v)})" for n, v in top.items())
-    return (f"שלושת הגופים הגדולים — {names} — מחזיקים {_pct(share)} מ-{_int(len(act))} "
-            f"קודי הסליקה הפעילים, מתוך {_int(banks.size)} גופים במאגר.")
+    return (f"שלושת הגופים הגדולים מחזיקים {_pct(share)} מ-{_int(len(act))} קודי הסליקה הפעילים: "
+            f"{names}. בסך הכול רשומים במאגר {_int(banks.size)} גופים.")
 
 
 def insight_regular_leader(act):
@@ -125,7 +125,7 @@ def insight_exec(act):
     lead = banks.index[0]
     own = int((act["bank"] == lead).sum())
     return (f"{_pct(len(ex) / len(act))} מהקודים הפעילים ({_int(len(ex))}) הם יחידות ביצוע, "
-            f"ו-{_pct(share)} מהן ({_int(banks.iloc[0])}) של {lead} — "
+            f"ו-{_pct(share)} מהן ({_int(banks.iloc[0])}) של {lead}, "
             f"{_int(banks.iloc[0])} מתוך {_int(own)} הקודים הפעילים שלו.")
 
 
@@ -162,7 +162,7 @@ def insight_hub(act, top_cities):
     head = (f"באף אחד מ-{_int(len(sub))} הקודים הפעילים ב{city} אין סניף רגיל"
             if n_reg == 0 else
             f"ב{city} רק {_int(n_reg)} מתוך {_int(len(sub))} הקודים הפעילים הם סניפים רגילים")
-    return (f"{head} — {_pct(len(non) / len(sub))} הם יחידות ביצוע, סניפים מיוחדים או "
+    return (f"{head}: {_pct(len(non) / len(sub))} הם יחידות ביצוע, סניפים מיוחדים או "
             f"דיגיטליים{lead}.")
 
 
@@ -245,7 +245,7 @@ def insight_small(act):
     if len(small) < 3:
         return None
     return (f"{_int(len(small))} מתוך {_int(banks.size)} הגופים מחזיקים עד {SMALL_MAX} קודי "
-            f"סליקה פעילים כל אחד — יחד {_int(small.sum())} קודים, "
+            f"סליקה פעילים כל אחד, ויחד הם מחזיקים {_int(small.sum())} קודים, "
             f"{_pct(small.sum() / len(act), 1)} מהמאגר.")
 
 
@@ -295,7 +295,7 @@ def compute(frames):
     footprint_chart = {"names": [r[0] for r in fp], "cities": [r[1] for r in fp],
                        "codes": [r[2] for r in fp]}
     t_footprint = [{"name": r[0], "cities": _int(r[1]), "codes": _int(r[2]),
-                    "per_city": f"{r[2] / r[1]:.1f}" if r[1] else "—"} for r in fp]
+                    "per_city": f"{r[2] / r[1]:.1f}" if r[1] else "–"} for r in fp]
 
     # 4. Top cities × type.
     top_cities = list(cities.index[:TOP_CITIES])
@@ -401,8 +401,8 @@ def compute(frames):
 
     span = (f"{years[0]} עד {years[-1]}" if years else "")
     labels = {
-        "lede": (f"מאגר בנק ישראל של קודי הסניפים המשמשים לסליקה — העברות כספיות בין "
-                 f"בנקים וגופים פיננסיים. {_int(n_act)} קודים פעילים של {_int(banks.size)} גופים "
+        "lede": (f"מאגר בנק ישראל של קודי הסניפים המשמשים לסליקה (העברות כספיות בין "
+                 f"בנקים וגופים פיננסיים). {_int(n_act)} קודים פעילים של {_int(banks.size)} גופים "
                  f"ב-{_int(cities.size)} יישובים, ועוד {_int(n_closed)} קודים סגורים שנשמרו במאגר. "
                  f"קוד סליקה אינו בהכרח סניף קבלת קהל: לצד סניפים רגילים רשומים יחידות ביצוע, "
                  f"סניפים מיוחדים, סניפים דיגיטליים וגופים חוץ־בנקאיים."),
@@ -418,7 +418,7 @@ def compute(frames):
                            f"קוד פעיל אחד."),
         "footprint_aria": f"תרשים עמודות אופקי: מספר היישובים לכל גוף, {len(fp)} הגופים הגדולים.",
         "footprint_caption": "פריסה גאוגרפית לכל גוף: יישובים, קודים וממוצע קודים ליישוב.",
-        "cities_note": (f"{len(top_cities)} היישובים עם הכי הרבה קודים פעילים, לפי סוג סניף — "
+        "cities_note": (f"{len(top_cities)} היישובים עם הכי הרבה קודים פעילים, לפי סוג סניף, "
                         f"מתוך {_int(cities.size)} יישובים."),
         "cities_aria": (f"תרשים עמודות אופקי מוערם: {len(top_cities)} היישובים עם הכי הרבה "
                         f"קודי סליקה פעילים, לפי סוג סניף."),
@@ -427,7 +427,7 @@ def compute(frames):
                           f"היישובים המובילים. גוון כהה = יותר קודים."),
         "presence_aria": (f"מפת חום: קודים פעילים של {len(p_banks)} הגופים הגדולים "
                           f"ב-{len(p_cities)} היישובים עם הכי הרבה קודים."),
-        "presence_caption": f"קודים פעילים לפי יישוב וגוף — {len(p_cities)} יישובים, {len(p_banks)} גופים.",
+        "presence_caption": f"קודים פעילים לפי יישוב וגוף: {len(p_cities)} יישובים, {len(p_banks)} גופים.",
         "flow_note": (f"קודים לפי שנת הפתיחה ושנת הסגירה הרשומות, {span}. "
                       + (f"לא מוצגים {_int(n_placeholder)} קודים עם שנת פתיחה סמלית לפני "
                          f"{PLACEHOLDER_BEFORE} (תאריך הפתיחה המקורי אינו ידוע)"
@@ -452,7 +452,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{_int(n_act)} קודי סליקה פעילים של {_int(banks.size)} בנקים וגופים "
-                           f"פיננסיים ב-{_int(cities.size)} יישובים — לפי גוף, סוג סניף, יישוב, "
+                           f"פיננסיים ב-{_int(cities.size)} יישובים, לפי גוף, סוג סניף, יישוב, "
                            f"פתיחות וסגירות, וקודים המופנים לסניף אחר."),
             "dataset_kind": "registry",
             "suggested_tags": ["בנקאות", "סניפי בנק", "סליקה", "העברות כספיות", "תאגידים בנקאיים"],

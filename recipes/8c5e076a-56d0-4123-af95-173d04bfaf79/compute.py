@@ -155,7 +155,7 @@ def insight_concentration(comp_counts, total):
     s = (f"חמש החברות המנהלות הגדולות מחזיקות {pct(share * 100)} ממסלולי ההשקעה במאגר; "
          f"בראשן {lead} עם {n(lead_v)} מסלולים.")
     if tail >= 10:
-        s += (f" מנגד, {n(tail)} מתוך {n(len(comp_counts))} החברות שמנהלות מסלולים מחזיקות שלושה מסלולים או פחות — "
+        s += (f" מנגד, {n(tail)} מתוך {n(len(comp_counts))} החברות שמנהלות מסלולים מחזיקות שלושה מסלולים או פחות, "
               f"בעיקר קופות ענפיות וקרנות השתלמות מקצועיות.")
     return s
 
@@ -168,7 +168,7 @@ def insight_groups(tracks):
     if len(full) < 2:
         return None
     share = t["tok"].isin(full).sum() / len(tracks)
-    return (f"{n(len(full))} קבוצות פועלות בכל שלושת התחומים — גמל, פנסיה וביטוח — באמצעות "
+    return (f"{n(len(full))} קבוצות פועלות בכל שלושת התחומים (גמל, פנסיה וביטוח) באמצעות "
             f"חברות נפרדות: {', '.join(full)}. יחד הן מנהלות {pct(share * 100)} מהמסלולים "
             f"(הקבוצה מזוהה לפי המילה הפותחת המשותפת בשם החברה).")
 
@@ -205,7 +205,7 @@ def insight_sp500(tracks):
     idx = tracks[tracks["spec2"].str.contains("עוקב", regex=False)]
     lead = _sorted_counts(idx["spec2"]).index[0] if len(idx) else ""
     if "s&p 500" in lead.lower():
-        s += " — ההתמחות המשנית הנפוצה ביותר מבין מסלולי המדדים"
+        s += ", ההתמחות המשנית הנפוצה ביותר מבין מסלולי המדדים"
     return s + "."
 
 
@@ -510,7 +510,7 @@ def compute(frames):
     labels = {
         "lede": (f"רשימת הקופות והמסלולים שגופים מוסדיים משתמשים בה כדי להעביר ביניהם כספי חיסכון: "
                  f"{n(n_tracks)} מסלולי השקעה ב-{n(len(funds))} קופות וקרנות של {n(len(companies))} "
-                 f"חברות — {dom_txt}. לכל מסלול מצוינים החברה המנהלת והמתפעלת, חשבון הבנק להעברות "
+                 f"חברות ({dom_txt}). לכל מסלול מצוינים החברה המנהלת והמתפעלת, חשבון הבנק להעברות "
                  f"נכנסות ויוצאות ופרטי מחלקת ההעברות. העדכון האחרון במאגר: {d_he(ref)}."),
         "scope_note": (f"הספירה בעמוד היא של מסלולים ולא של רשומות: מסלול מופיע פעם אחת כשחשבון אחד "
                        f"משמש לשני הכיוונים, ופעמיים כשיש רישום נפרד להעברות נכנסות ויוצאות. "
@@ -559,7 +559,7 @@ def compute(frames):
         "up_note": ("שנת העדכון האחרון של רשומות כל מסלול, לפי תחום."
                     + (f" {n(n_tracks - len(up))} מסלולים ללא תאריך עדכון אינם נכללים."
                        if n_tracks > len(up) else "")
-                    + (f" {ref.year} — שנה חלקית, עד {d_he(ref)}." if partial_year else "")),
+                    + (f" {ref.year} היא שנה חלקית, עד {d_he(ref)}." if partial_year else "")),
         "up_aria": "תרשים עמודות מוערמות: מסלולים לפי שנת העדכון האחרון ותחום.",
         "up_caption": "מספר המסלולים לפי שנת העדכון האחרון.",
         "pool_note": (f"חשבון בנק אחד יכול לשמש מסלולים רבים. {n(len(acc_tracks))} החשבונות לפי מספר "
@@ -572,7 +572,7 @@ def compute(frames):
         "city_caption": "מספר חברות מנהלות לפי עיר.",
         "funds_caption": f"{TOP_FUNDS} הקופות והקרנות עם מספר המסלולים הגדול ביותר.",
         "funds_note": (f"{n(single_track_funds)} מתוך {n(len(funds))} הקופות והקרנות פועלות עם מסלול "
-                       f"השקעה אחד בלבד. בטבלה — הקופות והקרנות עם מספר המסלולים הגדול ביותר."),
+                       f"השקעה אחד בלבד. בטבלה מוצגות הקופות והקרנות עם מספר המסלולים הגדול ביותר."),
     }
 
     charts = {
@@ -599,7 +599,7 @@ def compute(frames):
                      "tracks": n(r["tracks"])} for r in dom_rows],
         "companies": comp_table,
         "types": [{"name": k, "count": n(sum(s["data"][i] for s in type_series)),
-                   "domain": DOMAIN_LABEL.get(type_dom.get(k, ""), "") if k != "יתר הסוגים" else "—"}
+                   "domain": DOMAIN_LABEL.get(type_dom.get(k, ""), "") if k != "יתר הסוגים" else "–"}
                   for i, k in enumerate(t_names)],
         "spec": [{"name": k, "cells": [n(s["data"][i]) for s in spec_series]}
                  for i, k in enumerate(s_names)],

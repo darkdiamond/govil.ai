@@ -162,7 +162,7 @@ def insight_trend(per_year, last_full, amt_year):
         dir_ = "עלה" if a_c > a_p else "ירד"
         tail = f"; הסכום הכולל {dir_} מ-{mil(a_p)} ל-{mil(a_c)} מיליון ₪"
         if chg >= 0.1 and a_c < a_p:
-            tail += " — יותר עיצומים, אך בסכומים קטנים יותר"
+            tail += " (יותר עיצומים, אך בסכומים קטנים יותר)"
     else:
         tail = f"; הסכום הכולל {mil(a_c)} מיליון ₪"
     return head + tail + "."
@@ -185,7 +185,7 @@ def insight_ytd(df, ref, partial):
         trend = (f"{pct(abs(chg) * 100, 0)} {'יותר' if chg > 0 else 'פחות'} מבתקופה המקבילה "
                  f"ב-{y - 1} ({n(p)})")
     return (f"מתחילת {y} ועד {d_he(ref)} הוטלו {n(c)} עיצומים בסך {mil(fsum(cur['final']))} "
-            f"מיליון ₪ — {trend}.")
+            f"מיליון ₪, {trend}.")
 
 
 def insight_batch(df):
@@ -217,7 +217,7 @@ def insight_law_mix(law_n, law_amt, total, total_amt):
     if lead_n == lead_a:
         return (f"{lead_n} מוביל הן במספר העיצומים ({n(law_n[lead_n])}, "
                 f"{pct(law_n[lead_n] / total * 100)}) והן בסכום ({mil(law_amt[lead_n])} מיליון ₪).")
-    return (f"{lead_n} מוביל במספר העיצומים — {n(law_n[lead_n])} ({pct(law_n[lead_n] / total * 100)}), "
+    return (f"{lead_n} מוביל במספר העיצומים עם {n(law_n[lead_n])} ({pct(law_n[lead_n] / total * 100)}), "
             f"אך רק {pct(law_amt[lead_n] / total_amt * 100)} מהסכום; {lead_a} אחראי ל-"
             f"{pct(law_amt[lead_a] / total_amt * 100)} מהסכום ({mil(law_amt[lead_a])} מיליון ₪) "
             f"מ-{n(law_n[lead_a])} עיצומים בלבד.")
@@ -232,8 +232,8 @@ def insight_concentration(df, names, total_amt):
         return None
     who = names.get(top["key"], top["name"]) if top["public"] else "מפר שאינו מוצג בשמו"
     top10 = fsum(df.sort_values(["final", "id"], ascending=[False, True]).head(10)["final"])
-    return (f"העיצום הגבוה ביותר — {mil(top['final'])} מיליון ₪ ל{who} לפי {top['law']} "
-            f"({d_he(top['date'])}) — הוא {pct(share * 100)} מסכום כל העיצומים; עשרת העיצומים "
+    return (f"העיצום הגבוה ביותר, {mil(top['final'])} מיליון ₪ ל{who} לפי {top['law']} "
+            f"({d_he(top['date'])}), הוא {pct(share * 100)} מסכום כל העיצומים; עשרת העיצומים "
             f"הגבוהים מרכזים {pct(top10 / total_amt * 100)} מהסכום.")
 
 
@@ -259,7 +259,7 @@ def insight_appeals(df, law_n):
     if total < 10 or k == 0:
         return None
     op, cl = int(st.get("הליך פתוח", 0)), int(st.get("הליך סגור", 0))
-    s = (f"ב-{n(k)} עיצומים ({pct(k / total * 100)}) מתנהל או התנהל הליך משפטי — "
+    s = (f"ב-{n(k)} עיצומים ({pct(k / total * 100)}) מתנהל או התנהל הליך משפטי: "
          f"{n(op)} פתוחים ו-{n(cl)} סגורים")
     elig = [law for law in law_n.index if law_n[law] >= MIN_LAW_APPEAL]
     rates = []
@@ -270,7 +270,7 @@ def insight_appeals(df, law_n):
         rates.sort()
         r, law = -rates[0][0], rates[0][1]
         if r * total / k > 1.3 and r > 0:
-            s += (f"; השיעור הגבוה ביותר ב{law} — {pct(r * 100, 0)} מעיצומיו "
+            s += (f"; השיעור הגבוה ביותר הוא ב{law}, {pct(r * 100, 0)} מעיצומיו "
                   f"(מבין חוקים עם {MIN_LAW_APPEAL} עיצומים לפחות)")
     return s + "."
 
@@ -284,9 +284,9 @@ def insight_repeat(pub, names):
     leaders = sorted(names.get(k, k) for k in vc[vc == mx].index)
     s = f"{n(len(multi))} מפרים הנקובים בשמם קיבלו יותר מעיצום אחד"
     if mx >= 3 and len(leaders) == 1:
-        s += f"; המרבה ביותר — {leaders[0]} — עם {n(mx)} עיצומים"
+        s += f"; המרבה ביותר הוא {leaders[0]}, עם {n(mx)} עיצומים"
     elif mx >= 3 and len(leaders) <= 3:
-        s += f"; המרבים ביותר — {', '.join(leaders[:-1])} ו{leaders[-1]} — עם {n(mx)} עיצומים כל אחד"
+        s += f"; המרבים ביותר הם {', '.join(leaders[:-1])} ו{leaders[-1]}, עם {n(mx)} עיצומים כל אחד"
     else:
         s += f"; המרבים קיבלו {n(mx)} עיצומים כל אחד"
     return s + "."
@@ -302,7 +302,7 @@ def insight_withheld(df):
     long_years = df.loc[~short, "pub_years"].round().mode()
     s = ""
     if w:
-        s = f"ב-{n(w)} עיצומים שם המפר אינו מפורסם — במקומו מופיע מספר"
+        s = f"ב-{n(w)} עיצומים שם המפר אינו מפורסם, ובמקומו מופיע מספר"
     if s_n:
         yrs = round(df.loc[short, "pub_years"].median())
         part = (f"{n(s_n)} עיצומים מתפרסמים ל-{n(yrs)} שנים בלבד"
@@ -469,7 +469,7 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     peak_y = int(per_year.idxmax())
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {ref_year}: שנה חלקית, עד {d_he(ref)}." if partial else ""
     lead_a = max(sorted(law_amt), key=lambda k: law_amt[k])
     labels = {
         "lede": (f"העיצומים הכספיים שהטיל המשרד להגנת הסביבה: {n(total)} עיצומים מ-{d_he(first)} "
@@ -487,9 +487,9 @@ def compute(frames):
         "law_note": ("מספר העיצומים והסכום לפי החוק שהופר. בתרשים הסכום, החלק הבהיר הוא ההפחתה "
                      "מהסכום המקורי."
                      + (f" {n(len(rest_laws))} חוקים נוספים מקובצים תחת \"{OTHER}\"." if rest_laws else "")),
-        "law_count_aria": (f"תרשים עמודות אופקי: עיצומים לפי חוק — {law_n.index[0]} בראש עם "
+        "law_count_aria": (f"תרשים עמודות אופקי: עיצומים לפי חוק, {law_n.index[0]} בראש עם "
                            f"{n(law_n.iloc[0])} עיצומים."),
-        "law_amt_aria": (f"תרשים עמודות אופקי מוערם: סכום לאחר הפחתה והפחתה לפי חוק — {lead_a} "
+        "law_amt_aria": (f"תרשים עמודות אופקי מוערם: סכום לאחר הפחתה והפחתה לפי חוק, {lead_a} "
                          f"בראש עם {mil(law_amt[lead_a])} מיליון ₪."),
         "law_caption": "עיצומים, סכום מקורי, סכום לאחר הפחתה ושיעור הפחתה לפי חוק.",
         "sc_note": ("כל נקודה היא עיצום אחד: מועד ההטלה והסכום לאחר הפחתה, בציר לוגריתמי. "
@@ -499,36 +499,36 @@ def compute(frames):
         "sc_aria": (f"תרשים פיזור: {n(len(sc))} עיצומים לפי מועד וסכום, בציר לוגריתמי; "
                     f"הגבוה {mil(sc['final'].max())} מיליון ₪."),
         "occ_note": "סוג העיסוק של המפר כפי שנרשם בעיצום.",
-        "occ_aria": f"תרשים עמודות אופקי: עיצומים לפי סוג עיסוק — {occ.index[0]} בראש עם {n(occ.iloc[0])}.",
+        "occ_aria": f"תרשים עמודות אופקי: עיצומים לפי סוג עיסוק, {occ.index[0]} בראש עם {n(occ.iloc[0])}.",
         "occ_caption": "מספר עיצומים וסכום לאחר הפחתה לפי סוג עיסוק המפר.",
         "ded_note": ("שיעור ההפחתה בכל עיצום, מחושב מהסכום המקורי ומהסכום לאחר הפחתה."
                      + (f" {fines(no_orig)} {'שסכומו' if no_orig == 1 else 'שסכומם'} המקורי אפס {'אינו נכלל' if no_orig == 1 else 'אינם נכללים'}." if no_orig else "")),
-        "ded_aria": (f"תרשים עמודות: עיצומים לפי שיעור הפחתה — {n(ded_vals[0])} ללא הפחתה."),
+        "ded_aria": (f"תרשים עמודות: עיצומים לפי שיעור הפחתה, {n(ded_vals[0])} ללא הפחתה."),
         "ded_caption": "מספר עיצומים לפי שיעור ההפחתה.",
         "reasons_note": "נימוקי ההפחתה; עיצום אחד יכול לשאת כמה נימוקים.",
-        "reasons_aria": (f"תרשים עמודות אופקי: נימוקי הפחתה — {reasons.index[0]} בראש."
+        "reasons_aria": (f"תרשים עמודות אופקי: נימוקי הפחתה, {reasons.index[0]} בראש."
                          if not reasons.empty else "תרשים עמודות אופקי: נימוקי הפחתה."),
         "reasons_caption": "מספר עיצומים לפי נימוק ההפחתה.",
         "top_note": (f"{TOP_VIOLATORS} המפרים בסכום המצטבר הגבוה ביותר (לאחר הפחתה). "
                      f"{n(hidden)} עיצומים שבהם שם המפר לא פורסם, או שהוטלו על יחידים, "
                      f"אינם נכללים בדירוג."),
-        "top_aria": (f"תרשים עמודות אופקי: {TOP_VIOLATORS} המפרים בסכום הגבוה ביותר — "
+        "top_aria": (f"תרשים עמודות אופקי: {TOP_VIOLATORS} המפרים בסכום הגבוה ביותר, "
                      f"{top_rows[0]['name']} בראש." if top_rows else "תרשים עמודות אופקי: המפרים המובילים."),
         "top_caption": "המפרים בסכום העיצומים המצטבר הגבוה ביותר.",
         "rep_note": "כמה עיצומים קיבל כל מפר הנקוב בשמו.",
-        "rep_aria": (f"תרשים עמודות: מפרים לפי מספר העיצומים — {n(rep_buckets[0][1])} קיבלו עיצום אחד."),
+        "rep_aria": (f"תרשים עמודות: מפרים לפי מספר העיצומים, {n(rep_buckets[0][1])} קיבלו עיצום אחד."),
         "rep_caption": "מספר המפרים לפי מספר העיצומים שקיבלו.",
         "det_note": (f"{TOP_DETAILS} תיאורי ההפרה השכיחים."
                      + (f" ב{'עיצום אחד' if det_missing == 1 else '-' + n(det_missing) + ' עיצומים'} התיאור ריק." if det_missing else "")),
-        "det_aria": (f"תרשים עמודות אופקי: תיאורי ההפרה השכיחים — הראשון עם {n(det_rows[0]['count'])} עיצומים."
+        "det_aria": (f"תרשים עמודות אופקי: תיאורי ההפרה השכיחים, הראשון עם {n(det_rows[0]['count'])} עיצומים."
                      if det_rows else "תרשים עמודות אופקי: תיאורי ההפרה השכיחים."),
         "det_caption": "מספר עיצומים לפי תיאור ההפרה והחוק.",
         "ap_note": (f"התפלגות הסטטוס המשפטי בכל חוק (חוקים עם {MIN_LAW_APPEAL} עיצומים לפחות), באחוזים."),
-        "ap_aria": (f"תרשים עמודות מוערמות באחוזים: סטטוס משפטי לפי חוק — {n(open_n)} הליכים פתוחים."),
+        "ap_aria": (f"תרשים עמודות מוערמות באחוזים: סטטוס משפטי לפי חוק, {n(open_n)} הליכים פתוחים."),
         "ap_caption": "שיעור כל סטטוס משפטי לפי חוק.",
         "court_note": (f"בתי המשפט שבהם מתנהלים או התנהלו {n(len(in_court))} ההליכים, "
                        f"כפי שנרשמו בסיכום המצב המשפטי."),
-        "court_aria": (f"תרשים עמודות אופקי: הליכים משפטיים לפי בית משפט — {courts.index[0]} בראש."
+        "court_aria": (f"תרשים עמודות אופקי: הליכים משפטיים לפי בית משפט, {courts.index[0]} בראש."
                        if not courts.empty else "תרשים עמודות אופקי: הליכים לפי בית משפט."),
         "court_caption": "מספר הליכים משפטיים לפי בית משפט.",
     }
@@ -558,7 +558,7 @@ def compute(frames):
         "years": [{"year": lab, "count": n(per_year[y]), "amount": n(amt_year.get(y, 0.0))}
                   for lab, y in zip(year_labels, years)],
         "law": [{"name": r_[0], "count": n(r_[1]), "orig": n(r_[2]), "final": n(r_[3]),
-                 "cut": f"{(1 - r_[3] / r_[2]) * 100:.1f}%" if r_[2] else "—"} for r_ in law_rows],
+                 "cut": f"{(1 - r_[3] / r_[2]) * 100:.1f}%" if r_[2] else "–"} for r_ in law_rows],
         "occ": [{"name": nm, "count": n(v), "amount": n(a)}
                 for nm, v, a in zip(occ_names, occ_vals, occ_amt)],
         "ded": [{"name": b[0], "count": n(v)} for b, v in zip(DED_BUCKETS, ded_vals)],

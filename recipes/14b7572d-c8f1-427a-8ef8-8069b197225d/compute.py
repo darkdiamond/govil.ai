@@ -38,8 +38,8 @@ GAP_BINS = [(0, 6, "עד חצי שנה"), (6, 12, "חצי שנה עד שנה"), 
             (18, 24, "שנה וחצי עד שנתיים"), (24, 36, "שנתיים עד שלוש"),
             (36, None, "יותר משלוש שנים")]
 OUTCOMES = [
-    ("single_inf", "בדיקה אחת — נגיעות", "#dc3545"),
-    ("single_clean", "בדיקה אחת — ללא נגיעות", "#198754"),
+    ("single_inf", "בדיקה אחת: נגיעות", "#dc3545"),
+    ("single_clean", "בדיקה אחת: ללא נגיעות", "#198754"),
     ("all_inf", "נגיעות בכל הבדיקות", "#dc3545"),
     ("cleared", "נגיעות בעבר, נקייה בבדיקה האחרונה", "#0068f5"),
     ("new_inf", "נקייה בעבר, נגיעות בבדיקה האחרונה", "#9a6700"),
@@ -157,7 +157,7 @@ def insight_now(df):
     share = inf / recent
     lead = "יותר ממחצית" if share > 0.5 else "פחות ממחצית" if share < 0.5 else "מחצית"
     return (f"מבין {n(recent)} המשתלות שנבדקו בשנה האחרונה לפי הסטטוס במאגר, ב-{n(inf)} "
-            f"({pct(share)}) נמצאה נגיעות בנמלת האש הקטנה — {lead} מהמשתלות שנבדקו לאחרונה.")
+            f"({pct(share)}) נמצאה נגיעות בנמלת האש הקטנה, {lead} מהמשתלות שנבדקו לאחרונה.")
 
 
 def insight_stale(df, last):
@@ -211,13 +211,13 @@ def insight_trend(yearly, last, partial):
     cur = full[-1]
     note = (f"; לא כולל {last.year}, שהנתונים עליה חלקיים" if partial else "")
     if peak["y"] == cur["y"]:
-        return (f"שיעור הבדיקות שבהן נמצאה נגיעות הגיע לשיא ב-{cur['y']} — {pct(cur['share'])} "
-                f"מ-{n(cur['total'])} בדיקות{note.replace('; ', ' — ')}.")
+        return (f"שיעור הבדיקות שבהן נמצאה נגיעות הגיע לשיא ב-{cur['y']}: {pct(cur['share'])} "
+                f"מ-{n(cur['total'])} בדיקות{note.replace('; ', ', ')}.")
     diff = cur["share"] - peak["share"]
     if diff <= -TREND_PP:
         tail = f"ובשנת {cur['y']} ירד ל-{pct(cur['share'])}"
     else:
-        tail = f"ובשנת {cur['y']} נותר קרוב לשיא — {pct(cur['share'])}"
+        tail = f"ובשנת {cur['y']} נותר קרוב לשיא, עם {pct(cur['share'])}"
     return (f"שיעור הבדיקות שבהן נמצאה נגיעות הגיע לשיא ב-{peak['y']} ({pct(peak['share'])}), "
             f"{tail} (מתוך {n(cur['total'])} בדיקות{note}).")
 
@@ -230,7 +230,7 @@ def insight_authority(df):
     top, second = g.iloc[0], g.iloc[1]
     if int(top["k"]) < 5 or int(top["k"]) == int(second["k"]):
         return None
-    return (f"{top['authority']} מובילה במספר המשתלות שנמצאה בהן נגיעות אי-פעם — "
+    return (f"{top['authority']} מובילה במספר המשתלות שנמצאה בהן נגיעות אי-פעם: "
             f"{n(top['k'])} מתוך {n(top['n'])} המשתלות שבתחומה, ואחריה {second['authority']} "
             f"({n(second['k'])} מתוך {n(second['n'])}).")
 
@@ -322,7 +322,7 @@ def compute(frames):
                     "clean": [r["clean"] for r in yearly],
                     "share": [round(r["share"] * 100, 1) if r["total"] else None for r in yearly]}
     t_yearly = [{"name": year_labels[i], "inf": n(r["inf"]), "clean": n(r["clean"]),
-                 "share": pct_bare(r["share"]) if r["total"] else "—"} for i, r in enumerate(yearly)]
+                 "share": pct_bare(r["share"]) if r["total"] else "–"} for i, r in enumerate(yearly)]
 
     # Cohort: first inspection year
     fv = df[df["nvis"] > 0]
@@ -334,7 +334,7 @@ def compute(frames):
     for i, y in enumerate(years):
         a, b = cohort_chart["inf"][i], cohort_chart["clean"][i]
         t_cohort.append({"name": year_labels[i], "total": n(a + b), "inf": n(a),
-                         "share": pct_bare(a / (a + b)) if a + b else "—"})
+                         "share": pct_bare(a / (a + b)) if a + b else "–"})
     busiest = max(range(len(years)), key=lambda i: (cohort_chart["inf"][i] + cohort_chart["clean"][i], -i))
 
     # Recency: year of the last recorded inspection, by its result
@@ -455,8 +455,8 @@ def compute(frames):
                      f"והסטטוס העדכני; לחיצה על אשכול מקרבת את התצוגה."),
         "map_aria": f"מפה אינטראקטיבית של {n(total)} המשתלות במעקב. גרסה נגישה: טבלת הנתונים בתחתית העמוד.",
         "status_note": (f"הסטטוס שפרסם המשרד: תוצאת הבדיקה האחרונה למשתלות שנבדקו בשנה האחרונה, "
-                        f"ו\"לא נבדק בשנה האחרונה\" לכל השאר — {n(n_stale)} משתלות."),
-        "status_aria": (f"תרשים טבעת: סטטוס עדכני של {n(total)} משתלות — {n(n_inf)} נגועות, "
+                        f"ו\"לא נבדק בשנה האחרונה\" לכל השאר ({n(n_stale)} משתלות)."),
+        "status_aria": (f"תרשים טבעת: סטטוס עדכני של {n(total)} משתלות, {n(n_inf)} נגועות, "
                         f"{n(n_clean)} ללא נגיעות ו-{n(n_stale)} שלא נבדקו בשנה האחרונה."),
         "status_caption": "סטטוס עדכני של המשתלות לפי המאגר.",
         "journey_note": ("כל משתלה עוברת מבדיקה לבדיקה: הרוחב של כל זרם הוא מספר המשתלות. "
@@ -467,10 +467,10 @@ def compute(frames):
         "outcome_note": (f"סיכום ההיסטוריה של כל משתלה: {n(oc_all_inf)} נגועות בכל הבדיקות, "
                          f"{n(oc_cleared)} נמצאו נקיות בבדיקה האחרונה אחרי נגיעות קודמת, ו-{n(oc_new)} "
                          f"נמצאו נגועות בבדיקה האחרונה אחרי בדיקה נקייה."),
-        "outcome_aria": (f"תרשים עמודות אופקי: {n(with_vis)} משתלות לפי מסלול תוצאות הבדיקות — "
+        "outcome_aria": (f"תרשים עמודות אופקי: {n(with_vis)} משתלות לפי מסלול תוצאות הבדיקות, "
                          f"הקבוצה הגדולה היא {big_outcome}."),
         "outcome_caption": "משתלות לפי מסלול תוצאות הבדיקות.",
-        "yearly_note": (f"מספר הבדיקות בכל שנה לפי תוצאה, והקו — שיעור הבדיקות שבהן נמצאה נגיעות. "
+        "yearly_note": (f"מספר הבדיקות בכל שנה לפי תוצאה, והקו מראה את שיעור הבדיקות שבהן נמצאה נגיעות. "
                         f"השנה עם הכי הרבה בדיקות: {peak_y['y']} ({n(peak_y['total'])}).{partial_note}"),
         "yearly_aria": (f"תרשים עמודות מוערמות וקו: בדיקות לפי שנה ותוצאה בשנים {period}, "
                         f"ושיעור הבדיקות הנגועות."),
@@ -480,7 +480,7 @@ def compute(frames):
                         f"({n(cohort_chart['inf'][busiest] + cohort_chart['clean'][busiest])}).{partial_note}"),
         "cohort_aria": f"תרשים עמודות מוערמות: משתלות לפי שנת הבדיקה הראשונה ותוצאתה, {period}.",
         "cohort_caption": "משתלות לפי שנת הבדיקה הראשונה ותוצאתה.",
-        "recency_note": (f"השנה של הבדיקה האחרונה הרשומה לכל משתלה ותוצאתה — כמה עדכני המידע. "
+        "recency_note": (f"השנה של הבדיקה האחרונה הרשומה לכל משתלה ותוצאתה, כלומר כמה עדכני המידע. "
                          f"ב-{last.year} נבדקו לאחרונה {n(last_year_n)} משתלות.{partial_note}"),
         "recency_aria": f"תרשים עמודות מוערמות: משתלות לפי שנת הבדיקה האחרונה ותוצאתה, {period}.",
         "recency_caption": "משתלות לפי שנת הבדיקה האחרונה ותוצאתה.",
@@ -493,7 +493,7 @@ def compute(frames):
         "auth_aria": (f"תרשים עמודות אופקי מוערם: {len(top_auth)} הרשויות עם הכי הרבה משתלות "
                       f"לפי סטטוס עדכני. {lead_txt}"),
         "auth_caption": f"{len(top_auth)} הרשויות המקומיות עם הכי הרבה משתלות.",
-        "atype_note": ("התפלגות הסטטוס העדכני לפי סוג הרשות (באחוזים), והסימון — שיעור המשתלות "
+        "atype_note": ("התפלגות הסטטוס העדכני לפי סוג הרשות (באחוזים), והסימון מראה את שיעור המשתלות "
                        "שנמצאה בהן נגיעות אי-פעם. סוג הרשות נגזר משם הרשות במאגר."),
         "atype_aria": f"תרשים עמודות אופקי מוערם: סטטוס עדכני לפי סוג הרשות, {len(tnames)} סוגים.",
         "atype_caption": "סטטוס עדכני ושיעור נגיעות אי-פעם לפי סוג הרשות.",

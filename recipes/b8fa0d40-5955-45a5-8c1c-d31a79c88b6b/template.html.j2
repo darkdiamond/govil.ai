@@ -309,8 +309,8 @@
 
 <script>
   (function () {
-    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
-    var P = function (v) { return v === null || v === undefined ? "—" : v + "%"; };
+    var M = function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var P = function (v) { return v === null || v === undefined ? "–" : v + "%"; };
     var y = {{ model.charts.year | tojson }};
     var c1 = echarts.init(document.getElementById("chart-year"));
     var ys = [
@@ -355,7 +355,7 @@
 
 <script>
   (function () {
-    var P = function (v) { return v === null || v === undefined ? "—" : v + "%"; };
+    var P = function (v) { return v === null || v === undefined ? "–" : v + "%"; };
     var g = {{ model.charts.grants | tojson }};
     var c1 = echarts.init(document.getElementById("chart-grants"));
     c1.setOption(window.GovEcharts.option({
@@ -409,8 +409,8 @@
 
 <script>
   (function () {
-    var M = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " מיליון ₪"; };
-    var P = function (v) { return v === null || v === undefined ? "—" : v + "%"; };
+    var M = function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " מיליון ₪"; };
+    var P = function (v) { return v === null || v === undefined ? "–" : v + "%"; };
     var t = {{ model.charts.types | tojson }};
     var c1 = echarts.init(document.getElementById("chart-types"));
     c1.setOption(window.GovEcharts.option({
@@ -480,7 +480,7 @@
 
 <script>
   (function () {
-    var D = function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " ימים"; };
+    var D = function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " ימים"; };
     var l = {{ model.charts.lag | tojson }};
     var c1 = echarts.init(document.getElementById("chart-lag"));
     c1.setOption(window.GovEcharts.option({

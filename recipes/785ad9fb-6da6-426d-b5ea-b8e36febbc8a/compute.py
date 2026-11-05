@@ -130,7 +130,7 @@ def _kind(syn, off):
 def insight_volume(n_rows, n_syn, n_off, n_streets_syn):
     if n_off == 0 or n_streets_syn == 0:
         return None
-    return (f"לצד {n(n_off)} רחובות רשמיים רשומים {n(n_streets_syn)} שמות חלופיים (סינונימים) — "
+    return (f"לצד {n(n_off)} רחובות רשמיים רשומים {n(n_streets_syn)} שמות חלופיים (סינונימים), "
             f"{share(n_streets_syn, n_streets_syn + n_off)} מכל שמות הרחובות, כלומר "
             f"{LRI}{n_streets_syn / n_off:.2f}{PDI} שמות חלופיים לכל רחוב רשמי.")
 

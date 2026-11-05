@@ -82,7 +82,7 @@ def in_district(d):
 
 def code_name(c):
     lab = CODE_LABELS.get(c)
-    return f"{c} — {lab}" if lab else c
+    return f"{c}: {lab}" if lab else c
 
 
 def _sorted_counts(s):
@@ -134,10 +134,10 @@ def insight_ytd(ytd_now, ytd_prev, ref_year, end):
     chg = ytd_now / ytd_prev - 1
     span = f"מתחילת {ref_year} ועד {d_he(end)}"
     if abs(chg) < 0.03:
-        return (f"{span} נרשמו {n(ytd_now)} מינויים — בדומה לתקופה המקבילה ב-{ref_year - 1} "
+        return (f"{span} נרשמו {n(ytd_now)} מינויים, בדומה לתקופה המקבילה ב-{ref_year - 1} "
                 f"({n(ytd_prev)}).")
     word = "יותר" if chg > 0 else "פחות"
-    return (f"{span} נרשמו {n(ytd_now)} מינויים — {pct(abs(chg) * 100)} {word} מאשר "
+    return (f"{span} נרשמו {n(ytd_now)} מינויים, {pct(abs(chg) * 100)} {word} מאשר "
             f"בתקופה המקבילה ב-{ref_year - 1} ({n(ytd_prev)}).")
 
 
@@ -246,9 +246,9 @@ def insight_season(month_share, years):
     s = (f"החודש החלש ביותר הוא {MONTHS_HE[lo - 1]}: בממוצע {pct(avg[lo] * 100)} מהמינויים "
          f"השנתיים ב-{years[0]}–{years[-1]}, לעומת {pct(100 / 12)} בחודש ממוצע")
     if lo in (9, 10):
-        s += " — החודש שבו חלים לרוב חגי תשרי"
+        s += " (החודש שבו חלים לרוב חגי תשרי)"
     elif lo == 4:
-        s += " — החודש שבו חל לרוב חג הפסח"
+        s += " (החודש שבו חל לרוב חג הפסח)"
     return s + f"; החזק ביותר הוא {MONTHS_HE[hi - 1]} ({pct(avg[hi] * 100)})."
 
 
@@ -259,7 +259,7 @@ def insight_files(df):
         return None
     multi = (g > 1).mean()
     return (f"{pct(multi * 100)} מתיקי הסניגוריה ({n(len(g))} תיקים עם מספר) כוללים יותר "
-            f"ממינוי אחד — בממוצע {len(f) / len(g):.1f} מינויים לתיק.")
+            f"ממינוי אחד, בממוצע {len(f) / len(g):.1f} מינויים לתיק.")
 
 
 # ── compute ──────────────────────────────────────────────────────────────
@@ -423,7 +423,7 @@ def compute(frames):
         ytd_chg = (ytd_now / ytd_prev - 1) * 100
         ytd_kpi = {"value": round(ytd_chg, 1), "display": signed_pct(ytd_chg), "tone": "info"}
     else:
-        ytd_kpi = {"value": None, "display": "—", "tone": "brand"}
+        ytd_kpi = {"value": None, "display": "–", "tone": "brand"}
     kpis = {
         "total": {"value": total, "display": n(total), "tone": "brand"},
         "last_full": {"value": lf_total, "display": n(lf_total), "tone": "brand"},
@@ -436,13 +436,13 @@ def compute(frames):
         excl_note = (f" {n(excluded)} רשומות עם תאריך מינוי חסר, לפני {FLOOR.year} או אחרי "
                      f"{d_he(ref)} אינן נכללות בתרשימים.")
     pre_note = (f" {n(pre_start)} המינויים שלפני {start} אינם מוצגים בתרשימי השנים." if pre_start else "")
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {ref_year} היא שנה חלקית, עד {d_he(ref)}." if partial else ""
     k_top = max(1, round(len(lf_att) * 0.1))
 
     labels = {
         "lede": (f"פנקס המינויים של הסניגוריה הציבורית: {n(total)} מינויים של {n(names_total)} "
                  f"סניגורים ב-{len(dist_order)} מחוזות, מ-{first_year} ועד {d_he(ref)}. כל רשומה היא "
-                 f"מינוי של סניגור לתיק — שם הסניגור, מועד המינוי, מספר התיק בבית המשפט ומספר "
+                 f"מינוי של סניגור לתיק: שם הסניגור, מועד המינוי, מספר התיק בבית המשפט ומספר "
                  f"תיק הסניגוריה."),
         "ytd_kpi": (f"מינויים מתחילת {ref_year} לעומת התקופה המקבילה ב-{ref_year - 1}"
                     if ytd_prev else "שינוי מתחילת השנה"),
@@ -463,7 +463,7 @@ def compute(frames):
                        f"מספר תיק. קודים ללא פירוש מוצגים כפי שנרשמו; ציר המינויים באלפים."),
         "codes_aria": f"תרשים עמודות: מינויים לפי סוג תיק, {TOP_CODES} הקודים הנפוצים.",
         "codes_caption": "מינויים לפי סוג תיק בבית המשפט.",
-        "mix_note": (f"שיעור כל סוג תיק מהמינויים בכל שנה — {len(mix)} הקודים הנפוצים ב-{last_full}. "
+        "mix_note": (f"שיעור כל סוג תיק מהמינויים בכל שנה, עבור {len(mix)} הקודים הנפוצים ב-{last_full}. "
                      f"קודי התיקים במערכת בתי המשפט השתנו לאורך השנים, ולכן קודים ישנים נכללים ב״אחר״."),
         "mix_aria": f"גרף שטח מוערם: שיעור סוגי התיקים מהמינויים בכל שנה, {start} עד {ref_year}.",
         "dmix_note": f"התפלגות סוגי התיקים בכל מחוז ב-{last_full} (אחוז ממינויי המחוז).",
@@ -485,7 +485,7 @@ def compute(frames):
         "load_note": (f"כמה סניגורים קיבלו כמה מינויים ב-{last_full}, וכמה מינויים מכלל המינויים "
                       f"נפלו בכל קבוצה. עשירית הסניגורים העמוסים ביותר: {k_top} סניגורים."),
         "load_aria": f"תרשים עמודות: סניגורים ומינויים לפי מספר המינויים לסניגור ב-{last_full}.",
-        "load_caption": f"התפלגות העומס — סניגורים ומינויים לפי מספר מינויים לסניגור ב-{last_full}.",
+        "load_caption": f"התפלגות העומס: סניגורים ומינויים לפי מספר מינויים לסניגור ב-{last_full}.",
     }
     tables = {
         "dist": [{"name": d, "base": n(b), "cur": n(c)}

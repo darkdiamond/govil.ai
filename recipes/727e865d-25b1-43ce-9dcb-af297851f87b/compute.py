@@ -206,7 +206,7 @@ def insight_long(t):
 def insight_quality(extra, identical, total):
     if extra / total < QUALITY_MIN_SHARE:
         return None
-    txt = (f"ב-{_int(extra)} רשומות ({_pct(extra / total)}) הכתובת — רחוב, מספר ואות — "
+    txt = (f"ב-{_int(extra)} רשומות ({_pct(extra / total)}) הכתובת (רחוב, מספר ואות) "
            f"כבר הופיעה ברשומה אחרת")
     if identical:
         txt += f", ובהן {_int(identical)} כפילויות מלאות"

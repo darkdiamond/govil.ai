@@ -249,7 +249,7 @@ def compute(frames):
     big = procs[procs["dept"].isin(NAMED_DEPTS) & (procs["files"] >= 2)]
     big = big.sort_values(["files", "fy", "מספר הליך"], ascending=[False, True, True], kind="stable")
     big = big.head(TOP_FILES)
-    top_rows = [{"id": r["מספר הליך"], "name": _clean_name(r["name"]) or "—", "dept": r["dept_he"],
+    top_rows = [{"id": r["מספר הליך"], "name": _clean_name(r["name"]) or "–", "dept": r["dept_he"],
                  "typ": r["typ"], "files": _int(r["files"]), "st": r["st"]} for _, r in big.iterrows()]
     multi = int((procs["files"] >= 2).sum())
     n_linked = int(procs["linked"].sum())
@@ -313,7 +313,7 @@ def compute(frames):
         else:
             return (f"היקף ההליכים החדשים יציב: ב-{last_full} נפתחו {_int(op_last)} הליכים, "
                     f"בדומה לממוצע של {base:,.0f} בשנים {span}{tail}.")
-        return (f"ב-{last_full} נפתחו {_int(op_last)} הליכים — {word} לעומת הממוצע של {base:,.0f} "
+        return (f"ב-{last_full} נפתחו {_int(op_last)} הליכים, {word} לעומת הממוצע של {base:,.0f} "
                 f"בשנים {span}{tail}.")
 
     def ins_clear():
@@ -360,7 +360,7 @@ def compute(frames):
         if multi == 0 or not top_rows:
             return None
         t = top_rows[0]
-        nm = f" (\"{t['name']}\")" if t["name"] != "—" else ""
+        nm = f" (\"{t['name']}\")" if t["name"] != "–" else ""
         return (f"{_int(multi)} הליכים ({_pct(multi / n)}) עוסקים ביותר מתיק אחד. הגדול שבהם, {t['id']}{nm}, "
                 f"הוא {t['typ']} במחלקת {t['dept']} שכולל {t['files']} תיקים.")
 
@@ -425,7 +425,7 @@ def compute(frames):
 
     # ---------------- KPIs ----------------
     if clearance is None:
-        c_tone, c_disp, c_val = "brand", "—", None
+        c_tone, c_disp, c_val = "brand", "–", None
     else:
         c_tone = "ok" if clearance >= CLEAR_OK else ("warn" if clearance >= CLEAR_WARN else "danger")
         c_disp, c_val = f"{clearance * 100:.0f}%", round(clearance * 100, 1)
@@ -477,12 +477,12 @@ def compute(frames):
         "dur_note": (f"שנים קלנדריות מפתיחת ההליך ועד סגירתו, להליכים שנפתחו עד {cohort_end} ונסגרו "
                      f"({_int(len(cl))} הליכים); {_pct(cl_within1, 0)} נסגרו בשנת הפתיחה או בשנה שאחריה."),
         "dur_aria": "משך הטיפול בהליכים שנסגרו, לפי מחלקה",
-        "files_note": (f"{_int(multi)} הליכים ({_pct(multi / n)}) עוסקים ביותר מתיק אחד — "
+        "files_note": (f"{_int(multi)} הליכים ({_pct(multi / n)}) עוסקים ביותר מתיק אחד, "
                        f"לרוב התנגדויות הדדיות ובקשות מתחרות על כמה סימנים."),
         "files_aria": "מספר התיקים בכל הליך",
         "top_note": "ההליכים שכוללים את מספר התיקים הגדול ביותר, במחלקות סימני המסחר, הפטנטים והעיצובים.",
         "heat_note": (f"סגירות הליכים בכל חודש, {hm_years[0] if hm_years else year_last} עד "
-                      f"{hm_years[-1] if hm_years else year_last}. חודשים כהים יותר — יותר סגירות."),
+                      f"{hm_years[-1] if hm_years else year_last}. חודשים כהים יותר מסמנים יותר סגירות."),
         "heat_aria": "סגירות הליכים לפי חודש ושנה",
     }
 

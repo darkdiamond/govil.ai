@@ -409,7 +409,7 @@
         { type: "bar", name: "כלי רכב שאינם פעילים", yAxisIndex: 1, data: s.inactive, itemStyle: { color: "#c3cfe7" },
           tooltip: { valueFormatter: function (v) { return v.toLocaleString("he-IL"); } } },
         { type: "line", name: "% עדיין פעילים", data: s.share, showSymbol: false, lineStyle: { width: 3 },
-          tooltip: { valueFormatter: function (v) { return v === null ? "—" : v + "%"; } } }
+          tooltip: { valueFormatter: function (v) { return v === null ? "–" : v + "%"; } } }
       ]
     }));
     window.addEventListener("resize", function () { c.resize(); });
@@ -447,7 +447,7 @@
       var c = echarts.init(document.getElementById(id));
       c.setOption(window.GovEcharts.option({
         color: window.GOVIL_PALETTE,
-        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + unit; } },
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + unit; } },
         legend: { bottom: 0 },
         grid: { left: 40, right: 16, top: 32, bottom: 88, containLabel: true },
         xAxis: { type: "category", data: d.x },
@@ -470,7 +470,7 @@
       var c = echarts.init(document.getElementById("chart-spec-" + s.key));
       c.setOption(window.GovEcharts.option({
         color: window.GOVIL_PALETTE,
-        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "—" : v.toLocaleString("he-IL"); } },
+        tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null ? "–" : v.toLocaleString("he-IL"); } },
         grid: { left: 40, right: 16, top: 24, bottom: 32, containLabel: true },
         xAxis: { type: "category", data: sp.x },
         yAxis: { type: "value", scale: true },

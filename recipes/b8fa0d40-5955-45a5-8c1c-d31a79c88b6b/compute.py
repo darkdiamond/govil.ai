@@ -291,7 +291,7 @@ def insight_lag(lag_rows):
         return None
     word = "התקצר" if chg < 0 else "התארך"
     return (f"זמן ההמתנה להחלטה {word}: בשנת התמיכה {a['year']} עברו בחציון {n(a['p50'])} ימים "
-            f"מהגשת הבקשה ועד ההחלטה, ובשנת {b['year']} — {n(b['p50'])} ימים.")
+            f"מהגשת הבקשה ועד ההחלטה, ובשנת {b['year']} עברו {n(b['p50'])} ימים.")
 
 
 def insight_fee(feat_rows):
@@ -301,7 +301,7 @@ def insight_fee(feat_rows):
         return None
     if a["rate"] - b["rate"] < 5:
         return None
-    return (f"פרויקטים שגובים תשלום מהמשתתפים אושרו בשיעור נמוך יותר — {pct(b['rate'])}, "
+    return (f"פרויקטים שגובים תשלום מהמשתתפים אושרו בשיעור נמוך יותר: {pct(b['rate'])}, "
             f"לעומת {pct(a['rate'])} בפרויקטים ללא תשלום ({n(b['done'])} בקשות עם תשלום שהוכרעו).")
 
 
@@ -528,7 +528,7 @@ def compute(frames):
                    "granted": pct(by_year.loc[y, "granted"])} for y in years],
         "grants": [{"label": x["label"], "count": n(x["count"]),
                     "count_share": pct(x["count"] / ok_n * 100),
-                    "sum_share": pct(x["sum"] / appr_total * 100) if appr_total else "—"}
+                    "sum_share": pct(x["sum"] / appr_total * 100) if appr_total else "–"}
                    for x in grant_rows],
         "ask": [{"label": x["label"], "done": n(x["done"]), "ok": n(x["ok"]), "rate": pct(x["rate"])}
                 for x in ask_rows],
@@ -566,7 +566,7 @@ def compute(frames):
                  f"ולגופים ללא כוונת רווח. במאגר {n(total)} בקשות של {n(n_inst)} מוסדות לשנות התמיכה "
                  f"{first_y} עד {last_year}: {pct(rate_all)} מהבקשות שהוכרעו אושרו, והוועדה אישרה "
                  f"לתשלום {money_he(appr_total)} מתוך {money_he(req_done_total)} שהתבקשו לשנה. "
-                 f"ההחלטה האחרונה במאגר מ-{last_decision.strftime('%d/%m/%Y') if pd.notna(last_decision) else '—'}."
+                 f"ההחלטה האחרונה במאגר מ-{last_decision.strftime('%d/%m/%Y') if pd.notna(last_decision) else '–'}."
                  f"{other_note}"),
         "last_rate_kpi": f"שיעור האישור בשנת התמיכה {ly}",
         "granted_kpi": "מהסכום השנתי שהתבקש אושר לתשלום",

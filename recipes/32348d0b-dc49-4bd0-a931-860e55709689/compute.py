@@ -70,7 +70,7 @@ def insight_cities(act):
     share = top.sum() / len(act)
     if share < 0.1:
         return None
-    return (f"{top.index[0]} ו{top.index[1]} לבדן מרכזות {_int(top.sum())} סניפים — "
+    return (f"{top.index[0]} ו{top.index[1]} לבדן מרכזות {_int(top.sum())} סניפים, "
             f"{_pct(share)} מכלל הסניפים הפעילים, ב-{_int(cities.size)} יישובים בסך הכול.")
 
 
@@ -102,7 +102,7 @@ def insight_sunday(act):
         return None
     banks = _ranked(act.loc[act["day_closed"] == "יום א", "bank"])
     names = ", ".join(banks.index[:3])
-    return (f"{_int(sun)} סניפים ({_pct(sun / len(act))}) סגורים ביום ראשון ולא בשישי — "
+    return (f"{_int(sun)} סניפים ({_pct(sun / len(act))}) סגורים ביום ראשון ולא בשישי, "
             f"בעיקר אצל {names}.")
 
 
@@ -132,7 +132,7 @@ def insight_merges(df):
         return None
     merged = int((cl["Merge_Branch"].str.strip() != "").sum())
     if merged == 0:
-        return (f"אף אחד מ-{_int(len(cl))} הסניפים שנסגרו אינו רשום כמאוחד לסניף אחר — "
+        return (f"אף אחד מ-{_int(len(cl))} הסניפים שנסגרו אינו רשום כמאוחד לסניף אחר: "
                 f"כולם נסגרו ללא סניף ממשיך במרשם.")
     return (f"מתוך {_int(len(cl))} הסניפים שנסגרו, {_int(merged)} ({_pct(merged / len(cl))}) "
             f"רשומים כמאוחדים לסניף אחר, והשאר נסגרו ללא סניף ממשיך במרשם.")
@@ -155,7 +155,7 @@ def insight_presence(act, top_cities):
         return None
     _, city, bank, n, tot = best
     return (f"ב{city} {bank} מחזיק {_int(n)} מתוך {_int(tot)} הסניפים הפעילים "
-            f"({_pct(n / tot)}) — הריכוזיות הגבוהה ביותר של בנק אחד בין היישובים הגדולים.")
+            f"({_pct(n / tot)}), הריכוזיות הגבוהה ביותר של בנק אחד בין היישובים הגדולים.")
 
 
 def compute(frames):
@@ -309,7 +309,7 @@ def compute(frames):
         "flow_aria": (f"תרשים עמודות: סניפים שנפתחו ונסגרו בכל שנה, "
                       f"{years[0] if years else OPEN_SINCE} עד {years[-1] if years else OPEN_SINCE}."),
         "flow_note": (f"תאריכי פתיחה כפי שנרשמו במרשם, משנת {OPEN_SINCE}. ייתכן שתאריך פתיחה "
-                      f"משקף רישום מחדש (למשל במיזוג) ולא פתיחה פיזית. סגירות — לפי תאריך הסגירה."),
+                      f"משקף רישום מחדש (למשל במיזוג) ולא פתיחה פיזית. סגירות מוצגות לפי תאריך הסגירה."),
         "access_aria": "תרשים עמודות אופקי: שיעור הסניפים המסומנים כנגישים, לפי בנק.",
         "closed_caption": "הסניפים שנסגרו לאחרונה לפי תאריך הסגירה.",
         "banks_caption": "מספר הסניפים הפעילים לפי בנק.",
@@ -320,18 +320,18 @@ def compute(frames):
         "status_aria": (f"תרשים עמודות אופקי מוערם: {_int(len(cl))} הסניפים שנסגרו, לפי בנק "
                         f"ולפי האם אוחדו לסניף אחר."),
         "status_note": (f"כל הסניפים שנסגרו ונשמרו במרשם ({_int(len(cl))}), לפי בנק. סניף "
-                        f"\"אוחד\" — רשום במרשם סניף ממשיך שאליו הועבר."),
+                        f"\"אוחד\": רשום במרשם סניף ממשיך שאליו הועבר."),
         "status_caption": "סניפים שנסגרו לפי בנק: סך הכול, מתוכם אוחדו, ומספר הסניפים הפעילים.",
         "presence_aria": (f"מפת חום: מספר הסניפים הפעילים של {len(p_banks)} הבנקים הגדולים "
                           f"ב-{len(p_cities)} היישובים עם הכי הרבה סניפים."),
-        "presence_caption": (f"סניפים פעילים לפי יישוב ובנק — {len(p_cities)} היישובים ו-"
+        "presence_caption": (f"סניפים פעילים לפי יישוב ובנק: {len(p_cities)} היישובים ו-"
                              f"{len(p_banks)} הבנקים הגדולים."),
     }
 
     return {
         "agent_data": {
             "summary_he": (f"{_int(n_act)} סניפי בנקים פעילים ב-{_int(cities.size)} יישובים, לפי בנק, "
-                           f"סוג סניף, יום סגירה ונגישות — כולל מפה וסניפים שנסגרו."),
+                           f"סוג סניף, יום סגירה ונגישות, כולל מפה וסניפים שנסגרו."),
             "dataset_kind": "map",
             "suggested_tags": ["בנקים", "סניפי בנק", "נגישות", "שירותים פיננסיים"],
             "spatial_coverage": "ישראל",

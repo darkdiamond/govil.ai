@@ -176,7 +176,7 @@ def insight_prof(prof_counts, total):
     if len(prof_counts) > 2:
         c = prof_counts.index[2]
         rest = f" ו{c} ({n(prof_counts.iloc[2])})"
-    return (f"{a} הוא התחום הגדול ברשימה — {n(va)} מתוך {n(total)} המומחים "
+    return (f"{a} הוא התחום הגדול ברשימה: {n(va)} מתוך {n(total)} המומחים "
             f"({pct(va / total * 100)}), ואחריו {b} ({n(vb)}){rest}.")
 
 
@@ -200,7 +200,7 @@ def insight_thin(district_counts, n_nat):
     vlo, vhi = int(regional.iloc[-1]), int(regional.iloc[0])
     if vlo * 2 > vhi:
         return None
-    return (f"במחוז {lo} רשומים במפורש רק {n(vlo)} מומחים, לעומת {n(vhi)} ב{hi} — "
+    return (f"במחוז {lo} רשומים במפורש רק {n(vlo)} מומחים, לעומת {n(vhi)} ב{hi}. "
             f"מעבר ל-{n(n_nat)} הארציים, ההיצע הייעודי למחוז מצומצם.")
 
 
@@ -239,7 +239,7 @@ def insight_rates(box_rows):
     lo = min(rows, key=lambda r: (r["med"], r["name"]))
     if lo["med"] <= 0 or hi["med"] / lo["med"] < 1.1:
         return None
-    return (f"התעריף החציוני לשעה או לפגישה גבוה ביותר ב{hi['name']} — {ils(hi['med'])} "
+    return (f"התעריף החציוני לשעה או לפגישה גבוה ביותר ב{hi['name']}: {ils(hi['med'])} "
             f"({n(hi['n'])} מומחים שציינו תעריף), לעומת {ils(lo['med'])} ב{lo['name']} "
             f"({n(lo['n'])}).")
 
@@ -249,7 +249,7 @@ def insight_opinion(ops):
         return None
     p25, p75 = _quant(ops, 0.25), _quant(ops, 0.75)
     return (f"{n(len(ops))} מומחים ציינו מחיר לחוות דעת: החציון {ils(_median(ops))}, ומחצית "
-            f"המחירים נעים בין {ils(p25)} ל-{ils(p75)} — הזול ביותר {ils(min(ops))} והיקר "
+            f"המחירים נעים בין {ils(p25)} ל-{ils(p75)}. הזול ביותר {ils(min(ops))} והיקר "
             f"ביותר {ils(max(ops))}.")
 
 
@@ -261,8 +261,8 @@ def insight_op_prof(op_rows):
     lo = min(rows, key=lambda r: (r["med"], r["name"]))
     if lo["med"] <= 0 or hi["med"] / lo["med"] < 1.15:
         return None
-    return (f"המחיר החציוני לחוות דעת גבוה ביותר ב{hi['name']} — {ils(hi['med'])} "
-            f"({n(hi['n'])} מומחים), ונמוך ביותר ב{lo['name']} — {ils(lo['med'])} ({n(lo['n'])}).")
+    return (f"המחיר החציוני לחוות דעת גבוה ביותר ב{hi['name']} ({ils(hi['med'])}, "
+            f"{n(hi['n'])} מומחים), ונמוך ביותר ב{lo['name']} ({ils(lo['med'])}, {n(lo['n'])}).")
 
 
 def insight_inst(n_inst, total, inst_counts):
@@ -287,7 +287,7 @@ def insight_topics(topic_counts, n_tagged):
     second = ""
     if len(topic_counts) > 1 and topic_counts.iloc[1] > 0:
         second = f", ואחריו {topic_counts.index[1]} ({n(topic_counts.iloc[1])})"
-    return (f"התחום הנזכר הכי הרבה בתיאורי המומחים הוא {a} — {n(va)} מתוך {n(n_tagged)} "
+    return (f"התחום הנזכר הכי הרבה בתיאורי המומחים הוא {a}: {n(va)} מתוך {n(n_tagged)} "
             f"שתיאורם מזכיר תחום מוכר{second}.")
 
 
@@ -495,7 +495,7 @@ def compute(frames):
     labels = {
         "lede": (f"רשימת המומחים שיחידות הסיוע של משרד הרווחה מעמידות לרשות בתי המשפט לענייני משפחה: "
                  f"{n(total)} מומחים ב-{n(n_fields)} תחומים, ב-{n(n_listings)} רישומים."
-                 f"{opinion_txt} העמוד מציג את התמונה המצרפית — תחום, מחוז, רשות, שפה, מכון ושכר "
+                 f"{opinion_txt} העמוד מציג את התמונה המצרפית: תחום, מחוז, רשות, שפה, מכון ושכר "
                  f"טרחה; פרטי הקשר של כל מומחה מופיעים בטבלת הנתונים שבתחתית העמוד. {excl_txt}"),
         "experts_kpi": "מומחים ברשימה",
         "national_kpi": "מהמומחים רשומים כארציים",
@@ -505,28 +505,28 @@ def compute(frames):
                       + (f" {OTHER_PROF} ({', '.join(small)}) מקובצים יחד, כאן ובכל התרשימים." if small else "")
                       + ((" מומחה אחד שציין שני תחומים נספר לפי הראשון." if n_multi_prof == 1 else
                          f" {n(n_multi_prof)} מומחים שציינו שני תחומים נספרים לפי הראשון.") if n_multi_prof else "")),
-        "prof_aria": (f"תרשים טבעת: מומחים לפי תחום — {profs[0]} בראש עם {n(prof_counts.iloc[0])} "
+        "prof_aria": (f"תרשים טבעת: מומחים לפי תחום, {profs[0]} בראש עם {n(prof_counts.iloc[0])} "
                       f"מתוך {n(total)}." if profs else "תרשים טבעת: מומחים לפי תחום."),
         "prof_caption": "מספר המומחים לפי תחום מקצועי.",
         "districts_note": (f"מספר המומחים הרשומים לכל מחוז, לפי תחום. {n(n_nat)} המומחים הארציים מוצגים בעמודה "
                            f"נפרדת וזמינים בכל המחוזות; מומחה הרשום בכמה מחוזות נספר בכל אחד מהם."),
-        "districts_aria": (f"גרף עמודות אופקיות מוערמות: מומחים לפי מחוז ותחום — {n(n_nat)} ארציים, "
+        "districts_aria": (f"גרף עמודות אופקיות מוערמות: מומחים לפי מחוז ותחום, {n(n_nat)} ארציים, "
                            f"והמחוז המוביל {regional[0]}." if regional else "גרף עמודות אופקיות מוערמות: מומחים לפי מחוז."),
         "districts_caption": "מספר המומחים לפי מחוז ותחום.",
         "cities_note": (f"{len(top_c)} הרשויות עם הכי הרבה רישומים, לפי תחום (כל כתובת נספרת)"
                         + (f"; {n(len(rest_c))} רשויות נוספות מקובצות ב\"אחר\"" if rest_c else "")
                         + (f". ב-{n(n_unknown_city)} רישומים לא צוינה רשות והם אינם בתרשים." if n_unknown_city else ".")),
-        "cities_aria": (f"תרשים עמודות אופקי: רישומים לפי רשות — {top_c[0]} בראש עם "
+        "cities_aria": (f"תרשים עמודות אופקי: רישומים לפי רשות, {top_c[0]} בראש עם "
                         f"{n(city_counts[top_c[0]])}." if top_c else "תרשים עמודות אופקי: רישומים לפי רשות."),
         "cities_caption": "מספר הרישומים לפי רשות ותחום.",
         "topics_note": (f"כמה מומחים מזכירים כל תחום עיסוק בתיאור החופשי שלהם, לפי מילות מפתח "
                         f"({n(n_tagged)} מתוך {n(total)} תיאורים מזכירים תחום אחד לפחות; מומחה יכול להופיע בכמה תחומים)."),
-        "topics_aria": (f"תרשים עמודות אופקי: תחומי עיסוק — {t_names[0]} בראש עם {n(topic_counts.iloc[0])} "
+        "topics_aria": (f"תרשים עמודות אופקי: תחומי עיסוק, {t_names[0]} בראש עם {n(topic_counts.iloc[0])} "
                         f"מומחים." if t_names else "תרשים עמודות אופקי: תחומי עיסוק."),
         "topics_caption": "מספר המומחים המזכירים כל תחום עיסוק, לפי תחום מקצועי.",
         "rates_note": (f"פיזור התעריף לשעה או לפגישה בכל תחום ({n(len(rates))} מומחים שציינו תעריף): "
                        f"הקופסה מסמנת את המחצית האמצעית והקו את החציון, בסולם לוגריתמי. סכומים בטקסט החופשי סווגו לפי "
-                       f"המילה הסמוכה (\"לשעה\", \"לחוות דעת\"), ובהיעדרה לפי גודל — "
+                       f"המילה הסמוכה (\"לשעה\", \"לחוות דעת\"), ובהיעדרה לפי גודל: "
                        f"סכום מתחת ל-{n(1000)} ₪ נחשב תעריף; טווח נספר לפי אמצעו. נקודות מסמנות ערכים חריגים."
                        + (f" תחומים עם פחות מ-{MIN_BOX} תעריפים אינם מוצגים." if box_hidden else "")),
         "rates_aria": (f"תרשים קופסה בסולם לוגריתמי: תעריף לשעה לפי תחום, חציון כללי {ils(med_rate)}."),
@@ -536,12 +536,12 @@ def compute(frames):
         "opinion_aria": (f"גרף עמודות אופקיות מוערמות: מחיר חוות דעת לפי טווח ותחום, חציון {ils(med_op)}."),
         "opinion_caption": "מספר המומחים לפי טווח מחיר חוות דעת ותחום.",
         "langs_note": (f"מספר המומחים המציינים כל שפה ({n(n_multi_lang)} מציינים שתי שפות או יותר)."),
-        "langs_aria": (f"תרשים עמודות אופקי: מומחים לפי שפה — {lang_counts.index[0]} בראש עם "
+        "langs_aria": (f"תרשים עמודות אופקי: מומחים לפי שפה, {lang_counts.index[0]} בראש עם "
                        f"{n(lang_counts.iloc[0])}."),
         "langs_caption": "מספר המומחים לפי שפה.",
         "inst_note": (f"{n(n_inst)} מומחים פועלים דרך מכון או מרכז; {n(total - n_inst)} רשומים ללא מכון."
                       + (f" מוצגים {len(top_i)} המכונים הגדולים." if rest_i else "")),
-        "inst_aria": (f"תרשים עמודות אופקי: מומחים לפי מכון — {top_i[0]} בראש עם "
+        "inst_aria": (f"תרשים עמודות אופקי: מומחים לפי מכון, {top_i[0]} בראש עם "
                       f"{n(inst_counts.iloc[0])}." if top_i else "תרשים עמודות אופקי: מומחים לפי מכון."),
         "inst_caption": "מספר המומחים לפי מכון.",
     }
@@ -566,7 +566,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"רשימת {n(total)} המומחים שיחידות הסיוע מעמידות לבתי המשפט לענייני משפחה — "
+            "summary_he": (f"רשימת {n(total)} המומחים שיחידות הסיוע מעמידות לבתי המשפט לענייני משפחה, "
                            f"לפי תחום ({', '.join(profs[:3])}), מחוז, רשות, שפה ושכר טרחה."),
             "dataset_kind": "registry",
             "related_ids": ["409c1d81-feea-4729-b37d-796fba3f8658",

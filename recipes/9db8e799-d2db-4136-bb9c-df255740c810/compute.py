@@ -125,7 +125,7 @@ def insight_price_trend(med, last, l4l):
             f"ל-{nis(p[last])} בשנת הדגם {last} ({pct(chg * 100, signed=True)})")
     row = l4l.get(last)
     if row and row["matched"] >= 100 and abs(row["mean"]) < abs(chg * 100) / 2:
-        text += (f" — בעיקר בגלל שינוי בתמהיל הגרסאות שבמחירון: גרסאות שמופיעות גם בשנת הדגם "
+        text += (f", בעיקר בגלל שינוי בתמהיל הגרסאות שבמחירון: גרסאות שמופיעות גם בשנת הדגם "
                  f"{last - 1} השתנו במחירן בממוצע ב-{pct(row['mean'], signed=True)}")
     return text + "."
 
@@ -139,7 +139,7 @@ def insight_like4like(l4l, last):
             f"הוזלו")
     prev = l4l.get(last - 1)
     if prev and row["same"] - prev["same"] >= 15:
-        text += (f" — שיעור חריג של מחירים ללא שינוי (לעומת {pct(prev['same'])} בשנה הקודמת), "
+        text += (f". זהו שיעור חריג של מחירים ללא שינוי (לעומת {pct(prev['same'])} בשנה הקודמת), "
                  f"שעשוי לשקף עדכון מחירים שנתי שטרם התפרסם")
     return text + "."
 
@@ -164,7 +164,7 @@ def insight_brands(brand_med):
         return None
     hi = brand_med.sort_values(ascending=False, kind="stable")
     return (f"בין המותגים עם {MIN_BRAND_ENTRIES} רשומות לפחות בשנת הדגם האחרונה, המחיר החציוני "
-            f"הגבוה ביותר — {nis(hi.iloc[0])} — ב{hi.index[0]}, והנמוך ביותר — {nis(hi.iloc[-1])} — "
+            f"הגבוה ביותר ({nis(hi.iloc[0])}) ב{hi.index[0]}, והנמוך ביותר ({nis(hi.iloc[-1])}) "
             f"ב{hi.index[-1]}.")
 
 
@@ -175,8 +175,8 @@ def insight_importer(imp_counts):
     top = imp_counts.index[0]
     share = imp_counts.iloc[0] / tot
     top5 = imp_counts.head(5).sum() / tot
-    return (f"{top} מחזיקה את המחירון הרחב ביותר בשנת הדגם האחרונה — {imp_counts.iloc[0]:,} "
-            f"רשומות ({pct(share * 100)}); חמשת היבואנים הגדולים יחד — {pct(top5 * 100)}.")
+    return (f"{top} מחזיקה את המחירון הרחב ביותר בשנת הדגם האחרונה: {imp_counts.iloc[0]:,} "
+            f"רשומות ({pct(share * 100)}); חמשת היבואנים הגדולים מחזיקים יחד {pct(top5 * 100)}.")
 
 
 def insight_luxury(cur_p):
@@ -291,7 +291,7 @@ def compute(frames):
         "current": {"value": len(cur), "display": f"{len(cur):,}", "tone": "brand"},
         "importers": {"value": int(imp.size), "display": f"{imp.size:,}", "tone": "brand"},
         "median_private": {"value": float(p_med[last]) if has_med else None,
-                           "display": f"{p_med[last] / 1000:,.0f}" if has_med else "—",
+                           "display": f"{p_med[last] / 1000:,.0f}" if has_med else "–",
                            "tone": price_tone},
     }
 
@@ -323,7 +323,7 @@ def compute(frames):
 
     tables = {
         "years": [{"year": str(y),
-                   **{f"med_{i}": (nis(med[k][y]) if y in med[k].index else "—") for i, k in enumerate(kinds)},
+                   **{f"med_{i}": (nis(med[k][y]) if y in med[k].index else "–") for i, k in enumerate(kinds)},
                    **{f"n_{i}": f"{int(cnt.loc[y, k]):,}" for i, k in enumerate(kinds)}}
                   for y in years],
         "kinds": kinds,
@@ -335,7 +335,7 @@ def compute(frames):
                       for n, v in top_i.items()],
         "bands": [{"name": b, "count": f"{n:,}",
                    "share": num(n / max(len(cur_p), 1) * 100)} for b, n in bands],
-        "models": [{"year": str(y), "cells": [(k_nis(mt[(t, y)]) if (t, y) in mt.index else "—")
+        "models": [{"year": str(y), "cells": [(k_nis(mt[(t, y)]) if (t, y) in mt.index else "–")
                                               for t in picks]} for y in trend_years],
         "model_names": picks,
         "china": [{"name": b, "count": f"{int(v):,}"} for b, v in china.head(TOP_BRANDS).items()],
@@ -350,7 +350,7 @@ def compute(frames):
                  f"הדגם {int(df['year'].min())}–{last}, מ-{df['importer_id'].nunique():,} יבואנים. "
                  f"בשנת הדגם {last}: {len(cur):,} רשומות מ-{imp.size:,} יבואנים."),
         "entries_note": ("כל רשומה היא גרסת דגם במחירון, לא רכב שנמכר. חציונים ומספרים משקפים את "
-                         "היצע המחירון — יצרן שמציע גרסאות רבות משפיע עליהם יותר."),
+                         "היצע המחירון: יצרן שמציע גרסאות רבות משפיע עליהם יותר."),
         "median_aria": f"גרף קווים: מחיר מחירון חציוני לפי שנת דגם, פרטי ומסחרי, {first_shown} עד {last}.",
         "counts_aria": f"תרשים עמודות: מספר רשומות במחירון לפי שנת דגם, {first_shown} עד {last}.",
         "country_aria": (f"תרשים עמודות מוערם: חלוקת רשומות המחירון לפי ארץ ייצור, "
@@ -361,9 +361,9 @@ def compute(frames):
         "models_aria": (f"גרף קווים: מחיר חציוני לפי שנת דגם של {len(picks)} כינויים מסחריים "
                         f"שמופיעים ברוב השנים האחרונות."),
         "china_aria": f"תרשים עמודות: רשומות במחירון של דגמים מתוצרת סין לפי מותג, שנת הדגם {last}.",
-        "l4l_aria": ("תרשים עמודות מוערם: גרסאות שמופיעות בשתי שנות דגם עוקבות — אחוז שהתייקרו, "
+        "l4l_aria": ("תרשים עמודות מוערם: גרסאות שמופיעות בשתי שנות דגם עוקבות, לפי אחוז שהתייקרו, "
                      "נשארו באותו מחיר או הוזלו, וממוצע שינוי המחיר."),
-        "partial_note":(f"שנת הדגם {last} עשויה להיות חלקית — יבואנים מוסיפים דגמים במהלך השנה."),
+        "partial_note":(f"שנת הדגם {last} עשויה להיות חלקית, כי יבואנים מוסיפים דגמים במהלך השנה."),
     }
 
     return {

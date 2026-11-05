@@ -36,7 +36,7 @@ def fte0(h):
 
 
 def pct(num, den, digits=1):
-    return f"{num / den * 100:.{digits}f}%" if den else "—"
+    return f"{num / den * 100:.{digits}f}%" if den else "–"
 
 
 def rate(num, den):
@@ -100,10 +100,10 @@ def insight_district(dist):
     lo, hi = d.iloc[0], d.iloc[-1]
     gap = (hi["rate"] - lo["rate"]) * 100
     if gap < 3:
-        return (f"שיעור האיוש דומה בכל המחוזות — בין {pct(lo['fil'], lo['tot'])} "
+        return (f"שיעור האיוש דומה בכל המחוזות: בין {pct(lo['fil'], lo['tot'])} "
                 f"ל-{pct(hi['fil'], hi['tot'])}.")
     return (f"מחוז {lo['district']} בעל שיעור האיוש הנמוך ביותר ({pct(lo['fil'], lo['tot'])}), "
-            f"ומחוז {hi['district']} מוביל ({pct(hi['fil'], hi['tot'])}) — פער של "
+            f"ומחוז {hi['district']} מוביל ({pct(hi['fil'], hi['tot'])}), פער של "
             f"{gap:.1f} נקודות אחוז.")
 
 
@@ -170,14 +170,14 @@ def insight_types(types):
         return None
     return (f"לפי סוג הרשות, שיעור האיוש הנמוך ביותר הוא בקבוצת \"{lo['atype']}\" "
             f"({pct(lo['fil'], lo['tot'])}) והגבוה ביותר בקבוצת \"{hi['atype']}\" "
-            f"({pct(hi['fil'], hi['tot'])}) — פער של {gap:.1f} נקודות אחוז.")
+            f"({pct(hi['fil'], hi['tot'])}), פער של {gap:.1f} נקודות אחוז.")
 
 
 def insight_empty(n_empty, h_empty, n_rows):
     if n_empty == 0 or n_empty / n_rows < 0.05:
         return None
     return (f"{n_empty:,} הקצאות תקן ({n_empty / n_rows * 100:.1f}% מהשורות במאגר) אינן "
-            f"מאוישות כלל — {fte(h_empty)} תקנים שאיש אינו ממלא.")
+            f"מאוישות כלל: {fte(h_empty)} תקנים שאיש אינו ממלא.")
 
 
 def insight_biggest(auth, tot_total):
@@ -278,7 +278,7 @@ def compute(frames):
         for xi, d in enumerate(d_names):
             r = dr_idx.get((role, d))
             if r is None:
-                row.append("—")
+                row.append("–")
                 continue
             v = rate(r.fil, r.tot)
             cells.append([xi, yi, v, round(r.tot / 100, 2)])
@@ -370,7 +370,7 @@ def compute(frames):
                  f"הרווחה והביטחון החברתי: {fte0(tot)} תקנים ב-{len(auth):,} רשויות, "
                  f"{len(dist):,} מחוזות ו-{len(roles):,} סוגי תקנים. לכל הקצאה מצוין כמה "
                  f"תקנים מאוישים, כמה פנויים וכמה מהם תקני עובדים סוציאליים. שמות הרשויות "
-                 f"כבמאגר: ע. — עירייה, מ.מ — מועצה מקומית, מ.א — מועצה אזורית. "
+                 f"כבמאגר: ע. (עירייה), מ.מ (מועצה מקומית), מ.א (מועצה אזורית). "
                  f"תקן יכול להיות חלקי (למשל חצי משרה), ולכן הסכומים אינם בהכרח שלמים."),
         "total_kpi": "תקנים בהשתתפות המשרד (משרות מלאות)",
         "filled_kpi": "תקנים מאוישים",
@@ -386,10 +386,10 @@ def compute(frames):
         "district_aria": "גרף עמודות מוערמות: תקנים מאוישים ופנויים לפי מחוז, עם קו שיעור האיוש.",
         "district_caption": "תקנים, תקנים מאוישים, פנויים ושיעור איוש לפי מחוז.",
         "sw_note": (f"שיעור האיוש בתקני עובדים סוציאליים ({fte0(sw)} תקנים) לעומת שאר התקנים "
-                    f"({fte0(ns)} — תחשיבנים, מדריכים, רכזים, מזכירות ועוד), בכל מחוז."),
+                    f"({fte0(ns)}: תחשיבנים, מדריכים, רכזים, מזכירות ועוד), בכל מחוז."),
         "sw_aria": "גרף עמודות: שיעור האיוש בתקני עו\"ס ובשאר התקנים, לפי מחוז.",
         "sw_caption": "שיעור איוש בתקני עו\"ס ובשאר התקנים לפי מחוז.",
-        "types_note": ("סוג הרשות לפי שמה במאגר: עירייה, מועצה מקומית או מועצה אזורית — היקף "
+        "types_note": ("סוג הרשות לפי שמה במאגר: עירייה, מועצה מקומית או מועצה אזורית. מוצגים היקף "
                        "התקנים (עמודות) ושיעור האיוש (קו)."),
         "types_aria": "גרף עמודות וקו: היקף התקנים ושיעור האיוש לפי סוג רשות.",
         "types_caption": "רשויות, תקנים ושיעור איוש לפי סוג רשות.",
@@ -402,7 +402,7 @@ def compute(frames):
         "roles_aria": f"גרף עמודות אופקי מוערם: {TOP_ROLES} סוגי התקנים הגדולים, מאוישים ופנויים.",
         "roles_caption": "תקנים, מאוישים ופנויים לפי סוג תקן.",
         "role_low_note": (f"{LOW_ROLES} סוגי התקנים עם שיעור האיוש הנמוך ביותר, מבין סוגים "
-                          f"בהיקף {MIN_ROLE_FTE} תקנים לפחות (ארצי). הקו המקווקו — שיעור "
+                          f"בהיקף {MIN_ROLE_FTE} תקנים לפחות (ארצי). הקו המקווקו מסמן את שיעור "
                           f"האיוש הכולל ({pct(fil, tot)})."),
         "role_low_aria": f"גרף עמודות אופקי: {LOW_ROLES} סוגי התקנים עם שיעור האיוש הנמוך ביותר.",
         "role_low_caption": "שיעור איוש, תקנים ומספר רשויות לסוגי התקנים עם האיוש הנמוך ביותר.",
@@ -414,7 +414,7 @@ def compute(frames):
         "auth_top_aria": f"גרף עמודות אופקי מוערם: {TOP_AUTH} רשויות הרווחה הגדולות, תקנים מאוישים ופנויים.",
         "auth_top_caption": "תקנים, מאוישים, פנויים ושיעור איוש ברשויות הגדולות.",
         "auth_low_note": (f"{LOW_AUTH} הרשויות עם שיעור האיוש הנמוך ביותר, מבין רשויות "
-                          f"בהיקף {MIN_AUTH_FTE} תקנים לפחות. הקו המקווקו — שיעור האיוש "
+                          f"בהיקף {MIN_AUTH_FTE} תקנים לפחות. הקו המקווקו מסמן את שיעור האיוש "
                           f"הכולל ({pct(fil, tot)})."),
         "auth_low_aria": f"גרף עמודות אופקי: {LOW_AUTH} הרשויות עם שיעור האיוש הנמוך ביותר.",
         "auth_low_caption": "שיעור איוש ותקנים ברשויות עם האיוש הנמוך ביותר.",
@@ -423,7 +423,7 @@ def compute(frames):
         "hist_aria": "גרף עמודות מוערמות: מספר הרשויות לפי טווח שיעור איוש ומחוז.",
         "hist_caption": "מספר רשויות לפי טווח שיעור איוש ומחוז.",
         "scatter_note": ("כל נקודה היא רשות: היקף התקנים (ציר אופקי, לוגריתמי) מול שיעור "
-                         "האיוש. רשויות קטנות מפוזרות יותר — תקן פנוי אחד משנה אצלן את השיעור "
+                         "האיוש. רשויות קטנות מפוזרות יותר, כי תקן פנוי אחד משנה אצלן את השיעור "
                          "בהרבה."),
         "scatter_aria": "תרשים פיזור: היקף התקנים מול שיעור האיוש בכל רשות, לפי מחוז.",
         "status_note": (f"מצב האיוש של כל הקצאת תקן במאגר ({n_rows:,} הקצאות של סוג תקן "
@@ -436,8 +436,8 @@ def compute(frames):
         "district": [{"name": r["district"], "tot": fte(r["tot"]), "fil": fte(r["fil"]),
                       "vac": fte(r["vac"]), "rate": pct(r["fil"], r["tot"])}
                      for _, r in dist_order.iterrows()],
-        "sw": [{"name": n, "sw": "—" if a is None else f"{a:.1f}%",
-                "ns": "—" if b is None else f"{b:.1f}%"}
+        "sw": [{"name": n, "sw": "–" if a is None else f"{a:.1f}%",
+                "ns": "–" if b is None else f"{b:.1f}%"}
                for n, a, b in zip(ch_sw["names"], ch_sw["sw"], ch_sw["ns"])],
         "types": [{"name": r["atype"], "n": f"{int(r['n_auth']):,}", "tot": fte(r["tot"]),
                    "rate": pct(r["fil"], r["tot"])} for _, r in types.iterrows()],
@@ -461,7 +461,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"תקני כוח האדם ברשויות הרווחה בהשתתפות משרד הרווחה: {fte0(tot)} "
-                           f"תקנים ב-{len(auth):,} רשויות, {pct(fil, tot)} מהם מאוישים — "
+                           f"תקנים ב-{len(auth):,} רשויות, {pct(fil, tot)} מהם מאוישים, עם "
                            f"היקף, איוש ופערים לפי מחוז, רשות וסוג תקן."),
             "dataset_kind": "rankings",
             "related_ids": ["4f361ce6-f30f-4629-b4ba-1ad19039e745",

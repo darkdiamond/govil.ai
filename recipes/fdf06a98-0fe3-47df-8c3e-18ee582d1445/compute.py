@@ -244,8 +244,8 @@ def insight_genus(df):
         return None
     grp = ranked(df[df[GENUS] == g.index[0]].groupby("grp").size()).index[0]
     single = int((g == 1).sum())
-    return (f"הסוג {iso(g.index[0])} ({grp}) מיוצג במאגר ב-{n(g.iloc[0])} נגעים — יותר מכל סוג "
-            f"אחר — בעוד {n(single)} מתוך {n(len(g))} הסוגים ({pct(single / len(g))}) "
+    return (f"הסוג {iso(g.index[0])} ({grp}) מיוצג במאגר ב-{n(g.iloc[0])} נגעים, יותר מכל סוג "
+            f"אחר, בעוד {n(single)} מתוך {n(len(g))} הסוגים ({pct(single / len(g))}) "
             f"מיוצגים בנגע יחיד.")
 
 
@@ -267,7 +267,7 @@ def insight_crop_group(cg_total, cg_lead):
         return None
     g, v = rows[0]
     lead, lv = cg_lead[g]
-    s = (f"מבין קבוצות הגידולים, ב{g} רשומים הכי הרבה נגעים — {n(v)}, לעומת {n(rows[1][1])} "
+    s = (f"מבין קבוצות הגידולים, ב{g} רשומים הכי הרבה נגעים ({n(v)}), לעומת {n(rows[1][1])} "
          f"ב{rows[1][0]}")
     if lv / v >= 0.4:
         s += f"; {pct(lv / v, 0)} מהם בקבוצת {lead}"
@@ -283,7 +283,7 @@ def insight_poly(df):
         return None
     single = int((h["n_hosts"] == 1).sum())
     he = f" ({top[HE_NAME]})" if top[HE_NAME] else ""
-    return (f"טווח המאכסנים הרחב ביותר במאגר הוא של {iso(top[SCI])}{he} — {n(top['n_hosts'])} "
+    return (f"טווח המאכסנים הרחב ביותר במאגר הוא של {iso(top[SCI])}{he}: {n(top['n_hosts'])} "
             f"צמחי מאכסן. מנגד, {n(single)} מתוך {n(len(h))} הנגעים שרשומים להם מאכסנים "
             f"({pct(single / len(h))}) מתועדים על מאכסן יחיד.")
 
@@ -297,7 +297,7 @@ def insight_era(df):
     pre = sum(1 for v in years if v < 1900)
     y0 = years[0]
     k0 = sum(1 for v in years if v == y0)
-    tail = (f"המוקדם ביותר — {iso(y[y['year'] == y0].iloc[0][SCI])}, שתואר ב-{y0}" if k0 == 1
+    tail = (f"המוקדם ביותר הוא {iso(y[y['year'] == y0].iloc[0][SCI])}, שתואר ב-{y0}" if k0 == 1
             else f"-{n(k0)} המוקדמים ביותר תוארו ב-{y0}")
     return (f"ל-{n(len(y))} נגעים רשומה גם שנת התיאור המדעי של המין. החציון הוא {int(med)}, "
             f"{pct(pre / len(y))} מהם תוארו לפני 1900, ו{tail}.")
@@ -457,7 +457,7 @@ def compute(frames):
                            "share": pct_plain(k / len(hp)) if len(hp) else "0.0%"})
     poly_chart = {"names": poly_names, "values": poly_vals}
     tp = hp.sort_values(["n_hosts", SCI], ascending=[False, True], kind="stable").head(TOP_POLY)
-    poly_top = [{"sci": r[SCI], "he": r[HE_NAME] or "—", "group": r["grp"],
+    poly_top = [{"sci": r[SCI], "he": r[HE_NAME] or "–", "group": r["grp"],
                  "hosts": n(r["n_hosts"])} for _, r in tp.iterrows()]
 
     # Description era.
@@ -483,7 +483,7 @@ def compute(frames):
     auth_chart = {"names": top_auth, "values": [int(auth[a]) for a in top_auth]}
     auth_first = yd.groupby("auth")["year"].min()
     auth_table = [{"name": a, "count": n(auth[a]),
-                   "first": str(int(auth_first[a])) if a in auth_first.index else "—"}
+                   "first": str(int(auth_first[a])) if a in auth_first.index else "–"}
                   for a in top_auth]
 
     # Completeness (share of pests with each field filled), by agent group.
@@ -543,7 +543,7 @@ def compute(frames):
     active = int((df[STATUS] == "פעיל").sum())
     ts = pd.to_datetime(df[TRANSFER], errors="coerce", format="%d/%m/%Y %H:%M").dropna()
     asof = ts.max().strftime("%d.%m.%Y") if len(ts) else None
-    lede = (f"המאגר מונה {n(total)} נגעים — מזיקים ופתוגנים של צמחים — ב-{n(len(groups))} "
+    lede = (f"המאגר מונה {n(total)} נגעים (מזיקים ופתוגנים של צמחים) ב-{n(len(groups))} "
             f"קבוצות של גורמי נזק, עם סיווג טקסונומי, שמות עבריים ואנגליים, קודי EPPO, "
             f"צמחי מאכסן ומקורות ספרותיים.")
     if present == total and active == total:
@@ -589,7 +589,7 @@ def compute(frames):
         "orders_aria": f"{n(len(top_ord))} הסדרות המובילות לפי מספר נגעים",
         "orders_caption": "הסדרות המובילות",
         "families_note": (f"{n(TOP_FAMILIES)} המשפחות המובילות מתוך {n(len(fam))}; לצד מספר "
-                          f"הנגעים — מספר הסוגים השונים בכל משפחה."),
+                          f"הנגעים מוצג מספר הסוגים השונים בכל משפחה."),
         "families_aria": f"{n(len(top_fam))} המשפחות המובילות לפי מספר נגעים",
         "families_caption": "המשפחות המובילות",
         "hosts_note": (f"{n(TOP_HOSTS)} צמחי המאכסן שבהם רשומים הכי הרבה נגעים, מתוך "
@@ -598,8 +598,8 @@ def compute(frames):
         "hosts_aria": f"{n(len(top_hosts))} צמחי המאכסן המובילים לפי מספר נגעים, לפי קבוצת גורם",
         "hosts_caption": "צמחי המאכסן המובילים",
         "heat_note": ("מספר הנגעים השונים בכל קבוצת גידולים, לפי גורם הנזק. המאכסנים ממופים "
-                      "לקבוצות הגידולים של מאגר חומרי ההדברה; מאכסנים שאינם ממופים — "
-                      f"צמחי בר, נוי ואחרים — מקובצים תחת „{OTHER_HOSTS}”. נגע עם כמה "
+                      "לקבוצות הגידולים של מאגר חומרי ההדברה; מאכסנים שאינם ממופים "
+                      f"(צמחי בר, נוי ואחרים) מקובצים תחת „{OTHER_HOSTS}”. נגע עם כמה "
                       "מאכסנים באותה קבוצה נספר בה פעם אחת."),
         "heat_aria": f"מפת חום: נגעים לפי {n(len(cg_rows))} קבוצות גידולים ו-{n(len(heat_cols))} קבוצות גורם",
         "heat_caption": "נגעים לפי קבוצת גידולים וגורם נזק",
@@ -612,7 +612,7 @@ def compute(frames):
                      f"ל-{n(n_years)} נגעים ({pct(n_years / total)})."),
         "era_aria": f"התפלגות שנת התיאור המדעי של {n(n_years)} נגעים",
         "era_caption": "נגעים לפי תקופת התיאור המדעי",
-        "auth_note": (f"{n(TOP_AUTH)} המתארים השכיחים — החוקרים שתיארו את המין לראשונה — "
+        "auth_note": (f"{n(TOP_AUTH)} המתארים השכיחים (החוקרים שתיארו את המין לראשונה) "
                       f"מבין {n(len(au))} נגעים שהמתאר שלהם רשום."),
         "auth_aria": f"{n(len(top_auth))} המתארים השכיחים לפי מספר נגעים",
         "auth_caption": "המתארים השכיחים",

@@ -219,7 +219,7 @@ def insight_structure(nat, labels):
     return (f"מתוך {n(nat['total'])} התושבים הרשומים בישובים, {pct(nat['kid_s'])} הם ילדים ובני נוער "
             f"(עד גיל {labels['kid_top']}) ו-{pct(nat['old_s'])} בני {labels['old_band']}. על כל 100 "
             f"תושבים בגיל העבודה ({labels['work_band']}) יש {nat['dep_y'] + nat['dep_o']:.0f} תלויים "
-            f"— {nat['dep_y']:.0f} צעירים ו-{nat['dep_o']:.0f} מבוגרים.")
+            f"({nat['dep_y']:.0f} צעירים ו-{nat['dep_o']:.0f} מבוגרים).")
 
 
 def insight_density(dens):
@@ -234,7 +234,7 @@ def insight_density(dens):
         return None
     return (f"השנתונים הצעירים גדולים יותר: בכל שנת גיל בטווח {first['label']} רשומים בממוצע "
             f"{n(first['per_year'])} תושבים, לעומת {n(mid['per_year'])} בכל שנת גיל בטווח "
-            f"{mid['label']} — יותר ב-{pct(gap * 100, 0)}.")
+            f"{mid['label']}, יותר ב-{pct(gap * 100, 0)}.")
 
 
 def insight_district(dist_rows):
@@ -246,7 +246,7 @@ def insight_district(dist_rows):
     lo_kid = min(rows, key=lambda r: (r["kid_v"], D_IDX[r["name"]]))
     if young["kid_v"] - lo_kid["kid_v"] < DISTRICT_GAP_PP:
         return None
-    return (f"מחוז {young['name']} הוא הצעיר ביותר — {pct(young['kid_v'])} מתושביו בני 18 ומטה ורק "
+    return (f"מחוז {young['name']} הוא הצעיר ביותר: {pct(young['kid_v'])} מתושביו בני 18 ומטה ורק "
             f"{pct(young['old_v'])} בני 65 ומעלה. מחוז {old['name']} הוא המבוגר ביותר: "
             f"{pct(old['old_v'])} בני 65 ומעלה ו-{pct(old['kid_v'])} ילדים ובני נוער.")
 
@@ -256,7 +256,7 @@ def insight_oldest(rows, n_big):
         return None
     a, b = rows[0], rows[1]
     return (f"מבין {n(n_big)} הישובים שבהם {n(MIN_POP_RANK)} תושבים ומעלה, השיעור הגבוה ביותר של בני "
-            f"65 ומעלה נמצא ב{a['name']} — {pct(a['old_v'])} ({n(a['old'])} מתוך {n(a['total'])}), "
+            f"65 ומעלה נמצא ב{a['name']}: {pct(a['old_v'])} ({n(a['old'])} מתוך {n(a['total'])}), "
             f"ואחריו {b['name']} ({pct(b['old_v'])}).")
 
 
@@ -269,7 +269,7 @@ def insight_youngest(rows):
     if tr * 4 >= len(rows):
         tail = f" {n(tr)} מתוך {n(len(rows))} הישובים בראש הדירוג הם שבטים בדואיים."
     return (f"בקצה השני, ב{a['name']} {pct(a['kid_v'])} מהתושבים הם בני 18 ומטה "
-            f"({n(a['kids'])} מתוך {n(a['total'])}) — השיעור הגבוה ביותר בין הישובים שבהם {n(MIN_POP_RANK)} "
+            f"({n(a['kids'])} מתוך {n(a['total'])}), השיעור הגבוה ביותר בין הישובים שבהם {n(MIN_POP_RANK)} "
             f"תושבים ומעלה.{tail}")
 
 
@@ -308,7 +308,7 @@ def insight_aging(ch):
     else:
         verb = "בקצב דומה לכלל האוכלוסייה"
     return (f"לעומת {ch['base_name']}, מספר התושבים הרשומים בישובים השתנה ב-{signed_pct(t)} "
-            f"(מ-{n(ch['base_total'])} ל-{n(ch['cur_total'])}), ומספר בני 65 ומעלה ב-{signed_pct(o)} — "
+            f"(מ-{n(ch['base_total'])} ל-{n(ch['cur_total'])}), ומספר בני 65 ומעלה ב-{signed_pct(o)}, "
             f"{verb}. מספר בני 18 ומטה השתנה ב-{signed_pct(k)}.")
 
 
@@ -321,7 +321,7 @@ def insight_growth(rows, abs_top):
     head = (f"הישוב שגדל הכי מהר מאז קובץ הארכיון הוא {a['name']}: מ-{n(a['base'])} ל-{n(a['cur'])} "
             f"תושבים ({signed_pct(a['g_v'])})")
     if abs_top["name"] == a["name"]:
-        return head + " — גם הגידול המוחלט הגדול ביותר."
+        return head + ". זה גם הגידול המוחלט הגדול ביותר."
     return (head + f". בגידול המוחלט מוביל הישוב {abs_top['name']} "
             f"(תוספת של {n(abs_top['diff'])} תושבים).")
 
@@ -361,7 +361,7 @@ def _change(snap, cur, cur_nat):
         lbl_old = _band_label(c_old)
         rows.append({"label": lbl, "label_old": lbl_old, "base": b0, "cur": b1,
                      "g_v": r1((b1 / b0 - 1) * 100) if b0 else 0.0,
-                     "g": signed_pct((b1 / b0 - 1) * 100) if b0 else "—"})
+                     "g": signed_pct((b1 / b0 - 1) * 100) if b0 else "–"})
     base["district"] = base["nafa_code"].map(_district_of)
     m = cur[["code", "name", "total"]].merge(
         base[["code", "total"]].rename(columns={"total": "base"}), on="code", how="inner")
@@ -458,7 +458,7 @@ def compute(frames):
         w = _band_width(b)
         struct_rows.append({"label": band_labels[i], "count": nat["bands"][i],
                             "share": f"{shares[i]:.1f}%",
-                            "per_year": n(round(nat["bands"][i] / w)) if w else "—"})
+                            "per_year": n(round(nat["bands"][i] / w)) if w else "–"})
     struct_chart = {"labels": band_labels, "counts": nat["bands"], "shares": shares,
                     "per_year": [round(nat["bands"][i] / _band_width(b)) if _band_width(b) else None
                                  for i, b in enumerate(BANDS)]}
@@ -649,8 +649,8 @@ def compute(frames):
         "dep_kpi": f"יחס תלות: צעירים ומבוגרים לכל 100 בני {lab['work_band']}",
         "growth_kpi": "שינוי במספר התושבים מאז קובץ הארכיון",
         "struct_note": ((f"מספר התושבים בכל קבוצת גיל. הקבוצות ברוחב שונה, ולכן הקו מראה את הממוצע לכל "
-                         f"שנת גיל: בטווח {first_d['label']} — {n(first_d['per_year'])} לשנה, ובטווח "
-                         f"{mid_d['label']} — {n(mid_d['per_year'])} לשנה. לקבוצה הפתוחה "
+                         f"שנת גיל: בטווח {first_d['label']} הממוצע {n(first_d['per_year'])} לשנה, ובטווח "
+                         f"{mid_d['label']} הממוצע {n(mid_d['per_year'])} לשנה. לקבוצה הפתוחה "
                          f"({lab['old_band']}) אין ממוצע לשנה.") if first_d else
                         "מספר התושבים בכל קבוצת גיל."),
         "struct_aria": (f"גרף עמודות: תושבים לפי קבוצת גיל. הקבוצה הגדולה היא "
@@ -711,7 +711,7 @@ def compute(frames):
             "cb_note": (f"מספר התושבים בכל קבוצת גיל בקובץ הארכיון ובקובץ הנוכחי. מספר בני 65 ומעלה השתנה "
                         f"ב-{signed_pct(ch['g_old'])}, לעומת {signed_pct(ch['g_total'])} בכלל התושבים."),
             "cb_aria": "גרף עמודות: תושבים לפי קבוצת גיל בקובץ הארכיון ובקובץ הנוכחי.",
-            "cb_caption": "תושבים לפי קבוצת גיל — קובץ הארכיון מול הקובץ הנוכחי",
+            "cb_caption": "תושבים לפי קבוצת גיל: קובץ הארכיון מול הקובץ הנוכחי",
             "cd_note": "השינוי באחוזים בכל מחוז: בכלל התושבים, בבני 18 ומטה ובבני 65 ומעלה.",
             "cd_aria": "גרף עמודות: שינוי באחוזים במספר התושבים לפי מחוז וקבוצת גיל.",
             "cd_caption": "השינוי לפי מחוז מאז קובץ הארכיון",

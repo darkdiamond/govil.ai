@@ -175,7 +175,7 @@ def insight_trend(full):
     ch = cur / prev - 1
     span = f"{_m_he(full.index[-12])}–{_m_he(full.index[-1])}"
     if abs(ch) < TREND_BAND:
-        text = (f"ב-12 החודשים {span} פג תוקפם של {_int(cur)} כלי רכב שנותרו לא פעילים — "
+        text = (f"ב-12 החודשים {span} פג תוקפם של {_int(cur)} כלי רכב שנותרו לא פעילים, "
                 f"דומה ל-12 החודשים שקדמו להם ({_int(prev)}).")
     else:
         word = "יותר" if ch > 0 else "פחות"
@@ -265,7 +265,7 @@ def insight_test_after(df):
     if len(both) == 0 or len(after) / len(both) < 0.01:
         return None
     return (f"ל-{_int(len(after))} כלי רכב ({_pct(len(after) / len(both))}) נרשמה בדיקת רישוי "
-            f"אחרונה אחרי מועד פקיעת הרישוי — ובכל זאת הרישוי לא חודש.")
+            f"אחרונה אחרי מועד פקיעת הרישוי, ובכל זאת הרישוי לא חודש.")
 
 
 def insight_pollution(df):
@@ -277,7 +277,7 @@ def insight_pollution(df):
     if share < 0.3:
         return None
     return (f"מבין {_int(len(p))} כלי הרכב שלהם קבוצת זיהום רשומה, {_pct(share)} "
-            f"משויכים לקבוצה {worst} — המזהמת ביותר בסולם.")
+            f"משויכים לקבוצה {worst}, המזהמת ביותר בסולם.")
 
 
 def compute(frames):
@@ -399,20 +399,20 @@ def compute(frames):
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
     if trend_ch is None or abs(trend_ch) < TREND_BAND:
-        trend_tone, trend_display = "brand", (_pct(trend_ch) if trend_ch is not None else "—")
+        trend_tone, trend_display = "brand", (_pct(trend_ch) if trend_ch is not None else "–")
     else:
         trend_tone = "warn" if trend_ch > 0 else "ok"
         trend_display = ("+" if trend_ch > 0 else "−") + _pct(abs(trend_ch))
     last12 = int(full.iloc[-12:].sum()) if len(full) >= 12 else int(full.sum())
     private_share = (df["degem"] == DEGEM["P"]).mean()
 
-    partial_note = (f" החודש האחרון ({_m_he(monthly.index[-1])}) חלקי — הוא נחתך בגבול 13 החודשים."
+    partial_note = (f" החודש האחרון ({_m_he(monthly.index[-1])}) חלקי: הוא נחתך בגבול 13 החודשים."
                     if partial else "")
 
     return {
         "agent_data": {
-            "summary_he": (f"{_int(n)} כלי רכב לא פעילים — שתוקף רישוים פג לפני יותר מ-13 חודשים, "
-                           f"לא דווחו כגנובים ולא בוטלו סופית. שנות ייצור {y0}–{y1}; "
+            "summary_he": (f"{_int(n)} כלי רכב לא פעילים (שתוקף רישוים פג לפני יותר מ-13 חודשים, "
+                           f"לא דווחו כגנובים ולא בוטלו סופית). שנות ייצור {y0}–{y1}; "
                            f"הגיל החציוני בעת פקיעת הרישוי {med_age} שנים, "
                            f"והיצרן הנפוץ ביותר {b_names[0]}."),
             "dataset_kind": "registry",
@@ -464,7 +464,7 @@ def compute(frames):
         "insights": insights,
         "labels": {
             "lede": (f"המאגר מונה {_int(n)} כלי רכב שתוקף רישוים פג לפני יותר מ-13 חודשים, שאינם "
-                     f"מדווחים כגנובים ושלא בוטלו סופית — כלומר רכבים שירדו מהכביש אך רישומם לא בוטל סופית. "
+                     f"מדווחים כגנובים ושלא בוטלו סופית, כלומר רכבים שירדו מהכביש אך רישומם לא בוטל סופית. "
                      f"מועד הפקיעה המאוחר ביותר בנתונים הוא {_d_he(last_exp)}; "
                      f"{_pct(private_share)} מהם רכבים פרטיים והשאר מסחריים."),
             "total_kpi": "כלי רכב לא פעילים",
@@ -473,9 +473,9 @@ def compute(frames):
             "age_kpi": "גיל חציוני בעת פקיעת הרישוי (שנים)",
             "lapse_note": (f"מספר כלי הרכב במאגר לפי {lapse['unit']} פקיעת הרישוי. "
                            f"ב-{RECENT_MONTHS} החודשים האחרונים שבנתונים פג תוקפם של {_int(last24)} "
-                           f"מהם ({_pct(last24 / n)}); השיא — {_m_he(peak_m.index[0])} "
+                           f"מהם ({_pct(last24 / n)}); השיא: {_m_he(peak_m.index[0])} "
                            f"({_int(peak_m.iloc[0])}). כלי רכב שפג תוקפם לפני שנים רבות ובינתיים "
-                           f"בוטלו סופית כבר אינם במאגר, ולכן החודשים המוקדמים דלילים — זו "
+                           f"בוטלו סופית כבר אינם במאגר, ולכן החודשים המוקדמים דלילים. זו "
                            f"תמונת המלאי הנוכחי, לא קצב היסטורי.{partial_note}"),
             "lapse_aria": (f"תרשים קו: כלי רכב לא פעילים לפי {lapse['unit']} פקיעת הרישוי, "
                            f"{first_exp.year}–{last_exp.year}."),
@@ -485,8 +485,8 @@ def compute(frames):
             "age_note": (f"הפרש השנים בין שנת הייצור לשנת פקיעת הרישוי. החציון: {med_age} שנים."),
             "age_aria": "תרשים עמודות: גיל כלי הרכב בעת פקיעת הרישוי.",
             "box_note": (f"{BOX_BRANDS} היצרנים הנפוצים, מסודרים מהצעיר לוותיק. התיבה מציגה את "
-                         f"הרבעון התחתון עד העליון, הקו — החציון, והשפמים — אחוזון 5 עד 95. "
-                         f"כלי הרכב של {young} יורדים מהכביש הצעירים ביותר, ושל {old} — הוותיקים ביותר."),
+                         f"הרבעון התחתון עד העליון, הקו מסמן את החציון, והשפמים את אחוזון 5 עד 95. "
+                         f"כלי הרכב של {young} יורדים מהכביש הצעירים ביותר, ושל {old} הוותיקים ביותר."),
             "box_aria": f"תרשים תיבה: גיל בעת פקיעת הרישוי לפי {BOX_BRANDS} היצרנים המובילים.",
             "brands_note": ("שם היצרן מאוחד מכל ארצות המפעל (למשל רנו צרפת, טורקיה וספרד)."),
             "brands_aria": f"תרשים עמודות: {TOP_BRANDS} היצרנים המובילים.",

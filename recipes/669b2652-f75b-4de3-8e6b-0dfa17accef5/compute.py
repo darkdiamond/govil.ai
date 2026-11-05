@@ -133,7 +133,7 @@ def insight_bunching(hist):
     if at < 100 or at < 5 * max(below, 1):
         return None
     mode = int(max(hist.items(), key=lambda kv: (kv[1], -kv[0]))[0])
-    lead = (f"{PASS} — ציון המעבר — הוא הציון הנפוץ ביותר במאגר"
+    lead = (f"{PASS} (ציון המעבר) הוא הציון הנפוץ ביותר במאגר"
             if mode == PASS else f"ציון המעבר {PASS} בולט בהתפלגות")
     ratio = at / below if below else None
     tail = (f"פי {ratio:.0f} יותר" if ratio else "בעוד שאיש לא קיבל")
@@ -155,7 +155,7 @@ def insight_trend(per_year, last_full):
         chg = (f"{'עלייה' if d > 0 else 'ירידה'} של {abs(d):.0f} נקודות אחוז לעומת "
                f"{last_full - 1} ({pct(r0)})")
     return (f"ב-{last_full} עברו {pct(r1)} מהניגשויות שקיבלו ציון ({n(cur['passed'])} מתוך "
-            f"{n(cur['scored'])}) — {chg}.")
+            f"{n(cur['scored'])}), {chg}.")
 
 
 def insight_ytd(ex, ref, partial):
@@ -174,7 +174,7 @@ def insight_ytd(ex, ref, partial):
     else:
         chg = (f"{'גבוה' if d > 0 else 'נמוך'} ב-{abs(d):.0f} נקודות אחוז מבתקופה המקבילה "
                f"ב-{y - 1} ({pct(r0)})")
-    return (f"מתחילת {y} ועד {d_he(ref)} עברו {pct(r1)} מ-{n(len(cur))} הניגשויות שקיבלו ציון — "
+    return (f"מתחילת {y} ועד {d_he(ref)} עברו {pct(r1)} מ-{n(len(cur))} הניגשויות שקיבלו ציון, "
             f"{chg}.")
 
 
@@ -225,7 +225,7 @@ def insight_noscore(per_year, last_full, total_none, total):
         r = per_year.loc[last_full, "none"] / per_year.loc[last_full, "n"]
         if r >= 1.25 * base:
             s += f"; ב-{last_full} שיעורן עלה ל-{pct(r * 100)}"
-    return s + " — הן נספרות בניגשויות אך לא בשיעור המעבר."
+    return s + ". הן נספרות בניגשויות אך לא בשיעור המעבר."
 
 
 def insight_season(month_counts):
@@ -409,17 +409,17 @@ def compute(frames):
     }
 
     invalid = int(ex["invalid"].sum())
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {ref_year} היא שנה חלקית, עד {d_he(ref)}." if partial else ""
     peak_rate_i = max((i for i, v in enumerate(rate_y) if v is not None), key=lambda i: (rate_y[i], -i))
     cur_n = int(g["current"].sum())
-    e_partial = (f" {e_years[-1]} — שנה חלקית." if e_years and e_last_full != e_years[-1] else "")
+    e_partial = (f" {e_years[-1]} היא שנה חלקית." if e_years and e_last_full != e_years[-1] else "")
     labels = {
         "lede": (f"המאגר של משרד המשפטים מאגד שלושה קבצים נפרדים על מקצוע שמאות המקרקעין: מרשם של "
                  f"{n(total_reg)} שמאים בעלי רישיון, {n(len(ex))} ניגשויות לבחינות הרישוי "
                  f"מ-{first_year} ועד {d_he(ref)}, ו-{n(len(exm))} פטורים מבחינה בזכות לימודים "
-                 f"אקדמיים. הקבצים אינם מקושרים זה לזה — אין בהם מזהה נבחן — ולכן כל ניגשות "
+                 f"אקדמיים. הקבצים אינם מקושרים זה לזה (אין בהם מזהה נבחן), ולכן כל ניגשות "
                  f"נספרת בנפרד, כולל ניגשויות חוזרות. המאגר אינו מציין סף מעבר; שיעורי המעבר בעמוד "
-                 f"מחושבים לפי ציון {PASS} ומעלה — סף המעבר המקובל בבחינות אלה."),
+                 f"מחושבים לפי ציון {PASS} ומעלה, סף המעבר המקובל בבחינות אלה."),
         "rate_kpi": f"שיעור המעבר ב-{last_full} (ממוצע כל השנים: {overall:.1f}%)",
         "years_note": (f"ניגשויות לבחינות בכל שנה, לפי תוצאה: עבר (ציון {PASS} ומעלה), נכשל, "
                        f"או ללא ציון במאגר.{partial_note}"),
@@ -436,15 +436,15 @@ def compute(frames):
                       + ((" ציון אחד מחוץ לטווח 0–100 הוצא כשגוי." if invalid == 1 else f" {n(invalid)} ציונים מחוץ לטווח 0–100 הוצאו כשגויים.") if invalid else "")),
         "dist_aria": (f"היסטוגרמה: התפלגות הציונים בבחינות השמאות, שיא בולט בציון {PASS} "
                       f"({n(hist_d[PASS])} ניגשויות)."),
-        "subj_note": (f"שיעור המעבר בכל בחינה בכל השנים. בכחול — {n(cur_n)} בחינות שנערכו "
-                      f"ב-{ref_year - CURRENT_GAP} ואילך (התוכנית הנוכחית); בתכלת — בחינות של "
+        "subj_note": (f"שיעור המעבר בכל בחינה בכל השנים. בכחול מוצגות {n(cur_n)} בחינות שנערכו "
+                      f"ב-{ref_year - CURRENT_GAP} ואילך (התוכנית הנוכחית), ובתכלת בחינות של "
                       f"תוכניות קודמות שהופסקו. שמות שנכתבו בקיצור במקור אוחדו."),
         "subj_aria": (f"תרשים עמודות אופקי: שיעור המעבר לפי בחינה, {g.index[0]} בראש."),
         "subj_caption": "ניגשויות, שנות קיום, שיעור מעבר וציון ממוצע לפי בחינה.",
-        "heat_note": ("מספר הניגשויות לכל בחינה בכל שנה — כאן רואים את החלפת תוכנית הבחינות: "
+        "heat_note": ("מספר הניגשויות לכל בחינה בכל שנה. כאן רואים את החלפת תוכנית הבחינות: "
                       "בחינות ותיקות נעלמות ובחינות חדשות נכנסות במקומן."),
         "heat_aria": f"מפת חום: ניגשויות לפי בחינה ושנה, {first_year} עד {ref_year}.",
-        "months_note": "כלל הניגשויות בכל השנים לפי חודש הבחינה — מועדי הבחינות מרוכזים בעונות קבועות.",
+        "months_note": "כלל הניגשויות בכל השנים לפי חודש הבחינה. מועדי הבחינות מרוכזים בעונות קבועות.",
         "months_aria": f"תרשים עמודות: ניגשויות לפי חודש, {MONTHS_HE[int(mc.idxmax()) - 1]} בראש.",
         "months_caption": "ניגשויות לפי חודש הבחינה.",
         "inst_note": (f"{TOP_INST} מוסדות הלימוד (או קטגוריות הרקע, כמו \"תואר מאושר\") עם מספר "
@@ -468,7 +468,7 @@ def compute(frames):
         "e_inst_caption": "פטורים לפי מוסד לימודים.",
         "surnames_note": (f"{TOP_NAMES} שמות המשפחה הנפוצים במרשם השמאים בעלי הרישיון "
                           f"(המילה הראשונה בשם, או שתיים בצירופים כמו \"בן\")."),
-        "surnames_aria": (f"תרשים עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים בקרב השמאים — "
+        "surnames_aria": (f"תרשים עמודות אופקי: {TOP_NAMES} שמות המשפחה הנפוצים בקרב השמאים, "
                           f"{surnames.index[0]} בראש."),
         "surnames_caption": "מספר שמאים לפי שם משפחה.",
     }
@@ -476,16 +476,16 @@ def compute(frames):
     tables = {
         "years": [{"year": str(y), "n": n(r.n), "passed": n(r.passed), "failed": n(r.scored - r.passed),
                    "none": n(r.none)} for y, r in zip(years, py.itertuples())],
-        "rate": [{"year": str(y), "rate": "—" if rv is None else f"{rv:.1f}%",
-                  "mean": "—" if mv is None else f"{mv:.1f}"}
+        "rate": [{"year": str(y), "rate": "–" if rv is None else f"{rv:.1f}%",
+                  "mean": "–" if mv is None else f"{mv:.1f}"}
                  for y, rv, mv in zip(years, rate_y, mean_y)],
         "subjects": [{"name": s, "years": (str(int(r["first"])) if r["first"] == r["last"]
                                            else f"{int(r['first'])}–{int(r['last'])}"),
-                      "n": n(r["n"]), "rate": "—" if pd.isna(r["rate"]) else f"{r['rate']:.1f}%",
-                      "mean": "—" if pd.isna(r["mean"]) else f"{r['mean']:.1f}"}
+                      "n": n(r["n"]), "rate": "–" if pd.isna(r["rate"]) else f"{r['rate']:.1f}%",
+                      "mean": "–" if pd.isna(r["mean"]) else f"{r['mean']:.1f}"}
                      for s, r in g.iterrows()],
         "months": [{"month": MONTHS_HE[m - 1], "n": n(mc[m])} for m in range(1, 13)],
-        "inst": [{"name": s, "n": n(r["n"]), "rate": "—" if pd.isna(r["rate"]) else f"{r['rate']:.1f}%"}
+        "inst": [{"name": s, "n": n(r["n"]), "rate": "–" if pd.isna(r["rate"]) else f"{r['rate']:.1f}%"}
                  for s, r in top_inst.iterrows()],
         "e_years": [{"year": str(y), "n": n(v)} for y, v in ey.items()],
         "e_subj": [{"name": s, "exempt": n(es[s]), "att": n(subj_att.get(s, 0))} for s in e_subj],

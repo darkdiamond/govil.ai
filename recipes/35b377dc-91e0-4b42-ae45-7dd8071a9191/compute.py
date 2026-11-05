@@ -131,9 +131,9 @@ def compute(frames):
         "act": [mm(e_act[y]) if y in act_years else None for y in all_years],
     }
     tab_budget = [{"year": str(y),
-                   "orig": f"{e_orig[y] / 1e6:,.1f}" if y in e_orig else "—",
-                   "upd": f"{e_upd[y] / 1e6:,.1f}" if y in e_upd else "—",
-                   "act": f"{e_act[y] / 1e6:,.1f}" if y in act_years else "—"} for y in all_years]
+                   "orig": f"{e_orig[y] / 1e6:,.1f}" if y in e_orig else "–",
+                   "upd": f"{e_upd[y] / 1e6:,.1f}" if y in e_upd else "–",
+                   "act": f"{e_act[y] / 1e6:,.1f}" if y in act_years else "–"} for y in all_years]
 
     # ---- chart: net (income - expense) actual ----
     net = {y: i_act[y] - e_act[y] for y in act_years}
@@ -152,8 +152,8 @@ def compute(frames):
     c_exec["exe"] = [round(e_act[y] / (e_upd.get(y) or e_orig[y]) * 100, 1)
                      if y in act_years and (e_upd.get(y) or e_orig.get(y)) else None for y in ey]
     tab_exec = [{"year": str(y),
-                 "rev": ("—" if c_exec["rev"][i] is None else f"{c_exec['rev'][i]:.1f}%"),
-                 "exe": ("—" if c_exec["exe"][i] is None else f"{c_exec['exe'][i]:.1f}%")}
+                 "rev": ("–" if c_exec["rev"][i] is None else f"{c_exec['rev'][i]:.1f}%"),
+                 "exe": ("–" if c_exec["exe"][i] is None else f"{c_exec['exe'][i]:.1f}%")}
                 for i, y in enumerate(ey)]
 
     # ---- chart: payroll share ----
@@ -272,7 +272,7 @@ def compute(frames):
             return f"ב-{y_act} ההכנסות וההוצאות בפועל כמעט תואמות: הפער הוא {mil(abs(v))} מיליון ₪."
         word = "עלו על ההוצאות" if v > 0 else "היו נמוכות מההוצאות"
         res = "עודף" if v > 0 else "גירעון"
-        return (f"ב-{y_act} ההכנסות בפועל {word} ב-{mil(abs(v))} מיליון ₪ — {res} "
+        return (f"ב-{y_act} ההכנסות בפועל {word} ב-{mil(abs(v))} מיליון ₪, {res} "
                 f"של {pct(abs(v) / base * 100, 2)} מהיקף ההוצאות.")
 
     def ins_exec():
@@ -360,8 +360,8 @@ def compute(frames):
             return None
         ys = only_budget_years
         yrs = f"{ys[0]}" if len(ys) == 1 else f"{ys[0]} עד {ys[-1]}"
-        return (f"הנתונים לשנים {yrs} הם תקציב בלבד — הביצוע בפועל טרם דווח, ולכן הן אינן נכללות "
-                f"בניתוח הביצוע.") if len(ys) > 1 else (f"הנתונים לשנת {yrs} הם תקציב בלבד — הביצוע בפועל "
+        return (f"הנתונים לשנים {yrs} הם תקציב בלבד. הביצוע בפועל טרם דווח, ולכן הן אינן נכללות "
+                f"בניתוח הביצוע.") if len(ys) > 1 else (f"הנתונים לשנת {yrs} הם תקציב בלבד. הביצוע בפועל "
                                                           f"טרם דווח, ולכן היא אינה נכללת בניתוח הביצוע.")
 
     def ins_item():
@@ -403,9 +403,9 @@ def compute(frames):
     # ---------------- labels ----------------
     miss_txt = ""
     if missing_upd:
-        miss_txt = (f" בשנים {', '.join(str(y) for y in missing_upd)} אין תקציב מעודכן במאגר — הקו מנותק."
+        miss_txt = (f" בשנים {', '.join(str(y) for y in missing_upd)} אין תקציב מעודכן במאגר, ולכן הקו מנותק."
                     if len(missing_upd) > 1 else
-                    f" בשנת {missing_upd[0]} אין תקציב מעודכן במאגר — הקו מנותק.")
+                    f" בשנת {missing_upd[0]} אין תקציב מעודכן במאגר, ולכן הקו מנותק.")
     labels = {
         "lede": (f"תקציב עיריית באר שבע ברמת סעיף (חשבון ומחלקה) לשנים {all_years[0]} עד {all_years[-1]}: "
                  f"תקציב מקורי, תקציב מעודכן וביצוע בפועל. תקציב ההוצאות המקורי ל-{y_last} עומד על "

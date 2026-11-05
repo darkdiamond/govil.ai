@@ -209,9 +209,9 @@ def insight_ytd(cur, prev, ref, partial):
     chg = (cur / prev - 1) * 100
     head = f"מתחילת {ref.year} ועד {d_he(ref)} ניתנו {n(cur)} היתרים"
     if abs(chg) < 5:
-        return f"{head} — בדומה לתקופה המקבילה ב-{ref.year - 1} ({n(prev)})."
+        return f"{head}, בדומה לתקופה המקבילה ב-{ref.year - 1} ({n(prev)})."
     word = "יותר" if chg > 0 else "פחות"
-    return (f"{head} — {pct(abs(chg))} {word} מבתקופה המקבילה ב-{ref.year - 1} "
+    return (f"{head}, {pct(abs(chg))} {word} מבתקופה המקבילה ב-{ref.year - 1} "
             f"({n(prev)}).")
 
 
@@ -236,7 +236,7 @@ def insight_season(df, fam_counts):
         (_f1, w1, _s1), (_f2, w2, _s2) = sh
         if abs(w1 - w2) >= 0.15:
             hi, lo = (sh[0], sh[1]) if w1 > w2 else (sh[1], sh[0])
-            text += (f"; אך העונה תלויה בגידול — {pct(hi[1] * 100, 0)} מהיתרי ה{hi[0]} ניתנו "
+            text += (f"; אך העונה תלויה בגידול: {pct(hi[1] * 100, 0)} מהיתרי ה{hi[0]} ניתנו "
                      f"בנובמבר–מרץ, לעומת {pct(lo[1] * 100, 0)} מהיתרי ה{lo[0]}, "
                      f"ש-{pct(lo[2] * 100, 0)} מהם ניתנו ביוני–ספטמבר")
     return text + "."
@@ -434,7 +434,7 @@ def compute(frames):
     crop_fam = df.groupby("crop")["fam"].first()
     t_crops = [{"crop": c, "fam": crop_fam[c], "count": n(v)} for c, v in zip(cn, cv)]
     if c_other:
-        t_crops.append({"crop": f"שאר הגידולים ({n(crop_counts.size - TOP_CROPS)})", "fam": "—",
+        t_crops.append({"crop": f"שאר הגידולים ({n(crop_counts.size - TOP_CROPS)})", "fam": "–",
                         "count": n(c_other)})
     ch_crops = {"names": cn, "values": cv}   # the long tail stays in the table only
 
@@ -522,7 +522,7 @@ def compute(frames):
     ]
     insights = [{"id": i, "text_he": t} for i, t in rules if t]
 
-    partial_note = (f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else "")
+    partial_note = (f" {ref_year}: שנה חלקית, עד {d_he(ref)}." if partial else "")
     excl = ""
     if bad_dates:
         excl = f" {n(bad_dates)} רשומות ללא תאריך תחילת תוקף תקין אינן נכללות."
@@ -534,23 +534,23 @@ def compute(frames):
                  f"{pct(multi)} מההיתרים חלים על יותר מחלקה אחת.{excl}"),
         "ytd_kpi": ytd_label,
         "one_day_kpi": f"מההיתרים ב-{one_y} תקפים ליום אחד בלבד",
-        "years_note": (f"מספר ההיתרים בכל שנה לפי מחוז, והקו — מספר היישובים שקיבלו היתר "
+        "years_note": (f"מספר ההיתרים בכל שנה לפי מחוז, והקו מציג את מספר היישובים שקיבלו היתר "
                        f"באותה שנה.{partial_note}"),
         "years_aria": f"גרף עמודות מוערמות: היתרים לפי שנה ומחוז, {years[0]} עד {ref_year}, וקו מספר היישובים.",
         "years_caption": "היתרים ויישובים לפי שנה.",
-        "heat_note": ("כל תא — מספר ההיתרים שתוקפם התחיל באותו חודש"
+        "heat_note": ("כל תא מציג את מספר ההיתרים שתוקפם התחיל באותו חודש"
                       + (f", ב-{len(hy)} השנים האחרונות" if len(years) > HEAT_YEARS else "")
                       + f".{partial_note}"),
         "heat_aria": f"מפת חום: היתרים לפי שנה וחודש, {hy[0]} עד {ref_year}.",
-        "season_note": (f"איזה חלק מהיתרי כל קבוצת גידולים ניתן בכל חודש — {len(season_fams)} "
+        "season_note": (f"איזה חלק מהיתרי כל קבוצת גידולים ניתן בכל חודש: {len(season_fams)} "
                         f"הקבוצות הגדולות, כל השנים יחד."),
         "season_aria": "גרף קווים: שיעור ההיתרים בכל חודש, לפי קבוצת גידולים.",
         "season_caption": "שיעור היתרי הקבוצה בכל חודש.",
-        "dm_note": "שיעור היתרי כל מחוז שניתנו בכל חודש, כל השנים יחד — כך מחוזות בגדלים שונים ברי השוואה.",
+        "dm_note": "שיעור היתרי כל מחוז שניתנו בכל חודש, כל השנים יחד, כך שמחוזות בגדלים שונים ברי השוואה.",
         "dm_aria": "מפת חום: שיעור ההיתרים בכל חודש, לפי מחוז.",
         "dm_caption": "שיעור היתרי המחוז בכל חודש.",
         "fams_note": (f"{n(crop_counts.size)} שמות גידולים מקובצים ל-{len(fam_counts)} קבוצות; "
-                      f"גודל כל מלבן — מספר ההיתרים."),
+                      f"גודל כל מלבן מייצג את מספר ההיתרים."),
         "fams_aria": "מפת עץ: היתרים לפי קבוצת גידולים וגידול.",
         "fams_caption": "היתרים לפי קבוצת גידולים.",
         "crops_aria": f"תרשים עמודות: {TOP_CROPS} הגידולים עם מירב ההיתרים.",
@@ -561,7 +561,7 @@ def compute(frames):
         "dfam_caption": "היתרים לפי מחוז וקבוצת גידולים.",
         "window_aria": "תרשים עמודות מוערמות: היתרים לפי חודש וחלון שעות השריפה.",
         "window_caption": "היתרים לפי חודש וחלון שעות.",
-        "validity_note": ("משך התוקף — מיום התחלת התוקף ועד יום סיומו, כולל."
+        "validity_note": ("משך התוקף: מיום התחלת התוקף ועד יום סיומו, כולל."
                           + (f" {n(bad_validity)} היתרים שתאריך הסיום שלהם קודם לתאריך ההתחלה "
                              f"אינם נכללים." if bad_validity else "")
                           + (f" מוצגות {VALIDITY_YEARS} השנים האחרונות." if len(years) > VALIDITY_YEARS else "")),
@@ -569,7 +569,7 @@ def compute(frames):
         "validity_caption": "היתרים לפי שנה ומשך תוקף.",
         "wd_aria": "תרשים עמודות: היתרים לפי יום בשבוע שבו התחיל התוקף.",
         "wd_caption": "היתרים לפי יום תחילת התוקף.",
-        "towns_note": (f"{TOP_TOWNS} היישובים שקיבלו את מירב ההיתרים; בטבלה — המחוז שבו נרשמו "
+        "towns_note": (f"{TOP_TOWNS} היישובים שקיבלו את מירב ההיתרים; בטבלה מופיע המחוז שבו נרשמו "
                        f"רוב ההיתרים של כל יישוב."),
         "towns_aria": f"תרשים עמודות: {TOP_TOWNS} היישובים עם מירב ההיתרים.",
         "towns_caption": f"{TOP_TOWNS} היישובים המובילים.",

@@ -257,9 +257,9 @@ def compute(frames):
     table_region = {
         "cols": [str(d) for d in decs],
         "rows": [{"region": rg,
-                  "vals": [(f"{reg.loc[(rg, d), 'median'] * 100:.0f}" if (rg, d) in reg.index else "—")
+                  "vals": [(f"{reg.loc[(rg, d), 'median'] * 100:.0f}" if (rg, d) in reg.index else "–")
                            for d in decs],
-                  "latest": (f"{reg_L.loc[rg, 'median'] * 100:.0f}" if rg in reg_L.index else "—")}
+                  "latest": (f"{reg_L.loc[rg, 'median'] * 100:.0f}" if rg in reg_L.index else "–")}
                  for rg in regs],
     }
 
@@ -330,11 +330,11 @@ def compute(frames):
         rank_high = len(order) - rank_low + 1
         head = f"ב-{lab_L} עמדה השפיעה של המעיין הטיפוסי על {pct(idx_L)} מהרגיל שלו ({n_L} מעיינות נמדדו)"
         if rank_low == 1:
-            return f"{head} — השנה היבשה ביותר מבין {len(order)} השנים במדד, מאז {hy_label(idx_years[0])}."
+            return f"{head}, השנה היבשה ביותר מבין {len(order)} השנים במדד, מאז {hy_label(idx_years[0])}."
         if rank_low <= 5:
-            return f"{head} — המקום ה-{rank_low} מבין השנים היבשות ביותר מתוך {len(order)} השנים במדד."
+            return f"{head}, המקום ה-{rank_low} מבין השנים היבשות ביותר מתוך {len(order)} השנים במדד."
         if rank_high <= 5:
-            return f"{head} — המקום ה-{rank_high} מבין השנים השופעות ביותר מתוך {len(order)} השנים במדד."
+            return f"{head}, המקום ה-{rank_high} מבין השנים השופעות ביותר מתוך {len(order)} השנים במדד."
         word = "מעל" if idx_L > 1 else "מתחת ל"
         return f"{head}, {word}רגיל."
 
@@ -361,7 +361,7 @@ def compute(frames):
             return None
         word = "יותר" if sr > se else "פחות"
         return (f"ב-{dry_r} מתוך {len(recent)} השנים האחרונות במדד ({hy_label(recent[0])} עד {lab_L}) "
-                f"השפיעה הטיפוסית ירדה מתחת ל-{pct(DROUGHT)} מהרגיל — {pct(sr)}, {word} מאשר "
+                f"השפיעה הטיפוסית ירדה מתחת ל-{pct(DROUGHT)} מהרגיל ({pct(sr)}), {word} מאשר "
                 f"ב-{len(earlier)} השנים שקדמו להן ({pct(se)}).")
 
     def ins_wettest():
@@ -386,7 +386,7 @@ def compute(frames):
             higher = prev[prev["vol"] >= r["vol"]]
             tail = ("הגבוה ביותר מאז תחילת המדידה" if higher.empty
                     else f"הגבוה ביותר מאז {hy_label(int(higher['y'].max()))}")
-        return (f"{r['name']}, הגדול במעיינות שנמדדו ב-{lab_L}, הזרים {num(r['vol'])} אלמ״ק — "
+        return (f"{r['name']}, הגדול במעיינות שנמדדו ב-{lab_L}, הזרים {num(r['vol'])} אלמ״ק: "
                 f"{pct(r['r'])} מהחציון הרב-שנתי שלו ({num(r['base'])} אלמ״ק), {tail}.")
 
     def ins_records():
@@ -421,7 +421,7 @@ def compute(frames):
         if n_L >= 0.5 * peak_n:
             return None
         return (f"רשת המדידה הצטמצמה: בשיאה, ב-{hy_label(peak_y)}, נמדדו {peak_n} מעיינות, "
-                f"וב-{lab_L} — {n_L}. לכן סכומים וממוצעים ארציים משקפים בעיקר את הרכב הרשת; "
+                f"וב-{lab_L} נמדדו {n_L}. לכן סכומים וממוצעים ארציים משקפים בעיקר את הרכב הרשת; "
                 f"המדד בעמוד משווה כל מעיין לחציון שלו.")
 
     def ins_dried():
@@ -439,7 +439,7 @@ def compute(frames):
         if float(hi["median"]) - float(lo["median"]) < 0.2:
             return None
         return (f"הפער האזורי ב-{lab_L}: באזור {lo['region']} השפיעה הטיפוסית הייתה {pct(lo['median'])} "
-                f"מהרגיל ({int(lo['size'])} מעיינות), ובאזור {hi['region']} — {pct(hi['median'])} "
+                f"מהרגיל ({int(lo['size'])} מעיינות), ובאזור {hi['region']} הייתה {pct(hi['median'])} "
                 f"({int(hi['size'])} מעיינות).")
 
     rules = [("latest", ins_latest()), ("largest", ins_largest()), ("records", ins_records()),
@@ -454,7 +454,7 @@ def compute(frames):
     kpis = {
         "index": {"value": round(idx_L, 4), "display": pct(idx_L), "tone": kpi_tone(idx_L)},
         "largest": {"value": None if big is None else float(big["vol"]),
-                    "display": "—" if big is None else num(big["vol"]),
+                    "display": "–" if big is None else num(big["vol"]),
                     "tone": "brand" if big is None else kpi_tone(float(big["r"]))},
         "dry": {"value": zero_L, "display": f"{zero_L:,}", "tone": "warn" if zero_L > 0 else "ok"},
         "springs": {"value": n_springs, "display": f"{n_springs:,}", "tone": "brand"},

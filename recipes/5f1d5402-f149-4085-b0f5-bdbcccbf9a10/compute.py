@@ -160,7 +160,7 @@ def _stack_table(ch):
         tot = ch["yes"][i] + ch["no"][i] + ch["unknown"][i]
         known = ch["yes"][i] + ch["no"][i]
         rows.append({"name": n, "total": _int(tot), "yes": _int(ch["yes"][i]),
-                     "share": _pct(ch["yes"][i] / known) if known else "—"})
+                     "share": _pct(ch["yes"][i] / known) if known else "–"})
     return rows
 
 
@@ -255,7 +255,7 @@ def insight_cat(cats, total):
     top = ident.iloc[0]
     if top / total < CAT_LEAD_SHARE:
         return None
-    return (f"סוג המקום הנפוץ ביותר, לפי שם המיקום: {ident.index[0]} — {_int(top)} מכשירים "
+    return (f"סוג המקום הנפוץ ביותר, לפי שם המיקום: {ident.index[0]}, עם {_int(top)} מכשירים "
             f"({_pct(top / total)}). {_pct(int(ident.sum()) / total)} מהרשומות סווגו לסוג מקום לפי מילות מפתח בשם.")
 
 
@@ -386,7 +386,7 @@ def compute(frames):
                   "label": "מכשירי החייאה במאגר"},
         "cities": {"value": n_cities, "display": _int(n_cities), "tone": "brand",
                    "label": "יישובים שונים"},
-        "allday": {"value": s24 or 0, "display": _pct(s24) if s24 is not None else "—",
+        "allday": {"value": s24 or 0, "display": _pct(s24) if s24 is not None else "–",
                    "tone": ("ok" if (s24 or 0) >= 0.5 else "info"),
                    "label": "מהמכשירים עם נתון זמינים מסביב לשעון"},
         "last12": {"value": last12, "display": _int(last12), "tone": "brand",
@@ -424,7 +424,7 @@ def compute(frames):
                     "(רק שנים עם מספיק רשומות עם נתון)."),
         "ay_aria": f"תרשים קו: שיעור המכשירים הזמינים 24 שעות לפי שנת הוספה, {len(ay_n)} שנים.",
         "ay_caption": "שיעור הזמינים 24 שעות לפי שנת הוספה.",
-        "ud_note": "שנת העדכון האחרון של כל רשומה — כמה מהמאגר נבדק לאחרונה ומה נשאר ישן.",
+        "ud_note": "שנת העדכון האחרון של כל רשומה, שמראה כמה מהמאגר נבדק לאחרונה ומה נשאר ישן.",
         "ud_aria": f"תרשים עמודות: רשומות לפי שנת העדכון האחרון, {len(ud_n)} שנים.",
         "ud_caption": "מספר הרשומות לפי שנת העדכון האחרון.",
     }

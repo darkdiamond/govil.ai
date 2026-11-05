@@ -135,7 +135,7 @@ def insight_family(fam_vc, total):
     if n / total < 0.2:
         return None
     second, n2 = fam_vc.index[1], int(fam_vc.iloc[1])
-    return (f"{FAM_NAME[lead]} הוא סוג השינוי הנפוץ ביותר — {_int(n)} רשומות, {_pct(n / total)} "
+    return (f"{FAM_NAME[lead]} הוא סוג השינוי הנפוץ ביותר: {_int(n)} רשומות, {_pct(n / total)} "
             f"מכלל השינויים בשנה; אחריו {FAM_NAME[second]} ({_pct(n2 / total)}).")
 
 
@@ -149,7 +149,7 @@ def insight_charges(reg, dis):
         state = f"{_int(dis - reg)} יותר שעבודים סולקו מאשר נרשמו"
     else:
         state = f"{_int(reg - dis)} יותר שעבודים נרשמו מאשר סולקו"
-    return (f"בשנה האחרונה נרשמו {_int(reg)} שעבודים וסולקו {_int(dis)} — {state}.")
+    return (f"בשנה האחרונה נרשמו {_int(reg)} שעבודים וסולקו {_int(dis)}: {state}.")
 
 
 def insight_charge_conc(df):
@@ -175,7 +175,7 @@ def insight_viol_wave(df):
     share = n / len(v)
     if share < 0.1:
         return None
-    return (f"עדכוני ההפרה מגיעים בגלים: ב-{_date_he(day)} לבדו נרשמו {_int(n)} עדכוני הפרה — "
+    return (f"עדכוני ההפרה מגיעים בגלים: ב-{_date_he(day)} לבדו נרשמו {_int(n)} עדכוני הפרה, "
             f"{_pct(share)} מכל {_int(len(v))} עדכוני ההפרה בשנה.")
 
 
@@ -191,7 +191,7 @@ def insight_peak_month(df, months):
         return None
     sub = df[df["month"] == peak]
     fv = _vc(sub["fam"])
-    return (f"החודש העמוס ביותר היה {_month_he(peak)} עם {_int(vals[peak])} שינויים — פי "
+    return (f"החודש העמוס ביותר היה {_month_he(peak)} עם {_int(vals[peak])} שינויים, פי "
             f"{vals[peak] / med:.1f} מהחודש החציוני ({_int(med)}); המשפחה הגדולה בו: "
             f"{FAM_NAME[fv.index[0]]} ({_pct(fv.iloc[0] / len(sub))}). חודשים חלקיים בקצות החלון לא נכללו בהשוואה.")
 
@@ -218,7 +218,7 @@ def insight_directors(df):
         state = f"{_pct(diff)} יותר הוספות מהסרות"
     else:
         state = f"{_pct(-diff)} פחות הוספות מהסרות"
-    return (f"נרשמו {_int(add)} הוספות דירקטור ו-{_int(rem)} הסרות (כולל דרך הדוח השנתי) — {state}.")
+    return (f"נרשמו {_int(add)} הוספות דירקטור ו-{_int(rem)} הסרות (כולל דרך הדוח השנתי): {state}.")
 
 
 def insight_fast_liq(df):
@@ -357,7 +357,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"יומן השינויים של רשם החברות לשנה האחרונה (מ-{window}): {_int(total)} שינויים "
-                           f"ב-{_int(n_corps)} חברות ושותפויות — דוחות שנתיים, שעבודים, הפרות, בעלי "
+                           f"ב-{_int(n_corps)} חברות ושותפויות, כולל דוחות שנתיים, שעבודים, הפרות, בעלי "
                            f"תפקידים, הון ופירוקים. מתעדכן מדי יום."),
             "dataset_kind": "timeseries",
             "related_ids": ["246d949c-a253-4811-8a11-41a137d3d613",
@@ -403,12 +403,12 @@ def compute(frames):
         },
         "labels": {
             "lede": (f"{_int(total)} שינויים שרשם החברות רשם ב-{_int(n_corps)} חברות ושותפויות בין "
-                     f"{_date_he(lo)} ל-{_date_he(hi)} — בממוצע {avg:.1f} שינויים לתאגיד. הקובץ מתחדש מדי יום ומכסה שנה "
+                     f"{_date_he(lo)} ל-{_date_he(hi)}, בממוצע {avg:.1f} שינויים לתאגיד. הקובץ מתחדש מדי יום ומכסה שנה "
                      f"אחורה; תאגיד שלא השתנה בשנה האחרונה אינו מופיע בו. {_int(n_types)} סוגי "
                      f"שינויים מקובצים כאן ל-{len(fams)} משפחות."),
             "window": window,
             "timeline_note": (f"מספר השינויים שנרשמו בכל {timeline['unit']}, מ-{window}. היום העמוס ביותר: "
-                              f"{_date_he(peak_day)}, עם {_int(peak_n)} שינויים — {_pct(peak_share)} "
+                              f"{_date_he(peak_day)}, עם {_int(peak_n)} שינויים, {_pct(peak_share)} "
                               f"מהם {FAM_NAME[peak_fam]}. גררו את הסרגל כדי להתמקד בתקופה."),
             "timeline_aria": f"גרף קו: שינויים בכל {timeline['unit']}, מ-{window}.",
             "monthly_note": f"השינויים בכל חודש לפי משפחת השינוי.{partial_txt}",

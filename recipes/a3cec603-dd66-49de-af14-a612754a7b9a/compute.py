@@ -180,13 +180,13 @@ def insight_trend(per_year, b_year, last_full):
     rec = ""
     window = per_year[per_year.index <= last_full]
     if len(window) >= 5 and int(window.idxmax()) == last_full:
-        rec = " — שנת שיא"
+        rec = ", שנת שיא"
     if abs(chg) < 0.05:
         s = (f"ב-{last_full} הונפקו {n(v1)} תעודות (בכל השלבים), בדומה ל-{last_full - 1} "
              f"({n(v0)}){rec}")
     else:
         word = "עלייה" if chg > 0 else "ירידה"
-        s = (f"ב-{last_full} הונפקו {n(v1)} תעודות (בכל השלבים) — {word} של "
+        s = (f"ב-{last_full} הונפקו {n(v1)} תעודות (בכל השלבים), {word} של "
              f"{pct(abs(chg))} לעומת {last_full - 1} ({n(v0)}){rec}")
     b1, b0 = int(b_year.get(last_full, 0)), int(b_year.get(last_full - 1, 0))
     if b0 >= 20:
@@ -251,7 +251,7 @@ def insight_lag(lag):
     med = float(lag.median())
     long_share = (lag >= 36).mean()
     return (f"בין תעודת שלב א (תכנון) לתעודת שלב ב (גמר) עוברים בחציון {med:.0f} חודשים; "
-            f"ב-{pct(long_share)} מהמבנים — שלוש שנים ויותר (מתוך {n(len(lag))} מבנים עם "
+            f"ב-{pct(long_share)} מהמבנים עוברות שלוש שנים ויותר (מתוך {n(len(lag))} מבנים עם "
             f"שתי התעודות).")
 
 
@@ -292,7 +292,7 @@ def insight_edition(df):
     if other_b < 0.05 or other_e > other_b / 2:
         return None
     return (f"{pct(other_b)} מתעודות שלב ב ניתנו לפי מהדורות אחרות של התקן, לעומת "
-            f"{pct(other_e)} בלבד מהרשומות בשלבים המוקדמים — רוב המבנים שבתהליך נבדקים "
+            f"{pct(other_e)} בלבד מהרשומות בשלבים המוקדמים: רוב המבנים שבתהליך נבדקים "
             f"לפי מהדורת {cur}.")
 
 
@@ -485,7 +485,7 @@ def compute(frames):
     pre_med = score_rows[0]["median"]
     top_use_b = max(((x, v) for x, v in b_share_use.items() if uses[x] >= 50),
                     key=lambda t: (t[1], t[0]), default=None)
-    partial_note = f" {ref_year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" {ref_year} היא שנה חלקית, עד {d_he(ref)}." if partial else ""
     stage_b_share = stage_b / total if total else 0
 
     labels = {
@@ -555,10 +555,10 @@ def compute(frames):
         "units_caption": "יחידות דיור ומספר רשומות לפי רשות.",
         "uses_note": ("שיעור הרשומות בכל שלב התעדה, לפי השימוש העיקרי (מספרי הרשומות בטבלה)."
                       + (f" שימושים עם פחות מ-{MIN_USE} רשומות מקובצים ב\"אחר\"." if use_small else "")
-                      + (f" השיעור הגבוה ביותר של רשומות בשלב ב — {top_use_b[0]} "
+                      + (f" השיעור הגבוה ביותר של רשומות בשלב ב: {top_use_b[0]} "
                          f"({pct(top_use_b[1])})." if top_use_b else "")),
         "uses_aria": (f"תרשים עמודות מוערמות: התפלגות שלב ההתעדה בכל שימוש עיקרי, באחוזים; "
-                      f"השימוש הנפוץ — {uses.index[0]}."),
+                      f"השימוש הנפוץ הוא {uses.index[0]}."),
         "uses_caption": "מספר רשומות לפי שימוש עיקרי ושלב התעדה.",
         "routes_caption": "מספר רשומות לפי מסלול הבנייה.",
         "floors_note": (f"מספר הקומות מעל הקרקע בכל רשומה, מגורים מול שאר השימושים. "

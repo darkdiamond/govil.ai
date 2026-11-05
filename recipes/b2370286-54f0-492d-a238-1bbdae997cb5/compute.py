@@ -133,7 +133,7 @@ def insight_updates(df, last):
     elif a > b:
         trend = f"לעומת {_int(b)} ב-30 הימים שקדמו להם"
     else:
-        trend = f"לעומת {_int(b)} ב-30 הימים שקדמו להם — פחות עדכונים"
+        trend = f"לעומת {_int(b)} ב-30 הימים שקדמו להם (פחות עדכונים)"
     return (f"ב-30 הימים שעד {last.day}/{last.month}/{last.year} עודכנו {_int(a)} אתרים, {trend}.")
 
 
@@ -146,7 +146,7 @@ def insight_water(df):
     ga = int(g["gas"].isin(ENV_ACTIVE).sum())
     both = int((df["water"].isin(ENV_ACTIVE) & df["gas"].isin(ENV_ACTIVE)).sum())
     return (f"מבין האתרים עם סטטוס מי תהום ידוע, ב-{_pct(wa / len(w))} ({_int(wa)}) יש חשד, "
-            f"חקירה או טיפול בזיהום מי תהום; בגזי קרקע — {_pct(ga / len(g))} ({_int(ga)}). "
+            f"חקירה או טיפול בזיהום מי תהום; בגזי קרקע: {_pct(ga / len(g))} ({_int(ga)}). "
             f"ב-{_int(both)} אתרים שניהם פעילים.")
 
 
@@ -158,7 +158,7 @@ def insight_town(df):
     top, v = vc.index[0], int(vc.iloc[0])
     top3 = int(vc.head(3).sum())
     return (f"{top} מרכזת {_int(v)} אתרים ({_pct(v / len(df))} מכלל האתרים); שלושת היישובים "
-            f"המובילים — {', '.join(vc.index[:3])} — מרכזים {_pct(top3 / len(df))}.")
+            f"המובילים ({', '.join(vc.index[:3])}) מרכזים {_pct(top3 / len(df))}.")
 
 
 def insight_pipeline(df):
@@ -168,7 +168,7 @@ def insight_pipeline(df):
     nfa = int(s.str.contains("NFA", regex=False).sum())
     if rem + soon + nfa < 20:
         return None
-    return (f"לפי השלב המנהלי — שדה נפרד מסיווג מצב הקרקע — {_int(rem)} אתרים בשלב 'בשיקום' "
+    return (f"לפי השלב המנהלי (שדה נפרד מסיווג מצב הקרקע), {_int(rem)} אתרים בשלב 'בשיקום' "
             f"ועוד {_int(soon)} 'לקראת שיקום'; ב-{_int(nfa)} אתרים הסתיימה הסקירה או השיקום.")
 
 

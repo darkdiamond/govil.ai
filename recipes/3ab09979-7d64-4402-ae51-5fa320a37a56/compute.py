@@ -140,7 +140,7 @@ def insight_trend(dec, last):
         trend = "כמעט ללא שינוי במספר ההחלטות"
     else:
         trend = f"{'עלייה' if ch > 0 else 'ירידה'} של {abs(ch) * 100:.0f}% במספר ההחלטות"
-    return (f"ב-{y} הוטלו עיצומים ב-{_int(len(cur))} החלטות בסך {ils(cur['total'].sum())} — "
+    return (f"ב-{y} הוטלו עיצומים ב-{_int(len(cur))} החלטות בסך {ils(cur['total'].sum())}, "
             f"{trend} לעומת {y - 1} ({_int(len(prev))} החלטות, {ils(prev['total'].sum())}).")
 
 
@@ -152,7 +152,7 @@ def insight_law(fam_counts, n_rows):
         return None
     second = (f"; אחריו {fam_counts.index[1]} ({_pct(fam_counts.iloc[1] / n_rows)})"
               if len(fam_counts) > 1 and fam_counts.index[1] != OTHER else "")
-    return f"החוק שהופר בתדירות הגבוהה ביותר: {name} — {_pct(n / n_rows)} מההפרות{second}."
+    return f"החוק שהופר בתדירות הגבוהה ביותר: {name}, עם {_pct(n / n_rows)} מההפרות{second}."
 
 
 def insight_industry(rows):
@@ -175,7 +175,7 @@ def insight_size(dec):
     big = int((paid["total"] >= 250_000).sum())
     top = paid.loc[paid["total"].idxmax()]
     return (f"חציון העיצום להחלטה הוא {ils(med)}; {_int(big)} החלטות הסתכמו ב-250 אלף ₪ "
-            f"ומעלה, והגבוהה שבהן — {ils(top['total'])} (ענף {top['industry']}, "
+            f"ומעלה, והגבוהה שבהן: {ils(top['total'])} (ענף {top['industry']}, "
             f"{top['d'].year}).")
 
 
@@ -255,7 +255,7 @@ def insight_employer_size(detail_dec, start):
         return None
     small = known["size"].isin(["1–5", "6–20"]).mean()
     if small >= 0.5:
-        return (f"מאז {start}, {_pct(small)} מההחלטות הוטלו על מעסיקים עם עד 20 עובדים — "
+        return (f"מאז {start}, {_pct(small)} מההחלטות הוטלו על מעסיקים עם עד 20 עובדים. "
                 "האכיפה פוגשת בעיקר עסקים קטנים.")
     return f"מאז {start}, {_pct(1 - small)} מההחלטות הוטלו על מעסיקים עם יותר מ-20 עובדים."
 
@@ -410,7 +410,7 @@ def compute(frames):
         "employers": {"value": n_emp, "display": _int(n_emp), "tone": "brand",
                       "label": "מעסיקים"},
         "median": {"value": float(paid["total"].median()) if len(paid) else None,
-                   "display": kpi_ils(paid["total"].median()) if len(paid) else "—",
+                   "display": kpi_ils(paid["total"].median()) if len(paid) else "–",
                    "tone": "brand", "label": "חציון עיצום להחלטה (₪)"},
     }
 
@@ -437,14 +437,14 @@ def compute(frames):
         "partial": (f"ההחלטה האחרונה במאגר מ-{d_he(last)}. ההחלטות מתפרסמות באיחור ומתווספות "
                     f"בדיעבד, ולכן השנים שאחרי {settled_year(last)} עדיין חלקיות ועשויות לגדול."),
         "year_caption": f"מספר החלטות וסך עיצומים לפי שנה, {y0} עד {y1}.",
-        "multi_law_note": "החלטה אחת עשויה לכלול הפרות של כמה חוקים — כל הפרה נספרת.",
+        "multi_law_note": "החלטה אחת עשויה לכלול הפרות של כמה חוקים, וכל הפרה נספרת.",
         "detail_note": (f"מאז {start} המאגר מפרט לכל החלטה את מספר העובדים, נימוקי ההפחתה "
                         f"ובקשות הביטול; בהחלטות מוקדמות יותר שדות אלה כמעט ריקים, ולכן "
                         f"הגרפים בחלק זה מתייחסים ל-{_int(len(detail))} ההחלטות מ-{start} ואילך."
                         if start is not None else ""),
         "red_aria": (f"תרשים עמודות אופקי: מספר ההחלטות לפי נימוק ההפחתה בעיצום, מתוך "
                      f"{_int(reductions['base'])} החלטות עם מידע על הפחתה."),
-        "red_note": ("החלטה אחת עשויה לקבל הפחתה מכמה נימוקים — כל נימוק נספר. "
+        "red_note": ("החלטה אחת עשויה לקבל הפחתה מכמה נימוקים, וכל נימוק נספר. "
                      f"בסיס: {_int(reductions['base'])} החלטות."),
         "size_aria": ("תרשים משולב: מספר ההחלטות (עמודות) וחציון העיצום להחלטה (קו) לפי "
                       "מספר העובדים אצל המעסיק."),
@@ -460,7 +460,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"{kpis['decisions']['display']} החלטות על עיצומים כספיים למעסיקים בגין "
-                           f"הפרת חוקי עבודה, {y0}–{y1}, בסך {ils(total)} — לפי חוק, "
+                           f"הפרת חוקי עבודה, {y0}–{y1}, בסך {ils(total)}, לפי חוק, "
                            f"ענף, שנה ומקור הבדיקה."),
             "dataset_kind": "registry",
             "suggested_tags": ["זכויות עובדים", "אכיפה", "עיצומים כספיים", "שכר מינימום", "משרד העבודה"],
@@ -499,7 +499,7 @@ def compute(frames):
             "cities": [{"name": n, "v": _int(v)} for n, v in zip(cities["names"], cities["values"])],
             "reductions": [{"name": n, "v": _int(v)}
                            for n, v in zip(reductions["names"], reductions["values"])],
-            "sizes": [{"name": n, "n": _int(c), "med": ils(md) if md else "—"}
+            "sizes": [{"name": n, "n": _int(c), "med": ils(md) if md else "–"}
                       for n, c, md in zip(sizes["names"], sizes["decisions"], sizes["median"])],
             "appeals": {
                 "cols": appeals["stages"],

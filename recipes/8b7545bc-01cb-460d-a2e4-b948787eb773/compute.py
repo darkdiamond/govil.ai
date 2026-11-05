@@ -86,7 +86,7 @@ SUBCLASS_HE = {
     "B65D": "אריזה ומכלים", "B65G": "הובלה ושינוע", "B65H": "טיפול בנייר, בחוטים ובחומר גמיש",
     "C01B": "יסודות לא-מתכתיים ותרכובותיהם", "C07C": "תרכובות אציקליות וקרבוציקליות",
     "C07D": "תרכובות הטרוציקליות", "C07F": "תרכובות אורגנו-מתכתיות ואחרות",
-    "C07K": "פפטידים וחלבונים", "C08F": "פולימרים — תגובות פילמור", "C08G": "פולימרים — תגובות עיבוי",
+    "C07K": "פפטידים וחלבונים", "C08F": "פולימרים: תגובות פילמור", "C08G": "פולימרים: תגובות עיבוי",
     "C08L": "הרכבים של פולימרים", "C09B": "צבענים אורגניים", "C09D": "ציפויים וצבעים",
     "C09K": "חומרים לשימושים מיוחדים", "C10G": "זיקוק נפט", "C12N": "מיקרואורגניזמים, אנזימים והנדסה גנטית",
     "C12P": "תסיסה וסינתזה אנזימטית", "C22C": "סגסוגות", "C23C": "ציפוי מתכות",
@@ -227,10 +227,10 @@ def ins_class(cls_counts, sec_counts, total, n_cls):
                      key=lambda s: (-sec_counts[s], s))
     tail = ""
     if len(smaller) == 1:
-        tail = f" — יותר מכל הסעיף {sec_label(smaller[0])}"
+        tail = f", יותר מכל הסעיף {sec_label(smaller[0])}"
     elif 2 <= len(smaller) <= 3:
         names = ", ".join(sec_label(s) for s in smaller[:-1]) + " ו" + sec_label(smaller[-1])
-        tail = f" — יותר מכל אחד מהסעיפים {names}"
+        tail = f", יותר מכל אחד מהסעיפים {names}"
     return (f"מחלקה אחת מתוך {n(n_cls)}, {class_label(c)}, מכילה {n(v)} קודים, "
             f"{pct(v / total * 100)} מהשיטה כולה{tail}.")
 
@@ -277,7 +277,7 @@ def ins_leaves(leaf_share, kids):
     if leaf_share < 0.5 or kids.empty:
         return None
     one = float((kids == 1).mean())
-    return (f"{pct(leaf_share * 100)} מהקודים הם עלים — קצה הענף, ללא קודים מתחתיהם. לקוד אב חציוני "
+    return (f"{pct(leaf_share * 100)} מהקודים הם עלים (קצה הענף, ללא קודים מתחתיהם). לקוד אב חציוני "
             f"יש {n(kids.median())} קודי-משנה ישירים; {pct(one * 100)} מקודי האב מתפצלים לקוד אחד בלבד, "
             f"ולקוד {code_ltr(kids.index[0])} יש {n(kids.iloc[0])}.")
 
@@ -298,7 +298,7 @@ def ins_fragments(df):
     if last - first >= 0.1:
         trend = (f" השיעור עולה עם העומק: {pct(first * 100)} ברמה הראשונה לעומת {pct(last * 100)} "
                  f"ברמה {n(by.index[-1])} ומטה.")
-    return (f"{pct(share * 100)} מכותרות קבוצות-המשנה פותחות באות קטנה — המשך של כותרת קוד האב "
+    return (f"{pct(share * 100)} מכותרות קבוצות-המשנה פותחות באות קטנה: המשך של כותרת קוד האב "
             f"(כמו \"for\" או \"using\"), שמובן רק יחד עם הרמות שמעליו.{trend}")
 
 
@@ -309,7 +309,7 @@ def ins_residual(df):
     if n_res < 20:
         return None
     every = len(x99) == df["sec"].nunique()
-    tail = (f" בנוסף, {n(len(x99))} מחלקות {code_ltr(str(RESIDUAL_CLASS))}" + (" — אחת בכל סעיף —" if every else "")
+    tail = (f" בנוסף, {n(len(x99))} מחלקות {code_ltr(str(RESIDUAL_CLASS))}" + (" (אחת בכל סעיף)" if every else "")
             + " שמורות לנושאים שאין להם מקום אחר בשיטה." if len(x99) >= 3 else "")
     subs = df.loc[res, "sub"].nunique()
     return (f"{n(n_res)} קבוצות, ב-{n(subs)} תתי-סעיפים, הן קבוצות שארית לנושאים שלא נכללו בקבוצות "
@@ -375,7 +375,7 @@ def compute(frames):
         tree.append({"name": sec_label(s), "value": int(sub["n"].sum()), "children": kids})
     cls_counts = pd.Series(cc["n"].values, index=cc["cls"].values)
     cls_sub = df.groupby("cls")["sub"].nunique()
-    class_table = [{"code": r.cls, "name": CLASS_HE.get(r.cls, "—"), "section": SECTION_HE.get(r.sec, r.sec),
+    class_table = [{"code": r.cls, "name": CLASS_HE.get(r.cls, "–"), "section": SECTION_HE.get(r.sec, r.sec),
                     "subs": n(cls_sub[r.cls]), "count": n(r.n), "share": f"{r.n / total * 100:.1f}%"}
                    for r in cc.head(TOP_CLASS_TABLE).itertuples()]
 
@@ -447,7 +447,7 @@ def compute(frames):
     top_g = grp_counts.head(TOP_GROUPS)
     groups = {"names": [f"{g} · {SUBCLASS_HE[g[:4]]}" if g[:4] in SUBCLASS_HE else g for g in top_g.index],
               "values": [int(v) for v in top_g.values]}
-    groups_table = [{"code": g, "name": SUBCLASS_HE.get(g[:4], "—"), "count": n(v)} for g, v in top_g.items()]
+    groups_table = [{"code": g, "name": SUBCLASS_HE.get(g[:4], "–"), "count": n(v)} for g, v in top_g.items()]
     no_sub_main = int((grp_all == 0).sum())
 
     # fan-out: direct children per parent code that is itself a group row
@@ -462,7 +462,7 @@ def compute(frames):
 
     ver_counts = _top(df["ver"].value_counts(), len(df))
     ver = ver_counts.index[0] if len(ver_counts) else ""
-    ver_disp = f"{ver[:4]}.{ver[4:6]}" if re.fullmatch(r"\d{8}", ver) else "—"
+    ver_disp = f"{ver[:4]}.{ver[4:6]}" if re.fullmatch(r"\d{8}", ver) else "–"
 
     rules = [
         ("lead", ins_lead(sec_counts, total)),
@@ -491,8 +491,8 @@ def compute(frames):
                 f"בממוצע לכל קבוצה ראשית" if deepest_r else "")
     labels = {
         "lede": (f"שיטת הסיווג הבינלאומית לפטנטים (IPC) של הארגון העולמי לקניין רוחני, שבה מסווגות בקשות פטנט "
-                 f"לפי תחום טכנולוגי: {n(total)} קודי סיווג — {n(n_main)} קבוצות ראשיות ו-{n(total - n_main)} "
-                 f"קבוצות-משנה — ב-{n(n_sub)} תתי-סעיפים, {n(n_cls)} מחלקות ו-{len(secs)} סעיפים, לפי מהדורת "
+                 f"לפי תחום טכנולוגי: {n(total)} קודי סיווג ({n(n_main)} קבוצות ראשיות ו-{n(total - n_main)} "
+                 f"קבוצות-משנה) ב-{n(n_sub)} תתי-סעיפים, {n(n_cls)} מחלקות ו-{len(secs)} סעיפים, לפי מהדורת "
                  f"{code_ltr(ver_disp)}. לכל קוד כותרת באנגלית וקוד אב שמעליו בעץ, ועץ הקבוצות מגיע לעומק של "
                  f"{n(max_dep)} רמות מתחת לקבוצה הראשית."),
         "sections_note": (f"מספר הקודים בכל סעיף, בהפרדה בין קבוצות ראשיות לקבוצות-המשנה שמתחתן. הסעיף הגדול: "
@@ -553,7 +553,7 @@ def compute(frames):
 
     return {
         "agent_data": {
-            "summary_he": (f"שיטת הסיווג הבינלאומית לפטנטים IPC, מהדורת {ver_disp}: {n(total)} קודים — "
+            "summary_he": (f"שיטת הסיווג הבינלאומית לפטנטים IPC, מהדורת {ver_disp}: {n(total)} קודים, ובהם "
                            f"{n(n_main)} קבוצות ראשיות ב-{n(n_sub)} תתי-סעיפים ו-{len(secs)} סעיפים, עד "
                            f"{n(max_dep)} רמות מתחת לקבוצה הראשית."),
             "dataset_kind": "registry",

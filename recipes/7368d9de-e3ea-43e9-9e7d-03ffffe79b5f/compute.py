@@ -219,10 +219,10 @@ def insight_ytd(ytd, ytd_prev, ref, prev_year):
     chg = ytd / ytd_prev - 1
     span = f"מתחילת {ref.year} ועד {d_he(ref)}"
     if abs(chg) < 0.03:
-        return (f"{span} נפתחו {n(ytd)} תיקים — בדומה לתקופה המקבילה ב-{prev_year} "
+        return (f"{span} נפתחו {n(ytd)} תיקים, בדומה לתקופה המקבילה ב-{prev_year} "
                 f"({n(ytd_prev)}).")
     word = "יותר" if chg > 0 else "פחות"
-    return (f"{span} נפתחו {n(ytd)} תיקים — {pct(abs(chg) * 100)} {word} מאשר בתקופה "
+    return (f"{span} נפתחו {n(ytd)} תיקים, {pct(abs(chg) * 100)} {word} מאשר בתקופה "
             f"המקבילה ב-{prev_year} ({n(ytd_prev)}).")
 
 
@@ -231,7 +231,7 @@ def insight_inherit(share, k, last_full):
         return None
     lead = "רוב התיקים" if share > 0.5 else "הנושא הנפוץ ביותר"
     return (f"{lead} בבתי הדין הדרוזים עוסקים בצוואות ובירושות: ב-{last_full} נפתחו "
-            f"{n(k)} תיקים כאלה — {pct(share * 100, 0)} מכלל התיקים.")
+            f"{n(k)} תיקים כאלה, {pct(share * 100, 0)} מכלל התיקים.")
 
 
 def insight_new_type(new_type):
@@ -239,7 +239,7 @@ def insight_new_type(new_type):
         return None
     t, y0, k, share, last_full, jump = new_type
     s = (f"מ-{y0} נפתחים תיקי \"{t}\", שלא הופיעו קודם לכן: ב-{last_full} נפתחו {n(k)} "
-         f"כאלה — {pct(share * 100, 0)} מכל התיקים.")
+         f"כאלה, {pct(share * 100, 0)} מכל התיקים.")
     if jump is not None and jump > 0.3:
         s += f" בשנה שבה הופיעו גדל מספר התיקים שנפתחו ב-{pct(jump * 100, 0)}."
     return s
@@ -252,7 +252,7 @@ def insight_admin(admin):
     if share < 0.1:
         return None
     return (f"מ-{y0} חלק גדול מההחלטות ניתן כהחלטה מנהלתית של מזכירות בית הדין ולא בידי "
-            f"קאדי: ב-{last_full} — {pct(share * 100, 0)} מההחלטות.")
+            f"קאדי: ב-{last_full} ניתנו כך {pct(share * 100, 0)} מההחלטות.")
 
 
 def insight_consent(rows):
@@ -280,7 +280,7 @@ def insight_divorce(rows):
     trend = (f"בדומה ל-{first['year']} ({r0:.0f})" if abs(r1 - r0) < 3
              else f"לעומת {r0:.0f} ב-{first['year']}")
     return (f"ב-{last['year']} נפתחו {n(last['divorce'])} תיקי גירושין מול {n(last['contracts'])} "
-            f"חוזי נישואין — כ-{r1:.0f} תיקי גירושין לכל 100 חוזים, {trend}.")
+            f"חוזי נישואין: כ-{r1:.0f} תיקי גירושין לכל 100 חוזים, {trend}.")
 
 
 def insight_season(season_rows, labels):
@@ -293,7 +293,7 @@ def insight_season(season_rows, labels):
     s = (f"החתונות נחתמות בעיקר בקיץ: בשנים {labels[-1]} נערכו {pct(last['shares'][peak], 0)} "
          f"מחוזי הנישואין ב{MONTHS_HE[peak]}")
     if w0 - w1 >= 3:
-        s += (f", ורק {pct(w1, 0)} בדצמבר עד פברואר — לעומת {pct(w0, 0)} "
+        s += (f", ורק {pct(w1, 0)} בדצמבר עד פברואר, לעומת {pct(w0, 0)} "
               f"בשנים {labels[0]}")
     return s + "."
 
@@ -328,7 +328,7 @@ def insight_backfill(retro, total, first_y, entry_year, y_to):
     if retro < 1000 or total == 0:
         return None
     return (f"{n(retro)} חוזי נישואין ({pct(retro / total * 100, 0)} מהמאגר), שנערכו בין {first_y} "
-            f"ל-{y_to}, הוזנו למערכת בדיעבד — רובם ב-{entry_year}. לחוזים אלה לא נרשמו מספר "
+            f"ל-{y_to}, הוזנו למערכת בדיעבד, רובם ב-{entry_year}. לחוזים אלה לא נרשמו מספר "
             f"חוזה ושם רשם.")
 
 
@@ -350,7 +350,7 @@ def insight_appeals(app_out):
     acc = d.get("התקבל", 0) / decided
     rej = d.get("נדחה", 0) / decided
     return (f"בבית הדין הדרוזי לערעורים, מבין {n(decided)} ערעורים שהוכרעו (התקבלו, נדחו או "
-            f"נמחקו), {pct(acc * 100, 0)} התקבלו — כולל החזרה לבית הדין האזורי — ו-"
+            f"נמחקו), {pct(acc * 100, 0)} התקבלו (כולל החזרה לבית הדין האזורי) ו-"
             f"{pct(rej * 100, 0)} נדחו.")
 
 
@@ -674,7 +674,7 @@ def compute(frames):
         ytd_tone = "brand" if abs(chg) < 3 else "info"
         ytd_disp = signed(chg)
     else:
-        chg, ytd_disp, ytd_tone = None, "—", "brand"
+        chg, ytd_disp, ytd_tone = None, "–", "brand"
     cons_share = last_div["share"] if last_div else None
     kpis = {
         "cases": {"value": total_cases, "display": n(total_cases), "tone": "brand"},
@@ -682,22 +682,22 @@ def compute(frames):
         "ytd": {"value": ytd, "display": n(ytd), "tone": "brand"},
         "ytd_change": {"value": None if chg is None else round(chg, 1), "display": ytd_disp, "tone": ytd_tone},
         "inherit": {"value": None if inh_share is None else round(inh_share * 100, 1),
-                    "display": "—" if inh_share is None else f"{inh_share * 100:.0f}%", "tone": "info"},
-        "consent": {"value": cons_share, "display": "—" if cons_share is None else f"{cons_share:.0f}%",
+                    "display": "–" if inh_share is None else f"{inh_share * 100:.0f}%", "tone": "info"},
+        "consent": {"value": cons_share, "display": "–" if cons_share is None else f"{cons_share:.0f}%",
                     "tone": "info" if cons_share is not None else "brand"},
         "lead": {"value": last_lead["lead"] if last_lead else None,
-                 "display": n(last_lead["lead"]) if last_lead else "—", "tone": "brand"},
+                 "display": n(last_lead["lead"]) if last_lead else "–", "tone": "brand"},
         "registrars": {"value": last_lead["registrars"] if last_lead else None,
-                       "display": n(last_lead["registrars"]) if last_lead else "—", "tone": "brand"},
+                       "display": n(last_lead["registrars"]) if last_lead else "–", "tone": "brand"},
     }
 
-    partial_note = f" {ref.year} — שנה חלקית, עד {d_he(ref)}." if partial else ""
+    partial_note = f" שנת {ref.year} חלקית, עד {d_he(ref)}." if partial else ""
     first_partial = first_full > int(first_d.year)
     nreg = len(rcourts)
-    area_txt = "; ".join(f"{court_phrase(c)} — {COURT_AREA[c]}" for c in court_list if c in COURT_AREA)
+    area_txt = "; ".join(f"{court_phrase(c)}: {COURT_AREA[c]}" for c in court_list if c in COURT_AREA)
     labels = {
-        "lede": (f"{n(total_cases)} תיקים שנפתחו בבתי הדין הדתיים הדרוזים מאז {d_he(first_d)} — "
-                 f"{nreg} בתי דין אזוריים ובית הדין לערעורים — ו-{n(total_con)} חוזי נישואין שנרשמו "
+        "lede": (f"{n(total_cases)} תיקים שנפתחו בבתי הדין הדתיים הדרוזים מאז {d_he(first_d)} ("
+                 f"{nreg} בתי דין אזוריים ובית הדין לערעורים) ו-{n(total_con)} חוזי נישואין שנרשמו "
                  f"בהם, רובם מ-{con_start} ואילך. התיקים עוסקים בענייני המעמד האישי של בני העדה "
                  f"הדרוזית: צוואות וירושות, גירושין, אפוטרופסות, ילדים ונישואין. הנתונים מעודכנים עד "
                  f"{d_he(ref)}; הדף מציג סיכומים בלבד, ללא פרטים על הצדדים, ותאים של פחות מחמישה "
@@ -715,10 +715,10 @@ def compute(frames):
                      else "ימים מפתיחת תיק הנישואין ועד החוזה"),
         "registrars_kpi": (f"רשמי נישואין פעילים ({last_lead['year']})" if last_lead else "רשמי נישואין פעילים"),
         "cases_year_note": (f"תיקים לפי שנת פתיחה ונושא, {rng(int(first_d.year), int(ref.year))}."
-                            + (f" {first_d.year} — שנה חלקית, מ-{d_he(first_d)}." if first_partial else "")
+                            + (f" שנת {first_d.year} חלקית, מ-{d_he(first_d)}." if first_partial else "")
                             + partial_note + " נושאים קטנים מאוחדים ב\"אחר\"."),
         "cases_year_aria": f"גרף עמודות מוערמות: תיקים שנפתחו בכל שנה לפי נושא, {rng(int(first_d.year), int(ref.year))}.",
-        "tree_note": (f"נושאי התיקים וסוגי התיקים שבתוכם, {rng(t0, last_full)} — {n(len(tw))} תיקים "
+        "tree_note": (f"נושאי התיקים וסוגי התיקים שבתוכם, {rng(t0, last_full)}: {n(len(tw))} תיקים "
                       f"ב-{n(n_types)} סוגים. לחיצה על נושא מתמקדת בו."),
         "tree_aria": f"מפת עץ: תיקים לפי נושא וסוג תיק, {rng(t0, last_full)}.",
         "types_caption": f"סוגי התיקים הנפוצים, {rng(t0, last_full)}.",
@@ -731,22 +731,22 @@ def compute(frames):
         "courts_caption": f"תיקים וחוזי נישואין לפי בית דין ושנה, {rng(cy0, last_full)}.",
         "divorce_note": (f"תביעות גירושין לפי סוג, {rng(full_years[0], last_full) if full_years else ''}: "
                          f"בהסכמת שני בני הזוג, תביעת גירושין רגילה ותיקים אחרים בנושא (פיצויי גירושין, "
-                         f"שלום בית, התרת חוזה ועוד). הקו — שיעור התביעות בהסכמה."),
+                         f"שלום בית, התרת חוזה ועוד). הקו: שיעור התביעות בהסכמה."),
         "divorce_aria": "גרף עמודות מוערמות: תיקי גירושין לפי סוג ושנה, וקו של שיעור הגירושין בהסכמה.",
         "divorce_caption": "תיקי גירושין לפי סוג ושנה.",
         "md_note": ("חוזי נישואין ותיקי גירושין שנפתחו בכל שנה מלאה. תיקי גירושין לכל מאה חוזים הוא "
-                    "יחס גס בין שני רישומים — לא שיעור גירושין."),
+                    "יחס גס בין שני רישומים, לא שיעור גירושין."),
         "md_aria": "גרף קווים: חוזי נישואין ותיקי גירושין לפי שנה.",
         "md_caption": "חוזי נישואין, תיקי גירושין והיחס ביניהם לפי שנה.",
         "outcomes_note": (f"התפלגות ההחלטות בתיקי בתי הדין האזוריים, בנושאים שבהם הוכרעו לפחות "
                           f"{OUTCOME_MIN} תיקים. {pct(closed_share, 1)} מכלל התיקים סגורים או הועברו."),
         "outcomes_aria": "גרף עמודות אופקיות מוערמות: התפלגות ההחלטות לפי נושא התיק, באחוזים.",
         "outcomes_caption": "התפלגות ההחלטות לפי נושא התיק, באחוזים.",
-        "deciders_note": (f"מספר ההחלטות לפי שנת פתיחת התיק ונותן ההחלטה — הקאדים (בתפקידם הציבורי) "
+        "deciders_note": (f"מספר ההחלטות לפי שנת פתיחת התיק ונותן ההחלטה: הקאדים (בתפקידם הציבורי) "
                           f"והחלטות מנהלתיות של המזכירות.{partial_note}"),
         "deciders_aria": "גרף עמודות מוערמות: החלטות לפי שנה ונותן ההחלטה.",
         "deciders_caption": "החלטות לפי נותן ההחלטה, שנות הפעילות ובית הדין העיקרי.",
-        "appeals_note": (f"{n(appeals_total)} תיקים נפתחו בבית הדין הדרוזי לערעורים — לפי שנה "
+        "appeals_note": (f"{n(appeals_total)} תיקים נפתחו בבית הדין הדרוזי לערעורים, לפי שנה "
                          f"({rng(a0, int(ref.year))}) ולפי ההחלטה שנרשמה בהם.{partial_note}"),
         "appeals_year_aria": f"גרף עמודות: תיקים בבית הדין לערעורים לפי שנה, {rng(a0, int(ref.year))}.",
         "appeals_year_caption": "תיקים בבית הדין לערעורים לפי שנה.",
@@ -755,7 +755,7 @@ def compute(frames):
         "con_year_note": (f"חוזי נישואין לפי שנת עריכת החוזה, {rng(con_start, int(ref_cd.year))}"
                           + (f" ({n(early)} חוזים מוקדמים יותר אינם מוצגים)" if early else "")
                           + ". חוזים שהוזנו למערכת יותר משנה אחרי עריכתם מסומנים בנפרד"
-                          + (f" — רובם הוזנו ב-{retro_entry}" if retro_entry else "")
+                          + (f" (רובם הוזנו ב-{retro_entry})" if retro_entry else "")
                           + ". שנים עם מעט חוזים עשויות לשקף רישום היסטורי חסר, לא ירידה בנישואין."),
         "con_year_aria": f"גרף עמודות מוערמות: חוזי נישואין לפי שנה ואופן הרישום, {rng(con_start, int(ref_cd.year))}.",
         "season_note": "חלקו של כל חודש מחוזי הנישואין בעשורים נבחרים (באחוזים); הטבלה מציגה את כל העשורים.",
@@ -784,9 +784,9 @@ def compute(frames):
         "court_cols": court_cols,
         "divorce": [{"year": str(r["year"]), "consent": mdisp(r["consent"]), "contested": mdisp(r["contested"]),
                      "other": mdisp(r["other"]),
-                     "share": "—" if r["share"] is None else f"{r['share']:.1f}%"} for r in div_rows],
+                     "share": "–" if r["share"] is None else f"{r['share']:.1f}%"} for r in div_rows],
         "md": [{"year": str(r["year"]), "contracts": n(r["contracts"]), "divorce": n(r["divorce"]),
-                "ratio": "—" if r["ratio"] is None else str(r["ratio"])} for r in md_rows],
+                "ratio": "–" if r["ratio"] is None else str(r["ratio"])} for r in md_rows],
         "outcomes": [{"name": r["name"], "n": n(r["n"]),
                       "cells": [("<5" if r["small"][o] else f"{r['shares'][o]:.1f}%") for o in used_out]}
                      for r in out_rows],
@@ -826,7 +826,7 @@ def compute(frames):
     return {
         "agent_data": {
             "summary_he": (f"פעילות בתי הדין הדתיים הדרוזים: {n(total_cases)} תיקים בענייני מעמד אישי "
-                           f"מאז {first_d.year} ו-{n(total_con)} חוזי נישואין — לפי שנה, בית דין, נושא, "
+                           f"מאז {first_d.year} ו-{n(total_con)} חוזי נישואין, לפי שנה, בית דין, נושא, "
                            f"החלטה וקאדי, ועונתיות החתונות לאורך העשורים."),
             "dataset_kind": "timeseries",
             "related_ids": ["3b05b6ac-53f6-44e7-afd8-141831cf398b",

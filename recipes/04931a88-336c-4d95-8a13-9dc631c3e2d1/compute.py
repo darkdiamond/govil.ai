@@ -89,7 +89,7 @@ def _group(df, labels):
 def insight_top_group(df):
     groups = _ranked(df["group"])
     name, v = groups.index[0], int(groups.iloc[0])
-    return (f"הקבוצה הגדולה ביותר במאגר היא {name} — {_int(v)} אתרים "
+    return (f"הקבוצה הגדולה ביותר במאגר היא {name}, עם {_int(v)} אתרים "
             f"({_pct(v / len(df), 1)}), ואחריה {groups.index[1]} ({_int(groups.iloc[1])}).")
 
 
@@ -114,7 +114,7 @@ def insight_concentration(df):
     if best is None:
         return None
     name, place, share, n = best
-    return (f"{_pct(share)} מ-{_int(n)} האתרים בתחום {name} נמצאים ביישוב אחד — {place}.")
+    return (f"{_pct(share)} מ-{_int(n)} האתרים בתחום {name} נמצאים ביישוב אחד: {place}.")
 
 
 def insight_districts(df):
@@ -123,7 +123,7 @@ def insight_districts(df):
         return None
     gap = (d.iloc[0] - d.iloc[1]) / len(df)
     if gap < 0.02:
-        return (f"מחוזות {d.index[0]} ו{d.index[1]} מובילים כמעט בשוויון — "
+        return (f"מחוזות {d.index[0]} ו{d.index[1]} מובילים כמעט בשוויון, עם "
                 f"{_int(d.iloc[0])} ו-{_int(d.iloc[1])} אתרים.")
     return f"מחוז {d.index[0]} מוביל עם {_int(d.iloc[0])} אתרים ({_pct(d.iloc[0] / len(df))})."
 
@@ -140,7 +140,7 @@ def insight_coords(df):
 def insight_authority(df):
     a = _ranked(df["authority"])
     share = a.iloc[0] / len(df)
-    return (f"{a.index[0]} היא הרשות המקומית עם הכי הרבה אתרים — {_int(a.iloc[0])} "
+    return (f"{a.index[0]} היא הרשות המקומית עם הכי הרבה אתרים: {_int(a.iloc[0])} "
             f"({_pct(share, 1)}), מתוך {_int(a.size)} רשויות.")
 
 

@@ -234,7 +234,7 @@
       c.setOption(window.GovEcharts.option(Object.assign({ color: [P[0], P[2], P[6], P[1]].concat(P.slice(3, 6), P.slice(7)) }, opt)));
       window.addEventListener("resize", function () { c.resize(); });
     }
-    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function fmt(v) { return v == null ? "–" : v.toLocaleString("he-IL"); }
     var p = {{ model.charts.prices | tojson }};
     mk("chart-prices", {
       tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
@@ -269,7 +269,7 @@
       c.setOption(window.GovEcharts.option(Object.assign({ color: [P[0], P[2], P[6], P[1]].concat(P.slice(3, 6), P.slice(7)) }, opt)));
       window.addEventListener("resize", function () { c.resize(); });
     }
-    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function fmt(v) { return v == null ? "–" : v.toLocaleString("he-IL"); }
     function stackH(id, d) {
       mk(id, {
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: fmt },
@@ -302,7 +302,7 @@
       c.setOption(window.GovEcharts.option(opt));
       window.addEventListener("resize", function () { c.resize(); });
     }
-    function fmt(v) { return v == null ? "—" : v.toLocaleString("he-IL"); }
+    function fmt(v) { return v == null ? "–" : v.toLocaleString("he-IL"); }
     var cp = {{ model.charts.chain_price | tojson }};
     var ramp = ["#9cc3fb", "#4d94f8", "#0068f5", "#0b3668"].concat(P);
     mk("chart-chain-price", {

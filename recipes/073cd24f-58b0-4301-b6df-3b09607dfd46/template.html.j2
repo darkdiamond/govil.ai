@@ -271,7 +271,7 @@
       c.setOption(window.GovEcharts.option({
         color: window.GOVIL_PALETTE,
         tooltip: { trigger: "axis", valueFormatter: function (v) {
-          return (typeof v === "number") ? v.toLocaleString("he-IL") + " אלמ״ק" : "—";
+          return (typeof v === "number") ? v.toLocaleString("he-IL") + " אלמ״ק" : "–";
         } },
         grid: { left: 16, right: 28, top: 24, bottom: 24, containLabel: true },
         xAxis: { type: "category", data: s.x },

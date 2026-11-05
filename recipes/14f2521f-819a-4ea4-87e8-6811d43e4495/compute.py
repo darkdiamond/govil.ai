@@ -266,7 +266,7 @@ def compute(frames):
         top = sm.iloc[0]
         insights.append({"id": "shared", "text_he": (
             f"{n(n_shared_c)} מדינות ({pct(shared_share)}) מכוסות בידי {n(n_shared_m)} נציגויות שמשרתות יותר ממדינה אחת. "
-            f"הרחבה שבהן — {top['type']} ב{top['city']} — משרתת {n(top['n_countries'])} מדינות. "
+            f"הרחבה שבהן, {top['type']} ב{top['city']}, משרתת {n(top['n_countries'])} מדינות. "
             f"לפחות {n(abroad_lb)} מדינות משורתות אפוא מנציגות שאינה יושבת בשטחן.")})
 
     if len(multi_names) and int(multi.iloc[0]["n_missions"]) >= 3:
@@ -281,7 +281,7 @@ def compute(frames):
         else:
             second = "."
         insights.append({"id": "multi", "text_he": (
-            f"ב{c0} פועלות {n(cnt0)} נציגויות ישראליות{extra} — הפריסה הצפופה ביותר במאגר;{second}")})
+            f"ב{c0} פועלות {n(cnt0)} נציגויות ישראליות{extra}, הפריסה הצפופה ביותר במאגר;{second}")})
 
     if n_known >= 10:
         reg_req = []
@@ -324,7 +324,7 @@ def compute(frames):
     site_i = [c for c, _ in CONTACT_FIELDS].index("Atar")
     if n_missions >= 10:
         txt = (f"{n(all_fields)} מתוך {n(n_missions)} הנציגויות ({pct(all_fields / n_missions * 100)}) מפרסמות את כל "
-               f"פרטי הקשר — כתובת, שעות, דוא״ל, טלפון, פקס ואתר.")
+               f"פרטי הקשר: כתובת, שעות, דוא״ל, טלפון, פקס ואתר.")
         if contact_vals[fax_i] >= 50:
             txt += f" מספר פקס עדיין מופיע אצל {pct(contact_vals[fax_i])} מהנציגויות."
         missing_site = n_missions - contact_counts[site_i]
@@ -336,12 +336,12 @@ def compute(frames):
     non_emb = [f"{k} ({n(v)})" for k, v in types.items() if k != top_type]
     singles = int(size_dist.get(1, 0))
     labels = {
-        "lede": (f"מאגר משרד החוץ מונה {n(n_missions)} נציגויות ישראליות בעולם — שגרירויות, קונסוליות כלליות, "
-                 f"משלחות ונציגויות מיוחדות — המשרתות {n(n_countries)} מדינות. לכל נציגות מופיעים מעמדה, העיר, "
+        "lede": (f"מאגר משרד החוץ מונה {n(n_missions)} נציגויות ישראליות בעולם (שגרירויות, קונסוליות כלליות, "
+                 f"משלחות ונציגויות מיוחדות) המשרתות {n(n_countries)} מדינות. לכל נציגות מופיעים מעמדה, העיר, "
                  f"הכתובת, שעות קבלת הקהל ודרכי ההתקשרות, ולכל מדינה גם האם נדרשת אשרת כניסה בכל כיוון."),
         "missions_kpi": "נציגויות",
         "countries_kpi": "מדינות שבהן יש לישראל נציגות או כיסוי",
-        "top_type_kpi": f"{top_type} — המעמד הנפוץ",
+        "top_type_kpi": f"{top_type}, המעמד הנפוץ",
         "shared_kpi": "מדינות המשורתות בנציגות משותפת",
         "regions_note": (f"מספר המדינות בכל אזור, לפי שיוך האזורים של משרד החוץ. {n(n_countries - n_shared_c)} מדינות "
                          f"מקבלות שירות מנציגות ייעודית בלבד, ו-{n(n_shared_c)} חולקות נציגות עם מדינות אחרות."),
@@ -352,11 +352,11 @@ def compute(frames):
         "types_aria": "גרף עמודות: נציגויות לפי מעמד.",
         "types_caption": "נציגויות לפי מעמד.",
         "shared_note": (f"{n(singles)} נציגויות משרתות מדינה אחת בלבד; {n(n_shared_m)} משרתות כמה מדינות. "
-                        f"מוצגות {n(min(TOP_SHARED, n_shared_m))} הנציגויות המשרתות את מספר המדינות הגדול ביותר — "
+                        f"מוצגות {n(min(TOP_SHARED, n_shared_m))} הנציגויות המשרתות את מספר המדינות הגדול ביותר; "
                         f"הרשימה המלאה בטבלה."),
         "shared_aria": "גרף עמודות אופקי: נציגויות לפי מספר המדינות שהן משרתות.",
         "shared_caption": "נציגויות המשרתות יותר ממדינה אחת.",
-        "multi_note": (f"מדינות שבהן פועלת יותר מנציגות אחת — לרוב שגרירות בבירה ולצידה קונסוליות כלליות או משלחת "
+        "multi_note": (f"מדינות שבהן פועלת יותר מנציגות אחת, לרוב שגרירות בבירה ולצידה קונסוליות כלליות או משלחת "
                        f"לארגון בינלאומי. מוצגות עד {n(TOP_MULTI)} מדינות."),
         "multi_aria": "גרף עמודות אופקי מוערם: מדינות עם כמה נציגויות, לפי מעמד הנציגות.",
         "multi_caption": "מדינות עם יותר מנציגות אחת, לפי מעמד.",

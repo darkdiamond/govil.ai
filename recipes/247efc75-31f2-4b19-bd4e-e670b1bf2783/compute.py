@@ -213,7 +213,7 @@ def compute(frames):
           .sort_values(["key", "n", "country"], ascending=[True, False, True], kind="stable"))
     inv_country = ic.drop_duplicates("key").set_index("key")["country"]
     top_inv = {"names": [names[k] for k in top.index], "values": [int(v) for v in top]}
-    top_rows = [{"name": names[k], "n": _int(v), "country": inv_country.get(k, "—")}
+    top_rows = [{"name": names[k], "n": _int(v), "country": inv_country.get(k, "–")}
                 for k, v in top.items()]
     p_counts = [int(((per_inv >= lo) & (per_inv <= hi)).sum()) for lo, hi, _ in PROLIFIC_BUCKETS]
     prolific = {"names": [b[2] for b in PROLIFIC_BUCKETS], "values": p_counts}
@@ -352,7 +352,7 @@ def compute(frames):
                     f"{_band_range(z)}, לעומת {m0:.1f} בטווח {_band_range(a)}.")
         word = "גדל" if ch > 0 else "קטן"
         return (f"צוות הממציאים {word} לאורך הזמן: מ-{m0:.1f} ממציאים בממוצע לבקשה בטווח "
-                f"{_band_range(a)} ל-{m1:.1f} בטווח {_band_range(z)} — טווח מאוחר יותר משמעו בקשות חדשות יותר.")
+                f"{_band_range(a)} ל-{m1:.1f} בטווח {_band_range(z)}. טווח מאוחר יותר משמעו בקשות חדשות יותר.")
 
     def ins_solo():
         if len(full_shown) < 4:
@@ -372,7 +372,7 @@ def compute(frames):
         k1, v1 = per_inv.index[1], int(per_inv.iloc[1])
         if v0 == v1:
             return None
-        gap = f" — פי {v0 / v1:.1f} מהבא אחריו, {names[k1]} ({_int(v1)})" if v0 >= 1.5 * v1 \
+        gap = f", פי {v0 / v1:.1f} מהבא אחריו, {names[k1]} ({_int(v1)})" if v0 >= 1.5 * v1 \
             else f"; אחריו {names[k1]} ({_int(v1)})"
         return f"הממציא הפורה ביותר במאגר הוא {names[k0]}, החתום על {_int(v0)} בקשות{gap}."
 
@@ -406,7 +406,7 @@ def compute(frames):
         head = (f"בבקשות שמספרן {_int(era_start)} ומעלה, {_pct(il / tot, 0)} מהממציאים רשומים "
                 f"בישראל")
         if lv > il:
-            return head + f" — פחות מ{lead}, שממנה {_pct(lv / tot, 0)} מהממציאים."
+            return head + f", פחות מ{lead}, שממנה {_pct(lv / tot, 0)} מהממציאים."
         return head + f"; {lead} מובילה מבין מדינות חו״ל עם {_pct(lv / tot, 0)}."
 
     def ins_rising():
@@ -459,7 +459,7 @@ def compute(frames):
         il_pre = float((pk["country"] == ISRAEL).mean()) if len(pk) else 0
         who = f", {_pct(il_pre, 0)} מהן בישראל" if il_pre >= 0.6 else ""
         return (f"רישום הכתובות השתנה: לפני בקשה {_int(era_start)} רק {_pct(pre_addr, 0)} מרשומות "
-                f"הממציאים כוללות כתובת{who}; מאז — {_pct(era_addr, 0)}. "
+                f"הממציאים כוללות כתובת{who}; מאז השיעור הוא {_pct(era_addr, 0)}. "
                 "לכן פילוח המדינות מבוסס רק על הבקשות החדשות.")
 
     rules = [("team", ins_team()), ("solo", ins_solo()), ("leader", ins_leader()),
@@ -483,7 +483,7 @@ def compute(frames):
         "inventors": {"value": n_inventors, "display": _int(n_inventors), "tone": "brand"},
         "team_last": {"value": m_last, "display": f"{m_last:.1f}", "tone": team_tone},
         "il_share": {"value": il_share,
-                     "display": "—" if il_share is None else _pct(il_share, 0),
+                     "display": "–" if il_share is None else _pct(il_share, 0),
                      "tone": "brand"},
     }
 

@@ -125,9 +125,9 @@ def insight_office(off):
         tail = (f"; אחריהם {nxt.index[0]} ({n(nxt.iloc[0])}) ו{nxt.index[1]}"
                 f" ({n(nxt.iloc[1])})")
     if len(leaders) == 1:
-        head = f"משרד {leaders[0]} מפקח על מספר החברות הגדול ביותר — {n(top)}"
+        head = f"משרד {leaders[0]} מפקח על מספר החברות הגדול ביותר: {n(top)}"
     else:
-        head = (f"משרדי {join_he(leaders)} מפקחים על מספר החברות הגדול ביותר —"
+        head = (f"משרדי {join_he(leaders)} מפקחים על מספר החברות הגדול ביותר:"
                 f" {n(top)} כל אחד")
     return head + tail + f". בסך הכול {n(len(off))} משרדים מפקחים על חברות ממשלתיות."
 
@@ -144,7 +144,7 @@ def insight_missing(comp):
     lead = by_st.index[0]
     lead_tot = int((comp["status"] == lead).sum())
     s = (f"ל-{n(len(miss))} מתוך {n(total)} החברות אין דירקטורים ברשימת המכהנים;"
-         f' הבולטות הן חברות בסטטוס "{lead}" — {n(by_st.iloc[0])} מתוך {n(lead_tot)}')
+         f' הבולטות הן חברות בסטטוס "{lead}": {n(by_st.iloc[0])} מתוך {n(lead_tot)}')
     if none:
         s += (f". לחברות של משרד {none[0]} לא רשום אף דירקטור" if len(none) == 1 else
               f". לחברות של משרדי {join_he(none)} לא רשום אף דירקטור")
@@ -160,7 +160,7 @@ def insight_biggest(boards):
     if top["size"] < med * 1.5:
         return None
     med_s = f"{med:.1f}".rstrip("0").rstrip(".")
-    return (f"הדירקטוריון הגדול ביותר ברשימה הוא של {top['company']} — {n(top['size'])}"
+    return (f"הדירקטוריון הגדול ביותר ברשימה הוא של {top['company']}, עם {n(top['size'])}"
             f" חברים, ואחריו {second['company']} ({n(second['size'])}); החציון בין"
             f" {n(len(boards))} החברות שיש להן דירקטוריון ברשימה הוא {med_s} חברים.")
 
@@ -174,7 +174,7 @@ def insight_small(boards):
         return None
     return (f"ב-{n(len(small))} חברות ({pct(len(small) / len(boards) * 100)} מהחברות עם"
             f" דירקטוריון ברשימה) רשומים שני דירקטורים לכל היותר, ובהן {n(one)} עם דירקטור"
-            " יחיד — ייתכן שחלק מהמושבים פנויים או טרם עודכנו.")
+            " יחיד. ייתכן שחלק מהמושבים פנויים או טרם עודכנו.")
 
 
 def insight_gaps(boards, ceo_companies):
@@ -202,7 +202,7 @@ def insight_gender(members):
         return None
     share = w / (w + m) * 100
     s = (f"לפי הערכה על בסיס השם הפרטי, {pct(share)} מחברי הדירקטוריונים שסווגו הן נשים"
-         f" — {n(w)} נשים ו-{n(m)} גברים")
+         f": {n(w)} נשים ו-{n(m)} גברים")
     if unk:
         s += f"; {n(unk)} שמות שאינם חד-משמעיים לא סווגו"
     return s + "."
@@ -239,7 +239,7 @@ def insight_no_women(gb, min_size=5):
     names = zero["company"].tolist()
     lst = join_he(names[:3]) + (" ועוד" if len(names) > 3 else "")
     return (f"ב-{n(len(zero))} מתוך {n(len(big))} הדירקטוריונים בני {n(min_size)} חברים ומעלה"
-            f" שכל חבריהם סווגו אין אף אישה — {lst}.")
+            f" שכל חבריהם סווגו אין אף אישה: {lst}.")
 
 
 def insight_multi(multi):
@@ -253,7 +253,7 @@ def insight_multi(multi):
                 f"{n(top)} דירקטוריונים.") if len(lead) > 1 else (
                 f"{n(len(multi))} אנשים מכהנים ביותר מדירקטוריון אחד; {who} מכהן/ת ב-"
                 f"{n(top)} דירקטוריונים.")
-    return (f"{n(len(multi))} אנשים מכהנים ביותר מדירקטוריון אחד — כל אחד מהם"
+    return (f"{n(len(multi))} אנשים מכהנים ביותר מדירקטוריון אחד, כל אחד מהם"
             f" בשני דירקטוריונים לכל היותר.") if top == 2 else (
             f"{n(len(multi))} אנשים מכהנים ביותר מדירקטוריון אחד, עד {n(top)} כל אחד.")
 
@@ -417,7 +417,7 @@ def compute(frames):
          "counts": [gr[nm][i] for nm, _ in role_groups]}
         for i, g in enumerate(genders)]}
     tbl_grole = [{"name": nm, "vals": [n(v) for v in gr[nm]],
-                  "share": pct_plain(gr[nm][0] / (gr[nm][0] + gr[nm][1]) * 100) if gr[nm][0] + gr[nm][1] else "—"}
+                  "share": pct_plain(gr[nm][0] / (gr[nm][0] + gr[nm][1]) * 100) if gr[nm][0] + gr[nm][1] else "–"}
                  for nm, _ in role_groups]
 
     gb = members.pivot_table(index="company_full", columns="gender", values="person",
@@ -449,7 +449,7 @@ def compute(frames):
         {"name": g, "color": G_COLOR[g], "data": [v[i] for _, v in go_rows]}
         for i, g in enumerate(genders)]}
     tbl_goffice = [{"name": o, "seats": n(sum(v)), "vals": [n(x) for x in v],
-                    "share": pct_plain(v[0] / (v[0] + v[1]) * 100) if v[0] + v[1] else "—"}
+                    "share": pct_plain(v[0] / (v[0] + v[1]) * 100) if v[0] + v[1] else "–"}
                    for o, v in go_rows]
 
     # ── multi-board directors ──
@@ -510,7 +510,7 @@ def compute(frames):
         "listed_kpi": f"חברות עם דירקטורים ברשימה (מתוך {n(total)})",
         "seats_kpi": f"מושבי דירקטוריון ({n(people)} אנשים)",
         "women_kpi": "נשים בדירקטוריונים (הערכה לפי שם)" if g_ok else "נשים בדירקטוריונים (הערכה חלקית)",
-        "status_note": (f"{n(total)} החברות לפי סטטוס משפטי, ולכל סטטוס — לכמה מהן רשומים"
+        "status_note": (f"{n(total)} החברות לפי סטטוס משפטי, ולכל סטטוס, לכמה מהן רשומים"
                         f" דירקטורים מכהנים ({n(listed)} בסך הכול)."),
         "status_aria": f"תרשים עמודות: {n(total)} חברות לפי סטטוס, עם וללא דירקטורים ברשימה",
         "status_caption": "חברות לפי סטטוס",

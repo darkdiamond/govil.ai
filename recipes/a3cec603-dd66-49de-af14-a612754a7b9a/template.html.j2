@@ -338,7 +338,7 @@
       c.setOption(window.GovEcharts.option({
         tooltip: { position: "top", formatter: function (p) {
           return yName + ": " + h.y[p.value[1]] + " · " + xName + ": " + h.x[p.value[0]] +
-                 " — " + p.value[2].toLocaleString("he-IL");
+                 " (" + p.value[2].toLocaleString("he-IL") + ")";
         } },
         grid: { left: 16, right: 16, top: 32, bottom: 72, containLabel: true },
         xAxis: { type: "category", data: h.x, name: xName, nameLocation: "middle", nameGap: 28,

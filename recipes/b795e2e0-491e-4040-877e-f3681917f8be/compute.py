@@ -248,7 +248,7 @@ def insight_patch(patches):
     km2 = best[0] / 1e6
     area = (f"{km2:.2f} קמ״ר" if best[0] >= 1_000_000 else f"{_int(best[0])} מ״ר")
     return (f"מתוך {_int(len(patches))} אתרים שמצוין להם גודל, הגדול ביותר הוא "
-            f"״{_short(best[3], 70)}״ — כ-{area} ({_int(best[1])} על {_int(best[2])} מטרים).")
+            f"״{_short(best[3], 70)}״, בשטח של כ-{area} ({_int(best[1])} על {_int(best[2])} מטרים).")
 
 
 def insight_shift(df, cats, mlat, mlon):

@@ -91,7 +91,7 @@ def insight_window(gaps):
     if share < 0.9:
         return None
     every = "בכל החברות" if share == 1 else f"ב-{n((g == mode).sum())} מתוך {n(len(g))} החברות ({pct(share * 100)})"
-    return (f"{every} מועד החיסול הצפוי נקבע {mode} ימים בדיוק לאחר אישור הבקשה — "
+    return (f"{every} מועד החיסול הצפוי נקבע {mode} ימים בדיוק לאחר אישור הבקשה. "
             f"זה פרק הזמן שבו נושים ובעלי עניין יכולים להגיש התנגדות לפני שהחברה תחוסל.")
 
 
@@ -104,7 +104,7 @@ def insight_soon(df, ref):
         return None
     first = fut["expected"].min()
     first_n = int((fut["expected"] == first).sum())
-    first_txt = "הראשונה בתור" if first_n == 1 else f"הראשונות בתור — {n(first_n)} חברות —"
+    first_txt = "הראשונה בתור" if first_n == 1 else f"הראשונות בתור ({n(first_n)} חברות)"
     return (f"{n(len(soon))} חברות צפויות להתחסל ב-{SOON_DAYS} הימים שאחרי {d_he(ref)} אם לא תוגש "
             f"התנגדות; {first_txt} ב-{d_he(first)}.")
 
@@ -202,7 +202,7 @@ def insight_status(status, total):
         return None
     rest = [(k, int(v)) for k, v in status.items() if k != "פעילה" and v > 0]
     tail = "; ".join(f"{n(v)} במעמד ״{k}״" for k, v in rest)
-    return (f"{pct(active / total * 100)} מהחברות ברשימה עדיין במעמד ״פעילה״ — הבקשה אושרה אך "
+    return (f"{pct(active / total * 100)} מהחברות ברשימה עדיין במעמד ״פעילה״: הבקשה אושרה אך "
             f"החיסול טרם הושלם" + (f"; {tail}" if tail else "") + ".")
 
 
@@ -309,7 +309,7 @@ def compute(frames):
            .sort_values(["expected", "approved", "num"], kind="stable").head(NEXT_UP))
     next_rows = [{"name": r["name"], "num": r["num"], "city": r["city"],
                   "approved": d_short(r["approved"]), "expected": d_short(r["expected"]),
-                  "violator": "כן" if r["violator"] else "—"} for _, r in nxt.iterrows()]
+                  "violator": "כן" if r["violator"] else "–"} for _, r in nxt.iterrows()]
     strag_sorted = strag.sort_values(["expected", "num"], kind="stable")
     strag_rows = [{"name": r["name"], "num": r["num"], "approved": d_short(r["approved"]),
                    "expected": d_short(r["expected"]), "status": r["status"],
@@ -349,12 +349,12 @@ def compute(frames):
     gap_txt = f"{gap_mode} ימים" if gap_mode is not None else "פרק זמן קבוע"
     unit = "חודש" if by_month else "שבוע"
     peak_label = tl_table[peak_i]["label"] if tl_table else ""
-    flags_txt = "; ".join(f"{k} — {n(v)}" for k, v in flag_counts.items())
+    flags_txt = "; ".join(f"{k} ({n(v)})" for k, v in flag_counts.items())
     top_dow = days_shown[max(range(len(dow_vals)), key=lambda i: (dow_vals[i], -i))] if dow_vals else 0
     labels = {
         "lede": (f"רשימת החברות שבקשתן לפירוק מרצון בהליך מזורז אושרה על ידי רשם החברות וטרם חוסלו: "
                  f"{n(total)} חברות פרטיות ישראליות. אם לא תוגש התנגדות, כל חברה תחוסל {gap_txt} "
-                 f"לאחר אישור הבקשה, ואז היא יוצאת מהרשימה — לכן הרשימה מכסה בעיקר את האישורים "
+                 f"לאחר אישור הבקשה, ואז היא יוצאת מהרשימה, ולכן הרשימה מכסה בעיקר את האישורים "
                  f"שבין {d_he(first_core)} ל-{d_he(ref)} (האישור האחרון במאגר)."),
         "ref_kpi": f"אושרו ב-{SOON_DAYS} הימים האחרונים (עד {d_short(ref)})",
         "soon_kpi": f"צפויות להתחסל ב-{SOON_DAYS} הימים הבאים",
@@ -364,7 +364,7 @@ def compute(frames):
                     f"חוסלו, ולכן אין בה אישורים ותיקים מחלון ההתנגדות."
                     + (f" לא כולל {n(len(strag))} חברות שמועד החיסול שלהן כבר חלף (ראו טבלה בהמשך)."
                        if len(strag) else "")
-                    + (f" ה{unit} האחרון חלקי — עד {d_he(ref)}." if tl_partial else "")
+                    + (f" ה{unit} האחרון חלקי, עד {d_he(ref)}." if tl_partial else "")
                     + (f" שיא: {peak_label}, {n(tl_vals[peak_i])} בקשות." if tl_vals else "")),
         "tl_aria": (f"גרף עמודות: בקשות פירוק מזורז שאושרו בכל {unit}, מ-{d_he(first_core)} עד {d_he(ref)}. "
                     + (f"שיא של {n(tl_vals[peak_i])} בקשות ב{unit} {peak_label}." if tl_vals else "")),
@@ -373,7 +373,7 @@ def compute(frames):
         "dow_note": (f"כל החברות ברשימה לפי יום האישור בשבוע. היום העמוס: יום {DAYS_HE[top_dow]}."),
         "dow_aria": f"גרף עמודות: בקשות שאושרו לפי יום בשבוע. היום העמוס ביותר: יום {DAYS_HE[top_dow]}.",
         "dow_caption": "מספר הבקשות שאושרו לפי יום בשבוע.",
-        "heat_aria": "מפת חום: מספר האישורים לפי שבוע ויום בשבוע — מראה ימי אישור מרוכזים.",
+        "heat_aria": "מפת חום: מספר האישורים לפי שבוע ויום בשבוע, שמראה ימי אישור מרוכזים.",
         "heat_caption": "מספר האישורים בכל שבוע (שורה) ויום בשבוע (עמודה).",
         "cities_aria": (f"תרשים עמודות: {TOP_CITIES} הערים עם מספר החברות הגבוה ברשימה. "
                         f"מובילה: {c_names[0]} עם {n(c_vals[0])} חברות." if c_names else "תרשים ערים."),

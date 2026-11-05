@@ -285,7 +285,7 @@ def compute(frames):
         s = sub.head(n)
         return ({"names": [names[k] for k in s.index], "values": [int(v) for v in s],
                  "il": [k in il_keys for k in s.index]},
-                [{"name": names[k], "n": _int(v), "country": key_country.get(k, "—"),
+                [{"name": names[k], "n": _int(v), "country": key_country.get(k, "–"),
                   "type": TYPE_HE[key_type[k]]} for k, v in s.items()])
     top, top_rows = top_list(per_key, TOP_APPLICANTS)
     il_per = per_key[per_key.index.isin(il_keys)]
@@ -470,7 +470,7 @@ def compute(frames):
         v0, v1 = il_s[i0] + mx_s[i0], il_s[i1] + mx_s[i1]
         tot = comp_tot["il"] + comp_tot["mixed"]
         head = (f"{_pct(tot / comp_n, 0)} מהבקשות שמספרן {_int(era_start)} ומעלה הוגשו בידי מבקש "
-                f"ישראלי לפחות; כל השאר — בידי מבקשים מחו״ל בלבד.")
+                f"ישראלי לפחות; כל השאר הוגשו בידי מבקשים מחו״ל בלבד.")
         if abs(v1 - v0) < 2:
             return head + f" השיעור יציב: {v1:.1f}% בטווח {_band_range(ck[-1])}."
         word = "עלה" if v1 > v0 else "ירד"
@@ -491,7 +491,7 @@ def compute(frames):
         txt = (f"{lead} היא מקור המבקשים הגדול: {_pct(d[lead] / tot, 0)} מרשומות המבקשים, לפני "
                f"{second} ({_pct(d[second] / tot, 0)})")
         if ISRAEL not in (lead, second) and ISRAEL in d:
-            txt += f"; ישראל — {_pct(d[ISRAEL] / tot, 0)}"
+            txt += f"; חלקה של ישראל {_pct(d[ISRAEL] / tot, 0)}"
         return txt + "."
 
     def ins_il_type():
@@ -541,8 +541,8 @@ def compute(frames):
         if len(full_shown) < 4:
             return None
         z = full_shown[-1]
-        return (f"בטווח {_band_range(z)} הופיעו {_int(new_y[idx(z)])} מבקשים לראשונה — "
-                f"{new_share[idx(z)]:.1f}% מהמבקשים בטווח.")
+        return (f"בטווח {_band_range(z)} הופיעו {_int(new_y[idx(z)])} מבקשים לראשונה ("
+                f"{new_share[idx(z)]:.1f}% מהמבקשים בטווח).")
 
     def ins_placeholder():
         if not n_ph_apps:
@@ -568,15 +568,15 @@ def compute(frames):
     kpis = {
         "apps": {"value": n_apps, "display": _int(n_apps), "tone": "brand"},
         "applicants": {"value": n_appl, "display": _int(n_appl), "tone": "brand"},
-        "il_share": {"value": il_share, "display": "—" if il_share is None else _pct(il_share, 0),
+        "il_share": {"value": il_share, "display": "–" if il_share is None else _pct(il_share, 0),
                      "tone": "info" if il_share is not None and il_share < 0.5 else "brand"},
         "conc_last": {"value": conc_last, "display": f"{conc_last:.1f}%", "tone": conc_tone},
     }
 
     lo_app, hi_app = int(apps["app"].min()), int(apps["app"].max())
     lede = (f"{_int(n_rows)} רשומות מבקשים על {_int(n_apps)} בקשות פטנט ישראליות "
-            f"(מספרי בקשה {_int(lo_app)}–{_int(hi_app)}), עם {_int(n_appl)} מבקשים שונים — "
-            f"בעלי הזכויות בבקשה: חברות, מוסדות מחקר, ממשלות ואנשים פרטיים. "
+            f"(מספרי בקשה {_int(lo_app)}–{_int(hi_app)}), עם {_int(n_appl)} מבקשים שונים "
+            f"(בעלי הזכויות בבקשה): חברות, מוסדות מחקר, ממשלות ואנשים פרטיים. "
             f"למאגר אין עמודת תאריך; מספרי הבקשה מוקצים ברצף לפי סדר ההגשה, ולכן הדף מציג "
             f"שינויים לאורך זמן לפי טווחים של {_int(BAND)} מספרי בקשה.")
     if dups:
@@ -619,9 +619,9 @@ def compute(frames):
                                                     if partial else "")
                            + (f" הטווחים שלפני {_int(first_shown * BAND)} אוחדו." if early else "")),
             "types_note": (f"{_int(n_rec)} רשומות מבקשים לפי סוג המבקש. הסוג מוערך לפי צורת השם: "
-                           "סיומת תאגיד או מילים כמו טכנולוגיות ותעשיות — חברה; אוניברסיטה, מכון או "
-                           "חברת מחקר ופיתוח — אקדמיה ומחקר; מדינה, משרד או מזכיר — ממשלה; "
-                           "שם קצר של אדם בלי סממנים כאלה — אדם פרטי."),
+                           "סיומת תאגיד או מילים כמו טכנולוגיות ותעשיות מסמנות חברה; אוניברסיטה, מכון או "
+                           "חברת מחקר ופיתוח מסמנים אקדמיה ומחקר; מדינה, משרד או מזכיר מסמנים ממשלה; "
+                           "שם קצר של אדם בלי סממנים כאלה מסמן אדם פרטי."),
             "type_mix_note": ("שיעור כל סוג מבקש מבין רשומות המבקשים בכל טווח של מספרי בקשה."
                               + (" הטווח האחרון חלקי." if partial else "")),
             "top_note": (f"{TOP_APPLICANTS} המבקשים עם מספר הבקשות הגדול ביותר. זיהוי לפי שם (באיחוד "

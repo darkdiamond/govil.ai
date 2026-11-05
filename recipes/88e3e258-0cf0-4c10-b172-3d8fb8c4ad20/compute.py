@@ -157,7 +157,7 @@ def compute(frames):
         drop = a - b
         two = (float(unk.loc[y0] + pre.loc[y0]) - float(unk.loc[y1] + pre.loc[y1]))
         if drop > 0 and two / drop >= 0.5:
-            s += (f", אך {min(two / drop, 1) * 100:.0f}% מהירידה נובעים משני סיווגים בלבד — "
+            s += (f", אך {min(two / drop, 1) * 100:.0f}% מהירידה נובעים משני סיווגים בלבד: "
                   f"\"{UNKNOWN}\" ו\"{PRECURSOR}\". בשאר הסיווגים יחד נרשמו "
                   f"{_n(rest.loc[y0])} אירועים ב-{y0} ו-{_n(rest.loc[y1])} ב-{y1}.")
         else:
@@ -173,7 +173,7 @@ def compute(frames):
         lu = int(has.max())
         return (f"הסיווג \"{UNKNOWN}\" מופיע עד {lu} בלבד ({_n(piv[UNKNOWN].sum())} אירועים, "
                 f"{float(piv.loc[has, UNKNOWN].sum() / tot.loc[has].sum()) * 100:.0f}% מהאירועים באותן שנים) "
-                f"ונעלם מ-{lu + 1} — שינוי בסיווג, ולכן השוואה בין השנים שלפני ואחרי "
+                f"ונעלם מ-{lu + 1}. זהו שינוי בסיווג, ולכן השוואה בין השנים שלפני ואחרי "
                 f"{lu + 1} אינה השוואה של אותו דבר.")
 
     def ins_yoy():
@@ -185,7 +185,7 @@ def compute(frames):
         ch = (b - a) / a * 100
         word = ("דומה לשנה הקודמת" if abs(ch) < STABLE_PCT else
                 f"{'עלייה' if ch > 0 else 'ירידה'} של {abs(ch):.0f}% לעומת {int(cy.index[-2])}")
-        return f"ב-{y1} נרשמו {_n(b)} אירועים בטיחותיים — {word} ({_n(a)})."
+        return f"ב-{y1} נרשמו {_n(b)} אירועים בטיחותיים, {word} ({_n(a)})."
 
     def ins_leader():
         row = cy.loc[y1]
@@ -194,7 +194,7 @@ def compute(frames):
             return None
         order = sorted(row.index, key=lambda c: (-row[c], c))
         c1, c2 = order[0], order[1] if len(order) > 1 else None
-        s = (f"ב-{y1} הסיווג הנפוץ היה \"{c1}\" — {_n(row[c1])} אירועים "
+        s = (f"ב-{y1} הסיווג הנפוץ היה \"{c1}\", עם {_n(row[c1])} אירועים "
              f"({row[c1] / ctot[y1] * 100:.0f}% מהשנה)")
         if c2 and row[c2] > 0:
             s += f", ואחריו \"{c2}\" ({_n(row[c2])})"
@@ -228,7 +228,7 @@ def compute(frames):
             return None
         hits.sort(key=lambda c: (-cur[c], c))
         c = hits[0]
-        return (f"ב-{y1} נרשמו {_n(cur[c])} אירועים בסיווג \"{c}\" — המספר הגבוה ביותר בסיווג זה "
+        return (f"ב-{y1} נרשמו {_n(cur[c])} אירועים בסיווג \"{c}\", המספר הגבוה ביותר בסיווג זה "
                 f"מאז {y0} (השיא הקודם: {_n(hist[c].max())}).")
 
     def ins_suicide():
@@ -265,7 +265,7 @@ def compute(frames):
         chg_disp = "0%" if r == 0 else ("+" if r > 0 else "−") + f"{abs(r)}%"
         chg = {"value": round(ch, 1), "display": chg_disp, "tone": tone}
     else:
-        chg = {"value": 0, "display": "—", "tone": "brand"}
+        chg = {"value": 0, "display": "–", "tone": "brand"}
     kpis = {
         "last": {"value": int(last), "display": _n(last), "tone": chg["tone"]},
         "change": chg,
@@ -292,7 +292,7 @@ def compute(frames):
         "win_prev": win_labels["prev"] if win_labels else "",
         "win_rec": win_labels["rec"] if win_labels else "",
         "decomp_lede": (f"ב-{y0} היו \"{UNKNOWN}\" ו\"{PRECURSOR}\" יחד {_n(unk.loc[y0] + pre.loc[y0])} "
-                        f"מתוך {_n(ctot.loc[y0])} אירועים; ב-{y1} — {_n(unk.loc[y1] + pre.loc[y1])} "
+                        f"מתוך {_n(ctot.loc[y0])} אירועים; ב-{y1} היו {_n(unk.loc[y1] + pre.loc[y1])} "
                         f"מתוך {_n(ctot.loc[y1])}."),
         "cats_lede": (f"\"{cat_order[0]}\" הוא הסיווג הגדול ביותר בכל התקופה: {_n(cat_tot[cat_order[0]])} "
                       f"אירועים, {cat_tot[cat_order[0]] / grand * 100:.0f}% מהסך."),
@@ -308,7 +308,7 @@ def compute(frames):
                   for i, x in enumerate(trend["x"])],
         "dumb": [{"c": r["cat"], "before": _avg(r["before"]), "after": _avg(r["after"])} for r in dumb],
         "share_head": [s["name"] for s in share["series"]],
-        "share": [{"y": x, "v": ["—" if s["data"][i] is None else f"{s['data'][i]:.1f}"
+        "share": [{"y": x, "v": ["–" if s["data"][i] is None else f"{s['data'][i]:.1f}"
                                  for s in share["series"]]}
                   for i, x in enumerate(share["x"])],
     }

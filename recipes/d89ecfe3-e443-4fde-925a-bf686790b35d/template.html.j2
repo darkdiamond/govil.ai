@@ -407,7 +407,7 @@
     var c6 = echarts.init(document.getElementById("chart-km"));
     c6.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "—" : v.toLocaleString("he-IL") + " ק״מ"; } },
+      tooltip: { trigger: "axis", valueFormatter: function (v) { return v === null || v === undefined ? "–" : v.toLocaleString("he-IL") + " ק״מ"; } },
       legend: { bottom: 0 },
       grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
       xAxis: { type: "category", data: k.x },

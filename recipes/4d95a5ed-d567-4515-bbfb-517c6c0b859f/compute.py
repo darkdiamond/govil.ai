@@ -84,7 +84,7 @@ def pct(v, digits=1):
 def num_disp(v, sig=3):
     """Significant-figure display with a real minus sign."""
     if v is None or (isinstance(v, float) and math.isnan(v)):
-        return "—"
+        return "–"
     if v == 0:
         return "0"
     a = abs(v)
@@ -192,7 +192,7 @@ def _products(df):
         r["net"] = r["gwp_total_sum"] if not pd.isna(r["gwp_total_sum"]) else r["gross"] + r["st_D"]
         for col, unit_col in [(c, u) for _, c, _, u, _ in INDICATORS]:
             if unit_col:
-                r["u_" + col] = _mode(g[unit_col].map(norm_space).replace("", "—"))
+                r["u_" + col] = _mode(g[unit_col].map(norm_space).replace("", "–"))
         rows.append(r)
     p = pd.DataFrame(rows)
     # display names: Hebrew part, full name where the short form collides
@@ -224,7 +224,7 @@ def insight_leader(df, p):
     np_ = int((p["producer"] == top).sum())
     return (f"{top} מחזיקה {n(cnt)} מתוך {n(len(df))} הפריטים במאגר ({pct(share)}), "
             f"ב-{n(np_)} מתוך {n(len(p))} המוצרים"
-            + (f" — הדיווח הוולונטרי נשען עד כה על {n(len(items))} יצרנים בלבד." if len(items) <= 5 else "."))
+            + (f". הדיווח הוולונטרי נשען עד כה על {n(len(items))} יצרנים בלבד." if len(items) <= 5 else "."))
 
 
 def insight_variants(df, p):
@@ -254,7 +254,7 @@ def insight_spread(groups):
         return None
     ratio, g, lo, hi = best
     return (f"בקבוצת {g['cls']} (ל-1 {g['unit']}) טביעת הרגל הפחמנית נעה בין {num_disp(lo[0])} "
-            f"({lo[1]}) ל-{num_disp(hi[0])} ק\"ג CO₂ שו\"ע ({hi[1]}) — פער של פי {ratio:.1f} "
+            f"({lo[1]}) ל-{num_disp(hi[0])} ק\"ג CO₂ שו\"ע ({hi[1]}), פער של פי {ratio:.1f} "
             f"בין מוצרים מאותו סוג.")
 
 
@@ -266,7 +266,7 @@ def insight_eol(stage_rows):
     if top["eol"] < EOL_MIN:
         return None
     return (f"ב{top['name']} סוף החיים (C1–C4) אחראי בממוצע ל-{pct(top['eol'])} מהפליטות הגולמיות, "
-            f"ומתוכו הפירוק וההריסה (C1) ל-{pct(top['c1'])} — "
+            f"ומתוכו הפירוק וההריסה (C1) ל-{pct(top['c1'])}, "
             f"לעומת {pct(top['prod'])} בשלבי הייצור A1–A3.")
 
 
@@ -280,7 +280,7 @@ def insight_credit(p):
     if top["rel"] < 0.05:
         return None
     return (f"ל-{n(len(cr))} מתוך {n(len(p))} המוצרים יש זיכוי מודול D (מיחזור ושימוש חוזר מעבר "
-            f"לגבולות המערכת). הגדול ביותר — {top['disp']}: זיכוי של {num_disp(-top['st_D'])} ק\"ג CO₂ שו\"ע, "
+            f"לגבולות המערכת). הגדול ביותר הוא של {top['disp']}: זיכוי של {num_disp(-top['st_D'])} ק\"ג CO₂ שו\"ע, "
             f"{pct(top['rel'])} מהפליטות הגולמיות.")
 
 
@@ -310,7 +310,7 @@ def insight_outlier(p):
     if best is None:
         return None
     x, label, r, k, other_max = best
-    tail = (f", בעוד ביתר המדדים הוא לכל היותר פי {other_max:.1f} מהחציון — ייתכן שגיאה בהזנת הערך"
+    tail = (f", בעוד ביתר המדדים הוא לכל היותר פי {other_max:.1f} מהחציון; ייתכן שגיאה בהזנת הערך"
             if other_max is not None and other_max < 3 else "")
     return (f"חריג בנתונים: במדד {label} (שלבי A1–A3) הערך של {r['disp']} גבוה פי {x:,.0f} "
             f"מהחציון של {n(k)} המוצרים בקבוצת {r['glabel']}{tail}.")
@@ -324,7 +324,7 @@ def insight_intensity(intens):
     hi, lo = cand[0], cand[-1]
     if lo["median"] <= 0 or hi["median"] / lo["median"] < INTENSITY_GAP:
         return None
-    return (f"ביחס לאנרגיה הלא מתחדשת שהם צורכים, ל{hi['name']} עוצמת הפחמן הגבוהה ביותר — "
+    return (f"ביחס לאנרגיה הלא מתחדשת שהם צורכים, ל{hi['name']} עוצמת הפחמן הגבוהה ביותר: "
             f"חציון {hi['median'] * 1000:.0f} גרם CO₂ שו\"ע ל-MJ, לעומת {lo['median'] * 1000:.0f} גרם ב{lo['name']} "
             f"(פי {hi['median'] / lo['median']:.1f}; מדד שאינו תלוי ביחידה ההצהרתית).")
 
@@ -334,10 +334,10 @@ def insight_expiry(df, decl):
         return None
     ordered = sorted(decl, key=lambda r: (r["valid_ts"], r["producer"]))
     first, last = ordered[0], ordered[-1]
-    txt = (f"כל ההצהרות אומתו לתקופה של {first['years']} שנים. התוקף המוקדם ביותר במאגר — "
+    txt = (f"כל ההצהרות אומתו לתקופה של {first['years']} שנים. התוקף המוקדם ביותר במאגר הוא "
            f"{d_disp(first['valid_ts'])}, להצהרות של {first['producer']} ({n(first['items'])} פריטים)")
     if last["valid_ts"] != first["valid_ts"]:
-        txt += f"; המאוחר ביותר — {d_disp(last['valid_ts'])} ({last['producer']})."
+        txt += f"; המאוחר ביותר הוא {d_disp(last['valid_ts'])} ({last['producer']})."
     else:
         txt += "."
     return txt
@@ -367,7 +367,7 @@ def compute(frames):
         prods = sorted({r["producer"] for r in allrows})
         groups.append({
             "id": f"chart-grp-{gi + 1}", "cls": rows[0]["glabel"], "unit": rows[0]["unit"],
-            "title": f"{rows[0]['glabel']} — ל-1 {rows[0]['unit']}", "height": h, "rows": allrows,
+            "title": f"{rows[0]['glabel']} (ל-1 {rows[0]['unit']})", "height": h, "rows": allrows,
             "chart": {
                 "names": [r["disp"] for r in rows],
                 "producers": [r["producer"] for r in rows],
@@ -536,7 +536,7 @@ def compute(frames):
         "prod_share": {"value": round(all_prod_share * 100, 1), "display": f"{all_prod_share * 100:.0f}%",
                        "tone": "brand"},
         "expiry": {"value": earliest.strftime("%Y-%m-%d") if earliest is not None else None,
-                   "display": d_disp(earliest) if earliest is not None else "—", "tone": expiry_tone},
+                   "display": d_disp(earliest) if earliest is not None else "–", "tone": expiry_tone},
     }
 
     pub_years = sorted({int(t.year) for t in df["pub"].dropna()})
@@ -545,7 +545,7 @@ def compute(frames):
             f"של {n(len(producers))} יצרנים, ב-{n(total_rows)} פריטי קטלוג, "
             + (f"שפורסמו בשנים {years_span}. " if len(pub_years) > 1 else (f"שפורסמו ב-{years_span}. " if pub_years else ""))
             + "לכל מוצר נמדדו בניתוח מחזור חיים (LCA) טביעת הרגל הפחמנית ושבעה מדדי השפעה נוספים, "
-            "לפי שלבי התקן EN 15804 — מחומרי הגלם ועד סוף החיים. הערכים מוצהרים ליחידה תפקודית "
+            "לפי שלבי התקן EN 15804, מחומרי הגלם ועד סוף החיים. הערכים מוצהרים ליחידה תפקודית "
             "(מ\"ר או ק\"ג), ולכן ההשוואות בעמוד נעשות בתוך קבוצות של אותו סוג חומר ואותה יחידה.")
 
     labels = {
@@ -558,7 +558,7 @@ def compute(frames):
         "expiry_kpi": "תוקף ההצהרה המוקדם ביותר",
         "cat_note": (f"{n(total_rows)} הפריטים מתחלקים ל-{n(len(cat))} תת-סוגי חומר. "
                      f"{cat.iloc[0]['sub']} מוביל עם {n(cat.iloc[0]['items'])} פריטים "
-                     f"({n(cat.iloc[0]['products'])} מוצרים) — רוב הפריטים הם מידות ואריזות של אותו מוצר."),
+                     f"({n(cat.iloc[0]['products'])} מוצרים). רוב הפריטים הם מידות ואריזות של אותו מוצר."),
         "cat_aria": (f"תרשים עמודות של פריטים ומוצרים לפי תת-סוג חומר; המוביל: {cat.iloc[0]['sub']} עם "
                      f"{n(cat.iloc[0]['items'])} פריטים."),
         "cat_caption": "פריטים ומוצרים לפי תת-סוג חומר",
@@ -568,7 +568,7 @@ def compute(frames):
                         + (f" {n(len(hidden))} קבוצות נוספות ({n(hidden_n)} מוצרים) אינן מוצגות." if hidden else "")
                         + (f" ברשומות מסוימות היחידה התפקודית מצוינת ככמות שונה מ-1 ({', '.join(odd_units)}); "
                            "הן מקובצות לפי סוג היחידה." if odd_units else "")),
-        "stages_note": ((f"החלק הממוצע של כל שלב מהפליטות הגולמיות (A–C), לפי תת-סוג חומר — מדד שאינו תלוי ביחידה. "
+        "stages_note": ((f"החלק הממוצע של כל שלב מהפליטות הגולמיות (A–C), לפי תת-סוג חומר (מדד שאינו תלוי ביחידה). "
                          f"בחציון המוצרים שלבי הייצור A1–A3 אחראים ל-{all_prod_share * 100:.0f}% מהפליטות; "
                          f"ב{eol_top['name']} סוף החיים מגיע ל-{eol_top['eol'] * 100:.0f}%.")
                         if eol_top else ""),
@@ -576,7 +576,7 @@ def compute(frames):
                         f"חציון חלק הייצור {all_prod_share * 100:.0f}%."),
         "stages_caption": "חלק שלבי מחזור החיים בפליטות לפי תת-סוג חומר",
         "int_note": ((f"כל נקודה היא מוצר: אנרגיה לא מתחדשת (MJ) מול טביעת רגל פחמנית בשלבי A1–A3, באותה יחידה תפקודית "
-                      f"(צירים לוגריתמיים). היחס ביניהם — גרם CO₂ שו\"ע ל-MJ — אינו תלוי ביחידה: "
+                      f"(צירים לוגריתמיים). היחס ביניהם (גרם CO₂ שו\"ע ל-MJ) אינו תלוי ביחידה: "
                       f"מ-{int_lo['median'] * 1000:.0f} ב{int_lo['name']} ועד {int_hi['median'] * 1000:.0f} "
                       f"ב{int_hi['name']} (חציון).")
                      if intens else ""),
@@ -591,7 +591,7 @@ def compute(frames):
         "valid_note": ("חלון התוקף של כל הצהרה, מתאריך האימות ועד פקיעתה. "
                        + (f"כל ההצהרות במאגר תקפות ל-{years_set[0]} שנים." if len(years_set) == 1 else "")),
         "valid_aria": (f"תרשים ציר זמן של {n(len(decl))} חלונות תוקף הצהרה; התוקף המוקדם פג ב-"
-                       f"{d_disp(earliest) if earliest is not None else '—'}."),
+                       f"{d_disp(earliest) if earliest is not None else '–'}."),
         "valid_caption": "הצהרות לפי יצרן ותקופת תוקף",
         "th_prod": "ייצור A1–A3",
         "th_a45": "הובלה והתקנה A4–A5",

@@ -122,7 +122,7 @@ def insight_top_class(per_cls, names, total_terms):
         return None
     top3 = [cls_label(int(c), names) for c in s.index[1:3]]
     share3 = s.iloc[:3].sum() / total_terms * 100
-    return (f"הסוג העשיר ביותר במונחים הוא סוג {cls_label(c0, names)} — {n(v0)} מונחים "
+    return (f"הסוג העשיר ביותר במונחים הוא סוג {cls_label(c0, names)}, עם {n(v0)} מונחים "
             f"({pct(v0 / total_terms * 100)}). יחד עם סוגים {top3[0]} ו-{top3[1]} "
             f"שלושת הסוגים מרכזים {pct(share3)} מכלל המונחים.")
 
@@ -142,7 +142,7 @@ def insight_goods_services(t):
     else:
         cmp = f"וגם סוג טובין ממוצע עשיר יותר: {n(ag)} מונחים לסוג לעומת {n(as_)} בסוג שירותים"
     return (f"{n(len(goods))} מונחים ({pct(share)}) מתארים טובין ב-{ng} סוגים, ו-{n(len(serv))} "
-            f"מתארים שירותים ב-{ns} סוגים — {cmp}.")
+            f"מתארים שירותים ב-{ns} סוגים, {cmp}.")
 
 
 def insight_reject_source(df):
@@ -156,11 +156,11 @@ def insight_reject_source(df):
     il_share = (df.loc[df["src"] == SRC_IL, "rej"].sum() / max(int(df["rej"].sum()), 1)) * 100
     head = (f"{n(df['rej'].sum())} נוסחים ({pct(overall)}) מסומנים כלא קבילים. ")
     if ri > 0 and rl / ri >= 2:
-        return head + (f"בנוסחים של מחלקת סימני מסחר השיעור הוא {pct(rl)} — פי {rl / ri:.1f} "
+        return head + (f"בנוסחים של מחלקת סימני מסחר השיעור הוא {pct(rl)}, פי {rl / ri:.1f} "
                        f"מאשר במקור הבינלאומי ({pct(ri)}), ו-{pct(il_share)} מכלל הנוסחים הלא קבילים "
                        f"הם נוסחים של המחלקה.")
     if rl > 0 and ri / rl >= 2:
-        return head + (f"במקור הבינלאומי השיעור הוא {pct(ri)} — פי {ri / rl:.1f} מאשר "
+        return head + (f"במקור הבינלאומי השיעור הוא {pct(ri)}, פי {ri / rl:.1f} מאשר "
                        f"בנוסחים של מחלקת סימני מסחר ({pct(rl)}).")
     return head + f"השיעור דומה בשני המקורות ({pct(ri)} ו-{pct(rl)})."
 
@@ -189,9 +189,9 @@ def insight_bilingual(t):
     s = (f"{pct(both / len(t) * 100)} מהמונחים מנוסחים גם בעברית וגם באנגלית. "
          f"{n(en_only)} מונחים קיימים באנגלית בלבד ו-{n(he_only)} בעברית בלבד")
     if en_only >= 2 * max(he_only, 1):
-        s += " — פער התרגום הוא בעיקר לעברית."
+        s += ". פער התרגום הוא בעיקר לעברית."
     elif he_only >= 2 * max(en_only, 1):
-        s += " — פער התרגום הוא בעיקר לאנגלית."
+        s += ". פער התרגום הוא בעיקר לאנגלית."
     else:
         s += "."
     return s
@@ -220,7 +220,7 @@ def insight_appellation(t, df, names):
              else f"ב-{len(classes)} סוגים")
     s = f"{n(len(a))} מונחים מסומנים ככינוי מקור (שם גאוגרפי מוגן של מוצר), {where}"
     if rej == len(a):
-        s += " — וכולם לא קבילים כמונח כללי."
+        s += ", וכולם לא קבילים כמונח כללי."
     elif rej:
         s += f"; {n(rej)} מהם מסומנים כלא קבילים בכל נוסחיהם."
     else:
@@ -235,8 +235,8 @@ def insight_variants(t):
     if many / len(t) < 0.05:
         return None
     return (f"למונח יש בממוצע {t['rows'].mean():.1f} נוסחים; {n(many)} מונחים "
-            f"({pct(many / len(t) * 100)}) מחזיקים שלושה נוסחים ומעלה — ניסוחים חלופיים "
-            f"לאותה סחורה או שירות.")
+            f"({pct(many / len(t) * 100)}) מחזיקים שלושה נוסחים ומעלה (ניסוחים חלופיים "
+            f"לאותה סחורה או שירות).")
 
 
 def insight_lead_word(words, total_he):
@@ -246,14 +246,14 @@ def insight_lead_word(words, total_he):
     if serv / total_he < 0.05:
         return None
     return (f"{pct(serv / total_he * 100)} מהנוסחים בעברית ({n(serv)}) נפתחים במילה "
-            f"\"שירות\" או \"שירותי\"/\"שירותים\" — המבנה המקובל לניסוח שירות בבקשה.")
+            f"\"שירות\" או \"שירותי\"/\"שירותים\", המבנה המקובל לניסוח שירות בבקשה.")
 
 
 def insight_multi_class(t):
     k = int((t["ncls"] > 1).sum())
     if k == 0:
         return None
-    return (f"{n(k)} מונחים משויכים ביותר מסוג ניצה אחד בנוסחים השונים שלהם — "
+    return (f"{n(k)} מונחים משויכים ביותר מסוג ניצה אחד בנוסחים השונים שלהם. "
             f"בדף הם נספרים בכל סוג שבו הם מופיעים.")
 
 
@@ -300,7 +300,7 @@ def compute(frames):
             "kind": "טובין" if c <= GOODS_MAX else "שירותים",
             "terms": n(per_cls.get(c, 0)),
             "rows": n(r),
-            "rej": pct_bare(rej_cls.get(c, 0) / r * 100) if r else "—",
+            "rej": pct_bare(rej_cls.get(c, 0) / r * 100) if r else "–",
             "bi": pct_bare(bi),
         })
 
@@ -409,8 +409,8 @@ def compute(frames):
     for term, r in latest.iterrows():
         latest_table.append({
             "num": term,
-            "he": pick_text(term, HE) or "—",
-            "en": pick_text(term, EN) or "—",
+            "he": pick_text(term, HE) or "–",
+            "en": pick_text(term, EN) or "–",
             "cls": cls_label(int(r["cls"]), names),
             "src": "מחלקת סימני מסחר" if r["kind"] != "intl" else "מקור בינלאומי (GMS)",
         })
@@ -420,8 +420,8 @@ def compute(frames):
     ap_table = []
     for term, r in ap.head(APPELL_MAX).iterrows():
         ap_table.append({
-            "he": pick_text(term, HE) or "—",
-            "en": pick_text(term, EN) or "—",
+            "he": pick_text(term, HE) or "–",
+            "en": pick_text(term, EN) or "–",
             "cls": cls_label(int(r["cls"]), names),
             "ok": "לא קביל" if r["rej_all"] else ("חלק מהנוסחים קבילים" if r["rej_any"] else "קביל"),
         })
@@ -462,12 +462,12 @@ def compute(frames):
         "lede": (f"רשימת העזר של רשם סימני המסחר לניסוח רשימת הסחורות והשירותים בבקשה לרישום "
                  f"סימן מסחר: {n(total_terms)} מונחים ב-{n(total_rows)} נוסחים בעברית ובאנגלית, "
                  f"מסווגים ל-{len(classes)} סוגי ניצה ({n_goods} סוגי טובין ו-{n_serv} סוגי שירותים). "
-                 f"לכל נוסח מצוין אם הוא קביל בבקשה, ולכל מונח — אם מקורו ברשימה הבינלאומית (GMS) "
+                 f"לכל נוסח מצוין אם הוא קביל בבקשה, ולכל מונח מצוין אם מקורו ברשימה הבינלאומית (GMS) "
                  f"או במחלקת סימני מסחר."),
         "accept_kpi": "מהנוסחים קבילים בבקשה",
         "bilingual_kpi": "מהמונחים מנוסחים בשתי השפות",
         "classes_note": (f"מספר המונחים בכל אחד מ-{len(classes)} סוגי ניצה, מחולק לטובין "
-                         f"(סוגים 1 עד {GOODS_MAX}) ושירותים. גודל המלבן — מספר המונחים."),
+                         f"(סוגים 1 עד {GOODS_MAX}) ושירותים. גודל המלבן: מספר המונחים."),
         "classes_aria": (f"מפת עצים: מונחים לפי סוג ניצה. הגדול ביותר: סוג "
                          f"{cls_label(int(per_cls.idxmax()), names)} עם {n(per_cls.max())} מונחים."),
         "classes_caption": "מונחים, נוסחים, שיעור נוסחים לא קבילים ושיעור מונחים דו-לשוניים לפי סוג ניצה.",
@@ -478,7 +478,7 @@ def compute(frames):
                      f"{n(il_terms)} מונחים כוללים נוסח של מחלקת סימני מסחר."),
         "src_caption": "מונחים לפי מקור בסוגי הניצה הגדולים.",
         "rej_note": (f"{len(rej_x)} הסוגים עם השיעור הגבוה ביותר של נוסחים לא קבילים מכלל "
-                     f"הנוסחים בסוג (סוגים עם {n(MIN_CLASS_ROWS)} נוסחים לפחות). הקו המקווקו — "
+                     f"הנוסחים בסוג (סוגים עם {n(MIN_CLASS_ROWS)} נוסחים לפחות). הקו המקווקו: "
                      f"השיעור בכל המאגר, {pct(df['rej'].mean() * 100)}."),
         "rej_aria": (f"תרשים עמודות: שיעור נוסחים לא קבילים לפי סוג ניצה. הגבוה ביותר בסוג "
                      f"{cls_label(int(s0), names) if s0 is not None else ''}."),
@@ -494,8 +494,8 @@ def compute(frames):
                      f"{t['rows'].mean():.1f} נוסחים למונח."),
         "var_aria": "תרשים עמודות: התפלגות מספר הנוסחים למונח.",
         "var_caption": "מונחים לפי מספר הנוסחים שלהם.",
-        "box_note": ("אורך הנוסח במילים, לפי שפה ומקור (GMS — הרשימה הבינלאומית; המחלקה — מחלקת סימני מסחר). הקופסה — הרבעון התחתון עד העליון, הקו — "
-                     "החציון; השפם נמתח מהאחוזון החמישי עד האחוזון התשעים וחמישה."),
+        "box_note": ("אורך הנוסח במילים, לפי שפה ומקור (GMS: הרשימה הבינלאומית; המחלקה: מחלקת סימני מסחר). הקופסה מציגה את הרבעון התחתון עד העליון, הקו את "
+                     "החציון, והשפם נמתח מהאחוזון החמישי עד האחוזון התשעים וחמישה."),
         "box_aria": "תרשים קופסה: אורך הנוסחים במילים לפי שפה ומקור.",
         "box_caption": "אחוזוני אורך הנוסח במילים לפי שפה ומקור.",
         "words_note": (f"{TOP_WORDS} המילים הנפוצות ביותר בפתיחת נוסח בעברית, מתוך "
@@ -503,10 +503,10 @@ def compute(frames):
         "words_aria": (f"תרשים עמודות: המילים הפותחות הנפוצות בנוסחים בעברית. הנפוצה: "
                        f"{words_top.index[0] if len(words_top) else ''}."),
         "words_caption": "המילים הפותחות הנפוצות בנוסחים בעברית ושיעורן.",
-        "latest_note": (f"{LATEST_N} המונחים בעלי המספר הגבוה ביותר במאגר — התוספות האחרונות "
+        "latest_note": (f"{LATEST_N} המונחים בעלי המספר הגבוה ביותר במאגר: התוספות האחרונות "
                         f"לפי סדר המספור (המספור אינו כולל תאריך)."),
         "latest_caption": "המונחים בעלי המספר הגבוה ביותר, עם נוסח בעברית ובאנגלית וסוג ניצה.",
-        "ap_note": (f"מונחים המסומנים ככינוי מקור — שם של אזור גאוגרפי שמשמש שם למוצר. "
+        "ap_note": (f"מונחים המסומנים ככינוי מקור: שם של אזור גאוגרפי שמשמש שם למוצר. "
                     f"{n(len(ap))} מונחים" + (f"; מוצגים {APPELL_MAX} הראשונים." if len(ap) > APPELL_MAX else ".")),
         "ap_caption": "מונחים המסומנים ככינוי מקור, סוג ניצה וקבילות.",
     }
