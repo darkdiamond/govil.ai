@@ -1,0 +1,277 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["month", "month_chg", "ytd", "ytd_chg", "peak"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "יציאות ישראלים לחו\"ל לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  {{ gov.chart("chart-years", model.labels.years_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.years_caption, ["שנה", "סך הכול", "בדרך האוויר", "ביבשה ובים", "שינוי משנה קודמת"], model.tables.years, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "יציאות בכל חודש: נתון מקורי, מנוכה עונתיות ומגמה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  {{ gov.chart("chart-recent", model.labels.recent_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.recent_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "מגמה", "שינוי לעומת שנה קודמת"], model.tables.recent, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "עונתיות: יציאות בדרך האוויר לפי שנה וחודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.heat_caption, ["שנה"] + model.charts.heat.months, model.tables.heat, ltr=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.modes %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "באוויר, ביבשה או בים") }}
+  {{ gov.chart("chart-modes", model.labels.modes_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.modes_caption, ["דרך היציאה", "יציאות", "אחוז מהיציאות"], model.tables.modes, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.crossings %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מעברי הגבול ביבשה ובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.crossings_note }}</p>
+  {{ gov.chart("chart-crossings", model.labels.crossings_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.routes_caption, ["דרך ומעבר"] + model.charts.crossings.years + [model.labels.routes_chg_col], model.tables.routes, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.ages %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "מי נוסע: יציאות לפי גיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.ages_note }}</p>
+  {{ gov.chart("chart-ages", model.labels.ages_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.ages_caption, model.labels.age_cols, model.tables.ages, ltr=(1, 2, 3, 4, 5, 6, 7)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.age_ytd %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "קבוצות הגיל מתחילת השנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.age_ytd_note }}</p>
+  {{ gov.chart("chart-age-ytd", model.labels.age_ytd_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.age_ytd_caption, ["קבוצת גיל", model.labels.age_ytd_prev, model.labels.age_ytd_cur, "שינוי"], model.tables.age_ytd, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.male %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גברים ונשים בכל קבוצת גיל") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.male_note }}</p>
+  {{ gov.chart("chart-male", model.labels.male_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.male_caption, ["קבוצת גיל", "יציאות (אלפים)", "גברים", "נשים"], model.tables.male, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.abroad %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "ישראלים המתגוררים בחו\"ל: ביקורי מולדת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.abroad_note }}</p>
+  {{ gov.chart("chart-abroad", model.labels.abroad_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.abroad_caption, ["חודש", "כלל היציאות", "של המתגוררים בחו\"ל", "אחוז"], model.tables.abroad, ltr=(1, 2, 3)) }}
+  {{ gov.table(model.labels.abroad_years_caption, ["שנה", "כלל היציאות", "של המתגוררים בחו\"ל", "אחוז"], model.tables.abroad_years, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים סופרים יציאות, לא אנשים: מי שיצא לחו"ל כמה פעמים נספר בכל יציאה. הם כוללים אזרחים ישראלים בלבד, גם כאלה המתגוררים בחו"ל ויצאו בתום ביקור בארץ.</li>
+    <li>הנתונים של החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+    <li>הנתון המנוכה עונתיות ונתוני המגמה מחושבים בידי הלמ"ס, ומאפשרים להשוות בין חודשים בלי השפעת העונה והחגים. מאז מלחמת "חרבות ברזל" הלמ"ס מחשבת אותם בהתחשב בשבר בסדרות.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.years | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-years"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "v", name: "בדרך האוויר", data: d.air },
+        { type: "bar", stack: "v", name: "ביבשה ובים", data: d.other }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.recent | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-recent"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.heat %}
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const chart = echarts.init(document.getElementById("chart-heat"));
+    const narrow = window.innerWidth < 640;
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.months[p.value[0]] + " " + d.years[p.value[1]]) + ": " + Number(p.value[2]).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      grid: { left: 8, right: 8, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.months, splitArea: { show: true }, axisLabel: { interval: 0, rotate: narrow ? 90 : 0 } },
+      yAxis: { type: "category", data: d.years, inverse: true },
+      visualMap: { min: 0, max: d.max, dimension: 2, calculable: false, orient: "horizontal", left: "center", bottom: 0, itemHeight: 120, inRange: { color: ["#f1f7ff", "#0068f5", "#0b3668"] }, formatter: (v) => Math.round(v).toLocaleString("he-IL") },
+      series: [{ type: "heatmap", data: d.cells, label: { show: !narrow, fontSize: 10, formatter: (p) => String(Math.round(p.value[2])) } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.modes %}
+  (function () {
+    const d = {{ model.charts.modes | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-modes"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[6]],
+      tooltip: { trigger: "item", formatter: (p) => echarts.format.encodeHTML(p.name) + ": " + Number(p.value).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף (" + p.percent + "%)" },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["40%", "70%"], center: ["50%", "45%"], data: d, label: { show: window.innerWidth >= 640, formatter: "{b}\n{d}%" } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.crossings %}
+  (function () {
+    const d = {{ model.charts.crossings | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-crossings"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value" },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 110, overflow: "break" } },
+      series: d.years.map((y, k) => ({ type: "bar", name: y, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.ages %}
+  (function () {
+    const d = {{ model.charts.ages | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-ages"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0], pal[7], pal[9], pal[5], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: d.names.map((n, k) => ({ type: "bar", stack: "a", name: n, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.age_ytd %}
+  (function () {
+    const d = {{ model.charts.age_ytd | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-age-ytd"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: d.years[0], data: d.prev },
+        { type: "bar", name: d.years[1], data: d.cur }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.male %}
+  (function () {
+    const d = {{ model.charts.male | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-male"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[4]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", max: 100, axisLabel: { formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [
+        { type: "bar", stack: "s", name: "גברים", data: d.male, label: { show: true, formatter: (p) => p.value + "%" } },
+        { type: "bar", stack: "s", name: "נשים", data: d.female, label: { show: true, formatter: (p) => p.value + "%" },
+          markLine: { silent: true, symbol: "none", data: [{ xAxis: 50 }], label: { show: false }, lineStyle: { color: pal[5], type: "dashed" } } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.abroad %}
+  (function () {
+    const d = {{ model.charts.abroad | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-abroad"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[1]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: [{ type: "value" }, { type: "value", axisLabel: { formatter: (v) => v + "%" }, splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "יציאות (אלפים)", data: d.abroad, tooltip: { valueFormatter: (v) => Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" } },
+        { type: "line", name: "אחוז מכלל היציאות", yAxisIndex: 1, data: d.share, showSymbol: false, lineStyle: { width: 3 }, tooltip: { valueFormatter: (v) => v + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

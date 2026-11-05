@@ -1,0 +1,338 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.title }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["starts", "starts_chg", "completed", "active", "permits", "duration"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "התחלות וגמר בנייה לפי רבעון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quarterly_note }}</p>
+  {{ gov.chart("chart-quarterly", model.labels.quarterly_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("היתרים, התחלות וגמר בנייה לפי שנה (דירות)", ["שנה", "היתרי בנייה", "התחלות בנייה", "גמר בנייה", "בבנייה פעילה בסוף השנה"], model.tables.annual, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.active %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "דירות בבנייה פעילה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.active_note }}</p>
+  {{ gov.chart("chart-active", model.labels.active_aria, "h-72 md:h-96") }}
+  {{ gov.table("דירות בבנייה פעילה בסוף כל רבעון", ["רבעון", "דירות בבנייה", "שינוי בשנה"], model.tables.active, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.district %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "התחלות וגמר בנייה לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  {{ gov.chart("chart-district", model.labels.district_aria, "h-[520px] md:h-[460px]") }}
+  {{ gov.table("דירות לפי מחוז ושלב בנייה", model.labels.district_cols, model.tables.district, ltr=range(1, model.labels.district_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.district_active %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "דירות בבנייה לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_active_note }}</p>
+  {{ gov.chart("chart-district-active", model.labels.district_active_aria, "h-80 md:h-96") }}
+  {{ gov.table("דירות בבנייה פעילה לפי מחוז", model.labels.district_active_cols, model.tables.district_active, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.purpose %}
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "למכירה, בסבסוד ממשלתי או לא למכירה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.purpose_note }}</p>
+  {{ gov.chart("chart-purpose", model.labels.purpose_aria, "h-80 md:h-96") }}
+  {{ gov.table("התחלות בנייה לפי מטרה ומחוז", ["מחוז", "למכירה", "מזה בסבסוד ממשלתי", "לא למכירה", "מזה להשכרה", "מזה בקומבינציה"], model.tables.purpose, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.nfs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "דירות שלא למכירה: בנייה עצמית, השכרה וקומבינציה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nfs_note }}</p>
+  {{ gov.chart("chart-nfs", model.labels.nfs_aria, "h-80 md:h-96") }}
+  {{ gov.table("דירות שלא למכירה לפי מטרה ומחוז", model.labels.nfs_cols, model.tables.nfs, ltr=range(1, model.labels.nfs_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.renewal %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "התחדשות עירונית: פינוי בינוי ותמ\"א 38") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.renewal_note }}{% if model.labels.renewal_ratio is defined %} {{ model.labels.renewal_ratio }}{% endif %}</p>
+  {{ gov.chart("chart-renewal", model.labels.renewal_aria, "h-80 md:h-96") }}
+  {{ gov.table("התחדשות עירונית לפי מחוז", ["מחוז", "בבניינים שנבנו מחדש", "מזה פינוי בינוי ותמ\"א 38/2", "נוספו לבניינים קיימים", "מזה תמ\"א 38", "דירות שנהרסו"], model.tables.renewal, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.storeys %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "כמה קומות בבניינים החדשים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.storeys_note }}</p>
+  {{ gov.chart("chart-storeys", model.labels.storeys_aria, "h-72 md:h-80") }}
+  {{ gov.table("התחלות בנייה בבניינים חדשים לפי מספר קומות", model.labels.storeys_cols, model.tables.storeys, ltr=range(1, model.labels.storeys_cols | length) | list) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.duration %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "כמה זמן לוקח לבנות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.duration_note }}</p>
+  {{ gov.chart("chart-duration", model.labels.duration_aria, "h-72 md:h-80") }}
+  {{ gov.table("משך בנייה ממוצע לפי שנת סיום (חודשים)", ["שנה", "חודשי בנייה"], model.tables.duration, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.by_area %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "משך הבנייה לפי גודל הבניין") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.by_area_note }}</p>
+  {{ gov.chart("chart-by-area", model.labels.by_area_aria, "h-72 md:h-80") }}
+  {{ gov.table("משך בנייה ממוצע לפי שטח הבניין", ["שטח הבניין (מ\"ר)", "חודשי בנייה"], model.tables.by_area, ltr=(0, 1)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.area %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "בנייה שלא למגורים: מסחר, תעשייה, משרדים ועוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+  {{ gov.chart("chart-area", model.labels.area_aria, "h-80 md:h-96") }}
+  {{ gov.table("שטח בנייה לפי ייעוד", model.labels.area_cols, model.tables.area, ltr=range(1, model.labels.area_cols | length) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>התחלת בנייה נרשמת כשמתחילה חפירת היסודות, וגמר בנייה כשהבניין ראוי למגורים. דירה בבנייה פעילה היא דירה שהתחילו לבנות ועוד לא סיימו, לא כולל בניינים שבנייתם הופסקה.</li>
+    <li>כל הודעה של הלמ"ס מסכמת את ארבעת הרבעונים האחרונים, וההודעה של חודש מרץ מסכמת את השנה הקודמת. נתוני שלושת הרבעונים האחרונים ארעיים ועשויים להשתנות בהודעות הבאות.</li>
+    <li>נתונים מנוכי עונתיות מנטרלים את ההבדלים הקבועים בין רבעונים, כך שאפשר להשוות רבעון לרבעון. הסכומים לפי מחוז ומטרה מחושבים מהנתונים המקוריים.</li>
+    <li>אזור יהודה ושומרון: יישובים ישראליים בלבד.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.quarterly | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-quarterly"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[2], pal[0], pal[1], pal[0], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0, data: ["היתרי בנייה", "התחלות בנייה", "גמר בנייה"] },
+      grid: { left: 16, right: 16, top: 56, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "היתרי בנייה", data: d.permits, showSymbol: false, lineStyle: { width: 1.5 } },
+        { type: "line", name: "התחלות בנייה", data: d.begun, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "גמר בנייה", data: d.completed, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "התחלות בנייה (מגמה)", data: d.begun_trend, showSymbol: false, lineStyle: { width: 1.5, type: "dashed" } },
+        { type: "line", name: "גמר בנייה (מגמה)", data: d.completed_trend, showSymbol: false, lineStyle: { width: 1.5, type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.active %}
+  (function () {
+    const d = {{ model.charts.active | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-active"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: [{ type: "line", name: "בבנייה פעילה", data: d.y, showSymbol: false, areaStyle: { opacity: 0.15 }, lineStyle: { width: 3 } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.district %}
+  (function () {
+    const d = {{ model.charts.district | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-district"));
+    const colors = [pal[2], pal[0], pal[1]];
+    chart.setOption(window.GovEcharts.option({
+      color: colors.slice(colors.length - d.stages.length),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true, formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : String(v) } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: d.stages.map((s, k) => ({ type: "bar", name: s, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.district_active %}
+  (function () {
+    const d = {{ model.charts.district_active | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-district-active"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true, formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : String(v) } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [
+        { type: "bar", name: d.prev_label, data: d.prev },
+        { type: "bar", name: d.now_label, data: d.now }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.purpose %}
+  (function () {
+    const d = {{ model.charts.purpose | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-purpose"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 56, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true, formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : String(v) } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [
+        { type: "bar", stack: "a", name: "למכירה בשוק החופשי", data: d.market },
+        { type: "bar", stack: "a", name: "למכירה בסבסוד ממשלתי", data: d.subs },
+        { type: "bar", stack: "a", name: "לא למכירה", data: d.nfs }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.nfs %}
+  (function () {
+    const d = {{ model.charts.nfs | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-nfs"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1], pal[6], pal[5], pal[3]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 56, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true, formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : String(v) } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: d.purposes.map((p, k) => ({ type: "bar", stack: "a", name: p, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.renewal %}
+  (function () {
+    const d = {{ model.charts.renewal | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-renewal"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[1]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " דירות" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 56, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true, formatter: (v) => v >= 1000 ? (v / 1000).toLocaleString("he-IL") + " אלף" : String(v) } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 90, overflow: "break" } },
+      series: [
+        { type: "bar", stack: "new", name: "בבניינים שנבנו מחדש", data: d.rebuilt },
+        { type: "bar", stack: "new", name: "נוספו לבניינים קיימים", data: d.added },
+        { type: "bar", name: "דירות שנהרסו", data: d.destroyed }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.storeys %}
+  (function () {
+    const d = {{ model.charts.storeys | tojson }};
+    const names = {{ model.labels.storey_names | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-storeys"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[0], pal[1], pal[4], pal[5]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+      series: names.map((n, k) => ({ type: "bar", stack: "a", name: n, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.duration %}
+  (function () {
+    const d = {{ model.charts.duration | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-duration"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " חודשים" },
+      grid: { left: 16, right: 16, top: 16, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: [{ type: "line", name: "חודשי בנייה", data: d.y, lineStyle: { width: 3 } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.by_area %}
+  (function () {
+    const d = {{ model.charts.by_area | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-by-area"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " חודשים" },
+      grid: { left: 16, right: 16, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [{ type: "bar", name: "חודשי בנייה", data: d.y, label: { show: true, position: "top", fontSize: 10 } }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.area %}
+  (function () {
+    const d = {{ model.charts.area | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-area"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[1]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => Number(v).toLocaleString("he-IL") + " אלף מ\"ר" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 24, top: 40, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 100, overflow: "break" } },
+      series: d.stages.map((s, k) => ({ type: "bar", name: s, data: d.series[k] }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

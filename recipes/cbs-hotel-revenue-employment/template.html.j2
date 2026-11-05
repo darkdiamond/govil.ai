@@ -1,0 +1,255 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["revenue", "revenue_chg", "real_chg", "tour_share", "jobs", "wage"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "פדיון המלונות לפי שנה: ישראלים ותיירים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  {{ gov.chart("chart-years", model.labels.years_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.years_caption, ["שנה", "סך הכול", "מישראלים", "מתיירים", "חלק התיירים"], model.tables.years, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.monthly %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "פדיון חודשי: השנה לעומת שנים קודמות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  <div class="grid gap-6 md:grid-cols-2">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">מישראלים</h3>
+      {{ gov.chart("chart-monthly-isr", model.labels.monthly_isr_aria, "h-72 md:h-80") }}
+      {{ gov.table(model.labels.monthly_isr_caption, ["שנה", "ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי", "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"], model.tables.monthly_isr, ltr=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) }}
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">מתיירים</h3>
+      {{ gov.chart("chart-monthly-tour", model.labels.monthly_tour_aria, "h-72 md:h-80") }}
+      {{ gov.table(model.labels.monthly_tour_caption, ["שנה", "ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי", "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"], model.tables.monthly_tour, ltr=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)) }}
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.sa %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מגמת הפדיון, מנוכה עונתיות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sa_note }}</p>
+  {{ gov.chart("chart-sa", model.labels.sa_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.sa_caption, ["חודש", "ישראלים, מנוכה עונתיות", "ישראלים, מגמה", "תיירים, מנוכה עונתיות", "תיירים, מגמה"], model.tables.sa, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.quarters %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "פדיון לפי רבעון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quarters_note }}</p>
+  {{ gov.chart("chart-quarters", model.labels.quarters_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.quarters_caption, ["רבעון", "סך הכול (₪)", "מישראלים (₪)", "מתיירים (דולרים)", "שינוי שנתי"], model.tables.quarters, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.nights %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "פדיון ממוצע ללינה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nights_note }}</p>
+  {{ gov.chart("chart-nights", model.labels.nights_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.nights_caption, ["חודש", "ישראלים (₪)", "כל האורחים (₪)", "תיירים (דולרים)"], model.tables.nights, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.jobs %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "משרות במלונות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.jobs_note }}</p>
+  {{ gov.chart("chart-jobs", model.labels.jobs_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.jobs_caption, ["חודש", "כל המשרות", "משרות במלון", "דרך חברות כוח אדם"], model.tables.jobs, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.wages %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "השכר במלונות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wages_note }}</p>
+  {{ gov.chart("chart-wages", model.labels.wages_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.wages_caption, ["שנה", "שכר ממוצע למשרת שכיר (אלפי ₪)", "תשלום ממוצע למשרה דרך כוח אדם (אלפי ₪)", "כל המשרות (אלפים)", "סך השכר בשנה (מיליוני ₪)"], model.tables.wages, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הפדיון הוא הכנסות מלונות התיירות מלינה, מארוחות ומשירותים אחרים. הפדיון מתיירים מדווח בדולרים, ובתרשימים בשקלים הוא מחושב כהפרש בין הפדיון הכולל לפדיון מישראלים.</li>
+    <li>נתונים במחירים קבועים מנטרלים את השפעת האינפלציה, ומאפשרים להשוות בין שנים. הנתון המנוכה עונתיות ונתוני המגמה מחושבים בידי הלמ"ס, ושלושת אומדני המגמה האחרונים עשויים להשתנות.</li>
+    <li>מספר המשרות והשכר הם ממוצעים חודשיים לתקופה. משרות דרך חברות כוח אדם הן משרות נוספות על משרות עובדי המלון.</li>
+    <li>הנתונים של החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.years | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const fmt = (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 0 });
+    const chart = echarts.init(document.getElementById("chart-years"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[5]],
+      tooltip: { trigger: "axis", formatter: (ps) => echarts.format.encodeHTML(ps[0].axisValue) + "<br>" + ps.map((p) => p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + (p.seriesType === "line" ? p.value + "%" : fmt(p.value) + " מיליון ₪")).join("<br>") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [{ type: "value" }, { type: "value", max: 100, splitLine: { show: false }, axisLabel: { formatter: (v) => v + "%" } }],
+      series: [
+        { type: "bar", stack: "v", name: "מישראלים", data: d.isr },
+        { type: "bar", stack: "v", name: "מתיירים", data: d.tour },
+        { type: "line", name: "חלק התיירים", yAxisIndex: 1, data: d.share, symbolSize: 6, lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.monthly %}
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const last = d.years.length - 1;
+    function draw(id, key) {
+      const chart = echarts.init(document.getElementById(id));
+      chart.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 0 }) + " מיליון ₪" },
+        legend: { top: 0 },
+        grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: d.months },
+        yAxis: { type: "value" },
+        series: d.years.map((y, k) => ({ type: "line", name: y, data: d[key][k], showSymbol: k === last, lineStyle: { width: k === last ? 3 : 1.5 }, connectNulls: false }))
+      }));
+      window.addEventListener("resize", () => chart.resize());
+    }
+    draw("chart-monthly-isr", "isr");
+    draw("chart-monthly-tour", "tour");
+  })();
+{%- endif %}
+{%- if model.flags.sa %}
+  (function () {
+    const d = {{ model.charts.sa | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sa"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[0], pal[2], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 0 }) + " מיליון ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", name: "ישראלים, מנוכה עונתיות", data: d.isr_sa, showSymbol: false, lineStyle: { width: 1, opacity: 0.5 } },
+        { type: "line", name: "ישראלים, מגמה", data: d.isr_tr, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "תיירים, מנוכה עונתיות", data: d.tour_sa, showSymbol: false, lineStyle: { width: 1, opacity: 0.5 } },
+        { type: "line", name: "תיירים, מגמה", data: d.tour_tr, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.quarters %}
+  (function () {
+    const d = {{ model.charts.quarters | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-quarters"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 0 }) + " מיליון ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: window.innerWidth < 640 ? 45 : 0 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "q", name: "מישראלים", data: d.isr },
+        { type: "bar", stack: "q", name: "מתיירים", data: d.tour }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.nights %}
+  (function () {
+    const d = {{ model.charts.nights | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-nights"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", min: (e) => Math.floor(e.min * 0.9 / 50) * 50 },
+      series: [
+        { type: "line", name: "ישראלים", data: d.isr, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "כל האורחים", data: d.tot, showSymbol: false }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.jobs %}
+  (function () {
+    const d = {{ model.charts.jobs | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-jobs"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", stack: "j", name: "משרות במלון", data: d.jobs },
+        { type: "bar", stack: "j", name: "דרך חברות כוח אדם", data: d.agency }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.wages %}
+  (function () {
+    const d = {{ model.charts.wages | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-wages"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[3]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " אלף ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "שכר ממוצע למשרת שכיר", data: d.wage },
+        { type: "bar", name: "תשלום למשרה דרך כוח אדם", data: d.pay }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

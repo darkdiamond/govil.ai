@@ -1,0 +1,41 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-hotel-nights",
+  "recipe_version": 1,
+  "authored_at": "2026-11-05T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-28T00:00:00Z",
+    "rows": {
+      "t1": 132,
+      "releases": 12
+    }
+  },
+  "inputs": [
+    {
+      "name": "t1",
+      "by_id": "t1",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C16"
+      ]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

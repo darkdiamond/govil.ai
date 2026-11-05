@@ -1,0 +1,160 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["sa", "yoy", "yoy_food", "ann"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "סך הפדיון של רשתות השיווק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.total_note }}</p>
+  {{ gov.chart("chart-total", model.labels.total_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.total_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "שינוי חודשי (מנוכה)", "מגמה"], model.tables.total, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הפדיון של רשתות המזון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.food_note }}</p>
+  {{ gov.chart("chart-food", model.labels.food_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.food_caption, ["חודש", "נתון מקורי", "מנוכה עונתיות", "שינוי חודשי (מנוכה)", "מגמה"], model.tables.food, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "סך הרשתות מול רשתות המזון") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.compare_note }}</p>
+  {{ gov.chart("chart-compare", model.labels.compare_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.compare_caption, ["שנה", "סך הרשתות", "רשתות המזון", "פער (נקודות)"], model.tables.compare, ltr=(1, 2, 3)) }}
+</section>
+
+{%- if model.flags.yoy %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שינוי לעומת אותו חודש בשנה שעברה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.yoy_note }}</p>
+  {{ gov.chart("chart-yoy", model.labels.yoy_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.yoy_caption, ["חודש", "סך הרשתות", "רשתות המזון"], model.tables.yoy, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.seasons %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "המכירות לפי חודש, שנה מול שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.seasons_note }}</p>
+  {{ gov.chart("chart-seasons", model.labels.seasons_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.seasons_caption, ["חודש"] + model.labels.season_years, model.tables.seasons, ltr=range(1, model.labels.season_years | length + 1) | list) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>המדד מודד את הפדיון (סך המכירות) של רשתות השיווק הגדולות: רשתות המתמחות במזון, ורשתות של הלבשה והנעלה, מוצרים בני קיימה, כלי בית, קוסמטיקה, תרופות, צעצועים, ספרים ועוד. פדיון תחנות הדלק אינו כלול.</li>
+    <li>במחירים קבועים: הפדיון אחרי ניכוי שינויי המחירים, כך שהמדד משקף את כמות המכירות ולא את עליית המחירים.</li>
+    <li>מנוכה עונתיות: הנתון אחרי ניכוי השפעות קבועות של עונות השנה, החגים ומספר ימי המסחר בחודש. המגמה: קו מוחלק של הלמ"ס שמסנן את התנודות החודשיות.</li>
+    <li>נתוני החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+{%- for key in ["total", "food"] %}
+  (function () {
+    const d = {{ model.charts[key] | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-{{ key }}"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[2], pal[1]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "נתון מקורי", data: d.orig },
+        { type: "line", name: "מנוכה עונתיות", data: d.sa, showSymbol: false },
+        { type: "line", name: "מגמה", data: d.trend, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endfor %}
+  (function () {
+    const d = {{ model.charts.compare | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-compare"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "line", name: "סך הרשתות", data: d.total, showSymbol: false, lineStyle: { width: 3 } },
+        { type: "line", name: "רשתות המזון", data: d.food, showSymbol: false, lineStyle: { width: 3 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.yoy %}
+  (function () {
+    const d = {{ model.charts.yoy | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-yoy"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + "%" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => "\u200e" + v + "%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "bar", name: "סך הרשתות", data: d.total },
+        { type: "bar", name: "רשתות המזון", data: d.food }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+{%- if model.flags.seasons %}
+  (function () {
+    const d = {{ model.charts.seasons | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-seasons"));
+    const n = d.years.length;
+    chart.setOption(window.GovEcharts.option({
+      color: d.years.map((y, k) => k === n - 1 ? pal[0] : k === n - 2 ? pal[1] : pal[6]),
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", scale: true },
+      series: d.years.map((y, k) => ({
+        type: "line", name: y, data: d.series[k], showSymbol: false,
+        lineStyle: { width: k === n - 1 ? 3 : 1.5 }
+      }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>

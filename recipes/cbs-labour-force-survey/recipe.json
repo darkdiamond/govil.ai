@@ -1,0 +1,174 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-labour-force-survey",
+  "recipe_version": 1,
+  "authored_at": "2026-11-05T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-26T00:00:00Z",
+    "rows": {
+      "t3": 35,
+      "t6": 50,
+      "t13": 69,
+      "t15": 182,
+      "t16": 182,
+      "t17": 182,
+      "t18": 182,
+      "t19": 8,
+      "t20": 8,
+      "t21": 8,
+      "t22": 24,
+      "releases": 12
+    }
+  },
+  "inputs": [
+    {
+      "name": "t3",
+      "by_id": "t3",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02",
+        "C09"
+      ]
+    },
+    {
+      "name": "t6",
+      "by_id": "t6",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02",
+        "C04"
+      ]
+    },
+    {
+      "name": "t13",
+      "by_id": "t13",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02",
+        "C10"
+      ]
+    },
+    {
+      "name": "t15",
+      "by_id": "t15",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t16",
+      "by_id": "t16",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t17",
+      "by_id": "t17",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t18",
+      "by_id": "t18",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t19",
+      "by_id": "t19",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t20",
+      "by_id": "t20",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t21",
+      "by_id": "t21",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "t22",
+      "by_id": "t22",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "SHEET_NO",
+        "ROW",
+        "C01",
+        "C02"
+      ]
+    },
+    {
+      "name": "releases",
+      "by_id": "releases",
+      "required_columns": [
+        "RELEASE_NO",
+        "RELEASE_DATE",
+        "TITLE",
+        "HEADLINE",
+        "PAGE_URL",
+        "REPORT_PDF_URL"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["15"]
+}

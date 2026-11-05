@@ -1,0 +1,274 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("external-link", "ההודעה האחרונה של הלמ\"ס") }}
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.release.title }} · פורסמה {{ model.release.date }}</p>
+  <p class="m-0 mb-3 font-semibold text-ink-deep">{{ model.release.headline }}</p>
+  <p class="m-0 text-sm flex flex-wrap gap-4">
+    <a href="{{ model.release.url }}" target="_blank" rel="noopener">להודעה המלאה באתר הלמ"ס</a>
+{%- if model.release.pdf %}
+    <a href="{{ model.release.pdf }}" target="_blank" rel="noopener">לדוח המלא (PDF)</a>
+{%- endif %}
+  </p>
+</section>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["exports", "imports", "deficit", "ytd_deficit", "ratio"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יבוא, יצוא והגירעון המסחרי בכל חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.monthly_note }}</p>
+  {{ gov.chart("chart-monthly", model.labels.monthly_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.monthly_caption, ["חודש", "יבוא", "יצוא", "גירעון"], model.tables.monthly, ltr=(1, 2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "מאזן הסחר לפי שנה ומתחילת השנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.periods_note }}</p>
+  {{ gov.chart("chart-periods", model.labels.periods_aria, "h-72 md:h-80") }}
+  {{ gov.table(model.labels.periods_caption, ["תקופה", "יבוא (₪)", "יצוא (₪)", "גירעון (₪)", "יבוא ($)", "יצוא ($)"], model.tables.periods, ltr=(1, 2, 3, 4, 5)) }}
+</section>
+
+{%- if model.flags.sa %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הכיוון: נתונים מנוכי עונתיות ומגמה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sa_note }}</p>
+  {{ gov.chart("chart-sa", model.labels.sa_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.sa_caption, model.labels.sa_cols, model.tables.sa, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מה ישראל מייבאת: חומרי גלם, מוצרי צריכה, השקעה ואנרגיה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.uses_note }}</p>
+  {{ gov.chart("chart-uses", model.labels.uses_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.uses_caption, ["סוג", model.labels.ytd_col, model.labels.ytd_prev_col, "שינוי", "אחוז מהיבוא"], model.tables.uses, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יבוא מוצרי צריכה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.consumer_note }}</p>
+  {{ gov.chart("chart-consumer", model.labels.consumer_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.consumer_caption, ["קבוצה", model.labels.ytd_col, model.labels.ytd_prev_col, "שינוי", "אחוז ממוצרי הצריכה"], model.tables.consumer, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יבוא חומרי גלם") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.raw_note }}</p>
+  {{ gov.chart("chart-raw", model.labels.raw_aria, "h-[560px] md:h-[620px]") }}
+  {{ gov.table(model.labels.raw_caption, ["קבוצה", model.labels.ytd_col, model.labels.ytd_prev_col, "שינוי", "אחוז מחומרי הגלם"], model.tables.raw, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יבוא מוצרי השקעה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.investment_note }}</p>
+  {{ gov.chart("chart-investment", model.labels.investment_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.investment_caption, ["קבוצה", model.labels.ytd_col, model.labels.ytd_prev_col, "שינוי", "אחוז ממוצרי ההשקעה"], model.tables.investment, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היצוא התעשייתי לפי עוצמה טכנולוגית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.tech_note }}</p>
+  {{ gov.chart("chart-tech", model.labels.tech_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.tech_caption, ["רמה טכנולוגית", model.labels.ytd_col, model.labels.ytd_prev_col, "שינוי", "אחוז מהיצוא התעשייתי"], model.tables.tech, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היצוא התעשייתי לפי ענף") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.industries_note }}</p>
+  {{ gov.chart("chart-industries", model.labels.industries_aria, "h-[560px] md:h-[620px]") }}
+  {{ gov.table(model.labels.industries_caption, ["ענף", model.labels.ytd_col, model.labels.ytd_prev_col, "שינוי", "אחוז מהיצוא התעשייתי"], model.tables.industries, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "יהלומים: יצוא ויבוא") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.diamonds_note }}</p>
+  {{ gov.chart("chart-diamonds", model.labels.diamonds_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.diamonds_caption, ["חודש", "יצוא יהלומים", "יבוא יהלומים", "אחוז מיצוא הסחורות"], model.tables.diamonds, ltr=(1, 2, 3)) }}
+  {{ gov.table(model.labels.diamond_periods_caption, ["תקופה", "יצוא יהלומים", "אחוז מיצוא הסחורות"], model.tables.diamond_periods, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.agri %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "היצוא החקלאי לפי חודש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.agri_note }}</p>
+  {{ gov.chart("chart-agri", model.labels.agri_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.agri_caption, ["חודש"] + model.labels.agri_cols, model.tables.agri, ltr=(1, 2, 3, 4, 5, 6)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על הנתונים") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>הנתונים הם סחר בסחורות בלבד, נטו (בניכוי החזרות לספקים), במחירים שוטפים. יצוא שירותים, כמו שירותי תוכנה ומחקר ופיתוח, אינו כלול.</li>
+    <li>הגירעון המסחרי הוא היבוא פחות היצוא. הלמ"ס מציגה גם נתונים ללא אוניות, מטוסים ויהלומים, שעסקאות בודדות בהם מזיזות את הסכום החודשי.</li>
+    <li>יבוא לפי שימוש מחלק את הסחורות לפי ייעודן: חומרי גלם לייצור, מוצרי צריכה למשקי הבית, מוצרי השקעה (מכונות וציוד) וחומרי אנרגיה. היצוא התעשייתי מסווג לפי ענף ולפי עוצמה טכנולוגית, בהגדרת יורוסטט.</li>
+    <li>נתוני החודשים האחרונים ארעיים, והלמ"ס מעדכנת אותם בהודעות הבאות. העמוד מציג תמיד את הגרסה האחרונה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.monthly | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-monthly"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[0], pal[5]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליארד ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "יבוא", data: d.imports },
+        { type: "bar", name: "יצוא", data: d.exports },
+        { type: "line", name: "גירעון", data: d.deficit, lineStyle: { width: 3 }, symbolSize: 6 }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.periods | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-periods"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[0], pal[5]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " מיליארד ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 24, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, width: 72, overflow: "break" } },
+      yAxis: { type: "value" },
+      series: [
+        { type: "bar", name: "יבוא", data: d.imports },
+        { type: "bar", name: "יצוא", data: d.exports },
+        { type: "bar", name: "גירעון", data: d.deficit }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.sa %}
+  (function () {
+    const d = {{ model.charts.sa | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-sa"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[0]{% if model.charts.sa.imports_trend is defined %}, pal[1]{% endif %}, pal[0]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליארד ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", scale: true },
+      series: [
+        { type: "line", name: "יבוא, מנוכה עונתיות", data: d.imports, symbolSize: 5 },
+        { type: "line", name: "יצוא, מנוכה עונתיות", data: d.exports, symbolSize: 5 },
+{%- if model.charts.sa.imports_trend is defined %}
+        { type: "line", name: "יבוא, מגמה", data: d.imports_trend, showSymbol: false, lineStyle: { type: "dashed", width: 2 } },
+{%- endif %}
+        { type: "line", name: "יצוא, מגמה", data: d.exports_trend, showSymbol: false, lineStyle: { type: "dashed", width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+  (function () {
+    const d = {{ model.charts.uses | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-uses"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[1], pal[0], pal[2], pal[5], pal[6], pal[9]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליארד ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: d.series.map((s) => ({ type: "bar", stack: "u", name: s.name, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- for key in ["consumer", "raw", "investment", "industries"] %}
+  (function () {
+    const d = {{ model.charts[key] | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const yNow = {{ model.labels.ytd_col | tojson }};
+    const yPrev = {{ model.labels.ytd_prev_col | tojson }};
+    const chart = echarts.init(document.getElementById({{ ("chart-" ~ key) | tojson }}));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[6], pal[0]],
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 0 }) + " מיליון ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 120, overflow: "break" } },
+      series: [
+        { type: "bar", name: yPrev, data: d.prev },
+        { type: "bar", name: yNow, data: d.now }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endfor %}
+  (function () {
+    const d = {{ model.charts.tech | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-tech"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[2], pal[5], pal[6]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 2 }) + " מיליארד ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 56, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: d.series.map((s) => ({ type: "bar", stack: "t", name: s.name, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+  (function () {
+    const d = {{ model.charts.diamonds | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-diamonds"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[6], pal[1]],
+      tooltip: { trigger: "axis" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: [
+        { type: "value" },
+        { type: "value", splitLine: { show: false }, axisLabel: { formatter: (v) => v + "%" } }
+      ],
+      series: [
+        { type: "bar", name: "יצוא יהלומים", data: d.exports, tooltip: { valueFormatter: (v) => v == null ? "" : v + " מיליארד ₪" } },
+        { type: "bar", name: "יבוא יהלומים", data: d.imports, tooltip: { valueFormatter: (v) => v == null ? "" : v + " מיליארד ₪" } },
+        { type: "line", name: "אחוז מיצוא הסחורות", yAxisIndex: 1, data: d.share, tooltip: { valueFormatter: (v) => v == null ? "" : v + "%" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- if model.flags.agri %}
+  (function () {
+    const d = {{ model.charts.agri | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-agri"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[5], pal[2], pal[6], pal[1], pal[9]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => v == null ? "" : Number(v).toLocaleString("he-IL", { maximumFractionDigits: 1 }) + " מיליון ₪" },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 64, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value" },
+      series: d.series.map((s) => ({ type: "bar", stack: "a", name: s.name, data: s.data }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+{%- endif %}
+</script>
