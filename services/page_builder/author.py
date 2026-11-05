@@ -54,6 +54,7 @@ from .recipe import (
     Recipe,
     RecipeError,
     RecipeInput,
+    RecipeLimits,
     dump_model,
     kpi_format_findings,
     lint_template,
@@ -383,7 +384,7 @@ def _export_columns(recipe: Recipe, resources: list[dict],
     return out
 
 
-def prepare(dataset_id: str) -> Path:
+def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
     from services.shared.firestore import FirestoreStateStore
     from services.shared.resources import select_prefetch_resources
 
@@ -416,16 +417,18 @@ def prepare(dataset_id: str) -> Path:
 
     # Re-authoring: the committed recipe's `limits` and `columns` apply, as in
     # the refresh, so a heavy recipe prepares without hand-set env vars.
+    # `all_columns` (a redesign that reads columns the recipe doesn't yet)
+    # still takes the limits.
     recipe = _committed_recipe(dataset_id)
-    limits = recipe.manifest.limits if recipe else None
-    max_records = (limits and limits.max_records) or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
-    max_bytes = (limits and limits.max_bytes) or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
-    wall_s = max(_PREPARE_WALL_S, (limits and limits.wall_budget_s) or 0)
+    limits = recipe.manifest.limits if recipe else RecipeLimits()
+    max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
+    max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    wall_s = max(_PREPARE_WALL_S, limits.wall_budget_s or 0)
     modified = {r.get("id"): r.get("last_modified") for r in src.resources or []}
     by_id = {r.get("id"): r for r in src.resources or []}  # url + format, for the file fetch
     selected = select_prefetch_resources(src.resources or [])
     previews = {res["id"]: fetch_resource_preview(res["id"]) for res in selected}
-    columns = _export_columns(recipe, src.resources or [], previews) if recipe else {}
+    columns = _export_columns(recipe, src.resources or [], previews) if recipe and not all_columns else {}
     manifest = []
     for i, res in enumerate(selected, 1):
         preview = previews[res["id"]] or {}
@@ -459,7 +462,12 @@ def prepare(dataset_id: str) -> Path:
                 deadline=time.monotonic() + wall_s, sample_target_rows=0, prefer_sample=False,
             )
             if out is not None and cols:
-                _project_csv(dest, cols)
+                try:
+                    _project_csv(dest, cols)
+                except RecipeError as e:  # a header the preview didn't predict
+                    print(f"  {res['id'][:8]}: {e}; kept every column", file=sys.stderr)
+                    cols = None
+                    entry.pop("columns", None)
             if skipped:
                 entry["skipped"] = skipped
             if out is not None:
@@ -693,9 +701,16 @@ class _LocalCkan:
         with open(self.data_dir / m["file"], encoding="utf-8", newline="") as f:
             rows = list(csv.reader(f))
         header, body = rows[0], rows[1:]
+        fields = kw.get("fields")
+        if fields and m.get("columns") and not all(c in header for c in fields):
+            raise RecipeError(
+                f"data/{m['file']} holds only the columns prepare exported for the recipe "
+                f"({', '.join(m['columns'])}), not {[c for c in fields if c not in header]}; "
+                "re-run `author prepare` after changing an input's `columns`",
+                reason="schema_changed",
+            )
         if self.transform:
             body = self.transform(body)
-        fields = kw.get("fields")
         if fields and all(c in header for c in fields):
             # The prod export carries only `fields`; measure the cap on that.
             # A missing column is left for fetch_inputs to report.
@@ -1322,6 +1337,8 @@ def _cli(argv: list[str] | None = None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     sp = sub.add_parser("prepare")
     sp.add_argument("dataset_id")
+    sp.add_argument("--all-columns", action="store_true",
+                    help="export every column, not just a committed recipe's `columns`")
     sv = sub.add_parser("verify")
     sv.add_argument("dataset_id")
     sv.add_argument("--recipes", type=Path, default=RECIPES_ROOT)
@@ -1340,7 +1357,7 @@ def _cli(argv: list[str] | None = None) -> int:
         return snapshot(args.dataset_id, args.map_file, args.resource,
                         name=args.name, max_kb=args.max_kb)
     if args.cmd == "prepare":
-        print(prepare(args.dataset_id))
+        print(prepare(args.dataset_id, all_columns=args.all_columns))
         return 0
     if args.cmd == "verify":
         return verify(args.dataset_id, args.recipes, allow_order_dependent=args.allow_order_dependent)

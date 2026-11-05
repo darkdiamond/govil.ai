@@ -234,7 +234,8 @@ Constraints that don't move: every `<script>` block < 50KB (aggregate in
   `total_bytes` + `compute_memory_mb` under about 3.5GB. Set only the
   limits the data needs, with headroom for growth, and say why in the PR.
   Once the recipe is committed, `prepare` and `verify` apply its `limits`
-  and fetch only its inputs' `columns`, as the refresh does. Before that
+  and fetch only its inputs' `columns`, as the refresh does (`prepare
+--all-columns` to see the rest for a redesign). Before that
   (first exploration), run `prepare` with the caps raised:
   `REFRESH_MAX_RECORDS=… REFRESH_MAX_BYTES=… python -m services.page_builder.author prepare <id>`.
 - `map` / `snapshot` (map geometry that exists only in an uploaded file):

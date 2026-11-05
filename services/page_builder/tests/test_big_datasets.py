@@ -528,3 +528,18 @@ def test_prepare_exports_every_column_when_an_input_reads_them_all(tmp_path, mon
 def test_local_ckan_replays_a_failed_preview(tmp_path):
     lc = _local_ckan(tmp_path, preview_failed=True)
     assert lc.preview("r1") is None  # verify sees "no preview", as the refresh would
+
+
+def test_prepare_all_columns_overrides_the_recipes_columns(tmp_path, monkeypatch):
+    def narrow(d):
+        d["inputs"][0].update(required_columns=["שנה"], columns=["שנה"])
+
+    author, calls = _prepare_env(tmp_path, monkeypatch, narrow)
+    author.prepare(DS, all_columns=True)
+    assert calls[0]["fields"] is None
+
+
+def test_local_ckan_says_to_reprepare_when_columns_grew(tmp_path):
+    lc = _local_ckan(tmp_path, columns=["a", "b"])
+    with pytest.raises(RecipeError, match="re-run `author prepare`"):
+        lc.fetch("r1", 50, tmp_path / "out.csv", max_bytes=10**6, fields=["a", "c"])

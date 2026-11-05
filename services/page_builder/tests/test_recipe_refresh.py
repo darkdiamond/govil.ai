@@ -1800,3 +1800,11 @@ def test_committed_recipes_have_no_em_dash():
             found += [f"{d.name[:8]} {x}" for x in author._em_dash_findings(Recipe.load(d))
                       if "rewrite with" not in x]
     assert not found, "\n".join(found[:20])
+
+
+def test_kpi_placeholder_dash_needs_no_ltr():
+    from services.page_builder.recipe import kpi_format_findings
+
+    box = '<div class="text-2xl font-bold text-brand">{}</div>'
+    assert kpi_format_findings(box.format("–")) == []
+    assert any("dir=" in f for f in kpi_format_findings(box.format("2014–2026")))
