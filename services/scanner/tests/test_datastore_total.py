@@ -92,3 +92,25 @@ async def test_returns_none_on_unparseable_total():
     client.config = cfg
 
     assert await client.datastore_total("rid") is None
+
+
+@pytest.mark.asyncio
+async def test_asks_for_an_exact_count():
+    # Without a threshold, CKAN returns Postgres's planner estimate for a
+    # large table, stale after a shrinking re-upload (36bf1404, 2026-11-05:
+    # 161,025 estimated, 125,718 held).
+    client = CKANClient.__new__(CKANClient)
+    client._client = MagicMock()
+    client._client.get = AsyncMock(
+        return_value=_ckan_response(
+            status=200,
+            body={"success": True, "result": {"total": 125718, "total_was_estimated": False}},
+        )
+    )
+    client._last_request_time = 0
+    from services.scanner.config import settings as cfg
+    client.config = cfg
+
+    assert await client.datastore_total("rid") == 125718
+    params = client._client.get.call_args.kwargs["params"]
+    assert params["total_estimation_threshold"] >= 10**9

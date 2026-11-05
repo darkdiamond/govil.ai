@@ -11,7 +11,8 @@ from __future__ import annotations
 import io
 import json
 import urllib.error as urllib_error
-from typing import Self
+from typing import ClassVar, Self
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -111,3 +112,69 @@ def test_success_returns_preview(monkeypatch):
 
 def test_empty_resource_id_returns_none():
     assert fetch_resource_preview("") is None
+
+
+class _EstimatingCkan:
+    """datastore_search as data.gov.il answers it for a large table: with
+    `include_total` alone, `total` is Postgres's planner estimate (stale here,
+    larger than the table after a shrinking re-upload); with a
+    `total_estimation_threshold` above that estimate, it is an exact count."""
+
+    ROWS: ClassVar[list[dict]] = [{"_id": i + 1, "plate": f"{i:07d}"} for i in range(7)]
+    ESTIMATE = 10
+
+    def __init__(self):
+        self.urls: list[str] = []
+
+    def urlopen(self, req, timeout=None):
+        self.urls.append(req.full_url)
+        q = {k: v[0] for k, v in parse_qs(urlparse(req.full_url).query).items()}
+        exact = int(q.get("total_estimation_threshold") or 0) >= self.ESTIMATE
+        body = {
+            "success": True,
+            "result": {
+                "total": len(self.ROWS) if exact else self.ESTIMATE,
+                "total_was_estimated": not exact,
+                "fields": [{"id": "_id", "type": "int"}, {"id": "plate", "type": "text"}],
+                "records": self.ROWS[: int(q.get("limit", 0))],
+            },
+        }
+        return _Resp(json.dumps(body).encode("utf-8"))
+
+    def page(self, _rid, offset, limit, _timeout, _fields):
+        rows = self.ROWS[offset:offset + limit]
+        return ["plate"], [{k: v for k, v in r.items() if k != "_id"} for r in rows]
+
+
+def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
+    # 2026-11-05, 9a7bd490: CKAN estimated 161,025 rows for a table holding
+    # 125,718. The file was rejected as short and the datastore export failed
+    # as "ran out at row 125,718 of 161,025", both checked against the estimate.
+    ckan = _EstimatingCkan()
+    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", ckan.urlopen)
+    monkeypatch.setattr(agent_contract, "_fetch_page", ckan.page)
+
+    preview = fetch_resource_preview("rid")
+    assert preview is not None
+    assert preview["total"] == 7
+    assert "total_estimation_threshold=" in ckan.urls[0]
+    # The export checks its row count against that total (its cut-off guard
+    # is test_data_prefetch's test_an_empty_page_before_total_is_a_failed_export):
+    # the whole table now exports as full.
+    out = agent_contract.fetch_resource_records_to_file(
+        "rid", preview["total"], tmp_path / "out.csv", max_bytes=1_000_000,
+        page_size=100_000, page_timeout_s=5.0, deadline=float("inf"),
+        sample_target_rows=0,
+    )
+    assert out is not None and out.mode == "full" and out.rows == 7
+
+
+def test_an_estimated_total_is_logged(monkeypatch, caplog):
+    # A CKAN that ignores the threshold must not go back to silent estimates.
+    ckan = _EstimatingCkan()
+    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", ckan.urlopen)
+    monkeypatch.setattr(agent_contract, "EXACT_TOTAL_THRESHOLD", 0)
+    with caplog.at_level("WARNING", logger=agent_contract.log.name):
+        preview = fetch_resource_preview("rid")
+    assert preview is not None and preview["total"] == _EstimatingCkan.ESTIMATE
+    assert "is an estimate" in caplog.text
