@@ -415,7 +415,7 @@ def compute(frames):
     e_partial = (f" {e_years[-1]} היא שנה חלקית." if e_years and e_last_full != e_years[-1] else "")
     labels = {
         "lede": (f"המאגר של משרד המשפטים מאגד שלושה קבצים נפרדים על מקצוע שמאות המקרקעין: מרשם של "
-                 f"{n(total_reg)} שמאים בעלי רישיון, {n(len(ex))} ניגשויות לבחינות הרישוי "
+                 f"{n(total_reg)} שמאים בעלי רישיון, {n(len(ex))} ניגשויות לבחינות הרישוי וציוני הבחינות "
                  f"מ-{first_year} ועד {d_he(ref)}, ו-{n(len(exm))} פטורים מבחינה בזכות לימודים "
                  f"אקדמיים. הקבצים אינם מקושרים זה לזה (אין בהם מזהה נבחן), ולכן כל ניגשות "
                  f"נספרת בנפרד, כולל ניגשויות חוזרות. המאגר אינו מציין סף מעבר; שיעורי המעבר בעמוד "
@@ -433,7 +433,7 @@ def compute(frames):
         "rate_caption": "שיעור מעבר וציון ממוצע לפי שנה.",
         "dist_note": (f"מספר הניגשויות שקיבלו כל ציון, מ-0 עד 100; ציון {PASS} ומעלה בכחול. "
                       f"הציון החציוני: {median:.0f}."
-                      + ((" ציון אחד מחוץ לטווח 0–100 הוצא כשגוי." if invalid == 1 else f" {n(invalid)} ציונים מחוץ לטווח 0–100 הוצאו כשגויים.") if invalid else "")),
+                      + ((" ציון אחד מחוץ לטווח 0-100 הוצא כשגוי." if invalid == 1 else f" {n(invalid)} ציונים מחוץ לטווח 0-100 הוצאו כשגויים.") if invalid else "")),
         "dist_aria": (f"היסטוגרמה: התפלגות הציונים בבחינות השמאות, שיא בולט בציון {PASS} "
                       f"({n(hist_d[PASS])} ניגשויות)."),
         "subj_note": (f"שיעור המעבר בכל בחינה בכל השנים. בכחול מוצגות {n(cur_n)} בחינות שנערכו "
@@ -473,6 +473,11 @@ def compute(frames):
         "surnames_caption": "מספר שמאים לפי שם משפחה.",
     }
 
+    seo_desc = (f"ציוני בחינות שמאות מקרקעין ואחוזי המעבר לפי שנה ובחינה, ומרשם של {n(total_reg)} "
+                f"שמאי מקרקעין בעלי רישיון. שיעור המעבר הכולל: {overall:.1f}%.")
+    if len(seo_desc) > 150:
+        seo_desc = "ציוני בחינות שמאות מקרקעין ואחוזי המעבר לפי שנה ובחינה, ומרשם שמאי המקרקעין בעלי הרישיון."
+
     tables = {
         "years": [{"year": str(y), "n": n(r.n), "passed": n(r.passed), "failed": n(r.scored - r.passed),
                    "none": n(r.none)} for y, r in zip(years, py.itertuples())],
@@ -480,7 +485,7 @@ def compute(frames):
                   "mean": "–" if mv is None else f"{mv:.1f}"}
                  for y, rv, mv in zip(years, rate_y, mean_y)],
         "subjects": [{"name": s, "years": (str(int(r["first"])) if r["first"] == r["last"]
-                                           else f"{int(r['first'])}–{int(r['last'])}"),
+                                           else f"{int(r['first'])}-{int(r['last'])}"),
                       "n": n(r["n"]), "rate": "–" if pd.isna(r["rate"]) else f"{r['rate']:.1f}%",
                       "mean": "–" if pd.isna(r["mean"]) else f"{r['mean']:.1f}"}
                      for s, r in g.iterrows()],
@@ -509,6 +514,16 @@ def compute(frames):
                                "שומת מקרקעין", "מרשמים מקצועיים"],
             "temporal_coverage": f"{first_year}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "מאגר שמאי מקרקעין: ציוני בחינות שמאות ואחוזי מעבר",
+                "description": seo_desc,
+                "name": "מאגר שמאי מקרקעין",
+                "alternate_names": [
+                    "ציוני בחינות שמאות מקרקעין",
+                    "רשימת שמאי מקרקעין",
+                    "מרשם שמאי מקרקעין",
+                ],
+            },
         },
         "kpis": kpis,
         "charts": charts,

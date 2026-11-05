@@ -8,14 +8,25 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **Most recipes still don't set `agent_data.seo`.** Batch 1 (the 21 recipes with the most
-  GSC clicks lost to low CTR, 90 days to 2026-11-03) has it; the other ~296 keep their CKAN
+- **Most recipes still don't set `agent_data.seo`.** Batches 1 and 2 (the 41 recipes with the
+  most GSC clicks lost to low CTR, 90 days to 2026-11-03) have it; the other ~276 keep their CKAN
   titles (some over 60 chars, 45 summaries over 160) and a " · ministry" suffix. Fix: next
   batches in the same order (missed clicks = impressions × (expected CTR at position − actual
-  CTR)), starting with 688d7791, 35c791ca, 669b2652, 15c65f47, 14f2521f, 7a6cbf55, 3de0e7f0
-  (the import sibling of 3e4e79f7), f4a5cdab, 023b7883; bump each `recipe_version`. Compare
-  batch 1's CTR in GSC about 4 weeks after it ships before spending on the long tail.
-  (2026-11-04)
+  CTR)), starting with ebec1eda, 1a49cbba, ebf0005b, 3a1ca8fa, d8767745, 187428bc, 54601127,
+  dda8f0aa, cf92190d, 505aa85e; bump each `recipe_version`. The gap per page is now small
+  (batch 2 pages each missed ~15-29 clicks per 90 days), so compare batches 1-2's CTR in GSC
+  about 4 weeks after they ship before spending on the long tail. Also df60d73b (Israel
+  numbering plan) should own the "אזורי חיוג" area-code queries that now land on 59d2e891
+  (service numbers, which has no geographic codes). (2026-11-05)
+- **`author verify`'s dash lint misses dashes built in f-strings.** An en dash between two
+  interpolated numbers (`f"{a}–{b}"`) in Hebrew text renders reversed in RTL, but the lint only
+  sees literal text. Batch 2 found several by hand (7a6cbf55's bucket labels and periods). Fix:
+  lint the rendered page model's strings (outside `dir="ltr"` spans) instead of the source.
+  (2026-11-05)
+- **Some registry pages have no lookup callout to `#data-explorer`.** 14f2521f (missions abroad),
+  d08d4a17 (notaries) and 35c791ca (licensed garages) are lookup-intent pages whose searchers
+  want one row, but the page doesn't point them at the explorer. Fix: add the callout the #124
+  pass added to the other lookup pages, and bump `recipe_version`. (2026-11-05)
 - **The map reader can't open a zip of zips.** ee626064 (משרד הבינוי והשיכון GIS layers)
   ships its fourth layer, מחיר למשתכן (`gis_dira.zip`, 9.2MB), as a zip holding
   `Lots_view.zip`, `Plans_view.zip`, `Projects_view.zip` and `Settelments_Centroid_view.zip`.

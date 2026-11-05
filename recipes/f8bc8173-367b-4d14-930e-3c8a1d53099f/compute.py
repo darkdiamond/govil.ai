@@ -382,6 +382,21 @@ def compute(frames):
             "related_ids": ["b5ee9460-87d7-4eb4-868a-58e35bc507b2",
                             "ebe5ec6f-3e37-4bd9-bbdc-926ad1e0d6b9"],
             "spatial_coverage": "ישראל",
+            "seo": {
+                # The searched cities, named only while the data still lists both.
+                "title": ("קלפיות מיוחדות ונגישות ברשויות המקומיות: תל אביב, ירושלים"
+                          if {"תל אביב-יפו", "ירושלים"} <= set(df["auth"])
+                          else "קלפיות מיוחדות ונגישות בבחירות לרשויות המקומיות"),
+                "description": (f"איתור קלפי מיוחדת או נגישה בבחירות לרשויות המקומיות לפי עיר וכתובת: "
+                                f"{n(total)} קלפיות ב-{n(n_auth)} רשויות, {n(n_yes)} מהן נגישות."),
+                "name": "קלפיות מיוחדות ונגישות בבחירות לרשויות המקומיות",
+                "alternate_names": [
+                    "בחירות לרשויות המקומיות - קלפיות מיוחדות בפריסה ארצית",
+                    "קלפי נגישה מיוחדת",
+                    "קלפיות נגישות תל אביב",
+                    "קלפיות נגישות ירושלים",
+                ],
+            },
         },
         "kpis": kpis,
         "charts": {"dist": chart_dist, "auth": chart_auth, "venue": chart_venue},

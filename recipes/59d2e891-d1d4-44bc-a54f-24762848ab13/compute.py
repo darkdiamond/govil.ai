@@ -493,6 +493,13 @@ def compute(frames):
         "net_caption": f"{len(net):,} קודים רשתיים, אחידים אצל כל המפעילים.",
     }
 
+    seo_desc = ("מספרי טלפון ארציים בישראל: מספרי חירום, מספרים מקוצרים וקידומות שירות"
+                + (f" ({', '.join(rep_codes)})" if rep_codes else "")
+                + f" ומי הספק שמחזיק בכל אחד. {n_rows:,} מספרים וקידומות.")
+    if len(seo_desc) > 150:
+        seo_desc = ("מספרי טלפון ארציים בישראל: מספרי חירום, מספרים מקוצרים וקידומות שירות "
+                    "ומי הספק שמחזיק בכל אחד.")
+
     agent_data = {
         "summary_he": summary,
         "dataset_kind": "registry",
@@ -502,6 +509,18 @@ def compute(frames):
                         "a6c90661-7a18-4773-9553-7d26b4db4cb1",
                         "7ae4a3da-1c40-410b-bffb-d89f81709d12"],
         "spatial_coverage": "ישראל",
+        "seo": {
+            "title": "מספרי טלפון ארציים בישראל: קידומות ואזורי חיוג לשירות",
+            "description": seo_desc,
+            "name": "מספרי טלפון ארציים וקידומות שירות בישראל",
+            "alternate_names": [
+                "רשימת מספרי טלפון לשירותים ארציים",
+                "Israel Dialing Plan – Within Israel",
+                "קידומות טלפון בישראל",
+                "אזורי חיוג לשירות",
+                "מספרי חירום מקוצרים",
+            ],
+        },
     }
 
     return {
