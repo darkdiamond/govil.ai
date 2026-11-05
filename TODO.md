@@ -253,36 +253,12 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   data blocks in the IIFE (PR #272's bug: blank map on d9b1e04c) would pass CI. Move the
   script-type check (or the whole function) to `frontend/utils/` and test that data blocks are
   left untouched and every JS type is re-created. (2026-10-31)
-- **`/kinds/` has no index page.** `/kinds/<kind>/` pages exist, but `/kinds/` itself 404s, so
-  a visitor who trims the URL lands on the 404 page. Nothing links to it. Add a small index (or a
-  301 to `/datasets/`). (2026-11-01)
-- **Legacy pages load icons that don't exist.** 32d9a7b7 and 2f5ff1f8 (agent-built bodies)
-  reference `/icons/calendar.svg`, `chart-bar.svg` and `trending-up.svg`, which aren't in
-  `frontend/public/icons/`; the images 404. Commit the three Lucide icons. (2026-11-01)
-
-## Site shell (ads off since 2026-11-02)
-
-- **The CSP still allowlists the ad hosts.** With ad insertion removed, `firebase.json` keeps
-  `*.googlesyndication.com`, `*.googleadservices.com` and `*.adtrafficquality.google` in
-  `script-src`, `connect-src` and `frame-src`; nothing on the site loads from them, so they only
-  widen the script allowlist. Fix: drop them (check GA4 first: it can send to
-  `stats.g.doubleclick.net`, so keep `*.doubleclick.net` in `connect-src` if it does), and
-  update the CSP paragraph in CLAUDE.md "Gotchas", which still describes AdSense host drift. If
-  ads come back, restore both together. (2026-11-02)
-- **The privacy policy doesn't disclose Microsoft Clarity.** `plugins/clarity.client.ts` loads
-  it when `NUXT_PUBLIC_CLARITY_ID` is set, and it sets cookies, but `/privacy/` lists only
-  Google Analytics. Add a Clarity entry (service, cookies, Microsoft's privacy link). (2026-11-02)
 
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
-- **Nothing bumps the ruff pin.** Dependabot's pip entry watches only `/services/page_builder`,
-  so `requirements-dev.txt` (and the root `requirements.txt`) never get update PRs, and
-  `ruff==0.17.2` ages. Fix: a Dependabot pip entry for `/`, and keep `required-version` in
-  `ruff.toml` in step in the same PR (CI fails until both match and new findings are fixed).
-  (2026-11-04)
 
 ## Validation speed
 
@@ -296,7 +272,3 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   cut verify's wall time about in half. The catch is memory: each pass may use up to
   `REFRESH_COMPUTE_MEMORY_MB` (3GB), so a heavy recipe would need up to 3× that. Fix: a thread
   pool sized by a flag, defaulting to serial for recipes with `limits`. (2026-11-01)
-- **No Python lint gate.** Ruff is in the venv but the repo has no config and neither CI nor the
-  pre-commit hook runs it (prettier only). Ruff with the user-level config reports 1706 findings,
-  so a gate needs a curated rule set first (E/F + a few bug-class rules) and a one-time fix-up.
-  It takes ~0.1s, so speed is no reason to skip it. (2026-11-01)
