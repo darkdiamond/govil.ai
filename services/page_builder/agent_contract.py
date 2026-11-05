@@ -107,6 +107,14 @@ _PREFETCH_TIMEOUT_S = 4.0
 _PREFETCH_SAMPLE_LIMIT = 5
 _PREFETCH_VALUE_TRUNC = 80
 _PREFETCH_JSON_CAP = 2048
+# data.gov.il's CKAN answers `include_total` on a large table with Postgres's
+# planner estimate (`total_was_estimated: true`), which goes stale when a
+# re-upload shrinks the table: 2026-11-05, 36bf1404 reported 161,025 rows
+# while it held 125,718, so the file (125,718) was rejected as short and the
+# datastore export failed as cut off at the same row. Above this threshold
+# CKAN estimates; set past any table we read, it counts exactly
+# (`count(*)`: +0.6s on a 4.2M-row table).
+_EXACT_TOTAL_THRESHOLD = 1_000_000_000
 
 def _truncate_value(v: Any) -> Any:
     if isinstance(v, str) and len(v) > _PREFETCH_VALUE_TRUNC:
@@ -155,6 +163,7 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             "resource_id": resource_id,
             "limit": _PREFETCH_SAMPLE_LIMIT,
             "include_total": "true",
+            "total_estimation_threshold": _EXACT_TOTAL_THRESHOLD,
         }
     )
     url = f"{_CKAN_DATASTORE_URL}?{qs}"

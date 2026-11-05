@@ -193,7 +193,8 @@ class CKANClient:
         """Return the total row count of a datastore-backed resource.
 
         Calls `/datastore_search?resource_id=<rid>&limit=0&include_total=true`
-        and returns `result.total`. Returns `None` for resources that aren't
+        with an estimation threshold past any table, so `result.total` is an
+        exact count, and returns it. Returns `None` for resources that aren't
         in the datastore (PDF, ZIP, …), 4xx responses, or transport errors —
         the caller treats `None` as "unknown" and moves on.
         """
@@ -208,6 +209,11 @@ class CKANClient:
                     "resource_id": resource_id,
                     "limit": 0,
                     "include_total": "true",
+                    # Exact count, not Postgres's planner estimate, which
+                    # CKAN returns for large tables and which goes stale
+                    # when a re-upload shrinks one (see agent_contract's
+                    # _EXACT_TOTAL_THRESHOLD).
+                    "total_estimation_threshold": 1_000_000_000,
                 },
             )
         except (httpx.HTTPError, httpx.TimeoutException):
