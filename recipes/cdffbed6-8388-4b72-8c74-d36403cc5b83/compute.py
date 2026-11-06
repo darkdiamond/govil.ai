@@ -247,7 +247,7 @@ def compute(frames):
                 if missing else "")
     partial_note = f" {mlabel(p1)} חלקי ואינו נכלל בהשוואות." if partial else ""
     labels = {
-        "lede": (f"דיוק רכבת ישראל בכל תחנה: כמה מהעצירות היו בזמן וכמה באיחור, מ{mlabel(p0)} עד "
+        "lede": (f"דיוק רכבת ישראל ועמידה בלו״ז בכל תחנה: כמה מהעצירות היו בזמן וכמה באיחור, מ{mlabel(p0)} עד "
                  f"{mlabel(p1)}, ב-{df['station'].nunique()} תחנות.{gap_note}{partial_note}"),
         "monthly_aria": f"גרף: אחוז העצירות בזמן, באיחור ובהקדמה בכל חודש, {mlabel(p0)} עד {mlabel(p1)}.",
         "yearly_aria": "תרשים: התפלגות העצירות לפי סטטוס בכל שנה.",
@@ -269,15 +269,30 @@ def compute(frames):
                    for s, a, b in zip(movers["x"], movers["before"], movers["after"])],
     }
 
+    seo_desc = (f'לו"ז רכבת ישראל בפועל: כמה רכבות הגיעו בזמן לכל תחנה, בכל חודש. '
+                f"ב-12 החודשים האחרונים {pct(cur['on'])} מהעצירות היו בזמן.")
+    if len(seo_desc) > 150:
+        seo_desc = 'לו"ז רכבת ישראל בפועל: כמה רכבות הגיעו בזמן, באיחור או בהקדמה לכל תחנה, בכל חודש.'
     return {
         "agent_data": {
-            "summary_he": (f"דיוק רכבת ישראל ב-{df['station'].nunique()} תחנות, {mlabel(p0)}–{mlabel(p1)}: "
+            "summary_he": (f"דיוק רכבת ישראל ב-{df['station'].nunique()} תחנות, {mlabel(p0)}-{mlabel(p1)}: "
                            f"ב-12 החודשים האחרונים {pct(cur['on'])} מהעצירות היו בזמן."),
             "dataset_kind": "timeseries",
             "related_ids": ["63b7bf0b-69eb-4a73-9b98-b9fd2b8a4b5b"],
             "suggested_tags": ["רכבת ישראל", "תחבורה ציבורית", "דיוק", "תחנות רכבת"],
             "temporal_coverage": f"{p0}/{p1}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": 'לו"ז רכבת ישראל בפועל: דיוק ואיחורים בכל תחנה',
+                "description": seo_desc,
+                "name": "רכבת ישראל: עמידה בלו״ז ודיוק בתחנות",
+                "alternate_names": [
+                    'רכבת לו"ז',
+                    "לו״ז רכבת ישראל",
+                    "דיוק רכבת ישראל",
+                    "איחורי רכבת ישראל",
+                ],
+            },
         },
         "kpis": kpis,
         "charts": {"monthly": monthly, "yearly": yearly, "season": season, "stations": stations,

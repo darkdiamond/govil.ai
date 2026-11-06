@@ -381,6 +381,10 @@ def compute(frames):
     def bar(items):
         return {"names": [k for k, _ in items], "values": [v for _, v in items]}
 
+    seo_desc = (f"איתור אגודה שיתופית לפי שם, מספר אגודה או יישוב: {_int(n)} אגודות שיתופיות ברשם, "
+                f"מהן {_int(n_act)} פעילות, עם סטטוס, סוג ושנת רישום.")
+    if len(seo_desc) > 150:
+        seo_desc = "איתור אגודה שיתופית לפי שם, מספר אגודה או יישוב ברשימת רשם האגודות השיתופיות."
     return {
         "agent_data": {
             "summary_he": (f"מרשם האגודות השיתופיות: {_int(n)} אגודות שנרשמו בישראל מאז {first_year}, "
@@ -395,6 +399,18 @@ def compute(frames):
                             "bd731d1b-aab6-4a13-a4a3-e3102a320fd4"],
             "temporal_coverage": f"{first_year}/{now.year}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "רשם האגודות השיתופיות: איתור אגודה שיתופית ורשימת אגודות",
+                "description": seo_desc,
+                "name": "מרשם האגודות השיתופיות: איתור אגודה שיתופית",
+                "alternate_names": [
+                    "רשימת האגודות השיתופיות",
+                    "רשם האגודות השיתופיות",
+                    "רשם אגודות שיתופיות",
+                    "אגודות שיתופיות",
+                    "רשמת האגודות השיתופיות",
+                ],
+            },
         },
         "kpis": {
             "total": {"value": n, "display": _int(n), "tone": "brand"},
@@ -421,7 +437,7 @@ def compute(frames):
         "flags": {"closures": bool(c_years), "lifespan": len(order) >= 2},
         "insights": insights,
         "labels": {
-            "lede": (f"{_int(n)} אגודות שיתופיות נרשמו בישראל מאז {first_year}; {_int(n_act)} מהן פעילות "
+            "lede": (f"לפי רשימת רשם האגודות השיתופיות, {_int(n)} אגודות שיתופיות נרשמו בישראל מאז {first_year}; {_int(n_act)} מהן פעילות "
                      f"היום, {_int(n_liq)} בפירוק והשאר נסגרו. הסוג הנפוץ: '{top_type}' "
                      f"({_int(top_type_act)} אגודות פעילות). הרישום האחרון במאגר: {now_he}."),
             "full_year": str(full),

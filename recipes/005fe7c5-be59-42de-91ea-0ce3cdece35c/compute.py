@@ -410,7 +410,7 @@ def compute(frames):
     role_txt = _list_he([f"{n(role_counts[r])} {_plural(r)}" for r in roles])
     peak_q = qlab[int(pd.Series([sum(int(qr.get((q, r), 0)) for r in roles) for q in qs]).idxmax())] if qs else ""
     labels = {
-        "lede": (f"מרשם בעלי הרישיונות לעבודה עם אסבסט של המשרד להגנת הסביבה: {n(total)} רישיונות "
+        "lede": (f"מרשם העוסקים באסבסט של המשרד להגנת הסביבה, שבו מופיע כל קבלן אסבסט מורשה, סוקר ומפקח: {n(total)} רישיונות "
                  f"בתוקף ({role_txt}). המרשם כולל רק רישיונות בתוקף, ולכן הוא תמונת מצב: "
                  f"הרישיון הקרוב לפקיעה פג ב-{exp.min().strftime('%d/%m/%Y') if len(exp) else '–'}. "
                  f"מספרי רישיון ופרטי קשר אינם מוצגים בעמוד; היבטים משמעתיים מוצגים במצטבר בלבד."),
@@ -484,6 +484,10 @@ def compute(frames):
                      "vals": [f"{v:.1f}%" for v in c["by_role"]]} for c in contact],
     }
 
+    seo_desc = (f"איתור קבלן אסבסט מורשה, סוקר או מפקח אסבסט במרשם של המשרד להגנת הסביבה: "
+                f"{n(total)} רישיונות בתוקף, {n(role_counts.get('קבלן', 0))} מהם של קבלנים.")
+    if len(seo_desc) > 150:
+        seo_desc = "איתור קבלן אסבסט מורשה, סוקר או מפקח אסבסט במרשם העוסקים באסבסט של המשרד להגנת הסביבה."
     return {
         "agent_data": {
             "summary_he": (f"מרשם העוסקים באסבסט: {n(total)} רישיונות בתוקף ({role_txt}), "
@@ -495,6 +499,13 @@ def compute(frames):
             "suggested_tags": ["אסבסט", "רישוי מקצועי", "קבלנים", "בטיחות סביבתית", "פיקוח",
                                "המשרד להגנת הסביבה"],
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "מפקח אסבסט, סוקר, קבלן מורשה: מרשם העוסקים באסבסט",
+                "description": seo_desc,
+                "name": "מרשם העוסקים באסבסט: קבלנים, סוקרים ומפקחים",
+                "alternate_names": ["מרשם העוסקים באסבסט", "קבלני אסבסט מורשים", "קבלן אסבסט מורשה",
+                                    "סוקר אסבסט", "מפקח אסבסט"],
+            },
         },
         "kpis": kpis,
         "charts": charts,

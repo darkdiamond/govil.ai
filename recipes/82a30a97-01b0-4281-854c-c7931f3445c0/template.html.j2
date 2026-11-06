@@ -20,12 +20,20 @@
     </div>
   </details>
 {%- endmacro %}
-<h1>שמות הרחובות בעיר</h1>
+<h1>{{ model.agent_data.seo.name }}</h1>
 
 <section class="card p-5 mb-6">
 {{ head("info", "תקציר") }}
   <p class="m-0 text-subtle leading-relaxed">{{ model.agent_data.summary_he }}</p>
 </section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור רחוב בבאר שבע לפי שם או שכונה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם ראשי, תואר, שם משני, קבוצה, סוג, קוד רחוב ושכונה.</span>
+  </span>
+</a>
 
 <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
 {%- for key, label in [("total", "רשומות (רחובות, כיכרות, גנים ועוד)"), ("unique", "שמות ראשיים שונים"), ("hoods", "שכונות ואזורים"), ("groups", "קבוצות נושא"), ("types", "סוגי מקומות"), ("nocode", "רשומות ללא קוד רחוב")] %}
