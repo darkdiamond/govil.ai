@@ -623,9 +623,23 @@ def compute(frames):
         summary = (f"מפת מתחמי התחדשות עירונית לפי יישוב: {_fmt(n)} מתחמים ב-{_fmt(n_cities)} יישובים, "
                    f"{_fmt(sum_mutz)} יחידות דיור מוצעות.")
 
+    top3 = ", ".join(city["Yeshuv"].head(3)) if len(city) else ""
+    seo_desc = (f"מפת התחדשות עירונית: {_fmt(n)} מתחמים "
+                f"ב-{_fmt(n_cities)} יישובים" + (f", בהם {top3}" if top3 else "")
+                + f", עם {_fmt(sum_mutz)} יחידות דיור מוצעות.")
+    if len(seo_desc) > 150:
+        seo_desc = summary
+
     return {
         "agent_data": {
             "summary_he": summary,
+            "seo": {
+                "title": "מפת התחדשות עירונית ופינוי בינוי לפי יישוב (GIS)",
+                "description": seo_desc,
+                "name": "מפת התחדשות עירונית: מתחמי פינוי בינוי מוכרזים ותוכניות מתאר (שכבות GIS)",
+                "alternate_names": ["מפת התחדשות עירונית", "מתחמי פינוי בינוי",
+                                    "מפת פינוי בינוי", "שכבות GIS התחדשות עירונית"],
+            },
             "dataset_kind": "map",
             "temporal_coverage": temporal,
             "spatial_coverage": "ישראל",

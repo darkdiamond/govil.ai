@@ -104,6 +104,13 @@ def _chg_he(v):
     return f"{'עלייה' if v > 0 else 'ירידה'} של {abs(v):.1f}%"
 
 
+def _tone(chg):
+    """'up' / 'down' / '' (flat or no previous price) for a % change."""
+    if pd.isna(chg) or round(chg, 1) == 0:
+        return ""
+    return "up" if chg > 0 else "down"
+
+
 def _pct(v, signed=True):
     s = f"{abs(v):.1f}%"
     if not signed:
@@ -230,7 +237,7 @@ def _ins_latest_round(latest, latest_date):
     else:
         what = "המחיר המרבי כמעט לא השתנה"
     rng = ""
-    if n > 1 and round(hi - lo, 1) > 0:
+    if n > 1 and round(lo, 1) != round(hi, 1):
         if lo >= 0 or hi <= 0:
             word = "עליות" if hi > 0 else "ירידות"
             rng = f" ({word} של {abs(lo) if lo >= 0 else abs(hi):.1f}% עד {abs(hi) if lo >= 0 else abs(lo):.1f}%)"
@@ -376,9 +383,19 @@ def compute(frames):
             "ret": _p(r["ret"]) if pd.notna(r["ret"]) else "",
             "date": _d(r["date"]),
             "chg": _pct(r["chg"]) if pd.notna(r["chg"]) else "",
-            "chg_tone": ("" if pd.isna(r["chg"]) or round(r["chg"], 1) == 0
-                         else ("up" if r["chg"] > 0 else "down")),
+            "chg_tone": _tone(r["chg"]),
             "stale": bool(r["date"] < latest_date - pd.DateOffset(years=STALE_YEARS)),
+        })
+
+    # ---- what changed in the latest update round (the reason most visitors come)
+    round_rows = []
+    for _, r in in_round.sort_values(["gidx", "product_name"], kind="stable").iterrows():
+        round_rows.append({
+            "name": r["product_name"],
+            "prev": _p(r["prev"]) if pd.notna(r["prev"]) else "",
+            "con": _p(r["con"]),
+            "chg": _pct(r["chg"]) if pd.notna(r["chg"]) else "",
+            "chg_tone": _tone(r["chg"]),
         })
 
     # ---- window chart (5-year change)
@@ -473,6 +490,9 @@ def compute(frames):
             f"מע״מ, המחיר באילת והמחיר לקמעונאי, עם היסטוריית העדכונים המלאה.")
     labels = {
         "lede": lede,
+        "round_title": f"מה השתנה בעדכון האחרון, {_d(latest_date)}",
+        "round_note": (f"{_n(len(round_rows), 'מוצר אחד עודכן', 'מוצרים עודכנו')} ב-{_d(latest_date)}. "
+                       f"המחיר המרבי לצרכן כולל מע״מ, לפני העדכון ואחריו."),
         "products_kpi": "מוצרים בפיקוח במאגר",
         "last_kpi": "תאריך העדכון האחרון",
         "round_kpi": (f"שינוי חציוני במחיר בעדכון האחרון ({len(round_chg)} מוצרים)"
@@ -544,15 +564,24 @@ def compute(frames):
         summary = (f"המחיר המרבי המותר ל-{n_products} מוצרים בפיקוח מחירים, "
                    f"עדכון אחרון {_d(latest_date)}.")
 
-    # ---- search snippet: answer the top query (the egg price) when it is current
+    # ---- search snippet: answer the top query (the egg price) when it is current.
+    # Searches carry the year ("מחיר ביצים בפיקוח 2026"), so the title names the
+    # year of the latest update round and the description leads with that round.
     eggs = latest[latest["product_name"].str.contains(r"ביצ", regex=True)
                   & latest["product_name"].str.contains("(L)", regex=False)
                   & (latest["date"] >= latest_date - pd.DateOffset(years=1))]
+    seo_title = f"מחירים בפיקוח {latest_date.year}: מחיר מפוקח לביצים, חלב ולחם"
     if len(eggs):
         egg = eggs.iloc[0]
-        seo_desc = (f"המחיר המרבי בפיקוח לביצים, חלב, לחם וגבינות: ביצים בגודל L עד "
-                    f"{_p(float(egg['con']))} ₪ כולל מע״מ. {n_products} מוצרים, עדכון אחרון "
-                    f"{_d(latest_date)}.")
+        egg_chg = ""
+        if egg["date"] == latest_date and pd.notna(egg["chg"]) and round(float(egg["chg"]), 1) != 0:
+            egg_chg = f" ({_chg_he(float(egg['chg']))})"
+        seo_desc = (f"מחיר ביצים בפיקוח: ביצים בגודל L עד {_p(float(egg['con']))} ₪ כולל "
+                    f"מע״מ{egg_chg}, מ-{_d(egg['date'])}. המחיר המרבי ל-{n_products} מוצרים "
+                    f"בפיקוח: חלב, לחם, גבינות וביצים.")
+        if len(seo_desc) > 150:
+            seo_desc = (f"מחיר ביצים בפיקוח: ביצים בגודל L עד {_p(float(egg['con']))} ₪ כולל "
+                        f"מע״מ, מ-{_d(egg['date'])}. המחיר המרבי ל-{n_products} מוצרים בפיקוח.")
     else:
         seo_desc = (f"המחיר המרבי המותר לצרכן לביצים, חלב, לחם וגבינות בפיקוח מחירים: "
                     f"{n_products} מוצרים, עדכון אחרון {_d(latest_date)}.")
@@ -560,11 +589,11 @@ def compute(frames):
     agent_data = {
         "summary_he": summary,
         "seo": {
-            "title": "מוצרים בפיקוח ממשלתי: מחיר מפוקח לביצים, חלב ולחם",
+            "title": seo_title,
             "description": seo_desc,
             "name": "מחירי מוצרים בפיקוח ממשלתי",
-            "alternate_names": ["מחירי פיקוח", "מחיר ביצים בפיקוח", "מחיר מפוקח לביצים וחלב",
-                                "מחירים בפיקוח", "מוצרים בפיקוח משרד הכלכלה"],
+            "alternate_names": ["מחירים בפיקוח", "מחיר ביצים בפיקוח", "מחירי פיקוח",
+                                "מחיר מפוקח לביצים וחלב", "מוצרים בפיקוח משרד הכלכלה"],
         },
         "dataset_kind": "timeseries",
         "suggested_tags": ["פיקוח מחירים", "מחירי מזון", "חלב ומוצריו", "לחם",
@@ -588,6 +617,7 @@ def compute(frames):
         "insights": insights,
         "labels": labels,
         "tables": {
+            "round": round_rows,
             "prices": price_rows,
             "window": window_table,
             "years": years_table,
