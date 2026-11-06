@@ -1,0 +1,221 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#gush-map" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור גוש לפי מספר ←</span>
+    <span class="block text-sm text-subtle">הקלידו מספר גוש וקבלו את מיקומו במפה, את היישוב או המועצה ואת סטטוס ההסדר.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.gush, "מספרי גוש") }}
+  {{ gov.kpi(model.kpis.parts, "תתי-גושים בשכבה") }}
+  {{ gov.kpi(model.kpis.area, "שטח הגושים (קמ״ר)") }}
+  {{ gov.kpi(model.kpis.settled, model.labels.settled_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section id="gush-map" class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת הגושים ואיתור גוש") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lookup_note }}</p>
+  <div id="gush-search" class="flex flex-wrap items-center gap-2 mb-3" role="search">
+    <label for="gush-q" class="text-sm text-subtle">מספר גוש</label>
+    <input id="gush-q" type="search" inputmode="numeric" dir="ltr" class="border border-rule rounded-gov px-3 py-1 text-sm w-36" autocomplete="off" />
+    <button type="button" id="gush-go" class="bg-primary text-white rounded-gov px-3 py-1 text-sm">איתור</button>
+  </div>
+  <div id="gush-result" class="text-sm mb-3" aria-live="polite"></div>
+  <div id="map-gush" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="gush-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+  <p class="mt-3 mb-0 text-xs text-subtle">המיקום הוא מרכז הגוש. המידע אינו אסמכתה לשחזור גבולות גושים וחלקות.</p>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "סטטוס הסדר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+  {{ gov.chart("chart-status", model.labels.status_aria) }}
+  {{ gov.table("תתי-גושים ושטח לפי סטטוס", ["סטטוס", "תתי-גושים", "שטח (קמ״ר)", "שיעור"], model.tables.status) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "גושים לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.region_note }}</p>
+  {{ gov.chart("chart-region", model.labels.region_aria, "h-72 md:h-96") }}
+  {{ gov.table("תתי-גושים, שטח וגוש חציוני לפי מחוז", ["מחוז", "תתי-גושים", "שטח (קמ״ר)", "שטח חציוני (דונם)"], model.tables.region) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "גושים לפי נפה וטווחי מספרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.county_note }}</p>
+  {{ gov.chart("chart-county", model.labels.county_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("תתי-גושים וטווח מספרי הגוש לפי נפה", ["נפה", "תתי-גושים", "טווח מספרי גוש", "שטח חציוני (דונם)"], model.tables.county, ltr=(2,)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  {{ gov.head("building-2", "יישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.loc_note }}</p>
+  {{ gov.chart("chart-loc", model.labels.loc_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("תתי-גושים לפי יישוב", ["יישוב", "תתי-גושים"], model.tables.loc) }}
+</section>
+<section class="card p-5">
+  {{ gov.head("building-2", "מועצות אזוריות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.council_note }}</p>
+  {{ gov.chart("chart-council", model.labels.council_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("תתי-גושים לפי מועצה אזורית", ["מועצה", "תתי-גושים"], model.tables.council) }}
+</section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  {{ gov.head("chart-bar", "גודל הגושים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+  {{ gov.chart("chart-size", model.labels.size_aria) }}
+  {{ gov.table("תתי-גושים לפי שטח בדונם", ["שטח (דונם)", "תתי-גושים", "שיעור"], model.tables.size, ltr=(0,)) }}
+</section>
+<section class="card p-5">
+  {{ gov.head("chart-bar", "גושים אנליטיים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.analytic_note }}</p>
+  {{ gov.chart("chart-analytic", model.labels.analytic_aria) }}
+  {{ gov.table("שיעור הגושים האנליטיים לפי מחוז", ["מחוז", "שיעור"], model.tables.analytic) }}
+</section>
+</div>
+
+{%- for chunk in model.lookup.chunks %}
+<script type="application/json" id="gush-l-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-gush");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.lookup.chunks | length, "origin": model.lookup.origin, "scale": model.lookup.scale, "statuses": model.lookup.statuses, "groups": model.lookup.groups, "places": model.lookup.places, "bounds": model.lookup.bounds} | tojson }};
+    var colors = ["#0068f5", "#ffc107", "#dc3545"];
+    var group = function (s) { return s < 2 ? s : 2; };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    var renderer = L.canvas({ padding: 0.5 });
+    var layers = meta.groups.map(function () { return L.layerGroup().addTo(map); });
+    var recs = [], num = 0, x = meta.origin[0], y = meta.origin[1];
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("gush-l-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).split(";").forEach(function (s) {
+        var v = s.split(",").map(function (t) { return t === "" ? 0 : parseInt(t, 10); });
+        num += v[0]; x += v[2]; y += v[3];
+        recs.push({ num: num, sfx: v[1], lat: y / meta.scale, lng: x / meta.scale, st: v[4], pl: meta.places[v[5]] || "" });
+      });
+    }
+    function rows(r) {
+      return [["תת-גוש", String(r.sfx)], ["יישוב / מועצה", r.pl], ["סטטוס", meta.statuses[r.st]]];
+    }
+    var counts = meta.groups.map(function () { return 0; });
+    recs.forEach(function (r) {
+      var g = group(r.st);
+      counts[g] += 1;
+      r.marker = L.circleMarker([r.lat, r.lng], {
+        renderer: renderer, radius: 2.5, weight: 0, fillOpacity: 0.75, fillColor: colors[g]
+      }).bindPopup(function () { return window.GovMap ? GovMap.popup("גוש " + r.num, rows(r)) : "גוש " + r.num; });
+      r.marker.addTo(layers[g]);
+    });
+    map.fitBounds(meta.bounds, { padding: [8, 8] });
+    var legend = document.getElementById("gush-legend");
+    meta.groups.forEach(function (name, i) {
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:12px;height:12px;border-radius:50%;background:" + colors[i];
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(name + " (" + counts[i].toLocaleString("he-IL") + ")"));
+      legend.appendChild(li);
+    });
+    var out = document.getElementById("gush-result");
+    var input = document.getElementById("gush-q");
+    var ring = null;
+    function search() {
+      out.textContent = "";
+      var q = parseInt(input.value.replace(/[^0-9]/g, ""), 10);
+      if (!q) { return; }
+      var hits = recs.filter(function (r) { return r.num === q; });
+      if (!hits.length) { out.textContent = "גוש " + q + " לא נמצא בשכבה."; return; }
+      var list = document.createElement("ul");
+      list.className = "m-0 ps-5 list-disc";
+      hits.forEach(function (r) {
+        var li = document.createElement("li");
+        li.textContent = "גוש " + r.num + (hits.length > 1 ? ", תת-גוש " + r.sfx : "") + ": " + (r.pl || "ללא יישוב") + ", " + meta.statuses[r.st];
+        list.appendChild(li);
+      });
+      out.appendChild(list);
+      var b = L.latLngBounds(hits.map(function (r) { return [r.lat, r.lng]; }));
+      if (ring) { map.removeLayer(ring); }
+      ring = L.layerGroup(hits.map(function (r) {
+        return L.circleMarker([r.lat, r.lng], { radius: 9, color: "#0b3668", weight: 3, fill: false });
+      })).addTo(map);
+      map.fitBounds(b.pad(0.5), { maxZoom: 14 });
+      hits[0].marker.openPopup();
+    }
+    document.getElementById("gush-go").addEventListener("click", search);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); search(); } });
+  })();
+</script>
+
+<script>
+  (function () {
+    var pal = window.GOVIL_PALETTE;
+    function hbar(id, d, name, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v.toLocaleString("he-IL") + (unit || ""); } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-status", {{ model.charts.status | tojson }}, "תתי-גושים");
+    hbar("chart-county", {{ model.charts.county | tojson }}, "תתי-גושים");
+    hbar("chart-loc", {{ model.charts.loc | tojson }}, "תתי-גושים");
+    hbar("chart-council", {{ model.charts.council | tojson }}, "תתי-גושים");
+    hbar("chart-analytic", {{ model.charts.analytic | tojson }}, "שיעור", "%");
+
+    var size = {{ model.charts.size | tojson }};
+    var se = document.getElementById("chart-size");
+    if (se) {
+      var sc = echarts.init(se);
+      sc.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: size.names, name: "דונם", nameLocation: "middle", nameGap: 28 },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: "תתי-גושים", data: size.values }]
+      }));
+      window.addEventListener("resize", function () { sc.resize(); });
+    }
+
+    var reg = {{ model.charts.region | tojson }};
+    var re = document.getElementById("chart-region");
+    if (re) {
+      var rc = echarts.init(re);
+      rc.setOption(window.GovEcharts.option({
+        color: ["#0068f5", "#ffc107", "#dc3545"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 40, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: reg.names.slice().reverse(), axisLabel: { width: 110, overflow: "truncate" } },
+        series: reg.groups.map(function (g, i) {
+          return { type: "bar", stack: "s", name: g, data: reg.series[i].slice().reverse() };
+        })
+      }));
+      window.addEventListener("resize", function () { rc.resize(); });
+    }
+  })();
+</script>

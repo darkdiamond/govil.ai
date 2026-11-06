@@ -1,0 +1,20 @@
+{
+  "geo.GUSH_NUM": "map-gush, chart-county, kpi:gush, insight:largest — the lookup key; the county table shows each sub-district's number range",
+  "geo.GUSH_SUFFI": "map-gush, kpi:parts — sub-block suffix, shown in the lookup",
+  "geo.SUB_GUSH_I": "skip: internal sub-block id, unique per row",
+  "geo.STATUS": "skip: numeric code of STATUS_TEX",
+  "geo.STATUS_TEX": "chart-status, chart-region, map-gush, kpi:settled, insight:settled, insight:concentrated",
+  "geo.LOCALITY_I": "skip: CBS code of LOCALITY_N",
+  "geo.LOCALITY_N": "chart-loc, map-gush, insight:top_locality",
+  "geo.REG_MUN_ID": "skip: CBS code of REG_MUN_NA",
+  "geo.REG_MUN_NA": "chart-council, map-gush — the place shown when a block has no locality",
+  "geo.COUNTY_ID": "skip: code of COUNTY_NAM",
+  "geo.COUNTY_NAM": "chart-county, insight:largest",
+  "geo.REGION_ID": "skip: code of REGION_NAM",
+  "geo.REGION_NAM": "chart-region, chart-analytic, insight:region_area, insight:median_gap, insight:concentrated, insight:analytic",
+  "geo.IS_ANALITY": "chart-analytic, insight:analytic",
+  "geo.ANALITY_DA": "skip: empty in every row",
+  "geo.SHAPE_AREA": "chart-size, chart-region, chart-status, kpi:area, insight:largest, insight:median_gap, insight:region_area — square metres (ITM)",
+  "geo.SHAPE_LEN": "skip: perimeter, adds nothing the area doesn't",
+  "geo.__geometry": "map-gush — reduced to each block's centroid for the dot map and the lookup"
+}
