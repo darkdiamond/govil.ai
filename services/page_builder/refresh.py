@@ -991,28 +991,32 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
         raise RecipeError(f"{what}: earlier inputs used the whole REFRESH_TOTAL_BYTES budget",
                           reason="too_large")
     try:
-        got = fetch_file_fn(res.get("url") or "", raw, max_bytes=max_bytes,
-                            timeout_s=_PAGE_TIMEOUT_S, deadline=deadline)
-        data = raw.read_bytes()
-    except FetchLimitExceeded as e:
-        raise _limit_error(e, f"{what}: download") from None
-    except DownloadBlocked as e:
-        raise StrikeError(f"{what}: download blocked ({e})", reason="fetch_failed",
-                          strike="download_blocked", escalate_to="download_blocked") from None
-    except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
-        raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
-    except urllib_error.HTTPError as e:
-        if e.code in (404, 410):
-            raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason="fetch_failed",
-                              strike="download_missing", escalate_to="schema_changed") from None
-        raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
-    except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
-        raise RecipeError(f"{what}: download failed ({e!r})", reason="fetch_failed") from None
-    finally:
+        try:
+            got = fetch_file_fn(res.get("url") or "", raw, max_bytes=max_bytes,
+                                timeout_s=_PAGE_TIMEOUT_S, deadline=deadline)
+        except FetchLimitExceeded as e:
+            raise _limit_error(e, f"{what}: download") from None
+        except DownloadBlocked as e:
+            raise StrikeError(f"{what}: download blocked ({e})", reason="fetch_failed",
+                              strike="download_blocked", escalate_to="download_blocked") from None
+        except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
+            raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
+        except urllib_error.HTTPError as e:
+            if e.code in (404, 410):
+                raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason="fetch_failed",
+                                  strike="download_missing", escalate_to="schema_changed") from None
+            raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
+        except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
+            raise RecipeError(f"{what}: download failed ({e!r})", reason="fetch_failed") from None
+    except BaseException:  # any failed download: no partial file left behind
         raw.unlink(missing_ok=True)
+        raise
+    # Converted as it streams off the file (see `geo_snapshot.iter_map`): the
+    # raw layer never sits in memory whole, beside the converted one, and the
+    # converted features go straight to rows, never through a GeoJSON body.
     try:
-        feats, crs = geo_snapshot.load_map(data, _map_file_name(res))
-        body, tol = geo_snapshot.build_snapshot(
+        feats, crs = geo_snapshot.iter_map(raw, _map_file_name(res))
+        layer = geo_snapshot.simplify_features(
             feats, crs=crs,
             max_bytes=(inp.map_max_kb * 1000) if inp.map_max_kb else geo_snapshot.DEFAULT_MAX_BYTES,
         )
@@ -1020,7 +1024,16 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
         raise RecipeError(f"{what}: {e} (map_max_kb)", reason="too_large") from None
     except geo_snapshot.SnapshotError as e:
         raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
-    header, rows = feature_table(json.loads(body), what, reason="schema_changed")
+    finally:
+        feats = None
+        raw.unlink(missing_ok=True)
+    tol = layer.tol
+    doc = {"type": "FeatureCollection",
+           "features": [{"properties": p, "geometry": None if g == "null" else g}
+                        for p, g in layer.features]}
+    del layer
+    header, rows = feature_table(doc, what, reason="schema_changed")
+    del doc
     lost = [c for c in inp.required_columns if c not in header]
     if lost:
         raise RecipeError(f"{what}: lacks column(s) {lost}", reason="schema_changed")
