@@ -599,6 +599,11 @@ def compute(frames):
             summary += extra
     summary = summary[:SUMMARY_MAX]
 
+    # ── search snippet (seo.description) ──
+    seo_desc = "מחיר הסולר והבנזין בשער בית הזיקוק, לפני מסים: המחיר המרבי המחושב לפי צו הפיקוח, לכל חודש."
+    if main_k and len(seo_desc + extra) <= 150:
+        seo_desc += extra
+
     labels.update({
         "index_lede": idx_lede,
         "index_aria": (f"גרף קווים: מחיר {len(rep_keys)} מוצרים כמדד (החודש הראשון = 100), "
@@ -631,6 +636,17 @@ def compute(frames):
 
     return {
         "agent_data": {
+            "seo": {
+                "title": "מחיר סולר ובנזין בשער בית הזיקוק: מחיר מרבי מחושב לפי חודש",
+                "description": seo_desc,
+                "name": "מחירים מרביים למוצרי נפט בשער בית הזיקוק",
+                "alternate_names": [
+                    "מחירים מחושבים לפי צו פיקוח על מחירי מוצרי נפט",
+                    "מחיר סולר בשער בית הזיקוק",
+                    "מחיר בנזין בשער בית הזיקוק",
+                    "מחירי דלק בבית הזיקוק",
+                ],
+            },
             "summary_he": summary,
             "dataset_kind": "timeseries",
             "temporal_coverage": f"{first}/{latest}",
