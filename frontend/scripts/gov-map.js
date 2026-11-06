@@ -163,7 +163,12 @@
       ".gov-map-popup-row{margin:0;padding:.1rem 0;display:flex;gap:.4rem}" +
       ".gov-map-popup-row dt{flex:0 0 auto;color:#6c757d;font-weight:500;margin:0}" +
       ".gov-map-popup-row dd{flex:1 1 auto;margin:0;color:#0c3058}" +
-      "@keyframes gov-map-pulse{0%{background-position:100% 0}100%{background-position:-100% 0}}";
+      "@keyframes gov-map-pulse{0%{background-position:100% 0}100%{background-position:-100% 0}}" +
+      // Ctrl/⌘ + wheel hint (see installWheelGate below).
+      ".gov-wheel-hint{position:absolute;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;" +
+      "padding:1rem;text-align:center;background:rgba(11,54,104,.55);color:#fff;font-family:Rubik,sans-serif;" +
+      "font-size:1rem;font-weight:500;line-height:1.5;direction:rtl;pointer-events:none;opacity:0;transition:opacity .25s}" +
+      ".gov-wheel-hint[data-show]{opacity:1}";
     document.head.appendChild(style);
   }
 
@@ -561,22 +566,10 @@
     ? "לחצו ⌘ וגללו כדי להגדיל או להקטין את המפה"
     : "לחצו Ctrl וגללו כדי להגדיל או להקטין את המפה";
 
-  function ensureWheelHintStyles() {
-    if (document.getElementById("gov-wheel-hint-styles")) return;
-    var style = document.createElement("style");
-    style.id = "gov-wheel-hint-styles";
-    style.textContent =
-      ".gov-wheel-hint{position:absolute;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;" +
-      "padding:1rem;text-align:center;background:rgba(11,54,104,.55);color:#fff;font-family:Rubik,sans-serif;" +
-      "font-size:1rem;font-weight:500;line-height:1.5;direction:rtl;pointer-events:none;opacity:0;transition:opacity .25s}" +
-      ".gov-wheel-hint[data-show]{opacity:1}";
-    document.head.appendChild(style);
-  }
-
   function flashWheelHint(container) {
     var hint = container.querySelector(":scope > .gov-wheel-hint");
     if (!hint) {
-      ensureWheelHintStyles();
+      ensureStyles();
       hint = document.createElement("div");
       hint.className = "gov-wheel-hint";
       hint.setAttribute("aria-hidden", "true");
@@ -593,9 +586,16 @@
   function onWheelCapture(e) {
     if (e.ctrlKey || e.metaKey) return;
     var t = e.target;
-    var container = t && t.closest ? t.closest("." + WHEEL_GATED) : null;
+    if (!t || !t.closest) return;
+    var container = t.closest("." + WHEEL_GATED);
     if (!container) return;
+    // Popups and controls (scrollable popup bodies, legends, layer lists)
+    // already stop wheel propagation to the map in Leaflet, so their own
+    // scrolling stays native and no hint is needed.
+    if (t.closest(".leaflet-popup, .leaflet-control")) return;
     e.stopPropagation();
+    // A sideways swipe isn't a zoom attempt: keep it off Leaflet, no hint.
+    if (Math.abs(e.deltaX || 0) > Math.abs(e.deltaY || 0)) return;
     flashWheelHint(container);
   }
 

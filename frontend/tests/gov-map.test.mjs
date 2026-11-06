@@ -198,6 +198,43 @@ test("wheel gate: a plain wheel over a map stops Leaflet and shows the hint; Ctr
   );
 });
 
+test("wheel gate: popups/controls scroll natively, sideways swipes show no hint", () => {
+  const { listeners, container, target } = loadWithLeaflet();
+  const onWheel = listeners[0].fn;
+  const fire = (t, extra) => {
+    let stopped = false;
+    onWheel({
+      target: t,
+      ctrlKey: false,
+      metaKey: false,
+      deltaX: 0,
+      deltaY: 100,
+      ...extra,
+      stopPropagation: () => (stopped = true),
+    });
+    return stopped;
+  };
+  const inPopup = {
+    closest: (sel) =>
+      sel === ".gov-wheel-gated"
+        ? container
+        : sel.includes(".leaflet-popup")
+          ? {}
+          : null,
+  };
+  assert.equal(fire(inPopup), false, "popup scroll is left to Leaflet/native");
+  assert.equal(
+    fire(target, { deltaX: 80, deltaY: 2 }),
+    true,
+    "sideways swipe still kept off Leaflet"
+  );
+  assert.equal(
+    container.children.some((c) => c.className === "gov-wheel-hint"),
+    false,
+    "no hint for popup scroll or a sideways swipe"
+  );
+});
+
 test("wheel gate: no Leaflet on the page → nothing installed, no throw", () => {
   assert.ok(loadGovMap().ring);
 });
