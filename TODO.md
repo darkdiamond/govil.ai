@@ -134,17 +134,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   when the target is preview, and have the preview refresh read provider facts from there.
   (2026-10-30)
 
-- **Big map layers convert in the builder's memory, uncapped.** `_fetch_map_input` holds the raw
-  download, the feature list, each tolerance pass, the serialized body and a re-parsed copy
-  (`json.loads(body)`) at once: ~25x the result in peak RSS (540 MB for the 22.7 MB roads layer).
-  A layer near the 50 MB `map_max_kb` ceiling would take ~1.2 GB beside a 3 GB compute in the
-  4Gi job. `build_snapshot` also re-serializes every feature per tolerance step (up to 8 passes).
-  Fix: have `build_snapshot` return the simplified features with the bytes (no re-parse), pick
-  the tolerance from a size estimate instead of the full ladder, and free the raw features
-  before compute. (2026-11-01) The download cap is now 100MB (2026-11-04), for three layers
-  with search traffic: 1d2d0ec1 (65MB), 65dafbb0 (84MB) and 022552b2 (85MB). `load_map` alone
-  peaks at 1.35GB and 1.8GB RSS on the first two, so do this fix, or raise the job's
-  `--memory`, before merging a recipe that reads any of them. (2026-11-04)
+- **`MAP_MAX_KB_CEILING`'s comment in recipe.py still says the conversion takes ~25x the result
+  in memory.** Since the streaming conversion it is ~6-10x the CSV it writes (204 MB peak for
+  1d2d0ec1's 12 MB table, 384 MB for 65dafbb0's 37 MB). recipe.py is folded into every recipe's
+  hash, so a comment-only edit would re-export every recipe once: fix it with the next real
+  recipe.py change. (2026-11-06)
 
 - **More recipes carry their own map chunking or simplification.** 1745d2f8, 2a795952, 4eef54bc,
   5ecf0587, 12fb4671, 6910f861, 1de95a22, 3ce41381, 4acf8b98, 8f2becb2, a98fbabc, 0b3bd728,

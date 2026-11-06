@@ -787,7 +787,7 @@ def test_load_map_turns_any_reader_failure_into_snapshot_error(monkeypatch):
     def boom(data, name):
         raise NotImplementedError("That compression method is not supported")  # deflate64
 
-    monkeypatch.setattr(gs, "read_map_bytes", boom)
+    monkeypatch.setattr(gs, "read_map_stream", boom)
     with pytest.raises(gs.SnapshotError, match="NotImplementedError"):
         gs.load_map(b"PK", "x.zip")
 

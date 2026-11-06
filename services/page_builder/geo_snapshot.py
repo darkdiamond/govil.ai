@@ -24,7 +24,11 @@ import re
 import struct
 import xml.etree.ElementTree as ET
 import zipfile
+from array import array
+from bisect import bisect_left
 from collections import Counter
+from collections.abc import Iterable, Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -207,28 +211,210 @@ def _clean(points: list, is_ring: bool, tol: float, project) -> list:
     return out
 
 
-def build_snapshot(features: list[dict], *, crs: str,
-                   max_bytes: int = DEFAULT_MAX_BYTES) -> tuple[bytes, float]:
-    """The committed snapshot bytes, and the simplification tolerance used."""
+class _Line:
+    """One line or ring as `_clean` sees it before simplifying (projected,
+    rounded, de-duplicated), held compactly for a big layer: coordinates in
+    two arrays (lists when a GeoJSON gave integers, which stay integers in
+    the output), each point's JSON length, and, once `_rank` has run, each
+    point's level: how many steps of `_TOLERANCES` keep it."""
+    __slots__ = ("closed", "lens", "lvl", "ring", "xs", "ys")
+
+    def __init__(self, xs: list, ys: list, ring: bool):
+        floats = all(type(v) is float for v in xs) and all(type(v) is float for v in ys)
+        self.xs = array("d", xs) if floats else xs
+        self.ys = array("d", ys) if floats else ys
+        self.lens = array("B", [len(repr(x)) + len(repr(y)) + 3 for x, y in zip(xs, ys)])
+        self.lvl: array | None = None
+        self.ring = ring
+        self.closed = xs[0] == xs[-1] and ys[0] == ys[-1]
+
+    def nbytes(self, step: int) -> int:
+        """Bytes of the line's JSON list at `_TOLERANCES[step]`."""
+        n, total = len(self.lens), sum(self.lens)
+        k, size = n, total
+        if step:
+            kept = [i for i, lv in enumerate(self.lvl) if lv >= step]
+            k, size = len(kept), sum(self.lens[i] for i in kept)
+        if self.ring:
+            if not self.closed:
+                k, size = k + 1, size + self.lens[0]
+            if k < 4:  # simplified away: `_clean` keeps the ring's own shape
+                k = n + (not self.closed)
+                size = total + (0 if self.closed else self.lens[0])
+        return 2 + size + k - 1
+
+    def points(self, step: int) -> list:
+        """The line exactly as `_clean` returns it at `_TOLERANCES[step]`."""
+        full = [[x, y] for x, y in zip(self.xs, self.ys)]
+        out = [p for p, lv in zip(full, self.lvl) if lv >= step] if step else full
+        if self.ring:
+            if out[0] != out[-1]:
+                out.append(out[0])
+            if len(out) < 4:
+                out = full if full[0] == full[-1] else [*full, full[0]]
+        return out
+
+
+_POSITIVE = _TOLERANCES[1:]
+_TOP = len(_TOLERANCES) - 1
+
+
+def _rank(line: _Line) -> None:
+    """Set `line.lvl` so that `simplify(points, _TOLERANCES[s])` keeps point
+    i iff lvl[i] >= s (s >= 1). Douglas-Peucker splits a line at the same
+    points whatever the tolerance, and a split survives tolerance t only
+    while it and every split above it are farther than t, so one pass ranks
+    every point for every step. The split search and the distance arithmetic
+    are `simplify`'s and `_perp`'s, operation for operation, so the kept
+    points are the same bit for bit."""
+    xs, ys = line.xs, line.ys
+    n = len(xs)
+    lvl = array("B", bytes(n))
+    lvl[0] = lvl[-1] = _TOP
+    floor = _POSITIVE[0]
+    hypot = math.hypot
+    stack = [(0, n - 1, _TOP)]
+    while stack:
+        i, j, cap = stack.pop()
+        x1, y1, x2, y2 = xs[i], ys[i], xs[j], ys[j]
+        dx, dy = x2 - x1, y2 - y1
+        best, idx = 0.0, None
+        if dx == 0 and dy == 0:
+            for k in range(i + 1, j):
+                d = hypot(xs[k] - x1, ys[k] - y1)
+                if d > best:
+                    best, idx = d, k
+        else:
+            a, b, h = x2 * y1, y2 * x1, hypot(dx, dy)
+            for k in range(i + 1, j):
+                d = abs(dy * xs[k] - dx * ys[k] + a - b) / h
+                if d > best:
+                    best, idx = d, k
+        if idx is not None and best > floor:
+            lv = min(cap, bisect_left(_POSITIVE, best))
+            lvl[idx] = lv
+            stack += [(i, idx, lv), (idx, j, lv)]
+    line.lvl = lvl
+
+
+def _prepare_line(points: list, is_ring: bool, project) -> list | _Line:
+    """`_clean` up to the simplification: a plain list when no tolerance can
+    change it (under 3 points), else a `_Line`."""
+    xs: list = []
+    ys: list = []
+    for p in points:
+        x, y = project(p[0], p[1])
+        x, y = round(x, DECIMALS), round(y, DECIMALS)
+        if xs and x == xs[-1] and y == ys[-1]:
+            continue
+        xs.append(x)
+        ys.append(y)
+    if not xs:
+        raise SnapshotError("a line or ring with no points")
+    if len(xs) >= 3:
+        return _Line(xs, ys, is_ring)
+    out = [[x, y] for x, y in zip(xs, ys)]
+    if is_ring and out[0] != out[-1]:
+        out.append(out[0])
+    return out
+
+
+def _fill(o: Any, fn) -> Any:
+    """A geometry template with each `_Line` replaced by `fn(line)`."""
+    if type(o) is _Line:
+        return fn(o)
+    if type(o) is dict:
+        return {k: _fill(v, fn) for k, v in o.items()}
+    if type(o) is list:
+        return [_fill(v, fn) for v in o]
+    return o
+
+
+def _lines(o: Any) -> Iterator[_Line]:
+    if type(o) is _Line:
+        yield o
+    elif type(o) is dict:
+        for v in o.values():
+            yield from _lines(v)
+    elif type(o) is list:
+        for v in o:
+            yield from _lines(v)
+
+
+def _dumps(o: Any) -> str:
+    return json.dumps(o, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+@dataclass
+class Simplified:
+    """A converted layer: what `build_snapshot` writes, before serializing.
+    `features` holds (properties, geometry JSON) per feature, in snapshot
+    order, each as a parse of the snapshot body gives it back: properties
+    with sorted keys, geometry "null" when there is none."""
+    features: list[tuple[dict, str]]
+    tol: float
+    nbytes: int  # len(build_snapshot(...)[0])
+
+
+def simplify_features(features: Iterable[dict], *, crs: str,
+                      max_bytes: int = DEFAULT_MAX_BYTES) -> Simplified:
+    """The snapshot `build_snapshot` writes, unserialized: WGS84, rounded,
+    lines and rings simplified (Douglas-Peucker) at the smallest step of
+    `_TOLERANCES` whose output fits `max_bytes`, features sorted.
+
+    Peak memory stays near the converted size. `features` is read once (give
+    it `iter_map`'s stream and the raw features never all exist), each line
+    is held as arrays, and the step is picked from exact byte counts (one
+    ranking pass, `_rank`) instead of serializing the layer once per step."""
     project = itm_to_wgs if crs == "itm" else (lambda x, y: (x, y))
-    for tol in _TOLERANCES:
-        out = []
-        for f in features:
-            geom = f.get("geometry")
-            if geom:
-                geom = _map_lines(geom, lambda pts, ring, tol=tol: _clean(pts, ring, tol, project))
-            out.append({"type": "Feature", "properties": f.get("properties") or {},
-                        "geometry": geom})
-        out.sort(key=lambda f: json.dumps(f, ensure_ascii=False, sort_keys=True))
-        data = json.dumps({"type": "FeatureCollection", "features": out},
-                          ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        body = (data + "\n").encode("utf-8")
-        if len(body) <= max_bytes:
-            return body, tol
-    raise SnapshotTooLarge(
-        f"{len(body):,} bytes even at tolerance {_TOLERANCES[-1]}° (> {max_bytes:,}); "
-        "raise --max-kb or aggregate the features"
-    )
+    recs: list = []  # (properties, geometry template)
+    lines: list[_Line] = []
+    size0 = len('{"features":[],"type":"FeatureCollection"}\n')
+    for f in features:
+        props = json.loads(_dumps(f.get("properties") or {}))
+        geom = f.get("geometry")
+        if geom:
+            geom = _map_lines(geom, lambda pts, ring: _prepare_line(pts, ring, project))
+        own = list(_lines(geom))
+        lines += own
+        skeleton = {"type": "Feature", "properties": props, "geometry": _fill(geom, lambda _: [])}
+        size0 += len(_dumps(skeleton).encode("utf-8")) + sum(ln.nbytes(0) - 2 for ln in own)
+        recs.append((props, geom))
+    size0 += max(len(recs) - 1, 0)  # the commas between features
+    step, size = 0, size0
+    if size > max_bytes:
+        for ln in lines:
+            _rank(ln)
+        base = sum(ln.nbytes(0) for ln in lines)
+        for step in range(1, len(_TOLERANCES)):
+            size = size0 - base + sum(ln.nbytes(step) for ln in lines)
+            if size <= max_bytes:
+                break
+        else:
+            raise SnapshotTooLarge(
+                f"{size:,} bytes even at tolerance {_TOLERANCES[-1]}° (> {max_bytes:,}); "
+                "raise --max-kb or aggregate the features"
+            )
+    del lines
+    out = []
+    for i, (props, geom) in enumerate(recs):
+        recs[i] = None  # free each feature's arrays once it is written
+        g = _fill(geom, lambda ln: ln.points(step))
+        key = json.dumps({"type": "Feature", "properties": props, "geometry": g},
+                         ensure_ascii=False, sort_keys=True)
+        out.append((key, props, _dumps(g)))
+    out.sort(key=lambda r: r[0])
+    return Simplified([(p, g) for _, p, g in out], _TOLERANCES[step], size)
+
+
+def build_snapshot(features: Iterable[dict], *, crs: str,
+                   max_bytes: int = DEFAULT_MAX_BYTES) -> tuple[bytes, float]:
+    """The committed snapshot bytes, and the simplification tolerance used
+    (see `simplify_features`)."""
+    s = simplify_features(features, crs=crs, max_bytes=max_bytes)
+    body = ",".join(f'{{"geometry":{g},"properties":{_dumps(p)},"type":"Feature"}}'
+                    for p, g in s.features)
+    return f'{{"features":[{body}],"type":"FeatureCollection"}}\n'.encode(), s.tol
 
 
 # ── readers ──────────────────────────────────────────────────────────────
@@ -395,17 +581,23 @@ def _cpg_encoding(cpg: str) -> str:
         raise SnapshotError(f".cpg names an unknown codepage {cpg.strip()!r}") from None
 
 
-def _read_shp(shp: bytes, dbf: bytes | None, cpg: str) -> list[dict]:
-    geoms, pos = [], 100
-    while pos + 8 <= len(shp):
-        (length,) = struct.unpack(">i", shp[pos + 4:pos + 8])
-        geoms.append(_shp_geometry(shp[pos + 8:pos + 8 + 2 * length]))
-        pos += 8 + 2 * length
-    props = _read_dbf(dbf, _cpg_encoding(cpg)) if dbf else [{} for _ in geoms]
-    if len(props) != len(geoms):
-        raise SnapshotError(f".shp has {len(geoms)} shapes but .dbf {len(props)} records")
-    return [{"type": "Feature", "properties": p, "geometry": g}
-            for g, p in zip(geoms, props) if p is not None]
+def _iter_shp(shp: io.BufferedIOBase, dbf: bytes | None, cpg: str) -> Iterator[dict]:
+    """A shapefile's features, record by record from the .shp stream."""
+    props = _read_dbf(dbf, _cpg_encoding(cpg)) if dbf else None
+    shp.read(100)  # the file header
+    n = 0
+    while len(head := shp.read(8)) == 8:
+        (length,) = struct.unpack(">i", head[4:8])
+        if length < 0:
+            raise SnapshotError(f".shp record {n + 1} has a negative length")
+        geom = _shp_geometry(shp.read(2 * length))
+        n += 1
+        if props is None:
+            yield {"type": "Feature", "properties": {}, "geometry": geom}
+        elif n <= len(props) and props[n - 1] is not None:  # None: deleted in the .dbf
+            yield {"type": "Feature", "properties": props[n - 1], "geometry": geom}
+    if props is not None and len(props) != n:
+        raise SnapshotError(f".shp has {n} shapes but .dbf {len(props)} records")
 
 
 def read_map_file(path: Path) -> tuple[list[dict], str]:
@@ -448,22 +640,52 @@ def _check_geometry(geom: Any) -> None:
     _check_coords(geom.get("coordinates"), _DEPTH[t])
 
 
-def load_map(data: bytes, name: str) -> tuple[list[dict], str]:
-    """(features, crs) from a downloaded file's bytes, for `map` inputs.
-    The file is untrusted: every geometry is checked before anything walks
-    it, and any failure of any reader is a SnapshotError, never a
-    struct/zip/XML/zlib exception from deep inside one."""
+def _malformed(name: str, e: Exception) -> SnapshotError:
+    return SnapshotError(f"{name}: malformed map file ({type(e).__name__}: {e})")
+
+
+def _checked(feats: Iterator, name: str) -> Iterator[dict]:
+    """Each feature checked before it's handed on; any reader failure while
+    streaming is a SnapshotError."""
     try:
-        feats, prj = read_map_bytes(data, name)
         for f in feats:
             if not isinstance(f, dict):
                 raise SnapshotError("a feature that is not an object")
             _check_geometry(f.get("geometry"))
-        return feats, detect_crs(feats, prj)
+            yield f
     except (SnapshotError, MemoryError):
         raise
     except Exception as e:  # untrusted bytes: every reader failure is the data's  # noqa: BLE001
-        raise SnapshotError(f"{name}: malformed map file ({type(e).__name__}: {e})") from None
+        raise _malformed(name, e) from None
+
+
+def iter_map(src: bytes | Path, name: str) -> tuple[Iterator[dict], str]:
+    """(features, crs) from a downloaded file (its bytes, or its path), for
+    `map` inputs, the features as a one-pass stream (see `read_map_stream`).
+    The file is untrusted: every geometry is checked before anything walks
+    it, and any failure of any reader, now or while iterating, is a
+    SnapshotError, never a struct/zip/XML/zlib exception from deep inside one."""
+    try:
+        raw, prj = read_map_stream(src, name)
+    except (SnapshotError, MemoryError):
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise _malformed(name, e) from None
+    feats = _checked(raw, name)
+    if prj:
+        return feats, detect_crs([], prj)
+    head = []  # up to the first feature with a position: the CRS is read off it
+    for f in feats:
+        head.append(f)
+        if next(_positions(f.get("geometry")), None) is not None:
+            break
+    return itertools.chain(head, feats), detect_crs(head, "")
+
+
+def load_map(data: bytes, name: str) -> tuple[list[dict], str]:
+    """(features, crs) from a downloaded file's bytes (see `iter_map`)."""
+    feats, crs = iter_map(data, name)
+    return list(feats), crs
 
 
 def summary(feats: list[dict]) -> dict:
@@ -475,15 +697,20 @@ def summary(feats: list[dict]) -> dict:
             "columns": [str(c)[:60] for c in cols[:40]]}
 
 
-def _sniff(data: bytes, name: str) -> str:
+def _sniff(src: bytes | Path, name: str) -> str:
     """'.geojson' / '.kml' / '.zip' from the name, else from the bytes (a
     downloaded file's name comes from its URL and can be anything)."""
     suffix = Path(name).suffix.lower()
     if suffix in (".geojson", ".json", ".kml"):
         return suffix
-    if zipfile.is_zipfile(io.BytesIO(data)):
+    if zipfile.is_zipfile(io.BytesIO(src) if isinstance(src, bytes) else src):
         return ".zip"
-    head = data[:64].lstrip(b"\xef\xbb\xbf \t\r\n")
+    if isinstance(src, bytes):
+        head = src[:64]
+    else:
+        with open(src, "rb") as f:
+            head = f.read(64)
+    head = head.lstrip(b"\xef\xbb\xbf \t\r\n")
     if head.startswith(b"{"):
         return ".geojson"
     if head.startswith(b"<"):
@@ -498,12 +725,37 @@ def _check_unzipped(z: zipfile.ZipFile, name: str) -> None:
 
 def read_map_bytes(data: bytes, name: str) -> tuple[list[dict], str]:
     """(features, prj text) from a file's bytes; `name` hints the format."""
-    suffix = _sniff(data, name)
-    if suffix in (".geojson", ".json"):
-        return _read_geojson(data), ""
-    if suffix == ".kml":
-        return _read_kml(data), ""
-    with zipfile.ZipFile(io.BytesIO(data)) as z:
+    feats, prj = read_map_stream(data, name)
+    return list(feats), prj
+
+
+def _drain(feats: list) -> Iterator[dict]:
+    """A parsed file's features, each let go of once it's been read."""
+    for i in range(len(feats)):
+        f, feats[i] = feats[i], None
+        yield f
+
+
+def _shp_stream(z: zipfile.ZipFile, member: str, dbf: bytes | None, cpg: str) -> Iterator[dict]:
+    try:
+        with z.open(member) as f:
+            yield from _iter_shp(f, dbf, cpg)
+    finally:
+        z.close()
+
+
+def read_map_stream(src: bytes | Path, name: str) -> tuple[Iterator[dict], str]:
+    """(features, prj text) from a file's bytes or path; `name` hints the
+    format. The features are a one-pass stream: a zipped shapefile is read
+    record by record straight from the zip (from disk, given a path), and a
+    parsed GeoJSON or KML hands each feature over and lets go of it, so a
+    consumer that converts as it goes never holds the whole raw layer."""
+    suffix = _sniff(src, name)
+    if suffix in (".geojson", ".json", ".kml"):
+        data = src if isinstance(src, bytes) else Path(src).read_bytes()
+        return _drain(_read_kml(data) if suffix == ".kml" else _read_geojson(data)), ""
+    z = zipfile.ZipFile(io.BytesIO(src) if isinstance(src, bytes) else src)
+    try:
         _check_unzipped(z, name)
         names = {n.lower(): n for n in z.namelist() if not n.endswith("/")}
 
@@ -518,16 +770,20 @@ def read_map_bytes(data: bytes, name: str) -> tuple[list[dict], str]:
             get = lambda ext: z.read(names[stem + ext]) if stem + ext in names else None
             cpg = (get(".cpg") or b"").decode("ascii", errors="ignore")
             prj = (get(".prj") or b"").decode("utf-8", errors="ignore")
-            return _read_shp(z.read(shp), get(".dbf"), cpg), prj
-        if kml := one(".kml"):
-            return _read_kml(z.read(kml)), ""
-        if gj := one(".geojson") or one(".json"):
-            return _read_geojson(z.read(gj)), ""
-        if kmz := one(".kmz"):  # a KMZ zipped again (data.gov.il does this)
-            with zipfile.ZipFile(io.BytesIO(z.read(kmz))) as inner:
-                _check_unzipped(inner, name)
-                kmls = sorted(n for n in inner.namelist() if n.lower().endswith(".kml"))
-                if not kmls:
-                    raise SnapshotError(f"{name}: the KMZ holds no .kml")
-                return _read_kml(inner.read(kmls[0])), ""
+            return _shp_stream(z, shp, get(".dbf"), cpg), prj  # it closes the zip
+        with z:
+            if kml := one(".kml"):
+                return _drain(_read_kml(z.read(kml))), ""
+            if gj := one(".geojson") or one(".json"):
+                return _drain(_read_geojson(z.read(gj))), ""
+            if kmz := one(".kmz"):  # a KMZ zipped again (data.gov.il does this)
+                with zipfile.ZipFile(io.BytesIO(z.read(kmz))) as inner:
+                    _check_unzipped(inner, name)
+                    kmls = sorted(n for n in inner.namelist() if n.lower().endswith(".kml"))
+                    if not kmls:
+                        raise SnapshotError(f"{name}: the KMZ holds no .kml")
+                    return _drain(_read_kml(inner.read(kmls[0]))), ""
+    except BaseException:
+        z.close()
+        raise
     raise SnapshotError(f"{name}: no .shp, .kml, .kmz or .geojson inside")
