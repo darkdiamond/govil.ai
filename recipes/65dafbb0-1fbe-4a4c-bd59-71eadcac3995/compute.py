@@ -173,7 +173,9 @@ def _prepare(df):
 
 
 def _plans(d):
-    """One row per plan: the first polygon's attributes, the polygons' total area."""
+    """One row per plan: each column's first non-empty value over the plan's
+    polygons (groupby.first skips NaN, so a gap in one polygon is filled from
+    the next), and the polygons' total area."""
     g = d.groupby("plan", sort=False)
     p = g.first()
     p["dunam"] = g["dunam"].sum(min_count=1)
@@ -291,8 +293,8 @@ def insight_orderer(p):
     share = o.iloc[0] / len(p)
     if share < 0.1:
         return None
-    return (f"{o.index[0]} הזמינה {fmt.pct(share)} מהתצ\"רים ({fmt.int_he(o.iloc[0])}), "
-            f"המזמינה הגדולה ביותר בשכבה.")
+    return (f"המזמין הגדול ביותר בשכבה הוא {o.index[0]}: {fmt.pct(share)} מהתצ\"רים "
+            f"({fmt.int_he(o.iloc[0])}).")
 
 
 def insight_gush(p):

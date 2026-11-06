@@ -256,6 +256,9 @@ def compute(frames):
     an_share = [round(float(a / n * 100), 1) if n else 0.0 for a, n in zip(an["a"], an["n"])]
 
     lookup = _lookup(d, statuses)
+    named_reg = reg[(reg["region"] != NO_REGION) & (reg["count"] >= 100)]
+    big_median = (named_reg.sort_values(["median", "region"], ascending=[False, True]).iloc[0]
+                  if len(named_reg) else None)
     settled_share = float((d["status"] == top_status).mean()) if top_status else 0.0
     no_loc = int((d["loc"] == "").sum())
 
@@ -324,7 +327,9 @@ def compute(frames):
             "council_note": "תתי-גושים בתחום מועצות אזוריות, לפי מועצה.",
             "council_aria": f"{fmt.int_he(len(c_names))} המועצות האזוריות עם הכי הרבה תתי-גושים",
             "size_note": (f"שטח תת-גוש חציוני: {fmt.int_he(d['km2'].median() * 1000)} דונם. "
-                          "רוב הגושים קטנים מקילומטר רבוע; הגדולים בנגב ובשטחים הפתוחים."),
+                          f"{fmt.pct((d['km2'] < 1).mean())} מתתי-הגושים קטנים מקילומטר רבוע"
+                          + (f"; החציון הגבוה ביותר הוא במחוז {big_median['region']} "
+                             f"({fmt.int_he(big_median['median'] * 1000)} דונם)." if big_median is not None else ".")),
             "size_aria": "התפלגות שטח תתי-הגושים בדונם",
             "analytic_note": "שיעור תתי-הגושים המסומנים כאנליטיים (IS_ANALITY) בכל מחוז.",
             "analytic_aria": "שיעור הגושים האנליטיים לפי מחוז",

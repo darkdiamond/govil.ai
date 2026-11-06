@@ -144,19 +144,18 @@
     var ring = null;
     function search() {
       out.textContent = "";
-      var q = input.value.trim().replace(/\s+/g, "");
-      if (!q) { return; }
+      var raw = input.value;  // "123/2020", "תצ\"ר 123/2020", "412" (a plan number or a block)
       var hits;
-      var m = q.match(/^(\d+)[\/\\-](\d{2,4})$/);
+      var m = raw.match(/(\d+)\s*[\/\\-]\s*(\d{2,4})(?!\d)/);
       if (m) {
         var y = parseInt(m[2], 10);
         if (y < 100) { y += 2000; }
         hits = recs.filter(function (r) { return r.num === parseInt(m[1], 10) && r.year === y; });
-      } else if (/^\d+$/.test(q)) {
-        hits = recs.filter(function (r) { return r.gush === q; });
-        if (!hits.length) { hits = recs.filter(function (r) { return String(r.num) === q; }); }
       } else {
-        hits = [];
+        var d0 = raw.match(/\d+/);
+        if (!d0) { return; }
+        var q = String(parseInt(d0[0], 10));
+        hits = recs.filter(function (r) { return String(r.num) === q || r.gush === q; });
       }
       if (!hits.length) {
         out.textContent = "לא נמצא תצ״ר כזה בשנים שבמפה.";

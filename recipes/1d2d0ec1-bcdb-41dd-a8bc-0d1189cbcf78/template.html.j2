@@ -137,7 +137,8 @@
     var ring = null;
     function search() {
       out.textContent = "";
-      var q = parseInt(input.value.replace(/[^0-9]/g, ""), 10);
+      var d0 = input.value.match(/\d+/);  // the block is the first number ("6158/12", "גוש 6158 חלקה 12")
+      var q = d0 ? parseInt(d0[0], 10) : 0;
       if (!q) { return; }
       var hits = recs.filter(function (r) { return r.num === q; });
       if (!hits.length) { out.textContent = "גוש " + q + " לא נמצא בשכבה."; return; }
