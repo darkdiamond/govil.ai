@@ -182,6 +182,8 @@ def compute(frames):
     cnt = np.bincount(df["status"].to_numpy(), minlength=4)
     n_ontime, n_late, n_early, n_miss = (int(cnt[i]) for i in (S_ONTIME, S_LATE, S_EARLY, S_MISS))
     executed = df["delay"].dropna()
+    if executed.empty:  # every start time missing: an export fault, not a page
+        raise ValueError("no trip has a recorded start time")
     med_delay = float(executed.median())
     p90_delay = float(executed.quantile(0.9)) / 60
     med_delay_min = med_delay / 60
@@ -433,7 +435,7 @@ def compute(frames):
         di = dstat["miss"].idxmax()
         med_miss = float(dstat["miss"].median())
         top = float(dstat.loc[di, "miss"])
-        if top >= med_miss * 3 and top >= 5:
+        if med_miss > 0 and top >= med_miss * 3 and top >= 5:
             ev_share = float(dev[di] / dstat.loc[di, "n"])
             tail = (f", ו-{fmt.pct(ev_share, 0)} מנסיעות היום סומנו כאירוע חריג" if ev_share >= EVENT_DAY_SHARE
                     else "")
@@ -507,8 +509,8 @@ def compute(frames):
             f"ב{period} ({fmt.int_he(n_days)} ימים) תוכננו {fmt.int_he(n)} נסיעות: "
             f"{fmt.pct(ontime_share)} יצאו בזמן, {fmt.pct(late_share)} באיחור של {LATE_MIN} דקות ומעלה, "
             f"{fmt.pct(n_early / n)} הקדימו ו-{fmt.pct(miss_share)} לא בוצעו. "
-            f"בחציון יצא האוטובוס {_min_he(med_delay_min)} דקות אחרי השעה שבלוח, "
-            + (f"ונסיעה נמשכה {fmt.num_he(med_dur, 0)} דקות." if med_dur else "")
+            f"בחציון יצא האוטובוס {_min_he(med_delay_min)} דקות אחרי השעה שבלוח"
+            + (f", ונסיעה נמשכה {fmt.num_he(med_dur, 0)} דקות." if med_dur else ".")
             ).strip()
     excluded = []
     if n_bad_plan:
