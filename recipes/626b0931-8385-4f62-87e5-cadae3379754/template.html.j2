@@ -1,0 +1,321 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "תקציר") }}
+  <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
+  <p class="m-0 mt-3 text-sm text-subtle">{{ model.labels.definition }}</p>
+</section>
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">בדיקת נסיעה מסוימת: האם האוטובוס בקו שלכם יצא בזמן ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל נסיעה במאגר לפי מספר קו, מפעיל, אשכול, תאריך ושעת יציאה מתוכננת, עם שעת היציאה והסיום בפועל.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.ontime, model.labels.kpi_ontime) }}
+  {{ gov.kpi(model.kpis.miss, model.labels.kpi_miss) }}
+  {{ gov.kpi(model.kpis.late, model.labels.kpi_late) }}
+  {{ gov.kpi(model.kpis.med_delay, model.labels.kpi_med_delay) }}
+  {{ gov.kpi(model.kpis.p90_delay, model.labels.kpi_p90_delay) }}
+  {{ gov.kpi(model.kpis.med_dur, model.labels.kpi_med_dur) }}
+  {{ gov.kpi(model.kpis.planned, model.labels.kpi_planned) }}
+  {{ gov.kpi(model.kpis.span, model.labels.kpi_span) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "כמה דקות איחר האוטובוס ביציאה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.delay_note }}</p>
+  {{ gov.chart("chart-delay", model.labels.delay_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.delay_caption, ["יציאה ביחס ללוח הזמנים", "נסיעות", "חלק מהנסיעות (%)"], model.tables.delay, ltr=(2,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "איחורים וביטולים לפי שעת היציאה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hour_note }}</p>
+  {{ gov.chart("chart-hour", model.labels.hour_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.hour_caption, ["שעת יציאה מתוכננת", "נסיעות מתוכננות", "באיחור (%)", "לא בוצעו (%)", "עשירון עליון של האיחור (דקות)"], model.tables.hours, ltr=(0, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "מתי האוטובוס לא מגיע בזמן: יום בשבוע מול שעה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  <div id="chart-heat" data-fallback="explorer" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "עמידה בזמנים לפי יום בשבוע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.week_note }}</p>
+  {{ gov.chart("chart-week", model.labels.week_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.week_caption, ["יום", "נסיעות מתוכננות ביום (ממוצע)", "בזמן (%)", "באיחור (%)", "לא בוצעו (%)"], model.tables.week, ltr=(2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "איזה מפעיל עומד בלוח הזמנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.op_note }}</p>
+  {{ gov.chart("chart-ops", model.labels.op_aria, "h-[560px] md:h-[620px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.op_caption, ["מפעיל", "נסיעות מתוכננות", "בזמן (%)", "באיחור (%)", "בהקדמה (%)", "לא בוצעו (%)", "עשירון עליון של האיחור (דקות)", "משך נסיעה חציוני (דקות)"], model.tables.ops, ltr=(2, 3, 4, 5, 6, 7)) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "כל יום בתקופה: נסיעות, ביטולים ואיחורים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.daily_note }}</p>
+  <div id="chart-daily" data-fallback="explorer" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.daily_aria }}"></div>
+  {{ gov.table(model.labels.month_caption, ["חודש", "נסיעות מתוכננות", "בזמן (%)", "באיחור (%)", "בהקדמה (%)", "לא בוצעו (%)"], model.tables.months, ltr=(2, 3, 4, 5)) }}
+</section>
+
+{%- if model.flags.duration %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "כמה זמן נמשכת נסיעה באוטובוס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dur_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">משך הנסיעה לפי שעת היציאה</h3>
+      {{ gov.chart("chart-durhour", model.labels.dur_aria, "h-64 md:h-80") }}
+      {{ gov.table(model.labels.dur_caption, ["שעת יציאה", "נסיעות", "חציון (דקות)", "רבעון תחתון (דקות)", "רבעון עליון (דקות)"], model.tables.dur_hours, ltr=(0, 2, 3, 4)) }}
+    </div>
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">התפלגות משך הנסיעות</h3>
+      {{ gov.chart("chart-durdist", model.labels.durdist_aria, "h-64 md:h-80") }}
+      {{ gov.table(model.labels.durdist_caption, ["משך", "נסיעות", "חלק מהנסיעות (%)"], model.tables.dur_dist, ltr=(2,)) }}
+    </div>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.events %}
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "אירועים חריגים: הימים שבהם השירות נפגע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.event_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.event_caption }}</caption>
+    <thead><tr><th scope="col">יום</th><th scope="col">נסיעות שסומנו כאירוע חריג</th><th scope="col">מכלל נסיעות היום (%)</th><th scope="col">מהן לא בוצעו (%)</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.events %}
+      <tr><th scope="row" class="whitespace-nowrap">{{ r[0] }}</th><td>{{ r[1] }}</td><td dir="ltr">{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.delay | tojson }};
+    var col = { early: "#9a6700", ok: "#0068f5", late: "#dc3545", miss: "#dc3545" };
+    var c = echarts.init(document.getElementById("chart-delay"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.y[i].toLocaleString("he-IL") + " נסיעות (" + d.share[i].toFixed(2) + "%)";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45, fontSize: 11 } },
+      yAxis: { type: "value", name: "% מהנסיעות" },
+      series: [{ type: "bar", name: "נסיעות", data: d.share.map(function (v, i) {
+        return { value: v, itemStyle: { color: col[d.kind[i]] } };
+      }) }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.hour | tojson }};
+    var c = echarts.init(document.getElementById("chart-hour"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.x[i]) + "<br>נסיעות מתוכננות: " + d.n[i].toLocaleString("he-IL");
+        if (d.late[i] !== null) { s += "<br>באיחור: " + d.late[i].toFixed(1) + "%<br>לא בוצעו: " + d.miss[i].toFixed(1) + "%"; }
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "% מהנסיעות" },
+        { type: "value", name: "נסיעות", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "נסיעות מתוכננות", yAxisIndex: 1, data: d.n, itemStyle: { color: "#c3cfe7" } },
+        { type: "line", name: "באיחור", data: d.late, symbol: "circle", symbolSize: 5, lineStyle: { width: 2, color: "#0068f5" }, itemStyle: { color: "#0068f5" } },
+        { type: "line", name: "לא בוצעו", data: d.miss, symbol: "circle", symbolSize: 5, lineStyle: { width: 2, color: "#dc3545" }, itemStyle: { color: "#dc3545" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.heat | tojson }};
+    var c = echarts.init(document.getElementById("chart-heat"));
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return "יום " + echarts.format.encodeHTML(d.y[p.value[1]]) + ", " + echarts.format.encodeHTML(d.x[p.value[0]]) +
+          "<br>לא יצאו בזמן: " + p.value[2].toFixed(1) + "%<br>נסיעות: " + p.value[3].toLocaleString("he-IL");
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true }, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "category", data: d.y, splitArea: { show: true } },
+      visualMap: {
+        min: d.min, max: d.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 4,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" },
+        formatter: function (v) { return v.toFixed(0) + "%"; }
+      },
+      series: [{ type: "heatmap", data: d.cells, label: { show: false },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.week | tojson }};
+    var c = echarts.init(document.getElementById("chart-week"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "יום " + echarts.format.encodeHTML(d.x[i]) + "<br>נסיעות ביום (ממוצע): " + d.avg[i].toLocaleString("he-IL") +
+          "<br>לא יצאו בזמן: " + d.notok[i].toFixed(1) + "%<br>מהן לא בוצעו: " + d.miss[i].toFixed(1) + "%";
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: [
+        { type: "value", name: "נסיעות ביום" },
+        { type: "value", name: "% מהנסיעות", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "נסיעות ביום (ממוצע)", data: d.avg, itemStyle: { color: "#c3cfe7" } },
+        { type: "line", name: "לא יצאו בזמן", yAxisIndex: 1, data: d.notok, symbol: "circle", symbolSize: 6, lineStyle: { width: 2, color: "#0068f5" }, itemStyle: { color: "#0068f5" } },
+        { type: "line", name: "לא בוצעו", yAxisIndex: 1, data: d.miss, symbol: "circle", symbolSize: 6, lineStyle: { width: 2, color: "#dc3545" }, itemStyle: { color: "#dc3545" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.ops | tojson }};
+    var series = [
+      { key: "ontime", name: "בזמן", color: "#0068f5" },
+      { key: "late", name: "באיחור", color: "#0b3668" },
+      { key: "early", name: "בהקדמה", color: "#9a6700" },
+      { key: "miss", name: "לא בוצעו", color: "#dc3545" }
+    ];
+    var c = echarts.init(document.getElementById("chart-ops"));
+    c.setOption(window.GovEcharts.option({
+      color: series.map(function (s) { return s.color; }),
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.x[i]) + " (" + d.n[i].toLocaleString("he-IL") + " נסיעות)";
+        series.forEach(function (x) { s += "<br>" + x.name + ": " + d[x.key][i].toFixed(2) + "%"; });
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 8, bottom: 40, containLabel: true },
+      xAxis: { type: "value", min: d.axis_min, max: 100, axisLabel: { formatter: "{value}%" } },
+      yAxis: { type: "category", data: d.x, inverse: true, axisLabel: { width: 120, overflow: "truncate" } },
+      series: series.map(function (x) {
+        return { type: "bar", stack: "all", name: x.name, data: d[x.key], barMaxWidth: 22 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.daily | tojson }};
+    var c = echarts.init(document.getElementById("chart-daily"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.label[i]) + "<br>נסיעות מתוכננות: " + d.n[i].toLocaleString("he-IL") +
+          "<br>לא בוצעו: " + d.miss[i].toFixed(1) + "%<br>באיחור: " + d.late[i].toFixed(1) + "%";
+        if (d.event[i] > 0) { s += "<br>סומנו כאירוע חריג: " + d.event[i].toLocaleString("he-IL") + " נסיעות"; }
+        return s;
+      } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "נסיעות" },
+        { type: "value", name: "% מהנסיעות", splitLine: { show: false } }
+      ],
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 32, height: 18 }],
+      series: [
+        { type: "bar", name: "נסיעות מתוכננות", data: d.n, itemStyle: { color: "#c3cfe7" } },
+        { type: "line", name: "לא בוצעו", yAxisIndex: 1, data: d.miss, symbol: "none", lineStyle: { width: 2, color: "#dc3545" }, itemStyle: { color: "#dc3545" } },
+        { type: "line", name: "באיחור", yAxisIndex: 1, data: d.late, symbol: "none", lineStyle: { width: 2, color: "#0068f5" }, itemStyle: { color: "#0068f5" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.duration %}
+<script>
+  (function () {
+    var d = {{ model.charts.dur_hour | tojson }};
+    var low = d.p25, band = d.p75.map(function (v, i) { return v === null || d.p25[i] === null ? null : +(v - d.p25[i]).toFixed(1); });
+    var c = echarts.init(document.getElementById("chart-durhour"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        if (d.p50[i] === null) { return echarts.format.encodeHTML(d.x[i]); }
+        return echarts.format.encodeHTML(d.x[i]) + "<br>חציון: " + d.p50[i].toFixed(0) + " דקות" +
+          "<br>מחצית הנסיעות: " + d.p25[i].toFixed(0) + " עד " + d.p75[i].toFixed(0) + " דקות";
+      } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, boundaryGap: false, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", name: "דקות" },
+      series: [
+        { type: "line", name: "low", data: low, stack: "band", symbol: "none", lineStyle: { opacity: 0 }, silent: true },
+        { type: "line", name: "band", data: band, stack: "band", symbol: "none", lineStyle: { opacity: 0 }, areaStyle: { color: "rgba(0,104,245,.15)" }, silent: true },
+        { type: "line", name: "חציון", data: d.p50, symbol: "circle", symbolSize: 5, lineStyle: { width: 2, color: "#0068f5" }, itemStyle: { color: "#0068f5" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dur_dist | tojson }};
+    var c = echarts.init(document.getElementById("chart-durdist"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.x[i]) + "<br>" + d.y[i].toLocaleString("he-IL") + " נסיעות (" + d.share[i].toFixed(1) + "%)";
+      } },
+      grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { interval: 0, rotate: 45, fontSize: 11 } },
+      yAxis: { type: "value", name: "% מהנסיעות" },
+      series: [{ type: "bar", name: "נסיעות", data: d.share }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

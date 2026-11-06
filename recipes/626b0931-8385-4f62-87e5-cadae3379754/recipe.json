@@ -1,0 +1,48 @@
+{
+  "contract_version": 1,
+  "dataset_id": "626b0931-8385-4f62-87e5-cadae3379754",
+  "recipe_version": 1,
+  "authored_at": "2026-11-06T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-16T11:46:41.845621+00:00",
+    "rows": { "trips": 5480371 }
+  },
+  "inputs": [
+    {
+      "name": "trips",
+      "by_schema": [
+        "operator_nm",
+        "trip_dt",
+        "trip_time",
+        "bitzua_history_start_dt",
+        "bitzua_history_end_dt",
+        "erua_hachraga_ind"
+      ],
+      "pick": "latest",
+      "required_columns": [
+        "operator_nm",
+        "trip_dt",
+        "trip_time",
+        "bitzua_history_start_dt",
+        "bitzua_history_end_dt",
+        "erua_hachraga_ind"
+      ],
+      "columns": [
+        "operator_nm",
+        "trip_dt",
+        "trip_time",
+        "bitzua_history_start_dt",
+        "bitzua_history_end_dt",
+        "erua_hachraga_ind"
+      ]
+    }
+  ],
+  "limits": {
+    "max_records": 6500000,
+    "max_bytes": 500000000,
+    "total_bytes": 500000000,
+    "compute_memory_mb": 2560
+  },
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
