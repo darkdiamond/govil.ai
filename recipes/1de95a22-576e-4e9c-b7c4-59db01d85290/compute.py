@@ -624,7 +624,7 @@ def compute(frames):
                    f"{_fmt(sum_mutz)} יחידות דיור מוצעות.")
 
     top3 = ", ".join(city["Yeshuv"].head(3)) if len(city) else ""
-    seo_desc = (f"מפת התחדשות עירונית: {_fmt(n)} מתחמי התחדשות עירונית "
+    seo_desc = (f"מפת התחדשות עירונית: {_fmt(n)} מתחמים "
                 f"ב-{_fmt(n_cities)} יישובים" + (f", בהם {top3}" if top3 else "")
                 + f", עם {_fmt(sum_mutz)} יחידות דיור מוצעות.")
     if len(seo_desc) > 150:

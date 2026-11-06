@@ -104,6 +104,13 @@ def _chg_he(v):
     return f"{'עלייה' if v > 0 else 'ירידה'} של {abs(v):.1f}%"
 
 
+def _tone(chg):
+    """'up' / 'down' / '' (flat or no previous price) for a % change."""
+    if pd.isna(chg) or round(chg, 1) == 0:
+        return ""
+    return "up" if chg > 0 else "down"
+
+
 def _pct(v, signed=True):
     s = f"{abs(v):.1f}%"
     if not signed:
@@ -230,7 +237,7 @@ def _ins_latest_round(latest, latest_date):
     else:
         what = "המחיר המרבי כמעט לא השתנה"
     rng = ""
-    if n > 1 and f"{lo:.1f}" != f"{hi:.1f}":
+    if n > 1 and round(lo, 1) != round(hi, 1):
         if lo >= 0 or hi <= 0:
             word = "עליות" if hi > 0 else "ירידות"
             rng = f" ({word} של {abs(lo) if lo >= 0 else abs(hi):.1f}% עד {abs(hi) if lo >= 0 else abs(lo):.1f}%)"
@@ -376,8 +383,7 @@ def compute(frames):
             "ret": _p(r["ret"]) if pd.notna(r["ret"]) else "",
             "date": _d(r["date"]),
             "chg": _pct(r["chg"]) if pd.notna(r["chg"]) else "",
-            "chg_tone": ("" if pd.isna(r["chg"]) or round(r["chg"], 1) == 0
-                         else ("up" if r["chg"] > 0 else "down")),
+            "chg_tone": _tone(r["chg"]),
             "stale": bool(r["date"] < latest_date - pd.DateOffset(years=STALE_YEARS)),
         })
 
@@ -389,8 +395,7 @@ def compute(frames):
             "prev": _p(r["prev"]) if pd.notna(r["prev"]) else "",
             "con": _p(r["con"]),
             "chg": _pct(r["chg"]) if pd.notna(r["chg"]) else "",
-            "chg_tone": ("" if pd.isna(r["chg"]) or round(r["chg"], 1) == 0
-                         else ("up" if r["chg"] > 0 else "down")),
+            "chg_tone": _tone(r["chg"]),
         })
 
     # ---- window chart (5-year change)
@@ -574,6 +579,9 @@ def compute(frames):
         seo_desc = (f"מחיר ביצים בפיקוח: ביצים בגודל L עד {_p(float(egg['con']))} ₪ כולל "
                     f"מע״מ{egg_chg}, מ-{_d(egg['date'])}. המחיר המרבי ל-{n_products} מוצרים "
                     f"בפיקוח: חלב, לחם, גבינות וביצים.")
+        if len(seo_desc) > 150:
+            seo_desc = (f"מחיר ביצים בפיקוח: ביצים בגודל L עד {_p(float(egg['con']))} ₪ כולל "
+                        f"מע״מ, מ-{_d(egg['date'])}. המחיר המרבי ל-{n_products} מוצרים בפיקוח.")
     else:
         seo_desc = (f"המחיר המרבי המותר לצרכן לביצים, חלב, לחם וגבינות בפיקוח מחירים: "
                     f"{n_products} מוצרים, עדכון אחרון {_d(latest_date)}.")
