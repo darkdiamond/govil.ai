@@ -404,7 +404,7 @@ def compute(frames):
     dropped_note = (f" {n(dropped)} רשומות ללא תאריך תקין אינן נכללות." if dropped else "")
     partial_note = f" שנת {ref_year} חלקית, עד {d_he(ref)}." if partial else ""
     labels = {
-        "lede": (f"מאגר אירועי הכלבת של השירותים הווטרינריים: {n(total)} מקרי כלבת שאושרו "
+        "lede": (f"מאגר אירועי הכלבת של השירותים הווטרינריים במשרד החקלאות: {n(total)} מקרי כלבת שאושרו "
                  f"במעבדה בבעלי חיים, מ-{first_year} ועד {d_he(ref)}, לפי מין בעל החיים, "
                  f"אזור, יישוב ושושלת גנטית של הנגיף.{dropped_note}"),
         "last_year_kpi": f"אירועים ב-{ref_year}" + (f" (עד {ref.day}.{ref.month})" if partial else ""),
@@ -475,6 +475,10 @@ def compute(frames):
     }
 
     dog_n = int((df["group"] == G_DOG).sum())
+    seo_desc = (f"מקרי כלבת בישראל לפי נתוני משרד החקלאות: מפה, יישוב ובעל חיים. "
+                f"{n(last_v)} אירועים ב-{ref_year}, {n(total)} מאז {first_year}.")
+    if len(seo_desc) > 150:
+        seo_desc = "מקרי כלבת בישראל לפי נתוני משרד החקלאות: מפת המקרים לפי שנה, יישוב ומין בעל החיים."
     return {
         "agent_data": {
             "summary_he": (f"{n(total)} מקרי כלבת שאושרו בבעלי חיים בישראל מ-{first_year} עד "
@@ -489,6 +493,13 @@ def compute(frames):
                             "28954732-da33-48d0-b22c-1c0c279aadca"],
             "temporal_coverage": f"{df['date'].min().strftime('%Y-%m-%d')}/{ref.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "מקרי כלבת בישראל: מפה ונתוני משרד החקלאות לפי שנה ויישוב",
+                "description": seo_desc,
+                "name": "מקרי כלבת בישראל",
+                "alternate_names": ["אירועי מחלת הכלבת בישראל", "כלבת משרד החקלאות", "מקרי כלבת",
+                                    "כלבת בישראל"],
+            },
         },
         "kpis": kpis,
         "charts": charts,

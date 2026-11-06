@@ -550,7 +550,7 @@ def compute(frames):
     c_rest = max(len(country_cnt) - TOP_COUNTRY, 0)
     b_rest = max(len(body_cnt) - TOP_BODY, 0)
     labels = {
-        "lede": (f"רשימת הרבנות הראשית לישראל של מוצרי מזון וחומרי גלם מיובאים בעלי אישור כשרות: "
+        "lede": (f"רשימת הרבנות הראשית לישראל לבדיקת כשרות מוצרים מיובאים, מזון וחומרי גלם בעלי אישור כשרות: "
                  f"{_int(total)} מוצרים מ-{_int(n_countries)} מדינות, של {_int(len(imp_cnt))} יבואנים, "
                  f"בפיקוח {_int(n_bodies)} גופי כשרות בחו״ל. לכל מוצר רשומים היבואן, היצרן, ארץ הייצור, "
                  f"גוף הכשרות, מספר התעודה ותוקפה."
@@ -624,11 +624,27 @@ def compute(frames):
     if anchor is not None and len(dated):
         temporal = f"{dated['issued'].min().year}/{anchor.year}"
 
+    seo_desc = (f"בדיקת כשרות מוצרים מיובאים ברשימת הרבנות הראשית: איתור לפי שם מוצר, יבואן או יצרן. "
+                f"{_int(total)} מוצרים מ-{_int(n_countries)} מדינות.")
+    if len(seo_desc) > 150:
+        seo_desc = "בדיקת כשרות מוצרים מיובאים ברשימת הרבנות הראשית: איתור מוצר מזון או חומר גלם לפי שם, יבואן או יצרן."
+
     agent_data = {
         "summary_he": summary,
         "dataset_kind": "registry",
         "suggested_tags": ["כשרות", "מזון כשר", "יבוא", "מוצרי מזון", "חומרי גלם"],
         "related_ids": ["6a8f3548-f991-4f8b-ab52-80240324ab4d", "e6ef4310-746f-4504-867b-804520401755"],
+        "seo": {
+            "title": "כשרות מוצרים מיובאים וחומרי גלם: רשימת הרבנות הראשית",
+            "description": seo_desc,
+            "name": "כשרות מוצרים מיובאים: רשימת הרבנות הראשית",
+            "alternate_names": [
+                "רשימת מוצרי מזון וחומרי גלם מיובאים",
+                "מזון מיובא כשר",
+                "רשימת מוצרי יבוא כשרים",
+                "כשרות מוצרי יבוא",
+            ],
+        },
     }
     if temporal:
         agent_data["temporal_coverage"] = temporal

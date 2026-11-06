@@ -429,6 +429,12 @@ def compute(frames):
     if len(summary) > SUMMARY_MAX:
         summary = parts[0]
 
+    seo_desc = (f"איתור נכסים עזובים ברשימת הנעדרים של האפוטרופוס הכללי לפי שם משפחה, שם פרטי או "
+                f"מספר תיק. {n:,} שמות ב-{n_cases:,} תיקים.")
+    if len(seo_desc) > 150:
+        seo_desc = ("איתור נכסים עזובים ברשימת הנעדרים של האפוטרופוס הכללי לפי שם משפחה, שם פרטי "
+                    "או מספר תיק.")
+
     agent_data = {
         "summary_he": summary,
         "dataset_kind": "registry",
@@ -438,6 +444,17 @@ def compute(frames):
                         "10288bf1-b6d5-4855-a633-6c650c277bd3",
                         "83372c35-23ce-4ddf-829f-1067b5ef3409"],
         "spatial_coverage": "ישראל",
+        "seo": {
+            "title": "האפוטרופוס הכללי: רשימת נעדרים ואיתור נכסים עזובים",
+            "description": seo_desc,
+            "name": "רשימת נעדרים ונכסים עזובים של האפוטרופוס הכללי",
+            "alternate_names": [
+                "רשימת נעדרים האפוטרופוס הכללי",
+                "האפוטרופוס הכללי נכסים עזובים",
+                "נכסי נעדרים",
+                "רשימת נעדרים אפוטרופוס כללי",
+            ],
+        },
     }
     if len(dated):
         agent_data["temporal_coverage"] = f"{lo_y}/{hi_y}"

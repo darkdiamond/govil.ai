@@ -12,12 +12,11 @@ This repo is public: describe a security gap by what to change, never by how to 
   most GSC clicks lost to low CTR, 90 days to 2026-11-03) have it; the other ~276 keep their CKAN
   titles (some over 60 chars, 45 summaries over 160) and a " · ministry" suffix. Fix: next
   batches in the same order (missed clicks = impressions × (expected CTR at position − actual
-  CTR)), starting with ebec1eda, 1a49cbba, ebf0005b, 3a1ca8fa, d8767745, 187428bc, 54601127,
-  dda8f0aa, cf92190d, 505aa85e; bump each `recipe_version`. The gap per page is now small
-  (batch 2 pages each missed ~15-29 clicks per 90 days), so compare batches 1-2's CTR in GSC
-  about 4 weeks after they ship before spending on the long tail. Also df60d73b (Israel
-  numbering plan) should own the "אזורי חיוג" area-code queries that now land on 59d2e891
-  (service numbers, which has no geographic codes). (2026-11-05)
+  CTR)). Batch 3 (21 recipes, 2026-11-06) took ranks 1-20 of the 90 days to 2026-11-05 plus
+  df60d73b; the next are 9f0ea3dc, aee606f8, 4dd3bb28, 8672f52a, 9b2ac550, 7a338622, 776ad523,
+  f312eda5, a52c0585, 6c44da0d; bump each `recipe_version`. Batch 3 pages each missed only
+  ~7-18 clicks per 90 days, so compare batches 1-3's CTR in GSC (~2026-12-02) before spending
+  on the long tail. (2026-11-05)
 - **`author verify`'s dash lint misses dashes built in f-strings.** An en dash between two
   interpolated numbers (`f"{a}–{b}"`) in Hebrew text renders reversed in RTL, but the lint only
   sees literal text. Batch 2 found several by hand (7a6cbf55's bucket labels and periods). Fix:

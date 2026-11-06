@@ -263,7 +263,7 @@ def compute(frames):
     y0, y1 = int(first["d"].year), int(last["d"].year)
     span10 = f"{recent10[0][0]}–{recent10[-1][0]}" if recent10 else ""
     labels = {
-        "lede": (f"מדידות מפלס ים המלח מ-{d_he(first['d'])} ועד {d_he(last['d'])}: "
+        "lede": (f"מדידות מפלס ים המלח (גובה פני ים המלח מתחת לפני הים) מ-{d_he(first['d'])} ועד {d_he(last['d'])}: "
                  f"{len(df):,} מדידות, כמעט אחת לחודש. המדידה האחרונה: {m(last['lvl'])} מ'."),
         "rate10_label": f"ס״מ לשנה: קצב ממוצע {span10}",
         "total_label": f"מטר: שינוי מאז {y0}",
@@ -289,6 +289,15 @@ def compute(frames):
                     "gap": "–" if g is None else f"{g:.1f}"}
                    for (mk, d), g in zip(marks, miles["gap"])]
 
+    seo_desc = (f"מה גובה ים המלח? במדידה האחרונה ({d_he(last['d'])}) עמד מפלס ים המלח על "
+                f"{abs(last['lvl']):.2f} מטר מתחת לפני הים")
+    if change12 is not None:
+        seo_desc += f", {'ירידה' if change12 < 0 else 'עלייה'} של {cm(change12)} ס״מ בשנה"
+    seo_desc += f". מדידות חודשיות מאז {y0}."
+    if len(seo_desc) > 150:
+        seo_desc = (f"מה גובה ים המלח? מפלס ים המלח במדידה האחרונה: {abs(last['lvl']):.2f} מטר "
+                    f"מתחת לפני הים. מדידות חודשיות מאז {y0}.")
+
     return {
         "agent_data": {
             "summary_he": (f"מפלס ים המלח החודשי מ-{y0} ועד {d_he(last['d'])}: המפלס האחרון "
@@ -299,6 +308,17 @@ def compute(frames):
             "suggested_tags": ["ים המלח", "מפלס מים", "הידרולוגיה", "משאבי מים"],
             "temporal_coverage": f"{first['d'].strftime('%Y-%m-%d')}/{last['d'].strftime('%Y-%m-%d')}",
             "spatial_coverage": "ים המלח",
+            "seo": {
+                "title": "מפלס ים המלח: גובה ים המלח מתחת לפני הים, חודש אחר חודש",
+                "description": seo_desc,
+                "name": "מפלס ים המלח",
+                "alternate_names": [
+                    "גובה ים המלח",
+                    "גובה פני ים המלח",
+                    "מפלס ים המלח היום",
+                    "גובה ים המלח מתחת לפני הים",
+                ],
+            },
         },
         "kpis": kpis,
         "charts": {"history": history, "recent": recent, "annual": annual_chart,

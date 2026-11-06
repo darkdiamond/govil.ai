@@ -193,9 +193,13 @@ def compute(frames):
         return [{"name": a, "n": b, "share": _pct(b / n)} for a, b in zip(names, vals)]
 
     top_g = g_names[0]
+    seo_desc = (f"רשימת רחובות בבאר שבע: איתור רחוב לפי שם, שכונה או נושא. "
+                f"{_int(n)} שמות של רחובות, כיכרות וגנים ב-{_int(len(hoods))} שכונות ואזורים.")
+    if len(seo_desc) > 150:
+        seo_desc = "רשימת רחובות בבאר שבע: איתור רחוב, כיכר או גן לפי שם, שכונה או נושא ההנצחה."
     return {
         "agent_data": {
-            "summary_he": (f"{_int(n)} שמות רחובות, כיכרות וגנים בבאר שבע ב-{_int(len(hoods))} שכונות ואזורים, "
+            "summary_he": (f"רשימת רחובות בבאר שבע: {_int(n)} שמות של רחובות, כיכרות וגנים ב-{_int(len(hoods))} שכונות ואזורים, "
                            f"מחולקים ל-{_int(len(groups))} קבוצות נושא. הקבוצה הגדולה: ״{top_g}״; "
                            f"סוג המקום הנפוץ: ״{types.index[0]}״."),
             "dataset_kind": "registry",
@@ -204,6 +208,17 @@ def compute(frames):
                             "947814b2-f2a8-4f4b-a8ec-a5f4bd2f0abe", "3c6d4061-41bf-4403-82e9-c8fae5df04dd",
                             "0e8a1152-1cf2-4a9d-9fe8-2bfd7f60d970"],
             "spatial_coverage": "באר שבע",
+            "seo": {
+                "title": "רחובות בבאר שבע: שמות הרחובות לפי שכונה ונושא",
+                "description": seo_desc,
+                "name": "שמות הרחובות בבאר שבע",
+                "alternate_names": [
+                    "שמות הרחובות בעיר",
+                    "רחובות בבאר שבע",
+                    "רשימת רחובות באר שבע",
+                    "רחובות באר שבע",
+                ],
+            },
         },
         "kpis": kp,
         "charts": {

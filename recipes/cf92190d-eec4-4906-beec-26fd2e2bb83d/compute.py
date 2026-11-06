@@ -16,7 +16,7 @@ TOP_JUDGES = 15
 HEAT_TOPICS = 10
 MONTHS = 24
 CASE_BINS = [0, 1, 2, 3, 5, 10, float("inf")]
-CASE_LABELS = ["1", "2", "3", "4–5", "6–10", "מעל 10"]
+CASE_LABELS = ["1", "2", "3", "4-5", "6-10", "מעל 10"]
 INTERIM = {"בקשה לסעד זמני", "בקשה לצו ביניים"}
 MAIN = "בקשה ראשית"
 
@@ -185,16 +185,28 @@ def compute(frames):
     def bar(items):
         return {"names": [k for k, _ in items], "values": [v for _, v in items]}
 
+    n_full = int((y == full).sum())
+    seo_desc = (f"מאגר החלטות בית הדין לעררים (כניסה לישראל, מעמד ומקלט): חיפוש לפי מספר תיק, דיין ונושא. "
+                f"{_int(len(df))} החלטות, {_int(n_full)} מהן ב-{full}.")
+    if len(seo_desc) > 150:
+        seo_desc = "מאגר החלטות בית הדין לעררים (כניסה לישראל, מעמד ומקלט): חיפוש לפי מספר תיק, דיין ונושא."
     return {
         "agent_data": {
             "summary_he": (f"החלטות בתי הדין לעררים לפי חוק הכניסה לישראל: {_int(len(df))} החלטות "
-                           f"ב-{_int(per_case.size)} תיקים, {years[0]}–{years[-1]}, לפי נושא, בית דין "
+                           f"ב-{_int(per_case.size)} תיקים, {years[0]}-{years[-1]}, לפי נושא, בית דין "
                            f"ודיין. מעודכן עד {now_he}."),
             "dataset_kind": "timeseries",
             "related_ids": [],
             "suggested_tags": ["בתי דין לעררים", "הגירה", "מבקשי מקלט", "איחוד משפחות"],
             "temporal_coverage": f"{df['date'].min().strftime('%Y-%m-%d')}/{now.strftime('%Y-%m-%d')}",
             "spatial_coverage": "ישראל",
+            "seo": {
+                "title": "מאגר החלטות בית הדין לעררים: חיפוש לפי תיק, דיין ונושא",
+                "description": seo_desc,
+                "name": "מאגר החלטות בית הדין לעררים",
+                "alternate_names": ["החלטות בית הדין לעררים", "בית הדין לעררים החלטות",
+                                    "החלטות בתי הדין לעררים", "בית הדין לעררים לפי חוק הכניסה לישראל"],
+            },
         },
         "kpis": {
             "decisions": {"value": len(df), "display": _int(len(df)), "tone": "brand"},
@@ -219,10 +231,10 @@ def compute(frames):
         },
         "insights": insights,
         "labels": {
-            "lede": (f"{_int(len(df))} החלטות של בתי הדין לעררים בענייני כניסה לישראל, מעמד ומקלט, "
+            "lede": (f"מאגר החלטות בית הדין לעררים כולל {_int(len(df))} החלטות בענייני כניסה לישראל, מעמד ומקלט, "
                      f"מ-{years[0]} ועד {now_he}. המאגר אינו כולל את שמות העוררים."),
             "full_year": str(full),
-            "yearly_aria": f"גרף עמודות מוערמות: החלטות לפי שנה ובית דין, {years[0]}–{years[-1]}.",
+            "yearly_aria": f"גרף עמודות מוערמות: החלטות לפי שנה ובית דין, {years[0]}-{years[-1]}.",
             "yearly_note": f"השנה האחרונה ({years[-1]}) חלקית (עד {now_he}).",
             "topics_aria": f"תרשים עמודות: ההחלטות לפי נושא, {len(topics)} נושאים.",
             "heat_aria": "מפת חום: חלקו של כל נושא מסך ההחלטות בכל שנה, באחוזים.",

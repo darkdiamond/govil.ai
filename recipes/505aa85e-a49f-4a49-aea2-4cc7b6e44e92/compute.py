@@ -552,6 +552,10 @@ def compute(frames):
     }
 
     temporal = f"{min_year}/{max_year}" if max_year is not None else None
+    seo_desc = (f"רשימת קונסולי כבוד: מי משמש קונסול של כבוד בישראל ובחו״ל, לפי מדינה, עם כתובת ודרכי קשר. "
+                f"{n(n_il)} קונסולים בישראל ו-{n(n_ab)} בחו״ל.")
+    if len(seo_desc) > 150:
+        seo_desc = "רשימת קונסולי כבוד: מי משמש קונסול של כבוד בישראל ובחו״ל, לפי מדינה, עם כתובת ודרכי קשר."
     agent_data = {
         "summary_he": (f"{n(n_il)} קונסולי כבוד של {n(len(c_il))} מדינות זרות בישראל ו-{n(n_ab)} קונסולי כבוד של "
                        f"ישראל ב-{n(len(c_ab))} מדינות: מפת עולם, ייצוג דו-כיווני, אזורי שיפוט, מועדי מינוי, "
@@ -561,6 +565,13 @@ def compute(frames):
         "related_ids": ["14f2521f-819a-4ea4-87e8-6811d43e4495", "bae5a627-f1bd-4da7-8b08-664cf626df47",
                         "0093a1b8-918b-42b7-b268-e35e22616de1", "4eaa3676-34ea-4c88-8980-dd64cba86411"],
         "spatial_coverage": "עולם",
+        "seo": {
+            "title": "קונסול כבוד: רשימת קונסולים של כבוד בישראל ובחו״ל",
+            "description": seo_desc,
+            "name": "רשימת קונסולי כבוד בישראל ובחו״ל",
+            "alternate_names": ["קונסול כבוד", "קונסול של כבוד", "קונסולי כבוד של מדינת ישראל",
+                                "קונסולים של כבוד"],
+        },
     }
     if temporal:
         agent_data["temporal_coverage"] = temporal
