@@ -1,0 +1,21 @@
+{
+  "trips.operator_nm": "chart-ops, insight:operators — operator of each trip",
+  "trips.trip_dt": "chart-daily, chart-heat, chart-week, kpi:span, kpi:planned, insight:worst_day, insight:weekday",
+  "trips.trip_time": "chart-hour, chart-heat, chart-delay, chart-durhour, insight:hour, insight:duration — planned departure minute; with trip_dt it is the schedule the delay is measured against",
+  "trips.bitzua_history_start_dt": "chart-delay, chart-hour, chart-ops, kpi:ontime, kpi:miss, kpi:late, kpi:med_delay, kpi:p90_delay, insight:overall, insight:tail, insight:early",
+  "trips.bitzua_history_end_dt": "chart-durhour, chart-durdist, kpi:med_dur, insight:duration",
+  "trips.erua_hachraga_ind": "insight:events, chart-daily — flagged trips are left out of the hour, weekday, operator and duration patterns (disclosed); the event-day table lists the top days",
+  "trips.OperatorId": "skip: code twin of operator_nm",
+  "trips.ClusterId": "skip: code twin of cluster_nm",
+  "trips.cluster_nm": "skip: not fetched (memory: 5.5M rows); the cluster and per-line monthly picture is the sibling aggregate dataset's page (e4a5e2d7), and the explorer under the page searches it",
+  "trips.OperatorLineId": "skip: not fetched (memory); per-line performance is on the sibling page (e4a5e2d7); the lookup callout sends a rider to the explorer, which searches line numbers",
+  "trips.OfficeLineId": "skip: ministry line code, not fetched (see OperatorLineId)",
+  "trips.Direction": "skip: route direction code, only meaningful per line",
+  "trips.LineAlternative": "skip: route variant code, only meaningful per line",
+  "trips.Viechle_num": "skip: vehicle identifier (licence-plate-like), never on the page",
+  "trips.TripId": "skip: identifier",
+  "trips.trip_month": "skip: derived from trip_dt",
+  "trips.trip_day_in_week": "skip: derived from trip_dt",
+  "resource:084b8e33-e359-47aa-95f7-26782e52c9af": "skip: 2025 year file, 32.6M rows and 5.7GB, over any fetch cap; the page reads the newest year (pick latest)",
+  "resource:aba233c2-6a5a-487d-b0a8-9413ef849f15": "skip: 2024 year file, 32.5M rows and 5.6GB, over any fetch cap; the page reads the newest year (pick latest)"
+}
