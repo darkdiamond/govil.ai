@@ -1,0 +1,248 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#tazar-map" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תצ״ר לפי מספר או גוש ←</span>
+    <span class="block text-sm text-subtle">הקלידו מספר תצ״ר (מספר/שנה) או מספר גוש וקבלו את הסטטוס, השנה והמיקום במפה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.plans, "תצ״רים בשכבה") }}
+  {{ gov.kpi(model.kpis.final, "מהתצ״רים בסטטוס סופי") }}
+  {{ gov.kpi(model.kpis.review, model.labels.review_kpi) }}
+  {{ gov.kpi(model.kpis.wait, model.labels.wait_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{% if model.lookup %}
+<section id="tazar-map" class="card p-5 mb-6">
+  {{ gov.head("map-pin", "איתור תצ״ר במפה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lookup_note }}</p>
+  <div class="flex flex-wrap items-center gap-2 mb-3" role="search">
+    <label for="tazar-q" class="text-sm text-subtle">מספר תצ״ר או גוש</label>
+    <input id="tazar-q" type="search" dir="ltr" class="border border-rule rounded-gov px-3 py-1 text-sm w-40" autocomplete="off" />
+    <button type="button" id="tazar-go" class="bg-primary text-white rounded-gov px-3 py-1 text-sm">איתור</button>
+  </div>
+  <div id="tazar-result" class="text-sm mb-3" aria-live="polite"></div>
+  <div id="map-tazar" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}" data-fallback="explorer"></div>
+  <ul id="tazar-legend" class="flex flex-wrap gap-4 mt-3 mb-0 ps-0 list-none text-sm text-subtle"></ul>
+  <p class="mt-3 mb-0 text-xs text-subtle">המיקום הוא מרכז התצ״ר. כל עוד הסטטוס אינו סופי, הגבול עשוי להשתנות. המידע אינו אסמכתה לשחזור גבולות.</p>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "תצ״רים לפי שנה וסטטוס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.year_note }}</p>
+  {{ gov.chart("chart-year", model.labels.year_aria, "h-72 md:h-96") }}
+  {{ gov.table("תצ״רים ותצ״רים סופיים לפי שנה", ["שנה", "תצ״רים", "סופיים"], model.tables.year) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  {{ gov.head("chart-bar", "סטטוס") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+  {{ gov.chart("chart-status", model.labels.status_aria) }}
+  {{ gov.table("תצ״רים לפי סטטוס", ["סטטוס", "תצ״רים", "שיעור"], model.tables.status) }}
+</section>
+{% if model.charts.wait.names %}
+<section class="card p-5">
+  {{ gov.head("trending-up", "מסיום המדידה ועד כשר לרישום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.wait_note }}</p>
+  {{ gov.chart("chart-wait", model.labels.wait_aria) }}
+  {{ gov.table("חציון חודשים מסיום המדידה עד כשר לרישום", ["שנת תצ״ר", "חודשים (חציון)", "תצ״רים"], model.tables.wait) }}
+</section>
+{% endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מי מזמין תצ״רים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.orderer_note }}</p>
+  {{ gov.chart("chart-orderer", model.labels.orderer_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("תצ״רים לפי מזמין", ["מזמין", "תצ״רים"], model.tables.orderer) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+<section class="card p-5">
+  {{ gov.head("map-pin", "יישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.place_note }}</p>
+  {{ gov.chart("chart-place", model.labels.place_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("תצ״רים לפי יישוב", ["יישוב", "תצ״רים"], model.tables.place) }}
+</section>
+<section class="card p-5">
+  {{ gov.head("list", "גושים עם הכי הרבה תצ״רים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gush_note }}</p>
+  {{ gov.chart("chart-gush", model.labels.gush_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("תצ״רים לפי גוש", ["גוש", "תצ״רים"], model.tables.gush, ltr=(0,)) }}
+</section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "גודל התצ״רים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+  {{ gov.chart("chart-area", model.labels.area_aria) }}
+  {{ gov.table("תצ״רים לפי שטח בדונם", ["שטח (דונם)", "תצ״רים", "שיעור"], model.tables.area, ltr=(0,)) }}
+</section>
+
+{% if model.lookup %}
+{%- for chunk in model.lookup.chunks %}
+<script type="application/json" id="tazar-l-{{ loop.index0 }}">{{ chunk | tojson }}</script>
+{%- endfor %}
+<script>
+  (function () {
+    var el = document.getElementById("map-tazar");
+    if (!el || !window.L) { return; }
+    var meta = {{ {"n": model.lookup.chunks | length, "origin": model.lookup.origin, "scale": model.lookup.scale, "y0": model.lookup.y0, "statuses": model.lookup.statuses, "bounds": model.lookup.bounds} | tojson }};
+    var colors = ["#0068f5", "#198754", "#ffc107", "#dc3545", "#0dcaf0", "#6c757d"];
+    var color = function (s) { return colors[s] || colors[colors.length - 1]; };
+    var map = L.map(el, { scrollWheelZoom: false, zoomSnap: 0.25, preferCanvas: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>" }).addTo(map);
+    var renderer = L.canvas({ padding: 0.5 });
+    var layers = meta.statuses.map(function () { return L.layerGroup().addTo(map); });
+    var counts = meta.statuses.map(function () { return 0; });
+    var recs = [];
+    for (var c = 0; c < meta.n; c++) {
+      var node = document.getElementById("tazar-l-" + c);
+      if (!node) { continue; }
+      JSON.parse(node.textContent).split(";").forEach(function (s) {
+        var v = s.split(",");
+        var r = { year: meta.y0 + parseInt(v[0], 10), num: parseInt(v[1], 10), gush: v[2], st: parseInt(v[3], 10),
+                  lat: (meta.origin[1] + parseInt(v[5], 10)) / meta.scale, lng: (meta.origin[0] + parseInt(v[4], 10)) / meta.scale };
+        r.name = r.num + "/" + r.year;
+        recs.push(r);
+      });
+    }
+    function rows(r) {
+      return [["סטטוס", meta.statuses[r.st]], ["שנת תצ״ר", String(r.year)], ["גוש", r.gush]];
+    }
+    recs.forEach(function (r) {
+      counts[r.st] += 1;
+      r.marker = L.circleMarker([r.lat, r.lng], {
+        renderer: renderer, radius: 3, weight: 0, fillOpacity: 0.8, fillColor: color(r.st)
+      }).bindPopup(function () { return window.GovMap ? GovMap.popup("תצ״ר " + r.name, rows(r)) : "תצ״ר " + r.name; });
+      r.marker.addTo(layers[r.st]);
+    });
+    if (meta.bounds) { map.fitBounds(meta.bounds, { padding: [8, 8] }); }
+    var legend = document.getElementById("tazar-legend");
+    meta.statuses.forEach(function (name, i) {
+      if (!counts[i]) { return; }
+      var li = document.createElement("li");
+      li.className = "flex items-center gap-2";
+      var sw = document.createElement("span");
+      sw.style.cssText = "display:inline-block;width:12px;height:12px;border-radius:50%;background:" + color(i);
+      li.appendChild(sw);
+      li.appendChild(document.createTextNode(name + " (" + counts[i].toLocaleString("he-IL") + ")"));
+      legend.appendChild(li);
+    });
+    var out = document.getElementById("tazar-result");
+    var input = document.getElementById("tazar-q");
+    var ring = null;
+    function search() {
+      out.textContent = "";
+      var raw = input.value;  // "123/2020", "תצ\"ר 123/2020", "412" (a plan number or a block)
+      var hits;
+      var m = raw.match(/(\d+)\s*[\/\\-]\s*(\d{2,4})(?!\d)/);
+      if (m) {
+        var y = parseInt(m[2], 10);
+        if (y < 100) { y += 2000; }
+        hits = recs.filter(function (r) { return r.num === parseInt(m[1], 10) && r.year === y; });
+      } else {
+        var d0 = raw.match(/\d+/);
+        if (!d0) { return; }
+        var q = String(parseInt(d0[0], 10));
+        hits = recs.filter(function (r) { return String(r.num) === q || r.gush === q; });
+      }
+      if (!hits.length) {
+        out.textContent = "לא נמצא תצ״ר כזה בשנים שבמפה.";
+        return;
+      }
+      var list = document.createElement("ul");
+      list.className = "m-0 ps-5 list-disc";
+      hits.slice(0, 30).forEach(function (r) {
+        var li = document.createElement("li");
+        li.textContent = "תצ״ר " + r.name + ": " + meta.statuses[r.st] + (r.gush ? ", גוש " + r.gush : "");
+        list.appendChild(li);
+      });
+      out.appendChild(list);
+      if (hits.length > 30) {
+        var more = document.createElement("div");
+        more.className = "text-subtle";
+        more.textContent = "ועוד " + (hits.length - 30).toLocaleString("he-IL") + " תצ״רים במפה.";
+        out.appendChild(more);
+      }
+      if (ring) { map.removeLayer(ring); }
+      ring = L.layerGroup(hits.map(function (r) {
+        return L.circleMarker([r.lat, r.lng], { radius: 9, color: "#0b3668", weight: 3, fill: false });
+      })).addTo(map);
+      map.fitBounds(L.latLngBounds(hits.map(function (r) { return [r.lat, r.lng]; })).pad(0.5), { maxZoom: 15 });
+      hits[0].marker.openPopup();
+    }
+    document.getElementById("tazar-go").addEventListener("click", search);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); search(); } });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var pal = window.GOVIL_PALETTE;
+    function hbar(id, d, name) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: d.values.slice().reverse() }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-status", {{ model.charts.status | tojson }}, "תצ״רים");
+    hbar("chart-orderer", {{ model.charts.orderer | tojson }}, "תצ״רים");
+    hbar("chart-place", {{ model.charts.place | tojson }}, "תצ״רים");
+    hbar("chart-gush", {{ model.charts.gush | tojson }}, "תצ״רים");
+
+    function vbar(id, d, name, kind) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: pal,
+        tooltip: { trigger: "axis" },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: d.names },
+        yAxis: { type: "value" },
+        series: [{ type: kind || "bar", name: name, data: d.values, smooth: kind === "line" }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    vbar("chart-area", {{ model.charts.area | tojson }}, "תצ״רים");
+    vbar("chart-wait", {{ model.charts.wait | tojson }}, "חודשים (חציון)", "line");
+
+    var yr = {{ model.charts.year | tojson }};
+    var ye = document.getElementById("chart-year");
+    if (ye) {
+      var yc = echarts.init(ye);
+      yc.setOption(window.GovEcharts.option({
+        color: ["#0068f5", "#198754", "#ffc107", "#dc3545", "#0dcaf0", "#6c757d"],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0, type: "scroll" },
+        grid: { left: 8, right: 16, top: 16, bottom: 48, containLabel: true },
+        xAxis: { type: "category", data: yr.names },
+        yAxis: { type: "value" },
+        series: yr.statuses.map(function (s, i) {
+          return { type: "bar", stack: "s", name: s, data: yr.series[i] };
+        })
+      }));
+      window.addEventListener("resize", function () { yc.resize(); });
+    }
+  })();
+</script>

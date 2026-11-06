@@ -13,9 +13,9 @@ This repo is public: describe a security gap by what to change, never by how to 
   week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
   the CSVs turn out to be the same journal index, give 1ba21c94 a recipe that points readers to
   the other page, or add a successor entry once one of them is removed. (2026-11-06)
-- **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): 1d2d0ec1
-  (13 clicks, position 3.1), dff8a168 (13), 65dafbb0 (9), 51227f7b, 945b3682, 41c2db9f,
-  2987efb0, 3a4c012f, 8b3d9aa2. The selector never queues them while their data stays put.
+- **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): dff8a168
+  (13 clicks), 51227f7b, 945b3682, 41c2db9f, 2987efb0, 3a4c012f, 8b3d9aa2 (1d2d0ec1 and
+  65dafbb0 got recipes 2026-11-06: compare their CTR at the same check). The selector never queues them while their data stays put.
   A recipe is not sure to win more clicks for pages that already rank, so these wait for the
   batch 1-2 CTR check (~2026-12-02); then open `gsc_traffic` issues as for #338-#344.
   (2026-11-06)
@@ -63,10 +63,10 @@ This repo is public: describe a security gap by what to change, never by how to 
   every page with only log lines. Fix: raise `_SpawnFlake` as a `refresh.StrikeError`
   (`strike="sandbox_failed"`, an `escalate_to` reason added to `AUTHORING_REASONS` and
   `notify.REASON_TEXT`); the `transient_strikes` counter does the rest. (2026-10-31)
-- **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP),
-  גושים (1d2d0ec1, 65MB) and גבולות תצ"ר (65dafbb0, 84MB) are national layers far over a
-  committable snapshot; they'd need a pre-aggregation step (centroids or per-region dissolve).
-  הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
+- **Top-100 legacy map pages that the snapshot path can't serve.** חלקות (dff8a168, 667MB SHP)
+  is a national layer far over the 100MB download cap; it would need a pre-aggregation step
+  (the גושים/תצ"ר recipes reduce each polygon to a centroid in compute, but the file must still
+  download and convert). הגבולות המשטרתיים (d01a5ee3) and קדסטר במבנה חדש (bd74ce49) ship an Esri FileGDB, which
   `read_map_file` can't read and there is no GDAL locally. (2026-10-31)
 - **Removed registries still draw top-100 traffic.** 8152ebdf (קבלני כח אדם), bc0e0381 (קבלני
   שמירה וניקיון) and a698417e (לשכות תיווך) are `unavailable` upstream; the ministry merged them
@@ -141,10 +141,16 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   1d2d0ec1's 12 MB table, 384 MB for 65dafbb0's 37 MB). recipe.py is folded into every recipe's
   hash, so a comment-only edit would re-export every recipe once: fix it with the next real
   recipe.py change. (2026-11-06)
+- **65dafbb0's map input sits near the 50MB `map_max_kb` ceiling.** The תצ"ר layer converts to
+  49.2MB at tolerance 2e-5, and its floor is 37.6MB (at 2e-4; coarser steps grow again as small
+  rings fall back to full detail). About a third more plans and it fails `too_large`. Most of
+  the bytes it can't shed are properties the recipe never reads (TALAR_COMM, the ITM bounding
+  box, dates): let a `map` input take `columns` to drop properties before sizing (a recipe.py
+  change, so it folds into every recipe's hash; redeploy before a recipe uses it). (2026-11-06)
 
 - **More recipes carry their own map chunking or simplification.** 1745d2f8, 2a795952, 4eef54bc,
   5ecf0587, 12fb4671, 6910f861, 1de95a22, 3ce41381, 4acf8b98, 8f2becb2, a98fbabc, 0b3bd728,
-  3c6d4061, 6cd898c4, 7cac04c9, d9b1e04c and fc549bf6 define their own island chunking, DP or
+  3c6d4061, 6cd898c4, 7cac04c9, d9b1e04c, fc549bf6, 1d2d0ec1 and 65dafbb0 define their own island chunking, DP or
   coordinate encoding (grep `CHUNK|_dp\(|def _encode`), each sized its own way. Move them onto
   `govlib.geo` + `GovMap.islands` / `ring` / `popup` as they're next touched, the way the six in
   the map-govlib PR were: keep the non-geometry model byte-identical and bump `recipe_version`.
