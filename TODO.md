@@ -8,6 +8,17 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
+  (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
+  week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
+  the CSVs turn out to be the same journal index, give 1ba21c94 a recipe that points readers to
+  the other page, or add a successor entry once one of them is removed. (2026-11-06)
+- **Legacy pages with search traffic and no recipe** (GSC, 7 days to 2026-11-05): 1d2d0ec1
+  (13 clicks, position 3.1), dff8a168 (13), 65dafbb0 (9), 51227f7b, 945b3682, 41c2db9f,
+  2987efb0, 3a4c012f, 8b3d9aa2. The selector never queues them while their data stays put.
+  A recipe is not sure to win more clicks for pages that already rank, so these wait for the
+  batch 1-2 CTR check (~2026-12-02); then open `gsc_traffic` issues as for #338-#344.
+  (2026-11-06)
 - **Most recipes still don't set `agent_data.seo`.** Batches 1 and 2 (the 41 recipes with the
   most GSC clicks lost to low CTR, 90 days to 2026-11-03) have it; the other ~276 keep their CKAN
   titles (some over 60 chars, 45 summaries over 160) and a " · ministry" suffix. Fix: next
