@@ -24,10 +24,12 @@ This repo is public: describe a security gap by what to change, never by how to 
   titles (some over 60 chars, 45 summaries over 160) and a " · ministry" suffix. Fix: next
   batches in the same order (missed clicks = impressions × (expected CTR at position − actual
   CTR)). Batch 3 (21 recipes, 2026-11-06) took ranks 1-20 of the 90 days to 2026-11-05 plus
-  df60d73b; the next are 9f0ea3dc, aee606f8, 4dd3bb28, 8672f52a, 9b2ac550, 7a338622, 776ad523,
-  f312eda5, a52c0585, 6c44da0d; bump each `recipe_version`. Batch 3 pages each missed only
-  ~7-18 clicks per 90 days, so compare batches 1-3's CTR in GSC (~2026-12-02) before spending
-  on the long tail. (2026-11-05)
+  df60d73b. Batch 4 (11 recipes, 2026-11-06) took the 10 ids batch 3 named plus 246d949c
+  (רשם החברות). Re-ranked over the same 90 days with a page-level curve (expected CTR
+  28/15/11/8/6.5/5/4/3.2/2.7/2.4% at positions 1-10, interpolated), the next are b72acc9a,
+  0b160f8a, a63133ab, e3f2eab4, e9b65317, 27b4b40e, b87ef422, dcd96625, 6397d78e, 83372c35;
+  bump each `recipe_version`. Batch 4 pages each missed only ~4-7 clicks per 90 days, so
+  compare batches 1-4's CTR in GSC (~2026-12-02) before spending on the long tail. (2026-11-06)
 - **59d2e891 and df60d73b compete for "אזורי חיוג".** Batch 3 gave df60d73b (numbering plan,
   which has the geographic codes) a title for "אזורי חיוג בארץ" / "קידומת טלפון ישראל", but
   59d2e891 (service numbers, no geographic codes) still has "קידומות ואזורי חיוג" in its title

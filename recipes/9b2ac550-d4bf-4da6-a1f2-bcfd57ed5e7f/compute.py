@@ -132,7 +132,7 @@ def _fuel_cohorts(df):
         return None
     elec = ("היברידי", "חשמלי")
     return (recent["fuel"].isin(elec).mean(), prior["fuel"].isin(elec).mean(),
-            f"{last - COHORT + 1}–{last}", f"{last - 2 * COHORT + 1}–{last - COHORT}")
+            f"{last - COHORT + 1}-{last}", f"{last - 2 * COHORT + 1}-{last - COHORT}")
 
 
 def insight_fuel_shift(df):
@@ -202,7 +202,7 @@ def compute(frames):
     }
     decade = (years["year"] // 10 * 10).clip(lower=1950)
     dec = years.groupby(decade).agg(total=("used", "size"), used=("used", "sum")).sort_index()
-    t_decades = [{"name": ("לפני 1960" if d == 1950 else f"{d}–{d + 9}"),
+    t_decades = [{"name": ("לפני 1960" if d == 1950 else f"{d}-{d + 9}"),
                   "count": _int(r.total), "used": _int(r.used)} for d, r in dec.iterrows()]
 
     # Age buckets by import type.
@@ -293,10 +293,26 @@ def compute(frames):
     else:
         elec_tone = "ok" if cohorts[0] > cohorts[1] else "warn"
 
+    seo_desc = (f"בדיקת רכב ביבוא אישי לפי מספר רישוי או שלדה: תוצרת, דגם, שנת ייצור ויבוא חדש "
+                f"או משומש. {_int(n)} כלי רכב פעילים, {_pct(used_n / n)} מהם משומשים.")
+    if len(seo_desc) > 150:
+        seo_desc = (f"בדיקת רכב ביבוא אישי לפי מספר רישוי או שלדה: תוצרת, דגם, שנת ייצור ויבוא חדש "
+                    f"או משומש. {_int(n)} כלי רכב פעילים.")
+
     return {
         "agent_data": {
+            "seo": {
+                "title": "כלי רכב ביבוא אישי, משרד התחבורה: בדיקה לפי מספר רישוי",
+                "description": seo_desc,
+                "name": "כלי רכב ביבוא אישי",
+                "alternate_names": [
+                    "מאגר רכב ביבוא אישי משרד התחבורה",
+                    "רכב ביבוא אישי",
+                    "יבוא אישי של כלי רכב",
+                ],
+            },
             "summary_he": (f"{_int(n)} כלי רכב פעילים שיובאו ביבוא אישי, נכון ל-{_d_he(ref)}: "
-                           f"{_pct(used_n / n)} משומשים, שנות ייצור {y0}–{y1}, "
+                           f"{_pct(used_n / n)} משומשים, שנות ייצור {y0}-{y1}, "
                            f"מ-{df['country'].nunique()} ארצות ייצור."),
             "dataset_kind": "registry",
             "related_ids": [
@@ -344,7 +360,7 @@ def compute(frames):
             "used_kpi": f"יובאו כמשומשים ({_int(used_n)} כלי רכב)",
             "median_kpi": f"חציון שנת הייצור (גיל חציוני: {med_age} שנים)",
             "elec_kpi": f"חשמליים והיברידיים ({_pct(elec_n / n)} מהצי)",
-            "vintage_aria": f"תרשים עמודות: כלי רכב לפי שנת ייצור ({y0}–{y1}), משומש מול חדש.",
+            "vintage_aria": f"תרשים עמודות: כלי רכב לפי שנת ייצור ({y0}-{y1}), משומש מול חדש.",
             "vintage_note": ("שנת הייצור של כלי הרכב הפעילים. המאגר אינו כולל את מועד היבוא "
                              "לישראל, ולכן זו תמונת הצי הנוכחי, ולא קצב יבוא."),
             "decades_caption": "כלי רכב לפי עשור ייצור, סך הכול ומשומשים.",
