@@ -17,6 +17,12 @@ This repo is public: describe a security gap by what to change, never by how to 
   f312eda5, a52c0585, 6c44da0d; bump each `recipe_version`. Batch 3 pages each missed only
   ~7-18 clicks per 90 days, so compare batches 1-3's CTR in GSC (~2026-12-02) before spending
   on the long tail. (2026-11-05)
+- **59d2e891 and df60d73b compete for "אזורי חיוג".** Batch 3 gave df60d73b (numbering plan,
+  which has the geographic codes) a title for "אזורי חיוג בארץ" / "קידומת טלפון ישראל", but
+  59d2e891 (service numbers, no geographic codes) still has "קידומות ואזורי חיוג" in its title
+  and holds those queries at ~position 8.7. Fix: once GSC shows where df60d73b lands (~4 weeks
+  after #368), drop "אזורי חיוג" from 59d2e891's title if df60d73b ranks at least as well.
+  (2026-11-06)
 - **`author verify`'s dash lint misses dashes built in f-strings.** An en dash between two
   interpolated numbers (`f"{a}–{b}"`) in Hebrew text renders reversed in RTL, but the lint only
   sees literal text. Batch 2 found several by hand (7a6cbf55's bucket labels and periods). Fix:
