@@ -103,3 +103,101 @@ test("GovMap.popup injects the popup CSS once, for raw-Leaflet pages", () => {
   assert.equal(styles.length, 1);
   assert.match(styles[0].textContent, /\.gov-map-popup\{/);
 });
+
+// --- Ctrl/⌘ + wheel zoom gate ---
+
+function loadWithLeaflet() {
+  const hooks = [];
+  const listeners = [];
+  const L = { Map: { addInitHook: (fn) => hooks.push(fn) } };
+  const el = () => {
+    const e = {
+      children: [],
+      style: {},
+      className: "",
+      textContent: "",
+      attrs: {},
+    };
+    e.appendChild = (c) => {
+      e.children.push(c);
+      return c;
+    };
+    e.setAttribute = (k, v) => (e.attrs[k] = v);
+    e.removeAttribute = (k) => delete e.attrs[k];
+    return e;
+  };
+  const head = el();
+  const document = {
+    getElementById: (id) => head.children.find((c) => c.id === id) || null,
+    createElement: el,
+    head,
+  };
+  const window = {
+    L,
+    addEventListener: (type, fn, opts) => listeners.push({ type, fn, opts }),
+  };
+  vm.runInNewContext(
+    readFileSync(new URL("../scripts/gov-map.js", import.meta.url), "utf8"),
+    { window, document, L, setTimeout: () => 0, clearTimeout: () => {} }
+  );
+  // A map created with scrollWheelZoom: false, as recipe templates do.
+  const container = el();
+  const classes = new Set();
+  container.classList = { add: (c) => classes.add(c) };
+  container.querySelector = () =>
+    container.children.find((c) => c.className === "gov-wheel-hint") || null;
+  let enabled = false;
+  const map = {
+    getContainer: () => container,
+    scrollWheelZoom: { enable: () => (enabled = true) },
+  };
+  hooks.forEach((h) => h.call(map));
+  const target = {
+    closest: (sel) =>
+      sel === ".gov-wheel-gated" && classes.has("gov-wheel-gated")
+        ? container
+        : null,
+  };
+  return { hooks, listeners, container, enabled: () => enabled, target };
+}
+
+test("wheel gate: every Leaflet map gets wheel zoom, behind one capture listener", () => {
+  const { hooks, listeners, enabled } = loadWithLeaflet();
+  assert.equal(hooks.length, 1);
+  assert.ok(enabled(), "scrollWheelZoom re-enabled despite the page's false");
+  assert.equal(listeners.length, 1);
+  assert.equal(listeners[0].type, "wheel");
+  assert.equal(listeners[0].opts.capture, true);
+  assert.equal(listeners[0].opts.passive, true, "never blocks page scrolling");
+});
+
+test("wheel gate: a plain wheel over a map stops Leaflet and shows the hint; Ctrl/⌘ passes", () => {
+  const { listeners, container, target } = loadWithLeaflet();
+  const onWheel = listeners[0].fn;
+  const fire = (t, mods) => {
+    let stopped = false;
+    onWheel({
+      target: t,
+      ctrlKey: false,
+      metaKey: false,
+      ...mods,
+      stopPropagation: () => (stopped = true),
+    });
+    return stopped;
+  };
+  assert.equal(fire(target, {}), true, "plain wheel never reaches Leaflet");
+  const hint = container.children.find((c) => c.className === "gov-wheel-hint");
+  assert.ok(hint && "data-show" in hint.attrs);
+  assert.match(hint.textContent, /Ctrl|⌘/);
+  assert.equal(fire(target, { ctrlKey: true }), false);
+  assert.equal(fire(target, { metaKey: true }), false);
+  assert.equal(
+    fire({ closest: () => null }, {}),
+    false,
+    "off the map: untouched"
+  );
+});
+
+test("wheel gate: no Leaflet on the page → nothing installed, no throw", () => {
+  assert.ok(loadGovMap().ring);
+});
