@@ -223,7 +223,10 @@ class _Line:
         floats = all(type(v) is float for v in xs) and all(type(v) is float for v in ys)
         self.xs = array("d", xs) if floats else xs
         self.ys = array("d", ys) if floats else ys
-        self.lens = array("B", [len(repr(x)) + len(repr(y)) + 3 for x, y in zip(xs, ys)])
+        try:
+            self.lens = array("B", [len(repr(x)) + len(repr(y)) + 3 for x, y in zip(xs, ys)])
+        except OverflowError:  # over 255 chars: a huge integer, not a real position
+            raise SnapshotError(f"a position too long to be a coordinate ({str(xs[0])[:20]}…)") from None
         self.lvl: array | None = None
         self.ring = ring
         self.closed = xs[0] == xs[-1] and ys[0] == ys[-1]
@@ -233,8 +236,11 @@ class _Line:
         n, total = len(self.lens), sum(self.lens)
         k, size = n, total
         if step:
-            kept = [i for i, lv in enumerate(self.lvl) if lv >= step]
-            k, size = len(kept), sum(self.lens[i] for i in kept)
+            k = size = 0
+            for ln, lv in zip(self.lens, self.lvl):
+                if lv >= step:
+                    k += 1
+                    size += ln
         if self.ring:
             if not self.closed:
                 k, size = k + 1, size + self.lens[0]
@@ -245,13 +251,18 @@ class _Line:
 
     def points(self, step: int) -> list:
         """The line exactly as `_clean` returns it at `_TOLERANCES[step]`."""
-        full = [[x, y] for x, y in zip(self.xs, self.ys)]
-        out = [p for p, lv in zip(full, self.lvl) if lv >= step] if step else full
+        pts = zip(self.xs, self.ys)
+        if step:
+            out = [[x, y] for (x, y), lv in zip(pts, self.lvl) if lv >= step]
+        else:
+            out = [[x, y] for x, y in pts]
         if self.ring:
             if out[0] != out[-1]:
                 out.append(out[0])
-            if len(out) < 4:
-                out = full if full[0] == full[-1] else [*full, full[0]]
+            if len(out) < 4:  # simplified away: the ring's own shape, closed
+                out = [[x, y] for x, y in zip(self.xs, self.ys)]
+                if out[0] != out[-1]:
+                    out.append(out[0])
         return out
 
 
@@ -371,14 +382,15 @@ def simplify_features(features: Iterable[dict], *, crs: str,
     lines: list[_Line] = []
     size0 = len('{"features":[],"type":"FeatureCollection"}\n')
     for f in features:
-        props = json.loads(_dumps(f.get("properties") or {}))
+        pj = _dumps(f.get("properties") or {})
+        props = json.loads(pj)  # as a parse of the body gives them back; pj is their text
         geom = f.get("geometry")
         if geom:
             geom = _map_lines(geom, lambda pts, ring: _prepare_line(pts, ring, project))
         own = list(_lines(geom))
         lines += own
-        skeleton = {"type": "Feature", "properties": props, "geometry": _fill(geom, lambda _: [])}
-        size0 += len(_dumps(skeleton).encode("utf-8")) + sum(ln.nbytes(0) - 2 for ln in own)
+        skeleton = f'{{"geometry":{_dumps(_fill(geom, lambda _: []))},"properties":{pj},"type":"Feature"}}'
+        size0 += len(skeleton.encode("utf-8")) + sum(ln.nbytes(0) - 2 for ln in own)
         recs.append((props, geom))
     size0 += max(len(recs) - 1, 0)  # the commas between features
     step, size = 0, size0
@@ -395,7 +407,6 @@ def simplify_features(features: Iterable[dict], *, crs: str,
                 f"{size:,} bytes even at tolerance {_TOLERANCES[-1]}° (> {max_bytes:,}); "
                 "raise --max-kb or aggregate the features"
             )
-    del lines
     out = []
     for i, (props, geom) in enumerate(recs):
         recs[i] = None  # free each feature's arrays once it is written

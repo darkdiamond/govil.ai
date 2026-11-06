@@ -991,24 +991,24 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
         raise RecipeError(f"{what}: earlier inputs used the whole REFRESH_TOTAL_BYTES budget",
                           reason="too_large")
     try:
-        got = fetch_file_fn(res.get("url") or "", raw, max_bytes=max_bytes,
-                            timeout_s=_PAGE_TIMEOUT_S, deadline=deadline)
-    except FetchLimitExceeded as e:
-        raise _limit_error(e, f"{what}: download") from None
-    except DownloadBlocked as e:
-        raise StrikeError(f"{what}: download blocked ({e})", reason="fetch_failed",
-                          strike="download_blocked", escalate_to="download_blocked") from None
-    except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
-        raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
-    except urllib_error.HTTPError as e:
-        if e.code in (404, 410):
-            raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason="fetch_failed",
-                              strike="download_missing", escalate_to="schema_changed") from None
-        raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
-    except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
-        raw.unlink(missing_ok=True)
-        raise RecipeError(f"{what}: download failed ({e!r})", reason="fetch_failed") from None
-    except BaseException:
+        try:
+            got = fetch_file_fn(res.get("url") or "", raw, max_bytes=max_bytes,
+                                timeout_s=_PAGE_TIMEOUT_S, deadline=deadline)
+        except FetchLimitExceeded as e:
+            raise _limit_error(e, f"{what}: download") from None
+        except DownloadBlocked as e:
+            raise StrikeError(f"{what}: download blocked ({e})", reason="fetch_failed",
+                              strike="download_blocked", escalate_to="download_blocked") from None
+        except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
+            raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
+        except urllib_error.HTTPError as e:
+            if e.code in (404, 410):
+                raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason="fetch_failed",
+                                  strike="download_missing", escalate_to="schema_changed") from None
+            raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
+        except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
+            raise RecipeError(f"{what}: download failed ({e!r})", reason="fetch_failed") from None
+    except BaseException:  # any failed download: no partial file left behind
         raw.unlink(missing_ok=True)
         raise
     # Converted as it streams off the file (see `geo_snapshot.iter_map`): the

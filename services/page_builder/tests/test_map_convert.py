@@ -250,3 +250,30 @@ def test_fetch_map_converts_from_the_file_and_removes_it(tmp_path):
         rf._fetch_map(inp, res, tmp_path, bad_files, max_bytes=10**8, deadline=10**12,
                       transform=lambda r: r)
     assert e.value.reason == "schema_changed" and not seen[-1].exists()
+
+
+@pytest.mark.parametrize("exc", [
+    rf.FetchLimitExceeded("bytes", "over the cap"),
+    ValueError("not a data.gov.il URL"),
+])
+def test_fetch_map_removes_a_partial_download_whatever_failed(tmp_path, exc):
+    seen = []
+
+    def files(url, dest, **kw):
+        dest.write_bytes(b"PK partial")
+        seen.append(dest)
+        raise exc
+
+    inp = RecipeInput(name="geo", by_id="r" * 36, map=True)
+    res = {"id": inp.by_id, "url": "https://data.gov.il/x/l.zip"}
+    with pytest.raises(RecipeError):
+        rf._fetch_map(inp, res, tmp_path, files, max_bytes=10**8, deadline=10**12,
+                      transform=lambda r: r)
+    assert not seen[0].exists()
+
+
+def test_a_huge_integer_position_is_the_datas_error_not_a_crash():
+    feats = [{"type": "Feature", "properties": {},
+              "geometry": {"type": "LineString", "coordinates": [[35, 31], [10**300, 31], [35.1, 31]]}}]
+    with pytest.raises(gs.SnapshotError, match="too long"):
+        gs.simplify_features(feats, crs="wgs84")
