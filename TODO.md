@@ -150,7 +150,7 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 - **More recipes carry their own map chunking or simplification.** 1745d2f8, 2a795952, 4eef54bc,
   5ecf0587, 12fb4671, 6910f861, 1de95a22, 3ce41381, 4acf8b98, 8f2becb2, a98fbabc, 0b3bd728,
-  3c6d4061, 6cd898c4, 7cac04c9, d9b1e04c and fc549bf6 define their own island chunking, DP or
+  3c6d4061, 6cd898c4, 7cac04c9, d9b1e04c, fc549bf6, 1d2d0ec1 and 65dafbb0 define their own island chunking, DP or
   coordinate encoding (grep `CHUNK|_dp\(|def _encode`), each sized its own way. Move them onto
   `govlib.geo` + `GovMap.islands` / `ring` / `popup` as they're next touched, the way the six in
   the map-govlib PR were: keep the non-geometry model byte-identical and bump `recipe_version`.
