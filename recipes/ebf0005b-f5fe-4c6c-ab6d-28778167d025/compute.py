@@ -291,7 +291,7 @@ def compute(frames):
 
     seo_desc = (f"מה גובה ים המלח? במדידה האחרונה ({d_he(last['d'])}) עמד מפלס ים המלח על "
                 f"{abs(last['lvl']):.2f} מטר מתחת לפני הים")
-    if change12 is not None:
+    if change12 is not None and cm(change12) != "0":
         seo_desc += f", {'ירידה' if change12 < 0 else 'עלייה'} של {cm(change12)} ס״מ בשנה"
     seo_desc += f". מדידות חודשיות מאז {y0}."
     if len(seo_desc) > 150:

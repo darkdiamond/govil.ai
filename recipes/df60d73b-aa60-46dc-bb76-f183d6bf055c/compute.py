@@ -631,7 +631,7 @@ def compute(frames):
     geo_codes = [p["label"] for p in pref if p["cat"] == "geo"]
     seo_desc = (f"אזורי חיוג וקידומות טלפון בישראל ({', '.join(geo_codes)} ונייד): לאיזו חברה הוקצה כל מספר. "
                 f"{n_blocks:,} טווחים של {n_ops:,} מפעילים.")
-    if len(seo_desc) > 150:
+    if not geo_codes or len(seo_desc) > 150:
         seo_desc = "אזורי חיוג וקידומות טלפון בישראל: איתור החברה שאליה הוקצה מספר לפי קידומת, נייד או נייח."
     summary = (
         f"של איזו חברה קידומת או מספר טלפון? איתור המפעיל לפי מספר או קידומת בתוכנית המספור: "

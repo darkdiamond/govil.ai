@@ -476,7 +476,8 @@ def compute(frames):
 
     dog_n = int((df["group"] == G_DOG).sum())
     seo_desc = (f"מקרי כלבת בישראל לפי נתוני משרד החקלאות: מפה, יישוב ובעל חיים. "
-                f"{n(last_v)} אירועים ב-{ref_year}, {n(total)} מאז {first_year}.")
+                f"{'אירוע אחד' if last_v == 1 else n(last_v) + ' אירועים'} ב-{ref_year}, "
+                f"{n(total)} מאז {first_year}.")
     if len(seo_desc) > 150:
         seo_desc = "מקרי כלבת בישראל לפי נתוני משרד החקלאות: מפת המקרים לפי שנה, יישוב ומין בעל החיים."
     return {
