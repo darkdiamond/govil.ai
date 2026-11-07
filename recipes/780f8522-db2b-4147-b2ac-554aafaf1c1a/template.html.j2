@@ -1,0 +1,130 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תחנת ניטור לפי שם או מספר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: מספר התחנה, שם התחנה והקישור לקובץ הנתונים השנתיים שלה.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.stations, model.labels.stations_kpi) }}
+  {{ gov.kpi(model.kpis.fixed, model.labels.fixed_kpi) }}
+  {{ gov.kpi(model.kpis.mobile, model.labels.mobile_kpi) }}
+  {{ gov.kpi(model.kpis.tests, model.labels.tests_kpi) }}
+  {{ gov.kpi(model.kpis.span, model.labels.span_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "סוגי התחנות ברשימה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.kinds_note }}</p>
+  {{ gov.chart("chart-kinds", model.labels.kinds_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.kinds_aria, ["סוג", "רשומות"], model.tables.kinds, ltr=(1,)) }}
+</section>
+
+{% if model.flags.places %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "ריכוזי תחנות לפי מקום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.places_note }}</p>
+  {{ gov.chart("chart-places", model.labels.places_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.places_aria, ["מקום", "תחנות קבועות"], model.tables.places, ltr=(1,)) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מספור התחנות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.blocks_note }}</p>
+  {{ gov.chart("chart-blocks", model.labels.blocks_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.blocks_aria, ["טווח מספרים", "תחנות קבועות", "יחידות ניידות", "רשומות בדיקה"], model.tables.blocks, ltr=(0, 1, 2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "רשימת תחנות הניטור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+  <div class="overflow-x-auto max-h-[480px] overflow-y-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.dir_cap }}</caption>
+    <thead><tr><th scope="col">מספר</th><th scope="col">שם התחנה</th><th scope="col">סוג</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.directory %}
+      <tr><th scope="row" dir="ltr">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+
+{% if model.flags.places %}
+<script>
+  (function () {
+    var d = {{ model.charts.places | tojson }};
+    var el = document.getElementById("chart-places");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names.slice().reverse(), axisLabel: { interval: 0 } },
+      series: [{
+        type: "bar", name: "תחנות קבועות", barMaxWidth: 28,
+        label: { show: true, position: "right" },
+        data: d.values.slice().reverse()
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    // One colour per kind (fixed, mobile, test), shared by both charts.
+    var colors = [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[3], "#9a6700"];
+    (function () {
+      var d = {{ model.charts.kinds | tojson }};
+      var el = document.getElementById("chart-kinds");
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: [{
+          type: "bar", name: "רשומות", barMaxWidth: 64,
+          label: { show: true, position: "top" },
+          data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: colors[i % colors.length] } }; })
+        }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+    (function () {
+      var d = {{ model.charts.blocks | tojson }};
+      var el = document.getElementById("chart-blocks");
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0 },
+        grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: d.series.map(function (s, i) {
+          return { type: "bar", stack: "all", name: d.names[i], data: s, barMaxWidth: 56 };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+  })();
+</script>
