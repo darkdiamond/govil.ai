@@ -1,13 +1,11 @@
 {
   "contract_version": 1,
   "dataset_id": "b2370286-54f0-492d-a238-1bbdae997cb5",
-  "recipe_version": 4,
-  "authored_at": "2026-11-05T16:00:00Z",
+  "recipe_version": 3,
+  "authored_at": "2026-10-24T18:30:00Z",
   "authored_against": {
-    "metadata_modified": "2026-11-05T10:54:05.277227+00:00",
-    "rows": {
-      "sites": 811
-    }
+    "metadata_modified": "2026-10-22T19:01:08.453033+00:00",
+    "rows": { "sites": 3807 }
   },
   "inputs": [
     {
@@ -18,6 +16,7 @@
         "X",
         "Y",
         "legend",
+        "matzav",
         "peeilut",
         "date",
         "sug",

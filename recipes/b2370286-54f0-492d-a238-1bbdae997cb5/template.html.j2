@@ -18,20 +18,12 @@
     </table>
   </details>
 {%- endmacro -%}
-<h1>{{ model.agent_data.seo.name }}</h1>
+<h1>קרקעות מזוהמות</h1>
 
 <section class="card p-5 mb-6">
   {{ head("תקציר", "info") }}
   <p class="m-0 text-subtle leading-relaxed">{{ model.labels.lede }}</p>
 </section>
-
-<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
-  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
-  <span>
-    <span class="block font-semibold text-ink-deep">איתור אתר קרקע מזוהמת לפי שם, כתובת או גוש ←</span>
-    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
-  </span>
-</a>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
   <div class="card p-4 text-center">
@@ -43,8 +35,8 @@
     <div class="text-sm text-subtle">{{ model.labels.inv_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
-    <div class="text-3xl font-bold text-{{ model.kpis.water.tone }} mb-1" dir="ltr">{{ model.kpis.water.display }}</div>
-    <div class="text-sm text-subtle">{{ model.labels.water_kpi }}</div>
+    <div class="text-3xl font-bold text-{{ model.kpis.remediating.tone }} mb-1" dir="ltr">{{ model.kpis.remediating.display }}</div>
+    <div class="text-sm text-subtle">{{ model.labels.rem_kpi }}</div>
   </div>
   <div class="card p-4 text-center">
     <div class="text-3xl font-bold text-{{ model.kpis.recent.tone }} mb-1" dir="ltr">{{ model.kpis.recent.display }}</div>
@@ -70,7 +62,7 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
   <section class="card p-5">
     {{ head("מצב הקרקע") }}
-    <p class="m-0 text-sm text-subtle mb-3">סיווג כל אתר לפי מצב הקרקע בו.</p>
+    <p class="m-0 text-sm text-subtle mb-3">סיווג כל אתר לפי מצב הקרקע בו (שדה נפרד מהשלב המנהלי שמוצג בהמשך).</p>
     <div id="chart-status" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.status_aria }}"></div>
     {{ table(model.labels.status_aria, "סיווג", "אתרים", model.charts.status) }}
   </section>
@@ -83,8 +75,15 @@
 </div>
 
 <section class="card p-5 mb-6">
+  {{ head("השלב המנהלי בחקירה ובשיקום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stage_note }}</p>
+  <div id="chart-stage" class="h-80 md:h-[420px]" role="img" aria-label="{{ model.labels.stage_aria }}"></div>
+  {{ table(model.labels.stage_aria, "שלב", "אתרים", model.charts.stage) }}
+</section>
+
+<section class="card p-5 mb-6">
   {{ head("גזי קרקע ומי תהום") }}
-  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.env_note }}</p>
+  <p class="m-0 text-sm text-subtle mb-3">מצב הזיהום בגזי הקרקע ובמי התהום, באתרים שבהם הוא מתועד.</p>
   <div id="chart-env" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.env_aria }}"></div>
   <details class="mt-3">
     <summary class="text-sm text-subtle">הצג כטבלה</summary>
@@ -109,7 +108,7 @@
   </section>
   <section class="card p-5">
     {{ head("דרישה לפי המאגר") }}
-    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.drisha_note }}</p>
+    <p class="m-0 text-sm text-subtle mb-3">ערכי שדה הדרישה כפי שהם מופיעים במאגר.</p>
     <div id="chart-drisha" class="h-64 md:h-80" role="img" aria-label="{{ model.labels.drisha_aria }}"></div>
     {{ table(model.labels.drisha_aria, "דרישה", "אתרים", model.charts.drisha) }}
   </section>
@@ -123,24 +122,9 @@
 </section>
 
 <section class="card p-5 mb-6">
-  {{ head("מצב הקרקע לפי סוג פעילות") }}
-  <p class="m-0 text-sm text-subtle mb-3">אחוז האתרים בכל סיווג של מצב הקרקע, מתוך כל האתרים מאותו סוג פעילות.</p>
-  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" aria-label="{{ model.labels.heat_aria }}"></div>
-  <details class="mt-3">
-    <summary class="text-sm text-subtle">הצג כטבלה</summary>
-    <div class="overflow-x-auto">
-    <table class="mt-2 w-full text-sm">
-      <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
-      <thead><tr><th scope="col">סוג פעילות</th><th scope="col">אתרים</th>
-{%- for s in model.charts.heat.x %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
-      <tbody>
-{%- for r in model.tables.heat %}
-        <tr><th scope="row">{{ r.name }}</th><td>{{ r.total | fmt_int }}</td>{% for c in r.cells %}<td dir="ltr">{{ c }}</td>{% endfor %}</tr>
-{%- endfor %}
-      </tbody>
-    </table>
-    </div>
-  </details>
+  {{ head("שלב מנהלי לפי סוג פעילות") }}
+  <p class="m-0 text-sm text-subtle mb-3">אחוז האתרים בכל שלב, מתוך האתרים מכל סוג פעילות שיש להם שלב מתועד.</p>
+  <div id="chart-heat" class="h-80 md:h-[460px]" role="img" data-fallback="explorer" aria-label="{{ model.labels.heat_aria }}"></div>
 </section>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
@@ -174,6 +158,7 @@
     }
     bars("chart-status", {{ model.charts.status | tojson }}, true);
     bars("chart-activity", {{ model.charts.activity | tojson }}, true);
+    bars("chart-stage", {{ model.charts.stage | tojson }}, true);
     bars("chart-treat", {{ model.charts.treat | tojson }}, true);
     bars("chart-drisha", {{ model.charts.drisha | tojson }}, false);
     bars("chart-towns", {{ model.charts.towns | tojson }}, true);
@@ -231,11 +216,10 @@
     var ch = echarts.init(document.getElementById("chart-heat"));
     ch.setOption(window.GovEcharts.option({
       tooltip: { position: "top", formatter: function (p) {
-        var esc = echarts.format.encodeHTML;
-        return esc(h.y[p.value[1]]) + " · " + esc(h.x[p.value[0]]) + ": " + p.value[2] + "% (" + p.value[3] + ")";
+        return h.y[p.value[1]] + " · " + h.x[p.value[0]] + ": " + p.value[2] + "% (" + p.value[3] + ")";
       } },
       grid: { left: 16, right: 16, top: 16, bottom: 120, containLabel: true },
-      xAxis: { type: "category", data: h.x, axisLabel: { interval: 0, rotate: 30, width: 110, overflow: "truncate" } },
+      xAxis: { type: "category", data: h.x, axisLabel: { interval: 0, rotate: 40, width: 110, overflow: "truncate" } },
       yAxis: { type: "category", data: h.y },
       visualMap: {
         min: 0, max: h.max, dimension: 2, calculable: true,
@@ -257,6 +241,7 @@
       popupFields: [
         { field: "peeilut", label: "סוג פעילות" },
         { field: "legend", label: "מצב הקרקע" },
+        { field: "matzav", label: "שלב מנהלי" },
         { field: "stat_zih", label: "מי תהום" }
       ]
     });
