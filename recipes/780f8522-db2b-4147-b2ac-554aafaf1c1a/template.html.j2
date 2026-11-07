@@ -60,28 +60,6 @@
   </div>
 </section>
 
-<script>
-  (function () {
-    var d = {{ model.charts.kinds | tojson }};
-    var el = document.getElementById("chart-kinds");
-    if (!el) { return; }
-    var c = echarts.init(el);
-    var colors = [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[3], "#9a6700"];
-    c.setOption(window.GovEcharts.option({
-      color: window.GOVIL_PALETTE,
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-      grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
-      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
-      yAxis: { type: "value", minInterval: 1 },
-      series: [{
-        type: "bar", name: "רשומות", barMaxWidth: 64,
-        label: { show: true, position: "top" },
-        data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: colors[i % colors.length] } }; })
-      }]
-    }));
-    window.addEventListener("resize", function () { c.resize(); });
-  })();
-</script>
 
 {% if model.flags.places %}
 <script>
@@ -109,22 +87,44 @@
 
 <script>
   (function () {
-    var d = {{ model.charts.blocks | tojson }};
-    var el = document.getElementById("chart-blocks");
-    if (!el) { return; }
-    var c = echarts.init(el);
+    // One colour per kind (fixed, mobile, test), shared by both charts.
     var colors = [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[3], "#9a6700"];
-    c.setOption(window.GovEcharts.option({
-      color: colors,
-      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
-      legend: { top: 0 },
-      grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
-      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0 } },
-      yAxis: { type: "value", minInterval: 1 },
-      series: d.series.map(function (s, i) {
-        return { type: "bar", stack: "all", name: d.names[i], data: s, barMaxWidth: 56 };
-      })
-    }));
-    window.addEventListener("resize", function () { c.resize(); });
+    (function () {
+      var d = {{ model.charts.kinds | tojson }};
+      var el = document.getElementById("chart-kinds");
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 16, top: 24, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: [{
+          type: "bar", name: "רשומות", barMaxWidth: 64,
+          label: { show: true, position: "top" },
+          data: d.values.map(function (v, i) { return { value: v, itemStyle: { color: colors[i % colors.length] } }; })
+        }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
+    (function () {
+      var d = {{ model.charts.blocks | tojson }};
+      var el = document.getElementById("chart-blocks");
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: colors,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { top: 0 },
+        grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", minInterval: 1 },
+        series: d.series.map(function (s, i) {
+          return { type: "bar", stack: "all", name: d.names[i], data: s, barMaxWidth: 56 };
+        })
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    })();
   })();
 </script>

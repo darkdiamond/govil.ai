@@ -16,9 +16,12 @@ NUM, NAME, LINK = "מספר תחנת ניטור", "שם תחנת ניטור", "�
 
 # Test records the ministry left in the list ("בדיקה", "תחנה חדשה", a bare
 # "תחנה 1", and a few named after the person who keyed them).
-TEST_RE = re.compile(r"בדיק|פרידי(?!\S)|^תחנה\s+\d+$|^תחנה\s.*חדשה")
+# Hebrew-letter boundaries: punctuation and digits end a word, letters don't.
+HEB = "\u05d0-\u05ea"
+TEST_RE = re.compile(rf"בדיק|פרידי(?![{HEB}])|^תחנה\s+\d+$|^תחנה\s.*חדשה")
 # Mobile units: vans ("ניידת") and trailers ("קרון").
-MOBILE_RE = re.compile(r"(?<!\S)(?:ניידת|קרון)(?!\S)")
+# A one-letter prefix (ה/ב/ו/ל) is allowed: "הניידת", "בקרון".
+MOBILE_RE = re.compile(rf"(?<![{HEB}])[הבול]?(?:ניידת|קרון)(?![{HEB}])")
 KIND_ORDER = ["fixed", "mobile", "test"]
 KIND_HE = {"fixed": "תחנה קבועה", "mobile": "יחידה ניידת", "test": "רשומת בדיקה"}
 
@@ -32,6 +35,7 @@ PREFIX_WORDS = {
 }
 # Words that name the operator, not the place.
 OPERATOR_WORDS = {"איגוד", "ערים"}
+OPERATOR_RE = re.compile(r"-?\b(?:" + "|".join(sorted(OPERATOR_WORDS)) + r")\b-?")
 HOST_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*://([^/:?#@]+)")
 ZIP_RE = re.compile(r"/([^/?#]+)\.zip$", re.IGNORECASE)
 
@@ -49,7 +53,7 @@ def place_of(name):
     'נאות חובב צפונית(תחנה 2)' → 'נאות חובב', 'אשדוד-איגוד' → 'אשדוד'."""
     s = re.sub(r"\(.*?\)|\(.*$", " ", name)
     s = re.sub(r"\d+", " ", s)
-    s = re.sub(r"-?\b(?:" + "|".join(sorted(OPERATOR_WORDS)) + r")\b-?", " ", s)
+    s = OPERATOR_RE.sub(" ", s)
     s = " ".join(w for w in s.split() if w).strip(" -\u2013")
     # A spaced dash or an en dash separates place from sub-site; a bare
     # hyphen joins a name ('אום אל-פאחם').
@@ -243,11 +247,13 @@ def compute(frames):
     top_place = str(places.index[0]) if len(places) else ""
     summary = (f"רשימת {fmt.int_he(n_live)} תחנות הניטור של המשרד להגנת הסביבה "
                f"({fmt.int_he(n_fixed)} קבועות ו-{fmt.int_he(n_mobile)} ניידות), "
-               "ולכל תחנה קישור לקובץ ZIP עם הנתונים השנתיים שלה.")
+               + ("ולכל תחנה קישור לקובץ ZIP עם הנתונים השנתיים שלה."
+                  if ls["n_missing"] == 0 and ls["n_zip"] == ls["n_links"] > 0
+                  else "וקישורים לקובצי הנתונים השנתיים של התחנות."))
     if n_test:
         summary += f" הרשימה כוללת גם {fmt.int_he(n_test)} רשומות בדיקה."
     desc = (f"איתור תחנת ניטור איכות אוויר לפי שם או מספר והורדת הנתונים השנתיים שלה: "
-            f"{fmt.int_he(n_live)} תחנות, מהן {fmt.int_he(n_mobile)} ניידות.")
+            f"{fmt.int_he(n_live)} תחנות" + (f", מהן {fmt.int_he(n_mobile)} ניידות." if n_mobile else "."))
 
     directory = [[r["num_s"] or "–", r["name"] or "–", KIND_HE[r["kind"]]]
                  for r in live[["num_s", "name", "kind"]].to_dict("records")]
