@@ -1,3 +1,3 @@
 # Developer / CI tooling, not shipped in any image.
 # Keep the ruff pin in step with `required-version` in ruff.toml.
-ruff==0.17.2
+ruff==0.17.3
