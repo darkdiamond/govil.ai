@@ -848,11 +848,13 @@ def _ruff_findings(recipe: Recipe) -> list[str]:
 
 # The character itself, or an HTML entity that renders as one.
 _EM_DASH_RE = re.compile(r"\u2014|&mdash;|&#0*8212;|&#[xX]0*2014;")
-_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--.*?-->", re.DOTALL)
+# HTML comments end where the tokenizer ends them (`-->`, `--!>`, or `<!-->` / `<!--->`).
+_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--(?:-?>|.*?--!?>)", re.DOTALL)
 # A JS string literal (kept, so "a // b" or "https://…" stays checked) or a comment (blanked).
 _JS_STRING_OR_COMMENT_RE = re.compile(
     r"""("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|/\*.*?\*/|//[^\n]*""", re.DOTALL)
-_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(</script>)", re.DOTALL | re.IGNORECASE)
+# Any end-tag spelling the tokenizer accepts: `</script>`, `</script >`, `</script foo>`.
+_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(</script(?:[\t\n\f\r /][^>]*)?>)", re.DOTALL | re.IGNORECASE)
 
 
 def _keep_newlines(m: re.Match) -> str:

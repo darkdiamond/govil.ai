@@ -189,8 +189,13 @@ GERESH_RE = re.compile(r"[א-ת]''")
 # no GovExplorer calls, no id="explorer…" elements.
 EXPLORER_RE = re.compile(r'\bGovExplorer\b|\bid="explorer')
 
+# An end tag closes the raw-text state the way the HTML tokenizer does:
+# `</script` then whitespace, `/` or `>`, then anything up to `>` — so
+# `</script >`, `</script foo>` and `</SCRIPT>` all end the block.
+SCRIPT_END = r"</script(?:[\t\n\f\r /][^>]*)?>"
+
 SCRIPT_BLOCK_RE = re.compile(
-    r"<script\b[^>]*>(.*?)</script\s*>", re.DOTALL | re.IGNORECASE
+    r"<script\b[^>]*>(.*?)" + SCRIPT_END, re.DOTALL | re.IGNORECASE
 )
 
 # Same blocks, but keeping the attributes so the parse gate can tell a
@@ -198,7 +203,7 @@ SCRIPT_BLOCK_RE = re.compile(
 # JSON is not a valid JS *statement* — parsing one as script would
 # reject a body that is perfectly fine).
 SCRIPT_TAG_RE = re.compile(
-    r"<script\b([^>]*)>(.*?)</script\s*>", re.DOTALL | re.IGNORECASE
+    r"<script\b([^>]*)>(.*?)" + SCRIPT_END, re.DOTALL | re.IGNORECASE
 )
 SCRIPT_TYPE_RE = re.compile(r"""type\s*=\s*["']?([^"'\s>]+)""", re.IGNORECASE)
 

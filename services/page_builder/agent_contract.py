@@ -1094,13 +1094,20 @@ def _deobfuscate_cf_email(match: re.Match) -> str:
     return inner or ""
 
 
-_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+# Comments and raw-text end tags are matched the way the HTML tokenizer
+# ends them, not just in their canonical spelling: a comment also closes at
+# `--!>` (and `<!-->` / `<!--->` are empty comments), and an end tag is
+# `</script` + whitespace, `/` or `>`, then anything up to `>`
+# (`</script >`, `</script foo>`, `</SCRIPT>`).
+_HTML_COMMENT = re.compile(r"<!--(?:-?>|.*?--!?>)", re.DOTALL)
+_SCRIPT_END = r"</script(?:[\t\n\f\r /][^>]*)?>"
+_STYLE_END = r"</style(?:[\t\n\f\r /][^>]*)?>"
 _OPEN_SCRIPT = re.compile(r"<script\b[^>]*>", re.IGNORECASE)
-_CLOSE_SCRIPT = re.compile(r"</script\s*>", re.IGNORECASE)
+_CLOSE_SCRIPT = re.compile(_SCRIPT_END, re.IGNORECASE)
 _OPEN_STYLE = re.compile(r"<style\b[^>]*>", re.IGNORECASE)
-_CLOSE_STYLE = re.compile(r"</style\s*>", re.IGNORECASE)
+_CLOSE_STYLE = re.compile(_STYLE_END, re.IGNORECASE)
 _SCRIPT_BLOCK = re.compile(
-    r"(<script\b[^>]*>)(.*?)(</script\s*>)", re.IGNORECASE | re.DOTALL
+    r"(<script\b[^>]*>)(.*?)(" + _SCRIPT_END + ")", re.IGNORECASE | re.DOTALL
 )
 _SCRIPT_DATA_TYPE = re.compile(
     r'\btype\s*=\s*"(?:application/(?:[a-z0-9-]+\+)?json|text/[a-z0-9-]+)"',

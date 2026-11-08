@@ -289,10 +289,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   only, not in the GitHub alerts); only a 2.x major fixes it, and overriding across that major
   under pubsub's 1.x pins is unsafe. Fix: take the upstream bumps when nitropack / firebase-tools
   ship them, then drop the matching entry here. (2026-11-08)
-- **Code scanning and secret scanning are off.** GitHub has no code-scanning analysis for the
-  repo and secret scanning is disabled, so only Dependabot reports anything. Fix: turn on
-  secret scanning + push protection and CodeQL default setup (python, javascript-typescript,
-  actions) in the repo's security settings, then triage the first results. (2026-11-08)
 
 ## Validation speed
 

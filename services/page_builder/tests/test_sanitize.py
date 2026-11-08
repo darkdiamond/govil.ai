@@ -319,7 +319,7 @@ def test_real_world_b2370286_pattern() -> None:
     # "…"/'…' string literal. (Outside strings, the agent's existing
     # newlines between statements must remain.)
     import re as _re
-    inner = _re.search(r"<script>(.*)</script>", out, _re.DOTALL).group(1)
+    inner = _re.search(r"<script>(.*)</script>", out, _re.DOTALL | _re.IGNORECASE).group(1)
     in_str = None
     escape = False
     for ch in inner:
@@ -381,3 +381,26 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+def test_end_tag_spellings_the_parser_accepts_count_as_closers() -> None:
+    """`</script >`, `</SCRIPT foo>` and `</style/>` end the raw-text block in
+    a browser, so they must close it here too: no spurious closer appended,
+    no stray-closer warning."""
+    for src in (
+        "<script>x</script >",
+        "<script>x</SCRIPT foo>",
+        "<script>x</script\t\n bar>",
+        "<style>.a{}</style/>",
+    ):
+        out, recs = _logs(None, body=src)
+        assert out == src, src
+        assert not [r for r in recs if "appended" in r.getMessage() or "stray" in r.getMessage()], src
+
+
+def test_comment_closed_by_bang_does_not_count() -> None:
+    """A comment also ends at `--!>`; a <script> inside it is not an opener."""
+    src = "<!-- <script>old --!>\n<script>x</script>"
+    out, recs = _logs(None, body=src)
+    assert out == src
+    assert not [r for r in recs if "appended" in r.getMessage()]

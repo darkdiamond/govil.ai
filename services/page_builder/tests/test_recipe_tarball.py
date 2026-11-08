@@ -8,6 +8,7 @@ import io
 import tarfile
 from contextlib import contextmanager
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import httpx
 import pytest
@@ -17,6 +18,10 @@ from services.page_builder.recipe import RecipeError
 from services.page_builder.tests.test_map_snapshots import DS, _with_snapshot
 
 TOP = "o-r-abc123"
+
+
+def _host(url: str) -> str | None:
+    return urlsplit(str(url)).hostname
 
 
 def _tarball(recipes: Path, extra: list[tarfile.TarInfo | tuple[str, bytes]] = ()) -> bytes:
@@ -103,11 +108,14 @@ def test_tarball_loads_byte_identical_recipes_with_one_download(github, tmp_path
     tar_repo.load(DS, tmp_path / "a2")  # a second load downloads nothing
     tar_calls = list(github["calls"])
     assert sum("/tarball/" in c for c in tar_calls) == 1
-    assert not any("raw.githubusercontent.com" in c for c in tar_calls)
+    assert not any(_host(c) == "raw.githubusercontent.com" for c in tar_calls)
     assert not any("/git/trees/" in c for c in tar_calls)  # the archive lists recipes
 
     files_repo = rf.GithubRecipeRepo("o/r", "main", fetch="files")
     b = files_repo.load(DS, tmp_path / "b")
+    # The file-by-file mode does hit raw.githubusercontent.com, so the
+    # host check above can tell the two modes apart.
+    assert any(_host(c) == "raw.githubusercontent.com" for c in github["calls"])
 
     # Same files on disk, same bytes, same identity → no precheck invalidation
     # when prod switches modes.
@@ -127,7 +135,7 @@ def test_tarball_source_config_reads_the_archive(github, tmp_path):
     repo = rf.GithubRecipeRepo("o/r", "main", fetch="tarball")
     assert repo.provider_source_ids() == [DS]
     assert repo.source_config(DS).provider == "boi_sdmx"
-    assert not any("raw.githubusercontent.com" in c for c in github["calls"])
+    assert not any(_host(c) == "raw.githubusercontent.com" for c in github["calls"])
 
 
 def test_tarball_extracts_only_plain_recipe_files(github):
