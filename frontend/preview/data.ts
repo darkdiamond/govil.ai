@@ -6,7 +6,7 @@ import { join, normalize } from "node:path";
 // search index list pages fetch client-side) ahead of public/, which a
 // worktree doesn't even have.
 export default defineEventHandler(async (event) => {
-  const path = event.path.split("?")[0];
+  const path = event.path.split("?")[0] ?? "";
   if (!path.startsWith("/data/") || !path.endsWith(".json")) return;
   const rel = normalize(decodeURIComponent(path)).replace(/^\/+/, "");
   if (!rel.startsWith("data/")) return;

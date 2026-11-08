@@ -261,7 +261,7 @@ export default defineNuxtConfig({
     },
   },
 
-  // Hebrew tag routes (e.g. /tags/אבטחה/) trigger a Nuxt 3.21 bug where
+  // Hebrew tag routes (e.g. /tags/אבטחה/) triggered a Nuxt 3.21 bug where
   // the prerender renderer puts the raw decoded URL into an
   // `x-nitro-prerender` HTTP header to hint Nitro to also prerender
   // /<route>/_payload.json — but HTTP header values must be Latin-1, so
@@ -270,9 +270,18 @@ export default defineNuxtConfig({
   // extraction skips that header entirely. Trade-off: client-side
   // navigation between prerendered pages refetches the HTML instead of
   // just a JSON payload, which is fine for this site (no SPA flow that
-  // benefits from _payload.json).
+  // benefits from _payload.json). Not re-tested on Nuxt 4: check a Hebrew
+  // tag route prerenders before turning extraction back on.
   experimental: {
     payloadExtraction: false,
+  },
+
+  // Nuxt 3 inlined the global stylesheet (Tailwind, ~35kB) into every
+  // prerendered page; Nuxt 4 only inlines Vue component styles by default
+  // and links entry.css, a render-blocking request on first paint. Keep the
+  // Nuxt 3 behaviour.
+  features: {
+    inlineStyles: true,
   },
 
   nitro: {
@@ -344,7 +353,7 @@ export default defineNuxtConfig({
       watch: { ...pollOpts, ignored: [DIST_RE] },
     },
     // Vite's default 500kB threshold is below the natural size of a
-    // Nuxt 3.21 + Vue + Tailwind + components bundle for this app.
+    // Nuxt 4 + Vue + Tailwind + components bundle for this app.
     // Echarts/Leaflet are NOT in this bundle (they load via useHead
     // from /lib/), so further code-splitting wouldn't move the needle.
     build: {

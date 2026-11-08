@@ -8,6 +8,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **The sanitizer's tag balancer strips comments inside script text.** `_balance_raw_text_tag`
+  (`services/page_builder/agent_contract.py`) removes `<!--…-->` across the whole body before
+  counting `<script>`/`<style>` openers and closers, but inside a script `<!--` is plain text. A
+  JS string holding `"<!--"` with a later `-->` hides every opener/closer in between, so the
+  count is wrong and a closer can be appended or missed. Fix: skip comment stripping inside
+  raw-text blocks (scan tags in order, as the tokenizer does) instead of one global sub.
+  (2026-11-08)
+
 - **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
   (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
   week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
@@ -283,6 +291,12 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
+- **Dependabot alerts with no fix to take.** deepmerge (GHSA-gcqx-w48m-w2h4, low, pulled in by
+  nitropack's `@rollup/plugin-node-resolve`) has no patched release at all. `npm audit` also
+  flags `@opentelemetry/core` <2.8.0 under firebase-tools' `@google-cloud/pubsub` (emulator
+  only, not in the GitHub alerts); only a 2.x major fixes it, and overriding across that major
+  under pubsub's 1.x pins is unsafe. Fix: take the upstream bumps when nitropack / firebase-tools
+  ship them, then drop the matching entry here. (2026-11-08)
 
 ## Validation speed
 

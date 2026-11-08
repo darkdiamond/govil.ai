@@ -595,7 +595,7 @@ are still read by the authoring selector.
   tags); the publisher's `tag_slugs` map normalizes whitespace +
   URL-reserved chars to `-` and keeps the Hebrew letters. The
   `payloadExtraction: false` flag in `frontend/nuxt.config.ts` is
-  load-bearing: with it on, Nuxt 3.21's renderer puts the raw decoded
+  load-bearing: with it on, Nuxt 3.21's renderer (not re-tested on Nuxt 4) puts the raw decoded
   URL into an `x-nitro-prerender` HTTP header to hint payload
   prerender, and HTTP header values are Latin-1 only — any Hebrew
   character throws `Cannot convert argument to a ByteString` and the

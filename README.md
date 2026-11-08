@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
-[![Nuxt 3](https://img.shields.io/badge/Nuxt-3-00DC82.svg)](https://nuxt.com/)
+[![Nuxt 4](https://img.shields.io/badge/Nuxt-4-00DC82.svg)](https://nuxt.com/)
 
 Each week the Israeli government publishes new datasets on
 [data.gov.il](https://data.gov.il). This repo turns each dataset into a
@@ -86,7 +86,7 @@ infra/
   scheduler.setup.sh           Cloud Scheduler (0 6,14 * * *, Asia/Jerusalem)
   publish-local.sh             manual publish path (same steps as CI)
   DEPLOY.md                    full runbook
-frontend/                      Nuxt 3 (shell + home + category pages)
+frontend/                      Nuxt 4 (shell + home + category pages)
 ```
 
 ## Quick start

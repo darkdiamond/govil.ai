@@ -2,7 +2,7 @@
   "name": "govdata-frontend",
   "version": "0.1.0",
   "private": true,
-  "description": "Nuxt 3 frontend for govil.ai — Hebrew-RTL landing pages for Israeli open data",
+  "description": "Nuxt 4 frontend for govil.ai — Hebrew-RTL landing pages for Israeli open data",
   "license": "MIT",
   "homepage": "https://govil.ai",
   "repository": {
@@ -29,10 +29,10 @@
     "leaflet": "1.9.4",
     "leaflet.markercluster": "1.5.3",
     "lucide-vue-next": "^1.0.0",
-    "nuxt": "^3.21.10",
+    "nuxt": "^4.6.4",
     "nuxt-gtag": "^4.1.0",
     "vue": "^3.5.0",
-    "vue-router": "^4.5.0"
+    "vue-router": "^5.4.0"
   },
   "devDependencies": {
     "@nuxtjs/tailwindcss": "^6.12.2",
@@ -44,5 +44,16 @@
     "tailwindcss": "^3.4.15",
     "typescript": "^5.7.2",
     "vue-tsc": "^3.3.14"
+  },
+  "overrides": {
+    "glob@>=9 <14.0.2": "^14.0.4",
+    "minimatch@>=7 <11.0.1": "^11.0.5",
+    "uuid@<11.1.1": "^11.1.1",
+    "rimraf": {
+      "glob": "^14.0.4"
+    },
+    "nitropack": {
+      "minimatch": "^11.0.5"
+    }
   }
 }

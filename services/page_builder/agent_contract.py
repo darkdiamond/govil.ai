@@ -1039,12 +1039,22 @@ def fetch_resource_export(
 # silently breaking all viz). These regexes catch the same classes of bug
 # at the staging boundary so a regression on the prompt side never reaches
 # production. Each rule logs a WARNING when it fires.
+#
+# Comments and raw-text end tags are matched the way the HTML tokenizer
+# ends them, not just in their canonical spelling: a comment also closes at
+# `--!>` (and `<!-->` / `<!--->` are empty comments), and an end tag is
+# `</script` + whitespace, `/` or `>`, then anything up to `>`
+# (`</script >`, `</script foo>`, `</SCRIPT>`).
+HTML_COMMENT_RE = r"<!--(?:-?>|.*?--!?>)"
+SCRIPT_END_RE = r"</script(?:[\t\n\f\r /][^>]*)?>"
+_STYLE_END = r"</style(?:[\t\n\f\r /][^>]*)?>"
+_HTML_COMMENT = re.compile(HTML_COMMENT_RE, re.DOTALL)
 _SCRIPT_END_ESCAPED = re.compile(r"<\\/script(\s*)>", re.IGNORECASE)
 _INTEGRITY_ATTR = re.compile(r'\s+integrity\s*=\s*"[^"]*"', re.IGNORECASE)
 _CROSSORIGIN_ATTR = re.compile(r'\s+crossorigin(?:\s*=\s*"[^"]*")?', re.IGNORECASE)
 _CDN_HOSTS = r"(?:[\w-]+\.)*(?:unpkg\.com|cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com)"
 _SCRIPT_CDN_TAG = re.compile(
-    rf'<script\b[^>]*\bsrc\s*=\s*"https?://{_CDN_HOSTS}[^"]*"[^>]*>\s*(?:</script>)?',
+    rf'<script\b[^>]*\bsrc\s*=\s*"https?://{_CDN_HOSTS}[^"]*"[^>]*>\s*(?:{SCRIPT_END_RE})?',
     re.IGNORECASE,
 )
 _LINK_CDN_TAG = re.compile(
@@ -1064,7 +1074,7 @@ _CF_EMAIL_ANCHOR = re.compile(
 )
 _CF_EMAIL_HEX = re.compile(r'data-cfemail="([0-9a-fA-F]{4,})"', re.IGNORECASE)
 _CF_SCRIPT_TAG = re.compile(
-    r'<script\b[^>]*\bsrc\s*=\s*"[^"]*cdn-cgi[^"]*"[^>]*>\s*(?:</script>)?',
+    r'<script\b[^>]*\bsrc\s*=\s*"[^"]*cdn-cgi[^"]*"[^>]*>\s*(?:' + SCRIPT_END_RE + ")?",
     re.IGNORECASE,
 )
 
@@ -1094,13 +1104,12 @@ def _deobfuscate_cf_email(match: re.Match) -> str:
     return inner or ""
 
 
-_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 _OPEN_SCRIPT = re.compile(r"<script\b[^>]*>", re.IGNORECASE)
-_CLOSE_SCRIPT = re.compile(r"</script\s*>", re.IGNORECASE)
+_CLOSE_SCRIPT = re.compile(SCRIPT_END_RE, re.IGNORECASE)
 _OPEN_STYLE = re.compile(r"<style\b[^>]*>", re.IGNORECASE)
-_CLOSE_STYLE = re.compile(r"</style\s*>", re.IGNORECASE)
+_CLOSE_STYLE = re.compile(_STYLE_END, re.IGNORECASE)
 _SCRIPT_BLOCK = re.compile(
-    r"(<script\b[^>]*>)(.*?)(</script\s*>)", re.IGNORECASE | re.DOTALL
+    r"(<script\b[^>]*>)(.*?)(" + SCRIPT_END_RE + ")", re.IGNORECASE | re.DOTALL
 )
 _SCRIPT_DATA_TYPE = re.compile(
     r'\btype\s*=\s*"(?:application/(?:[a-z0-9-]+\+)?json|text/[a-z0-9-]+)"',

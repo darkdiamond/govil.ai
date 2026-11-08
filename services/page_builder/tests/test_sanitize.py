@@ -319,7 +319,7 @@ def test_real_world_b2370286_pattern() -> None:
     # "…"/'…' string literal. (Outside strings, the agent's existing
     # newlines between statements must remain.)
     import re as _re
-    inner = _re.search(r"<script>(.*)</script>", out, _re.DOTALL).group(1)
+    inner = _re.search(r"<script>(.*)</script>", out, _re.DOTALL | _re.IGNORECASE).group(1)
     in_str = None
     escape = False
     for ch in inner:
@@ -343,6 +343,40 @@ def test_real_world_b2370286_pattern() -> None:
     assert '"מלון התעשייה\\n"' in inner
     msgs = " ".join(r.getMessage() for r in recs)
     assert "escaped 2 raw control char" in msgs
+
+
+def test_end_tag_spellings_the_parser_accepts_count_as_closers() -> None:
+    """`</script >`, `</SCRIPT foo>` and `</style/>` end the raw-text block in
+    a browser, so they must close it here too: no spurious closer appended,
+    no stray-closer warning."""
+    for src in (
+        "<script>x</script >",
+        "<script>x</SCRIPT foo>",
+        "<script>x</script\t\n bar>",
+        "<style>.a{}</style/>",
+    ):
+        out, recs = _logs(None, body=src)
+        assert out == src, src
+        assert not [r for r in recs if "appended" in r.getMessage() or "stray" in r.getMessage()], src
+
+
+def test_comment_closed_by_bang_does_not_count() -> None:
+    """A comment also ends at `--!>`; a <script> inside it is not an opener."""
+    src = "<!-- <script>old --!>\n<script>x</script>"
+    out, recs = _logs(None, body=src)
+    assert out == src
+    assert not [r for r in recs if "appended" in r.getMessage()]
+
+
+
+def test_drops_cdn_script_with_any_end_tag_spelling() -> None:
+    """The CDN drop takes the end tag with the opener, whatever its spelling,
+    so no stray </script > is left behind."""
+    for end in ("</script>", "</script >", "</SCRIPT foo>"):
+        src = f'<script src="https://unpkg.com/leaflet.js">{end}<p>x</p>'
+        out, recs = _logs(None, body=src)
+        assert out == "<p>x</p>", (end, out)
+        assert not [r for r in recs if "stray" in r.getMessage()], end
 
 
 def main() -> None:
@@ -372,6 +406,9 @@ def main() -> None:
         test_decodes_cloudflare_email_span_form,
         test_decodes_cloudflare_email_anchor_form,
         test_drops_cloudflare_email_decode_script,
+        test_end_tag_spellings_the_parser_accepts_count_as_closers,
+        test_comment_closed_by_bang_does_not_count,
+        test_drops_cdn_script_with_any_end_tag_spelling,
     ]
     for t in tests:
         t()

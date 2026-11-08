@@ -79,8 +79,9 @@ function go(entry: SlimEntry) {
 
 function submit() {
   const q = query.value.trim();
-  if (highlight.value >= 0 && results.value[highlight.value]) {
-    go(results.value[highlight.value]);
+  const hit = highlight.value >= 0 ? results.value[highlight.value] : undefined;
+  if (hit) {
+    go(hit);
     return;
   }
   if (q) {

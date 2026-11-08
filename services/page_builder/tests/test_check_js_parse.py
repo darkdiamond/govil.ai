@@ -249,3 +249,12 @@ def test_hint_points_at_control_char():
 def test_hint_falls_back_to_delimiter_advice():
     m = _msg("chart.setOption({ series: [] };")
     assert "delimiter" in m
+
+
+@pytest.mark.parametrize("end", ["</script >", "</SCRIPT>", "</script\t\n bar>", "</script/>"])
+def test_block_closed_by_any_end_tag_spelling_is_parsed(end):
+    """The gate must see every block a browser runs, whatever spelling of
+    the end tag closes it — otherwise a broken script slips past unparsed."""
+    with pytest.raises(SystemExit):
+        check.check_js_parses(f"<section><script>var a = ;{end}</section>")
+    check.check_js_parses(f"<section><script>var a = 1;{end}</section>")
