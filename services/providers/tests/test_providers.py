@@ -339,6 +339,9 @@ class FakeStore:
         self.docs[dataset_id] = doc
         return changed
 
+    def get_provider_sync_state(self, dataset_id):
+        return dict(self.docs.get(dataset_id) or {})
+
 
 def _repo(tmp_path, sources: dict[str, dict]):
     for i, s in sources.items():
@@ -369,6 +372,8 @@ def test_sync_creates_then_only_bumps_on_new_content(boi, tmp_path):
     store.clock = datetime(2026, 10, 30, tzinfo=UTC)
     s = sync_provider_sources(store, repo, providers={"boi_sdmx": boi})
     assert s["changed"] == [] and store.docs["boi-interest-rate"]["metadata_modified"] == first
+    # No listing key: BoI downloads on every sync.
+    assert store.docs["boi-interest-rate"]["provider_listing_key"] is None
 
     boi.clear_cache()
     boi.answers["/BR/1.0/"] = FakeResp(200, (BR_CSV + "MNT_SHIR_D,D,RIB_SHIR,PT,2026-10-29,3.25,YP\n").encode())

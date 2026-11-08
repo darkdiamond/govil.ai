@@ -22,6 +22,8 @@ from google.cloud.firestore_v1.base_query import FieldFilter
 
 SOURCES_COLL = "sources"
 SCAN_RUNS_COLL = "scan_runs"
+# Small per-job markers, one doc each (`job_state/reconcile`: last sweep date).
+JOB_STATE_COLL = "job_state"
 # Recipe-refresh preview lane (REFRESH_TARGET=preview): per-dataset refresh
 # state + agent_data, kept OUT of `sources/*` so a demo run never touches
 # what the live site publishes. Read by `refresh overlay` in publish.yml.
@@ -271,6 +273,13 @@ class FirestoreStateStore:
 
         ref.set(payload, merge=True)
 
+    def get_provider_sync_state(self, dataset_id: str) -> dict:
+        """The fields the provider sync's listing-key skip reads (empty when
+        the doc doesn't exist)."""
+        snap = self.client.collection(SOURCES_COLL).document(dataset_id).get(
+            field_paths=["provider_listing_key", "provider_verified_at", "resources"])
+        return (snap.to_dict() or {}) if snap.exists else {}
+
     def save_provider_source(self, dataset_id: str, payload: dict) -> bool:
         """Upsert a provider dataset's `sources/{id}` doc (services/providers/
         sync.py) — the counterpart of `save_dataset` for non-CKAN sources.
@@ -313,6 +322,16 @@ class FirestoreStateStore:
         return changed
 
     # ---- scan_runs -------------------------------------------------------
+
+    # ---- job_state -------------------------------------------------------
+
+    def get_job_marker(self, name: str) -> dict:
+        snap = self.client.collection(JOB_STATE_COLL).document(name).get()
+        return (snap.to_dict() or {}) if snap.exists else {}
+
+    def set_job_marker(self, name: str, fields: dict) -> None:
+        self.client.collection(JOB_STATE_COLL).document(name).set(
+            {**fields, "updated_at": datetime.now(UTC)}, merge=True)
 
     def start_scan(self, mode: str = "scheduled") -> str:
         now = datetime.now(UTC)

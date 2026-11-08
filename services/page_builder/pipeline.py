@@ -36,10 +36,23 @@ log = logging.getLogger("page_builder.pipeline")
 FAILED_RUN_STATUSES = ("refresh_unavailable", "refresh_failed", "authoring_failed")
 
 
-def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
+def _reconcile_due(now: datetime, *, enabled: bool, weekday: int,
+                   last_date: str | None = None) -> bool:
     """Weekly reconcile runs only when enabled AND today matches the
-    configured weekday (Python Monday=0 .. Sunday=6)."""
-    return enabled and now.weekday() == weekday
+    configured weekday (Python Monday=0 .. Sunday=6) AND no sweep finished
+    yet today (`last_date`, the IL date of the last one): the job runs
+    twice a day, and one sweep a week is enough."""
+    return enabled and now.weekday() == weekday and last_date != now.date().isoformat()
+
+
+def _last_reconcile_date(store) -> str | None:
+    """The IL date of the last finished sweep; None when unknown, so a
+    marker read failure runs the sweep rather than skipping it."""
+    try:
+        return store.get_job_marker("reconcile").get("last_date")
+    except Exception:
+        log.warning("reconcile: couldn't read the last-sweep marker", exc_info=True)
+        return None
 
 
 async def _trigger_publish_github(
@@ -225,8 +238,10 @@ async def run_pipeline(
         il_now = datetime.now(ZoneInfo("Asia/Jerusalem"))
     except Exception:  # noqa: BLE001
         il_now = datetime.now(UTC)
-    if not dry_run and not override_id and _reconcile_due(
-        il_now, enabled=reconcile_enabled, weekday=reconcile_weekday
+    # The marker is read only on the weekday itself (`and` short-circuits).
+    if not dry_run and not override_id and il_now.weekday() == reconcile_weekday and _reconcile_due(
+        il_now, enabled=reconcile_enabled, weekday=reconcile_weekday,
+        last_date=_last_reconcile_date(store),
     ):
         from services.scanner.client import CKANClient
 
@@ -236,6 +251,11 @@ async def run_pipeline(
             async with CKANClient(config=config) as _ckan:
                 reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
             log.info("reconcile: %s", reconcile_summary)
+            try:
+                store.set_job_marker("reconcile", {"last_date": il_now.date().isoformat()})
+            except Exception:
+                log.warning("reconcile: couldn't record the sweep; the next run today repeats it",
+                            exc_info=True)
         except Exception:
             log.exception("reconcile sweep failed — continuing with scan/refresh")
 

@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import csv
 import datetime as dt
+import hashlib
 import html
 import io
 import json
@@ -72,6 +73,23 @@ _ROW_WIDTH = 5  # ROW "00042": string order == row order
 _TABLE_EXTS = (".xlsx", ".xls")  # preference order
 _BRIEF_ROWS = 60
 _BRIEF_CELL = 60
+
+
+def _code_hash() -> str:
+    """This module, base.py and the workbook reader's version: a parser
+    change must not hide behind an unchanged `listing_key`."""
+    try:
+        from importlib.metadata import version
+        calamine = version("python-calamine")
+    except Exception:  # noqa: BLE001
+        calamine = "?"
+    h = hashlib.sha256(calamine.encode())
+    for f in (Path(__file__), Path(__file__).with_name("base.py")):
+        h.update(f.read_bytes())
+    return h.hexdigest()
+
+
+_CODE_HASH = _code_hash()
 
 
 # ── config ───────────────────────────────────────────────────────────────
@@ -373,13 +391,8 @@ class CbsReleasesProvider(SourceProvider):
         """The newest `n` releases of the report, newest first. Raises when
         none match: the sync then leaves the page last-good."""
         report = report if isinstance(report, CbsReport) else CbsReport.model_validate(report)
-        rx = re.compile(report.title_regex)
         out = []
-        for rel in self.releases():
-            if not rx.search(rel.title):
-                continue
-            if report.interval and report.interval not in rel.interval:
-                continue
+        for rel in self.candidates(report):
             if report.chapter and not any(
                 f["Name"].startswith(f"{report.chapter}_") for f in self.folder_files(rel)
             ):
@@ -392,6 +405,32 @@ class CbsReleasesProvider(SourceProvider):
                 f"no CBS release in the newest {LIST_WINDOW} matches {report.model_dump()}"
             )
         return out
+
+    def candidates(self, report: CbsReport | dict) -> list[Release]:
+        """Every release in the list window that `matching` could pick, before
+        its chapter filter (which needs a folder listing per release)."""
+        report = report if isinstance(report, CbsReport) else CbsReport.model_validate(report)
+        rx = re.compile(report.title_regex)
+        return [rel for rel in self.releases() if rx.search(rel.title)
+                and (not report.interval or report.interval in rel.interval)]
+
+    def listing_key(self, dataset_id: str, source: SourceConfig, cfg: CbsDatasetConfig) -> str:
+        """The report's candidate releases, from the one list query that serves
+        every CBS page, plus this parser's code.
+
+        Each page is built only from those releases' folders and files, so an
+        unchanged key means unchanged facts and CSVs, provided CBS doesn't
+        edit a published release's files in place (the periodic full check
+        catches that). A new edition, a withdrawn one, an edited title or
+        headline, or an old edition sliding out of the list window all
+        change the key and force a full sync. Unchanged reports cost no
+        requests beyond the list query."""
+        h = hashlib.sha256(_CODE_HASH.encode())
+        for rel in self.candidates(cfg.report):
+            h.update(json.dumps([rel.pub_no, rel.year, rel.number, rel.published.isoformat(),
+                                 rel.title, rel.headline, list(rel.interval), rel.file_ref],
+                                ensure_ascii=False).encode())
+        return h.hexdigest()
 
     def table_file(self, rel: Release, stem: str) -> dict:
         """The release's `<…><stem>.xlsx`, else `.xls`."""

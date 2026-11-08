@@ -66,7 +66,8 @@ landing pages. Five layers:
    slow run overlaps the next execution. **No LLM runs in prod** — every
    page is a recipe render.
    `pipeline.run_pipeline` drives:
-   reconcile sweep (weekly, `RECONCILE_*`) → scan → reap legacy
+   reconcile sweep (weekly, `RECONCILE_*`; once per IL day via the
+   `job_state/reconcile` marker, so only the first Sunday run sweeps) → scan → reap legacy
    `pending` markers (`PENDING_REAP_MINUTES`; nothing writes `pending`
    any more, this only drains the set the retired agent builder left) →
    **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
@@ -294,7 +295,12 @@ SHEET, ROW, C01..`) that compute.py reads by label.
    `providers.sync.sync_provider_sources` after loading the recipe list.
    It writes `sources/<id>` (`provider`, `presentation`, `page_slug_suffix`,
    resources stored `datastore_active: false`) and moves `metadata_modified`
-   only when a resource's content hash changed. From there the normal
+   only when a resource's content hash changed. A provider with a cheap
+   `listing_key()` (CBS: the report's candidate releases from the one list
+   query + parser code) skips facts and downloads while the key matches the
+   last full sync's and that sync is younger than
+   `PROVIDER_<KEY>_LISTING_RECHECK_DAYS` (7; 0 = always download), which
+   catches in-place edits. From there the normal
    refresh renders it through the provider's fetchers (never CKAN), and the
    publisher copies `source` into data.json. The frontend then hides the
    CKAN explorer and credits the source. A provider outage only leaves
