@@ -8,6 +8,14 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **The sanitizer's tag balancer strips comments inside script text.** `_balance_raw_text_tag`
+  (`services/page_builder/agent_contract.py`) removes `<!--…-->` across the whole body before
+  counting `<script>`/`<style>` openers and closers, but inside a script `<!--` is plain text. A
+  JS string holding `"<!--"` with a later `-->` hides every opener/closer in between, so the
+  count is wrong and a closer can be appended or missed. Fix: skip comment stripping inside
+  raw-text blocks (scan tags in order, as the tokenizer does) instead of one global sub.
+  (2026-11-08)
+
 - **Two live pages for the "חברה ורווחה" journal.** 1ba21c94 (legacy agent page) and e4c3e3d0
   (recipe) are both active on data.gov.il and split the "חברה ורווחה" impressions (56 vs 14 a
   week, both at position 7.3). Neither can 301 to the other while both exist upstream. Fix: if
