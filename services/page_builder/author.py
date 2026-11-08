@@ -45,7 +45,12 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from .agent_contract import FetchLimitExceeded, FetchOutcome
+from .agent_contract import (
+    HTML_COMMENT_RE,
+    SCRIPT_END_RE,
+    FetchLimitExceeded,
+    FetchOutcome,
+)
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
@@ -848,13 +853,11 @@ def _ruff_findings(recipe: Recipe) -> list[str]:
 
 # The character itself, or an HTML entity that renders as one.
 _EM_DASH_RE = re.compile(r"\u2014|&mdash;|&#0*8212;|&#[xX]0*2014;")
-# HTML comments end where the tokenizer ends them (`-->`, `--!>`, or `<!-->` / `<!--->`).
-_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|<!--(?:-?>|.*?--!?>)", re.DOTALL)
+_TPL_COMMENT_RE = re.compile(r"\{#.*?#\}|" + HTML_COMMENT_RE, re.DOTALL)
 # A JS string literal (kept, so "a // b" or "https://…" stays checked) or a comment (blanked).
 _JS_STRING_OR_COMMENT_RE = re.compile(
     r"""("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`)|/\*.*?\*/|//[^\n]*""", re.DOTALL)
-# Any end-tag spelling the tokenizer accepts: `</script>`, `</script >`, `</script foo>`.
-_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(</script(?:[\t\n\f\r /][^>]*)?>)", re.DOTALL | re.IGNORECASE)
+_SCRIPT_RE = re.compile(r"(<script\b[^>]*>)(.*?)(" + SCRIPT_END_RE + ")", re.DOTALL | re.IGNORECASE)
 
 
 def _keep_newlines(m: re.Match) -> str:
