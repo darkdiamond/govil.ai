@@ -191,7 +191,7 @@ others qualify, and ties break on id.
 | ----------------------------- | ----------------------------------------------------------------- |
 | Scanner / builder / publisher | Python 3.12, google-cloud-firestore, pandas, Jinja2               |
 | Authoring                     | Claude Code (local only), `.claude/skills/`                       |
-| Frontend                      | Nuxt 3 (SSG), Vue 3, TypeScript, Tailwind, ECharts, Leaflet       |
+| Frontend                      | Nuxt 4 (SSG), Vue 3, TypeScript, Tailwind, ECharts, Leaflet       |
 | State                         | Firestore (`sources/{id}`, `scan_runs/{run_id}`)                  |
 | Hosting                       | Firebase Hosting (GCS is internal staging only)                   |
 | Compute                       | Cloud Run job (builder), GitHub Actions / Cloud Build (publisher) |

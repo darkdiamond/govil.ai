@@ -283,6 +283,16 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
   the runtime every page body uses. No published page uses the affected series type, so this is a
   planned migration, not an urgent fix: do it with a corpus-wide visual check. (2026-10-30)
+- **Dependabot alerts with no fix to take.** deepmerge (GHSA-gcqx-w48m-w2h4, low, pulled in by
+  nitropack's `@rollup/plugin-node-resolve`) has no patched release at all. `npm audit` also
+  flags `@opentelemetry/core` <2.8.0 under firebase-tools' `@google-cloud/pubsub` (emulator
+  only, not in the GitHub alerts); only a 2.x major fixes it, and overriding across that major
+  under pubsub's 1.x pins is unsafe. Fix: take the upstream bumps when nitropack / firebase-tools
+  ship them, then drop the matching entry here. (2026-11-08)
+- **Code scanning and secret scanning are off.** GitHub has no code-scanning analysis for the
+  repo and secret scanning is disabled, so only Dependabot reports anything. Fix: turn on
+  secret scanning + push protection and CodeQL default setup (python, javascript-typescript,
+  actions) in the repo's security settings, then triage the first results. (2026-11-08)
 
 ## Validation speed
 

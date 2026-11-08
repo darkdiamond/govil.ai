@@ -6,9 +6,9 @@
 // dataset page loads.
 
 export interface DatasetLibNeeds {
-  charts: boolean
-  map: boolean
-  explorer: boolean
+  charts: boolean;
+  map: boolean;
+  explorer: boolean;
 }
 
 // Detection runs server-side at prerender on the RAW body (pre-
@@ -28,20 +28,20 @@ export function detectDatasetLibs(rawBody: string): DatasetLibNeeds {
     charts: /echarts|GovEcharts|GOVIL_PALETTE|id="chart/i.test(rawBody),
     map: /\bGovMap\b|\bL\.[a-zA-Z]+\(|leaflet|id="map/i.test(rawBody),
     explorer: /\bGovExplorer\b/.test(rawBody),
-  }
+  };
 }
 
 export function buildDatasetLibTags(needs: DatasetLibNeeds): {
-  link: { rel: string; href: string }[]
-  script: { src: string }[]
+  link: { rel: "stylesheet"; href: string }[];
+  script: { src: string }[];
 } {
   const link = needs.map
     ? [
-        { rel: 'stylesheet', href: '/lib/leaflet.css' },
-        { rel: 'stylesheet', href: '/lib/MarkerCluster.css' },
-        { rel: 'stylesheet', href: '/lib/MarkerCluster.Default.css' },
+        { rel: "stylesheet" as const, href: "/lib/leaflet.css" },
+        { rel: "stylesheet" as const, href: "/lib/MarkerCluster.css" },
+        { rel: "stylesheet" as const, href: "/lib/MarkerCluster.Default.css" },
       ]
-    : []
+    : [];
   // Order matters: Leaflet -> MarkerCluster (mutates L) -> ECharts.
   // Plain <script> tags (no defer/async): head-blocking so window.L /
   // window.echarts / window.GovExplorer exist before the body's inline
@@ -55,10 +55,14 @@ export function buildDatasetLibTags(needs: DatasetLibNeeds): {
   //   gov-explorer.js  → window.GovExplorer.create (legacy bodies only)
   //   gov-map.js       → window.GovMap.create
   const script = [
-    ...(needs.map ? [{ src: '/lib/leaflet.js' }, { src: '/lib/leaflet.markercluster.js' }] : []),
-    ...(needs.charts ? [{ src: '/lib/echarts.min.js' }, { src: '/lib/gov-echarts.js' }] : []),
-    ...(needs.explorer ? [{ src: '/lib/gov-explorer.js' }] : []),
-    ...(needs.map ? [{ src: '/lib/gov-map.js' }] : []),
-  ]
-  return { link, script }
+    ...(needs.map
+      ? [{ src: "/lib/leaflet.js" }, { src: "/lib/leaflet.markercluster.js" }]
+      : []),
+    ...(needs.charts
+      ? [{ src: "/lib/echarts.min.js" }, { src: "/lib/gov-echarts.js" }]
+      : []),
+    ...(needs.explorer ? [{ src: "/lib/gov-explorer.js" }] : []),
+    ...(needs.map ? [{ src: "/lib/gov-map.js" }] : []),
+  ];
+  return { link, script };
 }
