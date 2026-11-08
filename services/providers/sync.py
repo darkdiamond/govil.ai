@@ -7,13 +7,20 @@ source doc. `metadata_modified` moves only when a resource's content hash
 changed — that is the version the refresh's `needs_refresh` compares, the
 same field the CKAN scanner writes.
 
+A provider with a cheap `listing_key()` (CBS) skips all of that while the key
+matches the one its last full sync stored and that sync is younger than
+`listing_recheck_days`: the doc is left as it is, with no download.
+
 Never raises for one dataset: a bad config or a failed download leaves that
 doc untouched (its last-good page stays live) and is reported in the summary.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 
 from services.shared.slug import slugify
 
@@ -55,6 +62,12 @@ def sync_provider_sources(
             continue
         try:
             cfg = p.parse_config(dataset_id, source)
+            key = _listing_key(p, dataset_id, source, cfg)
+            if key is not None and _trusted(store, dataset_id, key, p.settings.listing_recheck_days):
+                summary["synced"].append(dataset_id)
+                log.info("provider sync %s (%s): unchanged (listing key), no download",
+                         dataset_id, p.key)
+                continue
             facts = p.facts(dataset_id, source, cfg)
             resources = []
             for res in facts.resources:
@@ -89,6 +102,8 @@ def sync_provider_sources(
             "source_url": facts.source_url,
             "presentation": p.presentation().model_dump(),
             "page_slug_suffix": p.page_slug_suffix(dataset_id),
+            "provider_listing_key": key,
+            "provider_verified_at": datetime.now(UTC),
         }
         try:
             changed = store.save_provider_source(dataset_id, payload)
@@ -102,3 +117,25 @@ def sync_provider_sources(
         log.info("provider sync %s (%s): %s, %d rows", dataset_id, p.key,
                  "changed" if changed else "unchanged", payload["record_count"])
     return summary
+
+
+def _listing_key(p: SourceProvider, dataset_id: str, source, cfg) -> str | None:
+    """The provider's key folded with everything else the doc is built from:
+    source.json (title, tags, config…) and the provider's presentation."""
+    k = p.listing_key(dataset_id, source, cfg)
+    if k is None:
+        return None
+    extra = json.dumps([source.model_dump(mode="json"), p.presentation().model_dump(mode="json"),
+                        p.page_slug_suffix(dataset_id)], sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(f"{p.key}\n{k}\n{extra}".encode()).hexdigest()
+
+
+def _trusted(store, dataset_id: str, key: str, recheck_days: float) -> bool:
+    """Whether the stored doc's last full sync used this key, recently enough."""
+    if recheck_days <= 0:
+        return False
+    state = store.get_provider_sync_state(dataset_id)
+    if not state or state.get("provider_listing_key") != key or not state.get("resources"):
+        return False
+    at = state.get("provider_verified_at")
+    return isinstance(at, datetime) and datetime.now(UTC) - at < timedelta(days=recheck_days)

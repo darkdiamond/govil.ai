@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -29,6 +30,8 @@ from services.providers.cbs import (
     suggest_regex,
     workbook_grid,
 )
+from services.providers.sync import sync_provider_sources
+from services.providers.tests.sync_helpers import FakeStore, make_repo
 
 pytest.importorskip("python_calamine")
 
@@ -393,3 +396,101 @@ def test_suggest_regex():
                           "כניסות של מבקרים לישראל בספטמבר 2026"]) == "^כניסות של מבקרים לישראל "
     assert suggest_regex(["פדיון (מכירות) של רשתות השיווק א", "פדיון (מכירות) של רשתות השיווק ב"]
                          ) == r"^פדיון \(מכירות\) של רשתות השיווק "
+
+
+# ── sync: the listing-key skip ───────────────────────────────────────────
+
+
+def _sync(p, store, repo):
+    p.clear_cache()
+    p.calls.clear()
+    return sync_provider_sources(store, repo, providers={"cbs_releases": p})
+
+
+def _data_calls(p) -> list[str]:
+    return [c for c in p.calls if "/lists/getbytitle(" not in c]
+
+
+@pytest.fixture
+def synced(cbs, tmp_path):
+    repo = make_repo(tmp_path, {"cbs-v": source(table_cfg(history=2)).model_dump()})
+    store = FakeStore()
+    s = _sync(cbs, store, repo)
+    assert s["changed"] == ["cbs-v"] and _data_calls(cbs)
+    assert store.docs["cbs-v"]["provider_listing_key"]
+    return cbs, store, repo
+
+
+def test_unchanged_report_syncs_without_downloads(synced):
+    p, store, repo = synced
+    doc = dict(store.docs["cbs-v"])
+    s = _sync(p, store, repo)
+    assert s["synced"] == ["cbs-v"] and s["changed"] == [] and not s["failed"]
+    assert _data_calls(p) == []  # only the list query (healthcheck + window)
+    assert store.docs["cbs-v"] == doc
+
+
+def test_new_edition_forces_a_full_sync(synced):
+    p, store, repo = synced
+    p.items.insert(0, item("380", "כניסות של מבקרים לישראל בנובמבר 2026", "2026-11-07T11:00:00Z"))
+    p.folders["2026/380"] = ["28_26_380t1.xls"]
+    p.files["28_26_380t1.xls"] = XLS
+    s = _sync(p, store, repo)
+    assert any("380t1.xls" in c for c in _data_calls(p))
+    assert s["changed"] == ["cbs-v"]  # 380 + 345 stacked instead of 345 + 309
+
+
+def test_edited_headline_forces_a_full_sync(synced):
+    p, store, repo = synced
+    p.items[0] = item("345", ITEMS[0]["Title"], "2026-11-04T11:00:00Z", body="<p>תוקן</p>")
+    _sync(p, store, repo)
+    assert _data_calls(p)
+
+
+def test_source_json_edit_forces_a_full_sync(synced, tmp_path):
+    p, store, repo = synced
+    (tmp_path / "cbs-v" / "source.json").write_text(
+        json.dumps(source(table_cfg(history=2), title="כותרת חדשה").model_dump(), ensure_ascii=False))
+    _sync(p, store, repo)
+    assert _data_calls(p) and store.docs["cbs-v"]["title"] == "כותרת חדשה"
+
+
+def test_stale_verification_forces_a_full_sync(synced):
+    p, store, repo = synced
+    store.docs["cbs-v"]["provider_verified_at"] = datetime.now(UTC) - timedelta(days=8)
+    _sync(p, store, repo)
+    assert _data_calls(p)
+    assert datetime.now(UTC) - store.docs["cbs-v"]["provider_verified_at"] < timedelta(minutes=1)
+
+
+def test_recheck_days_zero_always_downloads(synced):
+    p, store, repo = synced
+    p.settings = p.settings.model_copy(update={"listing_recheck_days": 0})
+    _sync(p, store, repo)
+    assert _data_calls(p)
+
+
+def test_listing_key_ignores_unrelated_releases(cbs):
+    cfg = cbs.parse_config("cbs-v", source(table_cfg()))
+    before = cbs.listing_key("cbs-v", source(table_cfg()), cfg)
+    cbs.clear_cache()
+    cbs.items.insert(0, item("390", "מדד המחירים לצרכן", "2026-11-15T11:00:00Z"))
+    assert cbs.listing_key("cbs-v", source(table_cfg()), cfg) == before
+
+
+def test_files_landing_late_in_a_fresh_release_move_the_key(synced):
+    # CBS lists the page before its tables land: the full sync skips the
+    # empty release (chapter filter), and the key must move once they arrive.
+    p, store, repo = synced
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    p.items.insert(0, item("390", "כניסות של מבקרים לישראל בנובמבר 2026", now))
+    p.folders["2026/390"] = []
+    s = _sync(p, store, repo)
+    assert s["changed"] == [] and not s["failed"]  # still the 345 + 309 stack
+    _sync(p, store, repo)
+    assert [c for c in _data_calls(p) if "DocLib" in c and "Files?" not in c] == []  # no downloads
+
+    p.folders["2026/390"] = ["28_26_390t1.xls"]
+    p.files["28_26_390t1.xls"] = XLS
+    s = _sync(p, store, repo)
+    assert any("390t1.xls" in c for c in _data_calls(p)) and s["changed"] == ["cbs-v"]

@@ -25,6 +25,7 @@ from services.providers import (
 from services.providers.base import normalize_csv
 from services.providers.boi import BoiSdmxProvider
 from services.providers.sync import sync_provider_sources
+from services.providers.tests.sync_helpers import FakeStore, make_repo
 
 BR_CSV = (
     "﻿SERIES_CODE,FREQ,IR_FV_TYPE,UNIT_MEASURE,TIME_PERIOD,OBS_VALUE,RELEASE_STATUS\r\n"
@@ -323,37 +324,9 @@ def test_a_404_is_not_gone_while_the_service_is_down(boi):
 # ── sync ─────────────────────────────────────────────────────────────────
 
 
-class FakeStore:
-    """The save_provider_source contract, in memory (mirrors firestore.py)."""
-
-    def __init__(self):
-        self.docs: dict[str, dict] = {}
-        self.clock = datetime(2026, 10, 29, tzinfo=UTC)
-
-    def save_provider_source(self, dataset_id, payload):
-        old = self.docs.get(dataset_id)
-        hashes = lambda rs: {r["id"]: r["hash"] for r in rs or []}
-        changed = old is None or hashes(old["resources"]) != hashes(payload["resources"])
-        doc = dict(old or {"analysis_status": "never"})
-        doc.update(payload, metadata_modified=self.clock if changed else old["metadata_modified"])
-        self.docs[dataset_id] = doc
-        return changed
-
-
-def _repo(tmp_path, sources: dict[str, dict]):
-    for i, s in sources.items():
-        d = tmp_path / i
-        d.mkdir()
-        (d / "recipe.json").write_text("{}")
-        (d / "source.json").write_text(json.dumps(s, ensure_ascii=False))
-    (tmp_path / "11111111-ckan").mkdir()
-    (tmp_path / "11111111-ckan" / "recipe.json").write_text("{}")
-    return rf.LocalRecipeRepo(tmp_path)
-
-
 def test_sync_creates_then_only_bumps_on_new_content(boi, tmp_path):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
-    repo = _repo(tmp_path, {"boi-interest-rate": _source().model_dump()})
+    repo = make_repo(tmp_path, {"boi-interest-rate": _source().model_dump()})
     assert repo.provider_source_ids() == ["boi-interest-rate"]
     store = FakeStore()
     s = sync_provider_sources(store, repo, providers={"boi_sdmx": boi})
@@ -369,6 +342,8 @@ def test_sync_creates_then_only_bumps_on_new_content(boi, tmp_path):
     store.clock = datetime(2026, 10, 30, tzinfo=UTC)
     s = sync_provider_sources(store, repo, providers={"boi_sdmx": boi})
     assert s["changed"] == [] and store.docs["boi-interest-rate"]["metadata_modified"] == first
+    # No listing key: BoI downloads on every sync.
+    assert store.docs["boi-interest-rate"]["provider_listing_key"] is None
 
     boi.clear_cache()
     boi.answers["/BR/1.0/"] = FakeResp(200, (BR_CSV + "MNT_SHIR_D,D,RIB_SHIR,PT,2026-10-29,3.25,YP\n").encode())
@@ -378,7 +353,7 @@ def test_sync_creates_then_only_bumps_on_new_content(boi, tmp_path):
 
 
 def test_sync_failures_leave_the_doc_and_the_run_alone(boi, tmp_path):
-    repo = _repo(tmp_path, {
+    repo = make_repo(tmp_path, {
         "boi-a": _source().model_dump(),
         "boi-bad": {"provider": "boi_sdmx", "title": ""},          # invalid
         "boi-off": _source(provider="cbs_api").model_dump(),       # not enabled
@@ -395,7 +370,7 @@ def test_sync_failures_leave_the_doc_and_the_run_alone(boi, tmp_path):
 
 def test_sync_skips_an_unhealthy_provider(boi, tmp_path):
     boi.answers.clear()
-    repo = _repo(tmp_path, {"boi-a": _source().model_dump()})
+    repo = make_repo(tmp_path, {"boi-a": _source().model_dump()})
     s = sync_provider_sources(FakeStore(), repo, providers={"boi_sdmx": boi})
     assert s["skipped"] == [{"id": "boi-a", "reason": "provider_unhealthy:boi_sdmx"}]
 
@@ -529,7 +504,7 @@ def test_source_url_must_be_plain_https(url):
 
 def test_an_unexpected_error_fails_one_dataset_not_the_sync(boi, tmp_path, monkeypatch):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
-    repo = _repo(tmp_path, {"boi-a": _source().model_dump(), "boi-b": _source().model_dump()})
+    repo = make_repo(tmp_path, {"boi-a": _source().model_dump(), "boi-b": _source().model_dump()})
     real = boi.version
     calls = []
 

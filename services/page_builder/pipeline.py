@@ -42,6 +42,17 @@ def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
     return enabled and now.weekday() == weekday
 
 
+def _reconciled_today(store, now: datetime) -> bool:
+    """Whether a sweep already finished on `now`'s (IL) date: the job runs
+    twice a day, and one sweep a week is enough. A marker read failure
+    answers False, so the sweep runs rather than being skipped."""
+    try:
+        return store.get_job_marker("reconcile").get("last_date") == now.date().isoformat()
+    except Exception:
+        log.warning("reconcile: couldn't read the last-sweep marker", exc_info=True)
+        return False
+
+
 async def _trigger_publish_github(
     repo: str, workflow: str, branch: str, inputs: dict | None = None
 ) -> str | None:
@@ -227,7 +238,7 @@ async def run_pipeline(
         il_now = datetime.now(UTC)
     if not dry_run and not override_id and _reconcile_due(
         il_now, enabled=reconcile_enabled, weekday=reconcile_weekday
-    ):
+    ) and not _reconciled_today(store, il_now):
         from services.scanner.client import CKANClient
 
         from . import reconcile as _reconcile
@@ -236,6 +247,11 @@ async def run_pipeline(
             async with CKANClient(config=config) as _ckan:
                 reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
             log.info("reconcile: %s", reconcile_summary)
+            try:
+                store.set_job_marker("reconcile", {"last_date": il_now.date().isoformat()})
+            except Exception:
+                log.warning("reconcile: couldn't record the sweep; the next run today repeats it",
+                            exc_info=True)
         except Exception:
             log.exception("reconcile sweep failed — continuing with scan/refresh")
 

@@ -12,7 +12,7 @@ that differs between sources:
     presentation how the page shell credits it (`SourcePresentation`)
     data         `download()` one resource as normalized CSV bytes
     versions     `version()` — content hash, unless the source has a cheaper
-                 change signal
+                 change signal; `listing_key()` lets the sync skip even that
     liveness     `probe_available()` for the weekly reconcile sweep
     authoring    `brief_section()` / `authoring_notes()` for BRIEF.md
 
@@ -82,6 +82,9 @@ class ProviderSettings(BaseModel):
     # Name of the env var holding the source's API key, if it needs one. Read
     # on the host only; the compute sandbox's env is scrubbed regardless.
     secret_env: str | None = None
+    # How long the sync may trust `listing_key()` (see there) before it
+    # downloads and hashes everything again anyway. 0 = always download.
+    listing_recheck_days: float = 7.0
     user_agent: str = "govil.ai-builder (+https://govil.ai)"
 
     @classmethod
@@ -276,6 +279,17 @@ class SourceProvider(abc.ABC):
 
     def clear_cache(self) -> None:
         self._cache.clear()
+
+    def listing_key(self, dataset_id: str, source: SourceConfig, cfg: BaseModel) -> str | None:
+        """A cheap fingerprint of everything the dataset's facts and CSVs are
+        built from, or None (the default) when the source has none.
+
+        When it equals the key stored by the last full sync, and that sync is
+        younger than `settings.listing_recheck_days`, the sync skips `facts()`
+        and every download: the stored resources and hashes stand. So the key
+        must change whenever the output could, except for edits the source
+        makes in place, which the periodic full check catches."""
+        return None
 
     def version(self, resource: dict) -> ResourceVersion:
         data, rows = self._cached(resource)
