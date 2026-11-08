@@ -36,23 +36,21 @@ log = logging.getLogger("page_builder.pipeline")
 FAILED_RUN_STATUSES = ("refresh_unavailable", "refresh_failed", "authoring_failed")
 
 
-def _reconcile_due(now: datetime, *, enabled: bool, weekday: int,
-                   last_date: str | None = None) -> bool:
+def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
     """Weekly reconcile runs only when enabled AND today matches the
-    configured weekday (Python Monday=0 .. Sunday=6) AND no sweep finished
-    yet today (`last_date`, the IL date of the last one): the job runs
-    twice a day, and one sweep a week is enough."""
-    return enabled and now.weekday() == weekday and last_date != now.date().isoformat()
+    configured weekday (Python Monday=0 .. Sunday=6)."""
+    return enabled and now.weekday() == weekday
 
 
-def _last_reconcile_date(store) -> str | None:
-    """The IL date of the last finished sweep; None when unknown, so a
-    marker read failure runs the sweep rather than skipping it."""
+def _reconciled_today(store, now: datetime) -> bool:
+    """Whether a sweep already finished on `now`'s (IL) date: the job runs
+    twice a day, and one sweep a week is enough. A marker read failure
+    answers False, so the sweep runs rather than being skipped."""
     try:
-        return store.get_job_marker("reconcile").get("last_date")
+        return store.get_job_marker("reconcile").get("last_date") == now.date().isoformat()
     except Exception:
         log.warning("reconcile: couldn't read the last-sweep marker", exc_info=True)
-        return None
+        return False
 
 
 async def _trigger_publish_github(
@@ -238,11 +236,9 @@ async def run_pipeline(
         il_now = datetime.now(ZoneInfo("Asia/Jerusalem"))
     except Exception:  # noqa: BLE001
         il_now = datetime.now(UTC)
-    # The marker is read only on the weekday itself (`and` short-circuits).
-    if not dry_run and not override_id and il_now.weekday() == reconcile_weekday and _reconcile_due(
-        il_now, enabled=reconcile_enabled, weekday=reconcile_weekday,
-        last_date=_last_reconcile_date(store),
-    ):
+    if not dry_run and not override_id and _reconcile_due(
+        il_now, enabled=reconcile_enabled, weekday=reconcile_weekday
+    ) and not _reconciled_today(store, il_now):
         from services.scanner.client import CKANClient
 
         from . import reconcile as _reconcile

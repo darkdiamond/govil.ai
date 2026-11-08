@@ -321,8 +321,6 @@ class FirestoreStateStore:
         ref.set(doc, merge=True)
         return changed
 
-    # ---- scan_runs -------------------------------------------------------
-
     # ---- job_state -------------------------------------------------------
 
     def get_job_marker(self, name: str) -> dict:
@@ -332,6 +330,8 @@ class FirestoreStateStore:
     def set_job_marker(self, name: str, fields: dict) -> None:
         self.client.collection(JOB_STATE_COLL).document(name).set(
             {**fields, "updated_at": datetime.now(UTC)}, merge=True)
+
+    # ---- scan_runs -------------------------------------------------------
 
     def start_scan(self, mode: str = "scheduled") -> str:
         now = datetime.now(UTC)

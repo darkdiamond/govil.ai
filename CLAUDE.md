@@ -309,7 +309,8 @@ SHEET, ROW, C01..`) that compute.py reads by label.
 
 State: Firestore `sources/{id}` (per-dataset, incl. refresh state and
 `authoring_status`/`authoring_issue`), `scan_runs/{run_id}` (per
-invocation). No SQLite. The OpenRouter agent builder (2026-06-12 →
+invocation), `job_state/{name}` (small job markers: `reconcile.last_date`, the IL
+date of the last sweep; deleting it only re-runs today's sweep). No SQLite. The OpenRouter agent builder (2026-06-12 →
 2026-10) is retired and deleted; its pages stay live as **legacy pages**
 until a recipe replaces them, and its `analysis_*` fields
 (`analysis_status`, `analyzed_metadata_modified`, `last_analyzed_at`)

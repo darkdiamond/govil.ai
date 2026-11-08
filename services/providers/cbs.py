@@ -73,6 +73,8 @@ _ROW_WIDTH = 5  # ROW "00042": string order == row order
 _TABLE_EXTS = (".xlsx", ".xls")  # preference order
 _BRIEF_ROWS = 60
 _BRIEF_CELL = 60
+# A release younger than this may still be gaining files (`listing_key`).
+_SETTLE_DAYS = 3
 
 
 def _code_hash() -> str:
@@ -423,13 +425,21 @@ class CbsReleasesProvider(SourceProvider):
         edit a published release's files in place (the periodic full check
         catches that). A new edition, a withdrawn one, an edited title or
         headline, or an old edition sliding out of the list window all
-        change the key and force a full sync. Unchanged reports cost no
-        requests beyond the list query."""
+        change the key and force a full sync.
+
+        A fresh release's folder is not settled yet: CBS can list the page
+        before its tables land, and `matching` then skips it by chapter or
+        `table_file` finds no table. So the folder listing (names + sizes) of
+        every candidate younger than `_SETTLE_DAYS` is in the key too: files
+        arriving late move it. Older reports cost no requests beyond the
+        list query."""
         h = hashlib.sha256(_CODE_HASH.encode())
+        settled = dt.datetime.now(dt.UTC) - dt.timedelta(days=_SETTLE_DAYS)
         for rel in self.candidates(cfg.report):
+            files = self.folder_files(rel) if rel.published > settled else None
             h.update(json.dumps([rel.pub_no, rel.year, rel.number, rel.published.isoformat(),
-                                 rel.title, rel.headline, list(rel.interval), rel.file_ref],
-                                ensure_ascii=False).encode())
+                                 rel.title, rel.headline, list(rel.interval), rel.file_ref,
+                                 files], ensure_ascii=False).encode())
         return h.hexdigest()
 
     def table_file(self, rel: Release, stem: str) -> dict:

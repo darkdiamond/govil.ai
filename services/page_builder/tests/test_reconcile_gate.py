@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from services.page_builder.pipeline import _last_reconcile_date, _reconcile_due
+from services.page_builder.pipeline import _reconcile_due, _reconciled_today
 
 
 def test_disabled_never_runs():
@@ -24,15 +24,25 @@ def test_enabled_wrong_weekday_skips():
     assert _reconcile_due(monday, enabled=True, weekday=6) is False
 
 
+
+class _Marker:
+    def __init__(self, last_date=None, broken=False):
+        self.last_date, self.broken = last_date, broken
+
+    def get_job_marker(self, name):
+        if self.broken:
+            raise RuntimeError("firestore down")
+        return {"last_date": self.last_date} if self.last_date else {}
+
+
 def test_second_run_the_same_day_skips():
     sunday = datetime(2026, 7, 19, 14, 0, tzinfo=UTC)
-    assert _reconcile_due(sunday, enabled=True, weekday=6, last_date="2026-07-19") is False
-    # Last week's sweep doesn't block this week's.
-    assert _reconcile_due(sunday, enabled=True, weekday=6, last_date="2026-07-12") is True
+    assert _reconciled_today(_Marker("2026-07-19"), sunday) is True
+    # Last week's sweep (or none yet) doesn't block this week's.
+    assert _reconciled_today(_Marker("2026-07-12"), sunday) is False
+    assert _reconciled_today(_Marker(), sunday) is False
 
 
 def test_marker_read_failure_runs_the_sweep():
-    class Broken:
-        def get_job_marker(self, name):
-            raise RuntimeError("firestore down")
-    assert _last_reconcile_date(Broken()) is None
+    sunday = datetime(2026, 7, 19, 14, 0, tzinfo=UTC)
+    assert _reconciled_today(_Marker(broken=True), sunday) is False
