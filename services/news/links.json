@@ -1,0 +1,119 @@
+{
+  "_doc": "Curated cross-dataset links for news signals (services/news/links.py). `a` tends to lead `b` by lag_months (min, max). A link is only reported when the two series' changes actually correlate over the overlap (|r| >= links.MIN_R). why_he is context for the writer, not a claim.",
+  "edges": [
+    {
+      "a": "boi-interest-rate",
+      "b": "boi-mortgage-rates",
+      "lag_months": [0, 6],
+      "why_he": "ריבית בנק ישראל היא עוגן לריביות המשכנתאות ולהיקף הלקיחה"
+    },
+    {
+      "a": "boi-interest-rate",
+      "b": "cbs-dwelling-transactions",
+      "lag_months": [1, 9],
+      "why_he": "מחיר הכסף משפיע על הביקוש לדירות"
+    },
+    {
+      "a": "boi-mortgage-rates",
+      "b": "cbs-dwelling-transactions",
+      "lag_months": [0, 3],
+      "why_he": "משכנתאות מממנות את רוב עסקאות הדירות"
+    },
+    {
+      "a": "cbs-dwelling-transactions",
+      "b": "cbs-construction-starts",
+      "lag_months": [3, 12],
+      "why_he": "ביקוש לדירות מניע התחלות בנייה"
+    },
+    {
+      "a": "boi-interest-rate",
+      "b": "cbs-consumer-confidence",
+      "lag_months": [0, 3],
+      "why_he": "שינויי ריבית משפיעים על תחושת הצרכנים"
+    },
+    {
+      "a": "boi-interest-rate",
+      "b": "dcd96625-def1-45dc-a2cf-f4ad7fc2360a",
+      "lag_months": [0, 2],
+      "why_he": "ריבית בנק ישראל משפיעה על הריביות שהבנקים מציעים"
+    },
+    {
+      "a": "boi-card-spending",
+      "b": "cbs-credit-card-purchases",
+      "lag_months": [0, 1],
+      "why_he": "שני מדדים להוצאה בכרטיסי אשראי"
+    },
+    {
+      "a": "cbs-credit-card-purchases",
+      "b": "cbs-retail-chains-sales",
+      "lag_months": [0, 1],
+      "why_he": "רכישות בכרטיסים ומכירות ברשתות שיווק משקפות את הצריכה הפרטית"
+    },
+    {
+      "a": "cbs-retail-chains-sales",
+      "b": "cbs-vat-turnover",
+      "lag_months": [0, 2],
+      "why_he": "מחזורי מע\"מ כוללים את מכירות הקמעונאות"
+    },
+    {
+      "a": "cbs-job-vacancies",
+      "b": "cbs-labour-force-survey",
+      "lag_months": [0, 3],
+      "why_he": "משרות פנויות ואבטלה הם שני צדי שוק העבודה"
+    },
+    {
+      "a": "cbs-job-vacancies",
+      "b": "cbs-average-wage",
+      "lag_months": [0, 6],
+      "why_he": "מחסור בעובדים לוחץ על השכר כלפי מעלה"
+    },
+    {
+      "a": "cbs-labour-supply-demand",
+      "b": "cbs-job-vacancies",
+      "lag_months": [0, 1],
+      "why_he": "היצע וביקוש לעובדים"
+    },
+    {
+      "a": "cbs-visitor-arrivals",
+      "b": "cbs-hotel-nights",
+      "lag_months": [0, 1],
+      "why_he": "תיירים נכנסים ממלאים בתי מלון"
+    },
+    {
+      "a": "cbs-hotel-nights",
+      "b": "cbs-hotel-revenue-employment",
+      "lag_months": [0, 1],
+      "why_he": "לינות קובעות את הכנסות המלונות ואת התעסוקה בהם"
+    },
+    {
+      "a": "cbs-visitor-arrivals",
+      "b": "cbs-services-exports",
+      "lag_months": [0, 3],
+      "why_he": "תיירות נכנסת נרשמת כיצוא שירותים"
+    },
+    {
+      "a": "cbs-business-tendency-survey",
+      "b": "cbs-industrial-production",
+      "lag_months": [0, 3],
+      "why_he": "ציפיות המנהלים מקדימות את הייצור"
+    },
+    {
+      "a": "cbs-industrial-production",
+      "b": "cbs-foreign-trade-goods",
+      "lag_months": [0, 2],
+      "why_he": "ייצור תעשייתי ויצוא סחורות נעים יחד"
+    },
+    {
+      "a": "cbs-trade-price-indices",
+      "b": "cbs-foreign-trade-goods",
+      "lag_months": [0, 1],
+      "why_he": "מחירי היבוא והיצוא משפיעים על ערכי הסחר"
+    },
+    {
+      "a": "cbs-national-accounts",
+      "b": "cbs-balance-of-payments",
+      "lag_months": [0, 0],
+      "why_he": "החשבונות הלאומיים ומאזן התשלומים מתארים את אותו משק"
+    }
+  ]
+}

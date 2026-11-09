@@ -148,7 +148,10 @@ landing pages. Five layers:
    Each render also keeps its page model (minus `tables`) as
    `models/<id>/<UTC ts>.json.gz` + `latest.json.gz` in the staging bucket
    (`refresh._stage_model_history`; best effort, never fails the render;
-   400-day lifecycle) — the history the planned news job mines for signals.
+   400-day lifecycle) — the history the planned news job mines for signals
+   (`services/news/`: series extraction → detectors → cross-dataset links →
+   GSC demand; `python -m services.news.run --signals-only` prints the
+   ranked list, read-only, no LLM).
    **The export** (`agent_contract.fetch_resource_export`) is
    `datastore_search` pages of up to 100k rows (`REFRESH_PAGE_SIZE`). The
    first page is 25k rows. Later pages are sized from the row width toward
