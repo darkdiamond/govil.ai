@@ -32,11 +32,12 @@ from . import images as images_mod
 from .editor import choose, eligible
 from .ledger import Ledger
 from .links import attach_links, load_edges
+from .llm import LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
 from .tools import Toolbox
-from .writer import write
+from .writer import Outcome, write
 
 log = logging.getLogger("services.news.run")
 TAGS_PATH = Path(__file__).resolve().parents[2] / "taxonomy" / "tags.json"
@@ -150,6 +151,11 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
         try:
             out = write(llm, tb, brief, catalog=catalog, vocab=vocab, today=today.isoformat(),
                         max_tool_calls=max_tool_calls)
+        except LLMUnavailable:
+            raise  # the key is refused: no point writing the next story
+        except Exception as e:  # one story's crash must not cost the day's others
+            log.exception("news: writing %s crashed", brief["signal_keys"])
+            out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         finally:
             tb.close()
         keys = brief["signal_keys"]
@@ -264,13 +270,13 @@ def main(argv: list[str] | None = None) -> int:
                              ensure_ascii=False, default=str) if a.json else _row(s, cat))
         return 0
 
-    from .llm import LLMUnavailable, OpenRouter
+    from .llm import OpenRouter
     from .store import FirestoreArticles, LocalArticles
 
     run_id = f"{now:%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:6]}"
     summary: dict = {"type": "news_summary", "run_id": run_id, "mode": "live" if live else "dry_run",
                      "today": today.isoformat(), "signals": stats}
-    tables = None
+    tables = llm = None
     try:
         llm = OpenRouter()
         if live:
@@ -307,11 +313,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         if tables is not None:
             tables.close()
-    try:
-        summary["cost_usd"] = round(llm.cost_usd, 4)
-        summary["llm_calls"] = llm.calls
-    except NameError:
-        pass
+    if llm is not None:
+        summary["cost_usd"], summary["llm_calls"] = round(llm.cost_usd, 4), llm.calls
     print(json.dumps(summary, ensure_ascii=False, default=str))
     return rc
 

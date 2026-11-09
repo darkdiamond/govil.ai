@@ -56,6 +56,20 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
           vocab: set[str]) -> tuple[dict, list[str]]:
     """(rendered article core, problems)."""
     problems: list[str] = []
+    if not isinstance(draft, dict):
+        return {}, ["the article must be a JSON object"]
+    # Model JSON: keep only entries of the expected shape, and say so.
+    for key in ("charts", "blocks", "sources"):
+        items = draft.get(key) or []
+        if not isinstance(items, list):
+            problems.append(f"{key}: must be a list")
+            items = []
+        kept = [x for x in items if isinstance(x, dict)]
+        if len(kept) != len(items):
+            problems.append(f"{key}: every entry must be an object")
+        draft = {**draft, key: kept}
+    draft = {**draft, "tags": [t for t in draft.get("tags") or [] if isinstance(t, str)]
+             if isinstance(draft.get("tags"), list) else []}
 
     def href(ds):
         if ds in catalog:
@@ -95,6 +109,8 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             chart_ids.add(charts_out[-1]["id"])
         except charts_mod.ChartError as e:
             problems.append(f"chart: {e}")
+        except (AttributeError, TypeError, KeyError) as e:  # a mis-shaped spec
+            problems.append(f"chart: malformed spec ({type(e).__name__})")
     if not charts_out:
         problems.append("charts: at least one chart")
     if len(draft.get("charts") or []) > MAX_CHARTS:

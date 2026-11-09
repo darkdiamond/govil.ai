@@ -187,9 +187,10 @@ class Toolbox:
         if self._llm is None:
             raise ValueError("web search is not available in this run")
         # Only allowlisted sites' snippets reach the model (fetch.allowed_source).
-        results = [r for r in self._llm.web_search(query) if allowed_source(r.get("url") or "")]
-        for r in results:
-            r["snippet"] = _untrusted(r.get("snippet") or "")
+        # Rebuilt from known keys, every free-text field fenced.
+        results = [{"url": r.get("url"), "title": _untrusted(r.get("title") or ""),
+                    "snippet": _untrusted(r.get("snippet") or "")}
+                   for r in self._llm.web_search(query) if allowed_source(r.get("url") or "")]
         return {"results": results}
 
     def t_fetch_url(self, url: str) -> dict:
@@ -199,7 +200,7 @@ class Toolbox:
         if len(page.text) < 200:
             raise ValueError("page has no readable text")
         src = self.ledger.add_source(page.url, page.title, page.text)
-        return {"source": src.id, "url": page.url, "title": page.title,
+        return {"source": src.id, "url": page.url, "title": _untrusted(page.title),
                 "text": _untrusted(page.text[:FETCH_TEXT_CHARS]),
                 "truncated": len(page.text) > FETCH_TEXT_CHARS}
 

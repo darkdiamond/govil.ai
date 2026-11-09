@@ -19,6 +19,7 @@ from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 log = logging.getLogger(__name__)
 PROMPTS = Path(__file__).with_name("prompts")
 REVISIONS = 1
+MAX_TURNS = 45            # model calls per article, whatever they contain
 
 
 @dataclass
@@ -81,9 +82,11 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
         "datasets": {d: {"title": (catalog.get(d) or {}).get("title"),
                          "publisher": (catalog.get(d) or {}).get("organization")}
                      for d in brief["dataset_ids"]},
+        # The datasets' own canonical tags first; the whole vocabulary (a few
+        # hundred short names) only when they have none.
         "tag_vocabulary": sorted({t for d in brief["dataset_ids"]
                                   for t in (catalog.get(d) or {}).get("tags", []) if t in vocab})
-                          or sorted(vocab)[:80],
+                          or sorted(vocab),
     }
     messages = [{"role": "system", "content": system_prompt()},
                 {"role": "user", "content": json.dumps(user, ensure_ascii=False, default=str)}]
@@ -91,8 +94,15 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
     revisions = 0
     critic = None
     nudged = False
+    turns = 0
     while True:
+        turns += 1
+        if turns > MAX_TURNS:
+            # Turns that don't count as tool calls (bad JSON, repeated bad
+            # submissions) must still end: every turn is a paid model call.
+            return Outcome("rejected", reason="turn_limit", tool_calls=calls)
         tools = TOOL_SPECS + [SUBMIT_SPEC] if calls < max_tool_calls else [SUBMIT_SPEC]
+        offered = {t["function"]["name"] for t in tools}
         msg = llm.chat(messages, tools=tools, temperature=0.6)
         # Keep reasoning_details: Gemini 3 needs its thought signatures back on
         # every tool-calling turn (OpenRouter carries them there), or it 400s.
@@ -118,6 +128,8 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
                 result = '{"received": true}'
             elif args is None:
                 result = '{"error": "arguments were not valid JSON"}'
+            elif fn.get("name") not in offered:
+                result = '{"error": "tool budget used up: only submit_article is available"}'
             else:
                 calls += 1
                 result = tb.call(fn.get("name") or "", args)

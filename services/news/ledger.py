@@ -25,10 +25,16 @@ from services.page_builder.recipe_lib.govlib import fmt
 TOKEN = re.compile(r"\{(f\d+)(?::([a-z0-9_]+))?\}")
 LINK = re.compile(r"\[\[([^\[\]|]+)\|(s\d+|ds:[A-Za-z0-9-]+)\]\]")
 MONTHS = "|".join(fmt.MONTHS_HE + ["מרס"])
-# Digits prose may keep: a calendar year, or a day of a named month.
-_ALLOWED_NUMBER = re.compile(
-    rf"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?![\d.,%])"
-    rf"|(?<![\d.,])(?:[1-9]|[12]\d|3[01])\s*(?:ב|ל|ה|-)?\s*(?:{MONTHS})"
+# Digits prose may keep: a day of a named month ("3 במרץ"), and a calendar
+# year — but only where the words around it make it a date ("ב-2025",
+# "בשנת 2025", "מרץ 2025", "מאז 2019", "2019–2025"), so a typed count that
+# happens to look like a year ("נמכרו 1980 דירות") still fails.
+_DAY_OF_MONTH = re.compile(rf"(?<![\d.,])(?:[1-9]|[12]\d|3[01])(?=\s*(?:ב|ל|ה|-)?\s*(?:{MONTHS}))")
+_YEAR = re.compile(r"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?![\d.,%])")
+_YEAR_LEAD = re.compile(
+    rf"(?:(?:^|[\s(\"'״])[ובלמהשכ]{{1,3}}-?"
+    rf"|(?:{MONTHS}|שנת|שנות|שנים|מאז|עד|לפני|אחרי|לעומת|מול|בין|מתחילת|מסוף|בשנים|בשנת)\s+"
+    rf"|\(|[–-]\s*)$"
 )
 _DIGITS = re.compile(r"\d")
 
@@ -155,7 +161,8 @@ def stray_numbers(text: str) -> list[str]:
     excepted). Empty means the text is clean."""
     t = TOKEN.sub(" ", text)
     t = LINK.sub(lambda m: f" {m[1]} ", t)
-    t = _ALLOWED_NUMBER.sub(" ", t)
+    t = _DAY_OF_MONTH.sub(" ", t)
+    t = _YEAR.sub(lambda m: " " if _YEAR_LEAD.search(t[max(0, m.start() - 14):m.start()]) else m[0], t)
     return [m for m in re.findall(r"\S*\d\S*", t) if _DIGITS.search(m)]
 
 

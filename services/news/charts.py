@@ -55,7 +55,9 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
         freqs = {s.freq for _, s, _ in picked}
         if len(freqs) != 1:
             raise ChartError(f"chart {cid}: series of different frequencies")
-        by_label: dict[str, object] = {}
+        # Aligned on the period itself, not its label: one source writes
+        # "2026-08", another "אוגוסט 2026" for the same month.
+        label_of: dict[object, str] = {}
         data = []
         for _, s, frm in picked:
             pts = s.complete
@@ -66,11 +68,12 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
                 pts = [(p, v) for p, v in pts if p.start >= start]
             pts = pts[-MAX_POINTS:]
             for p, _ in pts:
-                by_label[p.label] = p.start
-            data.append({p.label: v for p, v in pts})
-        x = sorted(by_label, key=by_label.get)
+                label_of.setdefault(p.start, p.label)
+            data.append({p.start: v for p, v in pts})
+        starts = sorted(label_of)
+        x = [label_of[k] for k in starts]
         series = [{"type": "line", "name": name, "showSymbol": len(x) <= 36,
-                   "data": [d.get(lbl) for lbl in x], "connectNulls": False}
+                   "data": [d.get(k) for k in starts], "connectNulls": False}
                   for (name, _, _), d in zip(picked, data, strict=True)]
         allv = [v for s in series for v in s["data"]]
         option = {"xAxis": {"type": "category", "data": x},
