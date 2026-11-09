@@ -171,6 +171,26 @@ jobs:
           ./frontend/node_modules/.bin/firebase deploy --only hosting \
             --project "${PROJECT}" --non-interactive
 
+      # Cloudflare edge-caches pages/data for s-maxage (firebase.json); a deploy
+      # must clear it so a new article (and the News index, feeds, sitemaps) is
+      # live at once. Token: Zone → Cache Purge on govil.ai only. Skipped until
+      # the secret/variable exist; a failed purge never fails the deploy (the
+      # edge copy then expires within s-maxage=600s).
+      - name: Purge Cloudflare cache
+        if: env.TARGET == 'live'
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
+          CF_ZONE: ${{ vars.CLOUDFLARE_ZONE_ID }}
+        run: |
+          if [ -z "${CF_TOKEN}" ] || [ -z "${CF_ZONE}" ]; then
+            echo "Cloudflare purge not configured — skipped"; exit 0
+          fi
+          curl -sS --fail-with-body -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE}/purge_cache" \
+            -H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}' \
+            || echo "::warning::Cloudflare purge failed — edge copies expire within 10 minutes"
+
       # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
       # Key file ships in frontend/public/; failures never block the deploy.
       - name: Deploy recipe-refresh demo channel
