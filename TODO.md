@@ -24,12 +24,6 @@ This repo is public: describe a security gap by what to change, never by how to 
   prod Firestore), then author ebe5ec6f; don't print its `Mail` column, since some addresses
   are personal. (2026-11-09)
 
-- **The fire-service event types across all domains have no chart.** The c11b5d08 recipe breaks
-  down only fire (the largest domain) by type; the legacy page's "סוגי אירועים עיקריים" covered
-  rescue, hazmat and security types too. They now show only through the seasonality pairs and
-  the scenarios list. A small-multiples or top-N-per-domain chart would restore it; bump
-  `recipe_version`. (2026-11-09)
-
 - **The preview's Tailwind misses classes added after the dev server started.** A chart height
   like `h-[30rem]` that no page had when `preview` started renders at 0px until
   `preview stop` and a restart. Production builds are unaffected (they scan every body at

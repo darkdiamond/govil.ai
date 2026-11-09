@@ -28,7 +28,7 @@ ROAD_RE = re.compile(r"^(כביש|צומת|מחלף|כיכר|דרך)\b")
 SEASON_YEARS = 5
 GROWTH_SPAN = 5
 TREND_EPS = 0.03
-SUSPECT_RATIO = 0.5
+DIP_RATIO = 0.5
 
 
 def _norm(s: pd.Series) -> pd.Series:
@@ -85,21 +85,17 @@ def compute(frames):
     months_in = d.groupby("y")["m"].nunique()
     years = sorted(int(y) for y in months_in.index)
 
-    # Suspect months: far below the median of the 12 months before them.
-    # In this dataset that is an incomplete upload (Q4 2023), not a real
-    # drop, so a year holding one is left out of every year-to-year
-    # comparison and labelled as partial data.
+    # Dip months: far below the median of the 12 months before them. Stated
+    # as numbers only (no cause is claimed); the year still counts.
     ym = d.groupby(["y", "m"])["n"].sum()
     seq = [(y, m, float(ym[(y, m)])) for y in years for m in range(1, 13) if (y, m) in ym.index]
-    suspect = []
+    dips = []
     for i in range(12, len(seq)):
         base = float(pd.Series([v for _, _, v in seq[i - 12:i]]).median())
-        if base > 0 and seq[i][2] < SUSPECT_RATIO * base:
-            suspect.append((seq[i][0], seq[i][1], seq[i][2], base))
-    suspect_years = sorted({t[0] for t in suspect})
-    suspect_ym = {(t[0], t[1]) for t in suspect}
+        if base > 0 and seq[i][2] < DIP_RATIO * base:
+            dips.append((seq[i][0], seq[i][1], seq[i][2], base))
 
-    complete = [y for y in years if months_in[y] == 12 and y not in suspect_years]
+    complete = [y for y in years if months_in[y] == 12]
     if not complete:
         raise ValueError("no complete year in the data")
     ly = complete[-1]
@@ -122,14 +118,12 @@ def compute(frames):
     top_dom = str(dom_rank.index[0])
 
     def ylabel(y):
-        if months_in[y] < 12:
-            return f"{y} (חלקית)"
-        return f"{y} (נתונים חלקיים)" if y in suspect_years else str(y)
+        return f"{y} (חלקית)" if months_in[y] < 12 else str(y)
 
     by_y_dom = d.pivot_table(index="y", columns="dom_g", values="n", aggfunc="sum").fillna(0)
     chart_years = {
         "x": [ylabel(y) for y in years],
-        "partial": [bool(months_in[y] < 12 or y in suspect_years) for y in years],
+        "partial": [bool(months_in[y] < 12) for y in years],
         "series": [{"name": g, "data": [_i(by_y_dom.at[y, g]) if g in by_y_dom.columns else 0 for y in years]}
                    for g in dom_labels],
         "total": [_i(yearly[y]) for y in years],
@@ -265,6 +259,28 @@ def compute(frames):
             if b >= 100 and a - b >= 0.01 * ly_total and (a - b) / b >= 0.2:
                 mover = (s, a, b)
 
+    # ── event types inside each domain (latest complete year) ───────────
+    dom_ly = _rank(ly_df.groupby("dom")["n"].sum())
+    dl_labels, _ = frame.top_other(dom_ly, 4)
+    dl_keep = [x for x in dl_labels if x != frame.OTHER]
+    panels, tbl_dom_types, dom_type_leads = [], [], []
+    for g in dl_labels:
+        sub = ly_df[ly_df["dom"].isin(dl_keep) == (g != frame.OTHER)]
+        if g != frame.OTHER:
+            sub = sub[sub["dom"] == g]
+        tot = float(sub["n"].sum())
+        if tot <= 0:
+            continue
+        sc = _rank(sub.groupby("scen")["n"].sum())
+        lab, val = frame.top_other(sc, 5)
+        title = g if g != frame.OTHER else f"תחומים אחרים ({fmt.join_he(sorted(set(sub['dom'])))})"
+        panels.append({"name": title, "total": f"{fmt.int_he(tot)} אירועים", "x": lab, "y": [_i(v) for v in val],
+                       "share": [_pct1(v / tot) for v in val]})
+        for k, v in zip(lab, val, strict=True):
+            tbl_dom_types.append([title, k, fmt.int_he(v), fmt.pct(v / tot)])
+        if g != frame.OTHER and lab[0] != frame.OTHER:
+            dom_type_leads.append((g, lab[0], float(val[0]) / tot))
+
     # ── localities (latest complete year) ────────────────────────────────
     lc = ly_df[(ly_df["loc"] != "") & (ly_df["loc"] != NO_ADDRESS) & ~ly_df["loc"].str.match(ROAD_RE)]
     loc_ly = _rank(lc.groupby("loc")["n"].sum())
@@ -281,12 +297,10 @@ def compute(frames):
 
     # ── year to date (partial year) ──────────────────────────────────────
     ytd = None
-    if partial and p_months and not any((partial, m) in suspect_ym for m in p_months):
+    if partial and p_months:
         k = len(p_months)
         rows = []
         for y in years:
-            if any((y, m) in suspect_ym for m in p_months):
-                continue
             sub = d[(d["y"] == y) & d["m"].isin(p_months)]
             if sub["m"].nunique() == k:
                 rows.append((y, float(sub["n"].sum())))
@@ -323,17 +337,10 @@ def compute(frames):
                        "tone": "warn" if ch > 0.05 else ("ok" if ch < -0.05 else "brand")}
 
     # ── partial-data wording ─────────────────────────────────────────────
-    gap_parts = []
-    for y in suspect_years:
-        ms = [fmt.MONTHS_HE[t[1] - 1] for t in suspect if t[0] == y]
-        gap_parts.append(f"{fmt.join_he(ms)} {y}")
-    gap_months = fmt.join_he(gap_parts)
-    if len(suspect_years) == 1:
-        gap_years_txt = f"השנה {suspect_years[0]} הושמטה"
-    else:
-        gap_years_txt = f"השנים {fmt.join_he(suspect_years)} הושמטו"
-    gap_note = (f" {gap_years_txt} כי חסרים בה נתונים ({gap_months})." if len(suspect_years) == 1
-                else f" {gap_years_txt} כי חסרים בהן נתונים ({gap_months}).") if suspect_years else ""
+    dip_parts = []
+    for y in sorted({t[0] for t in dips}):
+        dip_parts.append(f"{fmt.join_he([fmt.MONTHS_HE[t[1] - 1] for t in dips if t[0] == y])} {y}")
+    dip_months = fmt.join_he(dip_parts)
 
     # ── insights ─────────────────────────────────────────────────────────
     insights = []
@@ -415,15 +422,17 @@ def compute(frames):
         return (f"התרחיש שגדל יותר מכל תרחיש אחר ב-{ly}: \"{s}\", {fmt.int_he(a)} אירועים לעומת "
                 f"{fmt.int_he(b)} ב-{py} ({fmt.signed_pct((a - b) / b)}).")
 
-    def i_gap():
-        if not suspect:
+    def i_dip():
+        if not dips:
             return None
-        v = sum(t[2] for t in suspect)
-        base = sum(t[3] for t in suspect)
-        k = len(suspect)
-        return (f"ב{gap_months} נרשמו {fmt.int_he(v)} אירועים בלבד, {fmt.pct(v / base, 0)} "
-                f"מהרמה הרגילה (חציון של כ-{fmt.int_he(base / k)} אירועים בחודש בשנה שקדמה). "
-                f"ככל הנראה נתונים חסרים בקובץ, לא ירידה בפועל, ולכן {gap_years_txt} מההשוואות בין שנים.")
+        v = sum(t[2] for t in dips)
+        base = sum(t[3] for t in dips)
+        if len(dips) == 1:
+            return (f"ב{dip_months} נרשמו {fmt.int_he(v)} אירועים, {fmt.pct(v / base, 0)} "
+                    f"מהחציון החודשי של שנים-עשר החודשים שקדמו לו ({fmt.int_he(base)}).")
+        return (f"ב{dip_months} נרשמו יחד {fmt.int_he(v)} אירועים, {fmt.pct(v / base, 0)} "
+                f"מהחציון החודשי של שנים-עשר החודשים שקדמו לכל אחד מהם "
+                f"({fmt.int_he(base / len(dips))} בחודש בממוצע).")
 
     def i_loc():
         if len(top_loc) < 3:
@@ -439,7 +448,7 @@ def compute(frames):
     add("district", i_district())
     add("season", i_season())
     add("mover", i_mover())
-    add("gap", i_gap())
+    add("dip", i_dip())
     add("loc", i_loc())
 
     # ── text ─────────────────────────────────────────────────────────────
@@ -471,9 +480,7 @@ def compute(frames):
         "years_note": (f"מספר האירועים בכל שנה לפי תחום. השנה החלשה והחזקה בסדרה: "
                        f"{min(complete, key=lambda y: (yearly[y], y))} ({fmt.int_he(min(yearly[y] for y in complete))}) ו-"
                        f"{max(complete, key=lambda y: (yearly[y], -y))} ({fmt.int_he(max(yearly[y] for y in complete))})"
-                       + (f". {partial} מכילה רק {len(p_months)} חודשים." if partial else ".")
-                       + (f" {gap_months}: ככל הנראה נתונים חסרים בקובץ, ולכן {gap_years_txt} מההשוואות ומסומנת כנתונים חלקיים."
-                          if suspect_years else "")),
+                       + (f". {partial} מכילה רק {len(p_months)} חודשים." if partial else ".")),
         "years_aria": (f"גרף עמודות מוערמות: אירועי כבאות והצלה לפי שנה ותחום, {first} עד {years[-1]}. "
                        f"ב-{ly} נרשמו {fmt.int_he(ly_total)} אירועים."),
         "years_caption": f"אירועים לפי שנה ותחום, {first} עד {years[-1]}",
@@ -482,16 +489,16 @@ def compute(frames):
         "heat_aria": (f"מפת חום של מספר האירועים לפי חודש ושנה, {first} עד {years[-1]}. "
                       f"השיא: {peak_txt}, {fmt.int_he(peak_ym[2])} אירועים."),
         "season_note": (f"ממוצע האירועים בכל חודש בשנה, {season_span}, לחמשת צירופי התחום והסוג "
-                        f"הנפוצים ב-{ly}.{gap_note}"),
+                        f"הנפוצים ב-{ly}."),
         "season_aria": (f"גרף קווים: ממוצע אירועים לפי חודש בשנה לחמשת סוגי האירועים הנפוצים, {season_span}."),
         "season_caption": f"ממוצע אירועים לפי חודש וסוג, {season_span}",
         "types_head": f"אירועי {top_dom} לפי סוג",
         "types_note": (f"התחום הגדול ביותר, {top_dom}, מפוצל לפי מתאר האירוע בכל שנה מלאה, {complete[0]} עד {ly}."
-                       + (f" {partial} אינה מוצגת כי נתוניה חלקיים." if partial else "") + gap_note),
+                       + (f" {partial} אינה מוצגת כי נתוניה חלקיים." if partial else "")),
         "types_aria": f"גרף שטח מוערם: אירועי {top_dom} לפי סוג ושנה, {complete[0]} עד {ly}.",
         "types_caption": f"אירועי {top_dom} לפי סוג ושנה",
         "dist_note": (f"מספר האירועים בכל מחוז בשנים המלאות {complete[0]} עד {ly}. "
-                      f"מוצגים המחוזות שרשמו אירועים ב-{ly}.{gap_note}"),
+                      f"מוצגים המחוזות שרשמו אירועים ב-{ly}."),
         "dist_aria": (f"גרף קווים: אירועים לפי מחוז ושנה. ב-{ly} הוביל מחוז {dist_ly.index[0]} "
                       f"עם {fmt.int_he(dist_ly.iloc[0])} אירועים."),
         "dist_caption": f"אירועים לפי מחוז ושנה, {complete[0]} עד {ly}",
@@ -511,6 +518,11 @@ def compute(frames):
         "scen_aria": (f"גרף עמודות אופקי: התרחישים הנפוצים ב-{ly}. בראש: {chart_scen['x'][0]} עם "
                       f"{fmt.int_he(chart_scen['y'][0])} אירועים." if chart_scen["x"] else ""),
         "scen_caption": f"התרחישים הנפוצים ב-{ly}",
+        "domtypes_note": (f"חמשת התרחישים הנפוצים בכל תחום ב-{ly}, והשאר מקובצים ב\"אחר\". "
+                           + " ".join(f"בתחום \"{g}\" מוביל \"{k}\" ({fmt.pct(sh)} מאירועי התחום)."
+                                      for g, k, sh in dom_type_leads[:3])),
+        "domtypes_aria": (f"גרפי עמודות אופקיים: התרחישים הנפוצים בכל תחום ב-{ly}."),
+        "domtypes_caption": f"התרחישים הנפוצים בכל תחום, {ly}",
         "loc_note": (f"היישובים שבהם נרשמו הכי הרבה אירועים ב-{ly}. לא נכללו "
                      f"{fmt.int_he(no_addr)} אירועים ללא כתובת ו-{fmt.int_he(roads)} אירועים בכבישים ובצמתים. "
                      f"המספרים מוחלטים ואינם מנורמלים לגודל האוכלוסייה."),
@@ -531,7 +543,7 @@ def compute(frames):
         "dist_years": tbl_dist_years, "dist_years_cols": ["שנה"] + dists,
         "dist_mix": tbl_dist_mix,
         "dist_mix_cols": ["מחוז", "אירועים", "מכלל הארץ"] + [f"{g} (%)" for g in dom_labels],
-        "scen": tbl_scen, "loc": tbl_loc,
+        "scen": tbl_scen, "loc": tbl_loc, "dom_types": tbl_dom_types,
         "growth": growth["rows"] if growth else [],
         "growth_cols": ["מחוז", str(growth["base"]), str(ly), "שינוי"] if growth else [],
         "ytd": ytd["rows"] if ytd else [],
@@ -541,7 +553,7 @@ def compute(frames):
         "years": chart_years, "heat": heat, "season": season, "types": chart_types,
         "dist_years": chart_dist_years, "dist_mix": chart_dist_mix,
         "growth": {"x": growth["x"], "pct": growth["pct"]} if growth else None,
-        "scen": chart_scen, "loc": chart_loc,
+        "scen": chart_scen, "loc": chart_loc, "dom_types": panels,
         "ytd": {"x": ytd["x"], "y": ytd["y"]} if ytd else None,
     }
 
@@ -572,6 +584,6 @@ def compute(frames):
         "flags": {
             "yoy": "yoy" in kpis, "ytd": "ytd" in kpis,
             "growth": bool(growth), "ytd_chart": bool(ytd),
-            "scen": bool(chart_scen["x"]), "loc": bool(chart_loc["x"]),
+            "scen": bool(chart_scen["x"]), "loc": bool(chart_loc["x"]), "dom_types": bool(panels),
         },
     }

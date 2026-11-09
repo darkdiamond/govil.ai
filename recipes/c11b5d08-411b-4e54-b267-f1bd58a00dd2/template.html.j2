@@ -89,6 +89,24 @@
 </section>
 {%- endif %}
 
+{%- if model.flags.dom_types %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "סוגי אירועים עיקריים בכל תחום") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.domtypes_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5" role="img" aria-label="{{ model.labels.domtypes_aria }}">
+{%- for p in model.charts.dom_types %}
+    <div>
+      <h3 class="m-0 mb-2 text-base font-semibold text-ink-deep">{{ p.name }} <span class="text-sm font-normal text-subtle">({{ p.total }})</span></h3>
+      <div id="chart-domtype-{{ loop.index0 }}" class="h-64 md:h-80"></div>
+    </div>
+{%- endfor %}
+  </div>
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.domtypes_caption, ["תחום", "תרחיש", "אירועים", "מאירועי התחום"], model.tables.dom_types, ltr=(3,)) }}
+  </div>
+</section>
+{%- endif %}
+
 {%- if model.flags.scen %}
 <section class="card p-5 mb-6">
   {{ gov.head("list", "התרחישים הנפוצים: למה מזעיקים את הכבאים") }}
@@ -373,6 +391,31 @@
         label: { show: true, position: "right", fontSize: 10, formatter: function (p) { return p.value.toLocaleString("he-IL"); } } }]
     }));
     window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.dom_types %}
+<script>
+  (function () {
+    var ps = {{ model.charts.dom_types | tojson }};
+    var enc = echarts.format.encodeHTML;
+    ps.forEach(function (p, k) {
+      var c = echarts.init(document.getElementById("chart-domtype-" + k));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (a) {
+          var i = a[0].dataIndex;
+          return enc(p.x[i]) + "<br>" + p.y[i].toLocaleString("he-IL") + " אירועים (" + p.share[i].toFixed(1) + "%)";
+        } },
+        grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", axisLabel: { show: false } },
+        yAxis: { type: "category", data: p.x, inverse: true, axisLabel: { width: 120, overflow: "truncate", interval: 0, fontSize: 11 } },
+        series: [{ type: "bar", name: "אירועים", barMaxWidth: 22, data: p.y,
+          label: { show: true, position: "right", fontSize: 10, formatter: function (q) { return q.value.toLocaleString("he-IL"); } } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
   })();
 </script>
 {%- endif %}
