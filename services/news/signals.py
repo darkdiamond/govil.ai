@@ -27,7 +27,7 @@ import statistics
 from dataclasses import asdict, dataclass, field
 from datetime import date
 
-from .series import Series, _index
+from .series import Series, period_index
 
 # How long after a period ends its first appearance can still be news, when
 # there's no earlier snapshot to tell exactly. Generous: publishers lag (CBS
@@ -88,12 +88,12 @@ def _changes(pts: list[tuple], freq: str) -> tuple[list[float], str] | None:
     period-over-period otherwise."""
     vals = [v for _, v in pts]
     lag = SEASON_LAG.get(freq)
-    by_idx = {_index(p): v for p, v in pts}
+    by_idx = {period_index(p): v for p, v in pts}
     positive = all(v > 0 for v in vals)
     if lag and len(pts) > lag + MIN_HISTORY.get(freq, 8):
         out = []
         for p, v in pts:
-            prev = by_idx.get(_index(p) - lag)
+            prev = by_idx.get(period_index(p) - lag)
             if prev is not None:
                 out.append(_pct(v, prev) if positive else v - prev)
         return [c for c in out if c is not None], "yoy"
@@ -129,8 +129,10 @@ SUSPECT_FACTOR = 0.3
 
 
 def _suspect_incomplete(vals: list[float]) -> bool:
+    """Counts only (whole, non-negative numbers): a share or a rate that
+    falls hard is a real move, not a period loaded halfway."""
     recent = vals[-13:-1]
-    if len(recent) < 6 or any(v < 0 for v in vals):
+    if len(recent) < 6 or any(v < 0 or v != int(v) for v in vals[-13:]):
         return False
     med = statistics.median(recent)
     return med > 0 and vals[-1] < SUSPECT_DROP * med
@@ -169,8 +171,8 @@ def detect(series: Series, as_of: date, previous: Series | None = None) -> Signa
     else:
         lag = SEASON_LAG.get(series.freq)
         if lag:
-            by_idx = {_index(p): (p, v) for p, v in pts}
-            ly = by_idx.get(_index(last_p) - lag)
+            by_idx = {period_index(p): (p, v) for p, v in pts}
+            ly = by_idx.get(period_index(last_p) - lag)
             if ly:
                 facts["year_ago"] = {"period": ly[0].label, "value": ly[1]}
                 facts["yoy"] = last_v - ly[1]

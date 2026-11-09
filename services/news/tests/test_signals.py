@@ -87,7 +87,7 @@ def test_running_totals_never_set_records():
 
 
 def test_half_loaded_month_is_suspect_and_taints_siblings():
-    base = _noise(36)
+    base = [float(round(v)) for v in _noise(36)]  # a count
     x = _monthly(base + [10.0])
     roll = [sum((base + [10.0])[max(0, i - 11):i + 1]) / min(i + 1, 12) for i in range(37)]
     m = {"charts": {"c": {"x": x, "y": base + [10.0], "roll": roll}}}
@@ -132,3 +132,23 @@ def test_rank_caps_per_dataset_and_applies_demand():
         s.demand = 2.0 if s.dataset_id == "b" else 1.0
     out = rank(sigs, per_dataset=2)
     assert [s.dataset_id for s in out] == ["b", "b", "a", "a"]
+
+
+def test_weekly_year_over_year_is_52_weeks_back():
+    from datetime import timedelta
+
+    start = date(2022, 1, 2)
+    x = [(start + timedelta(weeks=i)).isoformat() for i in range(130)]
+    vals = [100.0 + (i * 7919) % 11 for i in range(129)] + [160.0]
+    s = extract_series({"charts": {"t": {"x": x, "y": vals}}}, "w", as_of=date(2030, 1, 1))[0]
+    assert s.freq == "W"
+    sig = detect(s, _after(s, 3))
+    assert sig.facts["year_ago"]["period"] == x[-53]
+    assert sig.facts["change_basis"] == "yoy" and "unusual_change" in sig.flags
+
+
+def test_falling_share_is_not_suspect_incomplete():
+    vals = [1.5 + 0.01 * (i % 3) for i in range(36)] + [0.4]
+    s = _series(vals)
+    sig = detect(s, _after(s))
+    assert sig and not sig.facts.get("suspect_incomplete")

@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from . import catalog as catalog_mod
@@ -25,7 +25,7 @@ from . import demand as demand_mod
 from .links import attach_links, load_edges
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
-from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot
+from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
 
 log = logging.getLogger("services.news.run")
 
@@ -36,28 +36,33 @@ def _series_of(snap: Snapshot, today: date) -> list[Series]:
     return extract_series(snap.model, snap.dataset_id, as_of=snap.data_as_of or today)
 
 
-def find_signals(store, *, today: date, catalog: dict[str, dict] | None = None,
+def find_signals(store, *, today: date, cutoff: str | None = None,
+                 catalog: dict[str, dict] | None = None,
                  demand_by_id: dict[str, dict] | None = None, workers: int = 16,
                  ids: list[str] | None = None) -> tuple[list[Signal], dict]:
-    """Every dataset's signals, linked and scored (unranked)."""
+    """Every dataset's signals, linked and scored (unranked). `cutoff`
+    (a `YYYYmmddTHHMMSSZ` stamp, normally the last news run): only datasets
+    re-rendered since then can signal, and only with what is new since."""
     ids = ids if ids is not None else store.ids()
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        recents = dict(zip(ids, ex.map(lambda i: _safe_recent(store, i), ids), strict=True))
+        pairs = dict(zip(ids, ex.map(lambda i: _safe_pair(store, i, cutoff), ids), strict=True))
 
     series_by_ds: dict[str, list[Series]] = {}
     signals: list[Signal] = []
-    with_history = 0
-    for ds, snaps in recents.items():
-        if not snaps:
+    with_history = rendered = 0
+    for ds, (latest, base, fresh) in pairs.items():
+        if latest is None:
             continue
-        latest = snaps[0]
         cur = _series_of(latest, today)
-        series_by_ds[ds] = cur
+        series_by_ds[ds] = cur   # link context even when it didn't re-render
+        if not fresh:
+            continue
+        rendered += 1
         prev_map = None
-        if len(snaps) > 1 and snaps[1].recipe_version == latest.recipe_version:
+        if base is not None and base.recipe_version == latest.recipe_version:
             # A recipe change reshapes the model; only same-recipe history
             # can say what is new.
-            prev_map = {s.path: s for s in _series_of(snaps[1], today)}
+            prev_map = {s.path: s for s in _series_of(base, today)}
             with_history += 1
         signals += detect_all(cur, today, prev_map)
 
@@ -66,19 +71,19 @@ def find_signals(store, *, today: date, catalog: dict[str, dict] | None = None,
         d = (demand_by_id or {}).get(s.dataset_id)
         s.demand = demand_mod.multiplier(d["impressions"]) if d else 1.0
     stats = {"datasets": len(ids), "with_snapshot": len(series_by_ds),
-             "with_history": with_history,
+             "rendered_since_cutoff": rendered, "with_history": with_history,
              "series": sum(len(v) for v in series_by_ds.values()), "signals": len(signals),
              "linked": sum(bool(s.links) for s in signals),
              "catalog": len(catalog or {}), "demand_datasets": len(demand_by_id or {})}
     return signals, stats
 
 
-def _safe_recent(store, ds: str) -> list[Snapshot]:
+def _safe_pair(store, ds: str, cutoff: str | None):
     try:
-        return store.recent(ds, 2)
+        return latest_and_baseline(store, ds, cutoff)
     except Exception:
         log.warning("news: reading snapshots of %s failed", ds, exc_info=True)
-        return []
+        return None, None, False
 
 
 def _row(s: Signal, cat: dict) -> str:
@@ -103,6 +108,9 @@ def main(argv: list[str] | None = None) -> int:
     src.add_argument("--bucket", default=os.environ.get("GCS_STAGING_BUCKET", "govdata-il-staging"))
     ap.add_argument("--prefix", default="models/")
     ap.add_argument("--today", type=date.fromisoformat, default=None)
+    ap.add_argument("--since-hours", type=float, default=24,
+                    help="what counts as new: renders after now minus this (the last daily run); "
+                         "0 = diff against the previous render")
     ap.add_argument("--dataset", action="append", help="limit to these dataset ids (repeatable)")
     ap.add_argument("--top", type=int, default=30)
     ap.add_argument("--per-dataset", type=int, default=3)
@@ -113,15 +121,18 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, stream=sys.stderr,
                         format="%(levelname)s %(name)s: %(message)s")
 
-    today = a.today or datetime.now(UTC).date()
+    now = datetime.now(UTC)
+    today = a.today or now.date()
+    cutoff = ((now - timedelta(hours=a.since_hours)).strftime("%Y%m%dT%H%M%SZ")
+              if a.since_hours > 0 else None)
     store = LocalSnapshots(a.models_dir) if a.models_dir else GcsSnapshots(a.bucket, a.prefix)
     cat = {} if a.no_catalog else catalog_mod.load_catalog()
     dem = {} if (a.no_demand or not cat) else demand_mod.dataset_demand(
         demand_mod.fetch_page_rows(today=today), cat)
-    signals, stats = find_signals(store, today=today, catalog=cat, demand_by_id=dem, ids=a.dataset)
+    signals, stats = find_signals(store, today=today, cutoff=cutoff, catalog=cat, demand_by_id=dem, ids=a.dataset)
     ranked = rank(signals, per_dataset=a.per_dataset, top=a.top)
 
-    print(json.dumps({"type": "news_signals", "today": today.isoformat(), **stats,
+    print(json.dumps({"type": "news_signals", "today": today.isoformat(), "cutoff": cutoff, **stats,
                       "top": [s.key for s in ranked[:5]]}, ensure_ascii=False))
     if a.json:
         for s in ranked:

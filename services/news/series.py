@@ -19,6 +19,7 @@ Pure functions, no I/O.
 """
 from __future__ import annotations
 
+import functools
 import itertools
 import math
 import re
@@ -112,7 +113,7 @@ class Series:
     def complete(self) -> list[tuple[Period, float]]:
         return self.points[:-1] if self.partial_last else self.points
 
-    @property
+    @functools.cached_property
     def cumulative(self) -> bool:
         """A running total (never falls): its every new point is a "record"."""
         vals = [v for _, v in self.points]
@@ -145,20 +146,23 @@ def _periods(xs: list) -> list[Period] | None:
         # Evenly stepped, one period at a time (a few missing periods are
         # fine): rules out decade labels ("1990","2000") and irregular event
         # starts ("מאי 1994", "ינואר 2001") posing as a calendar.
-        steps = [_index(b) - _index(a) for a, b in itertools.pairwise(ps)]
+        steps = [period_index(b) - period_index(a) for a, b in itertools.pairwise(ps)]
         if sum(s == 1 for s in steps) < 0.8 * len(steps):
             return None
     return ps
 
 
-def _index(p: Period) -> int:
-    """A period's ordinal in its own frequency's units."""
+def period_index(p: Period) -> int:
+    """A period's ordinal in its own frequency's units (so `i - 12` is a
+    year back for M, `i - 52` for W, `i - 4` for Q)."""
     if p.freq == "Y":
         return p.start.year
     if p.freq == "Q":
         return p.start.year * 4 + (p.start.month - 1) // 3
     if p.freq == "M":
         return p.start.year * 12 + p.start.month - 1
+    if p.freq == "W":
+        return p.start.toordinal() // 7
     return p.start.toordinal()
 
 

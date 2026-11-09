@@ -11,7 +11,7 @@ from services.news import demand, run
 from services.news.links import Edge, attach_links, load_edges
 from services.news.series import extract_series
 from services.news.signals import Signal
-from services.news.snapshots import LocalSnapshots
+from services.news.snapshots import LocalSnapshots, latest_and_baseline
 
 
 def _months(n, start_year=2018):
@@ -101,7 +101,7 @@ def test_signals_only_end_to_end(tmp_path, capsys):
     _snap(tmp_path / "B", "B", "20260101T040000Z", base)
     _snap(tmp_path / "B", "B", "20260210T040000Z", base)
     rc = run.main(["--signals-only", "--models-dir", str(tmp_path), "--today", "2026-06-01",
-                   "--no-catalog", "--json"])
+                   "--no-catalog", "--json", "--since-hours", "0"])
     assert rc == 0
     lines = [json.loads(x) for x in capsys.readouterr().out.splitlines()]
     head, sigs = lines[0], lines[1:]
@@ -114,5 +114,34 @@ def test_local_snapshots_reads_bare_dumps(tmp_path):
     (tmp_path / "X.json").write_text(json.dumps({"charts": {}}))
     st = LocalSnapshots(tmp_path)
     assert st.ids() == ["X"]
-    (snap,) = st.recent("X")
+    snap, baseline, fresh = latest_and_baseline(st, "X", "20260101T000000Z")
     assert snap.model == {"charts": {}} and snap.data_as_of is None
+    assert baseline is None and fresh  # no timestamp: always a candidate
+
+
+def test_baseline_is_the_last_render_before_the_cutoff(tmp_path):
+    """Two renders since the last news run: the period that appeared in the
+    first of them is still new (diffed against the pre-cutoff render)."""
+    base = [100 + 5 * math.sin(i * 1.7) for i in range(48)]
+    d = tmp_path / "A"
+    _snap(d, "A", "20260101T040000Z", base[:-1])            # before the last run
+    _snap(d, "A", "20260108T120000Z", [*base[:-1], 190.0])  # spike lands (after)
+    _snap(d, "A", "20260109T040000Z", [*base[:-1], 190.0])  # re-render, same series
+    st = LocalSnapshots(tmp_path)
+    latest, baseline, fresh = latest_and_baseline(st, "A", "20260108T000000Z")
+    assert fresh and latest.rendered_at == "20260109T040000Z"
+    assert baseline.rendered_at == "20260101T040000Z"
+    sigs, stats = run.find_signals(st, today=date(2026, 1, 9), cutoff="20260108T000000Z")
+    assert [s.dataset_id for s in sigs] == ["A"] and stats["with_history"] == 1
+    # Without the cutoff the diff is against the previous render — nothing new.
+    assert run.find_signals(st, today=date(2026, 1, 9))[0] == []
+
+
+def test_dataset_not_rerendered_since_cutoff_gives_context_only(tmp_path):
+    base = [100 + 5 * math.sin(i * 1.7) for i in range(48)]
+    _snap(tmp_path / "A", "A", "20260101T040000Z", [*base[:-1], 190.0])
+    st = LocalSnapshots(tmp_path)
+    latest, baseline, fresh = latest_and_baseline(st, "A", "20260108T000000Z")
+    assert latest is not None and baseline is None and not fresh
+    sigs, stats = run.find_signals(st, today=date(2026, 1, 9), cutoff="20260108T000000Z")
+    assert sigs == [] and stats["with_snapshot"] == 1 and stats["rendered_since_cutoff"] == 0

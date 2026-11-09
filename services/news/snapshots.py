@@ -69,15 +69,16 @@ class GcsSnapshots:
             pass
         return sorted(p[len(self.prefix):].rstrip("/") for p in it.prefixes)
 
-    def recent(self, dataset_id: str, n: int = 2) -> list[Snapshot]:
-        """The newest `n` snapshots, newest first."""
-        names = sorted(
-            (b.name for b in self._client.list_blobs(self._bucket, prefix=f"{self.prefix}{dataset_id}/")
-             if _TS_NAME.match(b.name.rsplit("/", 1)[-1])),
-            reverse=True,
-        )[:n]
-        return [Snapshot.from_doc(dataset_id, _decode(self._bucket.blob(nm).download_as_bytes()))
-                for nm in names]
+    def names(self, dataset_id: str) -> list[tuple[str, str]]:
+        """(timestamp, object name) of every snapshot, newest first."""
+        out = []
+        for b in self._client.list_blobs(self._bucket, prefix=f"{self.prefix}{dataset_id}/"):
+            if m := _TS_NAME.match(b.name.rsplit("/", 1)[-1]):
+                out.append((m[1], b.name))
+        return sorted(out, reverse=True)
+
+    def load(self, dataset_id: str, ref: str) -> Snapshot:
+        return Snapshot.from_doc(dataset_id, _decode(self._bucket.blob(ref).download_as_bytes()))
 
 
 class LocalSnapshots:
@@ -92,10 +93,38 @@ class LocalSnapshots:
         out |= {p.name for p in self.root.iterdir() if p.is_dir()}
         return sorted(out)
 
-    def recent(self, dataset_id: str, n: int = 2) -> list[Snapshot]:
+    def names(self, dataset_id: str) -> list[tuple[str, str]]:
         d = self.root / dataset_id
         if d.is_dir():
-            files = sorted((p for p in d.iterdir() if _TS_NAME.match(p.name)), reverse=True)[:n]
-            return [Snapshot.from_doc(dataset_id, _decode(p.read_bytes())) for p in files]
+            return sorted(((m[1], str(p)) for p in d.iterdir() if (m := _TS_NAME.match(p.name))),
+                          reverse=True)
         f = self.root / f"{dataset_id}.json"
-        return [Snapshot.from_doc(dataset_id, _decode(f.read_bytes()))] if f.is_file() else []
+        return [("", str(f))] if f.is_file() else []  # a bare dump: no timestamp
+
+    def load(self, dataset_id: str, ref: str) -> Snapshot:
+        return Snapshot.from_doc(dataset_id, _decode(Path(ref).read_bytes()))
+
+
+def latest_and_baseline(store, dataset_id: str,
+                        cutoff: str | None) -> tuple[Snapshot | None, Snapshot | None, bool]:
+    """(latest snapshot, the one to diff it against, rendered since cutoff).
+
+    The baseline is the newest snapshot rendered before `cutoff` (the last
+    news run, as a `YYYYmmddTHHMMSSZ` stamp): everything that appeared after
+    it is new to the news job, however many renders that took. With no
+    cutoff it is simply the previous render. A latest snapshot older than
+    the cutoff means nothing re-rendered since the last run: it is still
+    returned (as context for cross-dataset links) with `False`, and no
+    baseline. No baseline otherwise → signals fall back to date freshness."""
+    names = store.names(dataset_id)
+    if not names:
+        return None, None, False
+    latest = store.load(dataset_id, names[0][1])
+    latest_ts = names[0][0]
+    if cutoff and latest_ts and latest_ts < cutoff:
+        return latest, None, False
+    if cutoff:
+        base = next((ref for ts, ref in names[1:] if ts and ts < cutoff), None)
+    else:
+        base = names[1][1] if len(names) > 1 else None
+    return latest, (store.load(dataset_id, base) if base else None), True

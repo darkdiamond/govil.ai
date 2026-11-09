@@ -16,7 +16,7 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
-from .series import Series, _index
+from .series import Series, period_index
 from .signals import Signal
 
 LINKS_PATH = Path(__file__).with_name("links.json")
@@ -64,7 +64,7 @@ def _calendar(s: Series) -> tuple[str, dict[int, float]] | None:
     """The series on a monthly (or its own Q/Y) index: daily/weekly averaged
     to months, step/event series carried forward to each month's end."""
     if s.freq in ("M", "Q", "Y"):
-        return s.freq, {_index(p): v for p, v in s.complete}
+        return s.freq, {period_index(p): v for p, v in s.complete}
     if s.freq in ("D", "W"):
         acc: dict[int, list[float]] = {}
         for p, v in s.complete:
