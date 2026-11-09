@@ -1,0 +1,5 @@
+# News job (services/news) — on top of services/page_builder/requirements.txt,
+# whose fetch/recipe code it reuses. The builder image does not need these.
+duckdb>=1.4,<3          # the writer's read-only SQL tool (query.py)
+pillow>=11              # hero image crops + chart-card fallback (images.py)
+lxml>=5                 # source pages → text (fetch.py)

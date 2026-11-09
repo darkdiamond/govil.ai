@@ -151,7 +151,17 @@ landing pages. Five layers:
    400-day lifecycle) — the history the planned news job mines for signals
    (`services/news/`: series extraction → detectors → cross-dataset links →
    GSC demand; `python -m services.news.run --signals-only` prints the
-   ranked list, read-only, no LLM).
+   ranked list, read-only, no LLM). The writer half (`editor` → `writer`
+   agent over `tools` → `gates.check` + `gates.critique` → `images` →
+   `store`) is built but NOT deployed yet: no job runs it, and `run` without
+   `--signals-only`/`--dry-run` refuses unless `NEWS_PUBLISH=live`. Key
+   rules there: every printed number is a ledger fact token (`ledger.py`;
+   a typed digit fails the gate), every outside claim cites a fetched page
+   with a verbatim quote, the model queries data only through locked-down
+   DuckDB SQL (`query.py`, never Python), and `fetch.py` refuses
+   non-public addresses (the job can reach the metadata server). Its deps
+   are `services/news/requirements.txt` (duckdb is imported lazily, so the
+   builder venv runs the suite with those tests skipped).
    **The export** (`agent_contract.fetch_resource_export`) is
    `datastore_search` pages of up to 100k rows (`REFRESH_PAGE_SIZE`). The
    first page is 25k rows. Later pages are sized from the row width toward
