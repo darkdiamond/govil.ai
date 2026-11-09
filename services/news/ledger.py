@@ -30,10 +30,20 @@ MONTHS = "|".join(fmt.MONTHS_HE + ["מרס"])
 # "בשנת 2025", "מרץ 2025", "מאז 2019", "2019–2025"), so a typed count that
 # happens to look like a year ("נמכרו 1980 דירות") still fails.
 _DAY_OF_MONTH = re.compile(rf"(?<![\d.,])(?:[1-9]|[12]\d|3[01])(?=\s*(?:ב|ל|ה|-)?\s*(?:{MONTHS}))")
-_YEAR = re.compile(r"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?![\d.,%])")
+# A full numeric date ("14.9.2026", "9/11/2026") is a date whatever precedes it.
+_DATE_DMY = re.compile(
+    r"(?<![\d.,/])(?:[1-9]|[12]\d|3[01])[./](?:0?[1-9]|1[0-2])[./](?:19[4-9]\d|20[0-4]\d)(?![\d%]|[.,]\d)"
+)
+# A year, optionally a two-year span ("2025/26", "2025-26"). A sentence-ending
+# period or comma after it is punctuation ("…בדצמבר 2026."); only a '%' or a
+# period/comma followed by a digit makes it a number ("2025%", "2026.5").
+_YEAR = re.compile(r"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?:[/–-]\d{2}(?!\d))?(?![\d%]|[.,]\d)")
+YEARLIKE = re.compile(r"\D*(?:19[4-9]\d|20[0-4]\d)(?:[/–-]\d{2})?\D*")
 _YEAR_LEAD = re.compile(
     rf"(?:(?:^|[\s(\"'״])[ובלמהשכ]{{1,3}}-?"
     rf"|(?:{MONTHS}|שנת|שנות|שנים|מאז|עד|לפני|אחרי|לעומת|מול|בין|מתחילת|מסוף|בשנים|בשנת)\s+"
+    # "שנת התקציב 2025", "בשנת הלימודים 2024-25": one word between
+    r"|(?:שנת|בשנת|שנות|בשנות)\s+[א-ת\"״']+\s+"
     rf"|\(|[–-]\s*)$"
 )
 _DIGITS = re.compile(r"\d")
@@ -193,8 +203,9 @@ def stray_numbers(text: str) -> list[str]:
     excepted). Empty means the text is clean."""
     t = TOKEN.sub(" ", text)
     t = LINK.sub(lambda m: f" {m[1]} ", t)
+    t = _DATE_DMY.sub(" ", t)
     t = _DAY_OF_MONTH.sub(" ", t)
-    t = _YEAR.sub(lambda m: " " if _YEAR_LEAD.search(t[max(0, m.start() - 14):m.start()]) else m[0], t)
+    t = _YEAR.sub(lambda m: " " if _YEAR_LEAD.search(t[max(0, m.start() - 24):m.start()]) else m[0], t)
     return [m for m in re.findall(r"\S*\d\S*", t) if _DIGITS.search(m)]
 
 

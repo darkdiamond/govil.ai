@@ -23,7 +23,15 @@ from pathlib import Path
 
 from . import charts as charts_mod
 from .fetch import official_source
-from .ledger import LINK, Ledger, plain, render, spelled_numbers, stray_numbers
+from .ledger import (
+    LINK,
+    YEARLIKE,
+    Ledger,
+    plain,
+    render,
+    spelled_numbers,
+    stray_numbers,
+)
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
@@ -97,7 +105,17 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     def text(field_name: str, s, *, numbers_ok=False) -> tuple[list[dict], str]:
         s = str(s or "")
         if not numbers_ok and (bad := stray_numbers(s)):
-            problems.append(f"{field_name}: typed numbers {bad[:5]} — use fact tokens")
+            # A year has no fact token: telling the writer to use one gives it
+            # nothing to fix (the 2026-11-09 live story died on exactly that).
+            years = [b for b in bad if YEARLIKE.fullmatch(b)]
+            others = [b for b in bad if b not in years]
+            if others:
+                problems.append(f"{field_name}: typed numbers {others[:5]} — use fact tokens")
+            if years:
+                problems.append(
+                    f"{field_name}: years without date context {years[:5]} — write the year as "
+                    "a date ('בשנת 2025', 'ב-2025', after a month name, 'מאז 2019', a range "
+                    "'2019–2025'); if it is a count that only looks like a year, use a fact token")
         if not numbers_ok and (bad := spelled_numbers(s)):
             problems.append(f"{field_name}: quantities spelled in words {bad[:3]} — a number from "
                             "data needs a fact token; one from a source needs that source linked "
