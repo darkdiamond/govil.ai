@@ -90,7 +90,7 @@ def compute(frames):
     ym = d.groupby(["y", "m"])["n"].sum()
     seq = [(y, m, float(ym[(y, m)])) for y in years for m in range(1, 13) if (y, m) in ym.index]
     dips = []
-    for i in range(12, len(seq)):
+    for i in range(12, len(seq) - 1):  # the newest month may be partly loaded
         base = float(pd.Series([v for _, _, v in seq[i - 12:i]]).median())
         if base > 0 and seq[i][2] < DIP_RATIO * base:
             dips.append((seq[i][0], seq[i][1], seq[i][2], base))
@@ -115,7 +115,7 @@ def compute(frames):
     keep_dom = [x for x in dom_labels if x != frame.OTHER]
     d["dom_g"] = d["dom"].where(d["dom"].isin(keep_dom), frame.OTHER)
     ly_df = d[d["y"] == ly]
-    top_dom = str(dom_rank.index[0])
+    top_dom = str(_rank(ly_df.groupby("dom")["n"].sum()).index[0])
 
     def ylabel(y):
         return f"{y} (חלקית)" if months_in[y] < 12 else str(y)
@@ -278,8 +278,9 @@ def compute(frames):
                        "share": [_pct1(v / tot) for v in val]})
         for k, v in zip(lab, val, strict=True):
             tbl_dom_types.append([title, k, fmt.int_he(v), fmt.pct(v / tot)])
-        if g != frame.OTHER and lab[0] != frame.OTHER:
-            dom_type_leads.append((g, lab[0], float(val[0]) / tot))
+        named = [(k, v) for k, v in zip(lab, val, strict=True) if k not in (frame.OTHER, "לא צוין")]
+        if g != frame.OTHER and named:
+            dom_type_leads.append((g, named[0][0], float(named[0][1]) / tot))
 
     # ── localities (latest complete year) ────────────────────────────────
     lc = ly_df[(ly_df["loc"] != "") & (ly_df["loc"] != NO_ADDRESS) & ~ly_df["loc"].str.match(ROAD_RE)]

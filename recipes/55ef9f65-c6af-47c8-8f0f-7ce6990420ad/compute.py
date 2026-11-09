@@ -176,7 +176,7 @@ def _ins_haredi_cities(df, top_locs):
     for loc in top_locs:
         g = df[df["locality"] == loc]
         sh = _share(int((g["stream"] == HAREDI).sum()), len(g))
-        if sh >= HAREDI_MAJORITY:
+        if sh > HAREDI_MAJORITY:
             hits.append((-sh, loc, sh))
     if not hits:
         return None

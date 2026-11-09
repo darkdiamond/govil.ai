@@ -392,9 +392,9 @@ def compute(frames):
                      f"הגדול ביותר: {big[NAME]} עם {fmt.int_he(big['spaces'])} מקומות." if big is not None else ""),
         "top_aria": (f"גרף עמודות אופקי: {TOP_LOTS:,} חניוני חנה וסע הגדולים. הגדול: {big[NAME]}, "
                      f"{fmt.int_he(big['spaces'])} מקומות." if big is not None else "גרף החניונים הגדולים"),
-        "size_note": (f"רוב החניונים קטנים: החציון הוא {fmt.int_he(median)} מקומות. "
+        "size_note": (f"החניון החציוני מחזיק {fmt.int_he(median)} מקומות. "
                       f"{fmt.int_he(n_zero)} חניונים ללא מספר מקומות רשום אינם בגרף." if n_zero else
-                      f"רוב החניונים קטנים: החציון הוא {fmt.int_he(median)} מקומות."),
+                      f"החניון החציוני מחזיק {fmt.int_he(median)} מקומות."),
         "size_aria": f"גרף עמודות: התפלגות החניונים לפי מספר מקומות. חציון {fmt.int_he(median)} מקומות.",
         "modes_note": (f"חניון יכול להיות מחובר לכמה אמצעים. {fmt.int_he(df['bus'].sum())} מתוך "
                        f"{fmt.int_he(n)} החניונים משורתים באוטובוס, {fmt.int_he(df['train'].sum())} ברכבת ישראל "
