@@ -63,7 +63,17 @@ def official_source(url: str) -> bool:
 
 
 def allowed_source(url: str, domains: tuple[str, ...] | None = None) -> bool:
-    host = (urlparse(url).hostname or "").rstrip(".").lower()
+    """A plain web URL on an allowed domain. The scheme, credentials and port
+    are checked too: these URLs become links on our pages, so a
+    `javascript://www.gov.il/…` must never pass on its host alone."""
+    try:
+        u = urlparse(url)
+        port = u.port
+    except ValueError:
+        return False
+    if u.scheme not in ("https", "http") or u.username or u.password or port not in (None, 80, 443):
+        return False
+    host = (u.hostname or "").rstrip(".").lower()
     return any(host == d or host.endswith("." + d) for d in (domains or source_domains()))
 
 

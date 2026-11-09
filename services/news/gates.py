@@ -7,7 +7,8 @@ and chart, and lists every problem (any one blocks publication):
   - a linked source without a verbatim quote that appears in the fetched page
   - a dataset in `dataset_ids` never linked from the text, or unknown to us
   - a chart that doesn't resolve to real series/facts; none, or more than 3
-  - banned AI-slop phrases, exclamation marks, question subheads, em-dash chains
+  - banned AI-slop phrases and punctuation (em dashes, dash-as-punctuation,
+    ellipses, exclamation marks), question subheads
   - headline/dek/body length, too little Hebrew
 
 `critique()` then asks the model, as copy chief, for pass / revise / kill
@@ -37,6 +38,12 @@ BANNED = [
     "נבחן את", "נסקור", "לא תאמינו", "הסיבה המפתיעה",
 ]
 _NOT_ONLY = re.compile(r"לא רק\b.{0,80}?\bאלא גם")
+PUNCTUATION = [
+    (re.compile("—"), "no em dashes: use a comma, a period, or two sentences"),
+    (re.compile(r"(?<!\d)\s[–-]\s|\s[–-]\s(?!\d)"), "no dash as punctuation between words"),
+    (re.compile("…|\\.\\.\\."), "no ellipses"),
+    (re.compile(r"[\U0001F300-\U0001FAFF☀-➿]"), "no emoji or symbols"),
+]
 _MONTHS = "ינואר|פברואר|מרץ|מרס|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר"
 # Tautologies the first real drafts leaned on (2026-11-09 dry runs), and raw
 # source units a reader shouldn't see.
@@ -140,8 +147,6 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             for m in LINK.finditer(raw):
                 (linked_ds.add(m[2][3:]) if m[2].startswith("ds:") else linked_sources.add(m[2]))
             runs, ptxt = text(f"block {i}", raw)
-            if ptxt.count("—") > 1:
-                problems.append(f"block {i}: em-dash chain")
             blocks.append({"type": "p", "runs": runs})
             body_text.append(ptxt)
         elif kind == "h2":
@@ -196,6 +201,11 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         problems.append(f"banned phrases: {hits}")
     if "!" in every:
         problems.append("no exclamation marks")
+    # Punctuation that reads as machine-written (user rule, 2026-11-09). A
+    # dash between two numbers is a range ("2019–2025") and stays.
+    for rx, why in PUNCTUATION:
+        if m := rx.search(every):
+            problems.append(f"punctuation: «{every[max(0, m.start() - 15):m.end() + 15]}» — {why}")
 
     quotes = {s.get("id"): str(s.get("quote") or "") for s in draft.get("sources") or []
               if isinstance(s, dict)}
@@ -217,7 +227,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         elif _norm(q) not in _norm(src.text):
             problems.append(f"source {sid}: quote not found in the fetched page")
         url = "https://" + src.url[len("http://"):] if src.url.startswith("http://") else src.url
-        sources.append({"id": sid, "url": url, "title": src.title, "quote": q})
+        sources.append({"id": sid, "url": url, "title": src.title, "quote": q, "kind": src.kind})
 
     tags = [t for t in draft.get("tags") or [] if t in vocab][:5]
     if not tags:
@@ -248,7 +258,7 @@ def as_markdown(core: dict) -> str:
             c = charts[b["chart"]]
             out.append(f"[תרשים: {c['title']} ({c['unit']}), {len(c['table']) - 1} נקודות]")
         elif b["type"] == "stat":
-            out.append(f"**{b['value']}** — {b['label']}")
+            out.append(f"**{b['value']}** ({b['label']})")
         out.append("")
     if core["sources"]:
         # Shown to the critic only: the site renders the sources list itself.

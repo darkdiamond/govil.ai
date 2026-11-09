@@ -204,7 +204,8 @@ class Toolbox:
             snippet = r.get("snippet") or ""
             out = {"url": url, "title": _untrusted(r.get("title") or ""), "snippet": _untrusted(snippet)}
             if official_source(url) and len(snippet) >= 80:
-                out["source"] = self.ledger.add_source(url, r.get("title") or "", snippet).id
+                out["source"] = self.ledger.add_source(url, r.get("title") or "", snippet,
+                                                       kind="search_extract").id
             else:
                 out["context_only"] = True
             results.append(out)

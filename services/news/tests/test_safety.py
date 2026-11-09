@@ -128,6 +128,29 @@ def test_source_allowlist(url, ok):
     assert allowed_source(url) is ok
 
 
+@pytest.mark.parametrize("url", [
+    "javascript://www.gov.il/%0aalert(1)",
+    "data://www.gov.il/x",
+    "ftp://www.gov.il/x",
+    "https://user:pw@www.gov.il/x",
+    "https://www.gov.il:8443/x",
+])
+def test_allowlist_needs_a_plain_web_url(url):
+    assert not allowed_source(url)
+
+
+def test_ledger_sources_are_https_and_fetch_beats_extract():
+    from services.news.ledger import Ledger
+
+    led = Ledger()
+    s = led.add_source("http://www.gov.il/p", "t", "extract", kind="search_extract")
+    assert s.url == "https://www.gov.il/p" and s.kind == "search_extract"
+    s2 = led.add_source("https://www.gov.il/p", "t", "the full page text", kind="fetched")
+    assert s2.id == s.id and s2.text == "the full page text" and s2.kind == "fetched"
+    with pytest.raises(ValueError):
+        led.add_source("javascript:alert(1)", "t", "x")
+
+
 def test_allowlist_env_override(monkeypatch):
     monkeypatch.setenv("NEWS_SOURCE_DOMAINS", "example.org")
     assert allowed_source("https://a.example.org/x") and not allowed_source("https://www.gov.il/")

@@ -204,6 +204,33 @@ def test_style_patterns(text, needle):
     assert any(needle in p for p in problems), problems
 
 
+@pytest.mark.parametrize("text, bad", [
+    ("ההיקף עלה — ובחדות", True),
+    ("ההיקף עלה – ובחדות", True),
+    ("ההיקף עלה - ובחדות", True),
+    ("ההיקף עלה…", True),
+    ("ההיקף עלה...", True),
+    ("ההיקף עלה 📈", True),
+    ("בשנים 2019–2025 ההיקף עלה, ובחדות.", False),   # a range between numbers is fine
+    ("תל אביב-יפו ובית־שמש", False),                 # hyphen/maqaf inside names
+])
+def test_ai_punctuation(text, bad):
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["blocks"][3]["text"] += " " + text
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert any(p.startswith("punctuation") for p in problems) is bad, problems
+
+
+def test_prompts_have_no_ai_punctuation():
+    """Models copy their prompt's style: the prompts model the punctuation rule."""
+    from pathlib import Path
+
+    for p in (Path(gates.__file__).parent / "prompts").glob("*.md"):
+        t = p.read_text(encoding="utf-8")
+        assert "—" not in t and "…" not in t, p.name
+
+
 def test_calc_scale():
     led = Ledger()
     a = led.add(888769, label="k NIS", provenance="a")

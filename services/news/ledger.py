@@ -69,6 +69,7 @@ class Source:
     url: str
     title: str
     text: str = field(repr=False)
+    kind: str = "fetched"      # fetched | search_extract
 
 
 FORMATS = ("auto", "int", "num0", "num1", "num2", "pct", "pct0", "spct", "abs", "abs1", "abs_pct", "pp")
@@ -128,12 +129,20 @@ class Ledger:
         self._by_prov[provenance] = f.id
         return f
 
-    def add_source(self, url: str, title: str, text: str) -> Source:
+    def add_source(self, url: str, title: str, text: str, *, kind: str = "fetched") -> Source:
+        """`kind`: fetched (we read the page) | search_extract (the search
+        provider's extract — the only way to quote gov.il, which renders with
+        JavaScript). A page we fetch replaces an extract of the same URL."""
         if url.startswith("http://"):  # search engines hand back http:// for https sites
             url = "https://" + url[len("http://"):]
+        if not url.startswith("https://"):
+            raise ValueError(f"not a web URL: {url[:60]}")
         if (sid := self._by_url.get(url)) is not None:
-            return self.sources[sid]
-        s = Source(f"s{len(self.sources) + 1}", url, title, text)
+            s = self.sources[sid]
+            if kind == "fetched" and s.kind != "fetched":
+                s.text, s.title, s.kind = text, title or s.title, "fetched"
+            return s
+        s = Source(f"s{len(self.sources) + 1}", url, title, text, kind)
         self.sources[s.id] = s
         self._by_url[url] = s.id
         return s
@@ -175,7 +184,8 @@ class Ledger:
 
     def dump(self) -> dict:
         return {"facts": [asdict(f) for f in self.facts.values()],
-                "sources": [{"id": s.id, "url": s.url, "title": s.title} for s in self.sources.values()]}
+                "sources": [{"id": s.id, "url": s.url, "title": s.title, "kind": s.kind}
+                            for s in self.sources.values()]}
 
 
 def stray_numbers(text: str) -> list[str]:

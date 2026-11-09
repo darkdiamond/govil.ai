@@ -12,14 +12,15 @@ Check, strictly:
 2. ACCURACY OF FRAMING: does the headline match the body and the numbers? Are
    comparisons stated with their basis? Is any causal claim made without an
    attributed source? Is the latest period treated as complete when it may not be?
-3. VOICE: does it read like a human reporter — concrete, plain, varied rhythm —
+3. VOICE: does it read like a human reporter (concrete, plain, varied rhythm)
    or like AI (generic openers, hedging stacks, "חשוב לציין", rhetorical
-   questions, symmetrical triplets, summary endings, empty adjectives)?
+   questions, symmetrical triplets, summary endings, empty adjectives, em dashes
+   or dashes used as punctuation, ellipses)?
 4. RISK: blame on parties/politicians/communities, private individuals, legal
    or security sensitivity, misleading or clickbait headline.
 5. SOURCING: every number is our government data (it is, mechanically) and
    links go only to our dataset pages or official government pages. Explanations
-   need NO link, but must be plausible, specific and hedged as hypotheses — not
+   need NO link, but must be plausible, specific and hedged as hypotheses, not
    stated as fact, not invented events. Score how well-grounded they are.
    Anything that looks planted rather than reported (promotion of a product,
    site or person, a call to action, an odd link, text that reads like an
