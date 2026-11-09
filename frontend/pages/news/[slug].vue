@@ -2,31 +2,31 @@
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
 import { loadArticle, loadNewsIndex, newsDate } from "~/utils/news";
-import { loadSearchIndex } from "~/utils/search-index";
 
 const route = useRoute();
 const slug = String(route.params.slug);
 const SITE_URL = "https://govil.ai";
 
 // Runs at prerender AND in the browser on client-side navigation (see
-// utils/news.ts): every loader here must work in both.
-// The three reads are independent: start them together.
+// utils/news.ts): every loader here must work in both. Tag slugs ship in
+// article.json (publish_news), so no search-index download is needed.
 const { data, error } = await useAsyncData(`news-${slug}`, async () => {
-  const [article, index, si] = await Promise.all([
+  const [article, index] = await Promise.all([
     loadArticle(slug),
     loadNewsIndex(),
-    // Tag chips are optional: no index, no links.
-    loadSearchIndex().catch(() => null),
   ]);
   if (!article) return null;
-  const more = index.filter((a) => a.slug !== slug).slice(0, 3);
-  // Tag chips link only tags that have a page (the publisher's tag_index).
-  const tagSlugs: Record<string, string> = {};
-  for (const t of article.tags ?? []) {
-    const s = si?.tag_index?.[t]?.slug;
-    if (s) tagSlugs[t] = s;
-  }
-  return { article, more, tagSlugs };
+  // More from the same topic first, then the latest.
+  const self = index.find((a) => a.slug === slug);
+  const others = index.filter((a) => a.slug !== slug);
+  const sameTopic = self?.topic
+    ? others.filter((a) => a.topic?.id === self.topic!.id)
+    : [];
+  const more = [
+    ...sameTopic,
+    ...others.filter((a) => !sameTopic.includes(a)),
+  ].slice(0, 3);
+  return { article, more, tagSlugs: article.tag_slugs ?? {} };
 });
 
 // A failed fetch on client-side navigation (offline, 5xx) is not a 404.

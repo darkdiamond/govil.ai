@@ -54,6 +54,8 @@ export interface NewsArticle {
   charts: NewsChart[];
   sources: { url: string; title: string }[];
   datasets: NewsDatasetCard[];
+  /** Tags that have a /tags/ page → their slug. */
+  tag_slugs?: Record<string, string>;
 }
 
 export interface NewsIndexEntry {
@@ -67,4 +69,12 @@ export interface NewsIndexEntry {
   hero?: string | null;
   hero_alt?: string | null;
   dataset_ids: string[];
+  // Card data (services/news/publish_news.py). All optional: older index
+  // files and articles without a stat block or line chart omit them.
+  datasets?: { id: string; title?: string; href: string | null }[];
+  topic?: { id: string; label: string } | null;
+  stat?: { value: string; label: string } | null;
+  spark?: number[] | null;
+  minutes?: number | null;
+  tag_slugs?: Record<string, string>;
 }
