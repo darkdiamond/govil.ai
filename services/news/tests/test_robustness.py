@@ -65,7 +65,7 @@ def test_one_story_crashing_does_not_stop_the_day(tmp_path, monkeypatch):
     assert out["rejected"][0]["reason"] == "error" and out["published"] == []
 
 
-def test_bar_axis_includes_zero_and_line_legend_is_rtl():
+def test_bar_axis_includes_zero_and_line_legend_at_bottom():
     led = Ledger()
     fs = [led.add(v, label=str(v), provenance=f"p{v}").id for v in (62.7, 54.8, 54.2)]
     bar = charts.resolve({"id": "b", "type": "bar", "title": "t",
@@ -81,7 +81,7 @@ def test_bar_axis_includes_zero_and_line_legend_is_rtl():
     line = charts.resolve({"id": "l", "type": "line", "title": "t", "series": [
         {"dataset_id": "A", "series_path": "c.y"}, {"dataset_id": "A", "series_path": "c.z"}]},
         {"A": a}, Ledger())
-    assert line["option"]["legend"]["align"] == "right"
+    assert line["option"]["legend"]["bottom"] == 0
 
 
 def test_chart_aligns_periods_with_different_labels():

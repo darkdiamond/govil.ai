@@ -83,7 +83,7 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
             # Bottom, with room: at the top the Hebrew labels collided with
             # each other and with the axis name (seen in the first render).
             # GovEcharts.option merges shallowly, so the grid is given whole.
-            option["legend"] = {"bottom": 0, "itemGap": 20, "align": "right"}  # RTL: marker right of its label
+            option["legend"] = {"bottom": 0, "itemGap": 20}
             option["grid"] = {"left": 48, "right": 64, "top": 40, "bottom": 72, "containLabel": True}
         table = [["", *[s["name"] for s in series]]] + [
             [lbl, *[s["data"][i] for s in series]] for i, lbl in enumerate(x)]
