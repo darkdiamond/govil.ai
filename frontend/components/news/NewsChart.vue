@@ -13,6 +13,7 @@ let inst: {
   dispose: () => void;
 } | null = null;
 let ro: ResizeObserver | null = null;
+let unmounted = false;
 
 type EchartsWindow = Window & {
   echarts?: {
@@ -21,11 +22,13 @@ type EchartsWindow = Window & {
   GovEcharts?: { option: (o: unknown) => unknown };
 };
 
-async function libs(timeoutMs = 6000): Promise<EchartsWindow | null> {
+// After a client-side navigation the libs are injected by useHead and still
+// downloading (echarts.min.js is ~1MB), so allow a slow connection time.
+async function libs(timeoutMs = 20000): Promise<EchartsWindow | null> {
   const start = Date.now();
   const w = window as EchartsWindow;
   while (!(w.echarts && w.GovEcharts?.option)) {
-    if (Date.now() - start > timeoutMs) return null;
+    if (unmounted || Date.now() - start > timeoutMs) return null;
     await new Promise((r) => setTimeout(r, 30));
   }
   return w;
@@ -33,7 +36,8 @@ async function libs(timeoutMs = 6000): Promise<EchartsWindow | null> {
 
 onMounted(async () => {
   const w = await libs();
-  if (!w || !el.value) return;
+  // Navigated away while the libs loaded: don't init a chart nobody disposes.
+  if (!w || unmounted || !el.value) return;
   // Canvas, as on recipe pages: the SVG renderer inherits the page's dir="rtl",
   // which draws legend labels back over their markers.
   inst = w.echarts!.init(el.value);
@@ -43,6 +47,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  unmounted = true;
   ro?.disconnect();
   inst?.dispose();
 });

@@ -17,10 +17,10 @@ useSeo({
 });
 
 // Latest news (services/news) — read at prerender, inlined in the payload.
+// Works on client-side navigation too (utils/news.ts).
 const { data: newsData } = await useAsyncData("home-news", async () => {
-  if (!import.meta.server) return null;
-  const { loadNewsIndexServer } = await import("~/utils/news");
-  return { articles: (await loadNewsIndexServer()).slice(0, 3) };
+  const { loadNewsIndex } = await import("~/utils/news");
+  return { articles: (await loadNewsIndex()).slice(0, 3) };
 });
 const latestNews = computed(() => newsData.value?.articles ?? []);
 

@@ -17,9 +17,12 @@ const chartById = computed(() =>
       <p v-if="b.type === 'p'">
         <template v-for="(r, j) in b.runs" :key="j">
           <template v-if="r.t === 'link' && safeHref(r.href)">
-            <NuxtLink v-if="r.kind === 'dataset'" :to="safeHref(r.href)!">{{
+            <!-- Plain <a>: dataset pages load their data at prerender only, so
+                 a client-side navigation to one renders a 404 (the site links
+                 datasets with <a> everywhere for this reason). -->
+            <a v-if="r.kind === 'dataset'" :href="safeHref(r.href)!">{{
               r.v
-            }}</NuxtLink>
+            }}</a>
             <a
               v-else
               :href="safeHref(r.href)!"

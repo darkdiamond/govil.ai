@@ -1,33 +1,42 @@
 <script setup lang="ts">
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
-import { loadArticleServer, loadNewsIndexServer, newsDate } from "~/utils/news";
-import { loadFullManifestServer } from "~/utils/search-index";
+import { loadArticle, loadNewsIndex, newsDate } from "~/utils/news";
+import { loadSearchIndex } from "~/utils/search-index";
 
 const route = useRoute();
 const slug = String(route.params.slug);
 const SITE_URL = "https://govil.ai";
 
-const { data } = await useAsyncData(`news-${slug}`, async () => {
-  if (!import.meta.server) return null;
-  const article = await loadArticleServer(slug);
+// Runs at prerender AND in the browser on client-side navigation (see
+// utils/news.ts): every loader here must work in both.
+// The three reads are independent: start them together.
+const { data, error } = await useAsyncData(`news-${slug}`, async () => {
+  const [article, index, si] = await Promise.all([
+    loadArticle(slug),
+    loadNewsIndex(),
+    // Tag chips are optional: no index, no links.
+    loadSearchIndex().catch(() => null),
+  ]);
   if (!article) return null;
-  const index = await loadNewsIndexServer();
   const more = index.filter((a) => a.slug !== slug).slice(0, 3);
   // Tag chips link only tags that have a page (the publisher's tag_index).
-  let tagSlugs: Record<string, string> = {};
-  try {
-    const manifest = await loadFullManifestServer();
-    for (const t of article.tags ?? []) {
-      const s = manifest.tag_index?.[t]?.slug;
-      if (s) tagSlugs[t] = s;
-    }
-  } catch {
-    tagSlugs = {};
+  const tagSlugs: Record<string, string> = {};
+  for (const t of article.tags ?? []) {
+    const s = si?.tag_index?.[t]?.slug;
+    if (s) tagSlugs[t] = s;
   }
   return { article, more, tagSlugs };
 });
 
+// A failed fetch on client-side navigation (offline, 5xx) is not a 404.
+if (error.value) {
+  throw createError({
+    statusCode: 503,
+    statusMessage: "Article unavailable",
+    fatal: true,
+  });
+}
 if (!data.value) {
   throw createError({
     statusCode: 404,
@@ -183,9 +192,10 @@ useSeo({
         </h2>
         <ul class="list-none m-0 p-0 space-y-2">
           <li v-for="d in article.datasets" :key="d.id">
-            <NuxtLink v-if="d.href" :to="d.href" class="font-medium">{{
+            <!-- <a>, not NuxtLink: dataset pages are prerender-only. -->
+            <a v-if="d.href" :href="d.href" class="font-medium">{{
               d.title
-            }}</NuxtLink>
+            }}</a>
             <span v-else>{{ d.title }}</span>
             <span v-if="d.organization" class="text-sm text-subtle">
               · {{ d.organization }}</span
