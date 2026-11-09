@@ -1,0 +1,10 @@
+{
+  "main.שם בעל היתר": "chart-form, chart-themes, table:soonest, table:groups, insight:form, insight:themes, insight:groups, kpi:holders, kpi:company — business names; legal form from the בע\"מ suffix, service words matched against a fixed keyword map with a catch-all bucket",
+  "main.טלפון": "chart-contacts — completeness only, never printed",
+  "main.נייד": "chart-contacts, insight:fax — completeness only, never printed",
+  "main.פקס": "chart-contacts, insight:fax — completeness only, never printed",
+  "main.כתובת": "chart-cities, kpi:cities, insight:cities, insight:scale — city parsed from the free-text address (zip, PO box and street number stripped, known abbreviations mapped); the address itself is never printed",
+  "main.מייל": "chart-email, chart-contacts, insight:email, insight:groups, table:groups — only the domain kind (business / free webmail / ISP) and shared business domains; addresses never printed",
+  "main.מייל נוסף": "chart-contacts, chart-email, table:groups — fallback domain when the primary is missing; shared-domain grouping",
+  "main.תוקף היתר עד ליום": "chart-expiry, table:soonest, kpi:first_year, kpi:span, insight:expiry, insight:peak — dd/mm/yyyy, ISO fallback"
+}

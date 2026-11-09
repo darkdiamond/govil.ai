@@ -1,0 +1,208 @@
+{% import "gov.j2" as gov %}
+{%- macro section(cid, icon, title, note, aria, h, cap, cols, rows, ltr=()) %}
+<section class="card p-5 mb-6">
+  {{ gov.head(icon, title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  {{ gov.chart(cid, aria, h) }}
+  {{ gov.table(cap, cols, rows, ltr) }}
+</section>
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תואר לפי מוסד, תחום השכלה או רמת תואר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות האוגדן: שם המוסד, פקולטה, תחום השכלה, רמת התואר, תחום מקביל, המלצת שיבוץ והסבר על התואר.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.entries, model.labels.entries_kpi) }}
+  {{ gov.kpi(model.kpis.inst, model.labels.inst_kpi) }}
+  {{ gov.kpi(model.kpis.fields, model.labels.fields_kpi) }}
+  {{ gov.kpi(model.kpis.expl, model.labels.expl_kpi) }}
+  {{ gov.kpi(model.kpis.place, model.labels.place_kpi) }}
+  {{ gov.kpi(model.kpis.foreign, model.labels.foreign_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{{ section("chart-world", "database", "תארים לפי עולם תוכן", model.labels.world_note, model.labels.world_aria, "h-80 md:h-[460px]", model.labels.world_aria, model.tables.world_cols, model.tables.world) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "שלב התואר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stage_note }}</p>
+    {{ gov.chart("chart-stage", model.labels.stage_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.stage_aria, ["שלב", "תארים", "שיעור"], model.tables.stage) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("tag", "סימוני התואר הנפוצים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.degrees_note }}</p>
+    {{ gov.chart("chart-degrees", model.labels.degrees_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.degrees_aria, ["רמת תואר", "תארים"], model.tables.degrees, ltr=(0,)) }}
+  </section>
+</div>
+
+{{ section("chart-faculty", "list", "תארים לפי פקולטה", model.labels.faculty_note, model.labels.faculty_aria, "h-64 md:h-80", model.labels.faculty_aria, ["פקולטה", "תארים", "שיעור"], model.tables.faculty) }}
+
+{{ section("chart-inst", "building-2", "המוסדות עם מספר התארים הרב ביותר", model.labels.inst_note, model.labels.inst_aria, "h-80 md:h-[460px]", model.labels.inst_aria, ["מוסד", "תארים", "תחומי השכלה"], model.tables.inst) }}
+
+{{ section("chart-types", "building-2", "סוגי מוסדות", model.labels.types_note, model.labels.types_aria, "h-64 md:h-80", model.labels.types_aria, ["סוג מוסד", "תארים", "מוסדות", "עם הסבר"], model.tables.types) }}
+
+{% if model.flags.heat %}
+{{ section("chart-heat", "database", "עולמות תוכן לפי סוג מוסד", model.labels.heat_note, model.labels.heat_aria, "h-80 md:h-[460px]", model.labels.heat_aria, model.tables.heat_cols, model.tables.heat) }}
+{% endif %}
+
+{{ section("chart-fields", "list", "תחומי ההשכלה הנפוצים בין המוסדות", model.labels.fields_note, model.labels.fields_aria, "h-80 md:h-[460px]", model.labels.fields_aria, ["תחום השכלה", "מוסדות", "תארים"], model.tables.fields) }}
+
+{% if model.flags.parallel or model.flags.place %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{% if model.flags.parallel %}
+  <section class="card p-5">
+    {{ gov.head("tag", "תחומי השכלה מקבילים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.parallel_note }}</p>
+    {{ gov.chart("chart-parallel", model.labels.parallel_aria, "h-72 md:h-96") }}
+    {{ gov.table(model.labels.parallel_aria, ["תחום מקביל", "תארים"], model.tables.parallel) }}
+  </section>
+{% endif %}
+{% if model.flags.place %}
+  <section class="card p-5">
+    {{ gov.head("tag", "המלצות שיבוץ") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.place_note }}</p>
+    {{ gov.chart("chart-place", model.labels.place_aria, "h-72 md:h-96") }}
+    {{ gov.table(model.labels.place_aria, ["המלצת שיבוץ", "תארים"], model.tables.place) }}
+  </section>
+{% endif %}
+</div>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">כלי עזר וסיוע לבדיקת מועמדויות במכרזי כ"א בשירות המדינה, האוגדן מכיל נתונים ומידע אודות תארים אקדמאיים הנלמדים במוסדות המוכרים למל"ג בחלוקה לקטגוריות לסינון וממנו ניתן לצפות במידע, אודות כל תחום השכלה מסוים/תואר, לרבות הסבר עליו, ע"מ לספק ידע ורקע אודותיו.</p>
+</section>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function esc(s) { return echarts.format.encodeHTML(String(s)); }
+    function num(v) { return Number(v).toLocaleString("he-IL"); }
+    window.__edu = { mk: mk, esc: esc, num: num };
+    window.__edu.hbar = function (id, names, series, stacked, labelW) {
+      var c = mk(id); if (!c) { return; }
+      var narrow = window.innerWidth < 500;
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            var out = esc(ps[0].name);
+            ps.forEach(function (p) { out += "<br/>" + p.marker + esc(p.seriesName) + ": " + num(p.value); });
+            return out;
+          } },
+        legend: series.length > 1 ? { top: 0 } : undefined,
+        grid: { left: 8, right: 16, top: series.length > 1 ? (narrow ? 70 : 32) : 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", inverse: true, data: names,
+          axisLabel: { width: narrow ? 110 : (labelW || 220), overflow: "truncate", fontSize: 11 } },
+        series: series.map(function (s) {
+          return { type: "bar", name: s.name, data: s.data, stack: stacked ? "t" : undefined, barMaxWidth: 22 };
+        })
+      }));
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var W = {{ model.charts.world | tojson }};
+    window.__edu.hbar("chart-world", W.names, W.series, true, 220);
+    var I = {{ model.charts.inst | tojson }};
+    window.__edu.hbar("chart-inst", I.names, I.series, true, 260);
+    var F = {{ model.charts.fields | tojson }};
+    window.__edu.hbar("chart-fields", F.names, [{ name: "מוסדות", data: F.values }], false, 200);
+    var A = {{ model.charts.faculty | tojson }};
+    window.__edu.hbar("chart-faculty", A.names, [{ name: "תארים", data: A.values }], false, 160);
+    var D = {{ model.charts.degrees | tojson }};
+    window.__edu.hbar("chart-degrees", D.names, [{ name: "תארים", data: D.values }], false, 90);
+{%- if model.flags.parallel %}
+    var P = {{ model.charts.parallel | tojson }};
+    window.__edu.hbar("chart-parallel", P.names, [{ name: "תארים", data: P.values }], false, 180);
+{%- endif %}
+{%- if model.flags.place %}
+    var Q = {{ model.charts.place | tojson }};
+    window.__edu.hbar("chart-place", Q.names, [{ name: "תארים", data: Q.values }], false, 180);
+{%- endif %}
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.stage | tojson }};
+    var c = window.__edu.mk("chart-stage"); if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        return window.__edu.esc(p.name) + ": " + window.__edu.num(p.value) + " (" + p.percent + "%)";
+      } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["42%", "70%"], center: ["50%", "45%"], data: S,
+        label: { show: window.innerWidth >= 500, formatter: "{d}%" },
+        labelLine: { show: window.innerWidth >= 500 } }]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var T = {{ model.charts.types | tojson }};
+    var c = window.__edu.mk("chart-types"); if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return window.__edu.esc(T.names[i]) + "<br/>תארים: " + window.__edu.num(T.rows[i]) +
+            "<br/>מוסדות: " + window.__edu.num(T.inst[i]) + "<br/>עם הסבר: " + T.expl[i] + "%";
+        } },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: 32, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: T.names, axisLabel: { interval: 0, fontSize: 11, width: 90, overflow: "break" } },
+      yAxis: [{ type: "value", minInterval: 1 }, { type: "value", minInterval: 1, splitLine: { show: false } }],
+      series: [
+        { type: "bar", name: "תארים", data: T.rows, barMaxWidth: 36 },
+        { type: "bar", name: "מוסדות", yAxisIndex: 1, data: T.inst, barMaxWidth: 36 }
+      ]
+    }));
+  })();
+</script>
+
+{% if model.flags.heat %}
+<script>
+  (function () {
+    var H = {{ model.charts.heat | tojson }};
+    var c = window.__edu.mk("chart-heat"); if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return window.__edu.esc(H.y[p.value[1]]) + "<br/>" + window.__edu.esc(H.x[p.value[0]]) + ": " + window.__edu.num(p.value[2]) + " תארים";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: H.x, splitArea: { show: true }, axisLabel: { interval: 0, fontSize: 10, width: 80, overflow: "break" } },
+      yAxis: { type: "category", data: H.y, inverse: true, splitArea: { show: true },
+        axisLabel: { fontSize: 11, width: window.innerWidth < 500 ? 100 : 200, overflow: "truncate" } },
+      visualMap: { min: 0, max: H.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+        inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: H.cells, label: { show: true, fontFamily: "Rubik", fontSize: 10 },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+  })();
+</script>
+{% endif %}

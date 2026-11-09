@@ -1,0 +1,30 @@
+{
+  "contract_version": 1,
+  "dataset_id": "01fa89cc-8e1f-4c96-919e-91d28d1c0d42",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-09T09:47:35.266139+00:00",
+    "rows": { "main": 2412 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "9d656232-3329-4e41-bd6f-a793644b4ea6",
+      "required_columns": [
+        "institution_name",
+        "Faculty_Name",
+        "Field_of_Education",
+        "Degree_level",
+        "One_Two_Combo",
+        "Parallel_Foreign_Degree",
+        "Placement_recommendations",
+        "Regular_updates",
+        "Explanations",
+        "Content_worlds"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
