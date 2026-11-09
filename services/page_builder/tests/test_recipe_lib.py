@@ -56,6 +56,19 @@ def test_cbs_grid_takes_one_edition_when_two_share_a_date():
     assert rows == [["b1"], ["b2"]]  # the higher release number, not interleaved
 
 
+def test_cbs_latest_release_orders_like_grid():
+    rel = pd.DataFrame([
+        {"RELEASE_NO": "99/2026", "RELEASE_DATE": "2026-11-04", "TITLE": "a"},
+        {"RELEASE_NO": "100/2026", "RELEASE_DATE": "2026-11-04", "TITLE": "b"},
+        {"RELEASE_NO": "345/2026", "RELEASE_DATE": "2026-10-01", "TITLE": "old"},
+        {"RELEASE_NO": "400/2026", "RELEASE_DATE": "", "TITLE": "undated"},
+    ])
+    latest = cbs.latest_release(rel.sample(frac=1, random_state=2))
+    assert latest["RELEASE_NO"] == "100/2026" and latest["TITLE"] == "b"
+    with pytest.raises(ValueError, match="no edition"):
+        cbs.latest_release(rel[rel["RELEASE_DATE"] == ""])
+
+
 def test_cbs_header_lookups_raise_when_missing():
     rows = [["", "Total", "Grand Total"], ["Cruise", "By Air", "Total"]]
     assert cbs.row_with(rows, "Cruise") == 1

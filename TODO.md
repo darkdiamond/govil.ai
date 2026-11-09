@@ -199,45 +199,35 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 ## CBS reports (cbs_releases provider)
 
-- **Yearly CBS reports (~50) have no pages.** Run `catalog --months 24` to find the ones
-  published in both years; skip holiday collections ("לרגל …"). The release-list window
-  (`LIST_WINDOW`, newest 400 items, ~13 months) is too short for them: raise it, or query
-  per report, before authoring one. (2026-11-05)
+- **Yearly CBS reports (~50) have no pages.** Run `catalog --months 38` to find the ones
+  published in two or more years; skip holiday collections ("לרגל …"). The release-list window
+  (`LIST_WINDOW`) is now 1500 items (~3 years), enough for 2–3 editions of each; deploy the job
+  with it before merging a yearly recipe. (2026-11-05)
 - **A CBS table dropped from the latest edition freezes its page silently.** `facts()` raises
   when the newest edition lacks a configured `table` stem, so the provider sync fails for that
   dataset every run; the refresh never runs, so no `needs-authoring` issue opens and the page
   stays last-good indefinitely (only the run summary's `provider sync … failed` shows it).
   Fix: have the sync open an issue (or record a strike that escalates like
   `REFRESH_TRANSIENT_STRIKES`) after N consecutive `provider_error`s for one dataset.
+  A table marked `"optional": true` in source.json no longer fails the sync this way.
   (2026-11-05)
-- **A CBS chart sheet that comes and goes freezes its page for that edition.** Several
-  recipes read chart-data sheets whose stems shift or vanish between editions:
-  `cbs-dwelling-transactions` t8 (missing in 2 of the last 12 editions),
-  `cbs-construction-starts` t8–t14 (renumbered in the March "סיכום שנת" edition), and
-  `cbs-labour-force-survey` t15–t22 (January adds 3 tables). Compute finds them by sheet
-  title, but every listed stem must exist, so an edition that lacks one fails the sync (the
-  item above). Fix: an `optional: true` flag on a CBS table resource, under which a missing
-  stem gives an empty grid. Deploy the job before a recipe uses it. (2026-11-05)
-- **CBS table stems with a letter suffix can't be read.** The provider's `table` pattern
-  (`^t\d{1,3}$`) rejects stems such as `t3a`/`t3b`, so the by-district _sales_ tables (3א/3ב)
-  of `cbs-dwelling-transactions` are out of reach (the page shows stock by district instead).
-  Fix: allow `^t\d{1,3}[a-z]?$`, then add a by-district sales section. (2026-11-05)
 - **Year-end CBS editions with a different table set are skipped.** `cbs-visitor-arrivals`
   and `cbs-israelis-departures` skip the January "בשנת YYYY" edition, which replaces December's
   and adds tables. `cbs-labour-supply-demand` skips the Oct–Dec "ושנת" edition (90 files). Each
   page lags one period a year (the page says so). Fix: a second report config per recipe for
   the year-end edition (its own table map), or have compute read either layout.
   (2026-11-05)
-- **Each CBS recipe picks its "latest release" with its own copy of the same sort.** All 23
-  `recipes/cbs-*/compute.py` sort the `releases` frame by `RELEASE_DATE`, then `RELEASE_NO` as
-  a string, so of two editions on one date "99/2026" wins over "100/2026", while `cbs.grid`
-  reads the higher number (`_release_key`). The release card would then name a different
-  edition than the numbers. Fix: a `cbs.latest_release(df)` helper using `_release_key`
-  (deploy the job first), then swap the 23 copies for it. (2026-11-05)
 - **`cbs-foreign-trade-by-country` lists t6 and t8 but never reads them.** They are the NIS
   twins of t5/t7, kept as downloads. Each is still fetched every run, and a missing stem fails
   the whole page's sync (item above). Drop them from `source.json` if the downloads aren't
-  worth that, or make them `optional` once that flag exists. (2026-11-05)
+  worth that, or mark them `"optional": true` (the flag exists now). (2026-11-05)
+- **Existing CBS recipes don't use the new provider features yet.** Once the job runs a build
+  with them: mark the chart sheets that come and go `"optional": true`
+  (`cbs-dwelling-transactions` t8, `cbs-construction-starts` t8–t14, `cbs-labour-force-survey`
+  t15–t22; compute must accept an empty grid). Add a by-district sales section to
+  `cbs-dwelling-transactions` from `t3a`/`t3b`. Swap the 23 copies of the "latest release" sort
+  (`RELEASE_DATE`, then `RELEASE_NO` as a string, so "99/2026" beats "100/2026") for
+  `cbs.latest_release`. (2026-11-09)
 - **Every run downloads every CBS table to version it.** ~0.1s a file now; with ~20 pages × ~5
   tables it costs about a minute a run. If it grows, give `version()` a cheap path that hashes
   the release number + file names and sizes from the folder listing, and download only when

@@ -96,7 +96,11 @@ grid (`RELEASE_NO, RELEASE_DATE, SHEET_NO, SHEET, ROW, C01..`): read it with
 `from govlib import cbs` (header lookups by label that raise when a label is
 gone, period rows found by content) and follow BRIEF.md's Source rules.
 `history_releases` > 1 only when a table shows just the current period. The
-`releases` resource gives the latest edition's headline and links. Worked
+`releases` resource gives the latest edition's headline and links (pick it
+with `cbs.latest_release(...)`). A table only some editions carry gets
+`"optional": true` (it may arrive as an empty grid: check `.empty` first);
+lettered sub-tables are stems like `t3a`. The release list reaches ~3 years
+back, so yearly reports have 2–3 editions to test compute against. Worked
 examples: `recipes/cbs-visitor-arrivals/`, `recipes/cbs-average-wage/`.
 
 **CBS price indices (`cbs_index`)**: CPI, housing prices, producer and input

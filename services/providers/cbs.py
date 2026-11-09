@@ -58,9 +58,10 @@ from .base import (
 
 SITE = "https://www.cbs.gov.il"
 LIST_TITLE = "דפים"
-# ~400 items cover ~13 months of releases (2026-11), enough for a monthly
-# report's history and for a quarterly report's last 3–4 editions.
-LIST_WINDOW = 400
+# ~1500 items reach ~3 years back (to 2022-11, measured 2026-11: 2.3 s,
+# 0.95 MB per run): 2–3 editions of a yearly report, a monthly report's full
+# history. Still one list query per run for every CBS page.
+LIST_WINDOW = 1500
 _LIST_FIELDS = ("Title,CbsPubNumber,CbsDataPublishDate,Created,CbsPublishingFolderLevel1,"
                 "CbsPublishingFolderLevel2,CbsMMDInterval,CbsMMDSubjects,cbsBodyText,FileRef")
 _JSON = {"Accept": "application/json;odata=nometadata"}
@@ -128,7 +129,13 @@ class CbsResource(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]*$")
     name: str = Field(min_length=1)
     kind: Literal["table", "releases"] = "table"
-    table: str | None = Field(None, pattern=r"^t\d{1,3}$")
+    # `t3`, or a lettered sub-table such as `t3a` (CBS's 3א).
+    table: str | None = Field(None, pattern=r"^t\d{1,3}[a-z]?$")
+    # A table some editions lack (a chart sheet that comes and goes): an
+    # edition without it adds no rows, instead of failing the page's sync.
+    # When no edition has it, the resource is an empty grid (header only)
+    # and compute must cope with an empty frame.
+    optional: bool = False
     # releases: how many recent editions to list.
     limit: int = Field(12, ge=1, le=60)
 
@@ -138,6 +145,8 @@ class CbsResource(BaseModel):
             raise ValueError(f"{self.id}: a table resource needs `table` (e.g. \"t1\")")
         if self.kind == "releases" and self.table:
             raise ValueError(f"{self.id}: a releases resource takes no `table`")
+        if self.kind == "releases" and self.optional:
+            raise ValueError(f"{self.id}: only a table resource can be `optional`")
         return self
 
 
@@ -442,15 +451,22 @@ class CbsReleasesProvider(SourceProvider):
                                  files], ensure_ascii=False).encode())
         return h.hexdigest()
 
-    def table_file(self, rel: Release, stem: str) -> dict:
-        """The release's `<…><stem>.xlsx`, else `.xls`."""
+    def find_table_file(self, rel: Release, stem: str) -> dict | None:
+        """The release's `<…><stem>.xlsx`, else `.xls`, else None. The stem
+        matches whole: `t3` never picks `t3a` or `t13`, nor `t3a` a `t3`."""
         files = self.folder_files(rel)
         for ext in _TABLE_EXTS:
-            rx = re.compile(rf"\d{re.escape(stem)}{re.escape(ext)}$")
+            rx = re.compile(rf"\d{re.escape(stem.lower())}{re.escape(ext)}$")
             hits = [f for f in files if rx.search(f["Name"].lower())]
             if hits:
                 return hits[0]
-        raise ProviderError(f"{rel.pub_no}: no {stem}.xlsx/.xls in {rel.folder}")
+        return None
+
+    def table_file(self, rel: Release, stem: str) -> dict:
+        f = self.find_table_file(rel, stem)
+        if f is None:
+            raise ProviderError(f"{rel.pub_no}: no {stem}.xlsx/.xls in {rel.folder}")
+        return f
 
     def report_pdf(self, rel: Release) -> str:
         """The written report (`…b.pdf`), or "" when the release has none."""
@@ -464,6 +480,8 @@ class CbsReleasesProvider(SourceProvider):
         p = {"kind": r.kind, "report": cfg.report.model_dump(exclude_none=True)}
         if r.kind == "table":
             p.update(table=r.table, history_releases=cfg.history_releases)
+            if r.optional:
+                p["optional"] = True
         else:
             p["limit"] = r.limit
         return p
@@ -472,11 +490,14 @@ class CbsReleasesProvider(SourceProvider):
         latest = self.matching(cfg.report, 1)[0]
         resources = []
         for r in cfg.resources:
-            if r.kind == "table":
-                url, fmt = self.file_url(latest, self.table_file(latest, r.table)["Name"]), "XLSX"
+            f = self.find_table_file(latest, r.table) if r.kind == "table" else None
+            if f is not None:
+                url, fmt = self.file_url(latest, f["Name"]), "XLSX"
                 if url.lower().endswith(".xls"):
                     fmt = "XLS"
-            else:
+            elif r.kind == "table" and not r.optional:
+                self.table_file(latest, r.table)  # raises: a required table is missing
+            else:  # releases, or an optional table the newest edition lacks
                 url, fmt = latest.page_url, "HTML"
             resources.append(ProviderResource(id=r.id, name=r.name, format=fmt, url=url,
                                               params=self._params(cfg, r)))
@@ -525,9 +546,12 @@ class CbsReleasesProvider(SourceProvider):
         stem = p.get("table")
         if not stem:
             raise ProviderError(f"{resource['id']}: table resource has no `table`")
+        optional = bool(p.get("optional"))
         parts, used = [], []
         for rel in self.matching(report, int(p.get("history_releases") or 1)):
-            f = self.table_file(rel, stem)
+            f = self.find_table_file(rel, stem) if optional else self.table_file(rel, stem)
+            if f is None:
+                continue  # optional: this edition has no such table
             if f["Length"] > self.settings.max_bytes:
                 raise ProviderError(f"{rel.pub_no} {f['Name']}: {f['Length']:,} bytes > "
                                     f"max_bytes {self.settings.max_bytes:,}")
@@ -574,8 +598,12 @@ class CbsReleasesProvider(SourceProvider):
                           f"{_md(r['HEADLINE'])} |\n")
             return out.getvalue()
         used = self._files_used.get(self._key(resource)) or []
-        out.write(f"- table `{p.get('table')}`, grid of {len(rows):,} non-empty sheet rows; "
-                  f"files: " + (", ".join(f"{n} `{f}`" for n, f in used) or "?") + "\n")
+        files = ", ".join(f"{n} `{f}`" for n, f in used)
+        if not files:
+            files = "none (optional table, absent from every edition)" if p.get("optional") else "?"
+        out.write(f"- table `{p.get('table')}`"
+                  + (" (optional)" if p.get("optional") else "")
+                  + f", grid of {len(rows):,} non-empty sheet rows; files: {files}\n")
         groups: dict[tuple, list[dict]] = defaultdict(list)
         for r in rows:
             groups[(r["RELEASE_DATE"], r["RELEASE_NO"], r["SHEET_NO"], r["SHEET"])].append(r)
@@ -625,6 +653,13 @@ class CbsReleasesProvider(SourceProvider):
             "  RELEASE_DATE (the newest is max()). Later editions revise earlier figures:\n"
             "  for an overlapping period, the newest edition wins.\n"
             "- The `.xls`/`.xlsx` flip between editions is invisible here (same grid).\n"
+            "- A table resource with `\"optional\": true` (source.json) may be an EMPTY\n"
+            "  grid (header only) when no edition in the window has that table; with\n"
+            "  `history_releases` > 1 an edition lacking it just adds no rows. Check\n"
+            "  `frame.empty` before `cbs.grid()` (which raises on an empty grid) and drop\n"
+            "  that section. Lettered sub-tables (CBS's 3א/3ב) are stems `t3a`/`t3b`.\n"
+            "- For the \"latest edition\" card use `cbs.latest_release(frames[\"releases\"])`:\n"
+            "  the same edition `cbs.grid()` reads (newest date, then higher number).\n"
             "- A `releases` resource lists recent editions: RELEASE_NO, RELEASE_DATE, TITLE,\n"
             "  HEADLINE (CBS's one-line summary), PAGE_URL, REPORT_PDF_URL. Use it for a\n"
             "  \"latest edition\" line linking the official release.\n"
@@ -727,8 +762,8 @@ def catalog(provider: CbsReleasesProvider, months: int = 12, min_count: int = 2,
             entry["chapter"] = chapters.most_common(1)[0][0] if chapters else ""
             entry["tables"] = sorted(
                 {m.group(1) + "." + m.group(2) for n in names
-                 if (m := re.search(r"\d(t\d+)\.(xlsx?)$", n.lower()))},
-                key=lambda s: int(re.sub(r"\D", "", s.split(".")[0])))
+                 if (m := re.search(r"\d(t\d+[a-z]?)\.(xlsx?)$", n.lower()))},
+                key=lambda s: (int(re.sub(r"\D", "", s.split(".")[0])), s))
         out.append(entry)
     order = {"חודשי": 0, "רבעוני": 1, "שנתי": 2}
     out.sort(key=lambda e: (order.get(e["interval"], 3), -e["count"], e["key"]))

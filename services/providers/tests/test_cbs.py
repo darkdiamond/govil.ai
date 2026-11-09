@@ -155,10 +155,26 @@ def test_registered_and_off_by_default():
                                                     {"id": "a", "name": "b", "table": "t2"}]},
     {"report": {"title_regex": "x", "extra": 1},
      "resources": [{"id": "a", "name": "a", "table": "t1"}]},
+    {"report": {"title_regex": "x"},
+     "resources": [{"id": "a", "name": "a", "kind": "releases", "optional": True}]},
+    {"report": {"title_regex": "x"}, "resources": [{"id": "a", "name": "a", "table": "t3ab"}]},
+    {"report": {"title_regex": "x"}, "resources": [{"id": "a", "name": "a", "table": "t3A"}]},
 ])
 def test_bad_configs_rejected(cbs, config):
     with pytest.raises(ValueError):
         cbs.parse_config("cbs-x", source(config))
+
+
+def test_lettered_stems_and_optional_accepted(cbs):
+    cfg = cbs.parse_config("cbs-x", source(table_cfg(table="t3a", optional=True)))
+    assert cfg.resources[0].table == "t3a" and cfg.resources[0].optional is True
+
+
+def test_window_reaches_yearly_reports(cbs):
+    from services.providers import cbs as cbs_mod
+    assert cbs_mod.LIST_WINDOW >= 1500
+    cbs.releases()
+    assert f"$top={cbs_mod.LIST_WINDOW}&" in next(c for c in cbs.calls if "/lists/" in c)
 
 
 def test_id_prefix_enforced(cbs):
@@ -220,6 +236,19 @@ def test_table_file_prefers_xlsx_and_matches_whole_stem(cbs):
     assert cbs.table_file(rel, "t11")["Name"] == "28_26_345t11.xlsx"
     with pytest.raises(ProviderError, match="no t2"):
         cbs.table_file(rel, "t2")
+
+
+def test_table_file_lettered_stems_match_exactly(cbs):
+    rel = cbs.matching(REPORT, 1)[0]
+    cbs.folders["2026/345"] = ["28_26_345t3.xlsx", "28_26_345t3a.xlsx", "28_26_345t13b.xls"]
+    cbs._folders.clear()
+    assert cbs.table_file(rel, "t3")["Name"] == "28_26_345t3.xlsx"
+    assert cbs.table_file(rel, "t3a")["Name"] == "28_26_345t3a.xlsx"
+    assert cbs.find_table_file(rel, "t3b") is None
+    assert cbs.find_table_file(rel, "t13") is None
+    cbs.folders["2026/345"] = ["28_26_345t3a.xlsx"]
+    cbs._folders.clear()
+    assert cbs.find_table_file(rel, "t3") is None
 
 
 def test_facts_point_at_latest_file(cbs):
@@ -292,6 +321,37 @@ def test_missing_table_in_older_release_raises(cbs):
     cbs.folders["2026/309"] = ["28_26_309t2.xlsx"]
     with pytest.raises(ProviderError, match="309/2026: no t1"):
         cbs.download(resource(cbs, table_cfg(history=2)))
+
+
+def test_optional_table_skips_editions_that_lack_it(cbs):
+    cbs.folders["2026/309"] = ["28_26_309t2.xlsx"]  # middle edition has no t1
+    res = resource(cbs, table_cfg(history=3, optional=True))
+    assert res["params"]["optional"] is True
+    g = rows(cbs.csv_bytes(res))
+    assert {x["RELEASE_NO"] for x in g} == {"345/2026", "277/2026"}
+
+
+def test_optional_table_missing_everywhere_is_an_empty_grid(cbs):
+    for k in ("2026/345", "2026/309", "2026/277"):
+        cbs.folders[k] = [n.replace("t1.", "t2.") for n in FOLDERS[k]]
+    with pytest.raises(ProviderError, match="no t1"):
+        resource(cbs, table_cfg())  # a required table still fails the facts
+    res = resource(cbs, table_cfg(history=2, optional=True))
+    assert res["format"] == "HTML" and "/Pages/" in unquote(res["url"])  # the release page
+    data = cbs.csv_bytes(res)
+    assert data.decode().splitlines() == ["RELEASE_NO,RELEASE_DATE,SHEET_NO,SHEET,ROW,C01"]
+    assert cbs.version(res).rows == 0
+    assert cbs.preview(res)["total"] == 0
+
+
+def test_optional_brief_says_the_table_is_absent(cbs, tmp_path):
+    for k in ("2026/345", "2026/309", "2026/277"):
+        cbs.folders[k] = [n.replace("t1.", "t2.") for n in FOLDERS[k]]
+    d = resource(cbs, table_cfg(history=2, optional=True))
+    out = tmp_path / "1.csv"
+    cbs.fetch_to_file(d, out, max_bytes=10**7)
+    assert "(optional)" in cbs.brief_section(d, out)
+    assert "absent from every edition" in cbs.brief_section(d, out)
 
 
 def test_bad_workbook_raises(cbs):
