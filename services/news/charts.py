@@ -80,7 +80,11 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
                   "yAxis": {"type": "value", "scale": _scale(allv), "name": unit},
                   "series": series, "tooltip": {"trigger": "axis"}}
         if len(series) > 1:
-            option["legend"] = {"top": 0}
+            # Bottom, with room: at the top the Hebrew labels collided with
+            # each other and with the axis name (seen in the first render).
+            # GovEcharts.option merges shallowly, so the grid is given whole.
+            option["legend"] = {"bottom": 0, "itemGap": 18}
+            option["grid"] = {"left": 48, "right": 64, "top": 40, "bottom": 72, "containLabel": True}
         table = [["", *[s["name"] for s in series]]] + [
             [lbl, *[s["data"][i] for s in series]] for i, lbl in enumerate(x)]
         dsids = sorted({s.dataset_id for _, s, _ in picked})

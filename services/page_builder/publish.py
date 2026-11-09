@@ -466,6 +466,7 @@ def publish(
     )
     manifest_path = _write_manifest(out_root, manifest)
     search_index_path = _write_search_index(out_root, manifest)
+    news = _publish_news(out_root, store, final_entries)
     log.info(
         "publish: wrote manifest=%s search_index=%s data.json=%d agent_data.json=%d",
         manifest_path, search_index_path, written_meta, written_agent,
@@ -477,7 +478,21 @@ def publish(
         "wrote_data_json": written_meta,
         "wrote_agent_data_json": written_agent,
         "superseded": len(successors),
+        "news": news,
     }
+
+
+def _publish_news(out_root: Path, store, entries: list[ManifestEntry]) -> dict:
+    """News articles (services/news) → news/index.json + news/<slug>/article.json.
+    Never fails the publish: the dataset site deploys without news if needed."""
+    from services.news.publish_news import publish_news
+
+    datasets = {e.id: {"page_slug": e.page_slug or e.id, "title": e.title,
+                       "organization": e.organization} for e in entries}
+    client = getattr(store, "client", None)
+    if client is None:
+        return {"skipped": "store has no Firestore client"}
+    return publish_news(out_root, client=client, datasets=datasets)
 
 
 # ---- CLI --------------------------------------------------------------------

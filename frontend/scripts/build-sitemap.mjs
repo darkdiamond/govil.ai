@@ -80,6 +80,28 @@ for (const d of manifest.datasets ?? []) {
   }
 }
 
+// News (services/news/publish_news.py → public/news/index.json).
+let newsArticles = [];
+try {
+  newsArticles =
+    JSON.parse(readFileSync(resolve(ROOT, "public/news/index.json"), "utf-8"))
+      .articles ?? [];
+} catch {
+  newsArticles = [];
+}
+const newsLastmod =
+  (newsArticles[0]?.updated_at ?? "").slice(0, 10) || undefined;
+add("/news/", "0.8", "daily", newsLastmod);
+add("/news/about/", "0.4", "monthly");
+for (const a of newsArticles) {
+  add(
+    `/news/${a.slug}/`,
+    "0.7",
+    "monthly",
+    (a.updated_at ?? "").slice(0, 10) || undefined
+  );
+}
+
 const sorted = [...urls.entries()].sort(([a], [b]) => a.localeCompare(b));
 
 const body = sorted
@@ -105,3 +127,69 @@ if (existsSync(dirname(outPath))) {
   writeFileSync(outPath, xml, "utf-8");
   console.log(`[build-sitemap] wrote ${urls.size} URLs to ${outPath}`);
 }
+
+// ── Google News sitemap + RSS ─────────────────────────────────────────────
+// news-sitemap.xml lists only articles from the last 2 days (Google News
+// ignores older entries); feed.xml carries the latest 30.
+const esc = (s) =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+const twoDaysAgo = Date.now() - 2 * 24 * 3600 * 1000;
+const fresh = newsArticles.filter(
+  (a) => Date.parse(a.published_at) >= twoDaysAgo
+);
+const newsXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+${fresh
+  .map(
+    (a) => `  <url>
+    <loc>${SITE}/news/${a.slug}/</loc>
+    <news:news>
+      <news:publication><news:name>govil.ai</news:name><news:language>he</news:language></news:publication>
+      <news:publication_date>${esc(a.published_at)}</news:publication_date>
+      <news:title>${esc(a.headline)}</news:title>
+    </news:news>
+  </url>`
+  )
+  .join("\n")}
+</urlset>
+`;
+const rssXml = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>govil.ai: חדשות מהנתונים</title>
+    <link>${SITE}/news/</link>
+    <atom:link href="${SITE}/news/feed.xml" rel="self" type="application/rss+xml" />
+    <description>מה השתנה במאגרי המידע הממשלתיים, ולמה זה חשוב.</description>
+    <language>he</language>
+${newsArticles
+  .slice(0, 30)
+  .map(
+    (a) => `    <item>
+      <title>${esc(a.headline)}</title>
+      <link>${SITE}/news/${a.slug}/</link>
+      <guid isPermaLink="true">${SITE}/news/${a.slug}/</guid>
+      <pubDate>${new Date(a.published_at).toUTCString()}</pubDate>
+      <description>${esc(a.dek)}</description>${
+        a.hero
+          ? `\n      <media:content url="${SITE}${esc(a.hero)}" medium="image" />`
+          : ""
+      }
+    </item>`
+  )
+  .join("\n")}
+  </channel>
+</rss>
+`;
+for (const dir of [resolve(ROOT, "public"), resolve(ROOT, ".output/public")]) {
+  if (!existsSync(dir)) continue;
+  writeFileSync(resolve(dir, "news-sitemap.xml"), newsXml, "utf-8");
+  if (existsSync(resolve(dir, "news")))
+    writeFileSync(resolve(dir, "news/feed.xml"), rssXml, "utf-8");
+}
+console.log(
+  `[build-sitemap] news: ${newsArticles.length} article(s), ${fresh.length} in news-sitemap`
+);

@@ -1,53 +1,69 @@
 <script setup lang="ts">
-import { buildInsightPool, sampleInsights } from '~/utils/insights'
-import type { DatasetKind, SlimEntry } from '~/types/manifest'
-import { loadSearchIndex } from '~/utils/search-index'
+import { buildInsightPool, sampleInsights } from "~/utils/insights";
+import type { DatasetKind, SlimEntry } from "~/types/manifest";
+import { loadSearchIndex } from "~/utils/search-index";
 
 useSeo({
-  title: 'מאגרי המידע הממשלתיים של ישראל — מוסברים בעברית פשוטה · govil.ai',
-  description: 'כל מאגר מידע ממשלתי חדש מוסבר בעברית פשוטה בעמוד אחד — תקציר, תובנות, גרפים ומפות אינטראקטיביות. בלי הורדות ובלי Excel.',
-  path: '/',
+  title: "מאגרי המידע הממשלתיים של ישראל — מוסברים בעברית פשוטה · govil.ai",
+  description:
+    "כל מאגר מידע ממשלתי חדש מוסבר בעברית פשוטה בעמוד אחד — תקציר, תובנות, גרפים ומפות אינטראקטיביות. בלי הורדות ובלי Excel.",
+  path: "/",
   keywords: [
-    'מאגרי מידע ממשלתיים',
-    'מידע ממשלתי פתוח',
-    'נתונים פתוחים',
-    'open data Israel',
+    "מאגרי מידע ממשלתיים",
+    "מידע ממשלתי פתוח",
+    "נתונים פתוחים",
+    "open data Israel",
   ],
-})
+});
+
+// Latest news (services/news) — read at prerender, inlined in the payload.
+const { data: newsData } = await useAsyncData("home-news", async () => {
+  if (!import.meta.server) return null;
+  const { loadNewsIndexServer } = await import("~/utils/news");
+  return { articles: (await loadNewsIndexServer()).slice(0, 3) };
+});
+const latestNews = computed(() => newsData.value?.articles ?? []);
 
 interface MinistryRow {
-  slug: string
-  title: string
-  count: number
+  slug: string;
+  title: string;
+  count: number;
 }
 
 // One fetcher bakes everything the home sections render into the page
 // payload — the slim index itself never ships to the client from here.
-const { data } = await useAsyncData('home', async () => {
-  const index = await loadSearchIndex()
-  const datasets = index.datasets
+const { data } = await useAsyncData("home", async () => {
+  const index = await loadSearchIndex();
+  const datasets = index.datasets;
 
   const latest = [...datasets]
     .sort((a, b) => {
-      const ta = a.last_analyzed_at ? Date.parse(a.last_analyzed_at) : 0
-      const tb = b.last_analyzed_at ? Date.parse(b.last_analyzed_at) : 0
-      return tb - ta
+      const ta = a.last_analyzed_at ? Date.parse(a.last_analyzed_at) : 0;
+      const tb = b.last_analyzed_at ? Date.parse(b.last_analyzed_at) : 0;
+      return tb - ta;
     })
-    .slice(0, 6)
+    .slice(0, 6);
 
-  const byMinistry = new Map<string, MinistryRow>()
+  const byMinistry = new Map<string, MinistryRow>();
   for (const d of datasets) {
-    if (!d.organization_slug || !d.organization) continue
-    const r = byMinistry.get(d.organization_slug)
-    if (r) r.count++
-    else byMinistry.set(d.organization_slug, { slug: d.organization_slug, title: d.organization, count: 1 })
+    if (!d.organization_slug || !d.organization) continue;
+    const r = byMinistry.get(d.organization_slug);
+    if (r) r.count++;
+    else
+      byMinistry.set(d.organization_slug, {
+        slug: d.organization_slug,
+        title: d.organization,
+        count: 1,
+      });
   }
-  const ministries = [...byMinistry.values()].sort((a, b) => b.count - a.count).slice(0, 6)
+  const ministries = [...byMinistry.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
 
-  const kindCounts: Partial<Record<DatasetKind, number>> = {}
+  const kindCounts: Partial<Record<DatasetKind, number>> = {};
   for (const d of datasets) {
-    if (!d.dataset_kind) continue
-    kindCounts[d.dataset_kind] = (kindCounts[d.dataset_kind] ?? 0) + 1
+    if (!d.dataset_kind) continue;
+    kindCounts[d.dataset_kind] = (kindCounts[d.dataset_kind] ?? 0) + 1;
   }
 
   // The carousel only ever renders a handful of slides at a time, but it
@@ -63,20 +79,31 @@ const { data } = await useAsyncData('home', async () => {
     ministries,
     kindCounts,
     generatedAt: index.generated_at,
-  }
-})
+  };
+});
 
-const insightPool = computed(() => data.value?.insightPool ?? [])
-const latest = computed<SlimEntry[]>(() => data.value?.latest ?? [])
-const ministries = computed<MinistryRow[]>(() => data.value?.ministries ?? [])
-const kindCounts = computed(() => data.value?.kindCounts ?? {})
-const generatedAt = computed(() => data.value?.generatedAt)
+const insightPool = computed(() => data.value?.insightPool ?? []);
+const latest = computed<SlimEntry[]>(() => data.value?.latest ?? []);
+const ministries = computed<MinistryRow[]>(() => data.value?.ministries ?? []);
+const kindCounts = computed(() => data.value?.kindCounts ?? {});
+const generatedAt = computed(() => data.value?.generatedAt);
 </script>
 
 <template>
   <div class="max-w-gov mx-auto px-4 py-8 space-y-16">
     <Hero :generated-at="generatedAt" />
     <InsightCarousel :pool="insightPool" />
+    <section v-if="latestNews.length" aria-labelledby="home-news-h">
+      <div class="flex items-baseline justify-between mb-4">
+        <h2 id="home-news-h" class="text-2xl font-display text-ink m-0">
+          חדשות מהנתונים
+        </h2>
+        <NuxtLink to="/news/" class="text-sm">לכל החדשות</NuxtLink>
+      </div>
+      <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <NewsCard v-for="a in latestNews" :key="a.slug" :article="a" />
+      </div>
+    </section>
     <WhatYouGet />
     <HowItWorks />
     <BrowseByMinistry :ministries="ministries" />

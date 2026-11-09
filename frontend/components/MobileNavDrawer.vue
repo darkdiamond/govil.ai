@@ -1,54 +1,61 @@
 <script setup lang="ts">
-const route = useRoute()
-const open = ref(false)
-const triggerEl = ref<HTMLElement | null>(null)
-const drawerEl = ref<HTMLElement | null>(null)
+const route = useRoute();
+const open = ref(false);
+const triggerEl = ref<HTMLElement | null>(null);
+const drawerEl = ref<HTMLElement | null>(null);
 
+// News appears once the first article is live (nuxt.config newsCount).
+const newsOn = Number(useRuntimeConfig().public.newsCount || 0) > 0;
 const links = [
-  { to: '/', label: 'ראשי' },
-  { to: '/datasets/', label: 'מאגרים' },
-  { to: '/ministries/', label: 'משרדים' },
-  { to: '/tags/', label: 'נושאים' },
-  { to: '/how-it-works/', label: 'איך זה עובד' },
-  { to: '/about/', label: 'אודות' },
-  { to: '/faq/', label: 'שאלות נפוצות' },
-  { to: '/disclaimer/', label: 'הבהרה משפטית' },
-  { to: '/contact/', label: 'צרו קשר' },
-]
+  { to: "/", label: "ראשי" },
+  { to: "/datasets/", label: "מאגרים" },
+  ...(newsOn ? [{ to: "/news/", label: "חדשות" }] : []),
+  { to: "/ministries/", label: "משרדים" },
+  { to: "/tags/", label: "נושאים" },
+  { to: "/how-it-works/", label: "איך זה עובד" },
+  { to: "/about/", label: "אודות" },
+  { to: "/faq/", label: "שאלות נפוצות" },
+  { to: "/disclaimer/", label: "הבהרה משפטית" },
+  { to: "/contact/", label: "צרו קשר" },
+];
 
 function setOpen(v: boolean) {
-  open.value = v
-  if (typeof document !== 'undefined') {
-    document.body.style.overflow = v ? 'hidden' : ''
+  open.value = v;
+  if (typeof document !== "undefined") {
+    document.body.style.overflow = v ? "hidden" : "";
   }
   if (v) {
     nextTick(() => {
-      const first = drawerEl.value?.querySelector<HTMLElement>('[data-drawer-link]')
-      first?.focus()
-    })
+      const first =
+        drawerEl.value?.querySelector<HTMLElement>("[data-drawer-link]");
+      first?.focus();
+    });
   } else {
-    triggerEl.value?.focus()
+    triggerEl.value?.focus();
   }
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && open.value) {
-    e.preventDefault()
-    setOpen(false)
+  if (e.key === "Escape" && open.value) {
+    e.preventDefault();
+    setOpen(false);
   }
 }
 
-watch(() => route.fullPath, () => {
-  if (open.value) setOpen(false)
-})
+watch(
+  () => route.fullPath,
+  () => {
+    if (open.value) setOpen(false);
+  }
+);
 
 onMounted(() => {
-  document.addEventListener('keydown', onKeydown)
-})
+  document.addEventListener("keydown", onKeydown);
+});
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onKeydown)
-  document.body.style.overflow = ''
-})
+  document.removeEventListener("keydown", onKeydown);
+  document.body.style.overflow = "";
+});
 </script>
 
 <template>
@@ -62,7 +69,18 @@ onBeforeUnmount(() => {
       class="w-9 h-9 grid place-items-center rounded-gov-pill hover:bg-white/10 transition-colors"
       @click="setOpen(true)"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white opacity-90">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="text-white opacity-90"
+      >
         <line x1="3" y1="6" x2="21" y2="6" />
         <line x1="3" y1="12" x2="21" y2="12" />
         <line x1="3" y1="18" x2="21" y2="18" />
@@ -99,7 +117,9 @@ onBeforeUnmount(() => {
           aria-label="תפריט ראשי"
           class="fixed inset-y-0 start-0 z-[61] w-[80%] max-w-xs bg-white shadow-2xl flex flex-col md:hidden"
         >
-          <div class="flex items-center justify-between gap-3 px-4 py-3 bg-ink-deep text-white">
+          <div
+            class="flex items-center justify-between gap-3 px-4 py-3 bg-ink-deep text-white"
+          >
             <span class="font-display text-base">תפריט</span>
             <button
               type="button"
@@ -107,7 +127,17 @@ onBeforeUnmount(() => {
               class="w-9 h-9 grid place-items-center rounded-gov-pill hover:bg-white/10 transition-colors"
               @click="setOpen(false)"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -121,7 +151,10 @@ onBeforeUnmount(() => {
                   :to="l.to"
                   data-drawer-link
                   class="block px-4 py-3 text-base text-ink no-underline hover:bg-brand-50 hover:no-underline border-b border-rule/60"
-                  :class="{ 'bg-brand-50 text-brand-700 font-medium': route.path === l.to }"
+                  :class="{
+                    'bg-brand-50 text-brand-700 font-medium':
+                      route.path === l.to,
+                  }"
                 >
                   {{ l.label }}
                 </NuxtLink>
@@ -129,8 +162,12 @@ onBeforeUnmount(() => {
             </ul>
           </nav>
 
-          <div class="border-t border-rule p-4 text-xs text-subtle leading-relaxed">
-            האתר אינו אתר ממשלתי רשמי אלא מיזם אזרחי עצמאי למחקר והנגשת מאגרי המידע הממשלתיים הפתוחים של ישראל. התוכן מבוסס על נתוני data.gov.il ומונגש באמצעות ניתוח נתונים וויזואליזציות.
+          <div
+            class="border-t border-rule p-4 text-xs text-subtle leading-relaxed"
+          >
+            האתר אינו אתר ממשלתי רשמי אלא מיזם אזרחי עצמאי למחקר והנגשת מאגרי
+            המידע הממשלתיים הפתוחים של ישראל. התוכן מבוסס על נתוני data.gov.il
+            ומונגש באמצעות ניתוח נתונים וויזואליזציות.
           </div>
         </aside>
       </Transition>

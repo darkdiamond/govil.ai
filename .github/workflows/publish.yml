@@ -94,6 +94,15 @@ jobs:
             --recursive --delete-unmatched-destination-objects \
             --exclude='.*/(data|agent_data)\.json$|.*/index\.html$'
 
+      # News images (services/news); the publisher then writes the article
+      # JSON next to them and removes directories of articles not live.
+      - name: Fetch news images from staging
+        run: |
+          mkdir -p frontend/public/news
+          gcloud storage rsync "gs://${STAGING_BUCKET}/news/" frontend/public/news/ \
+            --recursive --delete-unmatched-destination-objects \
+            --exclude='.*\.json$|.*/index\.html$' || echo "no news images yet"
+
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"

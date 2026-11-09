@@ -226,7 +226,7 @@ def render(text: str, ledger: Ledger, dataset_href) -> tuple[list[dict], list[st
             href = dataset_href(ref[3:])
             if href is None:
                 problems.append(f"unknown dataset {ref[3:]}")
-            runs.append({"t": "link", "v": anchor, "href": href, "kind": "dataset"})
+            runs.append({"t": "link", "v": anchor, "href": href, "kind": "dataset", "id": ref[3:]})
         else:
             src = ledger.sources.get(ref)
             if src is None:
