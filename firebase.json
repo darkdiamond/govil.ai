@@ -2833,7 +2833,25 @@
         ]
       },
       {
-        "source": "**/*.@(html|js|css)",
+        "regex": "^/(?:.*/)?$",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate, s-maxage=600"
+          }
+        ]
+      },
+      {
+        "source": "**/*.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate, s-maxage=600"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(js|css)",
         "headers": [
           {
             "key": "Cache-Control",
@@ -2851,11 +2869,11 @@
         ]
       },
       {
-        "source": "/data/*.json",
+        "source": "**/*.@(json|xml)",
         "headers": [
           {
             "key": "Cache-Control",
-            "value": "public, max-age=300, s-maxage=3600"
+            "value": "public, max-age=0, must-revalidate, s-maxage=600"
           }
         ]
       },
