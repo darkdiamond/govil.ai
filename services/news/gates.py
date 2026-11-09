@@ -7,7 +7,8 @@ and chart, and lists every problem (any one blocks publication):
   - a linked source without a verbatim quote that appears in the fetched page
   - a dataset in `dataset_ids` never linked from the text, or unknown to us
   - a chart that doesn't resolve to real series/facts; none, or more than 3
-  - banned AI-slop phrases, exclamation marks, question subheads, em-dash chains
+  - banned AI-slop phrases and punctuation (em dashes, dash-as-punctuation,
+    ellipses, exclamation marks), question subheads
   - headline/dek/body length, too little Hebrew
 
 `critique()` then asks the model, as copy chief, for pass / revise / kill
@@ -21,7 +22,8 @@ import unicodedata
 from pathlib import Path
 
 from . import charts as charts_mod
-from .ledger import LINK, Ledger, plain, render, stray_numbers
+from .fetch import official_source
+from .ledger import LINK, Ledger, plain, render, spelled_numbers, stray_numbers
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
@@ -36,6 +38,22 @@ BANNED = [
     "נבחן את", "נסקור", "לא תאמינו", "הסיבה המפתיעה",
 ]
 _NOT_ONLY = re.compile(r"לא רק\b.{0,80}?\bאלא גם")
+PUNCTUATION = [
+    (re.compile("—"), "no em dashes: use a comma, a period, or two sentences"),
+    (re.compile(r"(?<!\d)\s[–-]\s|\s[–-]\s(?!\d)"), "no dash as punctuation between words"),
+    (re.compile("…|\\.\\.\\."), "no ellipses"),
+    (re.compile(r"[\U0001F300-\U0001FAFF☀-➿]"), "no emoji or symbols"),
+]
+_MONTHS = "ינואר|פברואר|מרץ|מרס|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר"
+# Tautologies the first real drafts leaned on (2026-11-09 dry runs), and raw
+# source units a reader shouldn't see.
+PATTERNS = [
+    (re.compile(r"(?:19|20)\d\d\s+אשתקד"), "a year plus אשתקד — one or the other"),
+    (re.compile(rf"(?:{_MONTHS})\s+(?:19|20)\d\d\s+(?:הנוכחי|האחרון|הקרוב|שעבר)"),
+     "month + year + הנוכחי/האחרון — the date already says it"),
+    (re.compile(r"ועד כה|ועד היום|ומאז החל|באותה תקופה"), "filler after a date"),
+    (re.compile(r"אלפי (?:שקלים|ש\"ח|ש״ח)"), "thousands of shekels — scale to millions/billions (calc scale)"),
+]
 _HEB = re.compile(r"[א-ת]")
 _LAT = re.compile(r"[A-Za-z]")
 
@@ -80,6 +98,10 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         s = str(s or "")
         if not numbers_ok and (bad := stray_numbers(s)):
             problems.append(f"{field_name}: typed numbers {bad[:5]} — use fact tokens")
+        if not numbers_ok and (bad := spelled_numbers(s)):
+            problems.append(f"{field_name}: quantities spelled in words {bad[:3]} — a number from "
+                            "data needs a fact token; one from a source needs that source linked "
+                            "and quoted, or leave it out")
         runs, probs = render(s, ledger, href)
         problems.extend(f"{field_name}: {p}" for p in probs)
         return runs, plain(runs)
@@ -125,8 +147,6 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             for m in LINK.finditer(raw):
                 (linked_ds.add(m[2][3:]) if m[2].startswith("ds:") else linked_sources.add(m[2]))
             runs, ptxt = text(f"block {i}", raw)
-            if ptxt.count("—") > 1:
-                problems.append(f"block {i}: em-dash chain")
             blocks.append({"type": "p", "runs": runs})
             body_text.append(ptxt)
         elif kind == "h2":
@@ -174,10 +194,18 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     hits = [p for p in BANNED if p in low]
     if _NOT_ONLY.search(every):
         hits.append("לא רק … אלא גם")
+    for rx, why in PATTERNS:
+        if m := rx.search(every):
+            problems.append(f"style: «{m[0]}» — {why}")
     if hits:
         problems.append(f"banned phrases: {hits}")
     if "!" in every:
         problems.append("no exclamation marks")
+    # Punctuation that reads as machine-written (user rule, 2026-11-09). A
+    # dash between two numbers is a range ("2019–2025") and stays.
+    for rx, why in PUNCTUATION:
+        if m := rx.search(every):
+            problems.append(f"punctuation: «{every[max(0, m.start() - 15):m.end() + 15]}» — {why}")
 
     quotes = {s.get("id"): str(s.get("quote") or "") for s in draft.get("sources") or []
               if isinstance(s, dict)}
@@ -186,12 +214,20 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         src = ledger.sources.get(sid)
         if src is None:
             continue  # already reported by render()
+        if not official_source(src.url):
+            # The user's rule: articles cite government data only. The web is
+            # read for context and possible reasons, never linked.
+            problems.append(f"source {sid}: {src.url} is not an official government source — "
+                            "articles link only our dataset pages and official data publishers; "
+                            "use what you read elsewhere as context, without a link")
+            continue
         q = quotes.get(sid, "")
         if len(q) < QUOTE_MIN:
             problems.append(f"source {sid}: a verbatim quote of ≥{QUOTE_MIN} chars is required")
         elif _norm(q) not in _norm(src.text):
             problems.append(f"source {sid}: quote not found in the fetched page")
-        sources.append({"id": sid, "url": src.url, "title": src.title, "quote": q})
+        url = "https://" + src.url[len("http://"):] if src.url.startswith("http://") else src.url
+        sources.append({"id": sid, "url": url, "title": src.title, "quote": q, "kind": src.kind})
 
     tags = [t for t in draft.get("tags") or [] if t in vocab][:5]
     if not tags:
@@ -222,10 +258,12 @@ def as_markdown(core: dict) -> str:
             c = charts[b["chart"]]
             out.append(f"[תרשים: {c['title']} ({c['unit']}), {len(c['table']) - 1} נקודות]")
         elif b["type"] == "stat":
-            out.append(f"**{b['value']}** — {b['label']}")
+            out.append(f"**{b['value']}** ({b['label']})")
         out.append("")
-    out.append("מקורות:")
-    out += [f"- {s['title']} <{s['url']}>: \"{s['quote']}\"" for s in core["sources"]]
+    if core["sources"]:
+        # Shown to the critic only: the site renders the sources list itself.
+        out.append("[for review — the quotes the reporter gave for each linked source]")
+        out += [f"- {s['title']} <{s['url']}>: \"{s['quote']}\"" for s in core["sources"]]
     return "\n".join(out)
 
 

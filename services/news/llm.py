@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 TEXT_MODEL = os.environ.get("NEWS_MODEL", "google/gemini-3.8-flash")
 IMAGE_MODEL = os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
+SEARCH_ENGINE = os.environ.get("NEWS_SEARCH_ENGINE", "exa")
 RETRIES = 4
 
 
@@ -105,13 +106,15 @@ class OpenRouter:
                             json_mode=True, **kw)
             return parse_json(msg.get("content") or "")
 
-    def web_search(self, query: str, *, max_results: int = 6, model: str = TEXT_MODEL) -> list[dict]:
+    def web_search(self, query: str, *, max_results: int = 8, model: str = TEXT_MODEL) -> list[dict]:
         """Search results [{url, title, snippet}] via OpenRouter's web plugin.
         Results are leads: a writer must `fetch_url` a page before citing it."""
         msg = self.chat(
             [{"role": "user", "content": "Find recent, authoritative sources (news, official "
               f"publications) for this question and list them briefly:\n{query}"}],
-            model=model, plugins=[{"id": "web", "max_results": max_results}],
+            # Exa, not the model's native search: with Gemini, native grounding
+            # returns only opaque vertexaisearch redirect links with no page text.
+            model=model, plugins=[{"id": "web", "engine": SEARCH_ENGINE, "max_results": max_results}],
         )
         out, seen = [], set()
         for a in msg.get("annotations") or []:
@@ -120,7 +123,7 @@ class OpenRouter:
             if url and url not in seen:
                 seen.add(url)
                 out.append({"url": url, "title": c.get("title") or "",
-                            "snippet": (c.get("content") or "")[:400]})
+                            "snippet": (c.get("content") or "")[:2500]})
         return out
 
     def image(self, prompt: str, *, model: str = IMAGE_MODEL, aspect_ratio: str = "16:9") -> bytes:

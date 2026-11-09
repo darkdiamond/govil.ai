@@ -128,6 +128,35 @@ def test_source_allowlist(url, ok):
     assert allowed_source(url) is ok
 
 
+@pytest.mark.parametrize("url", [
+    "javascript://www.gov.il/%0aalert(1)",
+    "data://www.gov.il/x",
+    "ftp://www.gov.il/x",
+    "https://user:pw@www.gov.il/x",
+    "https://www.gov.il:8443/x",
+    "https://evil.com\\.gov.il/x",          # browsers read host evil.com
+    "https://evil.com%2f.gov.il/x",
+    "https://evil.com/.gov.il",
+    "https://evil.com .gov.il/x",
+    "https://www.gov.il\t/x",
+    "https://evil.com。gov.il/x",        # ideographic full stop
+])
+def test_allowlist_needs_a_plain_web_url(url):
+    assert not allowed_source(url)
+
+
+def test_ledger_sources_are_https_and_fetch_beats_extract():
+    from services.news.ledger import Ledger
+
+    led = Ledger()
+    s = led.add_source("http://www.gov.il/p", "t", "extract", kind="search_extract")
+    assert s.url == "https://www.gov.il/p" and s.kind == "search_extract"
+    s2 = led.add_source("https://www.gov.il/p", "t", "the full page text", kind="fetched")
+    assert s2.id == s.id and s2.text == "the full page text" and s2.kind == "fetched"
+    with pytest.raises(ValueError):
+        led.add_source("javascript:alert(1)", "t", "x")
+
+
 def test_allowlist_env_override(monkeypatch):
     monkeypatch.setenv("NEWS_SOURCE_DOMAINS", "example.org")
     assert allowed_source("https://a.example.org/x") and not allowed_source("https://www.gov.il/")
@@ -150,7 +179,7 @@ def test_web_text_is_fenced_and_filtered():
     assert [r["url"] for r in res] == ["https://www.ynet.co.il/a"]
     assert res[0]["snippet"].startswith(UNTRUSTED_OPEN) and ">>> rules" not in res[0]["snippet"]
     assert res[0]["title"].startswith(UNTRUSTED_OPEN) and res[0]["title"].count(UNTRUSTED_CLOSE) == 1
-    assert set(res[0]) == {"url", "title", "snippet"}
+    assert set(res[0]) == {"url", "title", "snippet", "context_only"}  # a news site: read, not linked
     text = tb.t_fetch_url("https://www.gov.il/p")["text"]
     assert text.startswith(UNTRUSTED_OPEN) and text.endswith(UNTRUSTED_CLOSE)
     assert text.count(UNTRUSTED_CLOSE) == 1        # the page can't close the fence early
