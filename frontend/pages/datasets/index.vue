@@ -2,7 +2,7 @@
 import { useFacets } from "~/composables/useManifest";
 import type { SlimEntry } from "~/types/manifest";
 import { loadSearchIndex } from "~/utils/search-index";
-import { normalizeSearchText, queryVariants } from "~/utils/search-text";
+import { queryVariants, searchHaystack } from "~/utils/search-text";
 
 useSeo({
   title: "כל מאגרי המידע הממשלתיים — חיפוש, סינון ותקצירים בעברית",
@@ -88,38 +88,22 @@ watch(debouncedQuery, (q) => {
 // Normalized search text per dataset (final letters, quotes, hyphens folded;
 // see utils/search-text.ts), built once per index.
 const haystacks = computed(
-  () =>
-    new Map(
-      datasets.value.map((d) => [
-        d.id,
-        normalizeSearchText(
-          `${d.title} ${d.summary_he ?? ""} ${(d.tags ?? []).join(" ")} ${d.organization ?? ""}`
-        ),
-      ])
-    )
+  () => new Map(datasets.value.map((d) => [d.id, searchHaystack(d)]))
 );
 
 // Datasets matching the free-text query: the query as typed, or as it reads on
-// the other keyboard layout ("rfc" → "רכב"). null = no query.
-const textMatch = computed<{
-  ids: Set<string>;
-  convertedText: string | null;
-  /** Some datasets also matched the query as typed. */
-  rawHits: boolean;
-} | null>(() => {
+// the other keyboard layout ("rfc" → "רכב"). Maps id → the matching variant's
+// display text when it matched only through the re-read, else null.
+// null = no query.
+const textMatch = computed<Map<string, string | null> | null>(() => {
   const variants = queryVariants(debouncedQuery.value.trim());
   if (!variants.length) return null;
-  const ids = new Set<string>();
-  let convertedText: string | null = null;
-  let rawHits = false;
+  const hits = new Map<string, string | null>();
   for (const [id, hay] of haystacks.value) {
     const hit = variants.find((v) => hay.includes(v.text));
-    if (!hit) continue;
-    ids.add(id);
-    if (hit.converted) convertedText ??= hit.display;
-    else rawHits = true;
+    if (hit) hits.set(id, hit.converted ? hit.display : null);
   }
-  return { ids, convertedText, rawHits };
+  return hits;
 });
 
 const filtered = computed<SlimEntry[]>(() => {
@@ -130,10 +114,27 @@ const filtered = computed<SlimEntry[]>(() => {
       return false;
     if (tagFilter.value && !(d.tags ?? []).includes(tagFilter.value))
       return false;
-    if (tm && !tm.ids.has(d.id)) return false;
+    if (tm && !tm.has(d.id)) return false;
     return true;
   });
 });
+
+// The re-read text, when a dataset still shown (after the facet filters)
+// matched only through it; rawHits = some shown datasets matched as typed.
+const convertedNote = computed<{ text: string; rawHits: boolean } | null>(
+  () => {
+    const tm = textMatch.value;
+    if (!tm) return null;
+    let text: string | null = null;
+    let rawHits = false;
+    for (const d of filtered.value) {
+      const via = tm.get(d.id);
+      if (via) text ??= via;
+      else rawHits = true;
+    }
+    return text ? { text, rawHits } : null;
+  }
+);
 
 const tsDesc = (a?: string, b?: string) =>
   (b ? Date.parse(b) : 0) - (a ? Date.parse(a) : 0);
@@ -217,9 +218,9 @@ watch(
           class="flex-1 bg-transparent border-0 outline-none text-sm text-ink placeholder:text-subtle"
         />
       </label>
-      <p v-if="textMatch?.convertedText" class="mt-2 text-xs text-subtle">
-        מוצגות {{ textMatch.rawHits ? "גם " : "" }}תוצאות עבור „<bdi>{{
-          textMatch.convertedText
+      <p v-if="convertedNote" class="mt-2 text-xs text-subtle">
+        מוצגות {{ convertedNote.rawHits ? "גם " : "" }}תוצאות עבור „<bdi>{{
+          convertedNote.text
         }}</bdi
         >”
       </p>

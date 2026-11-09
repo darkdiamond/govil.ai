@@ -2,7 +2,11 @@
 import type FuseT from "fuse.js";
 import type { SlimEntry } from "~/types/manifest";
 import { loadSearchIndex } from "~/utils/search-index";
-import { normalizeSearchText, queryVariants } from "~/utils/search-text";
+import {
+  normalizeSearchText,
+  queryVariants,
+  searchHaystack,
+} from "~/utils/search-text";
 
 /** Normalized copy of an entry's searchable fields (see search-text.ts). */
 interface SearchDoc {
@@ -11,17 +15,11 @@ interface SearchDoc {
   summary_he: string;
   organization: string;
   tags: string[];
+  /** All of the above in one string, for the converted-query substring test. */
+  hay: string;
 }
 
 const LIMIT = 6;
-
-// A re-read of the query on the other keyboard layout counts only where its
-// text literally appears (as on /datasets/), so a Hebrew word re-read as Latin
-// gibberish doesn't pull in Fuse's fuzzy noise.
-const containsText = (d: SearchDoc, text: string) =>
-  [d.title, d.summary_he, d.organization, ...d.tags].some((f) =>
-    f.includes(text)
-  );
 
 const router = useRouter();
 const open = ref(false);
@@ -48,6 +46,7 @@ function ensureFuse(): Promise<void> {
         summary_he: normalizeSearchText(entry.summary_he ?? ""),
         organization: normalizeSearchText(entry.organization ?? ""),
         tags: (entry.tags ?? []).map(normalizeSearchText),
+        hay: searchHaystack(entry),
       }));
       fuse.value = new Fuse<SearchDoc>(docs, {
         keys: [
@@ -71,21 +70,30 @@ interface SearchResults {
   items: SlimEntry[];
   /** The converted query text, when a shown result matched only through it. */
   convertedText: string | null;
+  /** Some shown results also matched the query as typed. */
+  rawHits: boolean;
 }
 
 const search = computed<SearchResults>(() => {
   const q = query.value.trim();
   const f = fuse.value;
-  if (q.length < 2 || !f) return { items: [], convertedText: null };
+  if (q.length < 2 || !f)
+    return { items: [], convertedText: null, rawHits: false };
   const best = new Map<
     string,
     { entry: SlimEntry; score: number; via: string | null }
   >();
   for (const v of queryVariants(q)) {
     if (v.text.length < 2) continue;
-    for (const r of f.search(v.text, { limit: LIMIT })) {
+    // A re-read of the query on the other keyboard layout counts only where
+    // its text literally appears (as on /datasets/), so a Hebrew word re-read
+    // as Latin gibberish doesn't pull in Fuse's fuzzy noise. Filter before
+    // capping: fuzzy near-misses can outrank every literal match.
+    const hits = v.converted
+      ? f.search(v.text).filter((r) => r.item.hay.includes(v.text))
+      : f.search(v.text, { limit: LIMIT });
+    for (const r of hits.slice(0, LIMIT)) {
       const score = r.score ?? 1;
-      if (v.converted && !containsText(r.item, v.text)) continue;
       const prev = best.get(r.item.entry.id);
       if (!prev || score < prev.score) {
         best.set(r.item.entry.id, {
@@ -102,6 +110,7 @@ const search = computed<SearchResults>(() => {
   return {
     items: top.map((t) => t.entry),
     convertedText: top.find((t) => t.via)?.via ?? null,
+    rawHits: top.some((t) => !t.via),
   };
 });
 const results = computed(() => search.value.items);
@@ -179,11 +188,23 @@ function onDocumentClick(e: MouseEvent) {
   open.value = false;
 }
 
+// A result link leaves the page with the popover still open (go() used to
+// close and clear it first). Back navigation restores the page from the
+// bfcache as it was left, so reset it there instead of on click, which would
+// unmount the link mid-click.
+function onPageShow(e: PageTransitionEvent) {
+  if (!e.persisted) return;
+  open.value = false;
+  query.value = "";
+}
+
 onMounted(() => {
   document.addEventListener("mousedown", onDocumentClick);
+  window.addEventListener("pageshow", onPageShow);
 });
 onBeforeUnmount(() => {
   document.removeEventListener("mousedown", onDocumentClick);
+  window.removeEventListener("pageshow", onPageShow);
 });
 </script>
 
@@ -231,7 +252,9 @@ onBeforeUnmount(() => {
         v-if="results.length && search.convertedText"
         class="m-0 px-3 pt-2 text-xs text-subtle"
       >
-        תוצאות עבור „<bdi>{{ search.convertedText }}</bdi
+        {{ search.rawHits ? "מוצגות גם " : "" }}תוצאות עבור „<bdi>{{
+          search.convertedText
+        }}</bdi
         >”
       </p>
       <ul

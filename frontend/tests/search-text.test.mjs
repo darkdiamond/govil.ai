@@ -15,8 +15,13 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { normalizeSearchText, queryVariants, toHebrewLayout, toLatinLayout } =
-  mod.exports;
+const {
+  normalizeSearchText,
+  queryVariants,
+  searchHaystack,
+  toHebrewLayout,
+  toLatinLayout,
+} = mod.exports;
 
 const texts = (q) => queryVariants(q).map((v) => v.text);
 const converted = (q) =>
@@ -61,6 +66,29 @@ test("mixed-script queries are not re-read", () => {
 
 test("digits alone are not re-read", () => {
   assert.equal(converted("2024"), null);
+});
+
+test("re-reads shorter than three letters are dropped", () => {
+  // "ab" → "שנ", "co" → "במ": common Hebrew prefixes that match everything
+  assert.equal(converted("ab"), null);
+  assert.equal(converted("co"), null);
+  assert.equal(converted("t"), null);
+  assert.deepEqual(texts("ab"), ["ab"]);
+  assert.equal(converted("של"), null);
+  assert.equal(converted("rfc"), "רכב");
+});
+
+test("the haystack folds every searchable field", () => {
+  const hay = searchHaystack({
+    title: 'נתוני צה"ל',
+    summary_he: "תל-אביב",
+    organization: "משרד הביטחון",
+    tags: ["ביטחון"],
+  });
+  assert.ok(hay.includes("צהל"));
+  assert.ok(hay.includes("תל אביב"));
+  assert.ok(hay.includes("משרד הביטחונ"));
+  assert.equal(searchHaystack({ title: "GTFS" }), "gtfs");
 });
 
 test("spelling folds", () => {

@@ -87,6 +87,24 @@ export function normalizeSearchText(s: string): string {
     .trim();
 }
 
+/** Searchable text of a dataset entry, normalized: what queryVariants() texts
+ * are matched against (substring) on /datasets/ and in the header search. */
+export function searchHaystack(e: {
+  title: string;
+  summary_he?: string | null;
+  organization?: string | null;
+  tags?: string[] | null;
+}): string {
+  return normalizeSearchText(
+    `${e.title} ${e.summary_he ?? ""} ${(e.tags ?? []).join(" ")} ${e.organization ?? ""}`
+  );
+}
+
+// A re-read shorter than this (spaces aside) is left out: two letters re-read
+// as Hebrew are a common prefix ("ab" → "שנ", "co" → "במ") that matches nearly
+// every dataset.
+const MIN_CONVERTED_CHARS = 3;
+
 export interface QueryVariant {
   /** Normalized text to match against normalizeSearchText() haystacks. */
   text: string;
@@ -100,6 +118,8 @@ export function queryVariants(q: string): QueryVariant[] {
   const out: QueryVariant[] = [];
   const add = (display: string, converted: boolean) => {
     const text = normalizeSearchText(display);
+    if (converted && text.replace(/ /g, "").length < MIN_CONVERTED_CHARS)
+      return;
     if (text && !out.some((v) => v.text === text))
       out.push({ text, display: display.trim(), converted });
   };
