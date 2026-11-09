@@ -1,18 +1,16 @@
-// Server-only readers for the news artifacts (prerender time). Pages call
-// them inside `if (import.meta.server)` so node:fs never reaches the client
-// bundle; the result is inlined into the page payload.
+// Loaders for the news artifacts. The *Server readers run at prerender only
+// (node:fs; pages/datasets/[slug].vue calls them under `import.meta.server`).
+// loadNewsIndex / loadArticle are universal: pages call them from
+// useAsyncData, which also runs in the browser on client-side navigation.
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
+import { readPublicJson } from "~/utils/search-index";
 
-async function readJson<T>(rel: string): Promise<T | null> {
-  const fs = await import("node:fs/promises");
-  const path = await import("node:path");
-  try {
-    return JSON.parse(
-      await fs.readFile(path.resolve(process.cwd(), "public", rel), "utf-8")
-    ) as T;
-  } catch {
-    return null;
-  }
+// Slugs are [a-z0-9-] (services/news/gates.slugify); refuse anything else
+// before it reaches a filesystem path or a URL.
+const SLUG_RE = /^[a-z0-9-]{1,120}$/;
+
+function readJson<T>(rel: string): Promise<T | null> {
+  return readPublicJson<T>(rel).catch(() => null);
 }
 
 export async function loadNewsIndexServer(): Promise<NewsIndexEntry[]> {
@@ -25,9 +23,7 @@ export async function loadNewsIndexServer(): Promise<NewsIndexEntry[]> {
 export async function loadArticleServer(
   slug: string
 ): Promise<NewsArticle | null> {
-  // Slugs are [a-z0-9-] (services/news/gates.slugify); refuse anything else
-  // before it reaches a filesystem path.
-  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  if (!SLUG_RE.test(slug)) return null;
   return readJson<NewsArticle>(`news/${slug}/article.json`);
 }
 
@@ -36,25 +32,31 @@ export async function loadArticleServer(
 // a server-only loader returned null there and every news page reached by a
 // click rendered as a 404 (2026-11-09). In the browser these fetch the same
 // public JSON the prerender read from disk.
-export async function loadNewsIndex(): Promise<NewsIndexEntry[]> {
+let newsIndexCache: Promise<NewsIndexEntry[]> | null = null;
+
+export function loadNewsIndex(): Promise<NewsIndexEntry[]> {
   if (import.meta.server) return loadNewsIndexServer();
-  try {
-    const doc = await $fetch<{ articles?: NewsIndexEntry[] }>(
-      "/news/index.json"
-    );
-    return doc?.articles ?? [];
-  } catch {
-    return [];
-  }
+  // One fetch per browser session, as loadSearchIndex; a failure is not
+  // cached (the next navigation retries) and degrades to "no news".
+  newsIndexCache ??= $fetch<{ articles?: NewsIndexEntry[] }>("/news/index.json")
+    .then((doc) => doc?.articles ?? [])
+    .catch(() => {
+      newsIndexCache = null;
+      return [];
+    });
+  return newsIndexCache;
 }
 
+/** null = no such article (404). Any other fetch failure (offline, 5xx)
+ *  throws, so the page reports an error instead of "not found". */
 export async function loadArticle(slug: string): Promise<NewsArticle | null> {
+  if (!SLUG_RE.test(slug)) return null;
   if (import.meta.server) return loadArticleServer(slug);
-  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
   try {
     return await $fetch<NewsArticle>(`/news/${slug}/article.json`);
-  } catch {
-    return null;
+  } catch (e) {
+    if ((e as { statusCode?: number })?.statusCode === 404) return null;
+    throw e;
   }
 }
 

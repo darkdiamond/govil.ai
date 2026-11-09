@@ -42,7 +42,8 @@ function slimEntry(e: ManifestEntry): SlimEntry {
   };
 }
 
-async function readPublicJson<T>(rel: string): Promise<T> {
+/** SERVER ONLY: read a JSON artifact from public/ (preview overlay first). */
+export async function readPublicJson<T>(rel: string): Promise<T> {
   // Guard the node imports so Vite's client bundler can tree-shake them out —
   // same pattern as pages/datasets/[slug].vue's server-only fetcher.
   const fs = await import("node:fs/promises");
@@ -92,7 +93,11 @@ export function loadSearchIndex(): Promise<SearchIndex> {
             } satisfies SearchIndex;
           }
         )
-      : $fetch<SearchIndex>("/data/search-index.json");
+      : $fetch<SearchIndex>("/data/search-index.json").catch((e) => {
+          // Don't pin a failed fetch for the session: the next caller retries.
+          searchIndexCache = null;
+          throw e;
+        });
   }
   return searchIndexCache;
 }

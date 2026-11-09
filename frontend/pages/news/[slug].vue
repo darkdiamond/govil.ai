@@ -10,25 +10,33 @@ const SITE_URL = "https://govil.ai";
 
 // Runs at prerender AND in the browser on client-side navigation (see
 // utils/news.ts): every loader here must work in both.
-const { data } = await useAsyncData(`news-${slug}`, async () => {
-  const article = await loadArticle(slug);
+// The three reads are independent: start them together.
+const { data, error } = await useAsyncData(`news-${slug}`, async () => {
+  const [article, index, si] = await Promise.all([
+    loadArticle(slug),
+    loadNewsIndex(),
+    // Tag chips are optional: no index, no links.
+    loadSearchIndex().catch(() => null),
+  ]);
   if (!article) return null;
-  const index = await loadNewsIndex();
   const more = index.filter((a) => a.slug !== slug).slice(0, 3);
   // Tag chips link only tags that have a page (the publisher's tag_index).
-  let tagSlugs: Record<string, string> = {};
-  try {
-    const si = await loadSearchIndex();
-    for (const t of article.tags ?? []) {
-      const s = si.tag_index?.[t]?.slug;
-      if (s) tagSlugs[t] = s;
-    }
-  } catch {
-    tagSlugs = {};
+  const tagSlugs: Record<string, string> = {};
+  for (const t of article.tags ?? []) {
+    const s = si?.tag_index?.[t]?.slug;
+    if (s) tagSlugs[t] = s;
   }
   return { article, more, tagSlugs };
 });
 
+// A failed fetch on client-side navigation (offline, 5xx) is not a 404.
+if (error.value) {
+  throw createError({
+    statusCode: 503,
+    statusMessage: "Article unavailable",
+    fatal: true,
+  });
+}
 if (!data.value) {
   throw createError({
     statusCode: 404,
