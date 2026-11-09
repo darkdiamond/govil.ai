@@ -37,14 +37,15 @@ const when = computed(() => {
     <span v-else class="row-span-2 sm:row-span-1" />
 
     <div class="min-w-0">
-      <h3 class="m-0 text-lg sm:text-xl font-display text-ink leading-snug">
+      <!-- h4: the /news/ list puts each row under an h3 month heading. -->
+      <h4 class="m-0 text-lg sm:text-xl font-display text-ink leading-snug">
         <!-- The stretched link makes the whole row clickable. -->
         <NuxtLink
           :to="`/news/${article.slug}/`"
           class="text-ink no-underline group-hover:underline after:absolute after:inset-0"
           >{{ article.headline }}</NuxtLink
         >
-      </h3>
+      </h4>
       <p class="m-0 mt-1 text-subtle line-clamp-2">{{ article.dek }}</p>
       <p
         v-if="article.topic || article.minutes"

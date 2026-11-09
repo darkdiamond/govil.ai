@@ -20,12 +20,17 @@ const MONTH_LABEL = new Intl.DateTimeFormat("he-IL", {
   year: "numeric",
   timeZone: TZ,
 });
+// "" = undated. Only a real YYYY-MM is formatted: Intl throws a RangeError on
+// an invalid Date, and ?month= comes from the URL.
+const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const monthKey = (iso: string) => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? "" : MONTH_KEY.format(d).slice(0, 7);
 };
 const monthLabel = (key: string) =>
-  key ? MONTH_LABEL.format(new Date(`${key}-15T12:00:00Z`)) : "ללא תאריך";
+  MONTH_RE.test(key)
+    ? MONTH_LABEL.format(new Date(`${key}-15T12:00:00Z`))
+    : "ללא תאריך";
 
 // Filters live in the query string (?topic=, ?month=) so a filtered view can
 // be shared. The page is prerendered unfiltered: read the query only after
@@ -38,7 +43,10 @@ const queryValue = (k: string) => {
   return mounted.value && typeof v === "string" && v ? v : null;
 };
 const activeTopic = computed(() => queryValue("topic"));
-const activeMonth = computed(() => queryValue("month"));
+const activeMonth = computed(() => {
+  const m = queryValue("month");
+  return m && MONTH_RE.test(m) ? m : null;
+});
 const filtered = computed(
   () => activeTopic.value !== null || activeMonth.value !== null
 );
@@ -59,11 +67,14 @@ const activeTopicLabel = computed(
   () => topics.value.find((t) => t.id === activeTopic.value)?.label ?? null
 );
 
+// Counts follow the topic filter, since a month link keeps it. Undated
+// stories have no archive entry (no ?month= value can select them).
 const months = computed(() => {
   const by = new Map<string, number>();
   for (const a of articles.value) {
+    if (activeTopic.value && a.topic?.id !== activeTopic.value) continue;
     const k = monthKey(a.published_at);
-    by.set(k, (by.get(k) ?? 0) + 1);
+    if (k) by.set(k, (by.get(k) ?? 0) + 1);
   }
   return [...by.entries()].map(([key, count]) => ({
     key,
@@ -184,16 +195,15 @@ useSeo({
       v-if="lead"
       class="card card-hover relative grid md:grid-cols-[3fr_2fr] overflow-hidden mb-10"
     >
-      <picture v-if="lead.hero" class="block">
-        <img
-          :src="lead.hero"
-          :alt="lead.hero_alt || ''"
-          width="1600"
-          height="900"
-          fetchpriority="high"
-          class="block w-full h-full aspect-[16/9] object-cover"
-        />
-      </picture>
+      <img
+        v-if="lead.hero"
+        :src="lead.hero"
+        :alt="lead.hero_alt || ''"
+        width="1600"
+        height="900"
+        fetchpriority="high"
+        class="block w-full h-full aspect-[16/9] object-cover"
+      />
       <div class="p-5 sm:p-8 flex flex-col justify-center gap-4">
         <div class="text-sm text-subtle flex flex-wrap gap-x-3">
           <span v-if="lead.topic" class="text-brand-700 font-medium">{{

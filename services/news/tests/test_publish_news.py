@@ -57,10 +57,18 @@ def test_index_carries_card_data(tmp_path):
     assert idx["stat"] == {"value": "62.7%", "label": "חשיפה למניות"}
     assert len(idx["spark"]) == 36 and None not in idx["spark"]
     assert idx["topic"] == {"id": "housing", "label": "דיור"} and idx["minutes"] == 3
-    assert idx["tag_slugs"] == {"משכנתאות": "משכנתאות"}
+    assert "tag_slugs" not in idx  # article.json only: the index page doesn't link tags
     assert idx["datasets"] == [{"id": "ds1", "title": "משכנתאות", "href": "/datasets/new-slug/"}]
     art = json.loads((tmp_path / "news" / "mortgages-low" / "article.json").read_text(encoding="utf-8"))
     assert art["tag_slugs"] == {"משכנתאות": "משכנתאות"}
+
+
+def test_spark_is_the_latest_unbroken_run(tmp_path):
+    a = _article() | {"charts": [{"type": "line", "option": {"series": [
+        {"data": [9.0, 9.0, 9.0, 9.0, None, 1.0, 2.0, 3.0, None]}]}}]}
+    write_news(tmp_path, [a], datasets=DATASETS)
+    idx = json.loads((tmp_path / "news" / "index.json").read_text(encoding="utf-8"))["articles"][0]
+    assert idx["spark"] == [1.0, 2.0, 3.0]
 
 
 def test_card_data_is_optional(tmp_path):

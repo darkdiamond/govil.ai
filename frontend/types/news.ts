@@ -76,5 +76,4 @@ export interface NewsIndexEntry {
   stat?: { value: string; label: string } | null;
   spark?: number[] | null;
   minutes?: number | null;
-  tag_slugs?: Record<string, string>;
 }

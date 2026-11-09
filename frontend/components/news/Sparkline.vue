@@ -12,13 +12,14 @@ const geom = computed(() => {
   if (v.length < 2) return null;
   const min = Math.min(...v);
   const max = Math.max(...v);
-  const span = max - min || 1;
+  const span = max - min;
   const w = props.width - PAD * 2;
   const h = props.height - PAD * 2;
   // Time runs left to right even on an RTL page, like every chart on the site.
+  // A flat series sits mid-height, not on the floor (which reads as "lowest").
   const pts = v.map((y, i) => [
     PAD + (i / (v.length - 1)) * w,
-    PAD + h - ((y - min) / span) * h,
+    span ? PAD + h - ((y - min) / span) * h : PAD + h / 2,
   ]);
   const line = pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   const [lx, ly] = pts[pts.length - 1];

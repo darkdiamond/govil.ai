@@ -56,15 +56,24 @@ def _stat(blocks: list[dict]) -> dict | None:
 
 def _spark(charts: list[dict]) -> list[float] | None:
     """The first line chart's first series, last SPARK_POINTS points — the
-    story's data drawn as a sparkline on cards. None when there's no series."""
+    story's data drawn as a sparkline on cards. None when there's no series.
+    Only the latest unbroken run: the sparkline spaces points evenly, so a
+    gap (a null period) dropped from the middle would bend the line."""
     for c in charts or []:
         if c.get("type") != "line":
             continue
         series = (c.get("option") or {}).get("series") or []
         if series:
-            vals = [v for v in series[0].get("data") or [] if isinstance(v, int | float)]
-            if len(vals) >= 3:
-                return vals[-SPARK_POINTS:]
+            run: list[float] = []
+            for v in reversed(series[0].get("data") or []):
+                if isinstance(v, int | float) and not isinstance(v, bool):
+                    run.append(v)
+                    if len(run) == SPARK_POINTS:
+                        break
+                elif run:  # a gap before the latest run ends it
+                    break
+            if len(run) >= 3:
+                return run[::-1]
     return None
 
 
@@ -115,7 +124,7 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
         (d / "article.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
         words = int(a.get("words") or 0)
         index.append({k: doc[k] for k in ("slug", "headline", "dek", "published_at", "updated_at",
-                                           "tags", "status", "tag_slugs")}
+                                           "tags", "status")}
                      | {"hero": sizes.get("16x9"), "hero_alt": hero.get("alt"),
                         "dataset_ids": [c["id"] for c in cards],
                         "datasets": [{k: c.get(k) for k in ("id", "title", "href")} for c in cards],
@@ -136,16 +145,19 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
 
 
 def publish_news(out_root: Path, *, datasets: dict[str, dict], project: str | None = None,
-                 client=None, **taxonomy) -> dict:
+                 client=None, tag_slugs: dict[str, str] | None = None,
+                 tag_topics: dict[str, str] | None = None,
+                 topics: dict[str, str] | None = None) -> dict:
     """Fail soft: the dataset site must deploy even if news can't be read.
     Articles are read from the `news` Firestore database (store.NEWS_DATABASE);
-    `client` overrides that client (tests). `taxonomy`: tag_slugs, tag_topics,
-    topics (see write_news)."""
+    `client` overrides that client (tests). tag_slugs / tag_topics / topics:
+    see write_news."""
     try:
         from .store import FirestoreArticles
 
         articles = list(FirestoreArticles(client=client, project=project).iter_published())
-        return write_news(out_root, articles, datasets=datasets, **taxonomy)
+        return write_news(out_root, articles, datasets=datasets, tag_slugs=tag_slugs,
+                          tag_topics=tag_topics, topics=topics)
     except Exception as e:
         log.exception("publish: news artifacts skipped")
         return {"error": f"{type(e).__name__}: {str(e)[:200]}"}
