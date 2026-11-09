@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import csv
 import functools
+import gzip
 import hashlib
 import http.client
 import json
@@ -1347,8 +1348,54 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     from google.cloud import storage
 
     blob = storage.Client().bucket(bucket).blob(relpath)
-    blob.upload_from_string(data, content_type="text/html; charset=utf-8")
+    ctype = ("application/gzip" if relpath.endswith(".gz")
+             else "text/html; charset=utf-8")
+    blob.upload_from_string(data, content_type=ctype)
     return f"gs://{bucket}/{relpath}"
+
+
+MODEL_HISTORY_MAX_VALUE_BYTES = 2_000_000
+
+
+def history_model(model: dict) -> dict:
+    """The page model as kept for history (read by the news job): `tables`
+    dropped (row dumps, not series) and any second-level value whose JSON tops
+    MODEL_HISTORY_MAX_VALUE_BYTES replaced by a marker, so one outsized chart
+    can't bloat every snapshot."""
+    out: dict = {}
+    for k, v in model.items():
+        if k == "tables":
+            continue
+        if isinstance(v, dict):
+            kept = {}
+            for kk, vv in v.items():
+                size = len(json.dumps(vv, ensure_ascii=False, default=str))
+                kept[kk] = vv if size <= MODEL_HISTORY_MAX_VALUE_BYTES else {"__omitted_bytes__": size}
+            out[k] = kept
+        else:
+            out[k] = v
+    return out
+
+
+def _stage_model_history(src_id: str, model: dict, *, bucket: str, preview: bool,
+                         write_gcs: Callable[[bytes, str, str], str],
+                         now: datetime | None = None) -> bool:
+    """Write the render's model to models/<id>/<UTC ts>.json.gz and
+    models/<id>/latest.json.gz (read by the news job). Best effort: a failure
+    is logged, never fails the refresh (the page is already staged and marked)."""
+    prefix = "preview/models" if preview else "models"
+    ts = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
+    try:
+        body = gzip.compress(json.dumps(
+            {"dataset_id": src_id, "rendered_at": ts, "model": history_model(model)},
+            ensure_ascii=False, default=str, sort_keys=True,
+        ).encode("utf-8"), mtime=0)
+        write_gcs(body, bucket, f"{prefix}/{src_id}/{ts}.json.gz")
+        write_gcs(body, bucket, f"{prefix}/{src_id}/latest.json.gz")
+        return True
+    except Exception:
+        log.warning("refresh %s: writing model history failed", src_id[:8], exc_info=True)
+        return False
 
 
 def _read_gcs(bucket: str, relpath: str) -> bytes | None:
@@ -1658,6 +1705,8 @@ def refresh_one(
             src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
             round(time.monotonic() - started, 2),
         )
+    _stage_model_history(src.id, page.model, bucket=staging_bucket, preview=preview,
+                         write_gcs=write_gcs)
     return RefreshOutcome(
         src.id,
         "refreshed",
