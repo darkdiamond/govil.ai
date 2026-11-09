@@ -51,6 +51,7 @@ from .base import (
     SourceConfig,
     SourcePresentation,
     SourceProvider,
+    normalize_csv,
 )
 from .cbs import CbsReleasesProvider
 
@@ -62,11 +63,13 @@ _SIG_DIGITS = 7
 
 COLUMNS = ("CODE", "NAME_HE", "FREQ", "TIME_PERIOD", "DATE", "YEAR", "PERIOD", "VALUE",
            "BASE_DESC", "PERCENT", "PERCENT_YEAR", "VALUE_CHAINED", "CHAIN_BASE")
-_FREQS = {"month": ("M", "month"), "quarter": ("Q", "quarter")}
+_FREQS = {"month": "M", "quarter": "Q"}
 
 
-def _num(v) -> str:
-    """A float as plain decimal text (no exponent), "" for missing."""
+def _num(v, *, sig: int | None = None) -> str:
+    """A number as plain decimal text (no exponent), "" for missing. Exact
+    unless `sig` (significant digits) is given: CBS's published figures pass
+    through as published; only computed ones are rounded."""
     if v is None or v == "":
         return ""
     x = float(v)
@@ -74,8 +77,9 @@ def _num(v) -> str:
         return ""
     if x == 0:
         return "0"
-    digits = _SIG_DIGITS - math.floor(math.log10(abs(x))) - 1
-    s = format(Decimal(repr(round(x, digits))), "f")
+    if sig is not None:
+        x = round(x, sig - math.floor(math.log10(abs(x))) - 1)
+    s = format(Decimal(repr(x)), "f")
     if "." in s:
         s = s.rstrip("0").rstrip(".")
     return s
@@ -147,13 +151,11 @@ def chain_factors(newest: dict) -> tuple[str, dict[str, float]]:
     return curr, factors
 
 
-def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str) -> bytes:
-    """The API's pages for one query → the normalized table (unsorted; the
-    caller's `normalize_csv` sorts). Raises when a requested code has no row."""
-    # (code) → {"name", "rows": [(freq, row)]}; a code may span pages.
+def _series_rows(pages: list[dict], freqs: tuple[str, ...]) -> dict[int, dict]:
+    """code → {"name", "rows": [(freq, row)]}, merged across pages (one code's
+    history can be split between two)."""
     by_code: dict[int, dict] = defaultdict(lambda: {"name": "", "rows": []})
-    freqs = ("month", "quarter") if frequency == "both" else (frequency,)
-    for page in payload_pages:
+    for page in pages:
         for freq in freqs:
             for series in page.get(freq) or []:
                 try:
@@ -163,6 +165,35 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str) -> byt
                 entry = by_code[code]
                 entry["name"] = entry["name"] or (series.get("name") or "").strip()
                 entry["rows"].extend((freq, r) for r in series.get("date") or [])
+    return by_code
+
+
+def _dated(rows: list[tuple[str, dict]]) -> list[tuple]:
+    out = []
+    for freq, r in rows:
+        year, n = _period(freq, r)
+        tp, date = _date(freq, year, n)
+        out.append((date, freq, tp, year, n, r))
+    return out
+
+
+def _newest(dated: list[tuple]) -> dict:
+    """The newest row (latest DATE; monthly before quarterly on a tie)."""
+    return max(dated, key=lambda d: (d[0], d[1] == "month"))[5]
+
+
+def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
+             chain_pages: list[dict] | None = None) -> bytes:
+    """The API's pages for one query → the normalized table (unsorted; the
+    caller's `normalize_csv` sorts). Raises when a requested code has no row.
+
+    Each code's newest row carries the chain to every older base. The data
+    pages may be fetched without `coef` (it multiplies the payload ~6x);
+    `chain_pages` is then a `last=1&coef=true` answer for the same codes.
+    Without it the chain is read from the data pages themselves."""
+    freqs = ("month", "quarter") if frequency == "both" else (frequency,)
+    by_code = _series_rows(payload_pages, freqs)
+    chains = _series_rows(chain_pages, freqs) if chain_pages is not None else by_code
     missing = [c for c in codes if not by_code.get(c, {}).get("rows")]
     if missing:
         raise ProviderError(f"CBS index answered no {frequency} rows for code(s) {missing}")
@@ -171,15 +202,11 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str) -> byt
     w.writerow(COLUMNS)
     for code in codes:
         entry = by_code[code]
-        dated = []
-        for freq, r in entry["rows"]:
-            year, n = _period(freq, r)
-            tp, date = _date(freq, year, n)
-            dated.append((date, freq, tp, year, n, r))
-        # The newest row (latest DATE; monthly before quarterly on a tie)
-        # carries the chain to every older base.
-        newest = max(dated, key=lambda d: (d[0], d[1] == "month"))[5]
-        chain_base, factors = chain_factors(newest)
+        dated = _dated(entry["rows"])
+        chain_rows = chains.get(code, {}).get("rows")
+        if not chain_rows:
+            raise ProviderError(f"code {code}: no row with chaining coefficients")
+        chain_base, factors = chain_factors(_newest(_dated(chain_rows)))
         seen = set()
         for date, freq, tp, year, n, r in dated:
             if (freq, tp) in seen:
@@ -195,9 +222,9 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str) -> byt
                 raise ProviderError(
                     f"code {code} {tp}: base {desc!r} is not in the chain from {chain_base!r}"
                 )
-            w.writerow([code, entry["name"], _FREQS[freq][0], tp, date, year, n, _num(value),
+            w.writerow([code, entry["name"], _FREQS[freq], tp, date, year, n, _num(value),
                         desc or "", _num(r.get("percent")), _num(r.get("percentYear")),
-                        _num(chained), chain_base])
+                        _num(chained, sig=_SIG_DIGITS), chain_base])
     return out.getvalue().encode("utf-8")
 
 
@@ -223,14 +250,13 @@ class CbsIndexProvider(SourceProvider):
     def _url(self, path: str, **query) -> str:
         return f"{self.settings.base_url.rstrip('/')}/{path}?{urlencode(query, safe=',')}"
 
-    def _query(self, r: CbsIndexResource | dict) -> dict:
-        r = r if isinstance(r, CbsIndexResource) else CbsIndexResource.model_validate(r)
+    def _query(self, r: CbsIndexResource) -> dict:
         q = {"id": ",".join(str(c) for c in r.codes), "lang": "he"}
         if r.start:
             q["startPeriod"] = r.start
         return q
 
-    def download_url(self, r: CbsIndexResource | dict) -> str:
+    def download_url(self, r: CbsIndexResource) -> str:
         """CBS's own CSV export of the resource's codes (the page's download
         button; cp1255, one page of up to 1000 rows)."""
         return self._url("data/price", **self._query(r), format="csv", PageSize=PAGE_SIZE)
@@ -283,11 +309,22 @@ class CbsIndexProvider(SourceProvider):
             {"id": resource["id"], "name": resource.get("name") or resource["id"],
              **(resource.get("params") or {})})
 
+    def _cached(self, resource: dict) -> tuple[bytes, int]:
+        # Two resources can share a URL (same codes and start) and differ in
+        # `frequency`, which the CSV export URL doesn't carry.
+        freq = (resource.get("params") or {}).get("frequency") or "both"
+        key = f"{resource['url']}#frequency={freq}"
+        if key not in self._cache:
+            self._cache[key] = normalize_csv(self.download(resource), self.sort_keys,
+                                             count=True)
+        return self._cache[key]
+
     def pages(self, r: CbsIndexResource) -> list[dict]:
+        """The resource's rows, every page, without chaining coefficients."""
         out, page = [], 1
         while True:
             data = self._get_json(self._url("data/price", **self._query(r), format="json",
-                                            coef="true", PageSize=PAGE_SIZE, Page=page))
+                                            PageSize=PAGE_SIZE, Page=page))
             if "paging" not in data:
                 raise ProviderError(f"{r.id}: CBS Index API error: {str(data)[:200]}")
             out.append(data)
@@ -298,10 +335,19 @@ class CbsIndexProvider(SourceProvider):
             if page > _MAX_PAGES:
                 raise ProviderError(f"{r.id}: more than {_MAX_PAGES} pages")
 
+    def chain_pages(self, r: CbsIndexResource) -> list[dict]:
+        """Each code's newest row per frequency, with its chaining coefficients."""
+        data = self._get_json(self._url("data/price", id=",".join(map(str, r.codes)),
+                                        format="json", lang="he", coef="true", last=1,
+                                        PageSize=PAGE_SIZE))
+        if "paging" not in data:
+            raise ProviderError(f"{r.id}: CBS Index API error: {str(data)[:200]}")
+        return [data]
+
     def download(self, resource: dict) -> bytes:
         r = self._resource(resource)
         try:
-            return rows_csv(self.pages(r), r.codes, r.frequency)
+            return rows_csv(self.pages(r), r.codes, r.frequency, self.chain_pages(r))
         except ProviderError as e:
             raise ProviderError(f"{r.id}: {e}") from e
 
@@ -345,12 +391,13 @@ class CbsIndexProvider(SourceProvider):
             for row in csv.DictReader(f):
                 k = (row["CODE"], row["FREQ"])
                 s = stats.setdefault(k, {"name": row["NAME_HE"], "n": 0, "first": None,
-                                         "last": None, "last_row": None, "bases": set(),
+                                         "last": None, "last_row": None, "first_tp": "",
+                                         "bases": set(),
                                          "chain": row["CHAIN_BASE"]})
                 s["n"] += 1
                 s["bases"].add(row["BASE_DESC"])
                 if s["first"] is None or row["DATE"] < s["first"]:
-                    s["first"] = row["DATE"]
+                    s["first"], s["first_tp"] = row["DATE"], row["TIME_PERIOD"]
                 if s["last"] is None or row["DATE"] >= s["last"]:
                     s["last"], s["last_row"] = row["DATE"], row
         r = self._resource(resource)
@@ -365,8 +412,8 @@ class CbsIndexProvider(SourceProvider):
                 out.write(f"\n… {len(stats) - _BRIEF_MAX_CODES} more not listed\n")
                 break
             lr = s["last_row"]
-            out.write(f"| {code} | {s['name']} | {freq} | {s['n']:,} | {s['first'][:7]} | "
-                      f"{s['last'][:7]} | {lr['VALUE']} ({lr['BASE_DESC']}) | "
+            out.write(f"| {code} | {s['name']} | {freq} | {s['n']:,} | {s['first_tp']} | "
+                      f"{lr['TIME_PERIOD']} | {lr['VALUE']} ({lr['BASE_DESC']}) | "
                       f"{lr['PERCENT']} / {lr['PERCENT_YEAR']} | {len(s['bases'])} | "
                       f"{s['chain']} |\n")
         return out.getvalue()

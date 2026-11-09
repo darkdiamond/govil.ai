@@ -143,8 +143,11 @@ def test_download_pages_and_chains_across_bases():
     calls = []
     p = make_provider(calls=calls)
     data = p.csv_bytes(resource(p, start="07-2024"))
-    assert sum("Page=" in u for u in calls) == 3  # every page, once
-    assert all("coef=true" in u for u in calls)
+    data_calls = [u for u in calls if "Page=" in u]
+    chain_calls = [u for u in calls if "last=1" in u]
+    assert len(data_calls) == 3  # every page, once, without the ~6x coef payload
+    assert not any("coef" in u for u in data_calls)
+    assert len(chain_calls) == 1 and "coef=true" in chain_calls[0]
     out = rows(data)
     assert len(out) == 27
     assert [r["TIME_PERIOD"] for r in out[:2]] == ["2024-07", "2024-08"]  # sorted by DATE
@@ -247,7 +250,8 @@ def test_chain_factors_multiply_coefficients():
 def test_num_never_uses_exponents():
     assert _num(105.3) == "105.3"
     assert _num(100.0) == "100"
-    assert _num(0.0000123456789) == "0.00001234568"
+    assert _num(0.0000123456789) == "0.0000123456789"
+    assert _num(0.0000123456789, sig=7) == "0.00001234568"
     assert _num(None) == "" and _num("") == ""
     assert _num(-0.5) == "-0.5"
 
@@ -298,3 +302,53 @@ def test_sync_writes_the_source_doc(tmp_path):
     assert doc["page_slug_suffix"] == "cpi"
     assert doc["presentation"]["source_name_he"] == "הלשכה המרכזית לסטטיסטיקה"
     assert doc["resources"][0]["hash"]
+
+
+def test_same_codes_different_frequency_do_not_share_the_cache():
+    chain = [{"coeff": 3.736, "baseDesc": "1987 ממוצע", "value": 0}]
+    page = {"month": [_series(40010, "month", [_row("month", 1994, 1, "1993 ממוצע", 104.0,
+                                                    chain)])],
+            "quarter": [_series(40010, "quarter", [_row("quarter", 1993, 4, "1987 ממוצע",
+                                                        373.6)])],
+            "paging": {"last_page": 1}}
+    p = make_provider({"40010": [page]})
+    monthly = resource(p, codes=[40010], frequency="month")
+    quarterly = resource(p, codes=[40010], frequency="quarter")
+    assert monthly["url"] == quarterly["url"]  # the CSV export can't tell them apart
+    assert {r["FREQ"] for r in rows(p.csv_bytes(monthly))} == {"M"}
+    assert {r["FREQ"] for r in rows(p.csv_bytes(quarterly))} == {"Q"}
+
+
+def test_published_figures_pass_through_exactly():
+    page = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 1234567.85)])],
+            "paging": {"last_page": 1}}
+    (r,) = rows(rows_csv([page], [1], "month"))
+    assert r["VALUE"] == "1234567.85"  # published: never re-rounded
+    assert r["VALUE_CHAINED"] == "1234568"  # computed: 7 significant digits
+
+
+def test_chain_comes_from_the_chain_pages():
+    data = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.0),
+                                           _row("month", 2025, 12, "A", 200.0)])],
+            "paging": {"last_page": 1}}
+    chain = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.0,
+                                                 [{"coeff": 2.0, "baseDesc": "A"}])])],
+             "paging": {"last_page": 1}}
+    by = {r["TIME_PERIOD"]: r for r in rows(rows_csv([data], [1], "month", [chain]))}
+    assert by["2025-12"]["VALUE_CHAINED"] == "100"
+    with pytest.raises(ProviderError, match="not in the chain"):
+        rows_csv([data], [1], "month")  # data pages alone carry no chain
+    with pytest.raises(ProviderError, match="no row with chaining"):
+        rows_csv([data], [1], "month", [{"month": None, "paging": {}}])
+
+
+def test_brief_names_quarters_by_time_period(tmp_path):
+    page = {"quarter": [_series(40010, "quarter", [_row("quarter", 1993, 4, "B", 1.0),
+                                                   _row("quarter", 1993, 1, "B", 1.0)])],
+            "paging": {"last_page": 1}}
+    p = make_provider({"40010": [page]})
+    res = resource(p, codes=[40010], frequency="quarter")
+    f = tmp_path / "q.csv"
+    f.write_bytes(p.csv_bytes(res))
+    brief = p.brief_section(res, f)
+    assert "| 1993-Q1 | 1993-Q4 |" in brief
