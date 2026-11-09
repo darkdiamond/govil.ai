@@ -47,6 +47,15 @@ if ! gcloud firestore databases describe --database="$NEWS_DB" --project="$PROJE
     --type=firestore-native --project="$PROJECT"
 fi
 
+# Drop grants an earlier, broader draft of this script would have made
+# (unconditioned datastore.user; the builder's dispatch token), so re-running
+# can only narrow access. "Not found" is fine.
+echo "==> removing broader legacy grants, if any"
+gcloud projects remove-iam-policy-binding "$PROJECT" --quiet >/dev/null 2>&1 \
+  --member="serviceAccount:$SA" --role=roles/datastore.user --condition=None || true
+gcloud secrets remove-iam-policy-binding github-dispatch-token --project="$PROJECT" --quiet >/dev/null 2>&1 \
+  --member="serviceAccount:$SA" --role=roles/secretmanager.secretAccessor || true
+
 echo "==> Firestore: read the default database, write only $NEWS_DB"
 gcloud projects add-iam-policy-binding "$PROJECT" --quiet >/dev/null \
   --member="serviceAccount:$SA" --role=roles/datastore.viewer --condition=None
@@ -71,5 +80,9 @@ for s in openrouter-news-key github-news-dispatch-token; do
   fi
 done
 
+echo "==> project roles now held by $SA:"
+gcloud projects get-iam-policy "$PROJECT" --flatten="bindings[].members" \
+  --filter="bindings.members:serviceAccount:$SA" \
+  --format="table(bindings.role,bindings.condition.title)"
 echo "==> done: $SA"
 echo "   Remember: add it as a Restricted user on Search Console (sc-domain:govil.ai)."
