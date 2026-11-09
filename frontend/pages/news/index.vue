@@ -141,7 +141,7 @@ const filterTo = (patch: Record<string, string | null>) => {
 
 const SITE_URL = "https://govil.ai";
 useSeo({
-  title: "חדשות מהנתונים | govil.ai",
+  title: "חדשות govil.ai",
   description:
     "כתבות קצרות על מה שהשתנה במאגרי המידע הממשלתיים: שיאים, ירידות, מגמות ושנה מול שנה, ישר מהנתונים הרשמיים.",
   path: "/news/",
@@ -152,7 +152,7 @@ useSeo({
   extraJsonLd: {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    name: "חדשות מהנתונים",
+    name: "חדשות govil.ai",
     url: `${SITE_URL}/news/`,
     hasPart: articles.value.slice(0, PAGE).map((a) => ({
       "@type": "NewsArticle",
@@ -167,9 +167,7 @@ useSeo({
 <template>
   <div class="max-w-gov mx-auto px-4 py-8 sm:py-12">
     <header class="mb-8 max-w-3xl">
-      <h1 class="text-3xl sm:text-4xl font-display text-ink-deep m-0">
-        חדשות מהנתונים
-      </h1>
+      <h1 class="text-3xl sm:text-4xl font-display text-ink-deep m-0">חדשות</h1>
       <p class="text-lg text-subtle mt-2 mb-0">
         מה השתנה במאגרי המידע הממשלתיים, ולמה זה חשוב. כל מספר בכתבות מגיע
         מהנתונים הרשמיים.
