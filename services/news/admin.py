@@ -1,0 +1,55 @@
+"""Manage published articles (Firestore `articles/`). Changes reach the site
+on the next publish (`gh workflow run publish.yml`, or the next job that
+re-renders something).
+
+    python -m services.news.admin list [--rejected] [--days 30]
+    python -m services.news.admin unpublish <slug>            # page removed on next publish
+    python -m services.news.admin republish <slug>
+    python -m services.news.admin correct <slug> --note "…"   # shown on the page, bumps dateModified
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+
+
+def main(argv: list[str] | None = None) -> int:
+    from .store import REJECTS, FirestoreArticles
+
+    ap = argparse.ArgumentParser(prog="python -m services.news.admin")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    ls = sub.add_parser("list")
+    ls.add_argument("--rejected", action="store_true")
+    ls.add_argument("--days", type=int, default=30)
+    for name in ("unpublish", "republish"):
+        sub.add_parser(name).add_argument("slug")
+    c = sub.add_parser("correct")
+    c.add_argument("slug")
+    c.add_argument("--note", required=True)
+    a = ap.parse_args(argv)
+
+    st = FirestoreArticles()
+    if a.cmd == "list":
+        if a.rejected:
+            for d in st.db.collection(REJECTS).order_by("at", direction="DESCENDING").limit(50).stream():
+                x = d.to_dict() or {}
+                print(json.dumps({"at": x.get("at"), "reason": x.get("reason"),
+                                  "headline": (x.get("core") or {}).get("headline"),
+                                  "problems": (x.get("problems") or [])[:5]}, ensure_ascii=False))
+        else:
+            for x in st.recent(a.days):
+                print(f"{str(x.get('published_at'))[:10]}  {x.get('status'):10}  {x.get('slug')}  {x.get('headline')}")
+        return 0
+    if a.cmd == "unpublish":
+        st.set_status(a.slug, "unpublished")
+    elif a.cmd == "republish":
+        st.set_status(a.slug, "published")
+    elif a.cmd == "correct":
+        st.set_status(a.slug, "corrected", correction=a.note)
+    print(f"{a.cmd}: {a.slug} — run the publish workflow to update the site", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
