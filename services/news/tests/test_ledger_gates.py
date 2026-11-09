@@ -48,6 +48,11 @@ def test_signed_formats_are_isolated_with_a_real_minus():
     ("הנתונים יתפרסמו בדצמבר 2026.", []),
     ("מאז 2019, ועד ינואר 2026, הנתון ירד.", []),
     ("עלה ל-2026.5 נקודות", ["ל-2026.5"]),
+    ("הנתונים פורסמו ב-14.9.2026 ובתאריך 9/11/2026.", []),
+    ("בשנת התקציב 2025/26 ובשנת הלימודים 2024-25", []),
+    ("2019-2025", ["2019-"]),                    # a range still needs a lead for its first year
+    ("עלייה של 2025%", ["2025%"]),
+    ("נרשמו 2025,5 נקודות", ["2025,5"]),
 ])
 def test_stray_numbers(text, bad):
     assert stray_numbers(text) == bad
@@ -258,6 +263,15 @@ def test_only_official_search_results_are_citable():
     assert res[0]["source"] == "s1"
     assert "source" not in res[1] and res[1]["context_only"]
     assert len(led.sources) == 1
+
+
+def test_stray_year_gets_actionable_feedback():
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["blocks"][3]["text"] += " 2025 הייתה שנה חלשה, ונרשמו 1,200 עסקאות."
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert any("years without date context ['2025']" in p for p in problems)
+    assert any("typed numbers ['1,200']" in p for p in problems)
 
 
 def test_slugify():
