@@ -83,7 +83,7 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
             # Bottom, with room: at the top the Hebrew labels collided with
             # each other and with the axis name (seen in the first render).
             # GovEcharts.option merges shallowly, so the grid is given whole.
-            option["legend"] = {"bottom": 0, "itemGap": 18}
+            option["legend"] = {"bottom": 0, "itemGap": 20, "align": "right"}  # RTL: marker right of its label
             option["grid"] = {"left": 48, "right": 64, "top": 40, "bottom": 72, "containLabel": True}
         table = [["", *[s["name"] for s in series]]] + [
             [lbl, *[s["data"][i] for s in series]] for i, lbl in enumerate(x)]
@@ -101,8 +101,16 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
             vals.append(f.value)
             if f.dataset_id:
                 dsids.add(f.dataset_id)
-        option = {"xAxis": {"type": "category", "data": labels},
-                  "yAxis": {"type": "value", "scale": _scale(vals), "name": unit},
+        # A bar's length is its value, so the axis always includes zero (the
+        # first live article's bars started at 54% and tripled a 9-point gap).
+        # An explicit bound also stops GovEcharts' zero-baseline belt from
+        # rescaling it. Mixed signs include zero on their own.
+        y = {"type": "value", "name": unit}
+        if all(v >= 0 for v in vals):
+            y["min"] = 0
+        elif all(v <= 0 for v in vals):
+            y["max"] = 0
+        option = {"xAxis": {"type": "category", "data": labels}, "yAxis": y,
                   "series": [{"type": "bar", "data": vals}], "tooltip": {"trigger": "axis"}}
         table = [["", unit or title]] + [[lbl, v] for lbl, v in zip(labels, vals, strict=True)]
         dsids = sorted(dsids)

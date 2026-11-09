@@ -65,6 +65,25 @@ def test_one_story_crashing_does_not_stop_the_day(tmp_path, monkeypatch):
     assert out["rejected"][0]["reason"] == "error" and out["published"] == []
 
 
+def test_bar_axis_includes_zero_and_line_legend_is_rtl():
+    led = Ledger()
+    fs = [led.add(v, label=str(v), provenance=f"p{v}").id for v in (62.7, 54.8, 54.2)]
+    bar = charts.resolve({"id": "b", "type": "bar", "title": "t",
+                          "bars": [{"label": "x", "fact": f} for f in fs]}, {}, led)
+    assert bar["option"]["yAxis"]["min"] == 0 and "scale" not in bar["option"]["yAxis"]
+    neg = [led.add(v, label=str(v), provenance=f"n{v}").id for v in (-3.0, -5.0)]
+    bar2 = charts.resolve({"id": "b2", "type": "bar", "title": "t",
+                           "bars": [{"label": "x", "fact": f} for f in neg]}, {}, led)
+    assert bar2["option"]["yAxis"]["max"] == 0
+    a = extract_series({"charts": {"c": {"x": [f"2026-{m:02d}" for m in range(1, 8)],
+                                         "y": [1, 2, 3, 4, 5, 6, 7], "z": [7, 6, 5, 4, 3, 2, 1]}}},
+                       "A", date(2026, 11, 1))
+    line = charts.resolve({"id": "l", "type": "line", "title": "t", "series": [
+        {"dataset_id": "A", "series_path": "c.y"}, {"dataset_id": "A", "series_path": "c.z"}]},
+        {"A": a}, Ledger())
+    assert line["option"]["legend"]["align"] == "right"
+
+
 def test_chart_aligns_periods_with_different_labels():
     a = extract_series({"charts": {"c": {"x": [f"2026-{m:02d}" for m in range(1, 8)],
                                          "y": [1, 2, 3, 4, 5, 6, 7]}}}, "A", date(2026, 11, 1))
