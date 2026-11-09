@@ -26,9 +26,12 @@ RUN useradd --system --uid 10001 --home-dir /nonexistent --no-create-home \
 
 WORKDIR /app
 
-# Install deps first so the layer is cached across code changes.
+# Install deps first so the layer is cached across code changes. The same
+# image also runs govdata-news-job (services/news, its own command and
+# service account — infra/news-job.deploy.sh), which needs a few more libs.
 COPY services/page_builder/requirements.txt ./requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+COPY services/news/requirements.txt ./requirements-news.txt
+RUN pip install --no-cache-dir -r requirements.txt -r requirements-news.txt
 
 # Copy only what the job needs.
 COPY services/__init__.py ./services/__init__.py
@@ -36,6 +39,10 @@ COPY services/shared ./services/shared
 COPY services/scanner ./services/scanner
 COPY services/page_builder ./services/page_builder
 COPY services/providers ./services/providers
+# News job: its code + prompts (.dockerignore keeps services/news/prompts/*.md)
+# and the tag vocabulary it reads (taxonomy/).
+COPY services/news ./services/news
+COPY taxonomy ./taxonomy
 # Host-side page gate (run on every rendered body before it is staged).
 COPY agent/skills/check.py ./agent/skills/check.py
 # Belt-and-braces: COPY keeps build-context modes, so make sure nothing
