@@ -1,0 +1,244 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איזו תחנת משטרה אחראית על היישוב שלי? איתור לפי שם היישוב ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_note }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.localities, model.labels.localities_kpi) }}
+  {{ gov.kpi(model.kpis.stations, "תחנות משטרה") }}
+  {{ gov.kpi(model.kpis.areas, "מרחבים") }}
+  {{ gov.kpi(model.kpis.districts, "מחוזות") }}
+  {{ gov.kpi(model.kpis.split, "יישובים המחולקים בין כמה תחנות") }}
+  {{ gov.kpi(model.kpis.unassigned, model.labels.unassigned_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "יישובים ותחנות לפי מחוז משטרה") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.district_lede }}</p>
+  {{ gov.chart("chart-district", model.labels.district_aria) }}
+  {{ gov.table(model.labels.district_aria, ["מחוז", "יישובים", "מרחבים", "תחנות", "ממוצע יישובים לתחנה"], model.tables.district, ltr=(1, 2, 3, 4)) }}
+</section>
+
+{%- if model.flags.ratio %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "כמה יישובים בגזרה של תחנה, לפי מחוז") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.ratio_lede }}</p>
+  {{ gov.chart("chart-ratio", model.labels.ratio_aria) }}
+  {{ gov.table(model.labels.ratio_aria, ["מחוז", "יישובים", "מרחבים", "תחנות", "ממוצע יישובים לתחנה"], model.tables.district, ltr=(1, 2, 3, 4)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מבנה הפיקוד: מחוז, מרחב ותחנה") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.tree_lede }}</p>
+  <div id="chart-tree" class="h-[28rem] md:h-[480px]" role="img" aria-label="{{ model.labels.tree_aria }}" data-fallback="explorer"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מרחבי המשטרה לפי מספר היישובים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.areas_lede }}</p>
+  {{ gov.chart("chart-areas", model.labels.areas_aria, h="h-[36rem] md:h-[560px]") }}
+  {{ gov.table(model.labels.areas_aria, ["מרחב", "מחוז", "תחנות", "יישובים"], model.tables.areas, ltr=(2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", model.labels.stations_title) }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.stations_lede }}</p>
+  {{ gov.chart("chart-stations", model.labels.stations_aria, h="h-[30rem] md:h-[480px]") }}
+  {{ gov.table(model.labels.stations_aria, ["דירוג", "תחנה", "מרחב", "יישובים"], model.tables.stations, ltr=(0, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "גודל הגזרה: תחנות לפי מספר היישובים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.sizes_lede }}</p>
+  {{ gov.chart("chart-sizes", model.labels.sizes_aria) }}
+  {{ gov.table(model.labels.sizes_aria, ["יישובים בגזרה", "תחנות"], model.tables.sizes, ltr=(0, 1)) }}
+</section>
+
+{%- if model.flags.split %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "יישובים המחולקים בין כמה תחנות משטרה") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.split_lede }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">יישובים המחולקים בין כמה תחנות משטרה</caption>
+      <thead><tr><th scope="col">יישוב</th><th scope="col">תחנות</th><th scope="col">התחנות (מרחב)</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.split %}
+        <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td>{{ r[2] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.unassigned %}
+<section class="card p-5 mb-6">
+  <div class="flex items-center gap-2 mb-3 text-warn">
+    <img src="/icons/triangle-alert.svg" alt="" class="w-5 h-5" />
+    <h2 class="m-0 text-lg font-semibold text-ink-deep">יישובים ללא תחנה משויכת</h2>
+  </div>
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.unassigned_lede }}</p>
+  <table class="w-full text-sm mb-3">
+    <caption class="sr-only">יישובים ללא תחנה משויכת לפי מרחב</caption>
+    <thead><tr><th scope="col">מרחב</th><th scope="col">יישובים</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.unassigned %}
+      <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  <details>
+    <summary class="text-sm text-subtle">רשימת היישובים</summary>
+    <p class="mt-2 mb-0 text-sm">{{ model.unassigned_names }}</p>
+  </details>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מדריך התחנות: היישובים בגזרת כל תחנה") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.directory_lede }}</p>
+{%- for dist in model.directory %}
+  <details class="mb-2">
+    <summary class="font-semibold text-ink-deep">מחוז {{ dist.district }} <span class="text-sm font-normal text-subtle">(<span dir="ltr">{{ dist.stations }}</span> תחנות, <span dir="ltr">{{ dist.localities }}</span> יישובים)</span></summary>
+    <ul class="list-none m-0 ps-0 mt-2 space-y-2 text-sm">
+{%- for r in dist.rows %}
+      <li><h3 class="inline text-sm font-semibold text-ink-deep">{{ r[0] }}</h3> <span class="text-subtle">({{ r[1] }}, <span dir="ltr">{{ r[2] }}</span> יישובים):</span> {{ r[3] }}</li>
+{%- endfor %}
+    </ul>
+  </details>
+{%- endfor %}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle">טבלת שיוך הישובים לתחנות המשטרה בהתאם לגזרות האחריות שלהן.</p>
+</section>
+
+<script>
+  (function () {
+    var esc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    var num = function (v) { return Number(v).toLocaleString("he-IL"); };
+    var short = function (s) { s = String(s); return s.length > 22 ? s.slice(0, 21) + "…" : s; };
+    window.PoliceSt = {
+      esc: esc, num: num,
+      hbar: function (id, names, values, o) {
+        var el = document.getElementById(id);
+        if (!el || !window.echarts) { return; }
+        o = o || {};
+        var c = echarts.init(el);
+        var narrow = el.clientWidth < 520;
+        c.setOption(window.GovEcharts.option({
+          color: window.GOVIL_PALETTE,
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+            var i = ps[0].dataIndex;
+            var lines = ["<strong>" + esc(names[i]) + "</strong>", esc(o.unit) + ": " + num(values[i])];
+            (o.extra || []).forEach(function (x) { if (x.data[i] !== "" && x.data[i] !== undefined) { lines.push(esc(x.label) + ": " + esc(x.data[i])); } });
+            return lines.join("<br>");
+          } },
+          grid: { left: 8, right: 44, top: 8, bottom: 8, containLabel: true },
+          xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+          yAxis: { type: "category", inverse: true, data: names,
+            axisLabel: { interval: 0, fontSize: 11, formatter: short, width: narrow ? 110 : 200, overflow: "truncate" } },
+          series: [{ type: "bar", data: values, barMaxWidth: 22, itemStyle: { color: "#0068f5" },
+            label: { show: true, position: "right", fontFamily: "Rubik", fontSize: 11, color: "#0c3058",
+              formatter: function (p) { return num(p.value); } } }]
+        }));
+        window.addEventListener("resize", function () { c.resize(); });
+      }
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    window.PoliceSt.hbar("chart-district", d.names, d.loc, { unit: "יישובים", extra: [{ label: "תחנות", data: d.stations }] });
+  })();
+</script>
+
+{%- if model.flags.ratio %}
+<script>
+  (function () {
+    var d = {{ model.charts.ratio | tojson }};
+    window.PoliceSt.hbar("chart-ratio", d.names, d.values, { unit: "יישובים לתחנה" });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-tree");
+    if (!el || !window.echarts) { return; }
+    var tree = {{ model.charts.tree | tojson }};
+    var esc = window.PoliceSt.esc, num = window.PoliceSt.num;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { formatter: function (p) {
+        var path = (p.treePathInfo || []).slice(1).map(function (x) { return esc(x.name); }).join(" › ");
+        return "<strong>" + path + "</strong><br>" + "יישובים: " + num(p.value);
+      } },
+      series: [{
+        type: "treemap", data: tree, leafDepth: 2, roam: false, nodeClick: "zoomToNode",
+        top: 8, left: 4, right: 4, bottom: 36,
+        breadcrumb: { show: true, bottom: 4, itemStyle: { color: "#0068f5" }, textStyle: { fontFamily: "Rubik", color: "#ffffff" } },
+        label: { show: true, fontFamily: "Rubik", fontSize: 11, formatter: function (p) { return p.name + "\n" + num(p.value); } },
+        upperLabel: { show: true, height: 22, fontFamily: "Rubik", color: "#ffffff" },
+        levels: [
+          { itemStyle: { borderColor: "#ffffff", borderWidth: 3, gapWidth: 3 } },
+          { colorSaturation: [0.35, 0.6], itemStyle: { borderColorSaturation: 0.7, gapWidth: 2, borderWidth: 2 } },
+          { colorSaturation: [0.3, 0.55], itemStyle: { borderColorSaturation: 0.6, gapWidth: 1 } }
+        ],
+        color: window.GOVIL_PALETTE
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.areas | tojson }};
+    window.PoliceSt.hbar("chart-areas", d.names, d.values, { unit: "יישובים", extra: [{ label: "מחוז", data: d.district }] });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.stations | tojson }};
+    window.PoliceSt.hbar("chart-stations", d.names, d.values, { unit: "יישובים", extra: [{ label: "מרחב", data: d.area }, { label: "מחוז", data: d.district }] });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-sizes");
+    if (!el || !window.echarts) { return; }
+    var d = {{ model.charts.sizes | tojson }};
+    var num = window.PoliceSt.num, esc = window.PoliceSt.esc;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        return "<strong>" + esc(ps[0].name) + " יישובים</strong><br>תחנות: " + num(ps[0].value);
+      } },
+      grid: { left: 8, right: 8, top: 24, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, fontSize: 11 } },
+      yAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 48, itemStyle: { color: "#0068f5" },
+        label: { show: true, position: "top", fontFamily: "Rubik", fontSize: 11, color: "#0c3058" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

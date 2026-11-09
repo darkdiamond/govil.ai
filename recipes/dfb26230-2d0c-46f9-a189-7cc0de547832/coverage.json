@@ -1,0 +1,19 @@
+{
+  "main.counciName": "chart-councils, chart-access-council, kpi:councils, insight:reach, insight:access_gap, table:index — the religious council responsible for the mikveh",
+  "main.councuilNum": "skip: numeric code of the council; duplicates counciName one-to-one",
+  "main.mikveName": "skip: the mikveh's own name (often a street or neighbourhood); searchable in the explorer, used only to drop blank rows",
+  "main.mikveCity": "chart-cities, chart-spread, chart-men, kpi:cities, insight:lead_city, insight:singles, insight:men, table:index — locality, grouped with hyphen spacing normalised",
+  "main.MikveAddress": "skip: street address, one per mikveh; the lookup itself, searchable in the explorer",
+  "main.activityHoursSummer": "chart-hours, insight:hours — free text, classified as sunset/stars, fixed hours, by appointment, other",
+  "main.activityHoursWinter": "chart-hours — same classification",
+  "main.activityHoursShabat": "chart-hours, insight:hours — same classification",
+  "main.accessability": "chart-access, chart-access-council, kpi:full_access, kpi:no_access, insight:access, insight:access_gap, table:index",
+  "main.armorYesNo": "chart-services, insight:armor",
+  "main.onDutyYesNo": "chart-services — on-duty (תורן) mikveh flag",
+  "main.resoonsibleWorker": "skip: the attendant's personal name (private individual); stays in the explorer only",
+  "main.mikvePhone": "skip: mostly the attendant's private mobile number; private contact, never on the page",
+  "main.brideRoomYesNo": "chart-services, kpi:bride",
+  "main.mikveForWomenYesNo": "chart-services — yes on almost every row",
+  "main.mikveForMenYesNo": "chart-services, chart-men, kpi:men, insight:men, table:index",
+  "main.mikveForDishesYesNo": "chart-services, kpi:dishes, table:index"
+}

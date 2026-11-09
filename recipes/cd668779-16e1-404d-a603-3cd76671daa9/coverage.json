@@ -1,0 +1,18 @@
+{
+  "main.זיהוי מאגר": "skip: row identifier; used only as the sort tie-break",
+  "main.שם המאגר": "chart-top, insight:outlier, insight:elevation, chart-scatter, chart-complete — reservoir names (places)",
+  "main.סוג המאגר": "chart-types, chart-scatter, chart-top, kpi:types, insight:type_leader, insight:type_size, chart-complete",
+  "main.מכוני מים משוייכים": "chart-complete — free text, searchable in the explorer (lookup callout)",
+  "main.איכות מים": "chart-quality, kpi:wastewater, chart-complete",
+  "main.עומק (מ')": "chart-depth, chart-scatter, chart-complete — values above DEPTH_MAX dropped, disclosed",
+  "main.נפח (אלמק)": "kpi:capacity, kpi:median, kpi:vol_cov, chart-types, chart-size, chart-top, chart-decades, chart-source, chart-owners, chart-scatter, chart-complete, insight:concentration, insight:outlier, insight:type_size",
+  "main.שנת הקמה": "chart-decades, chart-top, insight:boom, chart-complete",
+  "main.שטח המאגר (דונם)": "chart-scatter, chart-complete",
+  "main.שטח פני המים (דונם)": "chart-complete — 83% empty, only its fill rate is shown",
+  "main.שם התא": "chart-complete — 97% empty, only its fill rate is shown",
+  "main.בעלות": "chart-owners, chart-top, insight:owner, chart-complete",
+  "main.מקור המאגר": "chart-source, insight:wastewater, chart-complete — free text classified by keywords",
+  "main.מספר ארצי": "chart-complete — national identifier, only its fill rate is shown",
+  "main.חיפוי המאגר": "chart-lining, chart-complete",
+  "main.רום (מ')": "insight:elevation, chart-complete"
+}

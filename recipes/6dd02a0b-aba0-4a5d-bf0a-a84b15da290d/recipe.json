@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "6dd02a0b-aba0-4a5d-bf0a-a84b15da290d",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T09:45:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-19T14:33:08.003676+00:00",
+    "rows": { "main": 1324 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "ea5c58c9-5031-4c5e-aed7-f521872f2852",
+      "required_columns": ["שם יישוב", "סמל", "שם תחנה", "שם מרחב", "שם מחוז"]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

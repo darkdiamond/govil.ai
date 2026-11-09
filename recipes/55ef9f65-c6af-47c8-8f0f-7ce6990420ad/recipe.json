@@ -1,0 +1,40 @@
+{
+  "contract_version": 1,
+  "dataset_id": "55ef9f65-c6af-47c8-8f0f-7ce6990420ad",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T09:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-05T06:36:36.909249+00:00",
+    "rows": {
+      "institutions": 34898
+    }
+  },
+  "inputs": [
+    {
+      "name": "institutions",
+      "by_id": "2055063b-93e8-4d6a-b2c5-c253d18c0cf6",
+      "required_columns": [
+        "SEMEL_MOSAD",
+        "SHEM_MOSAD",
+        "ISV_SHEM_ISHUV",
+        "SHEM_RASHUT",
+        "TEUR_TAT_SUG_MISGERET",
+        "TEUR_MIGZAR",
+        "TEUR_PIKOH1",
+        "TEUR_MAMAD",
+        "TEUR_SUG_CHINUCH",
+        "SHEM_MAHUZ",
+        "TEUR_HERKEV_UCHLOSIYA",
+        "SHLAV_CHINUH",
+        "TEUR_SHLAV_HINUH",
+        "TEUR_STATUS_GEOCODE",
+        "TEUR_SIBAT_STATUS",
+        "RAMAT_DIYUK_MIKUM",
+        "X",
+        "Y"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

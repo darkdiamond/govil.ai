@@ -1,0 +1,317 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.agent_data.summary_he) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מאגר מים לפי שם, בעלים או מקור המים ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_note }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.count, model.labels.count_kpi) }}
+  {{ gov.kpi(model.kpis.capacity, "קיבולת מדווחת כוללת (מיליון מ\"ק)") }}
+  {{ gov.kpi(model.kpis.median, "נפח המאגר החציוני (אלף מ\"ק)") }}
+  {{ gov.kpi(model.kpis.types, "סוגי מאגרים") }}
+  {{ gov.kpi(model.kpis.wastewater, "מאגרי קולחין, מתוך המאגרים שאיכות מימיהם מצוינת") }}
+  {{ gov.kpi(model.kpis.vol_cov, model.labels.vol_cov_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "סוגי מאגרי המים: נתח מהמאגרים מול נתח מהקיבולת") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.types_lede }}</p>
+  {{ gov.chart("chart-types", model.labels.types_aria, h="h-80 md:h-96") }}
+  {{ gov.table(model.labels.types_aria, ["סוג מאגר", "מאגרים", "נתח מהמאגרים", "קיבולת (מיליון מ\"ק)", "נתח מהקיבולת"], model.tables.types, ltr=(1, 2, 3, 4)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "גודל המאגרים: הרבה קטנים, מעט גדולים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.size_lede }}</p>
+  {{ gov.chart("chart-size", model.labels.size_aria) }}
+  {{ gov.table(model.labels.size_aria, ["נפח (אלף מ\"ק)", "מאגרים", "קיבולת (מיליון מ\"ק)", "נתח מהקיבולת"], model.tables.size, ltr=(0, 1, 2, 3)) }}
+</section>
+
+{%- if model.charts.top.names %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מאגרי המים הגדולים בישראל") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.top_lede }}</p>
+  {{ gov.chart("chart-top", model.labels.top_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.top_aria, ["דירוג", "מאגר", "סוג", "בעלות", "שנת הקמה", "נפח (אלף מ\"ק)"], model.tables.top, ltr=(0, 4, 5)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.decades %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "מתי נבנו המאגרים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.decades_lede }}</p>
+  {{ gov.chart("chart-decades", model.labels.decades_aria) }}
+  {{ gov.table(model.labels.decades_aria, ["עשור", "מאגרים שהוקמו", "קיבולת שנוספה (מיליון מ\"ק)", "קיבולת מצטברת (מיליון מ\"ק)"], model.tables.decades, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מקור המים: קולחין, נחלים, מעיינות ומערכת ארצית") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.source_lede }}</p>
+  {{ gov.chart("chart-source", model.labels.source_aria, h="h-80 md:h-96") }}
+  {{ gov.table(model.labels.source_aria, ["מקור", "מאגרים", "קיבולת (מיליון מ\"ק)"], model.tables.source, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.owners %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מי מחזיק במאגרים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.owners_lede }}</p>
+  {{ gov.chart("chart-owners", model.labels.owners_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.owners_aria, ["בעלים", "מאגרים", "קיבולת (מיליון מ\"ק)"], model.tables.owners, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+{%- if model.flags.quality %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">איכות המים במאגרים</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.quality_lede }}</p>
+    {{ gov.chart("chart-quality", model.labels.quality_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.quality_aria, ["איכות מים", "מאגרים", "שיעור"], model.tables.quality, ltr=(1, 2)) }}
+  </section>
+{%- endif %}
+{%- if model.flags.lining %}
+  <section class="card p-5">
+    <h2 class="m-0 mb-3 text-base font-semibold text-ink-deep">חיפוי המאגר</h2>
+    <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.lining_lede }}</p>
+    {{ gov.chart("chart-lining", model.labels.lining_aria, h="h-64 md:h-80") }}
+    {{ gov.table(model.labels.lining_aria, ["חיפוי", "מאגרים"], model.tables.lining, ltr=(1,)) }}
+  </section>
+{%- endif %}
+</div>
+
+{%- if model.flags.depth %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "עומק המאגרים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.depth_lede }}</p>
+  {{ gov.chart("chart-depth", model.labels.depth_aria, h="h-64 md:h-80") }}
+  {{ gov.table(model.labels.depth_aria, ["עומק (מ')", "מאגרים"], model.tables.depth, ltr=(0, 1)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.scatter %}
+<section class="card p-5 mb-6">
+  {{ gov.head("chart-bar", "שטח מול נפח: מאגרים רדודים ועמוקים") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.scatter_lede }}</p>
+  <div id="chart-scatter" class="h-72 md:h-[420px]" role="img" aria-label="{{ model.labels.scatter_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("circle-check", "שלמות הנתונים במאגר") }}
+  <p class="m-0 mb-3 text-sm text-subtle">{{ model.labels.complete_lede }}</p>
+  {{ gov.chart("chart-complete", model.labels.complete_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.complete_aria, ["שדה", "מאגרים שבהם מולא"], model.tables.complete, ltr=(1,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle">רשימת מאגרי המים העיליים בישראל</p>
+</section>
+
+<script>
+  (function () {
+    var esc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    var num = function (v) { return Number(v).toLocaleString("he-IL"); };
+    var short = function (s) { s = String(s); return s.length > 24 ? s.slice(0, 23) + "…" : s; };
+    window.WaterRes = {
+      esc: esc, num: num,
+      hbar: function (id, names, series, o) {
+        var el = document.getElementById(id);
+        if (!el || !window.echarts) { return; }
+        o = o || {};
+        var c = echarts.init(el);
+        var unit = o.unit || "";
+        c.setOption(window.GovEcharts.option({
+          color: window.GOVIL_PALETTE,
+          legend: series.length > 1 ? { top: 0, textStyle: { fontFamily: "Rubik" } } : undefined,
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+            var lines = ["<strong>" + esc(ps[0].name) + "</strong>"];
+            ps.forEach(function (p) { lines.push(esc(p.seriesName) + ": " + num(p.value) + unit); });
+            (o.extra || []).forEach(function (x) { lines.push(esc(x.label) + ": " + esc(x.data[ps[0].dataIndex])); });
+            return lines.join("<br>");
+          } },
+          grid: { left: 8, right: 24, top: series.length > 1 ? 32 : 8, bottom: 24, containLabel: true },
+          xAxis: { type: "value", splitNumber: 3, axisLabel: { formatter: function (v) { return num(v) + unit; } } },
+          yAxis: { type: "category", inverse: true, data: names,
+            axisLabel: { interval: 0, fontSize: 11, formatter: short, width: el.clientWidth < 520 ? 110 : 200, overflow: "truncate" } },
+          series: series.map(function (x) {
+            return { name: x.name, type: "bar", data: x.data, barMaxWidth: 22, itemStyle: { color: x.color } };
+          })
+        }));
+        window.addEventListener("resize", function () { c.resize(); });
+      },
+      combo: function (id, names, bar, line, tips) {
+        var el = document.getElementById(id);
+        if (!el || !window.echarts) { return; }
+        var c = echarts.init(el);
+        c.setOption(window.GovEcharts.option({
+          color: window.GOVIL_PALETTE,
+          legend: { bottom: 0, type: "plain", textStyle: { fontFamily: "Rubik", fontSize: 11 } },
+          tooltip: { trigger: "axis", formatter: function (ps) {
+            var lines = ["<strong>" + esc(tips ? tips[ps[0].dataIndex] : ps[0].name) + "</strong>"];
+            ps.forEach(function (p) { lines.push(esc(p.seriesName) + ": " + num(p.value) + (p.seriesIndex === 1 ? line.unit : "")); });
+            return lines.join("<br>");
+          } },
+          grid: { left: 8, right: 8, top: 16, bottom: 40, containLabel: true },
+          xAxis: { type: "category", data: names, axisLabel: { interval: 0, fontSize: 11, rotate: el.clientWidth < 520 ? 40 : 0 } },
+          yAxis: [
+            { type: "value" },
+            { type: "value", splitLine: { show: false } }
+          ],
+          series: [
+            { name: bar.name, type: "bar", data: bar.data, barMaxWidth: 36, itemStyle: { color: "#0068f5" } },
+            { name: line.name, type: "line", yAxisIndex: 1, data: line.data, symbolSize: 6, itemStyle: { color: "#0b3668" }, lineStyle: { color: "#0b3668", width: 2 } }
+          ]
+        }));
+        window.addEventListener("resize", function () { c.resize(); });
+      }
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.types | tojson }};
+    window.WaterRes.hbar("chart-types", d.names, [
+      { name: "נתח מהמאגרים", data: d.count_share, color: "#0068f5" },
+      { name: "נתח מהקיבולת", data: d.vol_share, color: "#0b3668" }
+    ], { unit: "%", extra: [{ label: "מאגרים", data: d.count }, { label: "קיבולת (מיליון מ\"ק)", data: d.vol }] });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.size | tojson }};
+    window.WaterRes.combo("chart-size", d.names,
+      { name: "מאגרים", data: d.count },
+      { name: "נתח מהקיבולת", data: d.share, unit: "%" });
+  })();
+</script>
+
+{%- if model.charts.top.names %}
+<script>
+  (function () {
+    var d = {{ model.charts.top | tojson }};
+    window.WaterRes.hbar("chart-top", d.names, [{ name: "נפח (מיליון מ\"ק)", data: d.vol, color: "#0068f5" }],
+      { extra: [{ label: "סוג", data: d.type }, { label: "בעלות", data: d.owner }] });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.decades %}
+<script>
+  (function () {
+    var d = {{ model.charts.decades | tojson }};
+    window.WaterRes.combo("chart-decades", d.short,
+      { name: "מאגרים שהוקמו", data: d.count },
+      { name: "קיבולת מצטברת (מיליון מ\"ק)", data: d.cum, unit: "" }, d.names);
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.source | tojson }};
+    window.WaterRes.hbar("chart-source", d.names, [
+      { name: "נתח מהמאגרים", data: d.count_share, color: "#0068f5" },
+      { name: "נתח מהקיבולת", data: d.vol_share, color: "#0b3668" }
+    ], { unit: "%", extra: [{ label: "מאגרים", data: d.count }, { label: "קיבולת (מיליון מ\"ק)", data: d.vol }] });
+  })();
+</script>
+
+{%- if model.flags.owners %}
+<script>
+  (function () {
+    var d = {{ model.charts.owners | tojson }};
+    window.WaterRes.hbar("chart-owners", d.names, [{ name: "מאגרים", data: d.count, color: "#0068f5" }],
+      { extra: [{ label: "קיבולת (מיליון מ\"ק)", data: d.vol }] });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.quality %}
+<script>
+  (function () {
+    var d = {{ model.charts.quality | tojson }};
+    window.WaterRes.hbar("chart-quality", d.names, [{ name: "מאגרים", data: d.count, color: "#0068f5" }]);
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.lining %}
+<script>
+  (function () {
+    var d = {{ model.charts.lining | tojson }};
+    window.WaterRes.hbar("chart-lining", d.names, [{ name: "מאגרים", data: d.count, color: "#0068f5" }]);
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.depth %}
+<script>
+  (function () {
+    var d = {{ model.charts.depth | tojson }};
+    var el = document.getElementById("chart-depth");
+    if (!el || !window.echarts) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: function (ps) {
+        return "<strong>" + window.WaterRes.esc(ps[0].name) + " מ'</strong><br>מאגרים: " + window.WaterRes.num(ps[0].value);
+      } },
+      grid: { left: 8, right: 8, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "מ'", axisLabel: { interval: 0 } },
+      yAxis: { type: "value" },
+      series: [{ name: "מאגרים", type: "bar", data: d.count, barMaxWidth: 40, itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.scatter %}
+<script>
+  (function () {
+    var series = {{ model.charts.scatter | tojson }};
+    var el = document.getElementById("chart-scatter");
+    if (!el || !window.echarts) { return; }
+    var esc = window.WaterRes.esc, num = window.WaterRes.num;
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      legend: { bottom: 0, type: "plain", textStyle: { fontFamily: "Rubik", fontSize: 11 } },
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value;
+        var lines = ["<strong>" + esc(v[2]) + "</strong>", esc(p.seriesName),
+          "שטח: " + num(v[0]) + " דונם", "נפח: " + num(v[1]) + " אלף מ\"ק"];
+        if (v[3] !== null) { lines.push("עומק: " + num(v[3]) + " מ'"); }
+        return lines.join("<br>");
+      } },
+      grid: { left: 8, right: 24, top: 16, bottom: el.clientWidth < 520 ? 72 : 48, containLabel: true },
+      xAxis: { type: "log" },
+      yAxis: { type: "log" },
+      series: series.map(function (s) {
+        return { name: s.name, type: "scatter", data: s.data, symbolSize: 7, itemStyle: { opacity: 0.75 } };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var d = {{ model.charts.complete | tojson }};
+    window.WaterRes.hbar("chart-complete", d.names, [{ name: "מאגרים שבהם מולא השדה", data: d.pct, color: "#0068f5" }], { unit: "%" });
+  })();
+</script>

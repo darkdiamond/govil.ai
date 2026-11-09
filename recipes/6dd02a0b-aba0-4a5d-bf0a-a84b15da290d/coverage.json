@@ -1,0 +1,7 @@
+{
+  "main.שם יישוב": "insight:split, insight:unassigned, table:split — locality names in the station directory, the split-cities table and the unassigned list",
+  "main.סמל": "kpi:localities, kpi:split, insight:split — CBS locality code, the locality key (split cities share one code)",
+  "main.שם תחנה": "chart-stations, chart-sizes, chart-tree, chart-district, chart-ratio, kpi:stations, kpi:unassigned, insight:station, insight:single, insight:unassigned, table:split — also the station directory",
+  "main.שם מרחב": "chart-areas, chart-tree, kpi:areas, insight:multi_area, insight:unassigned, table:split",
+  "main.שם מחוז": "chart-district, chart-ratio, chart-tree, kpi:districts, insight:district, insight:ratio — directory grouping"
+}

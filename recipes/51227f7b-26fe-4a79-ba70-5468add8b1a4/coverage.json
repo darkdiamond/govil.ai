@@ -1,0 +1,19 @@
+{
+  "stations.District": "chart-dist, chart-nn, chart-hist, kpi:districts, insight:lead_district, insight:density, table:directory",
+  "stations.Regional_Station": "chart-reg, insight:top_regional, table:directory, map-stations, key:hq — district HQ rows are marked by a regional name starting with מב\"ת",
+  "stations.Station": "chart-iso, table:directory, map-stations, insight:recent, insight:isolated — station names; matched across snapshots for added/removed",
+  "stations.Station_Type": "chart-dist, kpi:regional, kpi:sub, insight:sub_share, key:hq — מחוז/מטה rows are headquarters, not stations",
+  "stations.Address": "table:directory, map-stations, chart-city — the locality name a city code's addresses share labels the localities chart",
+  "stations.Street": "skip: duplicates the street part of Address, which the directory shows in full",
+  "stations.Location": "table:directory, map-stations — free-text location hint (junction, industrial zone)",
+  "stations.PhoneNumber": "text:lede — the service line (*4964), the same for every row",
+  "stations.Geo_Lat": "map-stations, chart-nn, chart-iso, kpi:nn — WGS84 latitude (2026 file onward)",
+  "stations.Geo_Lon": "map-stations, chart-nn, chart-iso, kpi:nn — WGS84 longitude (2026 file onward)",
+  "stations.Geo_X": "map-stations, chart-nn, chart-iso, insight:recent — ITM easting in the 2020-2024 files, converted to WGS84 in compute",
+  "stations.Geo_Y": "map-stations, chart-nn, chart-iso, insight:recent — ITM northing in the 2020-2024 files",
+  "stations.City_Code": "chart-city, kpi:cities, insight:top_city",
+  "stations.Street_Code": "skip: CBS street code, an identifier with no meaning on the page",
+  "stations.EmergencyPhoneNumber": "kpi:emergency, text:lede — 102, the same for every row",
+  "stations.DistrictMail": "skip: one generic service mailbox for every row; not repeated on the page",
+  "stations._resource_name": "chart-hist, insight:growth, key:snapshot — the year in the file name picks the latest snapshot"
+}

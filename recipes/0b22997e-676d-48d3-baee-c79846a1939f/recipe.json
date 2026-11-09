@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "dataset_id": "0b22997e-676d-48d3-baee-c79846a1939f",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T08:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-10-26T09:29:32.907056+00:00",
+    "rows": { "main": 612, "geo": 612 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "310cee2e-ec53-43ee-9cdb-3f0cd50ae077",
+      "required_columns": [
+        "DATA",
+        "RAILNAME",
+        "SECTID",
+        "SUBSECID",
+        "AUTHORITY",
+        "METROPOLIN",
+        "STREET",
+        "MAIN_LINE",
+        "ADD_LINES",
+        "YEAROPEN",
+        "OPERATFIRM",
+        "MANAGFIRM",
+        "DIRECTION",
+        "D_UPDATE",
+        "VLEVEL",
+        "WLOCATION",
+        "DIR_TYPE",
+        "START_",
+        "END",
+        "FUNCTYPE",
+        "Shape_Length"
+      ]
+    },
+    {
+      "name": "geo",
+      "by_id": "ed81c110-5dc9-4505-99a6-002b936ccc4e",
+      "map": true,
+      "map_max_kb": 2000,
+      "required_columns": [
+        "RAILNAME",
+        "SECTNAME",
+        "STREET",
+        "VLEVEL",
+        "AUTHORITY",
+        "METROPOLIN",
+        "Shape_Leng"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

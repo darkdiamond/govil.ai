@@ -1,0 +1,325 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור חניון חנה וסע לפי שם, עיר או תחנה ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם החניון, רשות מקומית, מחוז, רשות תמרור, תשתית תחבורה ותשלום</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.lots, "חניוני חנה וסע במאגר") }}
+  {{ gov.kpi(model.kpis.spaces, model.labels.spaces_kpi) }}
+  {{ gov.kpi(model.kpis.median, model.labels.median_kpi) }}
+  {{ gov.kpi(model.kpis.train_share, model.labels.train_kpi) }}
+  {{ gov.kpi(model.kpis.paid, model.labels.paid_kpi) }}
+  {{ gov.kpi(model.kpis.authorities, "רשויות מקומיות עם חניון") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת חניוני חנה וסע") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="מפה אינטראקטיבית של חניוני חנה וסע. גרסה נגישה: ראו את טבלת הנתונים בהמשך העמוד."></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "חניונים ומקומות חניה לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.district_note }}</p>
+  {{ gov.chart("chart-district", model.labels.district_aria) }}
+  {{ gov.table(model.labels.district_aria, ["מחוז", "חניונים", "מקומות חניה", "שיעור מהמקומות"], model.tables.district, ltr=(3,)) }}
+</section>
+
+{%- if model.flags.top %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "חניוני חנה וסע הגדולים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.top_note }}</p>
+  {{ gov.chart("chart-top", model.labels.top_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.top_aria, ["חניון", "רשות", "מקומות", "ליד רכבת"], model.tables.top) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "גודל החניונים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.size_note }}</p>
+    {{ gov.chart("chart-size", model.labels.size_aria) }}
+    {{ gov.table(model.labels.size_aria, ["מקומות בחניון", "חניונים", "סך המקומות"], model.tables.size) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "חיבור לתחבורה ציבורית") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.modes_note }}</p>
+    {{ gov.chart("chart-modes", model.labels.modes_aria) }}
+    {{ gov.table(model.labels.modes_aria, ["אמצעי", "חניונים", "שיעור מהחניונים", "מקומות חניה"], model.tables.modes, ltr=(2,)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "חניה בתשלום או בחינם") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pay_note }}</p>
+    {{ gov.chart("chart-pay", model.labels.pay_aria) }}
+    {{ gov.table(model.labels.pay_aria, ["תשלום", "חניונים", "מקומות חניה"], model.tables.pay) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "רשות התמרור") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.traf_note }}</p>
+    {{ gov.chart("chart-traf", model.labels.traf_aria) }}
+    {{ gov.table(model.labels.traf_aria, ["רשות תמרור", "חניונים", "שיעור"], model.tables.traf, ltr=(2,)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "חניוני חנה וסע לפי עיר ורשות מקומית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.auth_note }}</p>
+  {{ gov.chart("chart-auth", model.labels.auth_aria, h="h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.auth_aria, ["רשות מקומית", "חניונים", "מקומות חניה"], model.tables.auth) }}
+</section>
+
+{%- if model.flags.density %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שטח החניון מול מספר המקומות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.density_note }}</p>
+  <div id="chart-density" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.density_aria }}" data-fallback="explorer"></div>
+</section>
+{%- endif %}
+
+{%- if model.flags.recent %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "חניונים שעודכנו לאחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.recent_note }}</caption>
+    <thead><tr><th scope="col" class="text-start">חניון</th><th scope="col" class="text-start">רשות</th><th scope="col" class="text-start">עדכון</th><th scope="col" class="text-start">מקומות</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.recent %}
+      <tr><th scope="row" class="text-start font-normal">{{ r[0] }}</th><td>{{ r[1] }}</td><td dir="ltr" class="text-end">{{ r[2] }}</td><td>{{ r[3] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">חניוני חנה וסע, קיימים ומתוכננים, של רשת נתיבי העדפה</p>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "Y",
+    lngField: "X",
+    projection: "itm",
+    popupTitleField: "NAME",
+    popupFields: [
+      { field: "AUTHORITY", label: "רשות מקומית" },
+      { field: "PARK_N", label: "מקומות חניה" },
+      { field: "STATUS", label: "סטטוס" },
+      { field: "TRAIN_SERV", label: "רכבת ישראל" },
+      { field: "LRT_SERV", label: "רכבת קלה" },
+      { field: "BUS_SERV", label: "אוטובוס" },
+      { field: "PAY", label: "בתשלום" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.district | tojson }};
+    var c = echarts.init(document.getElementById("chart-district"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: [
+        { type: "value", name: "מקומות" },
+        { type: "value", name: "חניונים", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "מקומות חניה", data: d.spaces },
+        { type: "line", name: "חניונים", yAxisIndex: 1, data: d.lots, symbolSize: 7 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-top");
+    if (!el) { return; }
+    var d = {{ model.charts.top | tojson }};
+    var c = echarts.init(el);
+    var data = d.values.map(function (v, i) {
+      return { value: v, itemStyle: { color: d.train[i] ? "#0b3668" : "#0068f5" } };
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) {
+          var p = ps[0];
+          var i = p.dataIndex;
+          return echarts.format.encodeHTML(p.name) + " (" + echarts.format.encodeHTML(d.auth[i]) + ")<br>" +
+            p.value.toLocaleString("he-IL") + " מקומות" + (d.train[i] ? " · ליד תחנת רכבת" : "");
+        }
+      },
+      grid: { left: 8, right: 56, top: 8, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.names, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+      series: [{ type: "bar", data: data, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.size | tojson }};
+    var c = echarts.init(document.getElementById("chart-size"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 88, containLabel: true },
+      xAxis: { type: "category", data: d.names, name: "מקומות בחניון", nameLocation: "middle", nameGap: 48, axisLabel: { interval: 0, rotate: 45 } },
+      yAxis: [
+        { type: "value", name: "חניונים" },
+        { type: "value", name: "מקומות", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "חניונים", data: d.lots },
+        { type: "line", name: "סך המקומות", yAxisIndex: 1, data: d.spaces, symbolSize: 7 }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.modes | tojson }};
+    var c = echarts.init(document.getElementById("chart-modes"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 32, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.names, axisLabel: { interval: 0 } },
+      yAxis: [
+        { type: "value", name: "חניונים" },
+        { type: "value", name: "מקומות", splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "חניונים", data: d.lots, label: { show: true, position: "top" } },
+        { type: "bar", name: "מקומות חניה", yAxisIndex: 1, data: d.spaces }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.pay | tojson }};
+    var colors = { "חינם": "#0068f5", "בתשלום": "#0b3668", "לא צוין": "#c3cfe7" };
+    var c = echarts.init(document.getElementById("chart-pay"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          var r = d[p.dataIndex];
+          return echarts.format.encodeHTML(p.name) + "<br>" + r.lots.toLocaleString("he-IL") + " חניונים (" + p.percent + "%)<br>" +
+            r.spaces.toLocaleString("he-IL") + " מקומות";
+        }
+      },
+      legend: { bottom: 0 },
+      series: [{
+        type: "pie", radius: ["40%", "70%"], center: ["50%", "45%"],
+        label: { show: false },
+        labelLine: { show: false },
+        data: d.map(function (r) { return { name: r.name, value: r.lots, itemStyle: { color: colors[r.name] || "#6c757d" } }; })
+      }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    function hbar(id, names, values, unit) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) {
+            var p = ps[0];
+            return echarts.format.encodeHTML(p.name) + "<br>" + p.value.toLocaleString("he-IL") + " " + unit;
+          }
+        },
+        grid: { left: 8, right: 56, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", axisLabel: { show: false } },
+        yAxis: { type: "category", inverse: true, data: names, axisLabel: { width: 130, overflow: "truncate", interval: 0 } },
+        series: [{ type: "bar", data: values, label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var a = {{ model.charts.auth | tojson }};
+    hbar("chart-auth", a.names, a.spaces, "מקומות");
+    var t = {{ model.charts.traf | tojson }};
+    hbar("chart-traf", t.names, t.values, "חניונים");
+  })();
+</script>
+
+<script>
+  (function () {
+    var el = document.getElementById("chart-density");
+    if (!el) { return; }
+    var d = {{ model.charts.density | tojson }};
+    var maxX = 0;
+    d.points.forEach(function (p) { if (p[0] > maxX) { maxX = p[0]; } });
+    var c = echarts.init(el);
+    function pts(train) {
+      return d.points.filter(function (p) { return p[3] === train; });
+    }
+    c.setOption(window.GovEcharts.option({
+      color: ["#0068f5", "#0b3668"],
+      tooltip: {
+        trigger: "item",
+        formatter: function (p) {
+          var v = p.data;
+          if (!v || v.length < 3) { return ""; }
+          return echarts.format.encodeHTML(v[2]) + "<br>" + v[0].toLocaleString("he-IL") + " דונם · " +
+            v[1].toLocaleString("he-IL") + " מקומות";
+        }
+      },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 24, top: 32, bottom: 56, containLabel: true },
+      xAxis: { type: "log", name: "דונם", nameLocation: "middle", nameGap: 28 },
+      yAxis: { type: "log", name: "מקומות" },
+      series: [
+        { type: "scatter", name: "לא ליד רכבת", data: pts(false), symbolSize: 8 },
+        { type: "scatter", name: "ליד תחנת רכבת", data: pts(true), symbolSize: 8,
+          markLine: { silent: true, symbol: "none", lineStyle: { type: "dashed", color: "#6c757d" },
+            label: { formatter: "חציון: " + d.median + " מקומות לדונם" },
+            data: [[{ coord: [0.1, 0.1 * d.median] }, { coord: [maxX, maxX * d.median] }]] } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

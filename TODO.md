@@ -8,6 +8,39 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
+  no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
+  level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32
+  cells in ITM. `geo_snapshot` reads vector formats only, so no recipe can read it. Fix: a
+  `raster: true` input that turns each GeoTIFF in a zip into a per-year summary table (mean,
+  percentiles, cells over a threshold) plus an optional coarse grid. Pillow opens these files;
+  ship a TIFF reader in the builder image and redeploy before authoring. (2026-11-09)
+
+- **Sources ingested before `datastore_active` existed can't be authored.** ebe5ec6f (פרטי קשר
+  עם מנהלי הבחירות) is datastore-active on CKAN, but its Firestore `resources[]` has no
+  `datastore_active` key, and the scanner rewrites a source only when `metadata_modified`
+  moves. So `author prepare` selects nothing and a `by_id` recipe would fail `schema_changed`.
+  `backfill_datastore_active --dry-run` lists 23 such sources. Fix: run the backfill (it writes
+  prod Firestore), then author ebe5ec6f; don't print its `Mail` column, since some addresses
+  are personal. (2026-11-09)
+
+- **The fire-service event types across all domains have no chart.** The c11b5d08 recipe breaks
+  down only fire (the largest domain) by type; the legacy page's "סוגי אירועים עיקריים" covered
+  rescue, hazmat and security types too. They now show only through the seasonality pairs and
+  the scenarios list. A small-multiples or top-N-per-domain chart would restore it; bump
+  `recipe_version`. (2026-11-09)
+
+- **The preview's Tailwind misses classes added after the dev server started.** A chart height
+  like `h-[30rem]` that no page had when `preview` started renders at 0px until
+  `preview stop` and a restart. Production builds are unaffected (they scan every body at
+  once), but authors waste fix rounds on it. Fix: have `preview` restart the dev server, or
+  touch the Tailwind config, when a newly rendered body adds unseen classes. (2026-11-09)
+
+- **A long resource name widens the page on mobile.** The data explorer's resource pill
+  (`.explorer-pill`, `frontend/public/lib/gov-explorer.js`) doesn't wrap or truncate, so on
+  7a6d0673 ("מדינות מאוחד (קוד בינלאומי, שם…") the page scrolls sideways by 40px at 375px.
+  Fix: `max-width: 100%` with ellipsis (or wrapping) on the pill label. (2026-11-09)
+
 - **The sanitizer's tag balancer strips comments inside script text.** `_balance_raw_text_tag`
   (`services/page_builder/agent_contract.py`) removes `<!--…-->` across the whole body before
   counting `<script>`/`<style>` openers and closers, but inside a script `<!--` is plain text. A
