@@ -66,6 +66,12 @@ def allowed_source(url: str, domains: tuple[str, ...] | None = None) -> bool:
     """A plain web URL on an allowed domain. The scheme, credentials and port
     are checked too: these URLs become links on our pages, so a
     `javascript://www.gov.il/…` must never pass on its host alone."""
+    # Parser differentials: a browser (WHATWG) reads `https://evil.com\.gov.il/`
+    # as host evil.com, Python's urlparse as host evil.com\.gov.il. So no
+    # backslash, whitespace or control characters anywhere, and the authority
+    # must be a plain DNS name (optionally :port) before the suffix check.
+    if not isinstance(url, str) or _UNSAFE_URL_CHARS.search(url):
+        return False
     try:
         u = urlparse(url)
         port = u.port
@@ -73,8 +79,14 @@ def allowed_source(url: str, domains: tuple[str, ...] | None = None) -> bool:
         return False
     if u.scheme not in ("https", "http") or u.username or u.password or port not in (None, 80, 443):
         return False
+    if not _AUTHORITY.fullmatch(u.netloc.lower()):
+        return False
     host = (u.hostname or "").rstrip(".").lower()
     return any(host == d or host.endswith("." + d) for d in (domains or source_domains()))
+
+
+_UNSAFE_URL_CHARS = re.compile(r"[\\\s\x00-\x1f\x7f]")
+_AUTHORITY = re.compile(r"(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\.?(?::\d{1,5})?")
 
 
 @dataclass

@@ -134,6 +134,12 @@ def test_source_allowlist(url, ok):
     "ftp://www.gov.il/x",
     "https://user:pw@www.gov.il/x",
     "https://www.gov.il:8443/x",
+    "https://evil.com\\.gov.il/x",          # browsers read host evil.com
+    "https://evil.com%2f.gov.il/x",
+    "https://evil.com/.gov.il",
+    "https://evil.com .gov.il/x",
+    "https://www.gov.il\t/x",
+    "https://evil.com。gov.il/x",        # ideographic full stop
 ])
 def test_allowlist_needs_a_plain_web_url(url):
     assert not allowed_source(url)
