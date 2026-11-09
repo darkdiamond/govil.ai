@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import csv
 import functools
+import gzip
 import hashlib
 import http.client
 import json
@@ -1347,8 +1348,56 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     from google.cloud import storage
 
     blob = storage.Client().bucket(bucket).blob(relpath)
-    blob.upload_from_string(data, content_type="text/html; charset=utf-8")
+    ctype = ("application/gzip" if relpath.endswith(".gz")
+             else "text/html; charset=utf-8")
+    blob.upload_from_string(data, content_type=ctype)
     return f"gs://{bucket}/{relpath}"
+
+
+MODEL_HISTORY_MAX_VALUE_BYTES = 2_000_000
+
+
+def history_model(model: dict) -> dict:
+    """The page model as kept for history (read by the news job): `tables`
+    dropped (row dumps, not series) and any value — top-level, or one level
+    inside a top-level dict (a chart, a KPI) — whose JSON tops
+    MODEL_HISTORY_MAX_VALUE_BYTES replaced by a marker, so one outsized value
+    can't bloat every snapshot."""
+    def capped(v):
+        size = len(json.dumps(v, ensure_ascii=False, default=str))
+        return v if size <= MODEL_HISTORY_MAX_VALUE_BYTES else {"__omitted_bytes__": size}
+
+    return {
+        k: ({kk: capped(vv) for kk, vv in v.items()} if isinstance(v, dict) else capped(v))
+        for k, v in model.items() if k != "tables"
+    }
+
+
+def _stage_model_history(src_id: str, model: dict, *, bucket: str, preview: bool,
+                         write_gcs: Callable[[bytes, str, str], str],
+                         recipe_version: int | None = None,
+                         metadata_modified: datetime | None = None,
+                         now: datetime | None = None) -> bool:
+    """Write the render's model to models/<id>/<UTC ts>.json.gz and
+    models/<id>/latest.json.gz (read by the news job). Best effort: a failure
+    is logged, never fails the refresh (the page is already staged and marked).
+    `recipe_version` + `metadata_modified` let a reader tell a recipe change
+    (model shape moved) from a data change."""
+    prefix = "preview/models" if preview else "models"
+    ts = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
+    try:
+        body = gzip.compress(json.dumps(
+            {"dataset_id": src_id, "rendered_at": ts, "recipe_version": recipe_version,
+             "metadata_modified": metadata_modified.isoformat() if metadata_modified else None,
+             "model": history_model(model)},
+            ensure_ascii=False, default=str, sort_keys=True,
+        ).encode("utf-8"), mtime=0)
+        write_gcs(body, bucket, f"{prefix}/{src_id}/{ts}.json.gz")
+        write_gcs(body, bucket, f"{prefix}/{src_id}/latest.json.gz")
+        return True
+    except Exception:
+        log.warning("refresh %s: writing model history failed", src_id[:8], exc_info=True)
+        return False
 
 
 def _read_gcs(bucket: str, relpath: str) -> bytes | None:
@@ -1658,6 +1707,9 @@ def refresh_one(
             src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
             round(time.monotonic() - started, 2),
         )
+    _stage_model_history(src.id, page.model, bucket=staging_bucket, preview=preview,
+                         write_gcs=write_gcs, recipe_version=rv,
+                         metadata_modified=src.metadata_modified)
     return RefreshOutcome(
         src.id,
         "refreshed",
