@@ -43,6 +43,40 @@ def test_writes_index_and_article_with_current_links(tmp_path):
                                 "organization": "בנק ישראל"}]
 
 
+def test_index_carries_card_data(tmp_path):
+    a = _article() | {
+        "words": 600, "tags": ["משכנתאות", "ללא-דף"],
+        "blocks": [{"type": "p", "runs": [{"t": "text", "v": "x"}]},
+                   {"type": "stat", "value": "62.7%", "label": "חשיפה למניות"}],
+        "charts": [{"type": "bar", "option": {"series": [{"data": [1, 2]}]}},
+                   {"type": "line", "option": {"series": [{"data": [1.0, None, 2.0, 3.0] + [4.0] * 40}]}}],
+    }
+    write_news(tmp_path, [a], datasets=DATASETS, tag_slugs={"משכנתאות": "משכנתאות"},
+               tag_topics={"משכנתאות": "housing"}, topics={"housing": "דיור"})
+    idx = json.loads((tmp_path / "news" / "index.json").read_text(encoding="utf-8"))["articles"][0]
+    assert idx["stat"] == {"value": "62.7%", "label": "חשיפה למניות"}
+    assert len(idx["spark"]) == 36 and None not in idx["spark"]
+    assert idx["topic"] == {"id": "housing", "label": "דיור"} and idx["minutes"] == 3
+    assert "tag_slugs" not in idx  # article.json only: the index page doesn't link tags
+    assert idx["datasets"] == [{"id": "ds1", "title": "משכנתאות", "href": "/datasets/new-slug/"}]
+    art = json.loads((tmp_path / "news" / "mortgages-low" / "article.json").read_text(encoding="utf-8"))
+    assert art["tag_slugs"] == {"משכנתאות": "משכנתאות"}
+
+
+def test_spark_is_the_latest_unbroken_run(tmp_path):
+    a = _article() | {"charts": [{"type": "line", "option": {"series": [
+        {"data": [9.0, 9.0, 9.0, 9.0, None, 1.0, 2.0, 3.0, None]}]}}]}
+    write_news(tmp_path, [a], datasets=DATASETS)
+    idx = json.loads((tmp_path / "news" / "index.json").read_text(encoding="utf-8"))["articles"][0]
+    assert idx["spark"] == [1.0, 2.0, 3.0]
+
+
+def test_card_data_is_optional(tmp_path):
+    write_news(tmp_path, [_article()], datasets=DATASETS)
+    idx = json.loads((tmp_path / "news" / "index.json").read_text(encoding="utf-8"))["articles"][0]
+    assert idx["stat"] is None and idx["spark"] is None and idx["topic"] is None and idx["minutes"] is None
+
+
 def test_unpublished_dirs_are_removed_and_order_is_newest_first(tmp_path):
     stale = tmp_path / "news" / "pulled-article"
     stale.mkdir(parents=True)

@@ -466,7 +466,7 @@ def publish(
     )
     manifest_path = _write_manifest(out_root, manifest)
     search_index_path = _write_search_index(out_root, manifest)
-    news = _publish_news(out_root, store, final_entries)
+    news = _publish_news(out_root, store, final_entries, tag_index, taxonomy)
     log.info(
         "publish: wrote manifest=%s search_index=%s data.json=%d agent_data.json=%d",
         manifest_path, search_index_path, written_meta, written_agent,
@@ -482,7 +482,8 @@ def publish(
     }
 
 
-def _publish_news(out_root: Path, store, entries: list[ManifestEntry]) -> dict:
+def _publish_news(out_root: Path, store, entries: list[ManifestEntry],
+                  tag_index: dict[str, dict], taxonomy: Taxonomy) -> dict:
     """News articles (services/news) → news/index.json + news/<slug>/article.json.
     Never fails the publish: the dataset site deploys without news if needed."""
     from services.news.publish_news import publish_news
@@ -493,7 +494,12 @@ def _publish_news(out_root: Path, store, entries: list[ManifestEntry]) -> dict:
     if client is None:
         return {"skipped": "store has no Firestore client"}
     # Same project, the separate `news` database (services/news/store.py).
-    return publish_news(out_root, project=getattr(client, "project", None), datasets=datasets)
+    return publish_news(
+        out_root, project=getattr(client, "project", None), datasets=datasets,
+        tag_slugs={t: v["slug"] for t, v in tag_index.items() if v.get("slug")},
+        tag_topics={name: d.topic for name, d in taxonomy.tags.items() if d.topic},
+        topics={tid: t.label_he for tid, t in taxonomy.topics.items()},
+    )
 
 
 # ---- CLI --------------------------------------------------------------------

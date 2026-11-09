@@ -313,13 +313,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   script-type check (or the whole function) to `frontend/utils/` and test that data blocks are
   left untouched and every JS type is re-created. (2026-10-31)
 
-- **A news article reached by a click downloads the whole search index for its tag links.**
-  `pages/news/[slug].vue` maps the article's 3-6 tags to tag-page slugs through
-  `loadSearchIndex()`, so the first client-side navigation to an article fetches
-  `/data/search-index.json` (~600KB) for a few strings. Fix: have the news publisher write each
-  tag's page slug into `article.json` (from the manifest's `tag_index`) and drop the lookup.
-  (2026-11-09)
-
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
