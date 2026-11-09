@@ -64,8 +64,10 @@ gcloud projects add-iam-policy-binding "$PROJECT" --quiet >/dev/null \
   --condition="expression=resource.name==\"projects/${PROJECT}/databases/${NEWS_DB}\",title=news-db-only,description=Write only the news Firestore database"
 
 echo "==> staging bucket: read all, write news/ only"
+# --condition=None: once the bucket policy holds a conditional binding (the
+# one below), gcloud refuses an unconditioned one in non-interactive mode.
 gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --quiet >/dev/null \
-  --member="serviceAccount:$SA" --role=roles/storage.objectViewer
+  --member="serviceAccount:$SA" --role=roles/storage.objectViewer --condition=None
 gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" --quiet >/dev/null \
   --member="serviceAccount:$SA" --role=roles/storage.objectAdmin \
   --condition="expression=resource.name.startsWith(\"projects/_/buckets/${BUCKET}/objects/news/\"),title=news-prefix-only,description=Write only article images under news/"
