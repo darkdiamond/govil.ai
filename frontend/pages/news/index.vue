@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { NewsIndexEntry } from "~/types/news";
-import { loadNewsIndexServer } from "~/utils/news";
+import { loadNewsIndex } from "~/utils/news";
 
-const { data } = await useAsyncData("news-index", async () => {
-  if (!import.meta.server) return null;
-  return { articles: await loadNewsIndexServer() };
-});
+// Prerender and client-side navigation both (utils/news.ts).
+const { data } = await useAsyncData("news-index", async () => ({
+  articles: await loadNewsIndex(),
+}));
 const articles = computed<NewsIndexEntry[]>(() => data.value?.articles ?? []);
 const lead = computed(() => articles.value[0]);
 const rest = computed(() => articles.value.slice(1));

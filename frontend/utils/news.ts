@@ -31,6 +31,33 @@ export async function loadArticleServer(
   return readJson<NewsArticle>(`news/${slug}/article.json`);
 }
 
+// Universal loaders. With payloadExtraction off (nuxt.config.ts), a page's
+// useAsyncData fetcher runs again in the browser on client-side navigation;
+// a server-only loader returned null there and every news page reached by a
+// click rendered as a 404 (2026-11-09). In the browser these fetch the same
+// public JSON the prerender read from disk.
+export async function loadNewsIndex(): Promise<NewsIndexEntry[]> {
+  if (import.meta.server) return loadNewsIndexServer();
+  try {
+    const doc = await $fetch<{ articles?: NewsIndexEntry[] }>(
+      "/news/index.json"
+    );
+    return doc?.articles ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export async function loadArticle(slug: string): Promise<NewsArticle | null> {
+  if (import.meta.server) return loadArticleServer(slug);
+  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  try {
+    return await $fetch<NewsArticle>(`/news/${slug}/article.json`);
+  } catch {
+    return null;
+  }
+}
+
 const HE_DATE = new Intl.DateTimeFormat("he-IL", {
   dateStyle: "long",
   timeZone: "Asia/Jerusalem",

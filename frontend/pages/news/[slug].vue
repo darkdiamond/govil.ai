@@ -1,25 +1,26 @@
 <script setup lang="ts">
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
-import { loadArticleServer, loadNewsIndexServer, newsDate } from "~/utils/news";
-import { loadFullManifestServer } from "~/utils/search-index";
+import { loadArticle, loadNewsIndex, newsDate } from "~/utils/news";
+import { loadSearchIndex } from "~/utils/search-index";
 
 const route = useRoute();
 const slug = String(route.params.slug);
 const SITE_URL = "https://govil.ai";
 
+// Runs at prerender AND in the browser on client-side navigation (see
+// utils/news.ts): every loader here must work in both.
 const { data } = await useAsyncData(`news-${slug}`, async () => {
-  if (!import.meta.server) return null;
-  const article = await loadArticleServer(slug);
+  const article = await loadArticle(slug);
   if (!article) return null;
-  const index = await loadNewsIndexServer();
+  const index = await loadNewsIndex();
   const more = index.filter((a) => a.slug !== slug).slice(0, 3);
   // Tag chips link only tags that have a page (the publisher's tag_index).
   let tagSlugs: Record<string, string> = {};
   try {
-    const manifest = await loadFullManifestServer();
+    const si = await loadSearchIndex();
     for (const t of article.tags ?? []) {
-      const s = manifest.tag_index?.[t]?.slug;
+      const s = si.tag_index?.[t]?.slug;
       if (s) tagSlugs[t] = s;
     }
   } catch {
@@ -183,9 +184,10 @@ useSeo({
         </h2>
         <ul class="list-none m-0 p-0 space-y-2">
           <li v-for="d in article.datasets" :key="d.id">
-            <NuxtLink v-if="d.href" :to="d.href" class="font-medium">{{
+            <!-- <a>, not NuxtLink: dataset pages are prerender-only. -->
+            <a v-if="d.href" :href="d.href" class="font-medium">{{
               d.title
-            }}</NuxtLink>
+            }}</a>
             <span v-else>{{ d.title }}</span>
             <span v-if="d.organization" class="text-sm text-subtle">
               · {{ d.organization }}</span
