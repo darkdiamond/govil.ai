@@ -30,7 +30,9 @@ MONTHS = "|".join(fmt.MONTHS_HE + ["מרס"])
 # "בשנת 2025", "מרץ 2025", "מאז 2019", "2019–2025"), so a typed count that
 # happens to look like a year ("נמכרו 1980 דירות") still fails.
 _DAY_OF_MONTH = re.compile(rf"(?<![\d.,])(?:[1-9]|[12]\d|3[01])(?=\s*(?:ב|ל|ה|-)?\s*(?:{MONTHS}))")
-_YEAR = re.compile(r"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?![\d.,%])")
+# A sentence-ending period or comma after a year is punctuation ("…בדצמבר
+# 2026."); only one followed by a digit makes it a number ("2026.5", "2,026").
+_YEAR = re.compile(r"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?![\d%]|[.,]\d)")
 _YEAR_LEAD = re.compile(
     rf"(?:(?:^|[\s(\"'״])[ובלמהשכ]{{1,3}}-?"
     rf"|(?:{MONTHS}|שנת|שנות|שנים|מאז|עד|לפני|אחרי|לעומת|מול|בין|מתחילת|מסוף|בשנים|בשנת)\s+"

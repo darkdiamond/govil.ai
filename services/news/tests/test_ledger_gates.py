@@ -44,6 +44,10 @@ def test_signed_formats_are_isolated_with_a_real_minus():
     ("מאז 2019 ובשנים 2019–2025 ובמרץ 2024 (2023) ובשנת 2020", []),
     ("נמכרו 1980 דירות", ["1980"]),
     ("2025 הייתה שנה חלשה", ["2025"]),
+    # 2026-11-09 live run: a year closing a sentence was rejected as a typed number.
+    ("הנתונים יתפרסמו בדצמבר 2026.", []),
+    ("מאז 2019, ועד ינואר 2026, הנתון ירד.", []),
+    ("עלה ל-2026.5 נקודות", ["ל-2026.5"]),
 ])
 def test_stray_numbers(text, bad):
     assert stray_numbers(text) == bad
