@@ -96,7 +96,7 @@ const generatedAt = computed(() => data.value?.generatedAt);
     <section v-if="latestNews.length" aria-labelledby="home-news-h">
       <div class="flex items-baseline justify-between mb-4">
         <h2 id="home-news-h" class="text-2xl font-display text-ink m-0">
-          חדשות מהנתונים
+          חדשות
         </h2>
         <NuxtLink to="/news/" class="text-sm">לכל החדשות</NuxtLink>
       </div>

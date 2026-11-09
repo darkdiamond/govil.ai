@@ -29,6 +29,22 @@ defineProps<{ article: NewsIndexEntry; compact?: boolean }>();
       <p v-if="!compact" class="m-0 mt-2 text-sm text-subtle line-clamp-3">
         {{ article.dek }}
       </p>
+      <div
+        v-if="article.stat && !compact"
+        class="mt-3 pt-3 border-t border-rule flex items-end justify-between gap-3"
+      >
+        <div class="min-w-0">
+          <div
+            class="text-xl font-medium text-ink-deep tabular-nums leading-none"
+          >
+            <bdi>{{ article.stat.value }}</bdi>
+          </div>
+          <div class="text-xs text-subtle mt-1 line-clamp-1">
+            {{ article.stat.label }}
+          </div>
+        </div>
+        <Sparkline v-if="article.spark" :values="article.spark" />
+      </div>
     </div>
   </NuxtLink>
 </template>

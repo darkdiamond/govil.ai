@@ -44,9 +44,55 @@ def _relink(blocks: list[dict], page_slugs: dict[str, str]) -> list[dict]:
     return out
 
 
-def write_news(out_root: Path, articles, *, datasets: dict[str, dict]) -> dict:
+SPARK_POINTS = 36
+WORDS_PER_MINUTE = 200
+
+
+def _stat(blocks: list[dict]) -> dict | None:
+    """The article's headline number (its stat block), for cards."""
+    b = next((b for b in blocks or [] if b.get("type") == "stat" and b.get("value")), None)
+    return {"value": b["value"], "label": b.get("label") or ""} if b else None
+
+
+def _spark(charts: list[dict]) -> list[float] | None:
+    """The first line chart's first series, last SPARK_POINTS points — the
+    story's data drawn as a sparkline on cards. None when there's no series.
+    Only the latest unbroken run: the sparkline spaces points evenly, so a
+    gap (a null period) dropped from the middle would bend the line."""
+    for c in charts or []:
+        if c.get("type") != "line":
+            continue
+        series = (c.get("option") or {}).get("series") or []
+        if series:
+            run: list[float] = []
+            for v in reversed(series[0].get("data") or []):
+                if isinstance(v, int | float) and not isinstance(v, bool):
+                    run.append(v)
+                    if len(run) == SPARK_POINTS:
+                        break
+                elif run:  # a gap before the latest run ends it
+                    break
+            if len(run) >= 3:
+                return run[::-1]
+    return None
+
+
+def _topic(tags: list[str], tag_topics: dict[str, str], topics: dict[str, str]) -> dict | None:
+    for t in tags:
+        tid = tag_topics.get(t)
+        if tid and tid in topics:
+            return {"id": tid, "label": topics[tid]}
+    return None
+
+
+def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
+               tag_slugs: dict[str, str] | None = None, tag_topics: dict[str, str] | None = None,
+               topics: dict[str, str] | None = None) -> dict:
     """`articles`: live article docs (store.join shape). `datasets`: id →
-    {page_slug, title, organization} for every published dataset."""
+    {page_slug, title, organization} for every published dataset.
+    `tag_slugs`: tag → page slug for tags that have a page; `tag_topics`:
+    tag → topic id; `topics`: topic id → Hebrew label (taxonomy/)."""
+    tag_slugs, tag_topics, topics = tag_slugs or {}, tag_topics or {}, topics or {}
     page_slugs = {i: d["page_slug"] for i, d in datasets.items() if d.get("page_slug")}
     news_root = out_root / "news"
     news_root.mkdir(parents=True, exist_ok=True)
@@ -71,12 +117,20 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict]) -> dict:
             "blocks": _relink(a.get("blocks") or [], page_slugs), "charts": a.get("charts") or [],
             "sources": [{k: s.get(k) for k in ("url", "title")} for s in a.get("sources") or []],
             "datasets": cards,
+            # Tags with a page → their slug, so the article page links chips
+            # without downloading the whole search index.
+            "tag_slugs": {t: tag_slugs[t] for t in a.get("tags") or [] if t in tag_slugs},
         }
         (d / "article.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+        words = int(a.get("words") or 0)
         index.append({k: doc[k] for k in ("slug", "headline", "dek", "published_at", "updated_at",
                                            "tags", "status")}
                      | {"hero": sizes.get("16x9"), "hero_alt": hero.get("alt"),
-                        "dataset_ids": [c["id"] for c in cards]})
+                        "dataset_ids": [c["id"] for c in cards],
+                        "datasets": [{k: c.get(k) for k in ("id", "title", "href")} for c in cards],
+                        "topic": _topic(doc["tags"], tag_topics, topics),
+                        "stat": _stat(doc["blocks"]), "spark": _spark(doc["charts"]),
+                        "minutes": max(1, round(words / WORDS_PER_MINUTE)) if words else None})
 
     keep = {a["slug"] for a in live}
     removed = 0
@@ -91,15 +145,19 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict]) -> dict:
 
 
 def publish_news(out_root: Path, *, datasets: dict[str, dict], project: str | None = None,
-                 client=None) -> dict:
+                 client=None, tag_slugs: dict[str, str] | None = None,
+                 tag_topics: dict[str, str] | None = None,
+                 topics: dict[str, str] | None = None) -> dict:
     """Fail soft: the dataset site must deploy even if news can't be read.
     Articles are read from the `news` Firestore database (store.NEWS_DATABASE);
-    `client` overrides that client (tests)."""
+    `client` overrides that client (tests). tag_slugs / tag_topics / topics:
+    see write_news."""
     try:
         from .store import FirestoreArticles
 
         articles = list(FirestoreArticles(client=client, project=project).iter_published())
-        return write_news(out_root, articles, datasets=datasets)
+        return write_news(out_root, articles, datasets=datasets, tag_slugs=tag_slugs,
+                          tag_topics=tag_topics, topics=topics)
     except Exception as e:
         log.exception("publish: news artifacts skipped")
         return {"error": f"{type(e).__name__}: {str(e)[:200]}"}
