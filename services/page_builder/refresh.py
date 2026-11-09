@@ -1359,35 +1359,37 @@ MODEL_HISTORY_MAX_VALUE_BYTES = 2_000_000
 
 def history_model(model: dict) -> dict:
     """The page model as kept for history (read by the news job): `tables`
-    dropped (row dumps, not series) and any second-level value whose JSON tops
-    MODEL_HISTORY_MAX_VALUE_BYTES replaced by a marker, so one outsized chart
+    dropped (row dumps, not series) and any value — top-level, or one level
+    inside a top-level dict (a chart, a KPI) — whose JSON tops
+    MODEL_HISTORY_MAX_VALUE_BYTES replaced by a marker, so one outsized value
     can't bloat every snapshot."""
-    out: dict = {}
-    for k, v in model.items():
-        if k == "tables":
-            continue
-        if isinstance(v, dict):
-            kept = {}
-            for kk, vv in v.items():
-                size = len(json.dumps(vv, ensure_ascii=False, default=str))
-                kept[kk] = vv if size <= MODEL_HISTORY_MAX_VALUE_BYTES else {"__omitted_bytes__": size}
-            out[k] = kept
-        else:
-            out[k] = v
-    return out
+    def capped(v):
+        size = len(json.dumps(v, ensure_ascii=False, default=str))
+        return v if size <= MODEL_HISTORY_MAX_VALUE_BYTES else {"__omitted_bytes__": size}
+
+    return {
+        k: ({kk: capped(vv) for kk, vv in v.items()} if isinstance(v, dict) else capped(v))
+        for k, v in model.items() if k != "tables"
+    }
 
 
 def _stage_model_history(src_id: str, model: dict, *, bucket: str, preview: bool,
                          write_gcs: Callable[[bytes, str, str], str],
+                         recipe_version: int | None = None,
+                         metadata_modified: datetime | None = None,
                          now: datetime | None = None) -> bool:
     """Write the render's model to models/<id>/<UTC ts>.json.gz and
     models/<id>/latest.json.gz (read by the news job). Best effort: a failure
-    is logged, never fails the refresh (the page is already staged and marked)."""
+    is logged, never fails the refresh (the page is already staged and marked).
+    `recipe_version` + `metadata_modified` let a reader tell a recipe change
+    (model shape moved) from a data change."""
     prefix = "preview/models" if preview else "models"
     ts = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
     try:
         body = gzip.compress(json.dumps(
-            {"dataset_id": src_id, "rendered_at": ts, "model": history_model(model)},
+            {"dataset_id": src_id, "rendered_at": ts, "recipe_version": recipe_version,
+             "metadata_modified": metadata_modified.isoformat() if metadata_modified else None,
+             "model": history_model(model)},
             ensure_ascii=False, default=str, sort_keys=True,
         ).encode("utf-8"), mtime=0)
         write_gcs(body, bucket, f"{prefix}/{src_id}/{ts}.json.gz")
@@ -1706,7 +1708,8 @@ def refresh_one(
             round(time.monotonic() - started, 2),
         )
     _stage_model_history(src.id, page.model, bucket=staging_bucket, preview=preview,
-                         write_gcs=write_gcs)
+                         write_gcs=write_gcs, recipe_version=rv,
+                         metadata_modified=src.metadata_modified)
     return RefreshOutcome(
         src.id,
         "refreshed",

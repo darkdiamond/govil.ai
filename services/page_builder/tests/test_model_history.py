@@ -31,6 +31,8 @@ def test_render_stages_model_history(env):
     assert f"models/{DS}/latest.json.gz" in keys and len(keys) == 2
     latest = docs[f"models/{DS}/latest.json.gz"]
     assert latest["dataset_id"] == DS and latest["rendered_at"]
+    assert latest["recipe_version"] >= 1
+    assert latest["metadata_modified"].startswith("2026-10-01")
     assert "kpis" in latest["model"] and "tables" not in latest["model"]
     ts_key = next(k for k in keys if not k.endswith("latest.json.gz"))
     assert docs[ts_key] == latest
@@ -75,8 +77,10 @@ def test_no_render_writes_no_history(env):
 def test_history_model_drops_tables_and_caps_outsized_values(monkeypatch):
     monkeypatch.setattr(rf, "MODEL_HISTORY_MAX_VALUE_BYTES", 50)
     m = {"kpis": {"a": {"value": 1}}, "tables": {"t": [1, 2]},
-         "charts": {"small": [1, 2], "big": list(range(100))}, "labels": "x"}
+         "charts": {"small": [1, 2], "big": list(range(100))}, "labels": "x",
+         "points": list(range(100))}
     h = rf.history_model(m)
     assert "tables" not in h and h["labels"] == "x"
     assert h["charts"]["small"] == [1, 2]
     assert set(h["charts"]["big"]) == {"__omitted_bytes__"}
+    assert set(h["points"]) == {"__omitted_bytes__"}  # top-level values are capped too
