@@ -298,8 +298,7 @@ def compute(frames):
     n_par = len(par)
     if n_par:
         p_labels, p_values = frame.top_other(frame.ranked(par), 8)
-        p_labels = [_short(x) for x in p_labels]
-        charts["parallel"] = {"names": p_labels, "values": p_values}
+        charts["parallel"] = {"names": [_short(x) for x in p_labels], "values": p_values}
         tables["parallel"] = [[a, fmt.int_he(b)] for a, b in zip(p_labels, p_values)]
 
     # --- placement recommendations ------------------------------------------
@@ -307,8 +306,7 @@ def compute(frames):
     n_place = len(plc)
     if n_place:
         q_labels, q_values = frame.top_other(frame.ranked(plc), 8)
-        q_labels = [_short(x) for x in q_labels]
-        charts["place"] = {"names": q_labels, "values": q_values}
+        charts["place"] = {"names": [_short(x) for x in q_labels], "values": q_values}
         tables["place"] = [[a, fmt.int_he(b)] for a, b in zip(q_labels, q_values)]
 
     n_note = int(df["has_note"].sum())
@@ -363,7 +361,8 @@ def compute(frames):
         u_n = int(df.loc[uni, "inst"].nunique())
         top, top_c = ic.index[0], int(ic.iloc[0])
         return (
-            f"{fmt.int_he(u_n)} אוניברסיטאות מחזיקות {fmt.int_he(u_rows)} מהתארים באוגדן "
+            (f"{fmt.int_he(u_n)} אוניברסיטאות מחזיקות" if u_n > 1 else "אוניברסיטה אחת מחזיקה")
+            + f" {fmt.int_he(u_rows)} מהתארים באוגדן "
             f"({fmt.pct(u_rows / n)}), אף שהאוגדן מונה {fmt.int_he(n_inst)} מוסדות. "
             f"המוסד עם מספר התארים הרב ביותר: {top} ({fmt.int_he(top_c)})."
         )

@@ -110,7 +110,8 @@
           } },
         legend: series.length > 1 ? { top: 0 } : undefined,
         grid: { left: 8, right: 16, top: series.length > 1 ? (narrow ? 70 : 32) : 8, bottom: 8, containLabel: true },
-        xAxis: { type: "value", minInterval: 1 },
+        xAxis: { type: "value", minInterval: 1, splitNumber: narrow ? 3 : 5,
+          axisLabel: { hideOverlap: true, fontSize: 11 } },
         yAxis: { type: "category", inverse: true, data: names,
           axisLabel: { width: narrow ? 110 : (labelW || 220), overflow: "truncate", fontSize: 11 } },
         series: series.map(function (s) {
