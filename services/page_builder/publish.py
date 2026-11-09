@@ -492,7 +492,8 @@ def _publish_news(out_root: Path, store, entries: list[ManifestEntry]) -> dict:
     client = getattr(store, "client", None)
     if client is None:
         return {"skipped": "store has no Firestore client"}
-    return publish_news(out_root, client=client, datasets=datasets)
+    # Same project, the separate `news` database (services/news/store.py).
+    return publish_news(out_root, project=getattr(client, "project", None), datasets=datasets)
 
 
 # ---- CLI --------------------------------------------------------------------

@@ -90,12 +90,15 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict]) -> dict:
     return {"articles": len(index), "removed_dirs": removed}
 
 
-def publish_news(out_root: Path, *, client, datasets: dict[str, dict]) -> dict:
-    """Fail soft: the dataset site must deploy even if news can't be read."""
+def publish_news(out_root: Path, *, datasets: dict[str, dict], project: str | None = None,
+                 client=None) -> dict:
+    """Fail soft: the dataset site must deploy even if news can't be read.
+    Articles are read from the `news` Firestore database (store.NEWS_DATABASE);
+    `client` overrides that client (tests)."""
     try:
         from .store import FirestoreArticles
 
-        articles = list(FirestoreArticles(client=client).iter_published())
+        articles = list(FirestoreArticles(client=client, project=project).iter_published())
         return write_news(out_root, articles, datasets=datasets)
     except Exception as e:
         log.exception("publish: news artifacts skipped")
