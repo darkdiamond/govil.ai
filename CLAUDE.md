@@ -578,9 +578,12 @@ are still read by the authoring selector.
   front of the Firebase origin — live responses carry `cf-nel` / `x-cache`,
   but Cloudflare does not cache HTML or JSON here (`cf-cache-status: DYNAMIC`).
   Caching is set in `firebase.json`: pages (clean URLs, matched by the
-  `^/(?:.*/)?$` regex, plus `*.html`) and `*.json`/`*.xml` are `max-age=0,
+  `^/(?:.*/)?$` regex) and data/feeds (`/data|news|datasets/**/*.json`, `*.xml`) are `max-age=0,
 must-revalidate, s-maxage=600` (browsers revalidate via ETag; Firebase's CDN
-  is cleared on every deploy), hashed assets are immutable. Header `source`
+  is cleared on every deploy), hashed assets are immutable. When rules
+  overlap, the LAST matching one wins (verified live), so keep specific rules
+  after general ones; `services/page_builder/tests/test_hosting_cache.py`
+  checks the effective value per path. Header `source`
   globs match the REQUEST path, so a rule like `**/*.html` never covers
   `/news/` (until 2026-11-09 every page fell back to Firebase's default
   `max-age=3600` and visitors saw hour-old pages). To debug origin vs. edge, hit the

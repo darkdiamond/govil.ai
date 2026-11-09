@@ -2842,15 +2842,6 @@
         ]
       },
       {
-        "source": "**/*.html",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=0, must-revalidate, s-maxage=600"
-          }
-        ]
-      },
-      {
         "source": "**/*.@(js|css)",
         "headers": [
           {
@@ -2869,7 +2860,16 @@
         ]
       },
       {
-        "source": "**/*.@(json|xml)",
+        "source": "/@(data|news|datasets)/**/*.json",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=0, must-revalidate, s-maxage=600"
+          }
+        ]
+      },
+      {
+        "source": "**/*.xml",
         "headers": [
           {
             "key": "Cache-Control",
