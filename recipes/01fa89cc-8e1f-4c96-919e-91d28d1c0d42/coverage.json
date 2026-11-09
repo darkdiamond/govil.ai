@@ -1,0 +1,12 @@
+{
+  "main.institution_name": "chart-inst, chart-types, chart-heat, chart-fields, kpi:inst, kpi:foreign, insight:unis, insight:foreign — aliases merge known spellings; institution type derived from the name",
+  "main.Faculty_Name": "chart-faculty — values that are spilled explanation text count as unspecified",
+  "main.Field_of_Education": "chart-fields, chart-inst, kpi:fields, insight:field — distinct institutions per field",
+  "main.Degree_level": "chart-stage, chart-degrees, chart-world, chart-inst, insight:stage, insight:quality — row validity filter; codes normalised and mapped to a degree stage",
+  "main.One_Two_Combo": "insight:two — single vs dual-major",
+  "main.Parallel_Foreign_Degree": "chart-parallel, insight:parallel",
+  "main.Placement_recommendations": "chart-place, kpi:place, insight:place",
+  "main.Regular_updates": "insight:quality — count of entries with an update note (free text, may name officials)",
+  "main.Explanations": "chart-types, kpi:expl, insight:expl — presence only; the free text itself is in the explorer",
+  "main.Content_worlds": "chart-world, chart-heat, insight:world, insight:two, insight:foreign"
+}

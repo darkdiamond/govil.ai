@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "205a626d-e6d7-46a0-aac2-331f9b235b03",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-09T08:41:43.339691+00:00",
+    "rows": { "main": 54 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "d6add630-6731-4534-9383-cb780fb0c268",
+      "required_columns": [
+        "שם בעל היתר",
+        "טלפון",
+        "נייד",
+        "פקס",
+        "כתובת",
+        "מייל",
+        "מייל נוסף",
+        "תוקף היתר עד ליום"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": ["במרץ 2003", "סעיף 1ג׳", "מפי 4.5"]
+}

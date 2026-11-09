@@ -1,0 +1,164 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור חברת שליחויות או בלדרות בעלת היתר ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם בעל ההיתר, כתובת ויישוב, טלפון, דוא״ל ותוקף ההיתר.</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+  {{ gov.kpi(model.kpis.holders, model.labels.holders_kpi) }}
+  {{ gov.kpi(model.kpis.cities, model.labels.cities_kpi) }}
+  {{ gov.kpi(model.kpis.company, model.labels.company_kpi) }}
+{%- if model.flags.has_expiry %}
+  {{ gov.kpi(model.kpis.first_year, model.labels.first_year_kpi) }}
+  {{ gov.kpi(model.kpis.span, model.labels.span_kpi) }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "על ההיתר הכללי") }}
+  <p class="m-0 mb-2 text-sm leading-relaxed">ההיתר הכללי לאיסוף, העברה או מסירה של מכתבים נכנס לתוקף במרץ 2003, לפי סעיף 1ג׳ לחוק הדואר. הוא מתיר לגופים פרטיים לספק שירותים בעלי אופי של דואר שליחים, דואר מהיר, דואר רשום ודואר בינלאומי, בתנאי שהמחיר למשלוח בישראל אינו נמוך מפי 4.5 ממחיר מכתב רגיל במועד תחילת ההיתר.</p>
+  <p class="m-0 text-sm text-subtle leading-relaxed">שאר שירותי העברת המכתבים נשארו בתחום השמור של חברת דואר ישראל, למעט דואר כמותי, שלו היתר נפרד.</p>
+</section>
+
+{% if model.flags.has_expiry %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מתי פג תוקף ההיתרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.expiry_note }}</p>
+  {{ gov.chart("chart-expiry", model.labels.expiry_aria) }}
+  {{ gov.table(model.labels.expiry_caption, ["שנת פקיעה", "היתרים", "שיעור"], model.tables.expiry, ltr=(2,)) }}
+  <h3 class="mt-4 mb-2 text-base font-semibold text-ink-deep">הראשונים שתוקפם פג</h3>
+  <p class="m-0 text-sm text-subtle mb-2">{{ model.labels.soonest_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.soonest_note }}</caption>
+      <thead><tr><th scope="col">בעל ההיתר</th><th scope="col">תוקף עד</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.soonest %}
+        <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("map-pin", "בעלי היתר לפי יישוב") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cities_note }}</p>
+    {{ gov.chart("chart-cities", model.labels.cities_aria, h="h-80 md:h-[460px]") }}
+    {{ gov.table(model.labels.cities_caption, ["יישוב", "בעלי היתר", "שיעור"], model.tables.cities, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "חברות ועוסקים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.form_note }}</p>
+    {{ gov.chart("chart-form", model.labels.form_aria) }}
+    {{ gov.table(model.labels.form_caption, ["צורת התאגדות", "בעלי היתר", "שיעור"], model.tables.form, ltr=(2,)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "מה השמות מספרים על השירות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.themes_note }}</p>
+    {{ gov.chart("chart-themes", model.labels.themes_aria, h="h-80 md:h-[460px]") }}
+    {{ gov.table(model.labels.themes_caption, ["תחום", "שמות", "שיעור מבעלי ההיתר"], model.tables.themes, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("list", "ערוצי קשר ברשימה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contacts_note }}</p>
+    {{ gov.chart("chart-contacts", model.labels.contacts_aria) }}
+    {{ gov.table(model.labels.contacts_caption, ["ערוץ", "בעלי היתר", "שיעור"], model.tables.contacts, ltr=(2,)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("info", "דומיין עסקי או תיבה חינמית") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.email_note }}</p>
+    {{ gov.chart("chart-email", model.labels.email_aria) }}
+    {{ gov.table(model.labels.email_caption, ["סוג דומיין", "בעלי היתר", "שיעור"], model.tables.email, ltr=(2,)) }}
+  </section>
+{%- if model.flags.has_groups %}
+  <section class="card p-5">
+    {{ gov.head("building-2", "בעלי היתר הקשורים זה לזה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+        <thead><tr><th scope="col">בעלי ההיתר</th><th scope="col">דומיין</th></tr></thead>
+        <tbody>
+{%- for r in model.tables.groups %}
+          <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{%- endif %}
+</div>
+
+<script>
+  (function () {
+    function mk(id, opt) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      c.setOption(window.GovEcharts.option(Object.assign({ color: window.GOVIL_PALETTE }, opt)));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    var e = {{ model.charts.expiry | tojson }};
+    mk("chart-expiry", {
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 28, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: e.x, axisLabel: {
+        interval: "auto", hideOverlap: true, fontSize: 11,
+        rotate: (e.x.length > 6 && window.innerWidth < 640) ? 45 : 0
+      } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: [{
+        type: "bar", name: "היתרים שפגים",
+        data: e.y.map(function (v, i) {
+          return i === e.first ? { value: v, itemStyle: { color: "#9a6700" } } : v;
+        }),
+        itemStyle: { color: "#0068f5" },
+        label: { show: true, position: "top" }
+      }]
+    });
+    function hbar(id, d, name, color, pct) {
+      mk(id, {
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 16, right: 40, top: 8, bottom: 16, containLabel: true },
+        xAxis: pct ? { type: "value", max: 100, axisLabel: { formatter: "{value}%" } } : { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names, inverse: true, axisLabel: { width: 130, overflow: "truncate" } },
+        series: [{ type: "bar", name: name, data: pct ? d.pct : d.values, itemStyle: { color: color },
+          label: { show: true, position: "right", formatter: pct ? "{c}%" : "{c}" } }]
+      });
+    }
+    function donut(id, d) {
+      mk(id, {
+        tooltip: { trigger: "item", formatter: "{b}: {c} ({d}%)" },
+        legend: { bottom: 0 },
+        series: [{
+          type: "pie", radius: ["42%", "68%"], center: ["50%", "45%"],
+          label: { formatter: "{c}" },
+          data: d.names.map(function (nm, i) { return { name: nm, value: d.values[i] }; })
+        }]
+      });
+    }
+    hbar("chart-cities", {{ model.charts.cities | tojson }}, "בעלי היתר", "#0068f5", false);
+    hbar("chart-themes", {{ model.charts.themes | tojson }}, "שמות", "#0b3668", false);
+    hbar("chart-contacts", {{ model.charts.contacts | tojson }}, "שיעור בעלי ההיתר", "#0068f5", true);
+    donut("chart-form", {{ model.charts.form | tojson }});
+    donut("chart-email", {{ model.charts.email | tojson }});
+  })();
+</script>
