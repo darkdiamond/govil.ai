@@ -32,6 +32,8 @@ tmp/
 .env.local
 .DS_Store
 *.md
+# …except the news writer's prompts, which the job reads at run time.
+!services/news/prompts/*.md
 LICENSE
 .dockerignore
 Dockerfile

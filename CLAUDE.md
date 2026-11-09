@@ -50,7 +50,7 @@ work, and delete an item in the PR that fixes it. Follow the format rules in its
 ## What this project is
 
 A pipeline that turns data.gov.il datasets into connected, Hebrew-RTL
-landing pages. Five layers:
+landing pages. Six layers:
 
 1. **Scanner** — `services/scanner/`. Polls CKAN, upserts per-source
    state into **Firestore** (`sources/*`). Runs inside the builder
@@ -324,6 +324,29 @@ SHEET, ROW, C01..`) that compute.py reads by label.
    its pages last-good. Adding a source means one subclass plus one
    registry line. Refresh, publisher and frontend need no change.
 
+6. **News** — `services/news/`, Cloud Run job `govdata-news-job`
+   (`infra/news-job.deploy.sh`, SA `govdata-news@`, `infra/news-iam.setup.sh`),
+   **08:00 Asia/Jerusalem**, after the builder. The only model-calling code
+   (OpenRouter; `NEWS_MODEL` Gemini Flash, `NEWS_IMAGE_MODEL` Nano Banana,
+   `NEWS_SEARCH_ENGINE` exa). Articles publish with **no human approval**
+   (user decision), so the guards are mechanical:
+   - signals (deterministic, from the `models/` history the builder keeps) →
+     editor picks ≤ `NEWS_MAX_PER_DAY` (3) stories or none → writer agent →
+     `gates.check` + critic (pass/revise/kill, 2 revisions) → image → store.
+   - every printed number is a ledger fact token (a typed or spelled-out
+     number fails); links go only to our dataset pages and official
+     gov.il / boi.org.il pages (quote-verified); hedged explanations need no
+     source (user rule); the web is read for context only (allowlisted
+     sites, fenced as untrusted text); no em dashes or other AI-looking
+     punctuation (user rule, in the gate and the prompts).
+   - data access for the writer is DuckDB SQL over the recipe's own inputs
+     with external access off (`query.py`); it never runs model-written code.
+   - kill switch: `NEWS_PUBLISH=off` (env update, no redeploy). Unpublish /
+     correct: `python -m services.news.admin unpublish|correct <slug>`, then
+     a publish run. Rejected drafts: `admin list --rejected`.
+   - spending is capped by the key's limit in OpenRouter + a GCP budget
+     alert, not by code; a refused key ends the run `llm_unavailable`.
+
 State: Firestore `sources/{id}` (per-dataset, incl. refresh state and
 `authoring_status`/`authoring_issue`), `scan_runs/{run_id}` (per
 invocation), `job_state/{name}` (small job markers: `reconcile.last_date`, the IL
@@ -338,9 +361,12 @@ are still read by the authoring selector.
 - **Hebrew-first, RTL everywhere.** `<html dir="rtl" lang="he">`. Body
   line-height `1.5` (gov.il standard). Tailwind logical properties
   (`ps-*`/`pe-*`) when using Tailwind.
-- **No LLM in production.** The daily job is deterministic (scan →
-  recipe refresh → issue queue → publish). Models run only locally, in
-  Claude Code authoring sessions. Don't add a cloud model call to the job.
+- **No LLM in the builder.** The builder job is deterministic (scan →
+  recipe refresh → issue queue → publish); recipes are authored locally
+  in Claude Code sessions. Don't add a model call to it. The one exception
+  is the separate `govdata-news-job` (layer 6 below): its own service
+  account, its own OpenRouter key (limit set in the OpenRouter dashboard),
+  scheduled 08:00 IL. Nothing else calls a model.
 - **Design tokens** (aligned with www.gov.il — mirrored across
   `frontend/tailwind.config.ts` and `agent/system-prompt.md` (the
   authoring design reference); recipe templates use them via Tailwind
