@@ -543,3 +543,28 @@ def test_local_ckan_says_to_reprepare_when_columns_grew(tmp_path):
     lc = _local_ckan(tmp_path, columns=["a", "b"])
     with pytest.raises(RecipeError, match="re-run `author prepare`"):
         lc.fetch("r1", 50, tmp_path / "out.csv", max_bytes=10**6, fields=["a", "c"])
+
+
+# ── optional provider resources ──────────────────────────────────────────
+
+
+@pytest.mark.parametrize("optional", [False, True])
+def test_empty_resource_fails_unless_its_provider_marks_it_optional(tmp_path, optional):
+    """A CBS table resource with `optional` may be empty by design (no edition
+    has that table); any other empty resource is still a fetch failure."""
+    recipe = Recipe.load(_fixture_copy(tmp_path, lambda d: None) / DS)
+    ckan = FakeCkan([])
+    resources = [dict(r, params={"optional": True} if optional else {})
+                 for r in _src().resources]
+    if not optional:
+        with pytest.raises(RecipeError, match="has no rows") as e:
+            rf.fetch_inputs(recipe, resources, tmp_path / "d",
+                            preview_fn=ckan.preview, fetch_fn=ckan.fetch)
+        assert e.value.reason == "fetch_failed"
+        return
+    out = rf.fetch_inputs(recipe, resources, tmp_path / "d",
+                          preview_fn=ckan.preview, fetch_fn=ckan.fetch)
+    (part,) = out["events"]
+    assert part.rows == 0
+    with open(part.file, encoding="utf-8", newline="") as f:
+        assert list(csv.reader(f)) == [COLS]

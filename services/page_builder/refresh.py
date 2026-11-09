@@ -901,7 +901,9 @@ def fetch_inputs(
                 # A by_id input with no column check meets its preview here.
                 raise _preview_strike(f"input {inp.name!r}: no preview for resource {rid[:8]}")
             total = int(p.get("total") or 0)
-            if total <= 0:
+            # A provider resource marked optional (a CBS table some editions
+            # lack) may be empty by design: compute gets a header-only frame.
+            if total <= 0 and not (res.get("params") or {}).get("optional"):
                 raise RecipeError(
                     f"input {inp.name!r}: resource {rid[:8]} has no rows",
                     reason="fetch_failed",

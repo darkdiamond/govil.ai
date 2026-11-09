@@ -60,6 +60,21 @@ def _release_key(release_no: str):
     return (int(m.group(2)), int(m.group(1))) if m else (0, 0)
 
 
+def latest_release(df, name="releases") -> dict:
+    """The newest edition in a `releases` frame, as a dict of its columns
+    (RELEASE_NO, RELEASE_DATE, TITLE, HEADLINE, PAGE_URL, REPORT_PDF_URL).
+    Same order as `grid`: the newest date, and of two editions that share
+    it, the higher release number ("100/2026" beats "99/2026", which a plain
+    string sort gets wrong). Raises when no edition has a date."""
+    df = df[df["RELEASE_DATE"].fillna("").astype(str).str.strip() != ""]
+    if df.empty:
+        raise ValueError(f"{name}: no edition listed")
+    best = max(df.to_dict("records"),
+               key=lambda r: (str(r["RELEASE_DATE"]), _release_key(r["RELEASE_NO"]),
+                              str(r["RELEASE_NO"])))
+    return best
+
+
 def grid(df, name="table") -> list:
     """The newest edition's rows of one table (all sheets, in sheet and row
     order) as lists of cleaned cells; index j is column C(j+1). Exactly one
