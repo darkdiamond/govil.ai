@@ -37,6 +37,19 @@ _YEAR_LEAD = re.compile(
     rf"|\(|[–-]\s*)$"
 )
 _DIGITS = re.compile(r"\d")
+SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
+# A quantity spelled in words ("שמונה אחוזים", "שלושה מיליארד שקל") is a typed
+# number too. Words alone ("שלוש שנים", "חודשיים") are ordinary prose.
+_NUMBER_WORD = (r"(?:אחד|אחת|שתיים|שניים|שתי|שני|שלוש|שלושה|ארבע|ארבעה|חמש|חמישה|שש|שישה|שבע|"
+                r"שבעה|שמונה|תשע|תשעה|עשר|עשרה|עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|"
+                r"תשעים|מאה|מאתיים|מאות|אלף|אלפיים|אלפים|חצי|רבע|שליש)")
+_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהש]?{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD}))*\s+"
+                      r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודות|מיליון|מיליארד|מיליארדי|אלף|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
+
+
+def spelled_numbers(text: str) -> list[str]:
+    """Quantities written out in Hebrew words instead of fact tokens."""
+    return [m[0] for m in _SPELLED.finditer(LINK.sub(lambda m: f" {m[1]} ", TOKEN.sub(" ", text)))]
 
 
 @dataclass
@@ -116,6 +129,8 @@ class Ledger:
         return f
 
     def add_source(self, url: str, title: str, text: str) -> Source:
+        if url.startswith("http://"):  # search engines hand back http:// for https sites
+            url = "https://" + url[len("http://"):]
         if (sid := self._by_url.get(url)) is not None:
             return self.sources[sid]
         s = Source(f"s{len(self.sources) + 1}", url, title, text)
@@ -123,7 +138,8 @@ class Ledger:
         self._by_url[url] = s.id
         return s
 
-    def calc(self, op: str, a: str, b: str | None = None, *, label: str = "") -> Fact:
+    def calc(self, op: str, a: str, b: str | None = None, *, label: str = "",
+             factor: float | None = None) -> Fact:
         """A derived fact, traceable to its inputs."""
         fa = self.facts[a]
         fb = self.facts[b] if b else None
@@ -145,10 +161,16 @@ class Ledger:
             v, unit = fa.value + fb.value, fa.unit
         elif op == "abs":
             v, unit = abs(fa.value), fa.unit
+        elif op == "scale":
+            # Unit changes only (thousands → millions …), so a powers-of-ten factor.
+            if factor not in SCALE_FACTORS:
+                raise ValueError(f"scale factor must be one of {sorted(SCALE_FACTORS)}")
+            v, unit = fa.value * factor, fa.unit
         else:
             raise ValueError(f"unknown op {op!r}")
+        extra = f":{factor}" if op == "scale" else ""
         return self.add(v, label=label or f"{op}({a}{', ' + b if b else ''})",
-                        provenance=f"calc:{op}:{a}:{b or ''}", unit=unit,
+                        provenance=f"calc:{op}:{a}:{b or ''}{extra}", unit=unit,
                         period=fa.period, dataset_id=fa.dataset_id)
 
     def dump(self) -> dict:

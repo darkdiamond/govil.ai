@@ -126,7 +126,7 @@ def test_good_draft_passes_and_renders():
     assert core["charts"][0]["option"]["xAxis"]["data"][0] == "2020-01"
     assert core["sources"][0]["url"] == "https://www.boi.org.il/r"
     assert "{" not in core["headline"] and core["blocks"][-1]["type"] == "stat"
-    assert "מקורות" in gates.as_markdown(core)
+    assert "for review" in gates.as_markdown(core)
 
 
 @pytest.mark.parametrize("mutate, needle", [
@@ -154,6 +154,79 @@ def test_gate_catches(mutate, needle):
     mutate(d, f1)
     _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
     assert any(needle in p for p in problems), problems
+
+
+@pytest.mark.parametrize("text, hits", [
+    ("מס הרכישה נותר ברמה של שמונה אחוזים", 1),
+    ("גידול של שלושה מיליארד שקל", 1),
+    ("ירידה של חצי נקודת אחוז", 0),       # no "נקודות"/"אחוז" right after a number word
+    ("ירידה של שתי נקודות אחוז", 1),
+    ("זו הפעם הרביעית ברציפות, אחרי שלוש שנים", 0),
+    ("בחמש השנים האחרונות", 0),
+])
+def test_spelled_numbers(text, hits):
+    from services.news.ledger import spelled_numbers
+
+    assert len(spelled_numbers(text)) == hits
+
+
+def test_no_outside_link_is_needed():
+    """User rule (2026-11-09): hedged explanations need no source."""
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["blocks"][3]["text"] = d["blocks"][3]["text"].replace("[[לפי הודעת הריבית|s1]]", "ייתכן ש")
+    d["sources"] = []
+    core, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert problems == [] and core["sources"] == []
+
+
+def test_news_sites_are_never_linked():
+    series, led, cat, f1 = _setup()
+    led.add_source("https://www.calcalist.co.il/real-estate", "כלכליסט", "כותרת. " + QUOTE + " סוף.")
+    d = _draft(f1)
+    d["blocks"][3]["text"] = d["blocks"][3]["text"].replace("|s1]]", "|s2]]")
+    d["sources"] = [{"id": "s2", "quote": QUOTE}]
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert any("not an official government source" in p for p in problems)
+
+
+@pytest.mark.parametrize("text, needle", [
+    ("לעומת אוגוסט 2025 אשתקד", "אשתקד"),
+    ("באוגוסט 2026 האחרון", "the date already says it"),
+    ("מאז 2011 ועד כה", "filler"),
+    ("סכום של 888,769 אלפי שקלים", "thousands of shekels"),
+])
+def test_style_patterns(text, needle):
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["blocks"][3]["text"] += " " + text.replace("888,769", "{" + f1.id + "}")
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert any(needle in p for p in problems), problems
+
+
+def test_calc_scale():
+    led = Ledger()
+    a = led.add(888769, label="k NIS", provenance="a")
+    assert led.calc("scale", a.id, factor=0.001).value == pytest.approx(888.769)
+    with pytest.raises(ValueError):
+        led.calc("scale", a.id, factor=0.37)
+
+
+def test_only_official_search_results_are_citable():
+    from services.news.tools import Toolbox
+
+    class LLM:
+        def web_search(self, q):
+            return [{"url": "https://www.gov.il/he/pages/x", "title": "מס רכישה",
+                     "snippet": "שיעור מס הרכישה על דירה נוספת עודכן, כך לפי רשות המסים. " * 3},
+                    {"url": "https://www.globes.co.il/a", "title": "גלובס",
+                     "snippet": "משקיעים מתרחקים משוק הדירות על רקע מס הרכישה והריבית הגבוהה. " * 3}]
+
+    led = Ledger()
+    res = Toolbox(ledger=led, series={}, models={}, catalog={}, llm=LLM()).t_web_search("q")["results"]
+    assert res[0]["source"] == "s1"
+    assert "source" not in res[1] and res[1]["context_only"]
+    assert len(led.sources) == 1
 
 
 def test_slugify():

@@ -18,7 +18,7 @@ import logging
 import math
 from collections.abc import Callable
 
-from .fetch import FetchRefused, allowed_source, fetch_page
+from .fetch import FetchRefused, allowed_source, fetch_page, official_source
 from .ledger import Ledger
 from .query import QueryError, TableQuery
 from .series import Series, kpi_values
@@ -50,13 +50,16 @@ TOOL_SPECS = [
             "result cells come back with fact ids. Text columns may need TRY_CAST.",
             {"dataset_id": _S, "query": _S}, ["dataset_id", "query"]),
     _schema("calc", "Derive a new fact from facts: diff (a-b), pct_change (a vs b, in %), ratio "
-            "(a/b), share (a as % of b), sum, abs (a only).",
-            {"op": {"type": "string", "enum": ["diff", "pct_change", "ratio", "share", "sum", "abs"]},
-             "a": _S, "b": _S, "label": _S}, ["op", "a"]),
-    _schema("web_search", "Search the web for context (news, decisions, events). Results are leads: "
-            "fetch a page before citing it.", {"query": _S}, ["query"]),
-    _schema("fetch_url", "Read a web page (https). Returns its text and a source id you can cite as "
-            "[[anchor|sN]], with a verbatim quote.", {"url": _S}, ["url"]),
+            "(a/b), share (a as % of b), sum, abs (a only), scale (a × factor — e.g. thousands of "
+            "NIS → millions: factor 0.001; → billions: 0.000001).",
+            {"op": {"type": "string", "enum": ["diff", "pct_change", "ratio", "share", "sum", "abs", "scale"]},
+             "a": _S, "b": _S, "factor": {"type": "number"}, "label": _S}, ["op", "a"]),
+    _schema("web_search", "Search the web for CONTEXT: news, decisions, events, holidays, regulation "
+            "that could explain a move in the data. Not for citing (only official government pages "
+            "come back with a source id).", {"query": _S}, ["query"]),
+    _schema("fetch_url", "Read a web page (https) for context. Only an official government page "
+            "(gov.il, boi.org.il) comes back with a source id you may link as [[anchor|sN]] with a "
+            "verbatim quote; other pages are context only.", {"url": _S}, ["url"]),
 ]
 SUBMIT_SPEC = _schema("submit_article", "Submit the finished article (see the output contract).",
                       {"article": {"type": "object"}}, ["article"])
@@ -177,8 +180,9 @@ class Toolbox:
             rows.append(row)
         return {"columns": cols, "rows": rows, "truncated": res["truncated"]}
 
-    def t_calc(self, op: str, a: str, b: str | None = None, label: str = "") -> dict:
-        f = self.ledger.calc(op, a, b, label=label)
+    def t_calc(self, op: str, a: str, b: str | None = None, label: str = "",
+               factor: float | None = None) -> dict:
+        f = self.ledger.calc(op, a, b, label=label, factor=factor)
         return {"fact": f.id, "value": f.value, "unit": f.unit}
 
     # ── the web ─────────────────────────────────────────────────────────
@@ -186,23 +190,40 @@ class Toolbox:
     def t_web_search(self, query: str) -> dict:
         if self._llm is None:
             raise ValueError("web search is not available in this run")
-        # Only allowlisted sites' snippets reach the model (fetch.allowed_source).
-        # Rebuilt from known keys, every free-text field fenced.
-        results = [{"url": r.get("url"), "title": _untrusted(r.get("title") or ""),
-                    "snippet": _untrusted(r.get("snippet") or "")}
-                   for r in self._llm.web_search(query) if allowed_source(r.get("url") or "")]
+        # Search is for context — what happened that could explain a move.
+        # Only allowlisted sites' snippets reach the model (fetch.allowed_source),
+        # rebuilt from known keys, every free-text field fenced. Only a
+        # government publisher's result is citable (articles link gov data
+        # only); its text is the page extract the search returned, which a
+        # quote must match — gov.il renders with JavaScript and can't be fetched.
+        results = []
+        for r in self._llm.web_search(query):
+            url = r.get("url") or ""
+            if not allowed_source(url):
+                continue
+            snippet = r.get("snippet") or ""
+            out = {"url": url, "title": _untrusted(r.get("title") or ""), "snippet": _untrusted(snippet)}
+            if official_source(url) and len(snippet) >= 80:
+                out["source"] = self.ledger.add_source(url, r.get("title") or "", snippet).id
+            else:
+                out["context_only"] = True
+            results.append(out)
         return {"results": results}
 
     def t_fetch_url(self, url: str) -> dict:
         if not allowed_source(url):
-            raise FetchRefused("not on the source allowlist — choose an official or established news source")
+            raise FetchRefused("not on the reading allowlist — try an official or established news source")
         page = self._fetcher(url)
         if len(page.text) < 200:
             raise ValueError("page has no readable text")
-        src = self.ledger.add_source(page.url, page.title, page.text)
-        return {"source": src.id, "url": page.url, "title": _untrusted(page.title),
-                "text": _untrusted(page.text[:FETCH_TEXT_CHARS]),
-                "truncated": len(page.text) > FETCH_TEXT_CHARS}
+        out = {"url": page.url, "title": _untrusted(page.title),
+               "text": _untrusted(page.text[:FETCH_TEXT_CHARS]),
+               "truncated": len(page.text) > FETCH_TEXT_CHARS}
+        if official_source(page.url):
+            out["source"] = self.ledger.add_source(page.url, page.title, page.text).id
+        else:
+            out["context_only"] = True  # read it, use it, don't link it
+        return out
 
     def close(self):
         for q in self._queries.values():

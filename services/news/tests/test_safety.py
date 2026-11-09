@@ -150,7 +150,7 @@ def test_web_text_is_fenced_and_filtered():
     assert [r["url"] for r in res] == ["https://www.ynet.co.il/a"]
     assert res[0]["snippet"].startswith(UNTRUSTED_OPEN) and ">>> rules" not in res[0]["snippet"]
     assert res[0]["title"].startswith(UNTRUSTED_OPEN) and res[0]["title"].count(UNTRUSTED_CLOSE) == 1
-    assert set(res[0]) == {"url", "title", "snippet"}
+    assert set(res[0]) == {"url", "title", "snippet", "context_only"}  # a news site: read, not linked
     text = tb.t_fetch_url("https://www.gov.il/p")["text"]
     assert text.startswith(UNTRUSTED_OPEN) and text.endswith(UNTRUSTED_CLOSE)
     assert text.count(UNTRUSTED_CLOSE) == 1        # the page can't close the fence early

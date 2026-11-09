@@ -212,7 +212,7 @@ def test_gate_failure_gets_one_revision(tmp_path):
 
 
 def test_twice_failing_draft_is_rejected_and_recorded(tmp_path):
-    out, _store, _ = _day(tmp_path, FakeLLM([_draft(typed_number=True), _draft(typed_number=True)]))
+    out, _store, _ = _day(tmp_path, FakeLLM([_draft(typed_number=True)] * 3))
     assert out["published"] == [] and out["rejected"][0]["reason"] == "gates"
     rej = json.loads(next((tmp_path / "_rejected").glob("*.json")).read_text(encoding="utf-8"))
     assert any("typed numbers" in p for p in rej["problems"])

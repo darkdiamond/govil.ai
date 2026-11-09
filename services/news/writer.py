@@ -18,7 +18,7 @@ from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 
 log = logging.getLogger(__name__)
 PROMPTS = Path(__file__).with_name("prompts")
-REVISIONS = 1
+REVISIONS = 2
 MAX_TURNS = 45            # model calls per article, whatever they contain
 
 

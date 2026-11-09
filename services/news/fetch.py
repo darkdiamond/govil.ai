@@ -53,6 +53,15 @@ def source_domains() -> tuple[str, ...]:
         else DEFAULT_SOURCE_DOMAINS
 
 
+OFFICIAL_DOMAINS = ("gov.il", "boi.org.il")   # gov.il covers data.gov.il, cbs.gov.il, knesset.gov.il …
+
+
+def official_source(url: str) -> bool:
+    """A government data publisher's page — the only kind of page an article
+    may link (everything else the writer reads is context only)."""
+    return allowed_source(url, OFFICIAL_DOMAINS)
+
+
 def allowed_source(url: str, domains: tuple[str, ...] | None = None) -> bool:
     host = (urlparse(url).hostname or "").rstrip(".").lower()
     return any(host == d or host.endswith("." + d) for d in (domains or source_domains()))

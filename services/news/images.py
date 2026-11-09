@@ -20,11 +20,12 @@ log = logging.getLogger(__name__)
 
 HOUSE_STYLE = (
     "Editorial illustration for a serious Israeli news site's data story. Flat, modern vector "
-    "style with soft grain, generous negative space, calm composition. Palette: deep navy "
-    "#0b3668, brand blue #0068f5, light blue #f1f7ff, white, one warm accent. Wide 16:9 framing "
-    "with the subject centred (it will be cropped to 4:3 and square). Strictly NO text, letters, "
-    "numbers, charts with labels, logos, flags, or recognisable real people or places' signage. "
-    "Not photorealistic. Subject: "
+    "style with soft grain, calm composition. FULL-BLEED: the scene fills the whole canvas edge "
+    "to edge — no border, frame, card, mat, poster or picture-within-a-picture, no empty margin "
+    "around it. Palette: deep navy #0b3668, brand blue #0068f5, light blue #f1f7ff, white, one "
+    "warm accent. Wide 16:9 with the main subject in the central third (it will also be cropped "
+    "to 4:3 and square). Strictly NO text, letters, numbers, charts with labels, logos, flags, or "
+    "recognisable real people or places' signage. Not photorealistic. Subject: "
 )
 SIZES = {"16x9": (1600, 900), "4x3": (1200, 900), "1x1": (1200, 1200)}
 

@@ -24,12 +24,16 @@ will leave in 10 seconds unless the first sentence tells them something new.
 
 ## Explanations and speculation
 
-- You may offer explanations for a move — that is the value we add — but each one
-  is a hypothesis, said as one, and backed by a cited source: "אחד ההסברים
-  האפשריים הוא …", "ייתכן שהדבר קשור ל…", "הנתון מתפרסם על רקע …".
+- You may offer explanations for a move — that is the value we add. Research
+  them (web search: what happened around that period), then say them as
+  hypotheses: "אחד ההסברים האפשריים הוא …", "ייתכן שהדבר קשור ל…", "הנתון
+  מתפרסם על רקע …". A hypothesis needs no link; our links are to government
+  data only (our dataset pages, official gov.il / boi.org.il pages).
 - Correlation is not causation. Two series moving together is "במקביל", never
-  "בגלל", unless a cited source makes the causal claim (then attribute it:
-  "לפי בנק ישראל, …").
+  "בגלל". A causal claim is either a hedged hypothesis or attributed to an
+  official body ("לפי בנק ישראל, …").
+- Outside events are context in words, not numbers: "העלאת מס הרכישה על דירה
+  שנייה" — not its rate. Every printed number is our data.
 - Never assign blame to a party, a politician, a minister, or a community
   (Haredim, Arabs, settlers, immigrants, …). Describe what the data shows about
   groups; don't characterize them.
