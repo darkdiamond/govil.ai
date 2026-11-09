@@ -34,7 +34,9 @@ async function libs(timeoutMs = 6000): Promise<EchartsWindow | null> {
 onMounted(async () => {
   const w = await libs();
   if (!w || !el.value) return;
-  inst = w.echarts!.init(el.value, undefined, { renderer: "svg" });
+  // Canvas, as on recipe pages: the SVG renderer inherits the page's dir="rtl",
+  // which draws legend labels back over their markers.
+  inst = w.echarts!.init(el.value);
   inst!.setOption(w.GovEcharts!.option(props.chart.option));
   ro = new ResizeObserver(() => inst?.resize());
   ro.observe(el.value);
