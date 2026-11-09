@@ -28,6 +28,36 @@ class FetchRefused(Exception):
     """The URL is not one we fetch (scheme, host, address, size, type)."""
 
 
+# Sites the writer may read and cite. Only their text enters the agent's
+# context (search results from elsewhere are dropped too), which keeps
+# arbitrary pages — and any instructions planted in them — out of an
+# unreviewed article. NEWS_SOURCE_DOMAINS (comma-separated) replaces the list.
+DEFAULT_SOURCE_DOMAINS = (
+    # official
+    "gov.il", "boi.org.il", "knesset.gov.il", "idf.il", "court.gov.il",
+    # research
+    "idi.org.il", "taubcenter.org.il", "oecd.org", "imf.org", "worldbank.org", "bis.org",
+    # established news
+    "ynet.co.il", "haaretz.co.il", "themarker.com", "calcalist.co.il", "globes.co.il",
+    "maariv.co.il", "walla.co.il", "mako.co.il", "n12.co.il", "kan.org.il", "israelhayom.co.il",
+    "bizportal.co.il", "davar1.co.il", "timesofisrael.com", "jpost.com", "reuters.com",
+    "apnews.com", "bloomberg.com", "ft.com", "bbc.com", "bbc.co.uk",
+)
+
+
+def source_domains() -> tuple[str, ...]:
+    import os
+
+    env = os.environ.get("NEWS_SOURCE_DOMAINS", "").strip()
+    return tuple(d.strip().lower().lstrip(".") for d in env.split(",") if d.strip()) if env \
+        else DEFAULT_SOURCE_DOMAINS
+
+
+def allowed_source(url: str, domains: tuple[str, ...] | None = None) -> bool:
+    host = (urlparse(url).hostname or "").rstrip(".").lower()
+    return any(host == d or host.endswith("." + d) for d in (domains or source_domains()))
+
+
 @dataclass
 class Page:
     url: str          # final URL after redirects
@@ -79,6 +109,8 @@ def fetch_page(url: str, *, client: httpx.Client | None = None, resolve=socket.g
     try:
         for _ in range(MAX_REDIRECTS + 1):
             _check_url(url, resolve)
+            if not allowed_source(url):
+                raise FetchRefused("not on the source allowlist (NEWS_SOURCE_DOMAINS)")
             with client.stream("GET", url) as r:
                 if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("location"):
                     url = urljoin(url, r.headers["location"])
