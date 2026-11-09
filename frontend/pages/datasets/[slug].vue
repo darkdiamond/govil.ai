@@ -13,6 +13,7 @@ import {
   type DatasetLibNeeds,
 } from "~/utils/dataset-libs";
 import { loadFullManifestServer } from "~/utils/search-index";
+import { loadNewsIndexServer } from "~/utils/news";
 import { normalizeAgentBody } from "~/utils/normalize-agent-body";
 import { publicResourceUrl } from "~/utils/resource-url";
 
@@ -129,7 +130,12 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
   // call a global without naming it).
   const libs = detectDatasetLibs(rawBody);
 
-  return { entry, rawBody, related, tagSlugs, libs };
+  // The latest news articles that drew on this dataset (services/news).
+  const news = (await loadNewsIndexServer())
+    .filter((a) => (a.dataset_ids ?? []).includes(id))
+    .slice(0, 3);
+
+  return { entry, rawBody, related, tagSlugs, libs, news };
 });
 
 if (!data.value) {
@@ -571,6 +577,7 @@ onMounted(async () => {
           :record-count="entry.record_count"
           :source-unavailable="entry.source_status === 'unavailable'"
         />
+        <RelatedNews :articles="data?.news ?? []" />
       </div>
 
       <aside class="space-y-4 lg:pt-20">

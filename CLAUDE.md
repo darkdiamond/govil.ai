@@ -132,7 +132,15 @@ landing pages. Five layers:
    publisher code auto-deploys, with rapid pushes collapsing to one run
    (`concurrency: cancel-in-progress`). Steps: rsync staged pages from
    GCS (delta via actions/cache) → regenerate artifacts + manifest from
-   Firestore → `nuxt generate` → `firebase deploy`. Fallbacks: Cloud
+   Firestore → `nuxt generate` → `firebase deploy`. News: the workflow also
+   rsyncs `gs://…/news/` (article images) into `public/news/`, and the
+   publisher (`services/news/publish_news.py`, fail-soft) writes
+   `news/index.json` + `news/<slug>/article.json` from Firestore `articles/`
+   and removes directories of articles that aren't live. The site renders
+   `/news/`, `/news/<slug>/` (NewsArticle JSON-LD, text-run blocks, no
+   v-html), `/news/about/`, a "חדשות על המאגר" block on dataset pages, and
+   `news-sitemap.xml` + `news/feed.xml` (`build-sitemap.mjs`); the nav link
+   and homepage strip appear once ≥1 article exists. Fallbacks: Cloud
    Build trigger `govdata-publish` (`PUBLISH_VIA=cloudbuild`) and
    `infra/publish-local.sh` (same steps, your machine).
 

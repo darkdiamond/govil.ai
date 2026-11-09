@@ -50,6 +50,20 @@ function categoryRoutes(): string[] {
   return [...routes];
 }
 
+// News articles (services/news/publish_news.py writes public/news/index.json
+// with every live article). Empty until the first one is published.
+function newsSlugs(): string[] {
+  try {
+    const data = JSON.parse(
+      readFileSync(resolve(__dirname, "public/news/index.json"), "utf-8")
+    ) as { articles?: { slug: string }[] };
+    return (data.articles ?? []).map((a) => a.slug).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+const NEWS_SLUGS = newsSlugs();
+
 // Reads from manifest.json (the publisher's view of succeeded sources)
 // rather than the filesystem. The rsync from staging can leave orphan
 // content.html directories for sources whose Firestore status is now
@@ -192,6 +206,8 @@ export default defineNuxtConfig({
     public: {
       adsenseId: ADSENSE_ID,
       clarityId: CLARITY_ID,
+      // >0 shows the News nav link and homepage strip.
+      newsCount: NEWS_SLUGS.length,
     },
   },
 
@@ -234,6 +250,8 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         { name: "theme-color", content: "#0068f5" },
         { name: "author", content: "govil.ai" },
+        // Google Discover shows large image previews only with this.
+        { name: "robots", content: "max-image-preview:large" },
         // Per-page useSeo() overrides these; they exist as fallbacks for
         // any page that forgets to call useSeo().
         {
@@ -319,6 +337,9 @@ export default defineNuxtConfig({
         "/accessibility/",
         ...categoryRoutes(),
         ...datasetRoutes(),
+        "/news/",
+        "/news/about/",
+        ...NEWS_SLUGS.map((s) => `/news/${s}/`),
       ],
       failOnError: false,
     },

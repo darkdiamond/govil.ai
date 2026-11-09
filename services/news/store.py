@@ -1,6 +1,6 @@
 """Where articles live.
 
-Firestore `articles/<slug>`: queryable metadata (status, dates, dataset_ids,
+Firestore `articles/<slug>` (in the separate `news` database): queryable metadata (status, dates, dataset_ids,
 signal_keys, tags, headline…) plus `body_json` — blocks, charts, sources and
 the fact ledger as one JSON string (Firestore rejects arrays of arrays, which
 chart tables are). Rejected drafts go to `article_rejects/<id>` with their
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import mimetypes
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -40,11 +41,23 @@ def _iso(v):
     return v.isoformat() if isinstance(v, datetime) else v
 
 
+NEWS_DATABASE = os.environ.get("NEWS_FIRESTORE_DATABASE", "news")
+
+
 class FirestoreArticles:
-    def __init__(self, *, client=None, bucket: str | None = None, prefix: str = "news/"):
+    """Articles live in their own Firestore database (`news`, not the
+    default one that holds `sources/`): IAM can't scope a grant to a
+    collection, but it can to a database, so the news job — an LLM agent
+    reading the open web — can write articles without being able to touch
+    the dataset state every page is built from (infra/news-iam.setup.sh)."""
+
+    def __init__(self, *, client=None, project: str | None = None,
+                 database: str = NEWS_DATABASE, bucket: str | None = None, prefix: str = "news/"):
         from google.cloud import firestore
 
-        self.db = client or firestore.Client()
+        self.db = client or firestore.Client(
+            project=project or os.environ.get("FIRESTORE_PROJECT_ID")
+            or os.environ.get("GOOGLE_CLOUD_PROJECT"), database=database)
         self.bucket_name, self.prefix = bucket, prefix
 
     def recent(self, days: int = 90) -> list[dict]:

@@ -58,7 +58,7 @@ def test_render_runs_and_problems():
     assert probs == []
     assert [r["t"] for r in runs] == ["text", "link", "text", "link"]
     assert runs[0]["v"] == "ירידה של 12.5% לפי " and runs[1]["href"] == "https://www.boi.org.il/x"
-    assert runs[3] == {"t": "link", "v": "העמוד", "href": "/datasets/abc/", "kind": "dataset"}
+    assert runs[3] == {"t": "link", "v": "העמוד", "href": "/datasets/abc/", "kind": "dataset", "id": "abc"}
     _, probs = render("{f99} [[x|s9]] [[y|ds:zzz]]", led, lambda d: None)
     assert len(probs) == 3
 
