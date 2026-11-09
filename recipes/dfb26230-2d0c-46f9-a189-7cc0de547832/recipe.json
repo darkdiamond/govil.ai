@@ -1,0 +1,33 @@
+{
+  "contract_version": 1,
+  "dataset_id": "dfb26230-2d0c-46f9-a189-7cc0de547832",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-08-12T09:01:40.736287+00:00",
+    "rows": { "main": 648 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e80a5e59-3b0f-4be9-983a-dc0971907626",
+      "required_columns": [
+        "counciName",
+        "mikveName",
+        "mikveCity",
+        "accessability",
+        "activityHoursSummer",
+        "activityHoursWinter",
+        "activityHoursShabat",
+        "armorYesNo",
+        "onDutyYesNo",
+        "brideRoomYesNo",
+        "mikveForWomenYesNo",
+        "mikveForMenYesNo",
+        "mikveForDishesYesNo"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

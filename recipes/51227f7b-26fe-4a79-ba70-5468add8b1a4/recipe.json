@@ -1,0 +1,36 @@
+{
+  "contract_version": 1,
+  "dataset_id": "51227f7b-26fe-4a79-ba70-5468add8b1a4",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T10:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-01-12T12:37:55.510569+00:00",
+    "rows": {
+      "stations": 779
+    }
+  },
+  "inputs": [
+    {
+      "name": "stations",
+      "by_schema": [
+        "District",
+        "Regional_Station",
+        "Station",
+        "Station_Type",
+        "Address"
+      ],
+      "concat": true,
+      "required_columns": [
+        "District",
+        "Regional_Station",
+        "Station",
+        "Station_Type",
+        "Address",
+        "Location",
+        "PhoneNumber"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

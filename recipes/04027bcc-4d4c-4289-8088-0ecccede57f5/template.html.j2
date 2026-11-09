@@ -1,0 +1,243 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מודד מוסמך לפי שם או מספר רישיון ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם פרטי, שם משפחה, מספר רישיון, קוד המודד, סטטוס הרישיון ופרטי המשרד של מודדים שפרסמו אותם</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, "מודדים ברשימה") }}
+  {{ gov.kpi(model.kpis.valid, "בעלי רישיון מודד בתוקף") }}
+  {{ gov.kpi(model.kpis.not_valid, "רישיון שאינו בתוקף") }}
+  {{ gov.kpi(model.kpis.valid_share, "שיעור הרישיונות בתוקף") }}
+  {{ gov.kpi(model.kpis.inspectors, "מודדים מבקרים") }}
+  {{ gov.kpi(model.kpis.contact, "מודדים שפרסמו פרטי קשר") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("circle-check", "סטטוס רישיון המודד") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    {{ gov.chart("chart-status", model.labels.status_aria) }}
+    {{ gov.table(model.labels.status_aria, ["סטטוס", "מודדים", "שיעור"], model.tables.status, ltr=(2,)) }}
+  </section>
+  {%- if model.flags.inspectors %}
+  <section class="card p-5">
+    {{ gov.head("list", "מודדים מבקרים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.inspectors_note }}</p>
+    <ul class="list-none m-0 ps-0 flex flex-wrap gap-2 text-sm">
+{%- for p in model.inspectors %}
+      <li class="rounded-gov-pill bg-surface px-3 py-1 text-ink">{{ p.name }}{% if p.status != "בתוקף" %} ({{ p.status }}){% endif %}</li>
+{%- endfor %}
+    </ul>
+  </section>
+  {%- endif %}
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "תוקף הרישיון לפי ותק (מספר רישיון)") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cohort_note }}</p>
+  {{ gov.chart("chart-cohort", model.labels.cohort_aria, h="h-72 md:h-96") }}
+  {{ gov.table(model.labels.cohort_aria, ["מספרי רישיון", "מודדים", "בתוקף", "שיעור בתוקף"], model.tables.cohort, ltr=(0, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("search", "מי מפרסם פרטי קשר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.contact_note }}</p>
+  {{ gov.chart("chart-contact", model.labels.contact_aria) }}
+  {{ gov.table(model.labels.contact_aria, ["מספרי רישיון", "מודדים", "פרסמו פרטים", "שיעור"], model.tables.contact, ltr=(0, 3)) }}
+</section>
+
+{%- if model.flags.years or model.flags.firms %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  {%- if model.flags.years %}
+  <section class="card p-5">
+    {{ gov.head("database", "שנת קבלת הרישיון") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.year_note }}</p>
+    {{ gov.chart("chart-years", model.labels.year_aria) }}
+    {{ gov.table(model.labels.year_aria, ["עשור", "מודדים"], model.tables.years, ltr=(0,)) }}
+  </section>
+  {%- endif %}
+  {%- if model.flags.firms %}
+  <section class="card p-5">
+    {{ gov.head("building-2", "משרדי מדידה עם כמה מודדים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.firm_note }}</p>
+    {{ gov.chart("chart-firms", model.labels.firm_aria) }}
+    {{ gov.table(model.labels.firm_aria, ["משרד", "מודדים"], model.tables.firms) }}
+  </section>
+  {%- endif %}
+</div>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "שמות משפחה נפוצים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.names_note }}</p>
+    {{ gov.chart("chart-family", model.labels.fam_aria) }}
+    {{ gov.table(model.labels.fam_aria, ["שם משפחה", "מודדים"], model.tables.family) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("tag", "שמות פרטיים נפוצים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.names_note }}</p>
+    {{ gov.chart("chart-first", model.labels.fst_aria) }}
+    {{ gov.table(model.labels.fst_aria, ["שם פרטי", "מודדים"], model.tables.first) }}
+  </section>
+</div>
+
+{%- if model.flags.recent %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "מודדים שהוסמכו לאחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.recent_note }}</caption>
+    <thead><tr><th scope="col" class="text-start">שם המודד</th><th scope="col" class="text-start">סטטוס רישיון</th></tr></thead>
+    <tbody>
+{%- for r in model.tables.recent %}
+      <tr><th scope="row" class="text-start font-normal">{{ r[0] }}</th><td>{{ r[1] }}</td></tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 mb-2 text-sm text-subtle">רשימת המודדים מציגה את כל המודדים המוסמכים לפי הפרוט הבא:</p>
+  <ul class="list-disc ps-5 m-0 space-y-1 text-sm text-subtle marker:text-brand">
+    <li>מודדים בעלי הרישיון בתוקף.</li>
+    <li>מודדים שרישיונם אינו בתוקף.</li>
+    <li>מודדים מבקרים, שמנהל המרכז למיפוי ישראל האציל עליהם את הסמכות לבצע ביקורת מפות קדסטר.</li>
+    <li>פרטי מודדים (כתובת, טלפון, דוא"ל ועוד), למודדים שאישרו את הצגת פרטי הקשר שלהם באתר.</li>
+    <li>מודדים שנפטרו לא מופיעים ברשימה.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.status | tojson }};
+    var semantic = { "בתוקף": "#198754", "לא בתוקף": "#6c757d", "רישיון שלול": "#dc3545" };
+    var data = d.names.map(function (n, i) {
+      var o = { name: n, value: d.values[i] };
+      if (semantic[n]) { o.itemStyle = { color: semantic[n] }; }
+      return o;
+    });
+    var c = echarts.init(document.getElementById("chart-status"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return echarts.format.encodeHTML(p.name) + ": " + p.value.toLocaleString("he-IL") + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["45%", "70%"], center: ["50%", "45%"], data: data,
+        label: { formatter: "{d}%" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.cohort | tojson }};
+    var c = echarts.init(document.getElementById("chart-cohort"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0 },
+      grid: { left: 16, right: 16, top: 40, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 45 } },
+      yAxis: [
+        { type: "value", name: "מודדים" },
+        { type: "value", name: "% בתוקף", min: 0, max: 100, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "בתוקף", stack: "s", data: d.valid, itemStyle: { color: "#0068f5" } },
+        { type: "bar", name: "לא בתוקף", stack: "s", data: d.not_valid, itemStyle: { color: "#c3cfe7" } },
+        { type: "line", name: "שיעור בתוקף (%)", yAxisIndex: 1, data: d.share, itemStyle: { color: "#0b3668" },
+          tooltip: { valueFormatter: function (v) { return v + "%"; } } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.contact | tojson }};
+    var c = echarts.init(document.getElementById("chart-contact"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { var p = ps[0]; return echarts.format.encodeHTML(p.name) + "<br>" + p.value + "% (" + d.count[p.dataIndex] + " מודדים)"; } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "% שפרסמו", min: 0, max: 100 },
+      series: [{ type: "bar", name: "פרסמו פרטי קשר", data: d.share }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.years %}
+<script>
+  (function () {
+    var d = {{ model.charts.years | tojson }};
+    var c = echarts.init(document.getElementById("chart-years"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      grid: { left: 16, right: 16, top: 32, bottom: 16, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", name: "מודדים" },
+      series: [{ type: "bar", name: "מודדים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.firms %}
+<script>
+  (function () {
+    var d = {{ model.charts.firms | tojson }};
+    var c = echarts.init(document.getElementById("chart-firms"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+        formatter: function (ps) { var p = ps[0]; return echarts.format.encodeHTML(p.name) + ": " + p.value + " מודדים"; } },
+      grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", minInterval: 1 },
+      yAxis: { type: "category", data: d.names, axisLabel: { width: 150, overflow: "truncate" } },
+      series: [{ type: "bar", name: "מודדים", data: d.values }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+<script>
+  (function () {
+    var specs = [["chart-family", {{ model.charts.family | tojson }}], ["chart-first", {{ model.charts.first | tojson }}]];
+    specs.forEach(function (s) {
+      var d = s[1];
+      var c = echarts.init(document.getElementById(s[0]));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+          formatter: function (ps) { var p = ps[0]; return echarts.format.encodeHTML(p.name) + ": " + p.value + " מודדים"; } },
+        grid: { left: 16, right: 24, top: 16, bottom: 16, containLabel: true },
+        xAxis: { type: "value", minInterval: 1 },
+        yAxis: { type: "category", data: d.names },
+        series: [{ type: "bar", name: "מודדים", data: d.values }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    });
+  })();
+</script>

@@ -1,0 +1,39 @@
+{
+  "contract_version": 1,
+  "dataset_id": "263e3397-aac1-4f8a-b1e3-caff7eabcbff",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T09:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-06-01T10:18:44.125793+00:00",
+    "rows": { "main": 186 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "e1666064-8b58-41ec-b770-c909a5075134",
+      "required_columns": [
+        "ID",
+        "NAME",
+        "AUTHORITY",
+        "TRAFAUTH",
+        "DISTRICT",
+        "X",
+        "Y",
+        "PARK_N",
+        "DUNAM",
+        "SOURCE",
+        "D_UPDATE",
+        "RAIL_MAKAT",
+        "STATUS",
+        "BUS_SERV",
+        "TRAIN_SERV",
+        "LRT_SERV",
+        "PAY",
+        "BIC_PARK",
+        "ELECTRIC"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

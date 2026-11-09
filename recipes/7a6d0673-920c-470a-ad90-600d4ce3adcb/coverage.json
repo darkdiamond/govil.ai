@@ -1,0 +1,23 @@
+{
+  "localities.symbol_number": "chart-codes, table:digits, table:sample_loc, map-localities, insight:dup_names — code range by thousand-block and digit count; the tie-break key for duplicate names",
+  "localities.name_in_hebrew": "table:sample_loc, table:near, table:dup, table:quality, map-localities, insight:tribes, insight:closest, insight:distance_check — the (שבט) marker counted for the tribes insight; Hebrew alphabetical order is used to detect copied distance values",
+  "localities.name_in_english": "chart-langs, kpi:loc, table:sample_loc, table:dup, map-localities, insight:coverage, insight:dup_names",
+  "localities.name_in_arabic": "chart-langs, kpi:ar, table:sample_loc, table:dup, table:quality, map-localities, insight:coverage",
+  "localities.name_in_russian": "chart-langs, kpi:ru, table:sample_loc, table:quality, map-localities, insight:coverage",
+  "localities.X": "map-localities, kpi:xy, kpi:bad, table:quality, insight:distance_check — ITM easting; also the geometry for the distance consistency check",
+  "localities.Y": "map-localities, kpi:xy, kpi:bad, table:quality, insight:distance_check — ITM northing",
+  "localities.Distance_From_Lebanon_Border": "chart-borders, table:near, kpi:bad, table:quality, insight:near_borders, insight:closest, insight:distance_check — metres; values inconsistent with the neighbours are excluded from the chart and tables (disclosed)",
+  "localities.Distance_From_GazaStrip_Border": "chart-borders, table:near, kpi:bad, table:quality, insight:near_borders, insight:closest, insight:distance_check",
+  "localities.Distance_From_Syria_Border": "chart-borders, table:near, kpi:bad, table:quality, insight:near_borders, insight:closest, insight:distance_check",
+  "countries.International_Code": "table:cty_codes — ISO numeric code; sort key",
+  "countries.Full_Name": "table:cty_codes — compared with Short_Name in the names note",
+  "countries.Short_Name": "chart-langs, table:cty_names",
+  "countries.Hebrew_Name": "chart-langs, kpi:cty, table:cty_names, chart-shared, table:quality — niqqud and line-break checks",
+  "countries.Arabic_ Name": "chart-langs, table:cty_names",
+  "countries.Russian_Long_Name": "skip: long official Russian name; the page uses the short name (column still searchable in the explorer)",
+  "countries.Russian_short_Name": "chart-langs, table:cty_names",
+  "countries.Alfa_2_Code": "table:cty_codes, table:quality, insight:country_codes",
+  "countries.Alfa_3_Code": "table:cty_codes, table:quality",
+  "countries.Internet_cc_TLD": "table:cty_codes, table:quality, insight:country_codes",
+  "countries.Numeric_Code": "chart-zones, chart-shared, table:cty_codes, table:quality, insight:shared_code — international calling code, area codes in parentheses"
+}

@@ -1,0 +1,22 @@
+{
+  "institutions.SEMEL_MOSAD": "map-main — the institution symbol, shown in the map popup and searchable in the explorer; sort key",
+  "institutions.SHEM_MOSAD": "map-main — popup title; names repeat (בית יעקב ×398), so no ranking",
+  "institutions.ISV_SHEM_ISHUV": "chart-localities, kpi:localities, insight:city, insight:haredi_cities, map-main",
+  "institutions.SEMEL_ISHUV_PNIM": "skip: locality code, one-to-one with ISV_SHEM_ISHUV",
+  "institutions.SHEM_RASHUT": "kpi:localities — count of local authorities in the KPI label",
+  "institutions.TEUR_TAT_SUG_MISGERET": "chart-types, chart-group-stream, kpi:maon, insight:groups, map-main — also splits the stage-0 rows into day-care vs other",
+  "institutions.TEUR_MIGZAR": "chart-sector-group, chart-accuracy, insight:accuracy",
+  "institutions.TEUR_STATUS": "skip: constant (every row is פעיל)",
+  "institutions.TEUR_PIKOH1": "chart-group-stream, chart-stream-legal, chart-special, chart-gender, insight:legal, insight:haredi_cities, insight:gender, map-main",
+  "institutions.TEUR_MAMAD": "chart-stream-legal, insight:legal",
+  "institutions.TEUR_SUG_CHINUCH": "chart-special, insight:special",
+  "institutions.SHEM_MAHUZ": "chart-districts — mixes geographic districts with supervision units (מוכרים, רישוי והכרה), labelled as such",
+  "institutions.TEUR_HERKEV_UCHLOSIYA": "chart-gender, insight:gender — schools only; day-care rows all read בנות (registry default)",
+  "institutions.SHLAV_CHINUH": "chart-group-stream, chart-stages, kpi:gan, kpi:school, insight:groups — stage code drives the kindergarten / school grouping and the stage order",
+  "institutions.TEUR_SHLAV_HINUH": "chart-stages, map-main",
+  "institutions.TEUR_STATUS_GEOCODE": "chart-methods",
+  "institutions.TEUR_SIBAT_STATUS": "table:reasons — detailed geocoding reason, table only",
+  "institutions.RAMAT_DIYUK_MIKUM": "chart-accuracy, kpi:low_acc, insight:accuracy, map-main",
+  "institutions.X": "map-main — ITM easting",
+  "institutions.Y": "map-main — ITM northing"
+}

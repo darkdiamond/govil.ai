@@ -1,0 +1,248 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מוסד חינוך לפי שם, סמל מוסד או יישוב ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: סמל מוסד, שם המוסד, יישוב, רשות מקומית, סוג המסגרת (גן ילדים, בית ספר, מעון יום), פיקוח, מגזר ושלב חינוך.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, "מוסדות חינוך פעילים") }}
+  {{ gov.kpi(model.kpis.gan, "גני ילדים") }}
+  {{ gov.kpi(model.kpis.school, "בתי ספר ומוסדות לימוד") }}
+  {{ gov.kpi(model.kpis.maon, "מעונות יום") }}
+  {{ gov.kpi(model.kpis.localities, model.kpi_labels.localities) }}
+  {{ gov.kpi(model.kpis.low_acc, "מהמוסדות מוקמו ברמת דיוק נמוכה") }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת מוסדות החינוך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" data-fallback="explorer" class="h-80 md:h-[460px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "סוגי המסגרות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.type_lede }}</p>
+  {{ gov.chart("chart-types", model.labels.type_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("מוסדות החינוך לפי סוג המסגרת", ["סוג המסגרת", "מוסדות", "שיעור"], model.tables.types, ltr=(2,)) }}
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "זרם הפיקוח בכל סוג מוסד") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gs_lede }}</p>
+    {{ gov.chart("chart-group-stream", model.labels.gs_aria, "h-64 md:h-80") }}
+    {{ gov.table("מוסדות החינוך לפי סוג מוסד וזרם פיקוח", ["סוג מוסד"] + model.tables.group_stream.cols + ["סה״כ"], model.tables.group_stream.rows) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "מוסדות לפי מגזר") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sg_lede }}</p>
+    {{ gov.chart("chart-sector-group", model.labels.sg_aria, "h-64 md:h-80") }}
+    {{ gov.table("מוסדות החינוך לפי מגזר וסוג מוסד", ["מגזר"] + model.tables.sector_group.cols + ["סה״כ"], model.tables.sector_group.rows) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "רשמי או מוכר: מעמד המוסד") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sl_lede }}</p>
+    {{ gov.chart("chart-stream-legal", model.labels.sl_aria, "h-64 md:h-80") }}
+    {{ gov.table("מעמד המוסד לפי זרם פיקוח", ["זרם פיקוח"] + model.tables.stream_legal.cols + ["סה״כ"], model.tables.stream_legal.rows) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "חינוך מיוחד") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sp_lede }}</p>
+    {{ gov.chart("chart-special", model.labels.sp_aria, "h-64 md:h-80") }}
+    {{ gov.table("גני ילדים ובתי ספר של חינוך מיוחד לפי זרם פיקוח", ["זרם פיקוח", "גנים בחינוך מיוחד", "שיעור מהגנים", "בתי ספר בחינוך מיוחד", "שיעור מבתי הספר"], model.tables.special, ltr=(2, 4)) }}
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("database", "בתי הספר לפי שלב חינוך") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.stage_lede }}</p>
+    {{ gov.chart("chart-stages", model.labels.stage_aria, "h-64 md:h-80") }}
+    {{ gov.table("בתי הספר ומוסדות הלימוד לפי שלב חינוך", ["שלב חינוך", "מוסדות", "שיעור"], model.tables.stages, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("database", "בנים, בנות או מעורב") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.gen_lede }}</p>
+    {{ gov.chart("chart-gender", model.labels.gen_aria, "h-64 md:h-80") }}
+    {{ gov.table("הרכב התלמידים בבתי הספר לפי זרם פיקוח", ["זרם פיקוח"] + model.tables.gender.cols + ["סה״כ"], model.tables.gender.rows) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "היישובים עם הכי הרבה מוסדות חינוך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.loc_lede }}</p>
+  {{ gov.chart("chart-localities", model.labels.loc_aria, "h-[520px] md:h-[560px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.loc_caption }}</caption>
+      <thead><tr><th scope="col">יישוב</th>{% for c in model.tables.localities.cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th><th scope="col">בפיקוח חרדי</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.localities.rows %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% elif loop.last %}<td dir="ltr">{{ v }}</td>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מחוז ויחידה מפקחת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_lede }}</p>
+  {{ gov.chart("chart-districts", model.labels.dist_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table("מוסדות החינוך לפי מחוז או יחידה מפקחת", ["מחוז או יחידה", "מוסדות", "שיעור"], model.tables.districts, ltr=(2,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "עד כמה המיקום מדויק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.acc_lede }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">רמת הדיוק בכל מגזר</h3>
+      {{ gov.chart("chart-accuracy", model.labels.acc_aria, "h-64 md:h-80") }}
+      <details class="mt-3">
+        <summary class="text-sm text-subtle">הצג כטבלה</summary>
+        <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">רמת הדיוק של מיקום המוסדות לפי מגזר</caption>
+          <thead><tr><th scope="col">מגזר</th>{% for c in model.tables.accuracy.cols %}<th scope="col">{{ c }}</th>{% endfor %}<th scope="col">סה״כ</th><th scope="col">בינונית או נמוכה</th></tr></thead>
+          <tbody>
+{%- for r in model.tables.accuracy.rows %}
+            <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% elif loop.last %}<td dir="ltr">{{ v }}</td>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+          </tbody>
+        </table>
+        </div>
+      </details>
+    </div>
+    <div>
+      <h3 class="m-0 mb-3 text-base font-semibold text-ink-deep">שיטת קביעת המיקום</h3>
+      <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.method_lede }}</p>
+      {{ gov.chart("chart-methods", model.labels.method_aria, "h-64 md:h-80") }}
+      {{ gov.table("מוסדות החינוך לפי שיטת קביעת המיקום", ["שיטה", "מוסדות", "שיעור"], model.tables.methods, ltr=(2,)) }}
+      {{ gov.table(model.labels.reason_caption, ["סיבה", "מוסדות", "שיעור"], model.tables.reasons, ltr=(2,)) }}
+    </div>
+  </div>
+</section>
+
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.institutions[0].id | tojson }},
+    latField: "Y",
+    lngField: "X",
+    projection: "itm",
+    fields: ["SEMEL_MOSAD"],
+    pageSize: 5000,
+    popupTitleField: "SHEM_MOSAD",
+    popupFields: [
+      { field: "SEMEL_MOSAD", label: "סמל מוסד" },
+      { field: "TEUR_TAT_SUG_MISGERET", label: "סוג המסגרת" },
+      { field: "ISV_SHEM_ISHUV", label: "יישוב" },
+      { field: "TEUR_PIKOH1", label: "פיקוח" },
+      { field: "TEUR_SHLAV_HINUH", label: "שלב חינוך" },
+      { field: "RAMAT_DIYUK_MIKUM", label: "דיוק המיקום" }
+    ]
+  });
+</script>
+
+<script>
+  (function () {
+    function hbar(id, d, labelWidth) {
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 48, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", minInterval: 1, axisLabel: { show: false } },
+        yAxis: { type: "category", data: d.names.slice().reverse(),
+                 axisLabel: { width: labelWidth, overflow: "truncate" } },
+        series: [{ type: "bar", name: "מוסדות", data: d.values.slice().reverse(),
+                   label: { show: true, position: "right" } }]
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    hbar("chart-types", {{ model.charts.types | tojson }}, 120);
+    hbar("chart-districts", {{ model.charts.districts | tojson }}, 120);
+    hbar("chart-stages", {{ model.charts.stages | tojson }}, 110);
+    hbar("chart-methods", {{ model.charts.methods | tojson }}, 140);
+  })();
+</script>
+
+<script>
+  (function () {
+    function stack(id, d, pct, labelWidth) {
+      var totals = d.names.map(function (_, i) {
+        return d.series.reduce(function (a, s) { return a + s.data[i]; }, 0);
+      });
+      var series = d.series.map(function (s) {
+        return {
+          type: "bar", stack: "t", name: s.name,
+          data: s.data.map(function (v, i) {
+            var share = totals[i] ? Math.round(v / totals[i] * 1000) / 10 : 0;
+            return { value: pct ? share : v, n: v, share: share };
+          }).reverse()
+        };
+      });
+      var c = echarts.init(document.getElementById(id));
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: {
+          trigger: "item",
+          formatter: function (p) {
+            return echarts.format.encodeHTML(p.name) + "<br/>" + echarts.format.encodeHTML(p.seriesName) +
+              ": " + p.data.n.toLocaleString("en-US") + " (" + p.data.share + "%)";
+          }
+        },
+        legend: { type: "plain", bottom: 0, left: 8, right: 8, itemGap: 8 },
+        grid: { left: 8, right: 24, top: 8, bottom: d.series.length > 3 ? 84 : 56, containLabel: true },
+        xAxis: pct ? { type: "value", max: 100, splitNumber: 4, axisLabel: { formatter: "{value}%", hideOverlap: true } }
+                   : { type: "value", minInterval: 1, splitNumber: 3, axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: d.names.slice().reverse(),
+                 axisLabel: { width: labelWidth, overflow: "truncate" } },
+        series: series
+      }));
+      window.addEventListener("resize", function () { c.resize(); });
+    }
+    stack("chart-group-stream", {{ model.charts.group_stream | tojson }}, true, 90);
+    stack("chart-sector-group", {{ model.charts.sector_group | tojson }}, false, 70);
+    stack("chart-stream-legal", {{ model.charts.stream_legal | tojson }}, true, 90);
+    stack("chart-gender", {{ model.charts.gender | tojson }}, true, 90);
+    stack("chart-localities", {{ model.charts.localities | tojson }}, false, 100);
+    stack("chart-accuracy", {{ model.charts.accuracy | tojson }}, true, 70);
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.special | tojson }};
+    var c = echarts.init(document.getElementById("chart-special"));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: function (v) { return v + "%"; } },
+      legend: { bottom: 0 },
+      grid: { left: 8, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.names },
+      yAxis: { type: "value", axisLabel: { formatter: "{value}%" } },
+      series: [
+        { type: "bar", name: "גני ילדים", data: d.gan, label: { show: true, position: "top", formatter: "{c}%" } },
+        { type: "bar", name: "בתי ספר", data: d.school, label: { show: true, position: "top", formatter: "{c}%" } }
+      ]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>

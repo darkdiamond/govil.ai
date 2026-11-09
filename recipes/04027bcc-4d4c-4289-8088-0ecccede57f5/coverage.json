@@ -1,0 +1,11 @@
+{
+  "main.search": "skip: concatenation of name, family name, licence number and code (a search key); duplicates other columns",
+  "main.measurs": "kpi:inspectors, insight:inspectors — the inspecting-surveyor (מודד מבקר) flag; names listed in the inspectors card",
+  "main.status": "chart-status, chart-cohort, kpi:valid, kpi:not_valid, kpi:valid_share, insight:valid, insight:cohort, insight:revoked, table:recent",
+  "main.name1": "chart-first, table:recent — first names; also the inspectors list",
+  "main.family_name": "chart-family, insight:surname, table:recent — family names; also the inspectors list",
+  "main.number": "chart-cohort, chart-contact, insight:cohort, insight:contact, table:recent — licence number, used as cohort bands and for ordering; never shown per person",
+  "main.letters": "skip: the surveyor's personal three-letter code (an individual identifier); searchable in the explorer",
+  "main.information": "chart-contact, chart-years, chart-firms, kpi:contact, insight:contact, insight:firm, insight:years — HTML block of consented contact details: only presence, office name and licence year are used; phones, e-mail and address stay off the page",
+  "main.cer_link": "skip: empty on every row"
+}

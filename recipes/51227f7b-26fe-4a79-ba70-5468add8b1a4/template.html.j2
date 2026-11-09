@@ -1,0 +1,315 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור תחנת כיבוי לפי יישוב, שם או כתובת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר, בכל קובצי השנים: שם התחנה, התחנה האזורית, מחוז, כתובת, רחוב ותיאור מיקום</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.kpi_total) }}
+  {{ gov.kpi(model.kpis.regional, model.labels.kpi_regional) }}
+  {{ gov.kpi(model.kpis.sub, model.labels.kpi_sub) }}
+  {{ gov.kpi(model.kpis.districts, model.labels.kpi_districts) }}
+{%- if model.flags.city %}
+  {{ gov.kpi(model.kpis.cities, model.labels.kpi_cities) }}
+{%- endif %}
+{%- if model.flags.history %}
+  {{ gov.kpi(model.kpis.delta, model.labels.kpi_delta) }}
+{%- endif %}
+{%- if model.flags.nn %}
+  {{ gov.kpi(model.kpis.nn, model.labels.kpi_nn) }}
+{%- endif %}
+{%- if model.flags.emergency %}
+  {{ gov.kpi(model.kpis.emergency, model.labels.kpi_emergency) }}
+{%- endif %}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{%- if model.flags.map %}
+{%- set ns = namespace(rid="") %}
+{%- for r in inputs.stations %}{% if r.name == model.map.resource_name and not ns.rid %}{% set ns.rid = r.id %}{% endif %}{% endfor %}
+{%- if ns.rid %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת תחנות הכיבוי וההצלה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-stations" class="h-80 md:h-[460px]" role="region" aria-label="מפה אינטראקטיבית של תחנות הכיבוי וההצלה בישראל. גרסה נגישה: ראו את מדריך התחנות לפי מחוז ואת טבלת הנתונים למטה."></div>
+</section>
+<script>
+  GovMap.create({
+    container: "#map-stations",
+    resourceId: {{ ns.rid | tojson }},
+    latField: {{ model.map.lat_field | tojson }},
+    lngField: {{ model.map.lng_field | tojson }},
+    projection: {{ model.map.projection | tojson }},
+    cluster: false,
+    popupTitleField: "Station",
+    popupFields: [
+      { field: "Station_Type", label: "סוג" },
+      { field: "Regional_Station", label: "תחנה אזורית" },
+      { field: "District", label: "מחוז" },
+      { field: "Address", label: "כתובת" },
+      { field: "Location", label: "מיקום" }
+    ]
+  });
+</script>
+{%- endif %}
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "תחנות כיבוי לפי מחוז וסוג תחנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+  {{ gov.chart("chart-dist", model.labels.dist_aria, "h-72 md:h-96") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.dist_caption, model.tables.dist_cols, model.tables.dist) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תחנות אזוריות ותחנות המשנה שלהן") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.reg_note }}</p>
+  {{ gov.chart("chart-reg", model.labels.reg_aria, "h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.reg_caption, ["תחנה אזורית", "מחוז", "תחנות", "שמות התחנות"], model.tables.reg) }}
+  </div>
+</section>
+
+{%- if model.flags.city %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "יישובים עם יותר מתחנת כיבוי אחת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  {{ gov.chart("chart-city", model.labels.city_aria, "h-72 md:h-96") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.city_caption, ["יישוב", "תחנות", "שמות התחנות"], model.tables.city) }}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.nn %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "כמה רחוקה התחנה הקרובה: מרחק חציוני לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.nn_note }}</p>
+  {{ gov.chart("chart-nn", model.labels.nn_aria, "h-64 md:h-80") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.nn_caption, ["מחוז", "חציון (ק״מ)", "המרחק הגדול (ק״מ)", "תחנות"], model.tables.nn, ltr=(1, 2)) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "התחנות המרוחקות ביותר מתחנה אחרת") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.iso_note }}</p>
+  {{ gov.chart("chart-iso", model.labels.iso_aria, "h-72 md:h-96") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.iso_caption, ["תחנה", "מחוז", "מרחק (ק״מ)", "התחנה הקרובה"], model.tables.iso, ltr=(2,)) }}
+  </div>
+</section>
+{%- endif %}
+
+{%- if model.flags.history %}
+<section class="card p-5 mb-6">
+  {{ gov.head("trending-up", "מספר התחנות לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.hist_note }}</p>
+  {{ gov.chart("chart-hist", model.labels.hist_aria, "h-80 md:h-[460px]") }}
+  <div class="overflow-x-auto">
+  {{ gov.table(model.labels.hist_caption, model.tables.hist_cols, model.tables.hist) }}
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תחנות שנוספו וירדו מהרשימה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.diff_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.diff_caption }}</caption>
+      <thead><tr><th scope="col">תקופה</th><th scope="col">מספר תחנות</th><th scope="col">נוספו</th><th scope="col">ירדו</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.diff %}
+        <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "מדריך תחנות הכיבוי לפי מחוז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dir_note }}</p>
+{%- for g in model.directory %}
+  <details class="mt-3">
+    <summary class="font-semibold text-ink-deep">{{ g.district }} ({{ g.count }})</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ g.district }}: תחנות וכתובות</caption>
+        <thead><tr><th scope="col">תחנה</th><th scope="col">סוג</th><th scope="col">{% if loop.last and model.flags.hq %}מחוז{% else %}תחנה אזורית{% endif %}</th><th scope="col">כתובת</th><th scope="col">מיקום</th></tr></thead>
+        <tbody>
+{%- for r in g.rows %}
+          <tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td>{{ r[4] }}</td></tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+{%- endfor %}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">רשימת תחנות הכיבוי הפרוסות בארץ</p>
+</section>
+
+<script>
+  (function () {
+    var d = {{ model.charts.dist | tojson }};
+    var c = echarts.init(document.getElementById("chart-dist"));
+    var narrow = window.innerWidth < 640;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = "מחוז " + echarts.format.encodeHTML(d.labels[i]) + "<br>סך הכל: " + d.total[i].toLocaleString("he-IL");
+        ps.forEach(function (p) { if (p.seriesName === "סך הכל") { return; } s += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value.toLocaleString("he-IL"); });
+        return s;
+      } },
+      legend: { bottom: 0, type: "plain", data: d.series.map(function (s) { return s.name; }) },
+      grid: { left: 8, right: 8, top: 24, bottom: 48, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "t", data: s.data };
+      }).concat([{ name: "סך הכל", type: "bar", data: d.total, barGap: "-100%", silent: true, z: 0,
+        itemStyle: { color: "transparent" }, tooltip: { show: false },
+        label: { show: true, position: "top", color: "#0c3058" } }])
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.reg | tojson }};
+    var c = echarts.init(document.getElementById("chart-reg"));
+    var narrow = window.innerWidth < 640;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + " (מחוז " + echarts.format.encodeHTML(d.district[i]) + ")<br>תחנות: " + d.values[i];
+      } },
+      grid: { left: 8, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.labels, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 22, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+{%- if model.flags.city %}
+<script>
+  (function () {
+    var d = {{ model.charts.city | tojson }};
+    var c = echarts.init(document.getElementById("chart-city"));
+    var narrow = window.innerWidth < 640;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + "<br>תחנות: " + d.values[i];
+      } },
+      grid: { left: 8, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.labels, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 22, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.nn %}
+<script>
+  (function () {
+    var d = {{ model.charts.nn | tojson }};
+    var c = echarts.init(document.getElementById("chart-nn"));
+    var narrow = window.innerWidth < 640;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "מחוז " + echarts.format.encodeHTML(d.labels[i]) + "<br>מרחק חציוני: " + d.values[i] + " ק״מ<br>תחנות: " + d.n[i];
+      } },
+      grid: { left: 8, right: 8, top: 28, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: d.labels, axisLabel: { interval: 0, fontSize: narrow ? 10 : 12 } },
+      yAxis: { type: "value", name: "ק״מ", nameTextStyle: { fontSize: 11 } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 40, label: { show: true, position: "top" },
+        markLine: { symbol: "none", silent: true, lineStyle: { type: "dashed", color: "#6c757d" },
+          label: { formatter: "חציון ארצי", position: "insideStartTop", color: "#6c757d" },
+          data: [{ yAxis: d.national }] } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.iso | tojson }};
+    var c = echarts.init(document.getElementById("chart-iso"));
+    var narrow = window.innerWidth < 640;
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return echarts.format.encodeHTML(d.labels[i]) + " (מחוז " + echarts.format.encodeHTML(d.district[i]) + ")<br>"
+          + d.values[i] + " ק״מ עד " + echarts.format.encodeHTML(d.nearest[i]);
+      } },
+      grid: { left: 8, right: 40, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: d.labels, axisLabel: { fontSize: narrow ? 11 : 12 } },
+      series: [{ type: "bar", data: d.values, barMaxWidth: 22, label: { show: true, position: "right" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.history %}
+<script>
+  (function () {
+    var d = {{ model.charts.hist | tojson }};
+    var c = echarts.init(document.getElementById("chart-hist"));
+    // Plain legends wrap; reserve their lines from the label lengths.
+    var width = Math.min(window.innerWidth, 1100) - 64, line = 0, lines = 1;
+    d.series.forEach(function (s) {
+      var w = 34 + String(s.name).length * 7;
+      if (line + w > width && line > 0) { lines += 1; line = 0; }
+      line += w;
+    });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        var s = echarts.format.encodeHTML(d.years[i]) + "<br>סך הכל: " + d.total[i].toLocaleString("he-IL");
+        ps.forEach(function (p) { if (p.value && p.seriesName !== "סך הכל") { s += "<br>" + p.marker + echarts.format.encodeHTML(p.seriesName) + ": " + p.value; } });
+        return s;
+      } },
+      legend: { bottom: 0, type: "plain", data: d.series.map(function (s) { return s.name; }) },
+      grid: { left: 8, right: 8, top: 24, bottom: 24 + lines * 24, containLabel: true },
+      xAxis: { type: "category", data: d.years },
+      yAxis: { type: "value", minInterval: 1 },
+      series: d.series.map(function (s) {
+        return { name: s.name, type: "bar", stack: "t", data: s.data };
+      }).concat([{ name: "סך הכל", type: "bar", data: d.total, barGap: "-100%", silent: true, z: 0,
+        itemStyle: { color: "transparent" }, tooltip: { show: false },
+        label: { show: true, position: "top", color: "#0c3058" } }])
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+{%- endif %}

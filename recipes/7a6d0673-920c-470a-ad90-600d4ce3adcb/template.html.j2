@@ -1,0 +1,273 @@
+{% import "gov.j2" as gov %}
+{%- macro plain_table(caption, cols, rows, langs=()) -%}
+<div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ caption }}</caption>
+      <thead><tr>{% for c in cols %}<th scope="col" class="px-2 py-1 text-start">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in rows %}
+        <tr class="border-t border-rule">{% for v in r %}{% set lg = langs[loop.index0] if loop.index0 < langs|length else "" %}{% if loop.first %}<th scope="row" class="px-2 py-1 text-start font-normal">{{ v }}</th>{% else %}<td class="px-2 py-1 text-start"{% if lg == "ltr" %} dir="ltr"{% elif lg %} lang="{{ lg }}" dir="{{ 'rtl' if lg == 'ar' else 'ltr' }}"{% endif %}>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+{%- endmacro %}
+{%- macro fallback(caption, cols, rows, ltr=()) -%}
+<details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead><tr>{% for c in cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in rows %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row"{% if 0 in ltr %} dir="ltr"{% endif %}>{{ v }}</th>{% else %}<td{% if loop.index0 in ltr %} dir="ltr"{% endif %}>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+      </div>
+    </details>
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+  <a href="#data-explorer" class="card p-4 flex items-center gap-3 no-underline min-w-0">
+    <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+    <span>
+      <span class="block font-semibold text-ink-deep">איתור שם יישוב באנגלית, בערבית או ברוסית ←</span>
+      <span class="block text-sm text-subtle">חיפוש חי בטבלת היישובים: שם בעברית, באנגלית, בערבית או ברוסית, או סמל היישוב.</span>
+    </span>
+  </a>
+  <a href="#data-explorer" class="card p-4 flex items-center gap-3 no-underline min-w-0">
+    <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+    <span>
+      <span class="block font-semibold text-ink-deep">איתור מדינה לפי שם, קוד מדינה או קידומת חיוג ←</span>
+      <span class="block text-sm text-subtle">חיפוש חי בטבלת המדינות: שם בעברית, באנגלית, בערבית או ברוסית, קוד אלפא-2 או אלפא-3, קוד מספרי, סיומת אינטרנט וקידומת טלפון.</span>
+    </span>
+  </a>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.loc, model.labels.kpi_loc) }}
+  {{ gov.kpi(model.kpis.cty, model.labels.kpi_cty) }}
+  {{ gov.kpi(model.kpis.ar, model.labels.kpi_ar) }}
+  {{ gov.kpi(model.kpis.ru, model.labels.kpi_ru) }}
+  {{ gov.kpi(model.kpis.xy, model.labels.kpi_xy) }}
+  {{ gov.kpi(model.kpis.bad, model.labels.kpi_bad) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "יישוב אחד, ארבע שפות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.sample_loc_note }}</p>
+  {{ plain_table(model.labels.sample_loc_cap, ["עברית", "אנגלית", "ערבית", "רוסית", "סמל יישוב"], model.tables.sample_loc, ["", "en", "ar", "ru", "ltr"]) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כיסוי השפות: יישובים ומדינות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.langs_note }}</p>
+  {{ gov.chart("chart-langs", model.labels.langs_aria, "h-64 md:h-80") }}
+  {{ fallback(model.labels.langs_aria, ["שפה", "יישובים (%)", "מדינות (%)"], model.tables.langs, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.map %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת היישובים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-localities" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "סמל היישוב: מבנה הקוד") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.codes_note }}</p>
+  {{ gov.chart("chart-codes", model.labels.codes_aria, "h-72 md:h-96") }}
+  {{ fallback(model.labels.codes_aria, ["טווח סמלים", "יישובים"], model.tables.codes, ltr=(0, 1)) }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">לפי מספר הספרות בסמל</summary>
+    {{ plain_table(model.labels.digits_cap, ["ספרות", "יישובים", "שיעור"], model.tables.digits, ["", "ltr", "ltr"]) }}
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מרחק היישובים מהגבולות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.borders_note }}</p>
+  {{ gov.chart("chart-borders", model.labels.borders_aria, "h-72 md:h-96") }}
+  {{ fallback(model.labels.borders_aria, ["טווח (ק״מ)", "גבול לבנון", "גבול רצועת עזה", "גבול סוריה"], model.tables.borders, ltr=(1, 2, 3)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "היישובים הקרובים ביותר לכל גבול") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.near_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+{%- for n in model.tables.near %}
+    <div class="min-w-0">
+      <h3 class="m-0 mb-1 text-base font-semibold text-ink-deep">{{ n.label }}</h3>
+      {{ plain_table(n.label, ["יישוב", "ק״מ"], n.rows, ["", "ltr"]) }}
+    </div>
+{%- endfor %}
+  </div>
+</section>
+
+{%- if model.flags.dup %}
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "שמות זהים בתעתיק") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dup_note }}</p>
+  {{ plain_table(model.labels.dup_cap, ["שם בתעתיק", "שפה", "יישובים"], model.tables.dup) }}
+</section>
+{%- endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5 min-w-0">
+    {{ gov.head("list", "מדינות בארבע שפות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cty_names_note }}</p>
+    {{ plain_table(model.labels.cty_names_cap, ["עברית", "אנגלית", "ערבית", "רוסית"], model.tables.cty_names, ["", "en", "ar", "ru"]) }}
+  </section>
+  <section class="card p-5 min-w-0">
+    {{ gov.head("tag", "קודי מדינה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.cty_codes_note }}</p>
+    {{ plain_table(model.labels.cty_codes_cap, ["מדינה", "קוד מספרי", "אלפא-2", "אלפא-3", "קידומת", "סיומת"], model.tables.cty_codes, ["", "ltr", "ltr", "ltr", "ltr", "ltr"]) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "קידומות חיוג לפי אזור בעולם") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.zones_note }}</p>
+  {{ gov.chart("chart-zones", model.labels.zones_aria, "h-72 md:h-96") }}
+  {{ fallback(model.labels.zones_aria, ["אזור חיוג", "רשומות"], model.tables.zones, ltr=(1,)) }}
+</section>
+
+{%- if model.flags.shared %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "קידומות חיוג משותפות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.shared_note }}</p>
+  {{ gov.chart("chart-shared", model.labels.shared_aria, "h-64 md:h-80") }}
+  {{ fallback(model.labels.shared_aria, ["קידומת", "רשומות", "מדינות וטריטוריות"], model.tables.shared, ltr=(0, 1)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.quality %}
+<section class="card p-5 mb-6">
+  {{ gov.head("triangle-alert", "בדיקות איכות הנתונים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.quality_note }}</p>
+  {{ plain_table(model.labels.quality_cap, ["טבלה", "בדיקה", "רשומות", "דוגמאות"], model.tables.quality, ["", "", "ltr", ""]) }}
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">מאגר זה מכיל מקורות מידע שנבנו ע"י איחוד נתונים ממקורות שונים שחלקם מפורסמים באתר זה.
+מקורות הנתונים אינם רשמיים והמידע אותו הם מכילים אינו באחריות מערך הדיגיטל הלאומי</p>
+</section>
+
+<script>
+  (function () {
+    window.__govHbar = function (id, labels, series, opts) {
+      var el = document.getElementById(id);
+      if (!el) { return; }
+      var c = echarts.init(el);
+      var enc = echarts.format.encodeHTML;
+      var multi = series.length > 1;
+      function gb() { return multi ? (el.clientWidth < 520 ? 64 : 40) : 8; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" },
+                   valueFormatter: function (v) { return v.toLocaleString("he-IL") + (opts.unit || ""); } },
+        legend: multi ? { bottom: 0, left: "center" } : { show: false },
+        grid: { left: 16, right: 48, top: 8, bottom: gb(), containLabel: true },
+        xAxis: { type: "value", max: opts.max, axisLabel: { show: false }, splitLine: { show: false } },
+        yAxis: { type: "category", data: labels, inverse: true,
+                 axisLabel: { width: opts.labelWidth || 120, overflow: "break" } },
+        series: series.map(function (s) {
+          return { type: "bar", name: s.name, data: s.values, barMaxWidth: 26,
+                   label: { show: true, position: "right", color: "#0c3058",
+                            formatter: function (p) { return p.value.toLocaleString("he-IL") + (opts.unit || ""); } } };
+        })
+      }));
+      if (opts.names) {
+        c.setOption({ tooltip: { formatter: function (ps) {
+          var p = ps[0];
+          var ns = opts.names[p.dataIndex] || [];
+          return enc(p.name) + ": " + p.value.toLocaleString("he-IL") + "<br>" + ns.map(enc).join("<br>");
+        } } });
+      }
+      window.addEventListener("resize", function () { c.setOption({ grid: { bottom: gb() } }); c.resize(); });
+    };
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.langs | tojson }};
+    window.__govHbar("chart-langs", d.langs,
+      [{ name: "יישובים", values: d.loc }, { name: "מדינות", values: d.cty }],
+      { unit: "%", max: 100, labelWidth: 70 });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.codes | tojson }};
+    window.__govHbar("chart-codes", d.labels, [{ name: "יישובים", values: d.values }], { labelWidth: 90 });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.borders | tojson }};
+    var el = document.getElementById("chart-borders");
+    var c = echarts.init(el);
+    function gb() { return el.clientWidth < 520 ? 72 : 48; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+      legend: { bottom: 0, left: "center" },
+      grid: { left: 16, right: 16, top: 24, bottom: gb(), containLabel: true },
+      xAxis: { type: "category", data: d.bands,
+               axisLabel: { interval: 0, hideOverlap: false } },
+      yAxis: { type: "value", splitNumber: 4 },
+      series: d.series.map(function (s) {
+        return { type: "bar", name: s.name, data: s.values, barMaxWidth: 22 };
+      })
+    }));
+    window.addEventListener("resize", function () { c.setOption({ grid: { bottom: gb() } }); c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var d = {{ model.charts.zones | tojson }};
+    window.__govHbar("chart-zones", d.labels, [{ name: "רשומות", values: d.values }], { labelWidth: 150 });
+  })();
+</script>
+
+{%- if model.flags.shared %}
+<script>
+  (function () {
+    var d = {{ model.charts.shared | tojson }};
+    window.__govHbar("chart-shared", d.labels, [{ name: "רשומות", values: d.values }], { labelWidth: 90, names: d.names });
+  })();
+</script>
+{%- endif %}
+
+{%- if model.flags.map %}
+<script>
+  GovMap.create({
+    container: "#map-localities",
+    resourceId: {{ inputs.localities[0].id | tojson }},
+    latField: "Y",
+    lngField: "X",
+    projection: "itm",
+    popupTitleField: "name_in_hebrew",
+    popupFields: [
+      { field: "name_in_english", label: "אנגלית" },
+      { field: "name_in_arabic", label: "ערבית" },
+      { field: "name_in_russian", label: "רוסית" },
+      { field: "symbol_number", label: "סמל יישוב" }
+    ]
+  });
+</script>
+{%- endif %}

@@ -1,0 +1,47 @@
+{
+  "contract_version": 1,
+  "dataset_id": "7a6d0673-920c-470a-ad90-600d4ce3adcb",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-12-08T10:03:21.318865+00:00",
+    "rows": { "localities": 1256, "countries": 250 }
+  },
+  "inputs": [
+    {
+      "name": "localities",
+      "by_id": "e9701dcb-9f1c-43bb-bd44-eb380ade542f",
+      "required_columns": [
+        "symbol_number",
+        "name_in_hebrew",
+        "name_in_english",
+        "name_in_arabic",
+        "name_in_russian",
+        "X",
+        "Y",
+        "Distance_From_Lebanon_Border",
+        "Distance_From_GazaStrip_Border",
+        "Distance_From_Syria_Border"
+      ]
+    },
+    {
+      "name": "countries",
+      "by_id": "9980228a-e0e9-4b17-b5a6-5a0b76cd700c",
+      "required_columns": [
+        "International_Code",
+        "Full_Name",
+        "Short_Name",
+        "Hebrew_Name",
+        "Arabic_ Name",
+        "Russian_Long_Name",
+        "Russian_short_Name",
+        "Alfa_2_Code",
+        "Alfa_3_Code",
+        "Internet_cc_TLD",
+        "Numeric_Code"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": ["אלפא-2", "אלפא-3"]
+}

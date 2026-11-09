@@ -1,0 +1,26 @@
+{
+  "contract_version": 1,
+  "dataset_id": "04027bcc-4d4c-4289-8088-0ecccede57f5",
+  "recipe_version": 1,
+  "authored_at": "2026-11-09T09:40:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-09-14T09:03:32.201464+00:00",
+    "rows": { "main": 1413 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "096e5fba-420c-4822-8172-78be54767cef",
+      "required_columns": [
+        "measurs",
+        "status",
+        "name1",
+        "family_name",
+        "number",
+        "information"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
