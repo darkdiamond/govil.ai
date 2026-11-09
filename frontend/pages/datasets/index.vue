@@ -2,6 +2,7 @@
 import { useFacets } from "~/composables/useManifest";
 import type { SlimEntry } from "~/types/manifest";
 import { loadSearchIndex } from "~/utils/search-index";
+import { normalizeSearchText, queryVariants } from "~/utils/search-text";
 
 useSeo({
   title: "כל מאגרי המידע הממשלתיים — חיפוש, סינון ותקצירים בעברית",
@@ -84,19 +85,52 @@ watch(debouncedQuery, (q) => {
   router.replace({ query: next });
 });
 
+// Normalized search text per dataset (final letters, quotes, hyphens folded;
+// see utils/search-text.ts), built once per index.
+const haystacks = computed(
+  () =>
+    new Map(
+      datasets.value.map((d) => [
+        d.id,
+        normalizeSearchText(
+          `${d.title} ${d.summary_he ?? ""} ${(d.tags ?? []).join(" ")} ${d.organization ?? ""}`
+        ),
+      ])
+    )
+);
+
+// Datasets matching the free-text query: the query as typed, or as it reads on
+// the other keyboard layout ("rfc" → "רכב"). null = no query.
+const textMatch = computed<{
+  ids: Set<string>;
+  convertedText: string | null;
+  /** Some datasets also matched the query as typed. */
+  rawHits: boolean;
+} | null>(() => {
+  const variants = queryVariants(debouncedQuery.value.trim());
+  if (!variants.length) return null;
+  const ids = new Set<string>();
+  let convertedText: string | null = null;
+  let rawHits = false;
+  for (const [id, hay] of haystacks.value) {
+    const hit = variants.find((v) => hay.includes(v.text));
+    if (!hit) continue;
+    ids.add(id);
+    if (hit.converted) convertedText ??= hit.display;
+    else rawHits = true;
+  }
+  return { ids, convertedText, rawHits };
+});
+
 const filtered = computed<SlimEntry[]>(() => {
-  const q = debouncedQuery.value.trim().toLowerCase();
+  const tm = textMatch.value;
   return datasets.value.filter((d) => {
     if (orgFilter.value && d.organization !== orgFilter.value) return false;
     if (formatFilter.value && !d.formats.includes(formatFilter.value))
       return false;
     if (tagFilter.value && !(d.tags ?? []).includes(tagFilter.value))
       return false;
-    if (q) {
-      const hay =
-        `${d.title} ${d.summary_he ?? ""} ${(d.tags ?? []).join(" ")}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
+    if (tm && !tm.ids.has(d.id)) return false;
     return true;
   });
 });
@@ -183,6 +217,12 @@ watch(
           class="flex-1 bg-transparent border-0 outline-none text-sm text-ink placeholder:text-subtle"
         />
       </label>
+      <p v-if="textMatch?.convertedText" class="mt-2 text-xs text-subtle">
+        מוצגות {{ textMatch.rawHits ? "גם " : "" }}תוצאות עבור „<bdi>{{
+          textMatch.convertedText
+        }}</bdi
+        >”
+      </p>
     </section>
 
     <section class="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-8">

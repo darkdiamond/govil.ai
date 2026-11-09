@@ -2,6 +2,26 @@
 import type FuseT from "fuse.js";
 import type { SlimEntry } from "~/types/manifest";
 import { loadSearchIndex } from "~/utils/search-index";
+import { normalizeSearchText, queryVariants } from "~/utils/search-text";
+
+/** Normalized copy of an entry's searchable fields (see search-text.ts). */
+interface SearchDoc {
+  entry: SlimEntry;
+  title: string;
+  summary_he: string;
+  organization: string;
+  tags: string[];
+}
+
+const LIMIT = 6;
+
+// A re-read of the query on the other keyboard layout counts only where its
+// text literally appears (as on /datasets/), so a Hebrew word re-read as Latin
+// gibberish doesn't pull in Fuse's fuzzy noise.
+const containsText = (d: SearchDoc, text: string) =>
+  [d.title, d.summary_he, d.organization, ...d.tags].some((f) =>
+    f.includes(text)
+  );
 
 const router = useRouter();
 const open = ref(false);
@@ -15,14 +35,21 @@ const panelEl = ref<HTMLElement | null>(null);
 // the user opens the search popover, so both load on first toggle rather than
 // being bundled into the layout chunk. This runs client-side only — the
 // popover is never part of prerendered HTML.
-const fuse = shallowRef<FuseT<SlimEntry> | null>(null);
+const fuse = shallowRef<FuseT<SearchDoc> | null>(null);
 let fusePromise: Promise<void> | null = null;
 
 function ensureFuse(): Promise<void> {
   if (fusePromise) return fusePromise;
   fusePromise = Promise.all([import("fuse.js"), loadSearchIndex()]).then(
     ([{ default: Fuse }, index]) => {
-      fuse.value = new Fuse<SlimEntry>(index.datasets, {
+      const docs: SearchDoc[] = index.datasets.map((entry) => ({
+        entry,
+        title: normalizeSearchText(entry.title),
+        summary_he: normalizeSearchText(entry.summary_he ?? ""),
+        organization: normalizeSearchText(entry.organization ?? ""),
+        tags: (entry.tags ?? []).map(normalizeSearchText),
+      }));
+      fuse.value = new Fuse<SearchDoc>(docs, {
         keys: [
           { name: "title", weight: 0.5 },
           { name: "summary_he", weight: 0.25 },
@@ -31,7 +58,7 @@ function ensureFuse(): Promise<void> {
         ],
         threshold: 0.4,
         distance: 100,
-        includeScore: false,
+        includeScore: true,
         minMatchCharLength: 2,
         ignoreLocation: true,
       });
@@ -40,11 +67,48 @@ function ensureFuse(): Promise<void> {
   return fusePromise;
 }
 
-const results = computed<SlimEntry[]>(() => {
+interface SearchResults {
+  items: SlimEntry[];
+  /** The converted query text, when a shown result matched only through it. */
+  convertedText: string | null;
+}
+
+const search = computed<SearchResults>(() => {
   const q = query.value.trim();
-  if (q.length < 2 || !fuse.value) return [];
-  return fuse.value.search(q, { limit: 6 }).map((r) => r.item);
+  const f = fuse.value;
+  if (q.length < 2 || !f) return { items: [], convertedText: null };
+  const best = new Map<
+    string,
+    { entry: SlimEntry; score: number; via: string | null }
+  >();
+  for (const v of queryVariants(q)) {
+    if (v.text.length < 2) continue;
+    for (const r of f.search(v.text, { limit: LIMIT })) {
+      const score = r.score ?? 1;
+      if (v.converted && !containsText(r.item, v.text)) continue;
+      const prev = best.get(r.item.entry.id);
+      if (!prev || score < prev.score) {
+        best.set(r.item.entry.id, {
+          entry: r.item.entry,
+          score,
+          via: v.converted ? v.display : null,
+        });
+      }
+    }
+  }
+  const top = [...best.values()]
+    .sort((a, b) => a.score - b.score)
+    .slice(0, LIMIT);
+  return {
+    items: top.map((t) => t.entry),
+    convertedText: top.find((t) => t.via)?.via ?? null,
+  };
 });
+const results = computed(() => search.value.items);
+
+function datasetHref(entry: SlimEntry): string {
+  return `/datasets/${encodeURI(entry.page_slug || entry.id)}/`;
+}
 
 watch(results, () => {
   highlight.value = results.value.length > 0 ? 0 : -1;
@@ -72,9 +136,9 @@ function go(entry: SlimEntry) {
   // useAsyncData callback. With payloadExtraction disabled (Hebrew tag
   // prerender fix), Nuxt re-runs the callback on SPA nav and node:fs throws
   // in the browser. DatasetCard uses <a href> for the same reason.
-  window.location.assign(
-    `/datasets/${encodeURI(entry.page_slug || entry.id)}/`
-  );
+  // Results render as <a href> for the same reason, which also gives
+  // middle-click / Ctrl-click "open in a new tab" for free.
+  window.location.assign(datasetHref(entry));
 }
 
 function submit() {
@@ -163,23 +227,29 @@ onBeforeUnmount(() => {
         />
       </label>
 
+      <p
+        v-if="results.length && search.convertedText"
+        class="m-0 px-3 pt-2 text-xs text-subtle"
+      >
+        תוצאות עבור „<bdi>{{ search.convertedText }}</bdi
+        >”
+      </p>
       <ul
         v-if="results.length"
         class="list-none m-0 p-0 max-h-80 overflow-y-auto"
       >
         <li v-for="(r, i) in results" :key="r.id">
-          <button
-            type="button"
-            class="w-full text-start px-3 py-2 flex flex-col gap-0.5 hover:bg-brand-50 focus:bg-brand-50 transition-colors"
+          <a
+            :href="datasetHref(r)"
+            class="w-full text-start px-3 py-2 flex flex-col gap-0.5 no-underline hover:no-underline hover:bg-brand-50 focus:bg-brand-50 transition-colors"
             :class="{ 'bg-brand-50': i === highlight }"
-            @click="go(r)"
             @mouseenter="highlight = i"
           >
             <span class="text-sm text-ink truncate">{{ r.title }}</span>
             <span v-if="r.organization" class="text-xs text-subtle truncate">{{
               r.organization
             }}</span>
-          </button>
+          </a>
         </li>
       </ul>
 
