@@ -316,6 +316,12 @@ target=preview` deploys the `recipes-demo` Hosting channel.
    python-calamine) becomes a grid CSV (`RELEASE_NO, RELEASE_DATE, SHEET_NO,
 SHEET, ROW, C01..`) that compute.py reads by label.
    `python -m services.providers.cbs catalog` lists the recurring reports.
+   CBS price indices (`cbs_index`, ids `cbs-index-*`,
+   `services/providers/cbs_index.py`) read the CBS Index API (CPI, housing,
+   producer and input prices; no key): one row per code and period, with
+   `VALUE` on its own base and `VALUE_CHAINED` on the newest base via CBS's
+   chaining coefficients (`coef=true`). `python -m services.providers.cbs_index
+catalog` lists chapters → subjects → codes.
    The daily job runs
    `providers.sync.sync_provider_sources` after loading the recipe list.
    It writes `sources/<id>` (`provider`, `presentation`, `page_slug_suffix`,

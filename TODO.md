@@ -203,9 +203,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   published in both years; skip holiday collections ("לרגל …"). The release-list window
   (`LIST_WINDOW`, newest 400 items, ~13 months) is too short for them: raise it, or query
   per report, before authoring one. (2026-11-05)
-- **CPI and other price indices aren't press releases in this list.** They come from the CBS
-  Index API (`api.cbs.gov.il/index/data/price?id=120010`), which needs its own provider.
-  (2026-11-05)
 - **A CBS table dropped from the latest edition freezes its page silently.** `facts()` raises
   when the newest edition lacks a configured `table` stem, so the provider sync fails for that
   dataset every run; the refresh never runs, so no `needs-authoring` issue opens and the page

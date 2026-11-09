@@ -12,10 +12,12 @@ from collections.abc import Mapping
 from .base import SourceProvider
 from .boi import BoiSdmxProvider
 from .cbs import CbsReleasesProvider
+from .cbs_index import CbsIndexProvider
 
 PROVIDER_CLASSES: dict[str, type[SourceProvider]] = {
     BoiSdmxProvider.key: BoiSdmxProvider,
     CbsReleasesProvider.key: CbsReleasesProvider,
+    CbsIndexProvider.key: CbsIndexProvider,
 }
 
 _enabled: dict[str, SourceProvider] | None = None
@@ -52,8 +54,7 @@ def provider_for_key(key: str | None,
 
 
 def provider_for_id(dataset_id: str) -> type[SourceProvider] | None:
-    """The provider class whose id prefix claims `dataset_id` (enabled or not)."""
-    for cls in PROVIDER_CLASSES.values():
-        if dataset_id.startswith(cls.id_prefix):
-            return cls
-    return None
+    """The provider class whose id prefix claims `dataset_id` (enabled or not).
+    The longest prefix wins: `cbs-index-` is inside `cbs-`."""
+    hits = [c for c in PROVIDER_CLASSES.values() if dataset_id.startswith(c.id_prefix)]
+    return max(hits, key=lambda c: len(c.id_prefix)) if hits else None

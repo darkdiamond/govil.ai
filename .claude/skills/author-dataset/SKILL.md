@@ -61,7 +61,7 @@ itself writes is search-indexed and regenerated unattended, so:
 ### Provider sources (not data.gov.il)
 
 A dataset from another source (Bank of Israel, ids `boi-*`; CBS press
-releases, ids `cbs-*`) is declared by `recipes/<id>/source.json`, written
+releases, ids `cbs-*`; CBS price indices, ids `cbs-index-*`) is declared by `recipes/<id>/source.json`, written
 **before** `prepare`: `provider`, `title` (the H1 people search), `notes`,
 `tags`, `update_frequency`, `source_url`, and the provider's `config` (for
 `boi_sdmx`: `resources: [{id, name, dataflow, key?, startperiod?}]`).
@@ -98,6 +98,27 @@ gone, period rows found by content) and follow BRIEF.md's Source rules.
 `history_releases` > 1 only when a table shows just the current period. The
 `releases` resource gives the latest edition's headline and links. Worked
 examples: `recipes/cbs-visitor-arrivals/`, `recipes/cbs-average-wage/`.
+
+**CBS price indices (`cbs_index`)**: CPI, housing prices, producer and input
+price indices, from the CBS Index API. Ids start `cbs-index-`. Choose codes
+with `python -m services.providers.cbs_index catalog [--chapter a]`
+(chapter → subject → codes). Config:
+
+```json
+"config": {
+  "resources": [
+    {"id": "cpi", "name": "מדד המחירים לצרכן וקבוצות ראשיות",
+     "codes": [120010, 120020, 110040], "start": "01-2000", "frequency": "month"}
+  ]
+}
+```
+
+`start` (`MM-YYYY`) is optional (default: full history); `frequency` is
+`month`, `quarter` or `both` (default). Rows: `CODE, NAME_HE, FREQ,
+TIME_PERIOD, DATE, YEAR, PERIOD, VALUE, BASE_DESC, PERCENT, PERCENT_YEAR,
+VALUE_CHAINED, CHAIN_BASE`. Chart `VALUE_CHAINED` (one base for the whole
+series), never `VALUE` across bases; quote `PERCENT` / `PERCENT_YEAR` as
+published.
 
 ## 2. Explore
 
