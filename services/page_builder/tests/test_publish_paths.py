@@ -22,6 +22,14 @@ PATHS = (
     "infra/publish-local.sh",
 )
 
+# Steps that are commands: the marker must sit outside a quoted string on its
+# line, so a log label like `step_begin "firebase deploy …"` can't stand in for
+# the command itself.
+COMMANDS = {
+    "publish from Firestore", "news images rsync", "nuxt generate",
+    "redirects", "firebase deploy", "IndexNow",
+}
+
 # step → a regex that must match the file once continuation lines are joined
 MARKERS = {
     "publish from Firestore": r"services\.page_builder\.publish\s+--from-firestore",
@@ -45,10 +53,22 @@ def _joined(rel: str) -> str:
     )
 
 
+def _unquoted_match(pattern: str, text: str) -> bool:
+    """A match whose line prefix has balanced quotes, i.e. not inside a string."""
+    for m in re.finditer(pattern, text):
+        prefix = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
+        if prefix.count('"') % 2 == 0 and prefix.count("'") % 2 == 0:
+            return True
+    return False
+
+
 @pytest.mark.parametrize("rel", PATHS)
 @pytest.mark.parametrize("step", list(MARKERS))
 def test_publish_path_has_step(rel, step):
-    assert re.search(MARKERS[step], _joined(rel)), (
+    text = _joined(rel)
+    found = (_unquoted_match(MARKERS[step], text) if step in COMMANDS
+             else re.search(MARKERS[step], text))
+    assert found, (
         f"{rel} lacks the '{step}' step (/{MARKERS[step]}/); keep the publish "
         f"paths in step: {', '.join(PATHS)}"
     )

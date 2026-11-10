@@ -60,8 +60,6 @@ jobs:
               # test_publish_paths.py, scanner/tests/test_models.py).
               - 'frontend/types/manifest.ts'
               - 'frontend/utils/search-index.ts'
-              - 'frontend/utils/resource-url.ts'
-              - 'frontend/scripts/gov-map.js'
               - 'frontend/nuxt.config.ts'
               - 'frontend/tests/fixtures/**'
               - 'cloudbuild-publish.yaml'

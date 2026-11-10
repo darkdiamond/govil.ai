@@ -8,6 +8,13 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **`_public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
+  `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
+  for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).
+  Fix: catch `ValueError` around `urlsplit` in `services/scanner/models.py` and return "", with
+  a Python-only test (the shared vectors can't hold it unless `resource-url.ts` rejects it too).
+  (2026-11-10)
+
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
   level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32

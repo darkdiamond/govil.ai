@@ -185,12 +185,10 @@ if (( SKIP_GENERATE )); then
   echo "==> [$(date +%H:%M:%S)] skipping nuxt generate (--skip-generate)"
 else
   step_begin "nuxt generate (frontend/)"
-  # Pass the analytics IDs through to nuxt.config.ts (export makes a plain
-  # shell variable visible to npm). nuxi also reads frontend/.env.
+  # nuxt.config.ts reads the analytics IDs from the environment this script
+  # inherited, or from frontend/.env (nuxi loads it). Warn when neither has one.
   for var in NUXT_PUBLIC_GTAG_ID NUXT_PUBLIC_ADSENSE_ID NUXT_PUBLIC_CLARITY_ID; do
-    if [[ -n "${!var:-}" ]]; then
-      export "$var"
-    elif ! grep -qs "^${var}=." frontend/.env; then
+    if [[ -z "${!var:-}" ]] && ! grep -qs "^${var}=." frontend/.env; then
       echo "WARNING: $var is unset (env and frontend/.env); the site ships without it" >&2
     fi
   done
