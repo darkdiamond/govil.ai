@@ -571,6 +571,7 @@ _RENDER_CODE_FILES = (
     Path(__file__).resolve().parent / "sanitize.py",
     Path(__file__).resolve().parent / "ckan_export.py",
     Path(__file__).resolve().parents[1] / "shared" / "ckan.py",
+    Path(__file__).resolve().parent / "schema.py",  # validators rewrite agent_data
 )
 # Builds a `map` input's table; folded only into recipes that have one, so
 # a change here doesn't re-render every other page.
@@ -686,7 +687,8 @@ def _digest(parts: list, identity: str) -> str:
 
 def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     """Check A: what the datastore preview says about every input — row total,
-    columns, first rows (`_id` dropped) — plus `recipe_identity`. A snapshot
+    columns, first rows (`_id` dropped) — plus each resource's name and
+    `recipe_identity`. A snapshot
     input has no datastore; its bytes are already in the identity. A map
     input contributes CKAN's size/md5 of its file."""
     parts = []
@@ -696,7 +698,8 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
             continue
         if inp.map:
             res = probe.resolved[inp.name][0]
-            parts.append([inp.name, inp.by_id, "map", res.get("size"), res.get("hash")])
+            parts.append([inp.name, inp.by_id, "map", res.get("size"), res.get("hash"),
+                          res.get("name") or ""])
             continue
         for res in probe.resolved[inp.name]:
             p = probe.preview(res["id"]) or {}
@@ -704,6 +707,7 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
                 [
                     inp.name,
                     res["id"],
+                    res.get("name") or "",
                     *_preview_shape(p),
                     [
                         {k: v for k, v in row.items() if k != "_id"}
@@ -715,8 +719,8 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
 
 
 def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str | None:
-    """Check A′: CKAN's md5 + size of every input's uploaded file, the
-    preview's row total and columns, plus `recipe_identity`. None when any
+    """Check A′: CKAN's md5 + size of every input's uploaded file, its
+    resource name, the preview's row total and columns, plus `recipe_identity`. None when any
     input has no CKAN hash (API-pushed resource, or a source doc scanned before
     the scanner kept it) — it never vouches for an input it can't see. A
     snapshot input is exact by construction (its bytes are in the identity).
@@ -731,14 +735,16 @@ def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str | 
             res = probe.resolved[inp.name][0]
             if not res.get("hash"):
                 return None
-            parts.append([inp.name, inp.by_id, "map", res["hash"], res.get("size")])
+            parts.append([inp.name, inp.by_id, "map", res["hash"], res.get("size"),
+                          res.get("name") or ""])
             continue
         for res in probe.resolved[inp.name]:
             if not res.get("hash"):
                 return None
             p = probe.preview(res["id"]) or {}
             parts.append(
-                [inp.name, res["id"], res["hash"], res.get("size"), *_preview_shape(p)]
+                [inp.name, res["id"], res.get("name") or "", res["hash"], res.get("size"),
+                 *_preview_shape(p)]
             )
     return _digest(parts, identity)
 
@@ -760,7 +766,10 @@ def inputs_hashes(
     unordered = hashlib.sha256()
     for inp in recipe.manifest.inputs:
         for part in inputs.get(inp.name, []):
-            tag = f"{inp.name}|{part.resource_id}|".encode()
+            # The resource name reaches compute and the template; length-prefixed
+            # since it can hold any character.
+            rname = part.resource_name.encode()
+            tag = f"{inp.name}|{part.resource_id}|{len(rname)}|".encode() + rname
             ordered.update(tag)
             acc = 0
             with open(part.file, "rb") as f:

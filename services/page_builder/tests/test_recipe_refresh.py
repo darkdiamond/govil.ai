@@ -1544,14 +1544,14 @@ def test_inputs_hashes_unordered_is_a_row_multiset(tmp_path):
 
 
 def test_inputs_hash_is_unchanged_by_the_one_pass_rewrite(tmp_path):
-    """Stored prod hashes stay valid: B still hashes the file bytes as-is."""
+    """B hashes the part tag, then the file bytes as-is."""
     import hashlib
     rows = _rows([2024])
     ordered, _ = _hashes_of(tmp_path, rows)
     f = min(tmp_path.iterdir())
     name = Recipe.load(FIXTURES / DS).manifest.inputs[0].name
     h = hashlib.sha256()
-    h.update(f"{name}|{RID}|".encode())
+    h.update(f"{name}|{RID}|{len(b'events')}|events".encode())
     h.update(f.read_bytes())
     h.update(b"\0")
     h.update(b"identity")
@@ -1949,3 +1949,36 @@ def test_kpi_placeholder_dash_needs_no_ltr():
     box = '<div class="text-2xl font-bold text-brand">{}</div>'
     assert kpi_format_findings(box.format("–")) == []
     assert any("dir=" in f for f in kpi_format_findings(box.format("2014–2026")))
+
+
+def test_precheck_hashes_see_resource_rename(tmp_path):
+    """compute and the template read each resource's CKAN name, so a
+    rename-only edit must move checks A, A′ and B."""
+    recipe = Recipe.load(FIXTURES / DS)
+    name = recipe.manifest.inputs[0].name
+    preview = {"total": 1, "fields": [{"id": c, "type": "text"} for c in COLS],
+               "sample_rows": [dict.fromkeys(COLS, "1")]}
+
+    def probe(res_name):
+        res = {"id": RID, "name": res_name, "hash": "md5", "size": 10}
+        return rf.InputProbe({name: [res]}, {}, lambda rid: preview)
+
+    assert rf.input_fingerprint(recipe, probe("נתונים 2023"), "id") != \
+        rf.input_fingerprint(recipe, probe("נתונים 2024"), "id")
+    assert rf.file_fingerprint(recipe, probe("נתונים 2023"), "id") != \
+        rf.file_fingerprint(recipe, probe("נתונים 2024"), "id")
+
+    f = tmp_path / "in.csv"
+    f.write_text(",".join(COLS) + "\n1,1,1,1\n", encoding="utf-8")
+
+    def b(res_name):
+        part = rf.FetchedInput(file=f, resource_id=RID, resource_name=res_name, rows=1)
+        return rf.inputs_hashes(recipe, {name: [part]}, "id")
+
+    old, new = b("נתונים 2023"), b("נתונים 2024")
+    assert old[0] != new[0] and old[1] != new[1]
+
+
+def test_schema_is_render_code():
+    """schema.py validators rewrite agent_data, so it is render code."""
+    assert Path(rf.__file__).resolve().parent / "schema.py" in rf._RENDER_CODE_FILES
