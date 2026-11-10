@@ -53,7 +53,24 @@ def test_pages_data_and_feeds_revalidate():
 
 
 def test_hashed_assets_stay_immutable():
-    for path in ["/_nuxt/entry.abc123.js", "/_nuxt/builds/meta/61950048.json",
-                 "/news/x/hero-16x9-cf5d863a94.jpg", "/fonts/rubik.woff2"]:
+    # Only these names carry a content hash: Vite's chunks under /_nuxt/ and
+    # the news images services/news/images.py names by a sha256 slice.
+    for path in ["/_nuxt/entry.abc123.js", "/_nuxt/entry.abc123.css",
+                 "/_nuxt/logo.abc123.svg", "/_nuxt/builds/meta/61950048.json",
+                 "/news/x/hero-16x9-cf5d863a94.jpg", "/news/x/hero-16x9-cf5d863a94.webp"]:
         cc = _cache_for(path)
         assert cc and "immutable" in cc, (path, cc)
+
+
+def test_unhashed_assets_revalidate_like_pages():
+    """Files served under a stable name must be refetched after a deploy.
+    /lib/ holds the in-page libraries (scripts/copy-libs.mjs), which must not
+    lag the page HTML that calls them; icons, favicon, OG image and the
+    self-hosted fonts keep the same name when their bytes change."""
+    page = _cache_for("/datasets/x-1/")
+    for path in ["/lib/gov-explorer.js", "/lib/echarts.min.js", "/lib/leaflet.css",
+                 "/lib/images/marker-icon.png", "/icons/arrow-left.svg", "/favicon.svg",
+                 "/apple-touch-icon.png", "/og-default.png", "/web-app-manifest-512x512.png",
+                 "/fonts/rubik-var-hebrew.woff2"]:
+        cc = _cache_for(path)
+        assert cc == page, (path, cc)
