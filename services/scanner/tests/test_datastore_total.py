@@ -114,6 +114,41 @@ async def test_unparseable_body_raises():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("status,body", [
+    (403, None),                                        # WAF HTML page
+    (404, None),                                        # proxy HTML page
+    (403, {"success": False, "error": {"__type": "Not Found Error"}}),
+    (404, {"message": "not a CKAN envelope"}),
+])
+async def test_4xx_without_ckan_error_body_raises(status, body):
+    client = CKANClient.__new__(CKANClient)
+    client._client = MagicMock()
+    client._client.get = AsyncMock(return_value=_ckan_response(status=status, body=body))
+    client._last_request_time = 0
+    from services.scanner.config import settings as cfg
+    client.config = cfg
+
+    with pytest.raises(CKANError):
+        await client.datastore_total("rid")
+    assert client._client.get.await_count == 1  # a 4xx is not retried
+
+
+@pytest.mark.asyncio
+async def test_403_authorization_error_is_a_definite_no_count():
+    client = CKANClient.__new__(CKANClient)
+    client._client = MagicMock()
+    client._client.get = AsyncMock(return_value=_ckan_response(
+        status=403,
+        body={"success": False, "error": {"__type": "Authorization Error"}},
+    ))
+    client._last_request_time = 0
+    from services.scanner.config import settings as cfg
+    client.config = cfg
+
+    assert await client.datastore_total("rid") is None
+
+
+@pytest.mark.asyncio
 async def test_transient_failure_then_success_returns_total(no_retry_wait):
     client = CKANClient.__new__(CKANClient)
     client._client = MagicMock()
@@ -220,3 +255,18 @@ def test_definite_no_count_overwrites_stored_count():
 def test_fresh_count_overwrites_stored_count():
     doc = _scan_with_stored({"record_count": 1234}, AsyncMock(return_value=99))
     assert doc["record_count"] == 99
+
+
+@pytest.mark.parametrize("status", [403, 404])
+def test_4xx_html_reply_keeps_stored_count(status):
+    async def total(rid):
+        client = CKANClient.__new__(CKANClient)
+        client._client = MagicMock()
+        client._client.get = AsyncMock(return_value=_ckan_response(status=status))
+        client._last_request_time = 0
+        from services.scanner.config import settings as cfg
+        client.config = cfg
+        return await client.datastore_total(rid)
+
+    doc = _scan_with_stored({"record_count": 1234}, total)
+    assert doc["record_count"] == 1234

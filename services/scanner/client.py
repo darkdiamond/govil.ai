@@ -184,10 +184,11 @@ class CKANClient:
         with an estimation threshold past any table, so `result.total` is an
         exact count, and returns it. Returns `None` when CKAN answers that
         there is no count: resources that aren't in the datastore (PDF, ZIP,
-        ...), other 4xx responses, `success: false`. Raises `CKANError` when
+        ...), i.e. a 4xx carrying CKAN's `success: false` envelope (for a 403,
+        its Authorization Error), or `success: false`. Raises `CKANError` when
         it couldn't ask (transport errors, 5xx, 408, 429 after the shared
-        retries, or an unparseable body), so the caller can keep the count it
-        already has.
+        retries, an unparseable body, or a 4xx without CKAN's error body), so
+        the caller can keep the count it already has.
         """
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")
@@ -205,12 +206,24 @@ class CKANClient:
                 f"datastore_search unavailable for {resource_id}: "
                 f"{exc.last_attempt.exception()!r}") from exc
 
-        if response.status_code >= 400:
-            return None
         try:
             data = response.json()
         except ValueError as exc:
-            raise CKANError(f"datastore_search returned no JSON for {resource_id}") from exc
+            raise CKANError(
+                f"datastore_search HTTP {response.status_code} without JSON for {resource_id}"
+            ) from exc
+        if response.status_code >= 400:
+            # Only CKAN's own error envelope is a definite answer. A 4xx page
+            # from the WAF or a proxy says nothing about the count; a 403 counts
+            # only with CKAN's Authorization Error (as in `_probe`).
+            definite = isinstance(data, dict) and data.get("success") is False
+            if response.status_code == 403:
+                definite = definite and is_authorization_error(data)
+            if not definite:
+                raise CKANError(
+                    f"datastore_search HTTP {response.status_code} without CKAN's "
+                    f"error body for {resource_id}")
+            return None
         if not data.get("success"):
             return None
         total = (data.get("result") or {}).get("total")
