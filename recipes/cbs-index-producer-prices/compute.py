@@ -141,6 +141,16 @@ def _sp(v, digits=1):
     return fmt.signed_pct(float(v) / 100, digits)
 
 
+def _isp(v, digits=1):
+    """_sp isolated for a Hebrew sentence, so bidi keeps the sign before the number."""
+    return fmt.isolate(_sp(v, digits))
+
+
+def _iss(fraction):
+    """fmt.signed_pct isolated for a Hebrew sentence."""
+    return fmt.isolate(fmt.signed_pct(fraction))
+
+
 def _p(v, digits=1):
     """Unsigned percent with U+2212 for negatives (for chart tables)."""
     s = f"{float(v):.{digits}f}"
@@ -219,9 +229,9 @@ def insight_latest(head, xf, latest):
     tail = ""
     xpy = _at(xf, latest, "py") if xf else None
     if xpy is not None:
-        tail = f" ללא דלקים: {_sp(xpy)} בשנה."
+        tail = f" ללא דלקים: {_isp(xpy)} בשנה."
     return (f"ב{fmt.month_he(latest)} מדד מחירי תפוקת התעשייה {move}, "
-            f"ושיעור השינוי ב-12 החודשים האחרונים הוא {_sp(py)}.{tail}")
+            f"ושיעור השינוי ב-12 החודשים האחרונים הוא {_isp(py)}.{tail}")
 
 
 def insight_fuel(head, xf, refined, latest):
@@ -232,10 +242,10 @@ def insight_fuel(head, xf, refined, latest):
         return None
     way = "דוחפים את המדד הכללי כלפי מעלה" if a > b else "מושכים את המדד הכללי כלפי מטה"
     ref = _at(refined, latest, "py") if refined else None
-    tail = (f" שיעור השינוי במחירי מוצרי הנפט המזוקק: {_sp(ref)} בשנה."
+    tail = (f" שיעור השינוי במחירי מוצרי הנפט המזוקק: {_isp(ref)} בשנה."
             if ref is not None else "")
-    return (f"הדלקים {way}: שיעור השינוי ב-12 החודשים האחרונים הוא {_sp(a)} במדד הכללי, "
-            f"לעומת {_sp(b)} ללא דלקים, פער של {abs(a - b):.1f} נקודות אחוז.{tail}")
+    return (f"הדלקים {way}: שיעור השינוי ב-12 החודשים האחרונים הוא {_isp(a)} במדד הכללי, "
+            f"לעומת {_isp(b)} ללא דלקים, פער של {abs(a - b):.1f} נקודות אחוז.{tail}")
 
 
 def insight_branches(rank):
@@ -247,8 +257,8 @@ def insight_branches(rank):
     if top["py"] <= 0 or low["py"] >= 0:
         return None
     return (f"ב-12 החודשים האחרונים עלו המחירים ב-{up:,} מתוך {len(rank):,} ענפי התעשייה "
-            f"וירדו ב-{down:,}. העלייה החדה ביותר: {top['label']} ({_sp(top['py'])}); "
-            f"הירידה החדה ביותר: {low['label']} ({_sp(low['py'])}).")
+            f"וירדו ב-{down:,}. העלייה החדה ביותר: {top['label']} ({_isp(top['py'])}); "
+            f"הירידה החדה ביותר: {low['label']} ({_isp(low['py'])}).")
 
 
 def insight_subs(subs, min_abs=5.0):
@@ -279,7 +289,7 @@ def insight_long(long_e, latest_long):
     peak = ""
     if not py.empty:
         pt = py.idxmax()
-        peak = (f" שיעור השינוי השנתי הגבוה ביותר: {_sp(py.max())} ב{fmt.month_he(pt)}.")
+        peak = (f" שיעור השינוי השנתי הגבוה ביותר: {_isp(py.max())} ב{fmt.month_he(pt)}.")
     return (f"מ{fmt.month_he(t0)} עד {fmt.month_he(t1)} עלו מחירי היצרן בתעשייה ובכרייה "
             f"פי {ratio:.2f}, כ-{fmt.pct(cagr)} בממוצע לשנה.{peak}")
 
@@ -306,7 +316,7 @@ def insight_streak(head, latest):
         return None
     total = float(v[latest]) / float(v[t_before]) - 1
     return (f"{n:,} חודשים רצופים של {word} במדד מחירי תפוקת התעשייה, "
-            f"מאז {fmt.month_he(start)}: {fmt.signed_pct(total)} במצטבר.")
+            f"מאז {fmt.month_he(start)}: {_iss(total)} במצטבר.")
 
 
 def insight_cumulative(mult, start):
@@ -316,9 +326,9 @@ def insight_cumulative(mult, start):
     if top["chg"] <= 0:
         return None
     return (f"מאז {fmt.month_he(start)} התייקרו בעיקר {top['label']} "
-            f"({fmt.signed_pct(top['chg'])}), ואילו {low['label']} "
+            f"({_iss(top['chg'])}), ואילו {low['label']} "
             + ("הוזלו" if low["chg"] < 0 else "עלו הכי מעט")
-            + f" ({fmt.signed_pct(low['chg'])}).")
+            + f" ({_iss(low['chg'])}).")
 
 
 def insight_volatility(vol, head_std, months):
@@ -479,8 +489,8 @@ def compute(frames):
         lo = py.idxmin()
         labels["yy_note"] = (
             f"שיעור השינוי של המדד לעומת אותו חודש בשנה הקודמת, כפי שפרסמה הלמ\"ס. "
-            f"הפער בין שני הקווים הוא השפעת מחירי הדלקים. הגבוה ביותר: {_sp(py.max())} "
-            f"({fmt.month_he(hi)}); הנמוך ביותר: {_sp(py.min())} ({fmt.month_he(lo)}).")
+            f"הפער בין שני הקווים הוא השפעת מחירי הדלקים. הגבוה ביותר: {_isp(py.max())} "
+            f"({fmt.month_he(hi)}); הנמוך ביותר: {_isp(py.min())} ({fmt.month_he(lo)}).")
         labels["yy_aria"] = (
             f"גרף קווי: שיעור השינוי השנתי במדד מחירי יצרן, כולל דלקים וללא דלקים, "
             f"מ-{idx[0].year} עד {idx[-1].year}. שיא {_sp(py.max())} ב{fmt.month_he(hi)}.")
@@ -518,7 +528,7 @@ def compute(frames):
                            fmt.num_he(r["v"], 1) if r["v"] is not None else "–"] for r in rank]
         labels["rank_note"] = (
             f"השינוי במחירי כל ענף ראשי ב-12 החודשים עד {m_txt}, כפי שפורסם. "
-            f"הקו המקווקו: {head['label']} ({_sp(h_py) if h_py is not None else '–'}).")
+            f"הקו המקווקו: {head['label']} ({_isp(h_py) if h_py is not None else '–'}).")
         labels["rank_aria"] = (
             f"תרשים עמודות אופקי: {len(rank):,} ענפי התעשייה לפי שינוי המחירים ב-12 חודשים. "
             f"בראש {rank[0]['label']} ({_sp(rank[0]['py'])}), בתחתית {rank[-1]['label']} "
@@ -709,7 +719,7 @@ def compute(frames):
         f"מדד מחירי יצרן (מדד המחירים הסיטוניים של תפוקת התעשייה ליעדים מקומיים) מודד את "
         f"המחירים שמקבלים היצרנים בישראל על מה שהם מוכרים בשוק המקומי. "
         f"הנתון האחרון הוא ל{m_txt}: המדד "
-        + (f"השתנה בשיעור של {_sp(h_p)} בחודש ושל {_sp(h_py)} ב-12 חודשים" if h_p is not None and h_py is not None
+        + (f"השתנה בשיעור של {_isp(h_p)} בחודש ושל {_isp(h_py)} ב-12 חודשים" if h_p is not None and h_py is not None
            else f"עומד על {fmt.num_he(h_v, 1)}")
         + f". בעמוד: {len(rank):,} ענפים ראשיים ו-{len(subs):,} ענפי משנה, ונתונים מ-{t_first.year}. "
         f"מקור הנתונים: הלשכה המרכזית לסטטיסטיקה, מאגר המדדים.")

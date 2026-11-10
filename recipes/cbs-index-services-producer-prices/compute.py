@@ -74,6 +74,11 @@ def _pct(v):
     return fmt.signed_pct(v / 100.0)
 
 
+def _ipct(v):
+    """_pct isolated for Hebrew text, so bidi keeps the sign before the number."""
+    return fmt.isolate(_pct(v))
+
+
 def _qlabel(k):
     y, q = divmod(k, 4)
     return f"רבעון {q + 1} {y}"
@@ -222,7 +227,7 @@ def compute(frames):
             insights.append({"id": "leader", "text_he": (
                 (f"{qp} עלו מחירי {series[top]['label']} ב-{fmt.num_he(tv)}% לעומת הרבעון המקביל "
                  f"אשתקד, הקצב המהיר ביותר בענפים הראשיים. " if tv > 0 else
-                 f"{qp} השינוי השנתי הגבוה בענפים הראשיים הוא ב{series[top]['label']}: {_pct(tv)}. ")
+                 f"{qp} השינוי השנתי הגבוה בענפים הראשיים הוא ב{series[top]['label']}: {_ipct(tv)}. ")
                 + f"בקצה השני, {series[bot]['label']}: "
                 + (f"ירידה של {fmt.num_he(abs(bv))}%." if bv < 0 else
                    (f"עלייה של {fmt.num_he(bv)}% בלבד." if bv > 0 else "ללא שינוי."))
@@ -234,7 +239,7 @@ def compute(frames):
                 tail = " באף ענף ראשי המחירים לא ירדו."
             insights.append({"id": "breadth", "text_he": (
                 f"ב-{len(up)} מתוך {len(main_ranked)} הענפים הראשיים המחירים {qp} "
-                f"גבוהים מאשר שנה קודם לכן, והחציון הוא {_pct(med)}.{tail}"
+                f"גבוהים מאשר שנה קודם לכן, והחציון הוא {_ipct(med)}.{tail}"
             )})
 
     # ── largest quarterly move in the latest quarter ────────────────────
@@ -360,8 +365,8 @@ def compute(frames):
                 if med_y[hy] - med_y[ly] >= 2 and med_y[hy] > 0:
                     insights.append({"id": "annual", "text_he": (
                         f"בממוצע שנתי, {hy} הייתה השנה שבה התייקרו השירותים הכי מהר "
-                        f"(חציון של {_pct(med_y[hy])} בין הענפים), ו-{ly} השנה האיטית ביותר "
-                        f"({_pct(med_y[ly])})."
+                        f"(חציון של {_ipct(med_y[hy])} בין הענפים), ו-{ly} השנה האיטית ביותר "
+                        f"({_ipct(med_y[ly])})."
                     )})
     else:
         ann_flag = False
@@ -380,8 +385,8 @@ def compute(frames):
         sp_med.append(round(m, 2))
         sp_n.append(len(vs))
         spreads.append((k, vs[-1][0] - vs[0][0]))
-        sp_rows.append([_qlabel(k), str(len(vs)), _pct(vs[0][0]) + " (" + series[vs[0][1]]["label"] + ")",
-                        _pct(m), _pct(vs[-1][0]) + " (" + series[vs[-1][1]]["label"] + ")"])
+        sp_rows.append([_qlabel(k), str(len(vs)), _ipct(vs[0][0]) + " (" + series[vs[0][1]]["label"] + ")",
+                        _pct(m), _ipct(vs[-1][0]) + " (" + series[vs[-1][1]]["label"] + ")"])
     spread_flag = len(sp_x) >= 8
     if spread_flag:
         spread_chart = {"x": sp_x, "min": sp_min, "med": sp_med, "max": sp_max, "n": sp_n}
@@ -466,7 +471,7 @@ def compute(frames):
                 fmt.num_he(lines[c][k - gstart]) if lines[c][k - gstart] is not None else "–"
                 for c in members])
         yoy = [(c, py_at(c, latest)) for c in members if py_at(c, latest) is not None]
-        yoy_txt = "; ".join(f"{series[c]['label']} {_pct(v)}" for c, v in yoy)
+        yoy_txt = "; ".join(f"{series[c]['label']} {_ipct(v)}" for c, v in yoy)
         note = (f"כל מדד חולק ברמתו ב{_qlabel(gstart)}, הרבעון הראשון שבו פורסמו כל "
                 f"המדדים בקבוצה, כך שכולם מתחילים ב-100.")
         if yoy_txt:
@@ -483,15 +488,15 @@ def compute(frames):
                                   "parent": c == par} for c in members]},
         })
         kids = [(c, v) for c, v in yoy if c != par and c in subs and PARENT.get(c) == par
-                and c != "194350"]
+                and c not in VARIANT]
         if len(kids) >= 2:
             kids.sort(key=lambda t: (-t[1], series[t[0]]["label"]))
             (hc, hv), (lc, lv) = kids[0], kids[-1]
             if hv - lv >= 3:
                 group_ins.append((hv - lv, par, {"id": f"group_{par}", "text_he": (
                     f"בתוך {series[par]['label']} הכיוון אינו אחיד: {qp} "
-                    f"השינוי השנתי ב{series[hc]['label']} הוא {_pct(hv)}, "
-                    f"ואילו ב{series[lc]['label']} {_pct(lv)}."
+                    f"השינוי השנתי ב{series[hc]['label']} הוא {_ipct(hv)}, "
+                    f"ואילו ב{series[lc]['label']} {_ipct(lv)}."
                 )}))
 
     group_ins.sort(key=lambda t: (-t[0], t[1]))
