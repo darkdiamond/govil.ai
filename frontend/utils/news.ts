@@ -81,7 +81,11 @@ export function newsDate(iso?: string | null, withTime = false): string {
 // the publisher already allow only official https pages and our own paths).
 export function safeHref(href?: string | null): string | null {
   if (!href) return null;
-  if (href.startsWith("/") && !href.startsWith("//")) return href;
+  // A same-origin path, but not "//host" or "/\host": browsers drop tabs
+  // and newlines from URLs and read a backslash as a slash, so both of those
+  // are protocol-relative links to another host.
+  const path = href.replace(/[\t\n\r]/g, "");
+  if (path.startsWith("/") && !/^\/[/\\]/.test(path)) return path;
   try {
     const u = new URL(href);
     return u.protocol === "https:" || u.protocol === "http:"
