@@ -1586,6 +1586,57 @@ def test_queue_authoring_reuses_issue_unless_closed_completed(env, monkeypatch, 
     assert len(env.issues) == (0 if reused else 1)
 
 
+def _github_http(monkeypatch, get_status, get_body):
+    """Stub GitHub's REST calls (not notify's functions): GET reads the
+    recorded issue, POST opens a new one as #88."""
+    import httpx
+    monkeypatch.setenv("GITHUB_DISPATCH_TOKEN", "tok")
+    monkeypatch.setenv("PUBLISH_GITHUB_REPO", "o/r")
+    posted = []
+
+    def resp(status, body):
+        return SimpleNamespace(status_code=status, json=lambda: body, text=str(body))
+
+    def post(url, json, **kw):
+        posted.append(json)
+        return resp(201, {"number": 88, "labels": [{"name": "needs-authoring"}]})
+
+    monkeypatch.setattr(httpx, "get", lambda url, **kw: resp(get_status, get_body))
+    monkeypatch.setattr(httpx, "post", post)
+    return posted
+
+
+@pytest.mark.parametrize("status,body,reused", [
+    (200, {"state": "closed", "state_reason": "duplicate"}, True),
+    (200, {"state": "closed", "state_reason": "completed"}, False),
+    (404, {"message": "Not Found"}, False),
+    (410, {"message": "This issue was deleted"}, False),
+    (502, {"message": "bad gateway"}, True),
+])
+def test_queue_authoring_duplicate_and_deleted_issues(monkeypatch, status, body, reused):
+    """Closed as duplicate is respected like not planned; a deleted issue
+    (404/410) leaves no live issue, so a new one opens and is recorded."""
+    posted = _github_http(monkeypatch, status, body)
+    store = FakeStore(_src())
+    store.states[DS] = {"authoring_status": "notified", "authoring_issue": 5}
+    number = rf.queue_authoring(store, store.src, "recipe_failed")
+    st = store.states[DS]
+    assert number == (5 if reused else 88)
+    assert st["authoring_issue"] == number and st["authoring_status"] == "notified"
+    assert len(posted) == (0 if reused else 1)
+
+
+def test_queue_authoring_provider_issue_title_and_link(monkeypatch):
+    posted = _github_http(monkeypatch, 404, {})
+    src = SimpleNamespace(**{**vars(_src()), "id": "cbs-index-cpi", "provider": "cbs_index",
+                             "source_url": "https://www.cbs.gov.il/he/cpi"})
+    store = FakeStore(src)
+    assert rf.queue_authoring(store, src, "recipe_failed") == 88
+    assert posted[0]["title"] == f"[author] {src.title} (cbs-index-cpi)"
+    assert "- source: https://www.cbs.gov.il/he/cpi" in posted[0]["body"]
+    assert "data.gov.il/dataset/" not in posted[0]["body"]
+
+
 def test_successful_refresh_clears_the_recorded_issue(env):
     store = FakeStore(_src())
     store.states[DS] = {"authoring_status": "notified", "authoring_issue": 5}

@@ -1763,13 +1763,14 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
 
     A recorded issue is reused while it is open or was closed as not
     planned. One closed as completed means a recipe PR landed and this is a
-    new need (e.g. the recipe later failed), so a fresh issue is opened."""
+    new need (e.g. the recipe later failed), so a fresh issue is opened, as
+    when the recorded issue was deleted."""
     from . import notify as _notify
 
     state = RefreshState.from_dict(store.get_refresh_state(src.id))  # fresh: guards duplicate issues
     store.mark_authoring_needed(src.id, reason)
     recorded = state.authoring_issue
-    if recorded and _notify.issue_state(int(recorded)) != "completed":
+    if recorded and _notify.issue_state(int(recorded)) not in ("completed", "gone"):
         # Back to `notified`, which mark_authoring_needed just overwrote:
         # the daily queue skips notified sources.
         store.set_authoring_issue(src.id, int(recorded))
@@ -1780,6 +1781,7 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
         org=(src.organization or {}).get("title", "") or "",
         reason=reason,
         detail=detail,
+        source_url=getattr(src, "source_url", None),
     )
     if number is not None:
         store.set_authoring_issue(src.id, number)
