@@ -67,6 +67,13 @@ const images = [hero.sizes["16x9"], hero.sizes["4x3"], hero.sizes["1x1"]]
   .map(abs)
   .filter(Boolean) as string[];
 const updated = article.value.updated_at !== article.value.published_at;
+// Plain URLs, not typed Dataset nodes: Google validates every Dataset node it
+// finds and requires description/license/creator, which article.json doesn't
+// carry. The dataset page itself has the full Dataset. encodeURI matches
+// buildDatasetLdSummary's form of the same URLs.
+const basedOn = article.value.datasets
+  .filter((d) => d.href)
+  .map((d) => encodeURI(`${SITE_URL}${d.href}`));
 
 useSeo({
   title: article.value.headline,
@@ -110,12 +117,7 @@ useSeo({
         url: `${SITE_URL}/web-app-manifest-512x512.png`,
       },
     },
-    // Plain URLs, not typed Dataset nodes: Google validates every
-    // Dataset node it finds and requires description/license/creator, which
-    // article.json doesn't carry. The dataset page itself has the full Dataset.
-    isBasedOn: article.value.datasets
-      .filter((d) => d.href)
-      .map((d) => `${SITE_URL}${d.href}`),
+    ...(basedOn.length ? { isBasedOn: basedOn } : {}),
   },
 });
 </script>
