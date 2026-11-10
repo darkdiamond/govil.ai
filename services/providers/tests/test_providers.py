@@ -105,6 +105,42 @@ def test_providers_are_off_unless_enabled():
     assert list(on) == ["boi_sdmx"] and isinstance(on["boi_sdmx"], BoiSdmxProvider)
 
 
+def test_bad_setting_on_disabled_provider_is_ignored():
+    on = build_providers({"PROVIDER_BOI_SDMX_ENABLED": "true",
+                          "PROVIDER_CBS_INDEX_TIMEOUT_S": "60s"})
+    assert list(on) == ["boi_sdmx"]
+
+
+def test_bad_setting_drops_only_that_provider(caplog):
+    with caplog.at_level("ERROR", logger="providers"):
+        on = build_providers({"PROVIDER_BOI_SDMX_ENABLED": "true",
+                              "PROVIDER_CBS_INDEX_ENABLED": "true",
+                              "PROVIDER_CBS_INDEX_TIMEOUT_S": "60s"})
+    assert list(on) == ["boi_sdmx"]
+    assert "cbs_index" in caplog.text
+
+
+def test_bad_enabled_value_leaves_provider_off(caplog):
+    with caplog.at_level("ERROR", logger="providers"):
+        on = build_providers({"PROVIDER_BOI_SDMX_ENABLED": "yes please",
+                              "PROVIDER_CBS_INDEX_ENABLED": "true"})
+    assert list(on) == ["cbs_index"]
+    assert "boi_sdmx" in caplog.text
+
+
+def test_enabled_providers_cached_after_a_bad_setting(monkeypatch):
+    from services.providers import registry
+    monkeypatch.setattr(registry, "_enabled", None)
+    monkeypatch.setenv("PROVIDER_BOI_SDMX_ENABLED", "true")
+    monkeypatch.setenv("PROVIDER_CBS_INDEX_ENABLED", "true")
+    monkeypatch.setenv("PROVIDER_CBS_INDEX_TIMEOUT_S", "60s")
+    first = registry.enabled_providers()
+    assert list(first) == ["boi_sdmx"]
+    monkeypatch.setattr(registry, "build_providers", lambda *a, **k: 1 / 0)
+    assert registry.enabled_providers() is first
+    assert registry.provider_for_key("cbs_index") is None
+
+
 def test_id_prefix_claims_ids():
     assert provider_for_id("boi-interest-rate") is BoiSdmxProvider
     assert provider_for_id("11111111-2222-3333-4444-555555555555") is None
