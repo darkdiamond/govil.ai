@@ -24,6 +24,13 @@ This repo is public: describe a security gap by what to change, never by how to 
   the reconcile probes. Fix: one User-Agent source in `services/shared/ckan.py`, after checking from
   Cloud Run that the builder UA passes the CKAN API for the scan's calls too. (2026-11-10)
 
+- **Blank CKAN resource formats are inferred only at render time.** Some resources have an
+  empty `format` (02789da8 and d6b5032b .docx docs, 0180a8e4 .rar on 2026-11-10); the frontend's
+  `resourceFormat()` (`frontend/utils/resource-url.ts`) falls back to the URL extension for the
+  download badge, explorer and JSON-LD `encodingFormat`, but Firestore and the manifest's
+  `formats` stay blank. Fix: the same fallback in the scanner (`services/scanner/models.py`, next
+  to `_public_resource_url`), keeping the frontend helper as its mirror. (2026-11-10)
+
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
   level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32
