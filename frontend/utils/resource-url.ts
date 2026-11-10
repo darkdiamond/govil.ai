@@ -46,6 +46,6 @@ export function resourceFormat(r: {
   } catch {
     return "";
   }
-  const ext = path.split("/").pop()?.match(URL_EXT)?.[1].toUpperCase() ?? "";
+  const ext = (path.split("/").pop()?.match(URL_EXT)?.[1] ?? "").toUpperCase();
   return PAGE_EXTS.has(ext) ? "" : ext;
 }
