@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type FuseT from "fuse.js";
 import type { SlimEntry } from "~/types/manifest";
-import { loadSearchIndex } from "~/utils/search-index";
+import { loadSearchIndex, memoRetry } from "~/utils/search-index";
 import {
   normalizeSearchText,
   queryVariants,
@@ -33,12 +33,11 @@ const panelEl = ref<HTMLElement | null>(null);
 // the user opens the search popover, so both load on first toggle rather than
 // being bundled into the layout chunk. This runs client-side only — the
 // popover is never part of prerendered HTML.
+// A failed load is not memoized (memoRetry), so the next open retries.
 const fuse = shallowRef<FuseT<SearchDoc> | null>(null);
-let fusePromise: Promise<void> | null = null;
 
-function ensureFuse(): Promise<void> {
-  if (fusePromise) return fusePromise;
-  fusePromise = Promise.all([import("fuse.js"), loadSearchIndex()]).then(
+const ensureFuse = memoRetry((): Promise<void> =>
+  Promise.all([import("fuse.js"), loadSearchIndex()]).then(
     ([{ default: Fuse }, index]) => {
       const docs: SearchDoc[] = index.datasets.map((entry) => ({
         entry,
@@ -62,9 +61,8 @@ function ensureFuse(): Promise<void> {
         ignoreLocation: true,
       });
     }
-  );
-  return fusePromise;
-}
+  )
+);
 
 interface SearchResults {
   items: SlimEntry[];
@@ -126,7 +124,8 @@ watch(results, () => {
 function toggle() {
   open.value = !open.value;
   if (open.value) {
-    ensureFuse();
+    // On failure the popover keeps its empty state; reopening retries.
+    ensureFuse().catch(() => {});
     nextTick(() => inputEl.value?.focus());
   }
 }

@@ -7,7 +7,7 @@ const route = useRoute()
 const slug = computed(() => String(route.params.slug))
 
 // Bake only this ministry's slim entries into the page payload.
-const { data } = await useAsyncData(`ministry-${slug.value}`, async () => {
+const { data, error } = await useAsyncData(`ministry-${slug.value}`, async () => {
   const index = await loadSearchIndex()
   return index.datasets.filter((d) => d.organization_slug === slug.value)
 })
@@ -15,6 +15,10 @@ const { data } = await useAsyncData(`ministry-${slug.value}`, async () => {
 const entries = computed(() => data.value ?? [])
 const ministryTitle = computed(() => entries.value[0]?.organization ?? slug.value)
 
+// A failed fetch on client-side navigation (offline, 5xx) is not a 404.
+if (error.value) {
+  throw createError({ statusCode: 503, statusMessage: 'Ministry unavailable', fatal: true })
+}
 if (entries.value.length === 0) {
   throw createError({ statusCode: 404, statusMessage: 'Ministry not found', fatal: true })
 }
