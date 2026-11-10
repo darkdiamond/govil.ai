@@ -539,19 +539,31 @@ onMounted(async () => {
 
 <template>
   <div>
-    <nav aria-label="breadcrumb" class="border-b border-rule bg-white">
-      <div class="max-w-gov mx-auto px-4 py-2 text-xs text-subtle">
-        <NuxtLink to="/">ראשי</NuxtLink>
-        <template v-if="entry.organization && entry.organization_slug">
+    <div class="border-b border-rule bg-white">
+      <div
+        class="max-w-gov mx-auto px-4 py-1.5 text-xs text-subtle flex items-center gap-3"
+      >
+        <nav aria-label="breadcrumb" class="min-w-0 flex-1">
+          <NuxtLink to="/">ראשי</NuxtLink>
+          <template v-if="entry.organization && entry.organization_slug">
+            <span class="mx-1">›</span>
+            <NuxtLink :to="`/ministries/${entry.organization_slug}/`">{{
+              entry.organization
+            }}</NuxtLink>
+          </template>
           <span class="mx-1">›</span>
-          <NuxtLink :to="`/ministries/${entry.organization_slug}/`">{{
-            entry.organization
-          }}</NuxtLink>
-        </template>
-        <span class="mx-1">›</span>
-        <span>{{ datasetName(entry) }}</span>
+          <span>{{ datasetName(entry) }}</span>
+        </nav>
+        <ShareButton
+          class="shrink-0"
+          :url="datasetUrl"
+          :title="datasetName(entry)"
+          :text="seoDescription"
+          content-type="dataset"
+          :item-id="entry.id"
+        />
       </div>
-    </nav>
+    </div>
 
     <div
       class="max-w-gov mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-8"
