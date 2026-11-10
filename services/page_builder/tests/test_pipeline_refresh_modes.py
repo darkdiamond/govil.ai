@@ -332,8 +332,8 @@ def test_refresh_failure_outranks_a_failed_scan(harness, monkeypatch):
 
 
 def test_run_status_precedence():
-    kw = {"refresh_broken": False, "scan_failed": False, "authoring_broken": False,
-          "reconcile_failed": False, "refreshed": False}
+    kw = {"refresh_broken": False, "publish_failed": False, "scan_failed": False,
+          "authoring_broken": False, "reconcile_failed": False, "refreshed": False}
     assert pipeline._run_status(**kw) == "idle"
     assert pipeline._run_status(**{**kw, "refreshed": True}) == "ok"
     assert pipeline._run_status(**{**kw, "reconcile_failed": True, "refreshed": True}) \
@@ -342,6 +342,10 @@ def test_run_status_precedence():
                                    "authoring_broken": True}) == "authoring_failed"
     assert pipeline._run_status(**{**kw, "authoring_broken": True,
                                    "scan_failed": True}) == "scan_failed"
+    assert pipeline._run_status(**{**kw, "scan_failed": True,
+                                   "publish_failed": True}) == "publish_failed"
+    assert pipeline._run_status(**{**kw, "publish_failed": True,
+                                   "refresh_broken": True}) == "refresh_failed"
     assert pipeline._run_status(**{**kw, "scan_failed": True,
                                    "refresh_broken": True}) == "refresh_failed"
 
@@ -401,3 +405,72 @@ def test_clean_reconcile_records_the_marker(harness, monkeypatch):
                               "aborted": None})
     s = _run()
     assert s["status"] == "idle" and markers and markers[0][0] == "reconcile"
+
+
+# ── a publish or an authoring issue that didn't go out ───────────────────────
+
+
+def _dispatch_returns_none(monkeypatch):
+    async def _none(*a, **kw):
+        return None  # a missing token, a non-204 reply or a transport error
+
+    monkeypatch.setattr(pipeline, "_trigger_publish_github", _none)
+
+
+def test_failed_dispatch_fails_the_run(harness, monkeypatch):
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    _dispatch_returns_none(monkeypatch)
+    s = _run()
+    assert s["build_id"] is None
+    assert s["status"] == "publish_failed" and s["status"] in pipeline.FAILED_RUN_STATUSES
+
+
+def test_failed_cloudbuild_trigger_fails_the_run(harness, monkeypatch):
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    monkeypatch.setenv("PUBLISH_VIA", "cloudbuild")
+
+    async def _none(*a, **kw):
+        return None
+
+    monkeypatch.setattr(pipeline, "_trigger_publish", _none)
+    assert _run()["status"] == "publish_failed"
+
+
+def test_unknown_publish_via_fails_a_due_publish(harness, monkeypatch):
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    monkeypatch.setenv("PUBLISH_VIA", "netlify")
+    s = _run()
+    assert s["status"] == "publish_failed" and not harness.published
+
+
+def test_publishing_off_keeps_the_run_green(harness, monkeypatch):
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    _dispatch_returns_none(monkeypatch)
+    assert _run(skip_publish=True)["status"] == "ok"
+    monkeypatch.setenv("PUBLISH_VIA", "")
+    assert _run()["status"] == "ok"
+
+
+def test_no_refresh_means_no_publish_failure(harness, monkeypatch):
+    harness.selected = []
+    _dispatch_returns_none(monkeypatch)
+    assert _run()["status"] == "idle"
+
+
+def test_unopened_issue_marks_authoring_failed(harness, monkeypatch):
+    harness.refreshed = ["rec1"]
+    monkeypatch.setenv("GITHUB_DISPATCH_TOKEN", "tok")
+    monkeypatch.setattr(rf, "queue_authoring", lambda store, src, reason, **kw: None)
+    s = _run()
+    assert s["status"] == "authoring_failed" and harness.published
+
+
+def test_unopened_issue_without_a_token_stays_green(harness, monkeypatch):
+    # A local run with no GitHub token can't open issues; that alone isn't a failure.
+    monkeypatch.delenv("GITHUB_DISPATCH_TOKEN", raising=False)
+    monkeypatch.setattr(rf, "queue_authoring", lambda store, src, reason, **kw: None)
+    assert _run()["status"] == "idle"
