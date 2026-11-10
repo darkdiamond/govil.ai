@@ -8,6 +8,12 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
+  hardcoded Chrome User-Agent, while the builder's fetches (`agent_contract._CKAN_BROWSER_UA`) use
+  `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and
+  the reconcile probes. Fix: one User-Agent source in `services/shared/ckan.py`, after checking from
+  Cloud Run that the builder UA passes the CKAN API for the scan's calls too. (2026-11-10)
+
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
   level 1954-2023 (70 files, 85MB) and chloride 1977-2020 (35 files, 38MB), 527×1250 float32

@@ -72,7 +72,16 @@ landing pages. Six layers:
    page is a recipe render.
    `pipeline.run_pipeline` drives:
    reconcile sweep (weekly, `RECONCILE_*`; once per IL day via the
-   `job_state/reconcile` marker, so only the first Sunday run sweeps) → scan → reap legacy
+   `job_state/reconcile` marker, so only the first Sunday run sweeps. A 403
+   counts as removed only with CKAN's Authorization Error body; any other 403
+   is `blocked` (the WAF). It probes everything first and flips nothing when
+   more than `RECONCILE_MAX_FLIPS` (20) pages would go unavailable or that many
+   probes were blocked; a crashed or aborted sweep ends the run
+   `status: reconcile_failed` and writes no marker, so the next run retries)
+   → scan (guarded: one dataset's failure is recorded in `scan_runs.error` and
+   the scan goes on; 20 in a row, or a listing failure, stop it. Either way
+   the rest of the run goes ahead on the Firestore docs already there and
+   ends `status: scan_failed`) → reap legacy
    `pending` markers (`PENDING_REAP_MINUTES`; nothing writes `pending`
    any more, this only drains the set the retired agent builder left) →
    **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
@@ -95,8 +104,11 @@ landing pages. Six layers:
    source, capped by `AUTHORING_NOTIFY_CAP`=100 new issues/run (so ≤200/day) — a fuse
    against a scan anomaly flooding the tracker) → publish dispatch **only
    if ≥1 page re-rendered** (`status: ok`; otherwise `status: idle`,
-   dispatch skipped — a healthy outcome). A recipe merged to `main` is
-   picked up on the next run; no redeploy.
+   dispatch skipped — a healthy outcome). One status per run, first match
+   wins: `refresh_unavailable` → `refresh_failed` → `scan_failed` →
+   `authoring_failed` → `reconcile_failed` → `ok`/`idle` (all but the last two
+   exit non-zero; a dry run with a failed scan reports `scan_failed`). A
+   recipe merged to `main` is picked up on the next run; no redeploy.
    - **A job, not a service.** The old agent batch outgrew Cloud Run's
      3600s request timeout (from 2026-08-01 every tick 504'd at exactly
      3600.000s; the publish dispatch, the last step, lost the race to the

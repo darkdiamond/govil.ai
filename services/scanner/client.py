@@ -17,7 +17,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from services.shared.ckan import EXACT_TOTAL_THRESHOLD
+from services.shared.ckan import EXACT_TOTAL_THRESHOLD, is_authorization_error
 
 from .config import ScannerSettings, settings
 from .models import Dataset
@@ -60,15 +60,21 @@ class CKANClient:
             self._client = None
     
     async def _rate_limit(self) -> None:
-        """Apply rate limiting between requests."""
-        current_time = asyncio.get_event_loop().time()
-        elapsed = current_time - self._last_request_time
-        delay = self.config.ckan_request_delay
-        
-        if elapsed < delay:
-            await asyncio.sleep(delay - elapsed)
-        
-        self._last_request_time = asyncio.get_event_loop().time()
+        """Space requests at least `ckan_request_delay` apart. Serialized by a
+        lock: the reconcile sweep probes concurrently, and without it every
+        waiter would read the same `_last_request_time` and fire together."""
+        # Created on first use, not in __init__: tests build the client with
+        # __new__, and the lock must belong to the running loop.
+        lock = getattr(self, "_rate_lock", None)
+        if lock is None:
+            lock = self._rate_lock = asyncio.Lock()
+        async with lock:
+            loop = asyncio.get_running_loop()
+            elapsed = loop.time() - self._last_request_time
+            delay = self.config.ckan_request_delay
+            if elapsed < delay:
+                await asyncio.sleep(delay - elapsed)
+            self._last_request_time = loop.time()
     
     @retry(
         stop=stop_after_attempt(3),
@@ -233,9 +239,18 @@ class CKANClient:
             return None
 
     async def _probe(self, url: str, params: dict) -> str:
-        """Shared tri-state probe. 403 → "gone", 2xx+success → "alive",
-        anything else (404, 5xx, success:false, parse/transport error) →
-        "unknown" (caller leaves the flag unchanged)."""
+        """Shared probe for the reconcile sweep:
+        - "gone": HTTP 403 whose body is CKAN's Authorization Error envelope
+          (`shared.ckan.is_authorization_error`), i.e. CKAN itself says the
+          data is no longer public;
+        - "blocked": any other 403 (the WAF's HTML page, an empty or foreign
+          body). Never treated as removal: a WAF change refusing our
+          User-Agent would otherwise flip every published page;
+        - "alive": 2xx with `success: true`;
+        - "unknown": anything else (404, 5xx, success:false, parse or
+          transport error); the caller leaves the flag unchanged.
+        Stricter than `agent_contract._http_403_is_restriction` on purpose:
+        that one only skips a render, this one flips a live page."""
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")
         await self._rate_limit()
@@ -244,7 +259,11 @@ class CKANClient:
         except (httpx.HTTPError, httpx.TimeoutException):
             return "unknown"
         if response.status_code == 403:
-            return "gone"
+            try:
+                body = response.json()
+            except ValueError:
+                return "blocked"
+            return "gone" if is_authorization_error(body) else "blocked"
         if response.status_code >= 400:
             return "unknown"
         try:

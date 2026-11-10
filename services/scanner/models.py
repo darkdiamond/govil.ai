@@ -154,7 +154,8 @@ class ScanSummary(BaseModel):
     datasets_new: int = 0
     datasets_updated: int = 0
     datasets_unchanged: int = 0
-    errors: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)  # first MAX_ERRORS_KEPT only
+    error_count: int = 0
     results: list[ScanResult] = Field(default_factory=list)
 
 
