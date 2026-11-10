@@ -10,7 +10,7 @@
 
 import type { ManifestEntry, SeoMeta, SlimEntry } from "~/types/manifest";
 import { buildLicenseLd, type LicenseLd } from "~/utils/dataset-license";
-import { publicResourceUrl } from "~/utils/resource-url";
+import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
 
 // Summary builders accept the slim search-index shape (collection pages no
 // longer carry full ManifestEntry objects). ManifestEntry is structurally
@@ -22,8 +22,12 @@ type LdSource = SlimEntry & { notes?: string; seo?: SeoMeta };
 const SITE_URL = "https://govil.ai";
 const GOV_IL = "https://www.gov.il";
 
+// "Organization", not the more precise "GovernmentOrganization": Google's
+// Dataset validator accepts only Person or Organization for creator and
+// publisher and flags a subtype as "Invalid object type" (Search Console,
+// 2026-11-10). The ministry page's own JSON-LD keeps GovernmentOrganization.
 interface OrgLd {
-  "@type": "GovernmentOrganization";
+  "@type": "Organization";
   name: string;
   url: string;
 }
@@ -98,7 +102,7 @@ export function datasetDescription(entry: LdSource): string {
 export function datasetCreator(entry: LdSource): OrgLd {
   if (!entry.organization) {
     return {
-      "@type": "GovernmentOrganization",
+      "@type": "Organization",
       name: "מדינת ישראל",
       url: GOV_IL,
     };
@@ -106,7 +110,7 @@ export function datasetCreator(entry: LdSource): OrgLd {
   const url = entry.organization_slug
     ? `${SITE_URL}/ministries/${entry.organization_slug}/`
     : GOV_IL;
-  return { "@type": "GovernmentOrganization", name: entry.organization, url };
+  return { "@type": "Organization", name: entry.organization, url };
 }
 
 // The page <title>. Google truncates titles around 60 chars in Hebrew SERPs.
@@ -180,7 +184,8 @@ export function buildDatasetLd(
         "@type": "DataDownload",
         contentUrl: publicResourceUrl(r.url),
       };
-      if (r.format) dist.encodingFormat = r.format;
+      const format = resourceFormat(r);
+      if (format) dist.encodingFormat = format;
       if (r.name) dist.name = r.name;
       if (r.size_bytes) dist.contentSize = String(r.size_bytes);
       return dist;
