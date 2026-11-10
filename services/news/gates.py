@@ -17,6 +17,7 @@ problem.
 """
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
 from pathlib import Path
@@ -355,16 +356,37 @@ def as_markdown(core: dict) -> str:
     return "\n".join(out)
 
 
+RUBRIC = ("news", "framing", "voice", "risk_free", "sourcing")
+
+
+def _strings(x) -> tuple[list[str], bool]:
+    """(x as a list of strings, whether it already was one; absent counts as [])."""
+    if x is None:
+        return [], True
+    if isinstance(x, list):
+        return [str(i)[:500] for i in x], all(isinstance(i, str) for i in x)
+    return [str(x)[:500]], False
+
+
 def critique(llm, core: dict) -> dict:
     style = (PROMPTS / "style_he.md").read_text(encoding="utf-8")
     system = (PROMPTS / "critic.md").read_text(encoding="utf-8") + "\n\n# Style guide\n\n" + style
-    verdict = llm.chat_json([{"role": "system", "content": system},
-                             {"role": "user", "content": as_markdown(core)}], temperature=0.2)
+    try:
+        verdict = llm.chat_json([{"role": "system", "content": system},
+                                 {"role": "user", "content": as_markdown(core)}], temperature=0.2)
+    except ValueError:  # no JSON object in the reply, even after the re-ask
+        verdict = {}
     v = verdict.get("verdict")
-    scores = verdict.get("scores") or {}
-    if v == "pass" and any((not isinstance(s, int | float)) or s < 4 for s in scores.values()):
-        v = "revise"  # the rubric says pass needs every score ≥ 4
+    scores = verdict.get("scores")
+    scores = scores if isinstance(scores, dict) else {}
+    (issues, issues_ok), (fixes, fixes_ok) = _strings(verdict.get("issues")), _strings(verdict.get("fixes"))
+    # A pass needs the whole rubric: every score present, a finite number,
+    # and >= 4. Anything malformed is sent back, never passed.
+    well_formed = (issues_ok and fixes_ok
+                   and all(isinstance(scores.get(k), int | float) and not isinstance(scores.get(k), bool)
+                           and math.isfinite(scores[k]) for k in RUBRIC))
+    if v == "pass" and (not well_formed or any(scores[k] < 4 for k in RUBRIC)):
+        v = "revise"
     if v not in ("pass", "revise", "kill"):
         v = "revise"
-    return {"verdict": v, "scores": scores, "issues": verdict.get("issues") or [],
-            "fixes": verdict.get("fixes") or []}
+    return {"verdict": v, "scores": scores, "issues": issues, "fixes": fixes}

@@ -58,6 +58,26 @@ def test_gives_up_after_retries():
         llm.chat([{"role": "user", "content": "x"}])
 
 
+def test_non_json_200_is_retried():
+    n = []
+
+    def h(req):
+        n.append(1)
+        if len(n) == 1:
+            return httpx.Response(200, text="<html>upstream hiccup</html>")
+        return _ok({"role": "assistant", "content": "שלום"})
+
+    llm = OpenRouter("k", client=_client(h), sleep=lambda s: None)
+    assert llm.chat([{"role": "user", "content": "x"}])["content"] == "שלום" and len(n) == 2
+
+
+def test_non_json_200_gives_up_as_llm_error():
+    llm = OpenRouter("k", client=_client(lambda r: httpx.Response(200, text="not json")),
+                     sleep=lambda s: None)
+    with pytest.raises(LLMError):
+        llm.chat([{"role": "user", "content": "x"}])
+
+
 def test_image_and_web_search():
     png = io.BytesIO()
     Image.new("RGB", (8, 8), "blue").save(png, "PNG")
@@ -233,3 +253,60 @@ def test_live_mode_is_off_unless_enabled(monkeypatch, capsys):
     monkeypatch.delenv("NEWS_PUBLISH", raising=False)
     assert run.main([]) == 0
     assert json.loads(capsys.readouterr().out)["status"] == "disabled"
+
+
+class _Critic:
+    def __init__(self, reply):
+        self.reply = reply
+
+    def chat_json(self, messages, **kw):
+        if isinstance(self.reply, Exception):
+            raise self.reply
+        return self.reply
+
+
+FIVE = {k: 5 for k in ("news", "framing", "voice", "risk_free", "sourcing")}
+
+
+@pytest.mark.parametrize("reply", [
+    {"verdict": "pass"},
+    {"verdict": "pass", "scores": []},
+    {"verdict": "pass", "scores": {"news": 5}},
+    {"verdict": "pass", "scores": FIVE | {"voice": "5"}},
+    {"verdict": "pass", "scores": FIVE | {"voice": True}},
+    {"verdict": "pass", "scores": FIVE | {"voice": float("nan")}},
+    {"verdict": "pass", "scores": FIVE, "issues": "none"},
+    {"verdict": "pass", "scores": FIVE, "fixes": [1]},
+    {"verdict": "revise", "scores": FIVE, "issues": "one string", "fixes": None},
+    ValueError("no JSON object in reply"),
+])
+def test_malformed_critic_reply_is_revise_and_never_raises(reply):
+    from services.news import gates
+    out = gates.critique(_Critic(reply), {"headline": "h", "dek": "d", "blocks": [], "charts": [],
+                                          "sources": []})
+    assert out["verdict"] == "revise"
+    assert isinstance(out["scores"], dict)
+    assert all(isinstance(x, str) for x in out["issues"] + out["fixes"])
+
+
+def test_well_formed_critic_pass_passes():
+    from services.news import gates
+    out = gates.critique(_Critic({"verdict": "pass", "scores": FIVE, "issues": [], "fixes": []}),
+                         {"headline": "h", "dek": "d", "blocks": [], "charts": [], "sources": []})
+    assert out["verdict"] == "pass" and out["scores"] == FIVE
+
+
+class _DownLLM(FakeLLM):
+    def chat(self, messages, tools=None, **kw):
+        raise LLMError("OpenRouter failed after 4 attempts: HTTP 503")
+
+
+def test_model_error_in_the_writer_is_counted_apart_from_rejections(tmp_path):
+    out, _, _ = _day(tmp_path, _DownLLM([]))
+    assert out["published"] == [] and out["rejected"][0]["reason"] == "error"
+    assert out["model_errors"] == 1
+
+
+def test_editorial_rejection_is_not_a_model_error(tmp_path):
+    out, _, _ = _day(tmp_path, FakeLLM([_draft()], critic=("kill",)))
+    assert out["model_errors"] == 0
