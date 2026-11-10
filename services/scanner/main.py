@@ -22,6 +22,19 @@ from .state import StateDB
 
 log = logging.getLogger("scanner")
 
+# Per-dataset failures in a row before the scan gives up: past this the store
+# or CKAN is down, and walking the rest of the listing only repeats the error.
+SCAN_MAX_CONSECUTIVE_ERRORS = 20
+# Error strings kept on the summary (and joined into scan_runs.error); the
+# rest only count.
+MAX_ERRORS_KEPT = 50
+
+
+def _record_error(summary: ScanSummary, message: str) -> None:
+    summary.error_count += 1
+    if len(summary.errors) < MAX_ERRORS_KEPT:
+        summary.errors.append(message[:500])
+
 
 class Scanner:
     """Scans CKAN and persists per-source state to Firestore."""
@@ -42,69 +55,106 @@ class Scanner:
         force: bool = False,
         mode: str = "manual",
     ) -> ScanSummary:
+        """Scan up to `limit` datasets. A failure on one dataset is recorded in
+        `summary.errors` and the scan moves on; SCAN_MAX_CONSECUTIVE_ERRORS in
+        a row (Firestore or CKAN down) stops it. A failure outside the
+        per-dataset work (the package count, the listing itself) is recorded
+        and re-raised. The `scan_runs` doc is closed either way."""
         summary = ScanSummary(started_at=datetime.now(UTC))
         scan_id = self.db.start_scan(mode=mode)
         detector = ChangeDetector(self.db)
 
         log.info("scan start — limit=%d force=%s mode=%s", limit, force, mode)
 
-        async with CKANClient(self.config) as client:
-            total_available = await client.get_package_count()
-            log.info("CKAN reports %d total datasets available", total_available)
+        try:
+            async with CKANClient(self.config) as client:
+                total_available = await client.get_package_count()
+                log.info("CKAN reports %d total datasets available", total_available)
 
-            datasets_processed = 0
-            async for dataset in client.iter_all_packages(limit=limit * 3):
-                if dataset.id in self.config.EXCLUDED_DATASET_IDS:
-                    continue
-                if filter_config and not filter_config.matches(dataset):
-                    continue
-                datasets_processed += 1
+                datasets_processed = 0
+                consecutive_errors = 0
+                def _unparseable(pid: str, e: Exception) -> None:
+                    _record_error(summary, f"{pid[:8]}: unparseable package: {type(e).__name__}: {e}")
 
-                status = detector.detect_status(dataset, force=force)
-                log.info(
-                    "%s %s (%s) resources=%d",
-                    status.value.upper(),
-                    dataset.id[:8],
-                    (dataset.title or "")[:60],
-                    len(dataset.resources),
-                )
+                async for dataset in client.iter_all_packages(limit=limit * 3,
+                                                              on_error=_unparseable):
+                    if dataset.id in self.config.EXCLUDED_DATASET_IDS:
+                        continue
+                    if filter_config and not filter_config.matches(dataset):
+                        continue
+                    datasets_processed += 1
+                    try:
+                        await self._scan_one(client, detector, dataset, summary, force)
+                        consecutive_errors = 0
+                    except Exception as e:  # one dataset; the scan goes on
+                        consecutive_errors += 1
+                        log.exception("scan: %s failed", dataset.id[:8])
+                        _record_error(summary, f"{dataset.id[:8]}: {type(e).__name__}: {e}")
+                        if consecutive_errors >= SCAN_MAX_CONSECUTIVE_ERRORS:
+                            raise RuntimeError(
+                                f"scan stopped after {consecutive_errors} failures in a row"
+                            ) from e
+                    # Reached after a success and after a recorded failure.
+                    if datasets_processed >= limit:
+                        break
+        except BaseException as e:
+            _record_error(summary, f"scan aborted: {type(e).__name__}: {e}")
+            try:
+                self._complete(scan_id, summary)
+            except Exception:  # keep the original error: it is the cause
+                log.exception("scan: couldn't close scan_runs/%s", scan_id)
+            raise
+        self._complete(scan_id, summary)
+        log.info(
+            "scan done — scanned=%d new=%d updated=%d unchanged=%d errors=%d",
+            summary.datasets_scanned,
+            summary.datasets_new,
+            summary.datasets_updated,
+            summary.datasets_unchanged,
+            summary.error_count,
+        )
+        return summary
 
-                summary.datasets_scanned += 1
-                if status == DatasetStatus.NEW:
-                    summary.datasets_new += 1
-                elif status == DatasetStatus.UPDATED:
-                    summary.datasets_updated += 1
-                else:
-                    summary.datasets_unchanged += 1
-
-                if status in (DatasetStatus.NEW, DatasetStatus.UPDATED):
-                    primary_id = pick_primary_resource_id(dataset.resources)
-                    if primary_id:
-                        dataset.record_count = await client.datastore_total(primary_id)
-                    self.db.save_dataset(dataset, status)
-
-                summary.results.append(ScanResult(dataset=dataset, status=status))
-                if datasets_processed >= limit:
-                    break
-
+    def _complete(self, scan_id: str, summary: ScanSummary) -> None:
         summary.completed_at = datetime.now(UTC)
+        errors = list(summary.errors)
+        if summary.error_count > len(errors):
+            errors.append(f"… and {summary.error_count - len(errors)} more")
         self.db.complete_scan(
             scan_id,
             sources_seen=summary.datasets_scanned,
             new=summary.datasets_new,
             updated=summary.datasets_updated,
             unchanged=summary.datasets_unchanged,
-            errors=summary.errors,
+            errors=errors,
             started_at=summary.started_at,
         )
+
+    async def _scan_one(self, client, detector, dataset, summary: ScanSummary,
+                        force: bool) -> None:
+        status = detector.detect_status(dataset, force=force)
         log.info(
-            "scan done — scanned=%d new=%d updated=%d unchanged=%d",
-            summary.datasets_scanned,
-            summary.datasets_new,
-            summary.datasets_updated,
-            summary.datasets_unchanged,
+            "%s %s (%s) resources=%d",
+            status.value.upper(),
+            dataset.id[:8],
+            (dataset.title or "")[:60],
+            len(dataset.resources),
         )
-        return summary
+        if status in (DatasetStatus.NEW, DatasetStatus.UPDATED):
+            primary_id = pick_primary_resource_id(dataset.resources)
+            if primary_id:
+                dataset.record_count = await client.datastore_total(primary_id)
+            self.db.save_dataset(dataset, status)
+        # Counted once the dataset's work is done, so a failed save isn't
+        # reported as scanned.
+        summary.datasets_scanned += 1
+        if status == DatasetStatus.NEW:
+            summary.datasets_new += 1
+        elif status == DatasetStatus.UPDATED:
+            summary.datasets_updated += 1
+        else:
+            summary.datasets_unchanged += 1
+        summary.results.append(ScanResult(dataset=dataset, status=status))
 
 
 # ----- CLI (optional — only loaded if typer/rich are installed) --------------
@@ -133,8 +183,8 @@ if typer is not None:
         table.add_row("New Datasets", f"[green]{summary.datasets_new}[/green]")
         table.add_row("Updated Datasets", f"[yellow]{summary.datasets_updated}[/yellow]")
         table.add_row("Unchanged Datasets", f"[dim]{summary.datasets_unchanged}[/dim]")
-        if summary.errors:
-            table.add_row("Errors", f"[red]{len(summary.errors)}[/red]")
+        if summary.error_count:
+            table.add_row("Errors", f"[red]{summary.error_count}[/red]")
         duration = (
             (summary.completed_at - summary.started_at).total_seconds()
             if summary.completed_at

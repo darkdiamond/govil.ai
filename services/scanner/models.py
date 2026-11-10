@@ -1,8 +1,8 @@
 """
 Pydantic models for the Scanner Service.
 
-These models represent datasets, resources, and scan results
-as returned from the CKAN API and stored locally.
+These models represent datasets, resources, and scan results as returned
+from the CKAN API; `FirestoreStateStore.save_dataset` persists them.
 """
 
 import re
@@ -20,14 +20,6 @@ class DatasetStatus(str, Enum):
     NEW = "new"              # Not in DB -> trigger new page flow
     UPDATED = "updated"      # metadata_modified changed -> trigger update flow
     UNCHANGED = "unchanged"  # No changes -> skip
-
-
-class DownloadStatus(str, Enum):
-    """Status of a resource download."""
-    PENDING = "pending"
-    DOWNLOADING = "downloading"
-    COMPLETED = "completed"
-    FAILED = "failed"
 
 
 class Organization(BaseModel):
@@ -55,14 +47,6 @@ class Resource(BaseModel):
     # the recipe-refresh precheck's file fingerprint (check A′) keys on it.
     hash: str | None = None
 
-    # Local tracking fields (not from CKAN)
-    file_hash: str | None = None
-    storage_path: str | None = None
-    download_status: DownloadStatus = DownloadStatus.PENDING
-
-    class Config:
-        use_enum_values = True
-
 
 class Dataset(BaseModel):
     """A dataset (package) from the CKAN API."""
@@ -79,10 +63,6 @@ class Dataset(BaseModel):
     record_count: int | None = None             # populated by Scanner.scan via datastore_search
     metadata_created: datetime | None = None
     metadata_modified: datetime | None = None
-
-    # Local tracking fields
-    last_scanned_at: datetime | None = None
-    status: str = "active"
 
     @classmethod
     def from_ckan_response(cls, data: dict) -> "Dataset":
@@ -139,7 +119,6 @@ class ScanResult(BaseModel):
     """Result of scanning a single dataset."""
     dataset: Dataset
     status: DatasetStatus
-    resources_downloaded: int = 0
     error: str | None = None
 
     class Config:
@@ -154,7 +133,8 @@ class ScanSummary(BaseModel):
     datasets_new: int = 0
     datasets_updated: int = 0
     datasets_unchanged: int = 0
-    errors: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)  # first MAX_ERRORS_KEPT only
+    error_count: int = 0
     results: list[ScanResult] = Field(default_factory=list)
 
 

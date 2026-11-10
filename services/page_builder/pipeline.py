@@ -32,8 +32,27 @@ log = logging.getLogger("page_builder.pipeline")
 # is a normal, healthy outcome. The refresh is the only way a page changes,
 # so a refresh that couldn't run (no recipe list, crash, staging down) is a
 # dead run even if the authoring queue still went out. A broken authoring
-# queue is red too: nobody would learn of new datasets.
-FAILED_RUN_STATUSES = ("refresh_unavailable", "refresh_failed", "authoring_failed")
+# queue is red too: nobody would learn of new datasets. So is a scan that
+# failed (the rest of the run went ahead on yesterday's Firestore data) and
+# a reconcile sweep that crashed or aborted (see reconcile.reconcile_sources).
+FAILED_RUN_STATUSES = (
+    "refresh_unavailable", "refresh_failed", "scan_failed", "authoring_failed",
+    "reconcile_failed",
+)
+
+
+def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bool,
+                reconcile_failed: bool, refreshed: bool) -> str:
+    """One status per run; the first failure in this order wins."""
+    if refresh_broken:
+        return "refresh_failed"
+    if scan_failed:
+        return "scan_failed"
+    if authoring_broken:
+        return "authoring_failed"
+    if reconcile_failed:
+        return "reconcile_failed"
+    return "ok" if refreshed else "idle"
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
@@ -53,16 +72,12 @@ def _reconciled_today(store, now: datetime) -> bool:
         return False
 
 
-async def _trigger_publish_github(
-    repo: str, workflow: str, branch: str, inputs: dict | None = None
-) -> str | None:
+async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> str | None:
     """Fire the GitHub Actions publish workflow (workflow_dispatch).
 
     Fire-and-forget — the API returns 204 with no run id, so we return a
     synthetic marker for the summary. Needs GITHUB_DISPATCH_TOKEN (a
     fine-grained PAT with Actions:write on this repo, from Secret Manager).
-    `inputs` are workflow_dispatch inputs (`{"target": "preview"}` deploys
-    the recipe-refresh demo channel instead of live).
     """
     token = os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip()
     if not token:
@@ -78,7 +93,7 @@ async def _trigger_publish_github(
         # exactly that — 307 → logged failure, pages built but not deployed).
         r = httpx.post(
             f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
-            json={"ref": branch, **({"inputs": inputs} if inputs else {})},
+            json={"ref": branch},
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",
@@ -222,6 +237,7 @@ async def run_pipeline(
     # never revisits them). Gated by RECONCILE_ENABLED + RECONCILE_WEEKDAY
     # (Asia/Jerusalem), default off / Sunday. Full sweep, no cursor.
     reconcile_summary = None
+    reconcile_failed = False
     reconcile_enabled = os.environ.get("RECONCILE_ENABLED", "false").lower() in (
         "true", "1", "yes",
     )
@@ -247,46 +263,41 @@ async def run_pipeline(
             async with CKANClient(config=config) as _ckan:
                 reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
             log.info("reconcile: %s", reconcile_summary)
-            try:
-                store.set_job_marker("reconcile", {"last_date": il_now.date().isoformat()})
-            except Exception:
-                log.warning("reconcile: couldn't record the sweep; the next run today repeats it",
-                            exc_info=True)
+            if reconcile_summary.get("aborted"):
+                # No marker: the next run today sweeps again.
+                reconcile_failed = True
+            else:
+                try:
+                    store.set_job_marker("reconcile", {"last_date": il_now.date().isoformat()})
+                except Exception:
+                    log.warning("reconcile: couldn't record the sweep; the next run today "
+                                "repeats it", exc_info=True)
         except Exception:
             log.exception("reconcile sweep failed — continuing with scan/refresh")
+            reconcile_failed = True
 
     # [1] scan — unless override_id is set (manual single-source run)
+    # A failed scan doesn't stop the run: provider sync, refresh and the
+    # authoring queue work from the Firestore docs earlier scans wrote, and
+    # the run ends red (`scan_failed`). The scanner records per-dataset
+    # failures itself and closes its scan_runs doc either way.
     scan_summary = None
+    scan_error: str | None = None
     if not override_id:
         scanner = Scanner(config=config, db=db)
-        scan_summary = await scanner.scan(limit=scan_limit, mode=mode)
-
-    # [1.5] reap orphaned `pending` markers left by the retired agent
-    # builder (a run that died mid-session). Recycled as `failed`, which the
-    # authoring queue treats as `new`. Nothing writes `pending` any more, so
-    # this only drains the legacy set.
-    reaped: list[str] = []
-    if not override_id and not dry_run:
-        reap_after = int(os.environ.get("PENDING_REAP_MINUTES", "120"))
         try:
-            reaped = await asyncio.to_thread(
-                store.reap_stale_pending, older_than_minutes=reap_after
-            )
-            if reaped:
-                log.info(
-                    "reaped %d orphaned pending source(s): %s",
-                    len(reaped),
-                    ", ".join(i[:8] for i in reaped),
-                )
-        except Exception:
-            log.exception("pending reap failed — continuing")
+            scan_summary = await scanner.scan(limit=scan_limit, mode=mode)
+        except Exception as e:
+            log.exception("scan failed — continuing on the existing Firestore data")
+            scan_error = f"{type(e).__name__}: {e}"[:500]
+    scan_failed = bool(scan_error) or bool(scan_summary and scan_summary.error_count)
 
     summary: dict = {
         "mode": mode,
         "dry_run": dry_run,
-        "scan": _scan_summary_dict(scan_summary) if scan_summary else None,
+        "scan": (_scan_summary_dict(scan_summary) if scan_summary
+                 else {"error": scan_error} if scan_error else None),
         "reconcile": reconcile_summary,
-        "reaped_pending": reaped,
         "refresh": None,
         "authoring_queued": [],
         "build_id": None,
@@ -348,7 +359,8 @@ async def run_pipeline(
 
     if dry_run:
         summary["selected_for_authoring"] = [s.id for s, _ in await _authoring_candidates()]
-        summary["status"] = "dry_run"
+        # A dry run is how a deploy is smoke-tested: a broken scan must show.
+        summary["status"] = "scan_failed" if scan_failed else "dry_run"
         return summary
 
     # [4] refresh — deterministic re-render of recipe'd sources. First, and
@@ -361,7 +373,6 @@ async def run_pipeline(
                 _refresh.run_refresh,
                 store,
                 repo,
-                preview=False,
                 staging_bucket=staging_bucket,
                 only_ids=only_ids,
                 # A manual single-dataset run means "render it now", even
@@ -399,12 +410,11 @@ async def run_pipeline(
     )
     # Pages that did refresh before a breakdown still publish (above); the
     # run is red either way.
-    if refresh_broken:
-        summary["status"] = "refresh_failed"
-    elif authoring_broken:
-        summary["status"] = "authoring_failed"
-    else:
-        summary["status"] = "ok" if refreshed_ids else "idle"
+    summary["status"] = _run_status(
+        refresh_broken=refresh_broken, scan_failed=scan_failed,
+        authoring_broken=authoring_broken, reconcile_failed=reconcile_failed,
+        refreshed=bool(refreshed_ids),
+    )
     return summary
 
 
@@ -415,6 +425,7 @@ def _scan_summary_dict(s) -> dict:
         "updated": s.datasets_updated,
         "unchanged": s.datasets_unchanged,
         "errors": list(s.errors or []),
+        "error_count": s.error_count,
     }
 
 

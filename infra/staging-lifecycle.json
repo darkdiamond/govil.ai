@@ -12,7 +12,7 @@
         "action": { "type": "Delete" },
         "condition": {
           "age": 400,
-          "matchesPrefix": ["models/", "preview/models/"]
+          "matchesPrefix": ["models/"]
         }
       }
     ]

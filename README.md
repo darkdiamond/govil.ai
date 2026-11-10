@@ -71,7 +71,6 @@ services/
     author.py                    local authoring kit (prepare / verify)
     agent_contract.py            CKAN fetch + output sanitizer + check.py gate
     local_sandbox.py             compute sandbox (subprocess, private workdir)
-    podman_sandbox.py            shared sandbox result types (no longer a runtime sandbox)
     publish.py                   Firestore → data.json/agent_data.json/manifest.json
     tags.py / related.py         tag vocabulary (taxonomy/) + content-based related datasets
     cli/preview.py               serve a recipe's page in the real shell (nuxt dev overlay)
@@ -105,9 +104,10 @@ gcloud emulators firestore start --host-port=localhost:8080 &
 export FIRESTORE_EMULATOR_HOST=localhost:8080 FIRESTORE_PROJECT_ID=local-dev
 python -m services.scanner.main scan --limit 20
 
-# 3. Render one recipe'd dataset (no LLM; preview target, prod untouched)
+# 3. Render one recipe'd dataset (no LLM; writes the emulator's sources/<id>
+#    and your staging bucket, dispatches no publish)
 export GCS_STAGING_BUCKET=<your-staging-bucket>
-python -m services.page_builder.refresh run --source <dataset_id> --no-publish
+python -m services.page_builder.pipeline --source <dataset_id> --no-trigger-publish
 
 # 4. Frontend (reads manifest.json at build time)
 python -m services.page_builder.publish --from-firestore \

@@ -17,9 +17,6 @@ rich>=13.0
 # Retry Logic
 tenacity>=8.0
 
-# Async SQLite
-aiosqlite>=0.19.0
-
 # Development
 pytest>=7.0
 pytest-asyncio>=0.21.0

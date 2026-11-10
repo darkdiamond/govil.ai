@@ -1,5 +1,5 @@
 # Build context uploaded by `gcloud run jobs deploy --source=.`
-# (infra/builder-job.deploy.sh, infra/refresh-preview.deploy.sh).
+# (infra/builder-job.deploy.sh).
 #
 # Without this file gcloud uploads the entire working tree — 1.8GB here, which
 # stalls the deploy long before Cloud Build ever starts. Note that

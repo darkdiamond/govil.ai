@@ -79,9 +79,6 @@ class ProviderSettings(BaseModel):
     connect_retries: int = 5
     min_interval_s: float = 0.0
     max_bytes: int = 300_000_000
-    # Name of the env var holding the source's API key, if it needs one. Read
-    # on the host only; the compute sandbox's env is scrubbed regardless.
-    secret_env: str | None = None
     # How long the sync may trust `listing_key()` (see there) before it
     # downloads and hashes everything again anyway. 0 = always download.
     listing_recheck_days: float = 7.0
@@ -113,9 +110,6 @@ class SourcePresentation(BaseModel):
     download_label_he: str = "הורדה"
     # The shell's live data explorer reads the CKAN datastore — CKAN only.
     explorer: bool = False
-    # Hosts a page fetches from in the browser (both CSP headers in
-    # firebase.json must list them). Empty when pages embed their data.
-    csp_connect_hosts: list[str] = Field(default_factory=list)
 
 
 class SourceConfig(BaseModel):
@@ -322,7 +316,7 @@ class SourceProvider(abc.ABC):
         if len(data) > max_bytes:
             raise ProviderTooLarge(f"{resource['id']}: {len(data):,} bytes > cap {max_bytes:,}")
         Path(dest).write_bytes(data)
-        return FetchOutcome(rows=rows, bytes=len(data), mode="full")
+        return FetchOutcome(rows=rows, bytes=len(data))
 
     def fetch_fns(self, resources: list[dict]) -> tuple[Callable, Callable]:
         """`(preview_fn, fetch_fn)` with the signatures `refresh.fetch_inputs`
@@ -371,21 +365,13 @@ class SourceProvider(abc.ABC):
 
     # ── HTTP ─────────────────────────────────────────────────────────────
 
-    def auth_headers(self) -> dict[str, str]:
-        return {}
-
-    def secret(self) -> str | None:
-        env = self.settings.secret_env
-        return (os.environ.get(env) or "").strip() or None if env else None
-
     def http_get(self, url: str, *, params: dict | None = None,
                  ok: tuple[int, ...] = (200,),
                  headers: dict | None = None) -> httpx.Response:
         """GET with the provider's timeout, politeness interval and retries
         (on transport errors and 5xx/429). A status outside `ok` that isn't
         retryable comes back to the caller as is."""
-        headers = {"User-Agent": self.settings.user_agent, **self.auth_headers(),
-                   **(headers or {})}
+        headers = {"User-Agent": self.settings.user_agent, **(headers or {})}
         last: Exception | None = None
         attempt = connect_stalls = 0
         while True:

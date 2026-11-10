@@ -23,7 +23,7 @@ def _open(monkeypatch, create_labels):
 
     monkeypatch.setattr(httpx, "post", post)
     n = notify.open_authoring_issue(
-        dataset_id="abc", title="t", org="o", reason="new", preview=True,
+        dataset_id="abc", title="t", org="o", reason="new",
         repo="o/r", token="tok",
     )
     return n, calls
@@ -34,12 +34,12 @@ def test_dropped_labels_are_added_explicitly(monkeypatch):
     assert n == 5
     assert calls[1] == (
         "https://api.github.com/repos/o/r/issues/5/labels",
-        {"labels": ["needs-authoring", "preview"]},
+        {"labels": ["needs-authoring"]},
     )
 
 
 def test_no_extra_call_when_create_kept_labels(monkeypatch):
-    n, calls = _open(monkeypatch, create_labels=["needs-authoring", "preview"])
+    n, calls = _open(monkeypatch, create_labels=["needs-authoring"])
     assert n == 5 and len(calls) == 1
 
 
@@ -75,7 +75,3 @@ def test_label_retry_succeeds_on_second_attempt(monkeypatch):
     ) == 3
     assert len(attempts) == 2
 
-
-def test_partial_labels_on_create_are_completed(monkeypatch):
-    n, calls = _open(monkeypatch, create_labels=["needs-authoring"])
-    assert n == 5 and len(calls) == 2

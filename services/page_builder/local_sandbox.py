@@ -1,11 +1,11 @@
 """Subprocess sandbox for recipe `compute.py` runs (services/page_builder/refresh.py).
 
-Same surface as `podman_sandbox.PodmanSandbox` (`run_code`, `files.read`,
-`files.list`, `kill`) but executes directly in the builder container via
-`subprocess` — Cloud Run can't nest containers, so the (single-tenant,
-ephemeral) container itself is the outer isolation boundary. Each compute
-run gets a private working directory. (Built for the retired agent
-builder's tool sessions; "session" below means one sandbox lifetime.)
+Surface: `run_code` (returns an `_Execution`), `files.read`, `kill`. It
+executes directly in the builder container via `subprocess` — Cloud Run
+can't nest containers, so the (single-tenant, ephemeral) container itself
+is the outer isolation boundary. Each compute run gets a private working
+directory. (Built for the retired agent builder's tool sessions; "session"
+below means one sandbox lifetime.)
 
 Hardening within that boundary:
 - privilege separation: when the builder runs as root (the container) and
@@ -53,14 +53,31 @@ import signal
 import stat
 import subprocess
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
-
-from .podman_sandbox import _Error, _Execution, _FileEntry, _Logs
 
 log = logging.getLogger(__name__)
 
 _BASE_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 _DEFAULT_SANDBOX_USER = "sandbox"
+
+
+@dataclass
+class _Logs:
+    stdout: str = ""
+    stderr: str = ""
+
+
+@dataclass
+class _Error:
+    name: str
+    value: str
+
+
+@dataclass
+class _Execution:
+    logs: _Logs = field(default_factory=_Logs)
+    error: _Error | None = None
 
 
 def _resolve_sandbox_identity() -> tuple[int, int] | None:
@@ -109,15 +126,6 @@ class _Files:
         if not p.is_file():
             raise FileNotFoundError(f"sandbox file not readable: {p}")
         return p.read_bytes()
-
-    def list(self, path: str) -> list[_FileEntry]:
-        p = self._abs(path)
-        if not p.is_dir():
-            return []
-        return [
-            _FileEntry(name=c.name, path=str(c))
-            for c in sorted(p.iterdir())
-        ]
 
 
 class LocalSandbox:
@@ -192,32 +200,6 @@ class LocalSandbox:
                 if stat.S_ISREG(st.st_mode):
                     os.chmod(fp, (st.st_mode & 0o777) | 0o444)
         self._handed_over = True
-
-    def adopt(self, path: str | Path) -> None:
-        """Make a host-written file under the workdir usable by the agent.
-
-        Before handover this is a no-op (handover covers it). After it,
-        any host-owned directory between the workdir and `path` is chowned
-        to the sandbox user and a host-owned file made world-readable.
-        """
-        if self.ident is None or not self._handed_over:
-            return
-        uid, gid = self.ident
-        p = Path(path)
-        try:
-            rel = p.relative_to(self.workdir)
-        except ValueError:
-            return
-        cur = self.workdir
-        for part in rel.parts[:-1]:
-            cur = cur / part
-            st = os.lstat(cur)
-            if stat.S_ISDIR(st.st_mode) and st.st_uid != uid:
-                os.chown(cur, uid, gid, follow_symlinks=False)
-                os.chmod(cur, 0o700)
-        st = os.lstat(p)
-        if stat.S_ISREG(st.st_mode) and st.st_uid != uid:
-            os.chmod(p, (st.st_mode & 0o777) | 0o444)
 
     def _read_untrusted(self, p: Path) -> bytes:
         """Read a file the sandbox user produced, as the root host.
