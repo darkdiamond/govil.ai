@@ -177,16 +177,49 @@ def test_good_draft_passes_and_renders():
     (lambda d, f: d.__setitem__("image_alt_he", "גרף שמראה עלייה דרמטית!"), "no exclamation marks"),
     (lambda d, f: d.__setitem__("image_alt_he", "איור מרתק של בית"), "banned phrases"),
     (lambda d, f: d["blocks"][4].__setitem__("label", "מיליארד שקל — שיא"), "punctuation"),
+    # A bar with no label prints its fact's label, which the model can write too.
+    (lambda d, f: d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": "%", "bars": [
+        {"fact": d["_led"].calc("scale", f.id, label="עלייה של 300% — דרמטית!", factor=1e-6).id}]}),
+     "give the bar an explicit label"),
+    # Chart labels may be a bare period and units a per-N denominator; nothing wider.
+    (lambda d, f: d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": "%",
+                                      "bars": [{"label": "2025 שיא", "fact": f.id}]}),
+     "chart c2 bar 0 label: years without date context"),
+    (lambda d, f: d["charts"][0].__setitem__("unit", "47%"), "chart c1 unit: typed numbers"),
+    (lambda d, f: d["charts"][0].__setitem__("unit", "לכל 1,000 תושבים 55%"), "chart c1 unit: typed numbers"),
+    (lambda d, f: d["charts"][0].__setitem__("unit", "לכל 1,500 תושבים"), "chart c1 unit: typed numbers"),
+    (lambda d, f: d["charts"][0].__setitem__("unit", "ל-100 מיליון ש\"ח"), "chart c1 unit: typed numbers"),
+    (lambda d, f: d["charts"][0].__setitem__("title", "2025"), "chart c1 title: years without date context"),
+    (lambda d, f: d["blocks"][4].__setitem__("label", "2025"), "block 4 label: years without date context"),
+    (lambda d, f: d.__setitem__("image_alt_he", "לכל 1,000 תושבים"), "image_alt_he: typed numbers"),
     # The minimum quote length is measured after normalization.
     (lambda d, f: d.__setitem__("sources", [{"id": "s1", "quote": '"' * 19 + "a"}]), "verbatim quote"),
     (lambda d, f: d.__setitem__("sources", [{"id": "s1", "quote": " " * 25}]), "verbatim quote"),
 ])
 def test_gate_catches(mutate, needle):
     series, led, cat, f1 = _setup()
-    d = _draft(f1)
+    d = _draft(f1, _led=led)
     mutate(d, f1)
     _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
     assert any(needle in p for p in problems), problems
+
+
+@pytest.mark.parametrize("labels, unit, name", [
+    (["2025", "2024/25", "2024-25", "2024-Q3", "Q3 2024", "2024-11", "מאי 2024"], "%", "2025"),
+    (["תל אביב"], "לכל 1,000 תושבים", "היקף"),
+    (["תל אביב"], "ש\"ח ל-100 ק\"ג", "היקף"),
+    (["תל אביב"], "ל-100,000 נפש", "היקף"),
+    (["תל אביב"], "לכל 10000 תושבים", "היקף"),
+])
+def test_chart_labels_may_be_periods_and_units_per_n(labels, unit, name):
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["charts"][0]["series"][0]["name"] = name
+    d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": unit,
+                        "bars": [{"label": lb, "fact": f1.id} for lb in labels]})
+    d["blocks"].insert(2, {"type": "chart", "chart": "c2"})
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert problems == []
 
 
 @pytest.mark.parametrize("text, hits", [
