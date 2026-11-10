@@ -24,3 +24,20 @@ export function publicResourceUrl(url: string | null | undefined): string {
     .replace(GATED_HOST, "https://data.gov.il/")
     .replace(LOCALE_PREFIX, "https://data.gov.il/");
 }
+
+// The file type shown on the download badge and emitted as the JSON-LD
+// DataDownload's encodingFormat (Google flags a distribution without one).
+// CKAN's `format` is publisher-supplied and sometimes blank; the URL's file
+// extension (".../download/report.docx") then names the type. Upper-case,
+// "" when neither says.
+const URL_EXT = /\.([a-z0-9]{1,8})$/i;
+
+export function resourceFormat(r: {
+  format?: string | null;
+  url?: string | null;
+}): string {
+  const fmt = (r.format ?? "").trim();
+  if (fmt) return fmt.toUpperCase();
+  const path = (r.url ?? "").split(/[?#]/, 1)[0];
+  return path.match(URL_EXT)?.[1].toUpperCase() ?? "";
+}
