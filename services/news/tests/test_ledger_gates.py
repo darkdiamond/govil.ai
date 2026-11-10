@@ -156,6 +156,30 @@ def test_good_draft_passes_and_renders():
     (lambda d, f: d.__setitem__("headline", "משכנתאות: הנתון החדש"), "colon"),
     (lambda d, f: d.__setitem__("blocks", d["blocks"][:2]), "body length"),
     (lambda d, f: d.__setitem__("slug_en", "x"), "slug"),
+    # The stat block's format is model output: only a known ledger format.
+    (lambda d, f: d["blocks"][4].__setitem__("fmt", "int} עלייה של 99% {"), "block 4: format"),
+    (lambda d, f: d["blocks"][4].__setitem__("fmt", "5"), "block 4: format"),
+    # Every printed free-text field gets the body's number and punctuation checks.
+    (lambda d, f: d["charts"][0].__setitem__("title", "המחירים זינקו ב-47% בשנה"), "chart c1 title: typed numbers"),
+    (lambda d, f: d["charts"][0].__setitem__("title", "המחירים זינקו — שיא"), "punctuation"),
+    (lambda d, f: d["charts"][0].__setitem__("unit", "אלפי 12 ש\"ח"), "chart c1 unit: typed numbers"),
+    (lambda d, f: d["charts"][0]["series"][0].__setitem__("name", "סדרה 55%"), "chart c1 series 0 name: typed numbers"),
+    (lambda d, f: d["charts"][0]["series"][0].__setitem__("name", "היקף — שיא"), "punctuation"),
+    (lambda d, f: d["charts"][0]["series"][0].__setitem__("name", "שלושה מיליארד שקל"), "spelled in words"),
+    (lambda d, f: d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": "%",
+                                      "bars": [{"label": "ירושלים 73% מהמקרים", "fact": f.id}]}),
+     "chart c2 bar 0 label: typed numbers"),
+    (lambda d, f: d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": "%",
+                                      "bars": [{"label": "ירושלים!", "fact": f.id}]}),
+     "no exclamation marks"),
+    (lambda d, f: d["charts"][0].__setitem__("title", "היקף {" + f.id + "}"), "no fact tokens or links"),
+    (lambda d, f: d.__setitem__("image_alt_he", "גרף שמראה עלייה של 300%"), "image_alt_he: typed numbers"),
+    (lambda d, f: d.__setitem__("image_alt_he", "גרף שמראה עלייה דרמטית!"), "no exclamation marks"),
+    (lambda d, f: d.__setitem__("image_alt_he", "איור מרתק של בית"), "banned phrases"),
+    (lambda d, f: d["blocks"][4].__setitem__("label", "מיליארד שקל — שיא"), "punctuation"),
+    # The minimum quote length is measured after normalization.
+    (lambda d, f: d.__setitem__("sources", [{"id": "s1", "quote": '"' * 19 + "a"}]), "verbatim quote"),
+    (lambda d, f: d.__setitem__("sources", [{"id": "s1", "quote": " " * 25}]), "verbatim quote"),
 ])
 def test_gate_catches(mutate, needle):
     series, led, cat, f1 = _setup()

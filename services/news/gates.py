@@ -24,9 +24,12 @@ from pathlib import Path
 from . import charts as charts_mod
 from .fetch import official_source
 from .ledger import (
+    FORMATS,
     LINK,
+    TOKEN,
     YEARLIKE,
     Ledger,
+    format_value,
     plain,
     render,
     spelled_numbers,
@@ -124,6 +127,18 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         problems.extend(f"{field_name}: {p}" for p in probs)
         return runs, plain(runs)
 
+    # Fields printed as written (chart labels, image alt): the same number
+    # checks as prose, no tokens or links (they would print raw), and the text
+    # joins the punctuation and banned-phrase scan below.
+    printed: list[str] = []
+
+    def raw_field(field_name: str, s) -> None:
+        s = str(s or "")
+        text(field_name, s)
+        if TOKEN.search(s) or LINK.search(s):
+            problems.append(f"{field_name}: no fact tokens or links here")
+        printed.append(s)
+
     head_runs, headline = text("headline", draft.get("headline"))
     _, dek = text("dek", draft.get("dek"))
     if not 15 <= len(headline) <= HEADLINE_MAX:
@@ -144,6 +159,15 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
 
     charts_out, chart_ids = [], set()
     for spec in (draft.get("charts") or [])[:MAX_CHARTS + 1]:
+        cname = f"chart {spec.get('id')}"
+        raw_field(f"{cname} title", spec.get("title"))
+        raw_field(f"{cname} unit", spec.get("unit"))
+        for j, r in enumerate(spec.get("series") or [] if isinstance(spec.get("series"), list) else []):
+            if isinstance(r, dict) and r.get("name"):
+                raw_field(f"{cname} series {j} name", r["name"])
+        for j, r in enumerate(spec.get("bars") or [] if isinstance(spec.get("bars"), list) else []):
+            if isinstance(r, dict) and r.get("label"):
+                raw_field(f"{cname} bar {j} label", r["label"])
         try:
             charts_out.append(charts_mod.resolve(spec, series_by_ds, ledger))
             chart_ids.add(charts_out[-1]["id"])
@@ -184,11 +208,20 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             stats += 1
             f = ledger.facts.get(b.get("fact"))
             _, label = text(f"block {i} label", b.get("label"))
+            printed.append(label)
+            sfmt = b.get("fmt") or None
             if f is None:
                 problems.append(f"block {i}: unknown fact {b.get('fact')}")
+            elif sfmt is not None and sfmt not in FORMATS:
+                problems.append(f"block {i}: format {str(sfmt)[:40]!r} is not one of {list(FORMATS)}")
             else:
-                runs, _ = render("{" + f.id + (":" + b["fmt"] if b.get("fmt") else "") + "}", ledger, href)
-                blocks.append({"type": "stat", "value": plain(runs), "label": label})
+                # The value is the formatted fact and nothing else.
+                try:
+                    value = format_value(f.value, sfmt)
+                except ValueError as e:
+                    problems.append(f"block {i}: {e}")
+                else:
+                    blocks.append({"type": "stat", "value": value, "label": label})
         else:
             problems.append(f"block {i}: unknown type {kind!r}")
     if stats > 1:
@@ -204,16 +237,18 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     words = len(re.findall(r"\S+", body))
     if not WORDS_MIN <= words <= WORDS_MAX:
         problems.append(f"body length {words} words ({WORDS_MIN}–{WORDS_MAX})")
-    every = f"{headline} {dek} {body}"
+    every = prose = f"{headline} {dek} {body}"
     heb, lat = len(_HEB.findall(every)), len(_LAT.findall(every))
     if heb + lat and heb / (heb + lat) < HEBREW_MIN:
         problems.append("too little Hebrew")
+    raw_field("image_alt_he", draft.get("image_alt_he"))
+    every = "\n".join([every, *printed])
     low = every.lower()
     hits = [p for p in BANNED if p in low]
     if _NOT_ONLY.search(every):
         hits.append("לא רק … אלא גם")
     for rx, why in PATTERNS:
-        if m := rx.search(every):
+        if m := rx.search(prose):
             problems.append(f"style: «{m[0]}» — {why}")
     if hits:
         problems.append(f"banned phrases: {hits}")
@@ -240,7 +275,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
                             "use what you read elsewhere as context, without a link")
             continue
         q = quotes.get(sid, "")
-        if len(q) < QUOTE_MIN:
+        if len(_norm(q)) < QUOTE_MIN:
             problems.append(f"source {sid}: a verbatim quote of ≥{QUOTE_MIN} chars is required")
         elif _norm(q) not in _norm(src.text):
             problems.append(f"source {sid}: quote not found in the fetched page")
