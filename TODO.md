@@ -299,6 +299,22 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   script-type check (or the whole function) to `frontend/utils/` and test that data blocks are
   left untouched and every JS type is re-created. (2026-10-31)
 
+## Frontend
+
+- **Shared dataset links preview with the generic image.** Dataset pages set no `ogImage`, so
+  every link shared from the new share button (`components/ShareButton.vue`) shows
+  `/og-default.png` in WhatsApp/X/Facebook cards. News articles use their hero. Fix: a
+  per-dataset og:image (e.g. a build-time card with the title and one headline number) passed
+  to `useSeo` in `pages/datasets/[slug].vue`. (2026-11-10)
+
+- **`frontend/tests/*.test.mjs` don't run in CI.** `ci.yml` runs only `typecheck` and
+  `generate`, so `share.test.mjs`, `dataset-seo.test.mjs` and the rest run only by hand. Fix:
+  add a `node --test frontend/tests/` step to the frontend job. (2026-11-10)
+
+- **The shared `node_modules` lacks `vue-tsc`.** `npm run typecheck` fails locally ("A type
+  checker is required") although `package.json` lists it; the main checkout's install predates
+  it. Fix: `npm ci` in the main checkout's `frontend/` (not in a worktree). (2026-11-10)
+
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for

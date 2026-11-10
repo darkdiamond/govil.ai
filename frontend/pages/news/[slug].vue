@@ -139,7 +139,9 @@ useSeo({
         <p class="text-lg sm:text-xl text-subtle mt-3 mb-4 leading-snug">
           {{ article.dek }}
         </p>
-        <div class="text-sm text-subtle flex flex-wrap gap-x-3 gap-y-1">
+        <div
+          class="text-sm text-subtle flex flex-wrap items-center gap-x-3 gap-y-1"
+        >
           <NuxtLink to="/news/about/" class="text-ink font-medium">{{
             article.byline
           }}</NuxtLink>
@@ -152,6 +154,14 @@ useSeo({
               newsDate(article.updated_at, true)
             }}</time>
           </span>
+          <ShareButton
+            class="ms-auto"
+            :url="url"
+            :title="article.headline"
+            :text="article.dek"
+            content-type="article"
+            :item-id="slug"
+          />
         </div>
       </header>
 
@@ -225,6 +235,19 @@ useSeo({
           >
           <span v-else class="tag-chip">{{ t }}</span>
         </template>
+      </div>
+
+      <div class="mt-8 pt-4 border-t border-rule flex items-center gap-3">
+        <span class="text-sm text-subtle">מצאתם עניין בכתבה?</span>
+        <ShareButton
+          :url="url"
+          :title="article.headline"
+          :text="article.dek"
+          content-type="article"
+          :item-id="slug"
+          label="שתפו את הכתבה"
+          variant="ghost"
+        />
       </div>
     </article>
 
