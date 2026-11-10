@@ -45,7 +45,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
+from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome, FileOutcome
 
 from .recipe import (
     COMPUTE_FILENAME,
@@ -738,8 +738,6 @@ class _LocalFiles:
         self.by_url = {m["url"]: m["file"] for m in maps if m.get("file") and m.get("url")}
 
     def __call__(self, url, dest, **kw):
-        from services.shared.fetch_types import FileOutcome
-
         from .ckan_export import fetch_resource_file
 
         name = self.by_url.get(url)

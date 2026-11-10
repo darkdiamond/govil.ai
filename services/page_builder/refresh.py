@@ -266,7 +266,7 @@ class GithubRecipeRepo:
     def list_ids(self) -> list[str]:
         if self._ids is None:
             sha = self._get(
-                f"https://api.github.com/repos/{self.repo}/commits/{self.ref}"
+                f"{github.API}/repos/{self.repo}/commits/{self.ref}"
             ).json()["sha"]
             self._sha = sha
             ids, with_source = set(), set()
@@ -284,7 +284,7 @@ class GithubRecipeRepo:
                         with_source.add(d.name)
             else:
                 listing = self._get(
-                    f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
+                    f"{github.API}/repos/{self.repo}/git/trees/{sha}",
                     params={"recursive": "1"},
                 ).json()
                 if listing.get("truncated"):
@@ -361,7 +361,7 @@ class GithubRecipeRepo:
         # the Authorization header on the cross-host hop; a private repo's
         # redirect URL carries its own token).
         with httpx.stream(
-            "GET", f"https://api.github.com/repos/{self.repo}/tarball/{self._sha}",
+            "GET", f"{github.API}/repos/{self.repo}/tarball/{self._sha}",
             headers=self._headers, timeout=60.0, follow_redirects=True,
         ) as r:
             r.raise_for_status()
@@ -551,9 +551,9 @@ def _strikes_after_probe(state: dict, probe: InputProbe | None) -> dict | None:
 
 
 # Shared code between the data and the page: the compute runner, template
-# rendering/validation, the sanitizer, and the CKAN export (its CSV
-# normalization shapes the inputs compute sees, and fingerprint A can't see
-# that). A deploy that changes any of them can change the output with
+# rendering/validation, the sanitizer, and the CKAN export with its shared
+# helpers (CSV normalization, the file URL, `pick: "latest"`'s date parsing
+# shape the inputs compute sees, and fingerprint A can't see that). A deploy that changes any of them can change the output with
 # identical data, so it invalidates both prechecks. The check.py gate
 # (page_gate.py) doesn't shape output, so it isn't here.
 _RENDER_CODE_FILES = (
@@ -561,6 +561,7 @@ _RENDER_CODE_FILES = (
     Path(__file__).resolve().parent / "recipe.py",
     Path(__file__).resolve().parent / "sanitize.py",
     Path(__file__).resolve().parent / "ckan_export.py",
+    Path(__file__).resolve().parents[1] / "shared" / "ckan.py",
 )
 # Builds a `map` input's table; folded only into recipes that have one, so
 # a change here doesn't re-render every other page.

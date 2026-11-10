@@ -14,10 +14,9 @@ from typing import Literal
 class ResourceRestrictedError(Exception):
     """The primary resource's CKAN datastore returns a 403 Authorization
     Error — the dataset's data is access-restricted upstream (private /
-    de-listed). A build can't produce a real data page, and the 403 is
+    de-listed). No real data page can be built, and the 403 is
     deterministic (retrying won't help), so the caller marks the source
-    `restricted` instead of burning an agent session or counting it as a
-    transient failure."""
+    `restricted` instead of counting it as a transient failure."""
 
 
 @dataclass

@@ -92,7 +92,7 @@ def open_authoring_issue(
     labels = [AUTHORING_LABEL]
     try:
         r = httpx.post(
-            f"https://api.github.com/repos/{repo}/issues",
+            f"{github.API}/repos/{repo}/issues",
             json={
                 "title": issue_title(title, dataset_id),
                 "body": issue_body(
@@ -147,7 +147,7 @@ def add_labels(
 
     try:
         r = httpx.post(
-            f"https://api.github.com/repos/{repo}/issues/{number}/labels",
+            f"{github.API}/repos/{repo}/issues/{number}/labels",
             json={"labels": labels},
             headers=github.api_headers(token),
             timeout=30.0,
@@ -175,7 +175,7 @@ def issue_state(
 
     try:
         r = httpx.get(
-            f"https://api.github.com/repos/{repo}/issues/{number}",
+            f"{github.API}/repos/{repo}/issues/{number}",
             headers=github.api_headers(token),
             timeout=30.0,
             follow_redirects=True,

@@ -310,7 +310,7 @@ snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    so pages older than `REFRESH_PRECHECK_MAX_AGE_DAYS` (14) always re-render,
    which bounds A's blind spot. The age runs from the last full render,
    including a C skip (`last_verified_at`). Render code (`recipe_exec.py`, `recipe.py`,
-   `sanitize.py`, and `ckan_export.py`, whose CSV normalization shapes the inputs)
+   `sanitize.py`, `ckan_export.py` and `services/shared/ckan.py`, which shape the inputs)
    is folded into every hash. The job prints its
    summary as one-line JSON records: a `pipeline_summary` headline (with
    `refresh.counts`), then one `refresh_outcome` per source that did

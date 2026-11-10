@@ -18,6 +18,7 @@ import pytest
 
 from services.page_builder import ckan_export
 from services.page_builder.ckan_export import fetch_resource_preview
+from services.shared import ckan as shared_ckan
 from services.shared.fetch_types import ResourceRestrictedError
 
 _AUTH_BODY = {
@@ -170,7 +171,7 @@ def test_an_estimated_total_is_logged(monkeypatch, caplog):
     # A CKAN that ignores the threshold must not go back to silent estimates.
     ckan = _EstimatingCkan()
     monkeypatch.setattr(ckan_export.urllib_request, "urlopen", ckan.urlopen)
-    monkeypatch.setattr(ckan_export, "EXACT_TOTAL_THRESHOLD", 0)
+    monkeypatch.setattr(shared_ckan, "EXACT_TOTAL_THRESHOLD", 0)
     with caplog.at_level("WARNING", logger=ckan_export.log.name):
         preview = fetch_resource_preview("rid")
     assert preview is not None and preview["total"] == _EstimatingCkan.ESTIMATE

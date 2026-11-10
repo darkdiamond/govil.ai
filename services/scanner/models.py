@@ -135,4 +135,3 @@ class ScanSummary(BaseModel):
     errors: list[str] = Field(default_factory=list)  # first MAX_ERRORS_KEPT only
     error_count: int = 0
     results: list[ScanResult] = Field(default_factory=list)
-
