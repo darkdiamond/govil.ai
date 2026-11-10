@@ -1,0 +1,8 @@
+{
+  "main.Family": "local-directory, area-directory, az-index, kpi:total, insight:biggest_area — names shown in the directories",
+  "main.District": "chart-dist, chart-areas, local-directory, area-directory, az-index, kpi:districts, insight:local_districts, insight:only_area",
+  "main.Role": "chart-dist, area-directory, kpi:areas, insight:mix — role text decides local manager vs special-polling-stations area manager",
+  "main.City": "local-directory, area-directory, az-index, chart-areas, kpi:local, kpi:area_cities, insight:overlap",
+  "main.Mail": "local-directory, area-directory, insight:mail_domains — mailto link when well formed, plain text otherwise",
+  "main.Regional": "skip: empty in every row"
+}
