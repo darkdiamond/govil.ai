@@ -8,8 +8,10 @@ mode keeps the existing silent `None` fallback.
 """
 from __future__ import annotations
 
+import http.client
 import io
 import json
+import ssl
 import urllib.error as urllib_error
 from typing import ClassVar, Self
 from urllib.parse import parse_qs, urlparse
@@ -67,12 +69,78 @@ def test_403_authorization_error_raises(monkeypatch):
         fetch_resource_preview("rid-restricted")
 
 
-def test_403_unparseable_body_still_raises(monkeypatch):
-    # We send a browser UA, so a 403 here is the CKAN auth error even if the
-    # body isn't JSON. Rate-limiting would be 429/503, never 403.
-    _patch_urlopen(monkeypatch, lambda: (_ for _ in ()).throw(_http_error(403, None)))
-    with pytest.raises(ResourceRestrictedError):
-        fetch_resource_preview("rid-restricted")
+def test_403_without_ckan_body_is_transient(monkeypatch):
+    # Only CKAN's Authorization Error body means restricted. Any other 403
+    # (the WAF's HTML page) is a failed preview, retried once, then None.
+    calls = []
+
+    def blocked():
+        calls.append(1)
+        raise _http_error(403, None)
+
+    _patch_urlopen(monkeypatch, blocked)
+    assert fetch_resource_preview("rid-waf") is None
+    assert len(calls) == 2
+
+
+def test_403_json_without_authorization_error_is_transient(monkeypatch):
+    body = {"success": False, "error": {"__type": "Not Found Error"}}
+    _patch_urlopen(monkeypatch, lambda: (_ for _ in ()).throw(_http_error(403, body)))
+    assert fetch_resource_preview("rid") is None
+
+
+@pytest.mark.parametrize("exc", [
+    http.client.RemoteDisconnected("Remote end closed connection without response"),
+    http.client.IncompleteRead(b"{", 100),
+    ConnectionResetError(104, "Connection reset by peer"),
+    ssl.SSLError("bad record"),
+    OSError("socket error"),
+], ids=lambda e: type(e).__name__)
+def test_connection_errors_retry_then_return_none(monkeypatch, exc):
+    calls = []
+
+    def fail():
+        calls.append(1)
+        raise exc
+
+    _patch_urlopen(monkeypatch, fail)
+    assert fetch_resource_preview("rid") is None
+    assert len(calls) == 2
+
+
+def test_connection_error_then_success_returns_preview(monkeypatch):
+    body = {"success": True, "result": {"total": 3, "fields": [{"id": "a", "type": "text"}],
+                                        "records": [{"_id": 1, "a": "x"}]}}
+    answers = iter([http.client.RemoteDisconnected("closed"),
+                    _Resp(json.dumps(body).encode("utf-8"))])
+
+    def flaky():
+        a = next(answers)
+        if isinstance(a, BaseException):
+            raise a
+        return a
+
+    _patch_urlopen(monkeypatch, flaky)
+    preview = fetch_resource_preview("rid")
+    assert preview is not None and preview["total"] == 3
+
+
+@pytest.mark.parametrize("body", [
+    [],
+    [{"success": True}],
+    "ok",
+    {"success": True, "result": []},
+    {"success": True, "result": "x"},
+    {"success": True, "result": {"total": "many", "fields": [], "records": []}},
+    {"success": True, "result": {"total": [1], "fields": [], "records": []}},
+    {"success": True, "result": {"total": 1, "fields": "a", "records": []}},
+    {"success": True, "result": {"total": 1, "fields": ["a"], "records": []}},
+    {"success": True, "result": {"total": 1, "fields": [], "records": {"a": 1}}},
+    {"success": True, "result": {"total": 1, "fields": [], "records": [["a"]]}},
+], ids=repr)
+def test_malformed_payload_returns_none(monkeypatch, body):
+    _patch_urlopen(monkeypatch, lambda: _Resp(json.dumps(body).encode("utf-8")))
+    assert fetch_resource_preview("rid") is None
 
 
 def test_200_authorization_error_raises(monkeypatch):
