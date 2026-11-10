@@ -94,20 +94,6 @@ def test_root_drops_to_sandbox_user(tmp_path, as_root):
     assert as_root.run.calls[1][1]["user"] == UID
 
 
-def test_adopt_after_handover_chowns_new_dirs(tmp_path, as_root):
-    wd = tmp_path / "s1"
-    sb = ls.LocalSandbox.create(wd)
-    sb.run_code("true", language="bash")
-    as_root.chowns.clear()
-    (wd / "late").mkdir()
-    f = wd / "late" / "x.csv"
-    f.write_text("x")
-    os.chmod(f, 0o600)
-    sb.adopt(f)
-    assert [p for p, *_ in as_root.chowns] == [str(wd / "late")]
-    assert f.stat().st_mode & 0o004
-
-
 def test_sandbox_user_env_overrides(tmp_path, as_root, monkeypatch):
     monkeypatch.setenv("SANDBOX_USER", "")
     assert ls.LocalSandbox.create(tmp_path / "a").ident is None

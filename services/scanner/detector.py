@@ -1,9 +1,8 @@
 """
 Change detection — compares CKAN dataset metadata against Firestore state.
 
-Resource-level diffing and downloads were removed when the scanner moved to
-Firestore (the Managed Agent fetches resources in its own sandbox). This
-module now only answers "is this dataset new / updated / unchanged?".
+It only answers "is this dataset new / updated / unchanged?" (the recipe
+refresh fetches resource data itself).
 """
 
 from .models import Dataset, DatasetStatus

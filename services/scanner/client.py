@@ -102,16 +102,6 @@ class CKANClient:
         
         return data.get("result", {})
     
-    async def list_package_ids(self) -> list[str]:
-        """
-        List all dataset (package) IDs.
-        
-        Returns:
-            List of dataset ID strings.
-        """
-        result = await self._request(self.config.package_list_url)
-        return result if isinstance(result, list) else []
-    
     async def search_packages(
         self,
         query: str | None = None,
@@ -168,37 +158,6 @@ class CKANClient:
         )
         
         return Dataset.from_ckan_response(result)
-    
-    async def get_packages_batch(
-        self, 
-        package_ids: list[str],
-        on_progress: Callable[..., Any] | None = None,
-    ) -> list[Dataset]:
-        """
-        Get details for multiple datasets.
-        
-        Args:
-            package_ids: List of dataset IDs to fetch.
-            on_progress: Optional callback(current, total) for progress.
-        
-        Returns:
-            List of Dataset models.
-        """
-        datasets = []
-        total = len(package_ids)
-        
-        for i, package_id in enumerate(package_ids):
-            try:
-                dataset = await self.get_package(package_id)
-                datasets.append(dataset)
-            except Exception as e:  # noqa: BLE001
-                # Log error but continue with other datasets
-                print(f"Error fetching {package_id}: {e}")
-            
-            if on_progress:
-                on_progress(i + 1, total)
-        
-        return datasets
     
     async def datastore_total(self, resource_id: str) -> int | None:
         """Return the total row count of a datastore-backed resource.

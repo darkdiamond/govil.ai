@@ -292,33 +292,12 @@ async def run_pipeline(
             scan_error = f"{type(e).__name__}: {e}"[:500]
     scan_failed = bool(scan_error) or bool(scan_summary and getattr(scan_summary, "errors", None))
 
-    # [1.5] reap orphaned `pending` markers left by the retired agent
-    # builder (a run that died mid-session). Recycled as `failed`, which the
-    # authoring queue treats as `new`. Nothing writes `pending` any more, so
-    # this only drains the legacy set.
-    reaped: list[str] = []
-    if not override_id and not dry_run:
-        reap_after = int(os.environ.get("PENDING_REAP_MINUTES", "120"))
-        try:
-            reaped = await asyncio.to_thread(
-                store.reap_stale_pending, older_than_minutes=reap_after
-            )
-            if reaped:
-                log.info(
-                    "reaped %d orphaned pending source(s): %s",
-                    len(reaped),
-                    ", ".join(i[:8] for i in reaped),
-                )
-        except Exception:
-            log.exception("pending reap failed — continuing")
-
     summary: dict = {
         "mode": mode,
         "dry_run": dry_run,
         "scan": (_scan_summary_dict(scan_summary) if scan_summary
                  else {"error": scan_error} if scan_error else None),
         "reconcile": reconcile_summary,
-        "reaped_pending": reaped,
         "refresh": None,
         "authoring_queued": [],
         "build_id": None,

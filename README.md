@@ -71,7 +71,6 @@ services/
     author.py                    local authoring kit (prepare / verify)
     agent_contract.py            CKAN fetch + output sanitizer + check.py gate
     local_sandbox.py             compute sandbox (subprocess, private workdir)
-    podman_sandbox.py            shared sandbox result types (no longer a runtime sandbox)
     publish.py                   Firestore → data.json/agent_data.json/manifest.json
     tags.py / related.py         tag vocabulary (taxonomy/) + content-based related datasets
     cli/preview.py               serve a recipe's page in the real shell (nuxt dev overlay)

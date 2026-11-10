@@ -878,8 +878,6 @@ def fetch_inputs(
                     page_size=page_size,
                     page_timeout_s=_PAGE_TIMEOUT_S,
                     deadline=deadline,
-                    sample_target_rows=0,
-                    prefer_sample=False,
                     fields=inp.columns,
                     # The uploaded file is tried first; the datastore preview
                     # is what it must match (agent_contract.fetch_resource_csv).
@@ -889,7 +887,7 @@ def fetch_inputs(
                 )
             except FetchLimitExceeded as e:
                 raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
-            if outcome is None or outcome.mode != "full":
+            if outcome is None:
                 raise RecipeError(
                     f"input {inp.name!r}: full fetch of {rid[:8]} failed (fetch error)",
                     reason="fetch_failed",

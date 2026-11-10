@@ -76,9 +76,6 @@ jobs:
             services/page_builder/requirements.txt
             services/news/requirements.txt
       - name: Install dependencies
-        # requirements-test.txt is intentionally omitted: it only pulls
-        # llm-sandbox[podman] for the manual harness, needs Podman, and is
-        # unused by the unit suite (every test mocks Firestore).
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r services/page_builder/requirements.txt -r services/news/requirements.txt -r requirements-dev.txt

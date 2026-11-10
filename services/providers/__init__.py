@@ -21,7 +21,6 @@ from .registry import (
     enabled_providers,
     provider_for_id,
     provider_for_key,
-    reset_providers,
 )
 
 __all__ = [
@@ -39,5 +38,4 @@ __all__ = [
     "enabled_providers",
     "provider_for_id",
     "provider_for_key",
-    "reset_providers",
 ]

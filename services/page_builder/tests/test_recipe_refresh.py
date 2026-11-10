@@ -58,13 +58,12 @@ class FakeCkan:
         }
 
     def fetch(self, rid, total, dest, **kw):
-        assert kw["prefer_sample"] is False and kw["sample_target_rows"] == 0
         self.fetches += 1
         with open(dest, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f)
             w.writerow(self.cols)
             w.writerows(self.rows)
-        return FetchOutcome(rows=len(self.rows), bytes=dest.stat().st_size, mode="full")
+        return FetchOutcome(rows=len(self.rows), bytes=dest.stat().st_size)
 
 
 class FakeStore:

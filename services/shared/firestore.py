@@ -1,8 +1,9 @@
 """Firestore state store — shared between scanner + builder.
 
 Collections:
-    sources/{dataset_id}   — per-dataset state (CKAN fields + analyzer state)
-    scan_runs/{run_id}     — one document per builder invocation
+    sources/{dataset_id}   — per-dataset state (scanner's CKAN facts + the
+                             builder's refresh / authoring state)
+    scan_runs/{run_id}     — one document per scan
 
 The client picks up credentials from `GOOGLE_APPLICATION_CREDENTIALS` or the
 runtime's default service account. When `FIRESTORE_EMULATOR_HOST` is set,
@@ -14,7 +15,7 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 
 from google.cloud import firestore
@@ -57,11 +58,11 @@ class SourceRecord:
     change_status: str = "unchanged"
 
     last_analyzed_at: datetime | None = None
-    # Source's metadata_modified at the moment of the last successful
-    # analysis — i.e. the data vintage the agent's content is based on.
-    # Distinct from `metadata_modified`, which is the *live* CKAN value
-    # and gets overwritten on every scan. Captured by the builder via
-    # `mark_analysis_succeeded`. The publisher falls back to
+    # Source's metadata_modified at the last successful render — the data
+    # vintage the live page is based on. Distinct from `metadata_modified`,
+    # which is the *live* CKAN value and gets overwritten on every scan.
+    # Written by `mark_refreshed` (legacy pages keep what the retired agent
+    # builder wrote). The publisher falls back to
     # `min(metadata_modified, last_analyzed_at)` for legacy docs that
     # succeeded before this field existed.
     analyzed_metadata_modified: datetime | None = None
@@ -69,8 +70,8 @@ class SourceRecord:
     analysis_status: str = "never"
     last_error: str | None = None
     page_path: str | None = None
-    # Whole-run failures since the last success. Only Track 2 reads it for
-    # `succeeded` sources (see `mark_reanalysis_failed`).
+    # Failed builds of the retired agent builder (legacy; reset on a
+    # restricted source re-enabling). `list_failed_retryable` filters on it.
     failed_attempts: int = 0
 
     # UTC timestamp the reconcile sweep first flagged the source as removed
@@ -163,12 +164,6 @@ class FirestoreStateStore:
         self.client = client or firestore.Client(project=self.project_id, database=database)
 
     # ---- Scanner surface -------------------------------------------------
-
-    def get_dataset_metadata_modified(self, dataset_id: str) -> datetime | None:
-        snap = self.client.collection(SOURCES_COLL).document(dataset_id).get()
-        if not snap.exists:
-            return None
-        return (snap.to_dict() or {}).get("metadata_modified")
 
     def get_scan_state(
         self, dataset_id: str
@@ -454,9 +449,8 @@ class FirestoreStateStore:
     def list_org_sources(
         self, org_name: str, exclude_id: str = "", limit: int = 15
     ) -> list[SourceRecord]:
-        """Same-ministry sources for the related-candidates block in the
-        agent's user message — saves the agent 3-5 CKAN package_search
-        discovery calls per session (each one replays the whole transcript).
+        """Same-ministry sources, for the sibling list in an authoring
+        BRIEF.md (`author prepare`).
 
         Single-field filter, sorted client-side (already-published sources
         first, then newest) — no composite index needed.
@@ -485,26 +479,6 @@ class FirestoreStateStore:
         )
         for d in query.stream():
             yield SourceRecord.from_doc(d)
-
-    def mark_analysis_succeeded(
-        self,
-        dataset_id: str,
-        page_path: str,
-        analyzed_metadata_modified: datetime | None = None,
-    ) -> None:
-        now = datetime.now(UTC)
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "analysis_status": "succeeded",
-                "last_analyzed_at": now,
-                "analyzed_metadata_modified": analyzed_metadata_modified,
-                "last_analyzed_version": firestore.Increment(1),
-                "page_path": page_path,
-                "last_error": None,
-                "failed_attempts": 0,
-            },
-            merge=True,
-        )
 
     def set_resource_datastore_flags(
         self, source_id: str, flags: dict[str, bool]
@@ -578,82 +552,6 @@ class FirestoreStateStore:
         )
         for d in query.stream():
             yield SourceRecord.from_doc(d)
-
-    def mark_analysis_failed(self, dataset_id: str, error: str) -> None:
-        # Legacy status from the retired agent builder; today only
-        # `reap_stale_pending` writes it. `failed_attempts` is kept for the
-        # record, but the authoring selector queues `failed` sources for a
-        # recipe regardless of the count.
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "analysis_status": "failed",
-                "last_error": (error or "")[:1000],
-                "failed_attempts": firestore.Increment(1),
-            },
-            merge=True,
-        )
-
-    def mark_reanalysis_failed(self, dataset_id: str, error: str) -> None:
-        """Record a failed Track-2 rebuild of an ALREADY-PUBLISHED source.
-
-        Unlike `mark_analysis_failed` this leaves `analysis_status` at
-        `succeeded`: the publisher emits only succeeded/unavailable sources,
-        so flipping a live page to `failed` would delete it from the site on
-        the next deploy. `failed_attempts` still increments; the selector
-        stops re-picking the source once it reaches the retry budget, and a
-        later success resets it.
-        """
-        self.client.collection(SOURCES_COLL).document(dataset_id).set(
-            {
-                "analysis_status": "succeeded",
-                "analysis_started_at": None,
-                "last_error": (error or "")[:1000],
-                "failed_attempts": firestore.Increment(1),
-            },
-            merge=True,
-        )
-
-    def reap_stale_pending(self, *, older_than_minutes: int = 120) -> list[str]:
-        """Recycle `pending` sources orphaned by the retired agent builder.
-
-        Its sessions wrote `pending` on start; a container that died
-        mid-session (request timeout, OOM, a deploy) left the marker behind.
-        Nothing writes `pending` any more, and the authoring queue matches
-        only `never`, `failed` and changed legacy pages, so this drains the
-        legacy set: recycled as `failed`, which the queue treats as `new`.
-        Called at the start of a run.
-
-        Returns the ids reaped.
-        """
-        cutoff = datetime.now(UTC) - timedelta(minutes=older_than_minutes)
-        query = self.client.collection(SOURCES_COLL).where(
-            filter=FieldFilter("analysis_status", "==", "pending")
-        )
-        reaped: list[str] = []
-        for d in query.stream():
-            started = (d.to_dict() or {}).get("analysis_started_at")
-            if isinstance(started, datetime):
-                # Firestore hands back tz-aware values; a naive one could only
-                # come from a hand-edited doc — treat it as UTC rather than
-                # letting the comparison raise and strand the whole sweep.
-                if started.tzinfo is None:
-                    started = started.replace(tzinfo=UTC)
-                if started > cutoff:
-                    continue
-            # No timestamp at all → written before this field existed, so it
-            # predates the current run by definition.
-            data = d.to_dict() or {}
-            if data.get("page_path"):
-                # Interrupted Track-2 rebuild: the live page must survive.
-                self.mark_reanalysis_failed(
-                    d.id, "interrupted — re-analysis ended mid-session"
-                )
-            else:
-                self.mark_analysis_failed(
-                    d.id, "interrupted — run ended mid-session (no page written)"
-                )
-            reaped.append(d.id)
-        return reaped
 
     # ---- Recipe refresh --------------------------------------------------
     #
@@ -857,6 +755,3 @@ class FirestoreStateStore:
                 coll.where(filter=FieldFilter("analysis_status", "==", status))
             )
         return counts
-
-    def get_all_dataset_ids(self) -> list[str]:
-        return [d.id for d in self.client.collection(SOURCES_COLL).stream()]

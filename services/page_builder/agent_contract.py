@@ -91,12 +91,13 @@ class ResourceRestrictedError(Exception):
     transient failure."""
 
 
-# CKAN schema prefetch — skip the agent's first 5–10 schema-discovery curls
-# by inlining `fields + total + sample_rows` into the user message. The WAF
-# 403s requests without a browser User-Agent (see scanner notes), and the
-# CKAN response can be ~50 MB without `limit`, so we hardcode limit=5 and a
-# tight wall-clock budget. On any error we return None and the agent falls
-# back to its existing curl flow — never block the build on prefetch.
+# CKAN schema preview — `fields + total + sample_rows` for one resource. The
+# refresh resolves inputs against it, and its sample rows (as truncated and
+# capped below) feed precheck fingerprint A and the export cross-check
+# (`_matches_sample`), so changing these limits moves both. The WAF 403s
+# requests without a browser User-Agent (see scanner notes), and the CKAN
+# response can be ~50 MB without `limit`, so we hardcode limit=5 and a tight
+# wall-clock budget. On any error the preview returns None.
 _CKAN_DATASTORE_URL = "https://data.gov.il/api/3/action/datastore_search"
 # The WAF passes this UA on the API and on file downloads (2026-10-31: a bare
 # `Mozilla/5.0`, curl's and python-requests' UAs all 403). CKAN_USER_AGENT
@@ -150,8 +151,7 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
 
     Returns ``{"fields": [{id,type}], "total": int, "sample_rows": [...]}``
     on success; ``None`` on any error (timeout, HTTP 4xx/5xx, JSON parse
-    failure, missing keys). The agent's prompt accepts the absence
-    silently and falls back to its current schema-discovery flow.
+    failure, missing keys); the caller treats that as no preview.
     """
     if not resource_id:
         return None
@@ -221,7 +221,8 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
         "total": int(result.get("total") or 0),
         "sample_rows": rows,
     }
-    # Hard cap the serialized size so a wide table doesn't bloat the prompt.
+    # Hard cap the serialized size so a wide table stays small (this preview
+    # is part of precheck fingerprint A, so the cap is load-bearing).
     serialized = json.dumps(preview, ensure_ascii=False, separators=(",", ":"))
     if len(serialized.encode("utf-8")) > _PREFETCH_JSON_CAP:
         # Drop sample rows progressively until we fit; keep fields + total.
@@ -235,8 +236,6 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
 class FetchOutcome:
     rows: int
     bytes: int
-    mode: str                        # "full" | "sample"
-    sample_note: str | None = None
     via: str | None = None        # "file" | "datastore" (fetch_resource_export)
 
 
@@ -262,7 +261,7 @@ FetchLimit = Literal["bytes", "wall_budget"]
 class FetchLimitExceeded(Exception):
     """A fetch stopped at a limit, not on an error: `limit` is "bytes" (a
     byte cap) or "wall_budget" (the deadline). Raised by a full-or-nothing
-    CKAN export (`sample_target_rows=0`) and by provider fetchers. A byte
+    CKAN export and by provider fetchers. A byte
     overrun means the dataset outgrew its cap, which a retry won't fix."""
 
     def __init__(self, limit: FetchLimit, message: str):
@@ -344,122 +343,72 @@ def fetch_resource_records_to_file(
     page_size: int,
     page_timeout_s: float,
     deadline: float,
-    sample_target_rows: int,
-    prefer_sample: bool = False,
     fields: list[str] | None = None,
 ) -> FetchOutcome | None:
-    """Datastore export for one resource, streamed to `dest` as UTF-8 CSV.
+    """Full datastore export for one resource, streamed to `dest` as UTF-8 CSV.
 
-    Pages datastore_search host-side (same source of truth the agent would
-    query); `_id` is dropped, field order follows the datastore schema, or
-    `fields` (only those columns, in that order) when given.
-    A full export that crosses `max_bytes` mid-stream retries in sample
-    mode instead of discarding everything. Sampling (when
-    `sample_target_rows` > 0) fetches deterministic contiguous blocks:
-    the head page plus pages at fixed strides — verbatim datastore output,
-    recipe recorded in `sample_note`. Returns None when nothing could or
-    should be written (dest is removed). Without sampling
-    (`sample_target_rows=0`), crossing `max_bytes` or `deadline` raises
-    FetchLimitExceeded instead (dest removed), so the caller can tell an
-    outgrown dataset from a network error.
+    Pages datastore_search host-side; `_id` is dropped, field order follows
+    the datastore schema, or `fields` (only those columns, in that order)
+    when given. Full or nothing: crossing `max_bytes` or `deadline` raises
+    FetchLimitExceeded (dest removed), so the caller can tell an outgrown
+    dataset from a network error. Any other failure returns None (dest
+    removed).
     """
     if not resource_id or total <= 0 or max_bytes <= 0:
         return None
 
-    def _walk(offsets: list[int], sequential: bool) -> tuple[int, int]:
+    def _walk() -> tuple[int, int]:
         with open(dest, "wb") as f:
             w = _CsvStreamWriter(f, max_bytes)
-            if sequential:
-                offset = 0
-                limit = min(page_size, _FIRST_PAGE_ROWS)
-                while offset < total:
-                    if time.monotonic() > deadline:
-                        raise _WallBudgetExceeded()
-                    page_fields, records = _fetch_page(
-                        resource_id, offset, limit, page_timeout_s, fields
-                    )
-                    if not records:
-                        break
-                    before = w.bytes
-                    w.write_page(page_fields, records)
-                    offset += len(records)
-                    # A whole page is decoded and held in the builder process,
-                    # which has no heap cap: size the next one by this one's
-                    # row width, so a wide table stays near _PAGE_TARGET_BYTES.
-                    per_row = max(1, (w.bytes - before) // len(records))
-                    limit = min(page_size, max(_MIN_PAGE_ROWS, _PAGE_TARGET_BYTES // per_row))
-                if offset < total:
-                    # An empty page before `total` (seen 2026-11-03 while the
-                    # datastore reloaded a resource) is a cut-off export, not
-                    # the end of the data: fail it, never stage it as full.
-                    raise RuntimeError(f"datastore ran out at row {offset:,} of {total:,}")
-            else:
-                for offset in offsets:
-                    if time.monotonic() > deadline:
-                        raise _WallBudgetExceeded()
-                    page_fields, records = _fetch_page(
-                        resource_id, offset, page_size, page_timeout_s, fields
-                    )
-                    if records:
-                        w.write_page(page_fields, records)
+            offset = 0
+            limit = min(page_size, _FIRST_PAGE_ROWS)
+            while offset < total:
+                if time.monotonic() > deadline:
+                    raise _WallBudgetExceeded()
+                page_fields, records = _fetch_page(
+                    resource_id, offset, limit, page_timeout_s, fields
+                )
+                if not records:
+                    break
+                before = w.bytes
+                w.write_page(page_fields, records)
+                offset += len(records)
+                # A whole page is decoded and held in the builder process,
+                # which has no heap cap: size the next one by this one's
+                # row width, so a wide table stays near _PAGE_TARGET_BYTES.
+                per_row = max(1, (w.bytes - before) // len(records))
+                limit = min(page_size, max(_MIN_PAGE_ROWS, _PAGE_TARGET_BYTES // per_row))
+            if offset < total:
+                # An empty page before `total` (seen 2026-11-03 while the
+                # datastore reloaded a resource) is a cut-off export, not
+                # the end of the data: fail it, never stage it as full.
+                raise RuntimeError(f"datastore ran out at row {offset:,} of {total:,}")
             if w.rows == 0:
                 raise RuntimeError("no records returned")
             return w.rows, w.bytes
 
     started = time.monotonic()
-    if not prefer_sample:
-        try:
-            rows, nbytes = _walk([], sequential=True)
-            log.info(
-                "data prefetch %s: full, %d rows, %d bytes in %.1fs",
-                resource_id[:8], rows, nbytes, time.monotonic() - started,
-            )
-            return FetchOutcome(rows=rows, bytes=nbytes, mode="full")
-        except _ByteCapExceeded:
-            if sample_target_rows <= 0:
-                dest.unlink(missing_ok=True)
-                raise FetchLimitExceeded(
-                    "bytes", f"export of {resource_id[:8]} crossed the {max_bytes:,}-byte cap"
-                ) from None
-            log.info(
-                "data prefetch %s: byte cap crossed mid-fetch — retrying as sample",
-                resource_id[:8],
-            )
-        except _WallBudgetExceeded:
-            dest.unlink(missing_ok=True)
-            if sample_target_rows <= 0:
-                raise FetchLimitExceeded(
-                    "wall_budget", f"export of {resource_id[:8]} ran out of wall budget"
-                ) from None
-            log.warning("data prefetch %s (full) failed: wall budget exceeded", resource_id[:8])
-            return None
-        except Exception as e:  # noqa: BLE001
-            log.warning("data prefetch %s (full) failed: %s", resource_id[:8], e)
-            dest.unlink(missing_ok=True)
-            return None
-
-    if sample_target_rows > 0 and total > 0:
-        n_blocks = max(1, -(-sample_target_rows // page_size))  # ceil div
-        stride = max(total // n_blocks, page_size)
-        offsets = list(range(0, total, stride))[:n_blocks]
-        note = (
-            f"{len(offsets)} contiguous blocks of up to {page_size:,} rows, "
-            f"starting at offsets 0, {stride:,}, {2 * stride:,}, …"
-        )
-        try:
-            rows, nbytes = _walk(offsets, sequential=False)
-            log.info(
-                "data prefetch %s: sample, %d of %d rows, %d bytes in %.1fs",
-                resource_id[:8], rows, total, nbytes, time.monotonic() - started,
-            )
-            return FetchOutcome(
-                rows=rows, bytes=nbytes, mode="sample", sample_note=note
-            )
-        except Exception as e:  # noqa: BLE001
-            log.warning("data prefetch %s (sample) failed: %s", resource_id[:8], e)
-
-    dest.unlink(missing_ok=True)
-    return None
+    try:
+        rows, nbytes = _walk()
+    except _ByteCapExceeded:
+        dest.unlink(missing_ok=True)
+        raise FetchLimitExceeded(
+            "bytes", f"export of {resource_id[:8]} crossed the {max_bytes:,}-byte cap"
+        ) from None
+    except _WallBudgetExceeded:
+        dest.unlink(missing_ok=True)
+        raise FetchLimitExceeded(
+            "wall_budget", f"export of {resource_id[:8]} ran out of wall budget"
+        ) from None
+    except Exception as e:  # noqa: BLE001
+        log.warning("data prefetch %s (full) failed: %s", resource_id[:8], e)
+        dest.unlink(missing_ok=True)
+        return None
+    log.info(
+        "data prefetch %s: full, %d rows, %d bytes in %.1fs",
+        resource_id[:8], rows, nbytes, time.monotonic() - started,
+    )
+    return FetchOutcome(rows=rows, bytes=nbytes)
 
 
 class DownloadBlocked(Exception):
@@ -988,7 +937,7 @@ def fetch_resource_csv(
     nbytes = dest.stat().st_size
     log.info("data prefetch %s: file, %d rows, %d bytes in %.1fs",
              rid, rows, nbytes, time.monotonic() - started)
-    return FetchOutcome(rows=rows, bytes=nbytes, mode="full", via="file")
+    return FetchOutcome(rows=rows, bytes=nbytes, via="file")
 
 
 def fetch_resource_export(

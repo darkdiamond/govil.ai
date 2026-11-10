@@ -8,6 +8,16 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **The removed preview lane left data in GCP.** The code, the Cloud Run job and its scheduler
+  are gone, but `gs://govdata-il-staging/preview/` (still holds `datasets/`), the Firestore
+  `preview_sources` and `preview_runs` collections and the `recipes-demo` Hosting channel may
+  remain. Nothing reads them. Fix, once the removal PR is merged and deployed:
+  `gcloud storage rm -r gs://govdata-il-staging/preview/`,
+  `firebase firestore:delete --recursive --project govdata-il preview_sources` (same for
+  `preview_runs`), `firebase hosting:channel:delete recipes-demo --project govdata-il`, then
+  `gcloud storage buckets update gs://govdata-il-staging --lifecycle-file=infra/staging-lifecycle.json`
+  (drops the `preview/models/` lifecycle prefix). (2026-11-10)
+
 - **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
   hardcoded Chrome User-Agent, while the builder's fetches (`agent_contract._CKAN_BROWSER_UA`) use
   `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and

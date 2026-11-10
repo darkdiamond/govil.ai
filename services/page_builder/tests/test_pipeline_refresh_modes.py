@@ -24,8 +24,7 @@ def harness(monkeypatch):
                         refresh_kw=None)
     h.sources = {"rec1": SourceRecord(id="rec1", title="r", page_path="datasets/rec1/"),
                  "solo": SourceRecord(id="solo", title="s")}
-    store = SimpleNamespace(reap_stale_pending=lambda **kw: [],
-                            get_source=lambda i: h.sources.get(i))
+    store = SimpleNamespace(get_source=lambda i: h.sources.get(i))
     monkeypatch.setattr(pipeline, "FirestoreStateStore", lambda: store)
     monkeypatch.setattr(pipeline, "StateDB", lambda store: None)
     monkeypatch.setattr(pipeline, "ScannerSettings", lambda: None)

@@ -81,9 +81,7 @@ landing pages. Six layers:
    → scan (guarded: one dataset's failure is recorded in `scan_runs.error` and
    the scan goes on; 20 in a row, or a listing failure, stop it. Either way
    the rest of the run goes ahead on the Firestore docs already there and
-   ends `status: scan_failed`) → reap legacy
-   `pending` markers (`PENDING_REAP_MINUTES`; nothing writes `pending`
-   any more, this only drains the set the retired agent builder left) →
+   ends `status: scan_failed`) →
    **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
    `RECIPES_SOURCE`, default `github:<PUBLISH_GITHUB_REPO>@main`;
    prod sets `RECIPES_FETCH=tarball` (code default `files`): one archive
@@ -514,7 +512,7 @@ are still read by the authoring selector.
 
 | Area                    | File                                                                                       | Why                                                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Pipeline orchestration  | `services/page_builder/pipeline.py`                                                        | reconcile → scan → reap → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                 |
+| Pipeline orchestration  | `services/page_builder/pipeline.py`                                                        | reconcile → scan → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                        |
 | Authoring queue         | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                                     |
 | Recipe refresh          | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / local) , `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                   |
 | Providers (non-CKAN)    | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                                        |

@@ -464,7 +464,7 @@ def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
                 resource=by_id.get(res["id"]), preview=preview, fields=cols,
                 max_bytes=max_bytes, page_size=_DEFAULT_PAGE_SIZE, page_timeout_s=60.0,
                 file_max_bytes=_env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES),
-                deadline=time.monotonic() + wall_s, sample_target_rows=0, prefer_sample=False,
+                deadline=time.monotonic() + wall_s,
             )
             if out is not None and cols:
                 try:
@@ -729,7 +729,7 @@ class _LocalCkan:
         if "max_bytes" in kw and size > kw["max_bytes"]:
             dest.unlink()
             raise FetchLimitExceeded("bytes", f"{rid[:8]}: {size:,} bytes > cap {kw['max_bytes']:,}")
-        return FetchOutcome(rows=len(body), bytes=size, mode="full")
+        return FetchOutcome(rows=len(body), bytes=size)
 
 
 class _LocalFiles:

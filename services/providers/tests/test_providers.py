@@ -172,8 +172,8 @@ def test_preview_and_fetch_share_one_download(boi, tmp_path):
     pv = preview_fn("boi-br")
     assert pv["total"] == 3 and pv["fields"][0]["id"] == "SERIES_CODE"
     out = fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10**6, page_size=1,
-                   page_timeout_s=1, deadline=0, sample_target_rows=0, prefer_sample=False)
-    assert out.mode == "full" and out.rows == 3
+                   page_timeout_s=1, deadline=0)
+    assert out.rows == 3
     assert (tmp_path / "x.csv").read_bytes() == boi.csv_bytes(res)
     assert sum("/BR/" in c and "format=csv" in c for c in boi.calls) == 1
     assert preview_fn("unknown") is None

@@ -486,7 +486,7 @@ def _prepare_env(tmp_path, monkeypatch, mutate):
             w = csv.writer(f)
             w.writerow(COLS)
             w.writerows(_rows([2023]))
-        return agent_contract.FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size, mode="full")
+        return agent_contract.FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size)
 
     monkeypatch.setattr(agent_contract, "fetch_resource_export", export)
     return author, calls

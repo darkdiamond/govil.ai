@@ -188,7 +188,7 @@ def test_fetch_inputs_writes_snapshot_without_ckan(tmp_path):
         assert rid == RID
         with open(dest, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerows([cols, *rows])
-        return FetchOutcome(rows=1, bytes=dest.stat().st_size, mode="full")
+        return FetchOutcome(rows=1, bytes=dest.stat().st_size)
 
     out = rf.fetch_inputs(recipe, resources, tmp_path / "d", preview_fn=preview, fetch_fn=fetch,
                           snapshot_rows=lambda r: r[:2])
@@ -461,7 +461,7 @@ def _events_ckan():
     def fetch(rid, total, dest, **kw):
         with open(dest, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerows([cols, ["2025", "1", "צפון", "4"]])
-        return FetchOutcome(rows=1, bytes=dest.stat().st_size, mode="full")
+        return FetchOutcome(rows=1, bytes=dest.stat().st_size)
 
     return preview, fetch
 
