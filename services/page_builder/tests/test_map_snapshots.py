@@ -542,6 +542,12 @@ def test_fetch_inputs_downloads_and_converts_the_map(tmp_path, name, body):
     (FakeFiles(b"PK\x03\x04truncated zip"), {}, "schema_changed"),
     (FakeFiles(_shp_zip([SQ], ["א"])), {"required_columns": ["CODE"]}, "schema_changed"),
     (FakeFiles(_shp_zip([SQ] * 200, ["א"] * 200)), {"map_max_kb": 1}, "too_large"),
+    (FakeFiles(json.dumps({"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"NAME": "x"},
+         "geometry": {"type": "Point", "coordinates": [35.2, 31.7]}},
+        {"type": "Feature", "properties": {"NAME": "y"},
+         "geometry": {"type": "GeometryCollection", "geometries": None}}]}).encode()),
+     {}, "schema_changed"),
 ])
 def test_map_download_failures_are_classified(tmp_path, files, kw, reason):
     recipe = Recipe.load(_with_map(tmp_path, **kw) / DS)

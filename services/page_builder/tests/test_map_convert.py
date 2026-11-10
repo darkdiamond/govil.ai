@@ -277,3 +277,43 @@ def test_a_huge_integer_position_is_the_datas_error_not_a_crash():
               "geometry": {"type": "LineString", "coordinates": [[35, 31], [10**300, 31], [35.1, 31]]}}]
     with pytest.raises(gs.SnapshotError, match="too long"):
         gs.simplify_features(feats, crs="wgs84")
+
+
+_BAD_COLLECTIONS = [
+    {"type": "GeometryCollection"},                       # no geometries
+    {"type": "GeometryCollection", "geometries": None},
+    {"type": "GeometryCollection", "geometries": [None]},
+    {"type": "GeometryCollection", "geometries": {"type": "Point"}},
+    {"type": "GeometryCollection", "geometries": [{"type": "GeometryCollection", "geometries": [None]}]},
+]
+
+
+@pytest.mark.parametrize("geometry", _BAD_COLLECTIONS)
+def test_a_malformed_geometry_collection_is_a_snapshot_error(geometry):
+    body = json.dumps({"type": "FeatureCollection", "features": [  # a point first: the CRS
+        {"type": "Feature", "properties": {}, "geometry": {"type": "Point", "coordinates": [35.2, 31.7]}},
+        {"type": "Feature", "properties": {}, "geometry": geometry}]}).encode()
+    with pytest.raises(gs.SnapshotError):
+        feats, crs = gs.iter_map(body, "x.geojson")
+        gs.simplify_features(feats, crs=crs)
+
+
+def test_an_empty_geometry_collection_still_converts():
+    body = json.dumps({"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"A": 1},
+         "geometry": {"type": "GeometryCollection", "geometries": []}},
+        {"type": "Feature", "properties": {"A": 2},
+         "geometry": {"type": "Point", "coordinates": [35.2, 31.7]}}]}).encode()
+    feats, crs = gs.iter_map(body, "x.geojson")
+    assert len(gs.simplify_features(feats, crs=crs).features) == 2
+
+
+@pytest.mark.parametrize("geometry", [
+    {"type": "GeometryCollection"},
+    {"type": "Polygon", "coordinates": [[None]]},
+])
+def test_simplify_turns_a_malformed_geometry_into_a_snapshot_error(geometry):
+    # Features that skipped the reader's check still fail as the data's error.
+    with pytest.raises(gs.SnapshotError, match="malformed geometry"):
+        gs.simplify_features([{"type": "Feature", "properties": {}, "geometry": geometry}],
+                             crs="wgs84")

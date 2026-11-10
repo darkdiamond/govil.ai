@@ -386,7 +386,12 @@ def simplify_features(features: Iterable[dict], *, crs: str,
         props = json.loads(pj)  # as a parse of the body gives them back; pj is their text
         geom = f.get("geometry")
         if geom:
-            geom = _map_lines(geom, lambda pts, ring: _prepare_line(pts, ring, project))
+            try:
+                geom = _map_lines(geom, lambda pts, ring: _prepare_line(pts, ring, project))
+            except SnapshotError:
+                raise
+            except (KeyError, TypeError, ValueError) as e:  # a geometry no check stopped
+                raise SnapshotError(f"malformed geometry ({type(e).__name__}: {e})") from None
         own = list(_lines(geom))
         lines += own
         skeleton = f'{{"geometry":{_dumps(_fill(geom, lambda _: []))},"properties":{pj},"type":"Feature"}}'
@@ -643,7 +648,12 @@ def _check_geometry(geom: Any) -> None:
         raise SnapshotError("a geometry that is not an object")
     t = geom.get("type")
     if t == "GeometryCollection":
-        for g in geom.get("geometries") or []:
+        parts = geom.get("geometries")
+        if not isinstance(parts, list):
+            raise SnapshotError(f"bad geometries {str(parts)[:40]}")
+        for g in parts:
+            if not isinstance(g, dict):
+                raise SnapshotError("a collection member that is not an object")
             _check_geometry(g)
         return
     if t not in _DEPTH:
