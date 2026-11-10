@@ -91,6 +91,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
     messages = [{"role": "system", "content": system_prompt()},
                 {"role": "user", "content": json.dumps(user, ensure_ascii=False, default=str)}]
     calls = 0
+    over = 0                  # calls refused in a turn that still offered tools
     revisions = 0
     critic = None
     nudged = False
@@ -130,6 +131,10 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
                 result = '{"error": "arguments were not valid JSON"}'
             elif fn.get("name") not in offered:
                 result = '{"error": "tool budget used up: only submit_article is available"}'
+            elif calls >= max_tool_calls:
+                # The budget holds per call: one turn can ask for many at once.
+                over += 1
+                result = '{"error": "tool budget used up: only submit_article is available"}'
             else:
                 calls += 1
                 result = tb.call(fn.get("name") or "", args)
@@ -137,7 +142,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
         if calls >= max_tool_calls and draft is None:
             messages.append({"role": "user", "content": "Tool budget used up. Submit now with what you have."})
         if draft is None:
-            if calls > max_tool_calls + 3:
+            if calls + over > max_tool_calls + 3:
                 return Outcome("rejected", reason="tool_budget", tool_calls=calls)
             continue
 
@@ -158,4 +163,5 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
                          "The article was not accepted. Fix every problem and submit again "
                          "(you may use a few more tool calls):\n- " + "\n- ".join(problems)})
         max_tool_calls = calls + 6
+        over = 0
         critic = None
