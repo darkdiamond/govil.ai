@@ -6,6 +6,7 @@ open data portal API.
 """
 
 import asyncio
+import logging
 from collections.abc import Callable
 from typing import Any, Self
 
@@ -21,6 +22,8 @@ from services.shared.ckan import EXACT_TOTAL_THRESHOLD, is_authorization_error
 
 from .config import ScannerSettings, settings
 from .models import Dataset
+
+log = logging.getLogger("scanner.client")
 
 
 class CKANError(Exception):
@@ -301,6 +304,7 @@ class CKANClient:
         batch_size: int = 100,
         limit: int | None = None,
         on_progress: Callable[..., Any] | None = None,
+        on_error: Callable[[str, Exception], None] | None = None,
     ):
         """
         Iterate through all datasets with pagination.
@@ -309,6 +313,10 @@ class CKANClient:
             batch_size: Number of datasets per API call.
             limit: Maximum number of datasets to return.
             on_progress: Optional callback(current, total) for progress.
+            on_error: Optional callback(package_id, exception) for a package
+                that doesn't parse as a Dataset. It is skipped either way: one
+                malformed CKAN record must not end the listing (and so every
+                scan) at its position.
         
         Yields:
             Dataset models one at a time.
@@ -327,9 +335,16 @@ class CKANClient:
             result = await self.search_packages(rows=rows, start=start)
             
             for package_data in result.get("results", []):
-                dataset = Dataset.from_ckan_response(package_data)
-                yield dataset
                 fetched += 1
+                try:
+                    dataset = Dataset.from_ckan_response(package_data)
+                except Exception as e:  # noqa: BLE001 - one bad record, not the listing
+                    pid = str((package_data or {}).get("id") or "?")
+                    log.warning("skipping CKAN package %s: %s", pid[:8], e)
+                    if on_error:
+                        on_error(pid, e)
+                else:
+                    yield dataset
                 
                 if on_progress:
                     on_progress(fetched, total_count)

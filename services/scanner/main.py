@@ -73,7 +73,11 @@ class Scanner:
 
                 datasets_processed = 0
                 consecutive_errors = 0
-                async for dataset in client.iter_all_packages(limit=limit * 3):
+                def _unparseable(pid: str, e: Exception) -> None:
+                    _record_error(summary, f"{pid[:8]}: unparseable package: {type(e).__name__}: {e}")
+
+                async for dataset in client.iter_all_packages(limit=limit * 3,
+                                                              on_error=_unparseable):
                     if dataset.id in self.config.EXCLUDED_DATASET_IDS:
                         continue
                     if filter_config and not filter_config.matches(dataset):

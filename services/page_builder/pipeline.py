@@ -451,7 +451,7 @@ def _scan_summary_dict(s) -> dict:
         "updated": s.datasets_updated,
         "unchanged": s.datasets_unchanged,
         "errors": list(s.errors or []),
-        "error_count": getattr(s, "error_count", len(s.errors or [])),
+        "error_count": s.error_count,
     }
 
 

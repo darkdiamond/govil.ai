@@ -34,7 +34,7 @@ def _fake_client(datasets: list[Dataset], *, listing_error_at: int | None = None
         async def get_package_count(self):
             return len(datasets)
 
-        async def iter_all_packages(self, limit):
+        async def iter_all_packages(self, limit, on_error=None):
             for i, d in enumerate(datasets[:limit]):
                 if i == listing_error_at:
                     raise RuntimeError("CKAN listing broke")
@@ -121,3 +121,25 @@ async def test_error_list_is_capped(monkeypatch):
     s = _scanner(monkeypatch, _fake_client(_datasets(10)), db)
     summary = await s.scan(limit=10)
     assert summary.error_count == 5 and len(summary.errors) == 3
+
+
+@pytest.mark.asyncio
+async def test_unparseable_package_is_skipped_not_fatal():
+    """The real client's generator: a CKAN record that doesn't validate is
+    reported through on_error and skipped; the listing goes on."""
+    from services.scanner.client import CKANClient
+
+    good = {"id": "aaaaaaaa-0000", "name": "a", "title": "A", "resources": []}
+    bad = {"id": "bbbbbbbb-0000", "name": "b", "title": "B", "resources": "oops"}
+    page = {"count": 2, "results": [bad, good]}
+
+    c = CKANClient.__new__(CKANClient)
+
+    async def search(**kw):
+        return page
+
+    c.search_packages = search
+    errors = []
+    got = [d.id async for d in c.iter_all_packages(on_error=lambda pid, e: errors.append(pid))]
+    assert got == ["aaaaaaaa-0000"]
+    assert errors == ["bbbbbbbb-0000"]

@@ -36,7 +36,8 @@ def harness(monkeypatch):
 
         async def scan(self, **kw):
             return SimpleNamespace(datasets_scanned=0, datasets_new=0,
-                                   datasets_updated=0, datasets_unchanged=0, errors=[])
+                                   datasets_updated=0, datasets_unchanged=0, errors=[],
+                                   error_count=0)
 
     monkeypatch.setattr(pipeline, "Scanner", _Scanner)
     h.selected = [(SourceRecord(id="new1", title="n"), "new"),
