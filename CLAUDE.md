@@ -349,11 +349,12 @@ catalog` lists chapters → subjects → codes.
 6. **News** — `services/news/`, Cloud Run job `govdata-news-job`
    (`infra/news-job.deploy.sh`, SA `govdata-news@`, `infra/news-iam.setup.sh`),
    **08:00 Asia/Jerusalem**, after the builder, plus `govdata-news-cbs-release`
-   at 19:30 on the 13th–15th (args from `infra/news-cbs-release.body.json`: the
-   six `cbs-index-*` datasets, ≤1 article, renders of the last 3h; the scheduler
-   SA needs `roles/run.jobsExecutorWithOverrides` on the job for arg overrides).
-   `NEWS_MAX_PER_DAY` is per run, and the dataset cooldown keeps the next 08:00
-   run off a story the evening run wrote. The only model-calling code
+   at 19:30 on the 13th–15th (args from `infra/news-cbs-release.body.json`: only
+   renders of the last 3h, i.e. the 19:00 builder run's; the scheduler SA needs
+   `roles/run.jobsExecutorWithOverrides` on the job for arg overrides).
+   `NEWS_MAX_PER_DAY` is per run, so those days can publish up to 6; the dataset
+   cooldown keeps the next 08:00 run off a story the evening run wrote. The only
+   model-calling code
    (OpenRouter; `NEWS_MODEL` Gemini Flash, `NEWS_IMAGE_MODEL` Nano Banana,
    `NEWS_SEARCH_ENGINE` exa). Articles publish with **no human approval**
    (user decision), so the guards are mechanical:
