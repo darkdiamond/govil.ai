@@ -141,12 +141,14 @@ def _date(freq: str, year: int, n: int) -> tuple[str, str]:
 
 def _pct_link(old: dict, new: dict, pct) -> float | None:
     """The coeff taking `new`'s value onto `old`'s scale, from the published change
-    between them, or None when a figure is missing."""
+    between them, or None when a figure is missing or the link isn't positive (a
+    zero value or a -100% change can't scale anything)."""
     va = (old.get("currBase") or {}).get("value")
     vb = (new.get("currBase") or {}).get("value")
     if va is None or vb is None or pct is None or not float(vb):
         return None
-    return float(va) * (1 + float(pct) / 100) / float(vb)
+    c = float(va) * (1 + float(pct) / 100) / float(vb)
+    return c if c > 0 else None
 
 
 def _segments(data_rows: list[tuple]) -> tuple[dict[int, str], dict[str, tuple[str, float]]]:
@@ -157,10 +159,12 @@ def _segments(data_rows: list[tuple]) -> tuple[dict[int, str], dict[str, tuple[s
     113.2 with PERCENT 5.3). Consecutive rows on one label whose ratio is off
     from their published PERCENT by more than half split the label; its newest
     segment keeps the label (CBS's coefficients name it), older ones become
-    `<label>#1`, `#2`, … linked by that PERCENT."""
+    `<label>#1`, `#2`, … linked by that PERCENT. Segments are numbered per
+    frequency: a label's monthly and quarterly rows are the same base unless a
+    break splits them."""
     eff: dict[int, str] = {}
     breaks: list[tuple[int, int, float]] = []  # (newer row id, older row id, coeff)
-    starts: dict[str, list[tuple[str, list[int]]]] = defaultdict(list)
+    starts: dict[tuple[str, str], list[tuple[str, list[int]]]] = defaultdict(list)
     by_freq: dict[str, list[tuple]] = defaultdict(list)
     for d in data_rows:
         by_freq[d[1]].append(d)
@@ -180,9 +184,9 @@ def _segments(data_rows: list[tuple]) -> tuple[dict[int, str], dict[str, tuple[s
                     breaks.append((id(d[5]), id(prev[5]), c))
             if split:
                 seg = []
-                starts[label or ""].append((d[0], seg))
+                starts[(d[1], label or "")].append((d[0], seg))
             seg.append(id(d[5]))
-    for label, segs in starts.items():
+    for (_, label), segs in starts.items():
         for n, (_, ids) in enumerate(sorted(segs, key=lambda s: s[0], reverse=True)):
             for rid in ids:
                 eff[rid] = label if n == 0 else f"{label}#{n}"

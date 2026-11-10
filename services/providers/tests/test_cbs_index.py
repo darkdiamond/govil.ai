@@ -290,6 +290,26 @@ def test_links_are_the_union_of_every_rows_coefficients():
     assert _factors("C", links) == {"C": 1.0, "B": 2.0, "A": 6.0}
 
 
+def test_month_and_quarter_rows_on_one_base_share_its_chain():
+    # A label in both frequencies is one base, not two segments of it.
+    coef = [{"coeff": 2.0, "baseDesc": "A"}]
+    q = [_row("quarter", 2020, 4, "A", 200.0), _row("quarter", 2021, 1, "B", 100.0)]
+    m = [_row("month", 2021, 7, "B", 101.0), _row("month", 2021, 8, "B", 101.1, coef)]
+    page = {"month": [_series(1, "month", m)], "quarter": [_series(1, "quarter", q)],
+            "paging": {"last_page": 1}}
+    out = {r["TIME_PERIOD"]: r["VALUE_CHAINED"] for r in rows(rows_csv([page], [1], "both"))}
+    assert out == {"2021-07": "101", "2021-08": "101.1", "2021-Q1": "100", "2020-Q4": "100"}
+
+
+def test_zero_value_next_to_a_switch_is_no_link():
+    # A derived link of 0 would divide by zero; it is no link (VALUE_CHAINED blank).
+    a = _row("month", 2024, 12, "A", 0.0)
+    b = _row("month", 2025, 1, "B", 100.0)
+    page = {"month": [_series(1, "month", [b, a])], "paging": {"last_page": 1}}
+    out = {r["TIME_PERIOD"]: r for r in rows(rows_csv([page], [1], "month"))}
+    assert out["2024-12"]["VALUE_CHAINED"] == "" and out["2025-01"]["VALUE_CHAINED"] == "100"
+
+
 def test_scale_break_inside_one_label_is_split_and_linked_by_percent():
     # CBS's CPI 1985: labelled "1980" but 100x smaller than 1984; the published
     # 1985 → 1980 coefficient fits 1984's scale. Values from the real API.
