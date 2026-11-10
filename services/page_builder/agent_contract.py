@@ -249,9 +249,9 @@ FetchLimit = Literal["bytes", "wall_budget"]
 
 class FetchLimitExceeded(Exception):
     """A fetch stopped at a limit, not on an error: `limit` is "bytes" (a
-    byte cap) or "wall_budget" (the deadline). Raised by a full-or-nothing
-    CKAN export and by provider fetchers. A byte
-    overrun means the dataset outgrew its cap, which a retry won't fix."""
+    byte cap) or "wall_budget" (the deadline). Raised by the full-or-nothing
+    CKAN export and by provider fetchers. A byte overrun means the dataset
+    outgrew its cap, which a retry won't fix."""
 
     def __init__(self, limit: FetchLimit, message: str):
         if limit not in ("bytes", "wall_budget"):

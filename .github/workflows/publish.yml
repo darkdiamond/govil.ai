@@ -7,7 +7,7 @@
 #     PUBLISH_VIA=github)
 #     and available for manual runs from the Actions tab.
 #
-# Bursts collapse: the `publish` concurrency group cancels the in-flight
+# Bursts collapse: the `publish-live` concurrency group cancels the in-flight
 # run when a newer one starts, so N rapid site updates cost one deploy.
 #
 # Auth is keyless via Workload Identity Federation (infra/github-ci.setup.sh):

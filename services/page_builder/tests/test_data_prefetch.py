@@ -2,9 +2,8 @@
 and resource selection — what the recipe refresh and `author prepare` fetch.
 
 The fetcher pages datastore_search host-side and streams one CSV per
-resource; every failure/gate path must degrade to "no file". Over-cap
-resources fall back to a deterministic sample when sampling is requested;
-without sampling, a crossed byte cap or wall budget raises FetchLimitExceeded.
+resource, full or nothing: every failure/gate path must degrade to "no file",
+and a crossed byte cap or wall budget raises FetchLimitExceeded.
 """
 from __future__ import annotations
 
