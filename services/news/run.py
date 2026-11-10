@@ -284,6 +284,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-images", action="store_true", help="chart-card heroes, no image model")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
+    if a.max_lookback_hours <= 0:  # would cap every window to empty, silently
+        ap.error("--max-lookback-hours / NEWS_MAX_LOOKBACK_HOURS must be > 0")
     logging.basicConfig(level=logging.INFO, stream=sys.stderr,
                         format="%(levelname)s %(name)s: %(message)s")
 
@@ -297,11 +299,12 @@ def main(argv: list[str] | None = None) -> int:
 
     now = datetime.now(UTC)
     today = a.today or now.date()
-    cursor = None
+    cursor = articles = None
     if a.since_hours is None and not a.models_dir:
         try:
             from .store import FirestoreArticles
-            cursor = FirestoreArticles().read_cursor()
+            articles = FirestoreArticles(bucket=a.bucket)
+            cursor = articles.read_cursor()
         except Exception as e:
             if live:  # a live run that can't see its cursor can't know what is new
                 log.exception("news: reading the cursor failed")
@@ -339,7 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         llm = OpenRouter()
         if live:
-            store = FirestoreArticles(bucket=a.bucket)
+            store = articles or FirestoreArticles(bucket=a.bucket)
         else:
             try:  # cooldown against what is really on the site
                 seed = FirestoreArticles().recent(90)
@@ -366,7 +369,14 @@ def main(argv: list[str] | None = None) -> int:
             # one leaves it for the next run (cooldown + used signal keys stop
             # a story it did publish from being written twice). A --dataset
             # run saw only some datasets, so it leaves the cursor alone.
-            summary["cursor_advanced"] = store.advance_cursor(window["upto"], run_id=run_id)
+            try:
+                summary["cursor_advanced"] = store.advance_cursor(window["upto"], run_id=run_id)
+            except Exception as e:
+                # The day's articles are out; a cursor left behind only makes
+                # the next run re-read this window (cooldown + used keys hold).
+                log.exception("news: advancing the cursor failed")
+                summary |= {"cursor_advanced": False,
+                            "cursor_error": f"{type(e).__name__}: {str(e)[:300]}"}
         rc = 0
     except LLMUnavailable as e:
         summary |= {"status": "llm_unavailable", "error": str(e)[:300]}

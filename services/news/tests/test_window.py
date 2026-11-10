@@ -186,3 +186,18 @@ def test_signals_only_without_the_cursor_falls_back_to_bootstrap(live, capsys):
     _FakeArticles.fail_read = True
     assert run.main(["--signals-only", "--no-catalog"]) == 0
     assert json.loads(capsys.readouterr().out.splitlines()[0])["window"]["from"] == "bootstrap"
+
+
+def test_cursor_write_failure_keeps_the_run_ok(live, monkeypatch, capsys):
+    def boom(self, upto, *, run_id):
+        raise RuntimeError("firestore down")
+    monkeypatch.setattr(_FakeArticles, "advance_cursor", boom)
+    assert run.main(live) == 0
+    s = _summary(capsys)
+    assert s["status"] == "idle" and s["cursor_advanced"] is False and "cursor_error" in s
+    assert _FakeArticles.cursor == CURSOR
+
+
+def test_non_positive_lookback_is_refused(live):
+    with pytest.raises(SystemExit):
+        run.main([*live, "--max-lookback-hours", "0"])
