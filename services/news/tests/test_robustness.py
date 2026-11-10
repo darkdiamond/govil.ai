@@ -130,3 +130,59 @@ def test_tool_budget_holds_within_one_turn():
     tool_msgs = [m for m in llm.messages if m["role"] == "tool"]
     assert [m["tool_call_id"] for m in tool_msgs] == [str(i) for i in range(50)]
     assert all("tool budget used up" in m["content"] for m in tool_msgs[5:])
+
+
+class _FlakyStore:
+    """LocalArticles whose publish fails on the listed calls (1-based)."""
+
+    def __init__(self, inner, fail_on):
+        self.inner, self.fail_on, self.calls = inner, set(fail_on), 0
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+    def publish(self, doc, files):
+        self.calls += 1
+        if self.calls in self.fail_on:
+            raise RuntimeError("gcs upload failed")
+        self.inner.publish(doc, files)
+
+
+class _PerStoryLLM(FakeLLM):
+    """FakeLLM whose writer script restarts with each story."""
+
+    def chat(self, messages, tools=None, **kw):
+        if len(messages) <= 2:
+            self.turn = 0
+        return super().chat(messages, tools=tools, **kw)
+
+
+def _two_story_day(tmp_path, fail_on, monkeypatch):
+    import services.news.run as run_mod
+    from services.news.store import LocalArticles
+    from services.news.tests.test_llm_pipeline import _fetcher, _world
+
+    series, models, sig, cat = _world()
+    briefs = [{"signal_keys": [s.key], "dataset_ids": [s.dataset_id], "angle_he": "a",
+               "why_now_he": "b", "questions": [], "signals": [s]} for s in (sig, sig)]
+    monkeypatch.setattr(run_mod, "choose", lambda *a, **k: (briefs, []))
+    store = _FlakyStore(LocalArticles(tmp_path), fail_on)
+    llm = _PerStoryLLM([_draft(), _draft()], critic=("pass", "pass"))
+    out = run_mod.write_day(llm, ranked=[sig], series_by_ds=series, models=models, catalog=cat,
+                            vocab={"משכנתאות", "ריבית"}, store=store,
+                            today=date(2026, 11, 9), run_id="r1", fetcher=_fetcher, images=False)
+    return out, store
+
+
+def test_store_failure_fails_only_that_story(tmp_path, monkeypatch):
+    out, store = _two_story_day(tmp_path, {1}, monkeypatch)
+    assert store.calls == 2
+    assert len(out["published"]) == 1
+    assert out["store_errors"] == 1 and out["model_errors"] == 0
+    assert out["rejected"][0]["reason"] == "error"
+
+
+def test_store_failure_after_a_stored_story_keeps_it(tmp_path, monkeypatch):
+    out, store = _two_story_day(tmp_path, {2}, monkeypatch)
+    assert store.calls == 2
+    assert out["published"] == ["mortgage-volume-september"] and out["store_errors"] == 1
