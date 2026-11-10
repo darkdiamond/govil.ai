@@ -125,11 +125,21 @@ def _positions(geom: dict | None):
             stack.extend(c)
 
 
-def _map_lines(geom: dict, fn) -> dict:
+# Geometry collections nest at most this deep; real files use one or two levels.
+MAX_COLLECTION_DEPTH = 16
+
+
+def _too_nested() -> SnapshotError:
+    return SnapshotError(f"geometry collections nested more than {MAX_COLLECTION_DEPTH} deep")
+
+
+def _map_lines(geom: dict, fn, depth: int = 0) -> dict:
     """Apply `fn(list_of_positions, is_ring)` to every line/ring."""
     t, c = geom["type"], geom.get("coordinates")
     if t == "GeometryCollection":
-        return {**geom, "geometries": [_map_lines(g, fn) for g in geom["geometries"]]}
+        if depth >= MAX_COLLECTION_DEPTH:
+            raise _too_nested()
+        return {**geom, "geometries": [_map_lines(g, fn, depth + 1) for g in geom["geometries"]]}
     if t == "Point":
         return {"type": t, "coordinates": fn([c], False)[0]}
     if t == "MultiPoint":
@@ -461,7 +471,7 @@ def _coords_of(el) -> list:
     return pts
 
 
-def _kml_geometry(el) -> dict | None:
+def _kml_geometry(el, depth: int = 0) -> dict | None:
     name = _local(el.tag)
     if name == "Point":
         return {"type": "Point", "coordinates": _coords_of(el)[0]}
@@ -472,9 +482,19 @@ def _kml_geometry(el) -> dict | None:
         holes = [_coords_of(b) for b in el if _local(b.tag) == "innerBoundaryIs"]
         return {"type": "Polygon", "coordinates": [*outer, *holes]}
     if name == "MultiGeometry":
-        parts = [g for g in (_kml_geometry(c) for c in el) if g]
+        if depth >= MAX_COLLECTION_DEPTH:
+            raise _too_nested()
+        parts = [g for g in (_kml_geometry(c, depth + 1) for c in el) if g]
         return {"type": "GeometryCollection", "geometries": parts}
     return None
+
+
+class _NoDoctype(ET.TreeBuilder):
+    """A tree builder that refuses a DOCTYPE as the parser meets it, whatever
+    the file's encoding (the byte check below only sees ASCII spellings)."""
+
+    def doctype(self, name, pubid, system):
+        raise SnapshotError("KML with a DOCTYPE/ENTITY declaration; refusing to parse")
 
 
 def _read_kml(data: bytes) -> list[dict]:
@@ -482,7 +502,9 @@ def _read_kml(data: bytes) -> list[dict]:
     # rules out entity-expansion tricks without a defusedxml dependency.
     if b"<!DOCTYPE" in data or b"<!ENTITY" in data:
         raise SnapshotError("KML with a DOCTYPE/ENTITY declaration; refusing to parse")
-    root = ET.fromstring(data)
+    parser = ET.XMLParser(target=_NoDoctype())
+    parser.feed(data)
+    root = parser.close()
     feats = []
     for pm in (e for e in root.iter() if _local(e.tag) == "Placemark"):
         props: dict[str, Any] = {}
@@ -639,7 +661,7 @@ def _check_coords(c: Any, depth: int) -> None:
         _check_coords(x, depth - 1)
 
 
-def _check_geometry(geom: Any) -> None:
+def _check_geometry(geom: Any, depth: int = 0) -> None:
     """The shape `build_snapshot` and `detect_crs` rely on: a known type with
     numeric positions nested to that type's depth (or no geometry)."""
     if geom is None:
@@ -651,10 +673,12 @@ def _check_geometry(geom: Any) -> None:
         parts = geom.get("geometries")
         if not isinstance(parts, list):
             raise SnapshotError(f"bad geometries {str(parts)[:40]}")
+        if depth >= MAX_COLLECTION_DEPTH:
+            raise _too_nested()
         for g in parts:
             if not isinstance(g, dict):
                 raise SnapshotError("a collection member that is not an object")
-            _check_geometry(g)
+            _check_geometry(g, depth + 1)
         return
     if t not in _DEPTH:
         raise SnapshotError(f"unsupported geometry type {t!r}")

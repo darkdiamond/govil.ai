@@ -317,3 +317,52 @@ def test_simplify_turns_a_malformed_geometry_into_a_snapshot_error(geometry):
     with pytest.raises(gs.SnapshotError, match="malformed geometry"):
         gs.simplify_features([{"type": "Feature", "properties": {}, "geometry": geometry}],
                              crs="wgs84")
+
+
+def _utf16_kml(dtd: str = "", name: str = "a") -> bytes:
+    return ('<?xml version="1.0" encoding="UTF-16"?>' + dtd
+            + f'<kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark><name>{name}</name>'
+            '<Point><coordinates>35.2,31.7,0</coordinates></Point></Placemark></Document></kml>'
+            ).encode("utf-16")
+
+
+def test_a_utf16_kml_with_a_dtd_is_refused():
+    data = _utf16_kml('<!DOCTYPE kml [<!ENTITY e "boom">]>', "&e;")
+    assert b"<!DOCTYPE" not in data and b"<!ENTITY" not in data  # the byte check can't see it
+    with pytest.raises(gs.SnapshotError, match="DOCTYPE"):
+        gs.load_map(data, "x.kml")
+
+
+def test_a_utf16_kml_without_a_dtd_still_parses():
+    feats, crs = gs.load_map(_utf16_kml(), "x.kml")
+    assert crs == "wgs84"
+    assert feats == [{"type": "Feature", "properties": {"name": "a"},
+                      "geometry": {"type": "Point", "coordinates": [35.2, 31.7]}}]
+
+
+def test_deeply_nested_kml_multigeometry_is_a_snapshot_error():
+    pt = "<Point><coordinates>35.2,31.7</coordinates></Point>"
+    geom = "<MultiGeometry>" * 500 + pt + "</MultiGeometry>" * 500
+    data = f"<kml><Placemark>{geom}</Placemark></kml>".encode()
+    with pytest.raises(gs.SnapshotError, match="nested"):
+        gs.load_map(data, "x.kml")
+
+
+def _nested_collection(levels: int) -> dict:
+    geom = {"type": "Point", "coordinates": [35.2, 31.7]}
+    for _ in range(levels):
+        geom = {"type": "GeometryCollection", "geometries": [geom]}
+    return geom
+
+
+def test_deeply_nested_geometry_collection_is_a_snapshot_error():
+    feat = {"type": "Feature", "properties": {}, "geometry": _nested_collection(500)}
+    with pytest.raises(gs.SnapshotError, match="nested"):
+        list(gs._checked(iter([feat]), "x.geojson"))
+    with pytest.raises(gs.SnapshotError, match="nested"):
+        gs.simplify_features([feat], crs="wgs84")
+
+
+def test_shallow_nested_collections_still_convert():
+    feat = {"type": "Feature", "properties": {}, "geometry": _nested_collection(3)}
+    assert len(gs.simplify_features(list(gs._checked(iter([feat]), "x")), crs="wgs84").features) == 1
