@@ -123,20 +123,21 @@ class Ledger:
     def __init__(self):
         self.facts: dict[str, Fact] = {}
         self.sources: dict[str, Source] = {}
-        self._by_prov: dict[str, str] = {}
+        self._by_prov: dict[tuple[str, float], str] = {}
         self._by_url: dict[str, str] = {}
 
     def add(self, value: float, *, label: str, provenance: str, unit: str | None = None,
             period: str | None = None, dataset_id: str | None = None) -> Fact:
-        """Register a value (the same provenance gets the same id)."""
+        """Register a value (the same provenance and value get the same id; a
+        new value under a known provenance is a new fact)."""
         v = float(value)
         if not math.isfinite(v):
             raise ValueError("facts must be finite numbers")
-        if (fid := self._by_prov.get(provenance)) is not None:
+        if (fid := self._by_prov.get((provenance, v))) is not None:
             return self.facts[fid]
         f = Fact(f"f{len(self.facts) + 1}", v, label, provenance, unit, period, dataset_id)
         self.facts[f.id] = f
-        self._by_prov[provenance] = f.id
+        self._by_prov[(provenance, v)] = f.id
         return f
 
     def add_source(self, url: str, title: str, text: str, *, kind: str = "fetched") -> Source:

@@ -169,10 +169,10 @@ class Toolbox:
         for i, r in enumerate(res["rows"]):
             key = "; ".join(f"{c}={v}" for c, v in zip(cols, r, strict=True) if not _is_num(v))[:120]
             row = []
-            for c, v in zip(cols, r, strict=True):
+            for j, (c, v) in enumerate(zip(cols, r, strict=True)):
                 if _is_num(v):
                     f = self.ledger.add(float(v), label=f"{c} ({key})" if key else c,
-                                        provenance=f"sql:{dataset_id}:{qid}:{i}:{c}",
+                                        provenance=f"sql:{dataset_id}:{qid}:{i}:{j}:{c}",
                                         dataset_id=dataset_id)
                     row.append({"v": v, "fact": f.id})
                 else:
