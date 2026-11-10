@@ -25,7 +25,7 @@ from services.page_builder.recipe import (
     render_template,
 )
 from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
-from services.shared.states import RefreshState
+from services.shared.states import OutcomeStatus, RefreshState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
 DS = "11111111-2222-3333-4444-555555555555"
@@ -1654,6 +1654,120 @@ def test_consecutive_staging_failures_stop_the_batch(env, tmp_path):
     assert len(s["failed"]) == rf.MAX_CONSECUTIVE_STAGE_FAILURES
     assert [o["reason"] for o in s["outcomes"]][rf.MAX_CONSECUTIVE_STAGE_FAILURES:] == [
         "staging_down"] * (5 - rf.MAX_CONSECUTIVE_STAGE_FAILURES)
+
+
+class _StubRepo:
+    def __init__(self, ids):
+        self.ids = ids
+
+    def list_ids(self):
+        return list(self.ids)
+
+    def load(self, dataset_id, scratch):
+        return SimpleNamespace(manifest=SimpleNamespace(heavy=False, recipe_version=1))
+
+
+class _ScriptStore:
+    def __init__(self, boom=()):
+        self.boom = set(boom)
+
+    def get_source(self, dataset_id):
+        if dataset_id in self.boom:
+            raise RuntimeError("firestore 503")
+        return SimpleNamespace(id=dataset_id, refresh=RefreshState(), title="")
+
+
+def _scripted_run(env, monkeypatch, script, *, ids=None, boom=()):
+    """run_refresh with refresh_one stubbed: each id returns its scripted
+    (status, reason), or raises when the script holds an exception."""
+    def fake(src, recipe, **kw):
+        item = script[src.id]
+        if isinstance(item, Exception):
+            raise item
+        return rf.RefreshOutcome(src.id, OutcomeStatus(item[0]), "forced", item[1])
+    monkeypatch.setattr(rf, "refresh_one", fake)
+    return rf.run_refresh(_ScriptStore(boom), _StubRepo(ids or list(script)),
+                          staging_bucket="bkt", force=True, work_root=env.tmp / "work")
+
+
+def test_store_error_mid_batch_keeps_earlier_outcomes(env, monkeypatch):
+    """A Firestore read error for one source used to escape run_refresh and
+    drop every outcome so far, so the pipeline never published them."""
+    ok = ("refreshed", None)
+    s = _scripted_run(env, monkeypatch, {"a": ok, "b": ok, "d": ok},
+                      ids=["a", "b", "c", "d"], boom={"c"})
+    assert s["refreshed"] == ["a", "b", "d"]
+    assert s["failed"] == ["c"] and s["staging_down"] is False
+    assert s["outcomes"][2]["reason"] == rf.STAGE_FAILED
+
+
+def test_store_outage_mid_batch_stops_as_staging_down_and_keeps_earlier(env, monkeypatch):
+    ids = ["a", "b", "c", "d", "e", "f"]
+    s = _scripted_run(env, monkeypatch, {i: ("refreshed", None) for i in ids},
+                      boom={"b", "c", "d", "e"})
+    assert s["refreshed"] == ["a"] and s["staging_down"] is True
+    assert [o["reason"] for o in s["outcomes"]][1:] == (
+        [rf.STAGE_FAILED] * rf.MAX_CONSECUTIVE_STAGE_FAILURES
+        + ["staging_down"] * (5 - rf.MAX_CONSECUTIVE_STAGE_FAILURES))
+
+
+def test_refresh_crash_mid_batch_keeps_earlier_outcomes(env, monkeypatch):
+    s = _scripted_run(env, monkeypatch, {"a": ("refreshed", None),
+                                         "b": RuntimeError("unexpected"),
+                                         "c": ("refreshed", None)})
+    assert s["refreshed"] == ["a", "c"] and s["failed"] == ["b"]
+    assert s["outcomes"][1]["reason"] == "error"
+
+
+def test_staging_streak_resets_on_unchanged(env, monkeypatch):
+    """Stage failures separated by successful state writes are not an outage."""
+    kinds = {"s": ("failed", rf.STAGE_FAILED), "u": ("unchanged", "content_hash"),
+             "f": ("failed", "schema_changed"), "z": ("refreshed", None)}
+    seq = ["s1", "u1", "u2", "s2", "u3", "s3", "f1", "s4", "s5", "z"]
+    s = _scripted_run(env, monkeypatch, {i: kinds[i[0]] for i in seq})
+    assert s["staging_down"] is False and s["refreshed"] == ["z"]
+
+
+@pytest.mark.parametrize("other", [("skipped", "up_to_date"), ("failed", "error"),
+                                   ("failed", "restricted"), ("retry_later", "fetch_failed")])
+def test_staging_streak_not_reset_by_outcomes_without_a_write(env, monkeypatch, other):
+    seq = ["s1", "o1", "s2", "o2", "s3", "z"]
+    script = {i: ("failed", rf.STAGE_FAILED) if i[0] == "s" else other for i in seq}
+    script["z"] = ("refreshed", None)
+    s = _scripted_run(env, monkeypatch, script)
+    assert s["staging_down"] is True and s["outcomes"][-1]["reason"] == "staging_down"
+
+
+def test_failed_mark_on_a_recipe_failure_is_a_stage_failure(env):
+    """Recording a recipe failure in Firestore failed: this source only, and
+    no issue (its state can't be recorded; the next run retries it)."""
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+
+    def boom(*a, **k):
+        raise RuntimeError("firestore unavailable")
+
+    store.mark_refresh_failed = boom
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    s = _run(env, store, FakeCkan(_rows([2024, 2025]), cols=renamed))
+    assert s["failed"] == [DS] and s["outcomes"][0]["reason"] == rf.STAGE_FAILED
+    assert env.issues == []
+
+
+def test_failed_mark_on_a_crash_is_a_stage_failure(env, monkeypatch):
+    store = FakeStore(_src())
+
+    def crash(*a, **k):
+        raise ValueError("bug")
+
+    def boom(*a, **k):
+        raise RuntimeError("firestore unavailable")
+
+    monkeypatch.setattr(rf, "build_page", crash)
+    store.mark_refresh_failed = boom
+    s = _run(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["failed"] == [DS] and s["outcomes"][0]["reason"] == rf.STAGE_FAILED
 
 
 def test_failed_firestore_mark_restores_the_last_good_body(env):
