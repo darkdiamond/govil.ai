@@ -130,7 +130,8 @@ async def test_unparseable_package_is_skipped_not_fatal():
     from services.scanner.client import CKANClient
 
     good = {"id": "aaaaaaaa-0000", "name": "a", "title": "A", "resources": []}
-    bad = {"id": "bbbbbbbb-0000", "name": "b", "title": "B", "resources": "oops"}
+    bad = {"id": "bbbbbbbb-0000", "name": "b", "title": "B",
+           "resources": [{"id": "r", "name": "r", "url": "", "size": "big"}]}
     page = {"count": 2, "results": [bad, good]}
 
     c = CKANClient.__new__(CKANClient)

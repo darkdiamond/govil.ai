@@ -14,6 +14,13 @@ from services.shared.ckan import parse_ckan_datetime, public_resource_url
 from services.shared.slug import slugify
 
 
+def _dict_entries(value) -> list[dict]:
+    """The dict entries of a CKAN list field; CKAN may send null or junk."""
+    if not isinstance(value, list):
+        return []
+    return [entry for entry in value if isinstance(entry, dict)]
+
+
 class DatasetStatus(str, Enum):
     """Status of a dataset after change detection."""
     NEW = "new"              # Not in DB -> trigger new page flow
@@ -71,23 +78,23 @@ class Dataset(BaseModel):
         organization = None
         if org_data:
             organization = Organization(
-                id=org_data.get("id", ""),
-                name=org_data.get("name", ""),
-                title=org_data.get("title", ""),
+                id=org_data.get("id") or "",
+                name=org_data.get("name") or "",
+                title=org_data.get("title") or "",
                 logo_url=org_data.get("image_url"),
             )
         
         # Parse tags
-        tags = [tag.get("name", "") for tag in data.get("tags", [])]
+        tags = [tag.get("name") or "" for tag in _dict_entries(data.get("tags"))]
         
         # Parse resources
         resources = []
-        for res_data in data.get("resources", []):
+        for res_data in _dict_entries(data.get("resources")):
             resource = Resource(
-                id=res_data.get("id", ""),
-                name=res_data.get("name", ""),
-                format=res_data.get("format", "").upper(),
-                url=public_resource_url(res_data.get("url", "")),
+                id=res_data.get("id") or "",
+                name=res_data.get("name") or "",
+                format=(res_data.get("format") or "").upper(),
+                url=public_resource_url(res_data.get("url") or ""),
                 size=res_data.get("size"),
                 last_modified=parse_ckan_datetime(res_data.get("last_modified")),
                 description=res_data.get("description"),
@@ -96,11 +103,14 @@ class Dataset(BaseModel):
             )
             resources.append(resource)
         
-        dataset_id = data.get("id", "")
-        title = data.get("title", "")
+        dataset_id = data.get("id")
+        if not dataset_id:
+            # Every stored doc is keyed by the id; a package without one is unparseable.
+            raise ValueError("CKAN package has no id")
+        title = data.get("title") or ""
         return cls(
             id=dataset_id,
-            name=data.get("name", ""),
+            name=data.get("name") or "",
             title=title,
             slug=slugify(title, fallback=dataset_id),
             notes=data.get("notes"),
