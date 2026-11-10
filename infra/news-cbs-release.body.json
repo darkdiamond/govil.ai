@@ -1,0 +1,28 @@
+{
+  "overrides": {
+    "containerOverrides": [
+      {
+        "args": [
+          "-m",
+          "services.news.run",
+          "--since-hours",
+          "3",
+          "--max-articles",
+          "1",
+          "--dataset",
+          "cbs-index-cpi",
+          "--dataset",
+          "cbs-index-housing-prices",
+          "--dataset",
+          "cbs-index-producer-prices",
+          "--dataset",
+          "cbs-index-residential-construction-inputs",
+          "--dataset",
+          "cbs-index-services-producer-prices",
+          "--dataset",
+          "cbs-index-fruit-vegetables"
+        ]
+      }
+    ]
+  }
+}
