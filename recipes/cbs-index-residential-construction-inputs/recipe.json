@@ -1,0 +1,46 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-residential-construction-inputs",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T00:00:00Z",
+    "rows": { "main": 3464, "groups": 5418 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "main",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "groups",
+      "by_id": "groups",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

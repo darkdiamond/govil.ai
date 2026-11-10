@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-services-producer-prices",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T00:00:00Z",
+    "rows": { "services": 738 }
+  },
+  "inputs": [
+    {
+      "name": "services",
+      "by_id": "services",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "YEAR",
+        "PERIOD",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

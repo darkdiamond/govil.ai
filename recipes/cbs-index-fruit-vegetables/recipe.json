@@ -1,0 +1,120 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-fruit-vegetables",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T00:00:00Z",
+    "rows": {
+      "groups": 1926,
+      "vegetables": 3191,
+      "fruit": 2391,
+      "seasonal": 878,
+      "preserved": 2568,
+      "late": 388,
+      "potatoes": 21
+    }
+  },
+  "inputs": [
+    {
+      "name": "groups",
+      "by_id": "groups",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "vegetables",
+      "by_id": "vegetables",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "fruit",
+      "by_id": "fruit",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "seasonal",
+      "by_id": "seasonal",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "preserved",
+      "by_id": "preserved",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "late",
+      "by_id": "late",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "potatoes",
+      "by_id": "potatoes",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
