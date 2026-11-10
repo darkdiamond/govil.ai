@@ -79,8 +79,8 @@ gh pr list --repo darkdiamond/govil.ai --state open --limit 100 --json number,bo
 - Drop issues labelled `authoring-blocked`.
 - Drop issues an open PR already references (`#N` in its body) — e.g.
   yesterday's batch still awaiting review.
-- Group by dataset UUID (a dataset can have a prod issue and a `preview`-lane
-  issue); one recipe closes all of them.
+- Group by dataset UUID (a dataset can have more than one open issue); one
+  recipe closes all of them.
 - Drop issues the refresh already recovered: for a reason of `recipe_failed`,
   `schema_changed` or `too_large` (the recipe exists on main), read the
   dataset's Firestore doc (`sources/<id>` via

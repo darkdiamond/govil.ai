@@ -408,7 +408,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
                           metadata_modified=None, title="x")
     store = SimpleNamespace(mark_refresh_failed=lambda *a, **k: None)
     recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1), files=[], root=tmp_path)
-    out = rf.refresh_one(src, recipe, store=store, preview=True, staging_bucket="b",
+    out = rf.refresh_one(src, recipe, store=store, staging_bucket="b",
                          work_root=tmp_path, trigger="never_refreshed", notify=False,
                          providers={"boi_sdmx": boi})
     assert out.reason == "fetch_failed"
@@ -420,7 +420,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
 def test_refresh_skips_a_doc_whose_provider_is_disabled(tmp_path):
     src = SimpleNamespace(id="boi-x", provider="boi_sdmx", resources=[])
     recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1))
-    out = rf.refresh_one(src, recipe, store=None, preview=True, staging_bucket="b",
+    out = rf.refresh_one(src, recipe, store=None, staging_bucket="b",
                          work_root=tmp_path, trigger="never_refreshed", providers={})
     assert (out.status, out.reason) == ("skipped", "provider_disabled:boi_sdmx")
 

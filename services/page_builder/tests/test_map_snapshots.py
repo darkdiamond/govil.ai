@@ -222,28 +222,6 @@ def test_github_repo_fetches_snapshot_files(tmp_path, monkeypatch):
     assert fetched[-1] == "geo.geojson" and (recipe.root / "geo.geojson").is_file()
 
 
-def test_gcs_repo_fetches_snapshot_files(tmp_path):
-    recipes = _with_snapshot(tmp_path)
-
-    class Blob:
-        def __init__(self, name):
-            self.path = recipes / name[len("recipes/"):]
-
-        def exists(self):
-            return self.path.is_file()
-
-        def download_to_filename(self, dest):
-            shutil.copyfile(self.path, dest)
-
-    repo = rf.GcsRecipeRepo.__new__(rf.GcsRecipeRepo)
-    repo._bucket = type("B", (), {"blob": lambda self, n: Blob(n)})()
-    repo.prefix = "recipes/"
-    assert (repo.load(DS, tmp_path / "scratch").root / "geo.geojson").is_file()
-    (recipes / DS / "geo.geojson").unlink()
-    with pytest.raises(RecipeError, match=r"missing geo\.geojson"):
-        repo.load(DS, tmp_path / "scratch2")
-
-
 # ── author verify with a snapshot input ──────────────────────────────────
 
 
@@ -618,7 +596,7 @@ def _refresh_env(tmp_path, monkeypatch):
 
     def run(files):
         return rf.run_refresh(
-            store, rf.LocalRecipeRepo(recipes), preview=True, staging_bucket="bkt",
+            store, rf.LocalRecipeRepo(recipes), staging_bucket="bkt",
             work_root=tmp_path / "work",
             write_gcs=lambda d, b, r: staged.__setitem__(r, d) or r,
             read_gcs=lambda b, r: staged.get(r),
@@ -626,7 +604,7 @@ def _refresh_env(tmp_path, monkeypatch):
         )
 
     def state():
-        return store.get_refresh_state(DS, preview=True)
+        return store.get_refresh_state(DS)
 
     return SimpleNamespace(store=store, src=src, run=run, state=state, issues=issues)
 

@@ -259,9 +259,9 @@ def test_heavy_recipes_run_last(tmp_path, monkeypatch):
     ))
     store = SimpleNamespace(
         get_source=lambda i: SimpleNamespace(id=i, title=""),
-        get_refresh_state=lambda i, preview=False: {},
+        get_refresh_state=lambda i: {},
     )
-    s = rf.run_refresh(store, rf.LocalRecipeRepo(recipes), preview=True,
+    s = rf.run_refresh(store, rf.LocalRecipeRepo(recipes),
                        staging_bucket="bkt", work_root=tmp_path / "w", force=True)
     assert order == [ids[1], ids[2], ids[0]]
     assert s["refreshed"] == order
@@ -282,9 +282,9 @@ def test_heavy_recipes_respect_the_cap(tmp_path, monkeypatch):
         src.id, "refreshed"))
     store = SimpleNamespace(
         get_source=lambda i: SimpleNamespace(id=i, title=""),
-        get_refresh_state=lambda i, preview=False: {},
+        get_refresh_state=lambda i: {},
     )
-    s = rf.run_refresh(store, rf.LocalRecipeRepo(recipes), preview=True, cap=1,
+    s = rf.run_refresh(store, rf.LocalRecipeRepo(recipes), cap=1,
                        staging_bucket="bkt", work_root=tmp_path / "w", force=True)
     assert s["refreshed"] == [ids[1]]
     assert s["outcomes"][1] == {**s["outcomes"][1], "id": ids[0], "reason": "cap"}

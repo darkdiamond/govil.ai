@@ -26,7 +26,7 @@ def _history(env, prefix):
 
 
 def test_render_stages_model_history(env):
-    _run(env, FakeStore(_src()), FakeCkan(_rows([2024, 2025])), preview=False)
+    _run(env, FakeStore(_src()), FakeCkan(_rows([2024, 2025])))
     keys, docs = _history(env, "models")
     assert f"models/{DS}/latest.json.gz" in keys and len(keys) == 2
     latest = docs[f"models/{DS}/latest.json.gz"]
@@ -36,13 +36,6 @@ def test_render_stages_model_history(env):
     assert "kpis" in latest["model"] and "tables" not in latest["model"]
     ts_key = next(k for k in keys if not k.endswith("latest.json.gz"))
     assert docs[ts_key] == latest
-
-
-def test_preview_model_history_stays_under_preview(env):
-    _run(env, FakeStore(_src()), FakeCkan(_rows([2024, 2025])))
-    keys, _ = _history(env, "preview/models")
-    assert len(keys) == 2
-    assert not any(k.startswith("models/") for k in env.staged)
 
 
 def test_model_history_failure_never_fails_the_render(env):
@@ -56,21 +49,21 @@ def test_model_history_failure_never_fails_the_render(env):
     store = FakeStore(_src())
     ckan = FakeCkan(_rows([2024, 2025]))
     s = rf.run_refresh(
-        store, rf.LocalRecipeRepo(FIXTURES), preview=False, staging_bucket="bkt",
+        store, rf.LocalRecipeRepo(FIXTURES), staging_bucket="bkt",
         work_root=env.tmp / "work", write_gcs=flaky, read_gcs=env.read_gcs,
         preview_fn=ckan.preview, fetch_fn=ckan.fetch,
     )
     assert s["refreshed"] == [DS]
-    assert store.states[(DS, False)]["refresh_status"] == "succeeded"
+    assert store.states[DS]["refresh_status"] == "succeeded"
     assert f"datasets/{DS}/content.html" in env.staged
 
 
 def test_no_render_writes_no_history(env):
     store = FakeStore(_src())
     ckan = FakeCkan(_rows([2024, 2025]))
-    _run(env, store, ckan, preview=False)
+    _run(env, store, ckan)
     before = _history(env, "models")[0]
-    _run(env, store, ckan, preview=False)  # up to date → nothing rendered
+    _run(env, store, ckan)  # up to date → nothing rendered
     assert _history(env, "models")[0] == before
 
 

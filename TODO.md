@@ -170,11 +170,6 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   forgets the branch treats a provider doc as CKAN. Add a `CkanProvider` adapter around the
   existing CKAN fetch/probe functions and one `provider_for(src)` that always returns a provider,
   so those paths dispatch instead of branching. (2026-10-30)
-- **The preview lane cannot render a new provider recipe.** Provider sync runs only for the prod
-  target (the preview lane reads unmerged recipes and must not write `sources/`), so a `boi-*`
-  recipe can be previewed only once its prod doc exists. Let the sync write `preview_sources/`
-  when the target is preview, and have the preview refresh read provider facts from there.
-  (2026-10-30)
 
 - **`MAP_MAX_KB_CEILING`'s comment in recipe.py still says the conversion takes ~25x the result
   in memory.** Since the streaming conversion it is ~6-10x the CSV it writes (204 MB peak for

@@ -619,7 +619,4 @@ When done, `preview stop`. The previewed page also carries a small "תצוגה
   `verify` output. Add `Closes #N` when authoring from an issue.
 - Once merged to `main`, the next daily job (`govdata-builder-job`, 06:00
   Israel time) reads the recipe straight from git and renders the page; no
-  redeploy. Demo lane (optional, on request):
-  `./infra/refresh-preview.deploy.sh sync-recipes` uploads recipes to the
-  preview prefix; the next preview run renders them to the `recipes-demo`
-  channel.
+  redeploy.

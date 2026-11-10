@@ -60,7 +60,7 @@ def harness(monkeypatch):
     monkeypatch.setattr(rf, "recipe_repo_from_env", lambda: repo)
 
     def _run_refresh(store, repo, **kw):
-        assert kw["preview"] is False
+        assert "preview" not in kw
         h.refresh_kw = kw
         return {"refreshed": list(h.refreshed), "failed": [], "outcomes": []}
 

@@ -72,16 +72,12 @@ def _reconciled_today(store, now: datetime) -> bool:
         return False
 
 
-async def _trigger_publish_github(
-    repo: str, workflow: str, branch: str, inputs: dict | None = None
-) -> str | None:
+async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> str | None:
     """Fire the GitHub Actions publish workflow (workflow_dispatch).
 
     Fire-and-forget — the API returns 204 with no run id, so we return a
     synthetic marker for the summary. Needs GITHUB_DISPATCH_TOKEN (a
     fine-grained PAT with Actions:write on this repo, from Secret Manager).
-    `inputs` are workflow_dispatch inputs (`{"target": "preview"}` deploys
-    the recipe-refresh demo channel instead of live).
     """
     token = os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip()
     if not token:
@@ -97,7 +93,7 @@ async def _trigger_publish_github(
         # exactly that — 307 → logged failure, pages built but not deployed).
         r = httpx.post(
             f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
-            json={"ref": branch, **({"inputs": inputs} if inputs else {})},
+            json={"ref": branch},
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",
@@ -398,7 +394,6 @@ async def run_pipeline(
                 _refresh.run_refresh,
                 store,
                 repo,
-                preview=False,
                 staging_bucket=staging_bucket,
                 only_ids=only_ids,
                 # A manual single-dataset run means "render it now", even

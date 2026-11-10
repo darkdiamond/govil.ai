@@ -105,9 +105,10 @@ gcloud emulators firestore start --host-port=localhost:8080 &
 export FIRESTORE_EMULATOR_HOST=localhost:8080 FIRESTORE_PROJECT_ID=local-dev
 python -m services.scanner.main scan --limit 20
 
-# 3. Render one recipe'd dataset (no LLM; preview target, prod untouched)
+# 3. Render one recipe'd dataset (no LLM; writes the emulator's sources/<id>
+#    and your staging bucket, dispatches no publish)
 export GCS_STAGING_BUCKET=<your-staging-bucket>
-python -m services.page_builder.refresh run --source <dataset_id> --no-publish
+python -m services.page_builder.pipeline --source <dataset_id> --no-trigger-publish
 
 # 4. Frontend (reads manifest.json at build time)
 python -m services.page_builder.publish --from-firestore \
