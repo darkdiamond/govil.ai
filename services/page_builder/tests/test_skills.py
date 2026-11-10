@@ -42,3 +42,17 @@ def test_trust_boundary_covers_pull_requests():
     assert m, "Trust boundary section not found"
     # About PR text as input, not the existing rule on what the batch PR may change.
     assert re.search(r"\b(PR|pull request) (titles|bodies)", m.group(0), re.IGNORECASE), m.group(0)
+
+
+def test_batch_stages_only_recipe_files():
+    text = _text()
+    cmds = _commands(text, "git add") + _commands(text, "[ -f")
+    assert cmds, "expected git add commands in SKILL.md"
+    for cmd in cmds:
+        # A whole recipes/ (or recipes/<id>/) dir would commit stray raw-row files.
+        assert not re.search(r"\brecipes/(\S*/)?(\s|$)", cmd), cmd
+    m = re.search(r"^## 6\. One PR.*?(?=^## )", text, re.DOTALL | re.MULTILINE)
+    assert m, "step 6 not found"
+    for name in ("recipe.json", "compute.py", "template.html.j2", "coverage.json",
+                 "source.json", "snapshot"):
+        assert name in m.group(0), name
