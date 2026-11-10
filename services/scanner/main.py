@@ -99,18 +99,12 @@ class Scanner:
                         break
         except BaseException as e:
             _record_error(summary, f"scan aborted: {type(e).__name__}: {e}")
+            try:
+                self._complete(scan_id, summary)
+            except Exception:  # keep the original error: it is the cause
+                log.exception("scan: couldn't close scan_runs/%s", scan_id)
             raise
-        finally:
-            summary.completed_at = datetime.now(UTC)
-            self.db.complete_scan(
-                scan_id,
-                sources_seen=summary.datasets_scanned,
-                new=summary.datasets_new,
-                updated=summary.datasets_updated,
-                unchanged=summary.datasets_unchanged,
-                errors=summary.errors,
-                started_at=summary.started_at,
-            )
+        self._complete(scan_id, summary)
         log.info(
             "scan done — scanned=%d new=%d updated=%d unchanged=%d errors=%d",
             summary.datasets_scanned,
@@ -120,6 +114,21 @@ class Scanner:
             summary.error_count,
         )
         return summary
+
+    def _complete(self, scan_id: str, summary: ScanSummary) -> None:
+        summary.completed_at = datetime.now(UTC)
+        errors = list(summary.errors)
+        if summary.error_count > len(errors):
+            errors.append(f"… and {summary.error_count - len(errors)} more")
+        self.db.complete_scan(
+            scan_id,
+            sources_seen=summary.datasets_scanned,
+            new=summary.datasets_new,
+            updated=summary.datasets_updated,
+            unchanged=summary.datasets_unchanged,
+            errors=errors,
+            started_at=summary.started_at,
+        )
 
     async def _scan_one(self, client, detector, dataset, summary: ScanSummary,
                         force: bool) -> None:
@@ -174,8 +183,8 @@ if typer is not None:
         table.add_row("New Datasets", f"[green]{summary.datasets_new}[/green]")
         table.add_row("Updated Datasets", f"[yellow]{summary.datasets_updated}[/yellow]")
         table.add_row("Unchanged Datasets", f"[dim]{summary.datasets_unchanged}[/dim]")
-        if summary.errors:
-            table.add_row("Errors", f"[red]{len(summary.errors)}[/red]")
+        if summary.error_count:
+            table.add_row("Errors", f"[red]{summary.error_count}[/red]")
         duration = (
             (summary.completed_at - summary.started_at).total_seconds()
             if summary.completed_at
