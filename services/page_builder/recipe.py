@@ -30,7 +30,7 @@ GeoJSON) reaches compute as a table: one row per feature, its properties as
 strings plus `__geometry` (the feature's geometry as compact WGS84 JSON).
 Two ways in:
   - `map: true` (preferred): the refresh downloads the file on every run
-    (`agent_contract.fetch_resource_file`, with a UA data.gov.il's WAF
+    (`ckan_export.fetch_resource_file`, with a UA data.gov.il's WAF
     passes) and converts it with `geo_snapshot`, so a new upload re-renders
     the page like any data bump.
   - `snapshot` (fallback, for a file the job can't download): the author

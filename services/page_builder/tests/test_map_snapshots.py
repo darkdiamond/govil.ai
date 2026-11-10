@@ -20,7 +20,7 @@ import pytest
 
 from services.page_builder import geo_snapshot as gs
 from services.page_builder import refresh as rf
-from services.page_builder.agent_contract import (
+from services.page_builder.ckan_export import (
     DownloadBlocked,
     FetchLimitExceeded,
     FetchOutcome,
@@ -668,7 +668,7 @@ class _Resp:
 
 
 def _urlopen(monkeypatch, behaviour):
-    from services.page_builder import agent_contract as ac
+    from services.page_builder import ckan_export as ac
 
     seen = []
 
@@ -798,7 +798,7 @@ def test_more_map_failures_are_classified(tmp_path, files, reason, strike):
 
 
 def test_redirect_off_data_gov_il_is_refused():
-    from services.page_builder import agent_contract as ac
+    from services.page_builder import ckan_export as ac
 
     h = ac._DataGovRedirects()
     req = Request(MAP_URL.replace("e.data", "data"))

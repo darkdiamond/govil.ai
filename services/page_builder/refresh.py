@@ -41,17 +41,16 @@ from urllib import error as urllib_error
 from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
 
 from . import geo_snapshot
-from .agent_contract import (
+from .ckan_export import (
     DownloadBlocked,
     FetchLimitExceeded,
     ResourceRestrictedError,
     fetch_resource_export,
     fetch_resource_file,
     fetch_resource_preview,
-    run_host_check,
-    sanitize_content_html,
 )
 from .local_sandbox import LocalSandbox
+from .page_gate import run_host_check
 from .recipe import (
     MANIFEST_FILENAME,
     RECIPE_FILES,
@@ -66,6 +65,7 @@ from .recipe import (
     snapshot_table,
     validate_model,
 )
+from .sanitize import sanitize_content_html
 
 log = logging.getLogger("page_builder.refresh")
 
@@ -554,12 +554,16 @@ def _strikes_after_probe(state: dict, probe: InputProbe | None) -> dict | None:
 
 
 # Shared code between the data and the page: the compute runner, template
-# rendering/validation, the sanitizer. A deploy that changes any of them can
-# change the output with identical data, so it invalidates both prechecks.
+# rendering/validation, the sanitizer, and the CKAN export (its CSV
+# normalization shapes the inputs compute sees, and fingerprint A can't see
+# that). A deploy that changes any of them can change the output with
+# identical data, so it invalidates both prechecks. The check.py gate
+# (page_gate.py) doesn't shape output, so it isn't here.
 _RENDER_CODE_FILES = (
     RECIPE_EXEC_PATH,
     Path(__file__).resolve().parent / "recipe.py",
-    Path(__file__).resolve().parent / "agent_contract.py",
+    Path(__file__).resolve().parent / "sanitize.py",
+    Path(__file__).resolve().parent / "ckan_export.py",
 )
 # Builds a `map` input's table; folded only into recipes that have one, so
 # a change here doesn't re-render every other page.
@@ -880,7 +884,7 @@ def fetch_inputs(
                     deadline=deadline,
                     fields=inp.columns,
                     # The uploaded file is tried first; the datastore preview
-                    # is what it must match (agent_contract.fetch_resource_csv).
+                    # is what it must match (ckan_export.fetch_resource_csv).
                     resource=res,
                     preview=_preview(rid),
                     file_max_bytes=file_max_bytes,

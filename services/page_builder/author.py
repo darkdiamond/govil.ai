@@ -45,12 +45,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from .agent_contract import (
-    HTML_COMMENT_RE,
-    SCRIPT_END_RE,
-    FetchLimitExceeded,
-    FetchOutcome,
-)
+from .ckan_export import FetchLimitExceeded, FetchOutcome
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
@@ -66,6 +61,7 @@ from .recipe import (
     snapshot_table,
 )
 from .refresh import fetch_inputs, render_page, run_compute
+from .sanitize import HTML_COMMENT_RE, SCRIPT_END_RE
 from .schema import SEO_DESCRIPTION_HEADROOM, SEO_DESCRIPTION_MAX, SEO_DESCRIPTION_MIN
 from .tags import PENDING_ROOT
 
@@ -393,7 +389,7 @@ def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
     from services.shared.firestore import FirestoreStateStore
     from services.shared.resources import select_prefetch_resources
 
-    from .agent_contract import fetch_resource_export, fetch_resource_preview
+    from .ckan_export import fetch_resource_export, fetch_resource_preview
     from .refresh import (
         _DEFAULT_FILE_MAX_BYTES,
         _DEFAULT_MAX_BYTES,
@@ -530,7 +526,7 @@ def download_map(res: dict, dest: Path) -> tuple[list[dict], str]:
     import time
 
     from . import geo_snapshot as gs
-    from .agent_contract import fetch_resource_file
+    from .ckan_export import fetch_resource_file
     from .refresh import (
         _DEFAULT_MAP_MAX_BYTES,
         _PAGE_TIMEOUT_S,
@@ -741,7 +737,7 @@ class _LocalFiles:
         self.by_url = {m["url"]: m["file"] for m in maps if m.get("file") and m.get("url")}
 
     def __call__(self, url, dest, **kw):
-        from .agent_contract import FileOutcome, fetch_resource_file
+        from .ckan_export import FileOutcome, fetch_resource_file
 
         name = self.by_url.get(url)
         if name is None:
@@ -1286,7 +1282,7 @@ def _ckan_resource(resource_id: str) -> dict:
     import urllib.parse
     import urllib.request
 
-    from .agent_contract import _CKAN_BROWSER_UA
+    from .ckan_export import _CKAN_BROWSER_UA
 
     url = ("https://data.gov.il/api/3/action/resource_show?"
            + urllib.parse.urlencode({"id": resource_id}))

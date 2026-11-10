@@ -17,7 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.page_builder import refresh as rf
-from services.page_builder.agent_contract import FetchLimitExceeded, FetchOutcome
+from services.page_builder.ckan_export import FetchLimitExceeded, FetchOutcome
 from services.page_builder.recipe import (
     Recipe,
     RecipeError,
@@ -708,7 +708,7 @@ def test_percent_conflict_skipped_only_for_recipe_renders(tmp_path):
     """Recipe numbers are recomputed nightly, so a coincidental equal % in
     two different years must not fail a correct refresh — but the agent path
     keeps the rule."""
-    from services.page_builder.agent_contract import run_host_check
+    from services.page_builder.page_gate import run_host_check
 
     body = (
         '<h1>t</h1><section class="card p-5 mb-6"><div class="flex items-center gap-2 mb-3 '

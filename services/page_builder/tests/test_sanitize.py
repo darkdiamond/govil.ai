@@ -1,4 +1,4 @@
-"""Tests for the agent-output sanitizer in agent_contract.
+"""Tests for the page-body sanitizer (services.page_builder.sanitize).
 
 Catches the recurring LLM hallucination modes that broke
 dataset 27b4b40e-…: fabricated SRI hashes on Leaflet, JSON-escaped
@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import logging
 
-from services.page_builder.agent_contract import sanitize_content_html
+from services.page_builder.sanitize import sanitize_content_html
 
 
 def _logs(caplog_or_none, *, dataset_id="x", body):
-    logger = logging.getLogger("services.page_builder.agent_contract")
+    logger = logging.getLogger("services.page_builder.sanitize")
     records: list[logging.LogRecord] = []
 
     class H(logging.Handler):

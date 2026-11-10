@@ -6,7 +6,7 @@ import os
 
 import pytest
 
-from services.page_builder import agent_contract, refresh
+from services.page_builder import page_gate, refresh
 
 _PASS = "PASS"
 
@@ -33,10 +33,10 @@ def _memoize_host_check(tmp_path_factory, worker_id):
     key is exactly those bytes; a failing check is cached and re-raised.
     The cache lives in the session's tmp root, shared by all xdist workers.
     Only `refresh.run_host_check` (the name the refresh pipeline and `author
-    verify` call) is wrapped; tests of `agent_contract.run_host_check`
+    verify` call) is wrapped; tests of `page_gate.run_host_check`
     itself still spawn it every time.
     """
-    real = agent_contract.run_host_check
+    real = page_gate.run_host_check
     root = tmp_path_factory.getbasetemp()
     if worker_id != "master":
         root = root.parent  # pytest-N/, the parent of every worker's basetemp
@@ -46,7 +46,7 @@ def _memoize_host_check(tmp_path_factory, worker_id):
     def memoized(content_html, agent_data_json, workdir, *, recipe=False):
         h = hashlib.sha256()
         # Length-prefixed, so no two different inputs can share a key.
-        for part in (agent_contract.CHECK_SCRIPT_PATH.read_bytes(),
+        for part in (page_gate.CHECK_SCRIPT_PATH.read_bytes(),
                      content_html.encode("utf-8"), agent_data_json.encode("utf-8"),
                      str(recipe).encode()):
             h.update(len(part).to_bytes(8, "big") + part)

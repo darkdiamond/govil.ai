@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from services.page_builder import agent_contract
+from services.page_builder import ckan_export
 from services.page_builder import refresh as rf
 from services.page_builder.recipe import (
     PreviewUnavailable,
@@ -161,11 +161,11 @@ def test_fetch_page_sends_fields(monkeypatch):
         seen.update(parse_qs(urlparse(req.full_url).query))
         return _Resp()
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
-    fields, _ = agent_contract._fetch_page("rid", 0, 10, 5.0, ["b", "a"])
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", fake)
+    fields, _ = ckan_export._fetch_page("rid", 0, 10, 5.0, ["b", "a"])
     assert seen["fields"] == ["b", "a"] and fields == ["b", "a"]
     seen.clear()
-    agent_contract._fetch_page("rid", 0, 10, 5.0)
+    ckan_export._fetch_page("rid", 0, 10, 5.0)
     assert "fields" not in seen
 
 
@@ -352,8 +352,8 @@ def test_fields_with_commas_are_sent_as_repeated_params(monkeypatch):
         seen.update(parse_qs(urlparse(req.full_url).query))
         return _Resp()
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
-    agent_contract._fetch_page("rid", 0, 10, 5.0, ['סכום, ש"ח', "שנה"])
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", fake)
+    ckan_export._fetch_page("rid", 0, 10, 5.0, ['סכום, ש"ח', "שנה"])
     assert seen["fields"] == ['סכום, ש"ח', "שנה"]
 
 
@@ -414,7 +414,7 @@ def test_local_ckan_measures_the_cap_on_projected_columns(tmp_path):
     lc = _local_ckan(tmp_path)
     dest = tmp_path / "out.csv"
     # All columns: ~600 bytes, over 300. Only `a` (what prod exports): ~100.
-    with pytest.raises(agent_contract.FetchLimitExceeded):
+    with pytest.raises(ckan_export.FetchLimitExceeded):
         lc.fetch("r1", 50, dest, max_bytes=300)
     assert not dest.exists()
     out = lc.fetch("r1", 50, dest, max_bytes=300, fields=["a"])
@@ -423,7 +423,7 @@ def test_local_ckan_measures_the_cap_on_projected_columns(tmp_path):
 
 def test_local_ckan_replays_a_prepare_skip(tmp_path):
     lc = _local_ckan(tmp_path, file=None, skipped="bytes")
-    with pytest.raises(agent_contract.FetchLimitExceeded) as e:
+    with pytest.raises(ckan_export.FetchLimitExceeded) as e:
         lc.fetch("r1", 50, tmp_path / "out.csv", max_bytes=10**6)
     assert e.value.limit == "bytes"
 
@@ -475,7 +475,7 @@ def _prepare_env(tmp_path, monkeypatch, mutate):
     )
     store = SimpleNamespace(get_source=lambda _id: src, list_org_sources=lambda *a, **k: [])
     monkeypatch.setattr(firestore, "FirestoreStateStore", lambda: store)
-    monkeypatch.setattr(agent_contract, "fetch_resource_preview",
+    monkeypatch.setattr(ckan_export, "fetch_resource_preview",
                         lambda rid: {"total": 36, "fields": [{"id": c} for c in COLS]})
     calls = []
 
@@ -486,9 +486,9 @@ def _prepare_env(tmp_path, monkeypatch, mutate):
             w = csv.writer(f)
             w.writerow(COLS)
             w.writerows(_rows([2023]))
-        return agent_contract.FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size)
+        return ckan_export.FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size)
 
-    monkeypatch.setattr(agent_contract, "fetch_resource_export", export)
+    monkeypatch.setattr(ckan_export, "fetch_resource_export", export)
     return author, calls
 
 

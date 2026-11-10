@@ -211,7 +211,7 @@ class CKANClient:
         - "alive": 2xx with `success: true`;
         - "unknown": anything else (404, 5xx, success:false, parse or
           transport error); the caller leaves the flag unchanged.
-        Stricter than `agent_contract._http_403_is_restriction` on purpose:
+        Stricter than `ckan_export._http_403_is_restriction` on purpose:
         that one only skips a render, this one flips a live page."""
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")

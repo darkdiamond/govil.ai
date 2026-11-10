@@ -16,7 +16,7 @@ This repo is public: describe a security gap by what to change, never by how to 
   (2026-11-10)
 
 - **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
-  hardcoded Chrome User-Agent, while the builder's fetches (`agent_contract._CKAN_BROWSER_UA`) use
+  hardcoded Chrome User-Agent, while the builder's fetches (`ckan_export._CKAN_BROWSER_UA`) use
   `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and
   the reconcile probes. Fix: one User-Agent source in `services/shared/ckan.py`, after checking from
   Cloud Run that the builder UA passes the CKAN API for the scan's calls too. (2026-11-10)
@@ -55,7 +55,7 @@ This repo is public: describe a security gap by what to change, never by how to 
   Fix: `max-width: 100%` with ellipsis (or wrapping) on the pill label. (2026-11-09)
 
 - **The sanitizer's tag balancer strips comments inside script text.** `_balance_raw_text_tag`
-  (`services/page_builder/agent_contract.py`) removes `<!--…-->` across the whole body before
+  (`services/page_builder/sanitize.py`) removes `<!--…-->` across the whole body before
   counting `<script>`/`<style>` openers and closers, but inside a script `<!--` is plain text. A
   JS string holding `"<!--"` with a later `-->` hides every opener/closer in between, so the
   count is wrong and a closer can be appended or missed. Fix: skip comment stripping inside

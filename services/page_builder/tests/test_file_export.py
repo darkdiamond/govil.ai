@@ -1,5 +1,5 @@
 """Tests for the file export of inputs bigger than one datastore page
-(agent_contract.fetch_resource_export / fetch_resource_csv): the uploaded CSV,
+(ckan_export.fetch_resource_export / fetch_resource_csv): the uploaded CSV,
 normalized to exactly what the datastore export writes, and the fallback to
 datastore_search on any doubt."""
 from __future__ import annotations
@@ -11,8 +11,8 @@ import urllib.error as urllib_error
 
 import pytest
 
-from services.page_builder import agent_contract as ac
-from services.page_builder.agent_contract import FetchLimitExceeded, FetchOutcome
+from services.page_builder import ckan_export as ac
+from services.page_builder.ckan_export import FetchLimitExceeded, FetchOutcome
 
 URL = "https://e.data.gov.il/dataset/d/resource/r1/download/r1.csv"
 RES = {"id": "r1-0000000", "format": "CSV", "url": URL}

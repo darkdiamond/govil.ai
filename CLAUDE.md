@@ -193,7 +193,7 @@ landing pages. Six layers:
    non-public addresses (the job can reach the metadata server). Its deps
    are `services/news/requirements.txt` (duckdb is imported lazily, so the
    builder venv runs the suite with those tests skipped).
-   **The export** (`agent_contract.fetch_resource_export`) is
+   **The export** (`ckan_export.fetch_resource_export`) is
    `datastore_search` pages of up to 100k rows (`REFRESH_PAGE_SIZE`). The
    first page is 25k rows. Later pages are sized from the row width toward
    ~32MB of CSV, because the builder holds a whole page in memory with no
@@ -259,7 +259,7 @@ landing pages. Six layers:
    `oom_score_adj=1000`, so an outsized recipe dies alone. **Map files:**
    geometry that exists only in an uploaded SHP/KMZ/GeoJSON is read by an
    input with `map: true`. The refresh downloads the file on every run
-   (`agent_contract.fetch_resource_file`, `data.gov.il` host only) and converts
+   (`ckan_export.fetch_resource_file`, `data.gov.il` host only) and converts
    it (`geo_snapshot.py`, pure Python, ITM→WGS84) into a table (properties +
    `__geometry`). data.gov.il's WAF 403s file downloads by User-Agent: curl's,
    python's and a bare `Mozilla/5.0` are refused, the builder's
@@ -310,7 +310,8 @@ snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    so pages older than `REFRESH_PRECHECK_MAX_AGE_DAYS` (14) always re-render,
    which bounds A's blind spot. The age runs from the last full render,
    including a C skip (`last_verified_at`). Render code (`recipe_exec.py`, `recipe.py`,
-   `agent_contract.py`) is folded into every hash. The job prints its
+   `sanitize.py`, and `ckan_export.py`, whose CSV normalization shapes the inputs)
+   is folded into every hash. The job prints its
    summary as one-line JSON records: a `pipeline_summary` headline (with
    `refresh.counts`), then one `refresh_outcome` per source that did
    anything (`pipeline.summarize_for_log`).
@@ -431,8 +432,8 @@ are still read by the authoring selector.
   `<script src=>` for any of them.
 - **Page outputs are a contract** (rendered per recipe by
   `refresh.render_page`; validated by `recipe.validate_model`, the
-  sanitizer `agent_contract.sanitize_content_html` and host-side
-  `check.py` via `agent_contract.run_host_check`):
+  sanitizer `sanitize.sanitize_content_html` and host-side
+  `check.py` via `page_gate.run_host_check`):
   - `content.html` — body content only. No
     `<html>`/`<head>`/`<body>`. Inline `<style>` and `<script>` tags OK.
   - `agent_data` — an `AgentData` (`services/page_builder/schema.py`;
@@ -518,29 +519,30 @@ are still read by the authoring selector.
 
 ## Key files to read before editing
 
-| Area                    | File                                                                                       | Why                                                                                                                                                                                        |
-| ----------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Pipeline orchestration  | `services/page_builder/pipeline.py`                                                        | reconcile → scan → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                        |
-| Authoring queue         | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                                     |
-| Recipe refresh          | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                    |
-| Providers (non-CKAN)    | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                                        |
-| Recipe contract         | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                                              |
-| GitHub issues           | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                                   |
-| Authoring helpers       | `services/page_builder/author.py`                                                          | `prepare` (full fetch + BRIEF.md) and `verify` (determinism/robustness) for `/author-dataset`                                                                                              |
-| Authoring skills        | `.claude/skills/author-dataset/SKILL.md`, `.claude/skills/solve-authoring-issues/SKILL.md` | One-dataset authoring workflow; the daily batch over open issues → one PR                                                                                                                  |
-| Firestore layer         | `services/shared/firestore.py`                                                             | `FirestoreStateStore`, schema, queries, refresh/authoring state writers                                                                                                                    |
-| Fetch + sanitize + gate | `services/page_builder/agent_contract.py`                                                  | `fetch_resource_preview` / `fetch_resource_export` (file or `fetch_resource_records_to_file` pages), `sanitize_content_html`, `run_host_check`, `ResourceRestrictedError` (name is legacy) |
-| Compute sandbox         | `services/page_builder/local_sandbox.py`                                                   | Per-run subprocess workdir for recipe `compute.py`, scrubbed env, `sandbox` uid, command timeouts                                                                                          |
-| Publisher               | `services/page_builder/publish.py`                                                         | Reads each published `sources/<id>` and writes data.json, agent_data.json, manifest.json (single source of truth)                                                                          |
-| Design reference        | `agent/system-prompt.md`                                                                   | The retired cloud agent's prompt — design tokens, chart palette, ECharts RTL preset, mobile rules, HARD CONSTRAINTS. Read by `/author-dataset`; not shipped in the image                   |
-| Page gate               | `agent/skills/check.py`                                                                    | Enforces the page rules statically; run host-side by `refresh.py` (and `author verify`) on every sanitized body                                                                            |
-| Dataset page shell      | `frontend/pages/datasets/[slug].vue`                                                       | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout                                                                                           |
-| Page chrome             | `frontend/layouts/default.vue`                                                             | Header/footer — sole source of truth, inherited by every page including datasets                                                                                                           |
-| Tags + related          | `services/page_builder/tags.py`, `related.py`, `taxonomy/`                                 | Tag vocabulary/assignment, tag index + legacy redirects, content-based related datasets; `suggest`/`report`/`assign`, `sample`/`explain` CLIs                                              |
-| Schema                  | `services/page_builder/schema.py`                                                          | `DatasetMeta` (scanner) + `AgentData` (interpretive) + merged `ManifestEntry` — split contract                                                                                             |
-| Slug helper             | `services/shared/slug.py`                                                                  | Deterministic Hebrew→Latin slug used by the scanner                                                                                                                                        |
-| Cloud Build pipeline    | `cloudbuild-publish.yaml`                                                                  | Fallback publisher: content.html + news images → publisher (data.json, agent_data.json, manifest.json) → `nuxt generate` (IDs from trigger substitutions) → redirects → deploy → IndexNow  |
-| Hosting config          | `firebase.json`, `.firebaserc`                                                             | Firebase Hosting target + project binding                                                                                                                                                  |
+| Area                   | File                                                                                       | Why                                                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pipeline orchestration | `services/page_builder/pipeline.py`                                                        | reconcile → scan → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                       |
+| Authoring queue        | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                                    |
+| Recipe refresh         | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                   |
+| Providers (non-CKAN)   | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                                       |
+| Recipe contract        | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                                             |
+| GitHub issues          | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                                  |
+| Authoring helpers      | `services/page_builder/author.py`                                                          | `prepare` (full fetch + BRIEF.md) and `verify` (determinism/robustness) for `/author-dataset`                                                                                             |
+| Authoring skills       | `.claude/skills/author-dataset/SKILL.md`, `.claude/skills/solve-authoring-issues/SKILL.md` | One-dataset authoring workflow; the daily batch over open issues → one PR                                                                                                                 |
+| Firestore layer        | `services/shared/firestore.py`                                                             | `FirestoreStateStore`, schema, queries, refresh/authoring state writers                                                                                                                   |
+| CKAN fetch             | `services/page_builder/ckan_export.py`                                                     | `fetch_resource_preview` / `fetch_resource_export` (file or `fetch_resource_records_to_file` pages), `fetch_resource_file` (map files), CSV normalization, `ResourceRestrictedError`      |
+| Sanitizer + gate       | `services/page_builder/sanitize.py`, `page_gate.py`                                        | `sanitize_content_html` on every rendered body; `run_host_check` runs the image's check.py on the sanitized output                                                                        |
+| Compute sandbox        | `services/page_builder/local_sandbox.py`                                                   | Per-run subprocess workdir for recipe `compute.py`, scrubbed env, `sandbox` uid, command timeouts                                                                                         |
+| Publisher              | `services/page_builder/publish.py`                                                         | Reads each published `sources/<id>` and writes data.json, agent_data.json, manifest.json (single source of truth)                                                                         |
+| Design reference       | `agent/system-prompt.md`                                                                   | The retired cloud agent's prompt — design tokens, chart palette, ECharts RTL preset, mobile rules, HARD CONSTRAINTS. Read by `/author-dataset`; not shipped in the image                  |
+| Page gate              | `agent/skills/check.py`                                                                    | Enforces the page rules statically; run host-side by `refresh.py` (and `author verify`) on every sanitized body                                                                           |
+| Dataset page shell     | `frontend/pages/datasets/[slug].vue`                                                       | Reads data.json + agent_data.json + content.html, merges into one entry, wraps in default layout                                                                                          |
+| Page chrome            | `frontend/layouts/default.vue`                                                             | Header/footer — sole source of truth, inherited by every page including datasets                                                                                                          |
+| Tags + related         | `services/page_builder/tags.py`, `related.py`, `taxonomy/`                                 | Tag vocabulary/assignment, tag index + legacy redirects, content-based related datasets; `suggest`/`report`/`assign`, `sample`/`explain` CLIs                                             |
+| Schema                 | `services/page_builder/schema.py`                                                          | `DatasetMeta` (scanner) + `AgentData` (interpretive) + merged `ManifestEntry` — split contract                                                                                            |
+| Slug helper            | `services/shared/slug.py`                                                                  | Deterministic Hebrew→Latin slug used by the scanner                                                                                                                                       |
+| Cloud Build pipeline   | `cloudbuild-publish.yaml`                                                                  | Fallback publisher: content.html + news images → publisher (data.json, agent_data.json, manifest.json) → `nuxt generate` (IDs from trigger substitutions) → redirects → deploy → IndexNow |
+| Hosting config         | `firebase.json`, `.firebaserc`                                                             | Firebase Hosting target + project binding                                                                                                                                                 |
 
 ## Conventions you will be tempted to violate (don't)
 

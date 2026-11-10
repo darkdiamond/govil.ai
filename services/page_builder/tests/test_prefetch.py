@@ -1,4 +1,4 @@
-"""Tests for agent_contract.fetch_resource_preview's 403-restriction gate.
+"""Tests for ckan_export.fetch_resource_preview's 403-restriction gate.
 
 A 403 Authorization Error from CKAN datastore_search means the dataset's data
 is access-restricted upstream — `fetch_resource_preview` must raise
@@ -16,8 +16,8 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from services.page_builder import agent_contract
-from services.page_builder.agent_contract import (
+from services.page_builder import ckan_export
+from services.page_builder.ckan_export import (
     ResourceRestrictedError,
     fetch_resource_preview,
 )
@@ -59,7 +59,7 @@ def _patch_urlopen(monkeypatch, behaviour):
     def fake(_req, timeout=None):
         return behaviour()
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", fake)
 
 
 def test_403_authorization_error_raises(monkeypatch):
@@ -151,8 +151,8 @@ def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
     # 125,718. The file was rejected as short and the datastore export failed
     # as "ran out at row 125,718 of 161,025", both checked against the estimate.
     ckan = _EstimatingCkan()
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", ckan.urlopen)
-    monkeypatch.setattr(agent_contract, "_fetch_page", ckan.page)
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", ckan.urlopen)
+    monkeypatch.setattr(ckan_export, "_fetch_page", ckan.page)
 
     preview = fetch_resource_preview("rid")
     assert preview is not None
@@ -161,7 +161,7 @@ def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
     # The export checks its row count against that total (its cut-off guard
     # is test_data_prefetch's test_an_empty_page_before_total_is_a_failed_export):
     # the whole table now exports as full.
-    out = agent_contract.fetch_resource_records_to_file(
+    out = ckan_export.fetch_resource_records_to_file(
         "rid", preview["total"], tmp_path / "out.csv", max_bytes=1_000_000,
         page_size=100_000, page_timeout_s=5.0, deadline=float("inf"),
     )
@@ -171,9 +171,9 @@ def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
 def test_an_estimated_total_is_logged(monkeypatch, caplog):
     # A CKAN that ignores the threshold must not go back to silent estimates.
     ckan = _EstimatingCkan()
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", ckan.urlopen)
-    monkeypatch.setattr(agent_contract, "EXACT_TOTAL_THRESHOLD", 0)
-    with caplog.at_level("WARNING", logger=agent_contract.log.name):
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", ckan.urlopen)
+    monkeypatch.setattr(ckan_export, "EXACT_TOTAL_THRESHOLD", 0)
+    with caplog.at_level("WARNING", logger=ckan_export.log.name):
         preview = fetch_resource_preview("rid")
     assert preview is not None and preview["total"] == _EstimatingCkan.ESTIMATE
     assert "is an estimate" in caplog.text

@@ -13,7 +13,7 @@ import httpx
 import pytest
 
 from services.page_builder import refresh as rf
-from services.page_builder.agent_contract import FetchLimitExceeded
+from services.page_builder.ckan_export import FetchLimitExceeded
 from services.providers import (
     ProviderError,
     ProviderSettings,
