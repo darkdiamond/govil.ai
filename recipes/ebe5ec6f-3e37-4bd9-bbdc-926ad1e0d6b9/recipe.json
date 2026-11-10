@@ -1,0 +1,19 @@
+{
+  "contract_version": 1,
+  "dataset_id": "ebe5ec6f-3e37-4bd9-bbdc-926ad1e0d6b9",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2025-01-26T13:03:51.966307+00:00",
+    "rows": { "main": 20 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "986a8917-4a5a-4c96-b359-6c206800b423",
+      "required_columns": ["Family", "District", "Role", "City", "Mail"]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

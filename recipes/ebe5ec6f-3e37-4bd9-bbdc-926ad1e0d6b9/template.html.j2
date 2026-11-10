@@ -1,0 +1,147 @@
+{% import "gov.j2" as gov %}
+{%- macro mail(m) -%}
+{%- if m.ok -%}<a href="mailto:{{ m.text }}" dir="ltr" class="break-all">{{ m.text }}</a>{%- elif m.text -%}<span dir="ltr" class="break-all">{{ m.text }}</span>{%- else -%}–{%- endif -%}
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור מנהל הבחירות לפי שם הרשות המקומית ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות הרשימה: שם מנהל הבחירות, הרשות המקומית, המחוז, התפקיד וכתובת הדוא"ל.</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.total_kpi) }}
+  {{ gov.kpi(model.kpis.local, model.labels.local_kpi) }}
+  {{ gov.kpi(model.kpis.areas, model.labels.areas_kpi) }}
+  {{ gov.kpi(model.kpis.area_cities, model.labels.area_cities_kpi) }}
+  {{ gov.kpi(model.kpis.districts, model.labels.districts_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{% if model.flags.local %}
+<section id="local-directory" class="card p-5 mb-6">
+  {{ gov.head("building-2", "מנהלי הבחירות לפי רשות מקומית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.local_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">מנהלי הבחירות לפי רשות מקומית</caption>
+      <thead><tr><th scope="col">רשות מקומית</th><th scope="col">מחוז</th><th scope="col">מנהל/ת הבחירות</th><th scope="col">דוא"ל</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.local %}
+        <tr><th scope="row">{{ r.city }}</th><td>{{ r.district }}</td><td>{{ r.name }}</td><td>{{ mail(r.mail) }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{% if model.flags.areas %}
+<section id="area-directory" class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מנהלי אזור קלפיות מיוחדות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.area_note }}</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+{%- for a in model.tables.area_dir %}
+    <div class="min-w-0 rounded-gov border border-rule p-4">
+      <div class="font-semibold text-ink-deep mb-2">אזור {{ a.label }}</div>
+      <ul class="m-0 ps-5 list-disc text-sm space-y-1 mb-3">
+{%- for m in a.managers %}
+        <li><span class="font-medium">{{ m.name }}</span>: {{ mail(m.mail) }}</li>
+{%- endfor %}
+      </ul>
+      <p class="m-0 text-sm text-subtle">רשויות באזור ({{ a.n_cities }}): {{ a.cities | join(", ") }}</p>
+    </div>
+{%- endfor %}
+  </div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 {% if model.flags.areas_chart %}md:grid-cols-2 {% endif %}gap-5 mb-6">
+  <section class="card p-5 min-w-0">
+    {{ gov.head("database", "אנשי קשר לפי מחוז") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.dist_note }}</p>
+    {{ gov.chart("chart-dist", model.labels.dist_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.dist_aria, ["מחוז", "מנהלי בחירות של רשות", "מנהלי אזור קלפיות מיוחדות", "סך הכול"], model.tables.dist) }}
+  </section>
+{% if model.flags.areas_chart %}
+  <section class="card p-5 min-w-0">
+    {{ gov.head("database", "גודל אזורי הקלפיות המיוחדות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.areas_note }}</p>
+    {{ gov.chart("chart-areas", model.labels.areas_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.areas_aria, ["אזור", "רשויות", "אנשי קשר"], model.tables.areas) }}
+  </section>
+{% endif %}
+</div>
+
+<section id="az-index" class="card p-5 mb-6">
+  {{ gov.head("list", "כל הרשויות ברשימה לפי סדר האלף-בית") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.az_note }}</p>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">רשויות מקומיות ואנשי הקשר שלהן</caption>
+      <thead><tr><th scope="col">רשות מקומית</th><th scope="col">מחוז</th><th scope="col">מנהל/ת בחירות של הרשות</th><th scope="col">מנהלי אזור קלפיות מיוחדות</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.az %}
+        <tr><th scope="row">{{ r.city }}</th><td>{{ r.district }}</td><td>{{ r.local }}</td><td>{{ r.area }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var D = {{ model.charts.by_dist | tojson }};
+    var el = document.getElementById("chart-dist");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    window.addEventListener("resize", function () { c.resize(); });
+    var esc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var out = esc(ps[0].name);
+        ps.forEach(function (p) { out += "<br/>" + p.marker + esc(p.seriesName) + ": " + p.value; });
+        return out;
+      } },
+      legend: { bottom: 0, type: "plain", width: "90%", textStyle: { fontSize: 11 } },
+      grid: { left: 8, right: 16, top: 8, bottom: 56, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: D.names, axisLabel: { fontSize: 12 } },
+      series: D.series.map(function (s) {
+        return { type: "bar", name: s.name, data: s.data, stack: "t", barMaxWidth: 28,
+          label: { show: true, formatter: function (p) { return p.value > 0 ? p.value : ""; } } };
+      })
+    }));
+  })();
+</script>
+
+{% if model.flags.areas_chart %}
+<script>
+  (function () {
+    var A = {{ model.charts.areas | tojson }};
+    var el = document.getElementById("chart-areas");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    window.addEventListener("resize", function () { c.resize(); });
+    var esc = function (s) { return echarts.format.encodeHTML(String(s)); };
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+        var i = ps[0].dataIndex;
+        return "אזור " + esc(A.names[i]) + "<br/>רשויות: " + A.values[i] + "<br/>אנשי קשר: " + A.managers[i];
+      } },
+      grid: { left: 8, right: 32, top: 8, bottom: 8, containLabel: true },
+      xAxis: { type: "value", minInterval: 1, axisLabel: { show: false }, splitLine: { show: false } },
+      yAxis: { type: "category", inverse: true, data: A.names, axisLabel: { fontSize: 12 } },
+      series: [{ type: "bar", name: "רשויות", data: A.values, barMaxWidth: 28, label: { show: true, position: "right" } }]
+    }));
+  })();
+</script>
+{% endif %}

@@ -16,13 +16,12 @@ This repo is public: describe a security gap by what to change, never by how to 
   percentiles, cells over a threshold) plus an optional coarse grid. Pillow opens these files;
   ship a TIFF reader in the builder image and redeploy before authoring. (2026-11-09)
 
-- **Sources ingested before `datastore_active` existed can't be authored.** ebe5ec6f (פרטי קשר
-  עם מנהלי הבחירות) is datastore-active on CKAN, but its Firestore `resources[]` has no
-  `datastore_active` key, and the scanner rewrites a source only when `metadata_modified`
-  moves. So `author prepare` selects nothing and a `by_id` recipe would fail `schema_changed`.
-  `backfill_datastore_active --dry-run` lists 23 such sources. Fix: run the backfill (it writes
-  prod Firestore), then author ebe5ec6f; don't print its `Mail` column, since some addresses
-  are personal. (2026-11-09)
+- **Sources ingested before `datastore_active` existed can't be authored.** Their Firestore
+  `resources[]` has no `datastore_active` key, and the scanner rewrites a source only when
+  `metadata_modified` moves, so `author prepare` selects nothing and a `by_id` recipe would fail
+  `schema_changed`. `backfill_datastore_active --dry-run` listed 23 such sources on 2026-11-09;
+  ebe5ec6f was fixed by hand on 2026-11-10 (one `set_resource_datastore_flags` call), leaving 22.
+  Fix: run the backfill (it writes prod Firestore) before authoring any of them. (2026-11-09)
 
 - **The preview's Tailwind misses classes added after the dev server started.** A chart height
   like `h-[30rem]` that no page had when `preview` started renders at 0px until
