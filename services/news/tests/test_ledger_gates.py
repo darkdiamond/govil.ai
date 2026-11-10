@@ -185,6 +185,13 @@ def test_good_draft_passes_and_renders():
     (lambda d, f: d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": "%",
                                       "bars": [{"label": "2025 שיא", "fact": f.id}]}),
      "chart c2 bar 0 label: years without date context"),
+    (lambda d, f: d["charts"].append({"id": "c2", "type": "bar", "title": "השוואה", "unit": "%",
+                                      "bars": [{"label": "2024-11-03 עלייה של 300%", "fact": f.id}]}),
+     "chart c2 bar 0 label: typed numbers"),
+    (lambda d, f: d["charts"][0]["series"][0].__setitem__("name", "2024-11-03 300%"),
+     "chart c1 series 0 name: typed numbers"),
+    (lambda d, f: d["charts"][0]["series"][0].__setitem__("name", "2024-11-03T99"),
+     "chart c1 series 0 name: typed numbers"),
     (lambda d, f: d["charts"][0].__setitem__("unit", "47%"), "chart c1 unit: typed numbers"),
     (lambda d, f: d["charts"][0].__setitem__("unit", "לכל 1,000 תושבים 55%"), "chart c1 unit: typed numbers"),
     (lambda d, f: d["charts"][0].__setitem__("unit", "לכל 1,500 תושבים"), "chart c1 unit: typed numbers"),
@@ -205,7 +212,8 @@ def test_gate_catches(mutate, needle):
 
 
 @pytest.mark.parametrize("labels, unit, name", [
-    (["2025", "2024/25", "2024-25", "2024-Q3", "Q3 2024", "2024-11", "מאי 2024"], "%", "2025"),
+    (["2025", "2024/25", "2024-25", "2024-Q3", "Q3 2024", "2024 Q3", "2024-11", "מאי 2024", "2024-11-03",
+      "3.11.2024"], "%", "2025"),
     (["תל אביב"], "לכל 1,000 תושבים", "היקף"),
     (["תל אביב"], "ש\"ח ל-100 ק\"ג", "היקף"),
     (["תל אביב"], "ל-100,000 נפש", "היקף"),

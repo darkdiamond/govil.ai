@@ -35,7 +35,7 @@ from .ledger import (
     spelled_numbers,
     stray_numbers,
 )
-from .series import parse_period
+from .series import MONTHS_HE, parse_period
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
@@ -72,18 +72,25 @@ _LAT = re.compile(r"[A-Za-z]")
 
 # Chart labels only (never prose, the stat label or the image alt): a category
 # or legend label may be, in its entirety, a period: a year span ("2024/25",
-# "2024-25") or a period the series code parses ("2025", "2024-11", "2024-Q3",
-# "מאי 2024"). A unit may name a per-N denominator of 10 to 100,000
+# "2024-25"), a year, year-month, quarter ("2024-Q3", "Q3 2024"), Hebrew month +
+# year, ISO date or day.month.year, with nothing before or after it (and a
+# real calendar date, per the series code's parser). A unit may name a per-N denominator of 10 to 100,000
 # ("לכל 1,000 תושבים", "ל-100 ק\"ג"; not "ל-100 אלף"). Every other digit is
 # checked as in prose.
 _YEAR_SPAN = re.compile(r"(?:19|20)\d\d[/–-]\d\d")
+_Y = r"(?:1[89]\d\d|20\d\d)"
+_PERIOD_LABEL = re.compile(
+    rf"{_Y}|{_Y}-(?:0[1-9]|1[0-2])|{_Y}[- ]?Q[1-4]|Q[1-4][- ]?{_Y}|{_Y}-\d\d-\d\d"
+    rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{'|'.join(MONTHS_HE)}|מרס)\s+{_Y}",
+    re.IGNORECASE)
 _PER_N = re.compile(r"(?<![א-ת])(?:ל-?|לכל\s+)(?:10|100|1,?000|10,?000|100,?000)"
                     r"(?=\s+(?!(?:אלף|אלפי|מיליון|מיליוני|מיליארד)(?![א-ת]))[א-ת])")
 
 
 def _chart_numbers_text(s: str, kind: str) -> str:
     """The part of a chart label or unit the number checks still read."""
-    if kind == "label" and (parse_period(s.strip()) or _YEAR_SPAN.fullmatch(s.strip())):
+    t = s.strip()
+    if kind == "label" and (_YEAR_SPAN.fullmatch(t) or (_PERIOD_LABEL.fullmatch(t) and parse_period(t))):
         return ""
     if kind == "unit":
         return _PER_N.sub(" ", s)
