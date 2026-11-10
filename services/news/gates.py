@@ -24,14 +24,18 @@ from pathlib import Path
 from . import charts as charts_mod
 from .fetch import official_source
 from .ledger import (
+    FORMATS,
     LINK,
+    TOKEN,
     YEARLIKE,
     Ledger,
+    format_value,
     plain,
     render,
     spelled_numbers,
     stray_numbers,
 )
+from .series import MONTHS_HE, parse_period
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
@@ -64,6 +68,33 @@ PATTERNS = [
 ]
 _HEB = re.compile(r"[א-ת]")
 _LAT = re.compile(r"[A-Za-z]")
+
+
+# Chart labels only (never prose, the stat label or the image alt): a category
+# or legend label may be, in its entirety, a period: a year span ("2024/25",
+# "2024-25"), a year, year-month, quarter ("2024-Q3", "Q3 2024"), Hebrew month +
+# year, ISO date or day.month.year, with nothing before or after it (and a
+# real calendar date, per the series code's parser). A unit may name a per-N denominator of 10 to 100,000
+# ("לכל 1,000 תושבים", "ל-100 ק\"ג"; not "ל-100 אלף"). Every other digit is
+# checked as in prose.
+_YEAR_SPAN = re.compile(r"(?:19|20)\d\d[/–-]\d\d")
+_Y = r"(?:1[89]\d\d|20\d\d)"
+_PERIOD_LABEL = re.compile(
+    rf"{_Y}|{_Y}-(?:0[1-9]|1[0-2])|{_Y}[- ]?Q[1-4]|Q[1-4][- ]?{_Y}|{_Y}-\d\d-\d\d"
+    rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{'|'.join(MONTHS_HE)}|מרס)\s+{_Y}",
+    re.IGNORECASE)
+_PER_N = re.compile(r"(?<![א-ת])(?:ל-?|לכל\s+)(?:10|100|1,?000|10,?000|100,?000)"
+                    r"(?=\s+(?!(?:אלף|אלפי|מיליון|מיליוני|מיליארד)(?![א-ת]))[א-ת])")
+
+
+def _chart_numbers_text(s: str, kind: str) -> str:
+    """The part of a chart label or unit the number checks still read."""
+    t = s.strip()
+    if kind == "label" and (_YEAR_SPAN.fullmatch(t) or (_PERIOD_LABEL.fullmatch(t) and parse_period(t))):
+        return ""
+    if kind == "unit":
+        return _PER_N.sub(" ", s)
+    return s
 
 
 def _norm(s: str) -> str:
@@ -124,6 +155,18 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         problems.extend(f"{field_name}: {p}" for p in probs)
         return runs, plain(runs)
 
+    # Fields printed as written (chart labels, image alt): the same number
+    # checks as prose, no tokens or links (they would print raw), and the text
+    # joins the punctuation and banned-phrase scan below.
+    printed: list[str] = []
+
+    def raw_field(field_name: str, s, chart: str | None = None) -> None:
+        s = str(s or "")
+        text(field_name, _chart_numbers_text(s, chart) if chart else s)
+        if TOKEN.search(s) or LINK.search(s):
+            problems.append(f"{field_name}: no fact tokens or links here")
+        printed.append(s)
+
     head_runs, headline = text("headline", draft.get("headline"))
     _, dek = text("dek", draft.get("dek"))
     if not 15 <= len(headline) <= HEADLINE_MAX:
@@ -145,8 +188,24 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     charts_out, chart_ids = [], set()
     for spec in (draft.get("charts") or [])[:MAX_CHARTS + 1]:
         try:
-            charts_out.append(charts_mod.resolve(spec, series_by_ds, ledger))
-            chart_ids.add(charts_out[-1]["id"])
+            c = charts_mod.resolve(spec, series_by_ds, ledger)
+            charts_out.append(c)
+            chart_ids.add(c["id"])
+            # The strings the chart prints, fallbacks included (a bar with no
+            # label prints its fact's label, which the model can write too).
+            cname = f"chart {c['id']}"
+            raw_field(f"{cname} title", c["title"])
+            raw_field(f"{cname} unit", c["unit"], "unit")
+            if c["type"] == "line":
+                for j, (r, ser) in enumerate(zip(spec["series"], c["option"]["series"], strict=True)):
+                    own = "" if r.get("name") else " (the series' own name: give it an explicit name)"
+                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label")
+                for x in dict.fromkeys(c["option"]["xAxis"]["data"]):
+                    raw_field(f"{cname} x label", x, "label")
+            else:
+                for j, (r, x) in enumerate(zip(spec["bars"], c["option"]["xAxis"]["data"], strict=True)):
+                    own = "" if r.get("label") else " (the fact's own label: give the bar an explicit label)"
+                    raw_field(f"{cname} bar {j} label{own}", x, "label")
         except charts_mod.ChartError as e:
             problems.append(f"chart: {e}")
         except (AttributeError, TypeError, KeyError) as e:  # a mis-shaped spec
@@ -184,11 +243,20 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             stats += 1
             f = ledger.facts.get(b.get("fact"))
             _, label = text(f"block {i} label", b.get("label"))
+            printed.append(label)
+            sfmt = b.get("fmt") or None
             if f is None:
                 problems.append(f"block {i}: unknown fact {b.get('fact')}")
+            elif sfmt is not None and sfmt not in FORMATS:
+                problems.append(f"block {i}: format {str(sfmt)[:40]!r} is not one of {list(FORMATS)}")
             else:
-                runs, _ = render("{" + f.id + (":" + b["fmt"] if b.get("fmt") else "") + "}", ledger, href)
-                blocks.append({"type": "stat", "value": plain(runs), "label": label})
+                # The value is the formatted fact and nothing else.
+                try:
+                    value = format_value(f.value, sfmt)
+                except ValueError as e:
+                    problems.append(f"block {i}: {e}")
+                else:
+                    blocks.append({"type": "stat", "value": value, "label": label})
         else:
             problems.append(f"block {i}: unknown type {kind!r}")
     if stats > 1:
@@ -204,16 +272,18 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     words = len(re.findall(r"\S+", body))
     if not WORDS_MIN <= words <= WORDS_MAX:
         problems.append(f"body length {words} words ({WORDS_MIN}–{WORDS_MAX})")
-    every = f"{headline} {dek} {body}"
+    every = prose = f"{headline} {dek} {body}"
     heb, lat = len(_HEB.findall(every)), len(_LAT.findall(every))
     if heb + lat and heb / (heb + lat) < HEBREW_MIN:
         problems.append("too little Hebrew")
+    raw_field("image_alt_he", draft.get("image_alt_he"))
+    every = "\n".join([every, *printed])
     low = every.lower()
     hits = [p for p in BANNED if p in low]
     if _NOT_ONLY.search(every):
         hits.append("לא רק … אלא גם")
     for rx, why in PATTERNS:
-        if m := rx.search(every):
+        if m := rx.search(prose):
             problems.append(f"style: «{m[0]}» — {why}")
     if hits:
         problems.append(f"banned phrases: {hits}")
@@ -240,7 +310,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
                             "use what you read elsewhere as context, without a link")
             continue
         q = quotes.get(sid, "")
-        if len(q) < QUOTE_MIN:
+        if len(_norm(q)) < QUOTE_MIN:
             problems.append(f"source {sid}: a verbatim quote of ≥{QUOTE_MIN} chars is required")
         elif _norm(q) not in _norm(src.text):
             problems.append(f"source {sid}: quote not found in the fetched page")
