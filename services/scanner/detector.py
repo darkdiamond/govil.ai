@@ -5,6 +5,8 @@ It only answers "is this dataset new / updated / unchanged?" (the recipe
 refresh fetches resource data itself).
 """
 
+from services.shared.states import AnalysisStatus
+
 from .models import Dataset, DatasetStatus
 from .state import StateDB
 
@@ -26,7 +28,7 @@ class ChangeDetector:
         # resets `restricted` → `never` (FirestoreStateStore.save_dataset), so
         # the selector re-picks it. Needed because an unchanged metadata_modified
         # would otherwise be UNCHANGED and skip the save entirely.
-        if stored_status == "restricted":
+        if stored_status == AnalysisStatus.RESTRICTED:
             return DatasetStatus.UPDATED
 
         api_modified = dataset.metadata_modified

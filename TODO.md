@@ -202,6 +202,11 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   names that the selector and publisher still read as "this source has a live page and its data
   vintage". Fix: move those readers to `refresh_status` / `refreshed_metadata_modified` (legacy
   pages keep their old fields), then stop writing the `analysis_*` copies. (2026-11-10)
+- **`SourceRecord` holds some refresh fields twice.** `authoring_status`, `authoring_issue` and
+  `agent_data` are top-level `SourceRecord` fields (the selector and publisher read them) and also
+  in `src.refresh`; `get_refresh_state` still returns a raw dict that `queue_authoring` wraps in
+  `RefreshState`. Fix: move those readers to `src.refresh`, drop the top-level copies, and have
+  `get_refresh_state` return a `RefreshState` (the test `FakeStore`s follow). (2026-11-10)
 - **`record_count` means different things per source kind.** The scanner stores the primary
   resource's datastore total (CKAN), provider sync stores the sum over all series. Pages and the
   manifest show both as "records". Fix: pick one meaning (or store both, named), and say it in
