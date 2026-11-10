@@ -1,0 +1,11 @@
+{
+  "experts.expert_name": "kpi:experts, insight:lead_spec — one row per expert; names are searchable in the shell's explorer (lookup callout)",
+  "experts.secondary_specialization": "chart-spec, chart-nspec, chart-matrix, chart-pairs, kpi:families, insight:lead_spec, insight:multi, insight:thin_cell — free text normalised to specialisation families",
+  "experts.districts": "chart-dist, chart-ndist, chart-matrix, kpi:nationwide, kpi:weakest, insight:coverage, insight:nationwide",
+  "experts.degrees_certificates": "chart-deg, chart-inst, chart-cred, insight:education, insight:credentials",
+  "experts.languages": "chart-langs, insight:languages",
+  "experts.address": "skip: contact detail (street address); shown per expert in the data explorer, not aggregated",
+  "experts.email": "skip: contact detail; shown per expert in the data explorer",
+  "experts.mobile_phone": "skip: contact detail; shown per expert in the data explorer",
+  "experts.freesearch": "skip: concatenation of the other columns for CKAN's search box"
+}
