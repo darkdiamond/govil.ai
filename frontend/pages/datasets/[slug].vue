@@ -15,7 +15,7 @@ import {
 import { loadFullManifestServer } from "~/utils/search-index";
 import { loadNewsIndexServer } from "~/utils/news";
 import { normalizeAgentBody } from "~/utils/normalize-agent-body";
-import { publicResourceUrl } from "~/utils/resource-url";
+import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
 
 const route = useRoute();
 const slug = String(route.params.slug);
@@ -676,12 +676,12 @@ onMounted(async () => {
           </h3>
           <div>
             <div v-for="r in entry.resources" :key="r.url" class="res-row">
-              <span :class="['fmt-badge', formatClass(r.format)]">{{
-                (r.format || "FILE").toUpperCase()
+              <span :class="['fmt-badge', formatClass(resourceFormat(r))]">{{
+                resourceFormat(r) || "FILE"
               }}</span>
               <div class="flex-1 min-w-0">
                 <div class="text-sm text-ink truncate">
-                  {{ r.name || r.format || "קובץ" }}
+                  {{ r.name || resourceFormat(r) || "קובץ" }}
                 </div>
                 <div v-if="r.size_bytes" class="text-xs text-subtle">
                   {{ formatBytes(r.size_bytes) }}
