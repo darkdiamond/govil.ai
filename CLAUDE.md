@@ -322,7 +322,8 @@ SHEET, ROW, C01..`) that compute.py reads by label.
    `VALUE` on its own base and `VALUE_CHAINED` on the newest base via CBS's
    chaining coefficients (`coef=true`). Where CBS publishes no coefficient (seasonal
    produce items), a switch is linked by the published PERCENT / PERCENT_YEAR, and
-   with neither, `VALUE_CHAINED` is blank before the break. `python -m services.providers.cbs_index
+   with neither, `VALUE_CHAINED` is blank before the break. A scale break hidden
+   under one base label (the 1985 rows, 100× off) is split off and linked by PERCENT. `python -m services.providers.cbs_index
 catalog` lists chapters → subjects → codes.
    The daily job runs
    `providers.sync.sync_provider_sources` after loading the recipe list.

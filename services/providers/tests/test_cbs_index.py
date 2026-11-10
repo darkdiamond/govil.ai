@@ -278,7 +278,7 @@ def test_duplicate_period_fails():
 def test_chain_factors_multiply_coefficients():
     newest = _row("month", 2026, 1, "C", 100.0,
                   [{"coeff": 2.0, "baseDesc": "B"}, {"coeff": 3.0, "baseDesc": "A"}])
-    links = _links(_dated([("month", newest)]), [])
+    links, _ = _links(_dated([("month", newest)]), [])
     assert _factors("C", links) == {"C": 1.0, "B": 2.0, "A": 6.0}
 
 
@@ -286,8 +286,29 @@ def test_links_are_the_union_of_every_rows_coefficients():
     # 150010-like: the newest row stops at B; an older row on B carries B → A.
     newest = _row("month", 2026, 1, "C", 100.0, [{"coeff": 2.0, "baseDesc": "B"}])
     older = _row("month", 2023, 1, "B", 100.0, [{"coeff": 3.0, "baseDesc": "A"}])
-    links = _links(_dated([("month", newest)]), _dated([("month", older)]))
+    links, _ = _links(_dated([("month", newest)]), _dated([("month", older)]))
     assert _factors("C", links) == {"C": 1.0, "B": 2.0, "A": 6.0}
+
+
+def test_scale_break_inside_one_label_is_split_and_linked_by_percent():
+    # CBS's CPI 1985: labelled "1980" but 100x smaller than 1984; the published
+    # 1985 → 1980 coefficient fits 1984's scale. Values from the real API.
+    def r(y, m, base, v, pct, prev=None):
+        row = _row("month", y, m, base, v, prev)
+        row["percent"] = pct
+        return row
+    coef = [{"coeff": 2.25 * 100, "baseDesc": "1980"}]
+    data = [r(1984, 12, "1980", 10754.8, 3.7), r(1985, 1, "1980", 113.2, 5.3),
+            r(1985, 12, "1980", 306.7, 1.3), r(1986, 1, "1985", 134.5, -1.3, coef)]
+    data[2]["month"], data[2]["year"] = 2, 1985  # make 1985 consecutive: Jan, Feb
+    data[2]["percent"] = 306.7 / 113.2 * 100 - 100
+    data[3]["year"], data[3]["month"] = 1985, 3
+    data[3]["percent"] = 134.5 * 2.25 / 306.7 * 100 - 100  # consistent with 1/100 rows
+    page = {"month": [_series(1, "month", data[::-1])], "paging": {"last_page": 1}}
+    out = {x["TIME_PERIOD"]: float(x["VALUE_CHAINED"]) for x in rows(rows_csv([page], [1], "month"))}
+    assert out["1985-01"] / out["1984-12"] == pytest.approx(1.053, rel=1e-3)
+    assert out["1985-03"] / out["1985-02"] == pytest.approx(134.5 * 2.25 / 306.7, rel=1e-3)
+    assert out["1985-03"] == 134.5  # newest base untouched
 
 
 def test_num_never_uses_exponents():
