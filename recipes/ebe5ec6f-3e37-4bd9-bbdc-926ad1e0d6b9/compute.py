@@ -11,7 +11,9 @@ import re
 import pandas as pd
 from govlib import fmt, frame
 
-EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$")
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}$")
+# "אזור" as a whole word, so "מועצה אזורית" (a local authority) doesn't match.
+AREA_WORD = re.compile(r"(?<![\u05d0-\u05ea])אזור(?![\u05d0-\u05ea])")
 UNKNOWN = "לא צוין"
 
 
@@ -20,7 +22,7 @@ def _split_cities(s: str) -> list[str]:
 
 
 def _is_area(role: str, cities: list[str]) -> bool:
-    return "קלפיות" in role or "אזור" in role or len(cities) > 1
+    return "קלפיות" in role or bool(AREA_WORD.search(role)) or len(cities) > 1
 
 
 def _mail(s: str) -> dict:
@@ -125,17 +127,12 @@ def compute(frames: dict[str, pd.DataFrame]) -> dict:
 
     # --- charts
     kind_local, kind_area = "מנהלי בחירות של רשות", "מנהלי אזור קלפיות מיוחדות"
-    by_dist = {
-        "names": districts,
-        "series": [
-            {"name": kind_local, "data": [sum(1 for r in local if r["district"] == d) for d in districts]},
-            {"name": kind_area, "data": [sum(1 for r in area_rows if r["district"] == d) for d in districts]},
-        ],
-    }
-    by_dist["series"] = [s for s in by_dist["series"] if sum(s["data"]) > 0]
-    dist_table = [[d, fmt.int_he(sum(1 for r in local if r["district"] == d)),
-                   fmt.int_he(sum(1 for r in area_rows if r["district"] == d)),
-                   fmt.int_he(int(dist_counts[d]))] for d in districts]
+    local_by_d = [sum(1 for r in local if r["district"] == d) for d in districts]
+    area_by_d = [sum(1 for r in area_rows if r["district"] == d) for d in districts]
+    series = [{"name": kind_local, "data": local_by_d}, {"name": kind_area, "data": area_by_d}]
+    by_dist = {"names": districts, "series": [x for x in series if sum(x["data"]) > 0]}
+    dist_table = [[d, fmt.int_he(lv), fmt.int_he(av), fmt.int_he(int(dist_counts[d]))]
+                  for d, lv, av in zip(districts, local_by_d, area_by_d, strict=True)]
 
     areas_chart = {"names": [a["label"] for a in areas], "values": [a["n_cities"] for a in areas],
                    "managers": [len(a["managers"]) for a in areas]}
@@ -150,7 +147,7 @@ def compute(frames: dict[str, pd.DataFrame]) -> dict:
 
     parts = []
     if local:
-        parts.append(_cnt(len(local), "מנהל בחירות אחד של רשות מקומית", "מנהלי בחירות של רשות מקומית אחת"))
+        parts.append(_cnt(len(local), "מנהל בחירות אחד של רשות מקומית", "מנהלי בחירות, כל אחד של רשות מקומית אחת"))
     if area_rows:
         parts.append(_cnt(len(area_rows), "מנהל אזור קלפיות מיוחדות אחד", "מנהלי אזור קלפיות מיוחדות"))
     add("mix", f"הרשימה כוללת {fmt.int_he(n)} אנשי קשר ב-{fmt.int_he(len(districts))} מחוזות: {fmt.join_he(parts)}.")
@@ -192,15 +189,19 @@ def compute(frames: dict[str, pd.DataFrame]) -> dict:
         lead = ("רשות אחת מופיעה גם עם מנהל בחירות משלה" if len(both) == 1
                 else f"{fmt.int_he(len(both))} רשויות מופיעות גם עם מנהל בחירות משלהן")
         add("overlap", f"{lead} וגם בתוך אזור קלפיות מיוחדות: "
-                       f"{', '.join(shown)}{more}.")
+                       f"{fmt.join_he(shown)}{more}.")
 
     mails = [r["mail"]["text"].lower() for r in rows if r["mail"]["text"]]
     if mails:
-        gov = sum(1 for m in mails if m.split("@")[-1].endswith("gov.il"))
-        add("mail_domains", f"{fmt.int_he(gov)} מתוך {fmt.int_he(len(mails))} כתובות הדוא\"ל ברשימה הן בדומיין ממשלתי (gov.il), "
-                            f"והשאר כתובות בדומיינים אחרים.")
+        def _is_gov(m):
+            dom = m.split("@")[-1]
+            return dom == "gov.il" or dom.endswith(".gov.il")
+        gov = sum(1 for m in mails if _is_gov(m))
         if gov == len(mails):
-            insights[-1]["text_he"] = f"כל {fmt.int_he(len(mails))} כתובות הדוא\"ל ברשימה הן בדומיין ממשלתי (gov.il)."
+            add("mail_domains", f"כל {fmt.int_he(len(mails))} כתובות הדוא\"ל ברשימה הן בדומיין ממשלתי (gov.il).")
+        else:
+            add("mail_domains", f"{fmt.int_he(gov)} מתוך {fmt.int_he(len(mails))} כתובות הדוא\"ל ברשימה הן בדומיין ממשלתי (gov.il), "
+                                f"והשאר כתובות בדומיינים אחרים.")
 
     # --- KPIs
     kpis = {
