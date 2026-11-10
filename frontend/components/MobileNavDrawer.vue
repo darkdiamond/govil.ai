@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { onDesktopWidth, trapTabKey } from "~/utils/mobile-drawer";
+
 const route = useRoute();
 const open = ref(false);
 const triggerEl = ref<HTMLElement | null>(null);
@@ -36,9 +38,12 @@ function setOpen(v: boolean) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape" && open.value) {
+  if (!open.value) return;
+  if (e.key === "Escape") {
     e.preventDefault();
     setOpen(false);
+  } else {
+    trapTabKey(e, drawerEl.value);
   }
 }
 
@@ -49,12 +54,19 @@ watch(
   }
 );
 
+// The drawer is md:hidden: widening past md hides it, so close it (and
+// release the scroll lock) rather than leave the page locked.
+let stopDesktopWatch: (() => void) | null = null;
 onMounted(() => {
   document.addEventListener("keydown", onKeydown);
+  stopDesktopWatch = onDesktopWidth(window, () => {
+    if (open.value) setOpen(false);
+  });
 });
 onBeforeUnmount(() => {
   document.removeEventListener("keydown", onKeydown);
   document.body.style.overflow = "";
+  stopDesktopWatch?.();
 });
 </script>
 
@@ -150,6 +162,7 @@ onBeforeUnmount(() => {
                 <NuxtLink
                   :to="l.to"
                   data-drawer-link
+                  @click="setOpen(false)"
                   class="block px-4 py-3 text-base text-ink no-underline hover:bg-brand-50 hover:no-underline border-b border-rule/60"
                   :class="{
                     'bg-brand-50 text-brand-700 font-medium':
