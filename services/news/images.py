@@ -28,6 +28,11 @@ HOUSE_STYLE = (
     "recognisable real people or places' signage. Not photorealistic. Subject: "
 )
 SIZES = {"16x9": (1600, 900), "4x3": (1200, 900), "1x1": (1200, 1200)}
+# The model's bytes are untrusted: decode only the formats an image model returns, and refuse
+# a canvas past this size from its header, before decoding (Pillow's own bomb check only warns
+# below twice its default limit).
+HERO_FORMATS = ["PNG", "JPEG", "WEBP"]
+MAX_HERO_PIXELS = 4096 * 4096
 
 
 def _crop(img: Image.Image, w: int, h: int) -> Image.Image:
@@ -93,7 +98,9 @@ def hero(llm, brief: str, fallback_values: list[float]) -> tuple[dict, dict[str,
     if llm is not None and brief:
         try:
             raw = llm.image(HOUSE_STYLE + brief)
-            img = Image.open(io.BytesIO(raw))
+            img = Image.open(io.BytesIO(raw), formats=HERO_FORMATS)
+            if img.size[0] * img.size[1] > MAX_HERO_PIXELS:
+                raise ValueError(f"image too large: {img.size}")
             img.load()
             if img.size[0] < 1024:
                 raise ValueError(f"image too small: {img.size}")
