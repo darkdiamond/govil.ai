@@ -1522,14 +1522,24 @@ def refresh_one(
             else:
                 transient[e.strike] = n
         log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
-        store.mark_refresh_failed(
-            src.id,
-            error=str(e),
-            reason=e.reason,
-            failed_version=failed_version_key(src, recipe),
-            wall_budget_strikes=strikes,
-            transient_strikes=transient,
-        )
+        try:
+            store.mark_refresh_failed(
+                src.id,
+                error=str(e),
+                reason=e.reason,
+                failed_version=failed_version_key(src, recipe),
+                wall_budget_strikes=strikes,
+                transient_strikes=transient,
+            )
+        except Exception as me:
+            # Nothing recorded, so the next run retries it (and files the
+            # issue then). A failed state write counts as a staging failure.
+            log.exception("refresh %s: recording the failure failed", src.id[:8])
+            return RefreshOutcome(
+                src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
+                _clip(f"{e.reason}: {e}; {type(me).__name__}: {me}"),
+                round(time.monotonic() - started, 2),
+            )
         outcome = RefreshOutcome(
             src.id, OutcomeStatus.FAILED, trigger, e.reason, _clip(str(e)),
             round(time.monotonic() - started, 2),
@@ -1541,12 +1551,19 @@ def refresh_one(
         return outcome
     except Exception as e:  # infra bug, not a data/recipe verdict
         log.exception("refresh %s crashed", src.id[:8])
-        store.mark_refresh_failed(
-            src.id,
-            error=f"{type(e).__name__}: {e}",
-            reason=FailReason.ERROR,
-            failed_version=failed_version_key(src, recipe),
-        )
+        try:
+            store.mark_refresh_failed(
+                src.id,
+                error=f"{type(e).__name__}: {e}",
+                reason=FailReason.ERROR,
+                failed_version=failed_version_key(src, recipe),
+            )
+        except Exception as me:
+            log.exception("refresh %s: recording the crash failed", src.id[:8])
+            return RefreshOutcome(
+                src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
+                _clip(f"{type(e).__name__}: {e}; {type(me).__name__}: {me}"),
+            )
         return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR, _clip(str(e)))
 
     snapshot = {
@@ -1821,6 +1838,9 @@ def run_refresh(
     deferred: list[tuple[int, object, Recipe, str, RefreshState]] = []
     last_deferred_at = 0.0
 
+    # Failed outcomes recorded without a successful state write.
+    _NO_WRITE = (FailReason.ERROR, FailReason.RESTRICTED, FailReason.RECIPE_INVALID)
+
     def _count_staging(outcome: RefreshOutcome) -> None:
         nonlocal stage_failures, staging_down
         if outcome.reason == STAGE_FAILED:
@@ -1831,7 +1851,10 @@ def run_refresh(
                     stage_failures,
                 )
                 staging_down = True
-        elif outcome.status == OutcomeStatus.REFRESHED:
+        elif outcome.status in (OutcomeStatus.REFRESHED, OutcomeStatus.UNCHANGED) or (
+            outcome.status == OutcomeStatus.FAILED and outcome.reason not in _NO_WRITE
+        ):
+            # Its state write went through, so the store is up.
             stage_failures = 0
 
     def _queue():
@@ -1848,7 +1871,17 @@ def run_refresh(
             if len([o for o in outcomes if _spends_cap(o)]) >= cap:
                 outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="cap"))
                 continue
-            src = store.get_source(dataset_id)
+            try:
+                src = store.get_source(dataset_id)
+            except Exception as e:
+                # A store error, like a failed state write: this source only,
+                # counted toward `staging_down`.
+                log.exception("refresh %s: reading the source doc failed", dataset_id[:8])
+                outcome = RefreshOutcome(dataset_id, OutcomeStatus.FAILED, reason=STAGE_FAILED,
+                                         error=_clip(f"{type(e).__name__}: {e}"))
+                outcomes.append(outcome)
+                _count_staging(outcome)
+                continue
             if src is None:
                 outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="no_source_doc"))
                 continue
@@ -1872,18 +1905,25 @@ def run_refresh(
                 if recipe.manifest.heavy:
                     heavy.append((dataset_id, recipe))
                     continue
-            state = src.refresh  # read with the source doc: one read per source
-            trigger = "forced" if force else needs_refresh(src, state, recipe)
-            if trigger is None:
-                outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date"))
-                continue
-            log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
-            outcome = refresh_one(
-                src, recipe, store=store,
-                staging_bucket=staging_bucket, work_root=work_root,
-                trigger=trigger, previous_state=state, notify=notify,
-                defer_transient=len(deferred) < retry_cap, **kwargs,
-            )
+            trigger = None
+            try:
+                state = src.refresh  # read with the source doc: one read per source
+                trigger = "forced" if force else needs_refresh(src, state, recipe)
+                if trigger is None:
+                    outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date"))
+                    continue
+                log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
+                outcome = refresh_one(
+                    src, recipe, store=store,
+                    staging_bucket=staging_bucket, work_root=work_root,
+                    trigger=trigger, previous_state=state, notify=notify,
+                    defer_transient=len(deferred) < retry_cap, **kwargs,
+                )
+            except Exception as e:
+                # One source's crash must not cost the outcomes already made.
+                log.exception("refresh %s crashed", dataset_id[:8])
+                outcome = RefreshOutcome(dataset_id, OutcomeStatus.FAILED, trigger,
+                                         FailReason.ERROR, _clip(f"{type(e).__name__}: {e}"))
             if outcome.status == OutcomeStatus.RETRY_LATER:
                 deferred.append((len(outcomes), src, recipe, trigger, state))
                 last_deferred_at = time.monotonic()
@@ -1902,11 +1942,16 @@ def run_refresh(
             if staging_down:
                 outcomes[i] = RefreshOutcome(src.id, OutcomeStatus.SKIPPED, reason="staging_down")
                 continue
-            outcome = refresh_one(
-                src, recipe, store=store,
-                staging_bucket=staging_bucket, work_root=work_root,
-                trigger=trigger, previous_state=state, notify=notify, **kwargs,
-            )
+            try:
+                outcome = refresh_one(
+                    src, recipe, store=store,
+                    staging_bucket=staging_bucket, work_root=work_root,
+                    trigger=trigger, previous_state=state, notify=notify, **kwargs,
+                )
+            except Exception as e:
+                log.exception("refresh %s crashed", src.id[:8])
+                outcome = RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger,
+                                         FailReason.ERROR, _clip(f"{type(e).__name__}: {e}"))
             outcome.retried = True
             outcomes[i] = outcome
             _count_staging(outcome)
