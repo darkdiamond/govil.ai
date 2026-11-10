@@ -190,7 +190,15 @@ this, with a topic and aliases):
 
 ```bash
 python -m services.page_builder.tags assign --from-pending <id> [<id> ...]
-git add recipes/ taxonomy/   # only the batch's recipe dirs + tags; never tmp/
+# Stage each recipe's own files by name (never the whole dir: a stray extract
+# or script there would publish raw rows), plus each snapshot recipe.json declares.
+for id in <id> [<id> ...]; do
+  for f in recipe.json compute.py template.html.j2 coverage.json source.json \
+      $(jq -r '.inputs[].snapshot // empty' "recipes/$id/recipe.json"); do
+    if [ -f "recipes/$id/$f" ]; then git add "recipes/$id/$f"; fi
+  done
+done
+git add taxonomy/        # the batch's tags; never tmp/
 git status --short       # must show nothing outside recipes/<batch ids>/ and taxonomy/
 git commit -m "recipe: authoring batch $DAY (<N> datasets)"
 git push -u origin "$BR"
