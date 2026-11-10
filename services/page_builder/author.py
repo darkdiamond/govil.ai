@@ -1283,9 +1283,9 @@ def _ckan_resource(resource_id: str) -> dict:
     import urllib.parse
     import urllib.request
 
-    from services.shared.ckan import user_agent
+    from services.shared.ckan import ACTION_API, user_agent
 
-    url = ("https://data.gov.il/api/3/action/resource_show?"
+    url = (f"{ACTION_API}/resource_show?"
            + urllib.parse.urlencode({"id": resource_id}))
     req = urllib.request.Request(url, headers={"User-Agent": user_agent()})
     with urllib.request.urlopen(req, timeout=30) as r:
