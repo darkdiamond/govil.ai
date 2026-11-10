@@ -95,3 +95,38 @@ def test_chart_aligns_periods_with_different_labels():
         {"A": a, "B": b}, Ledger())
     assert len(out["option"]["xAxis"]["data"]) == 7
     assert [s["data"][0] for s in out["option"]["series"]] == [1, 7]
+
+
+class ParallelCallsLLM:
+    """One turn asking for many tool calls at once, then gives up."""
+
+    def __init__(self, n):
+        self.n, self.turn, self.messages = n, 0, []
+
+    def chat(self, messages, tools=None, **kw):
+        self.turn += 1
+        self.messages = messages
+        if self.turn == 1:
+            return {"role": "assistant", "content": "", "tool_calls": [
+                {"id": str(i), "type": "function", "function": {
+                    "name": "calc", "arguments": json.dumps({"op": "abs", "a": "f1"})}}
+                for i in range(self.n)]}
+        return {"role": "assistant", "content": "done"}
+
+
+def test_tool_budget_holds_within_one_turn():
+    from services.news.tools import Toolbox
+    from services.news.writer import write
+
+    tb = Toolbox(ledger=Ledger(), series={}, models={}, catalog={})
+    tb.ledger.add(1, label="x", provenance="p")
+    llm = ParallelCallsLLM(50)
+    out = write(llm, tb, {"signals": [], "angle_he": "", "why_now_he": "", "questions": [],
+                          "dataset_ids": []}, catalog={}, vocab=set(), today="2026-11-10",
+                max_tool_calls=5)
+    assert len(tb.log) == 5 and out.tool_calls == 5
+    assert out.reason == "tool_budget"
+    # every call still got an answer, so the transcript stays well-formed
+    tool_msgs = [m for m in llm.messages if m["role"] == "tool"]
+    assert [m["tool_call_id"] for m in tool_msgs] == [str(i) for i in range(50)]
+    assert all("tool budget used up" in m["content"] for m in tool_msgs[5:])
