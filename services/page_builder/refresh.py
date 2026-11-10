@@ -44,6 +44,14 @@ from services.shared.fetch_types import (
     FetchLimitExceeded,
     ResourceRestrictedError,
 )
+from services.shared.states import (
+    NO_DATA_STATUSES,
+    AuthoringReason,
+    FailReason,
+    OutcomeStatus,
+    RefreshState,
+    RefreshStatus,
+)
 
 from . import geo_snapshot
 from .ckan_export import (
@@ -132,11 +140,12 @@ _COMPUTE_SPAWN_BACKOFF_S = 1.0
 # Staging (GCS upload / Firestore mark) failed after a good render. After
 # this many in a row the batch stops: the store is down, and every further
 # source would only spend a full export to fail the same way.
-STAGE_FAILED = "stage_failed"
+STAGE_FAILED = FailReason.STAGE_FAILED
 MAX_CONSECUTIVE_STAGE_FAILURES = 3
-AUTHORING_REASONS = (
-    "recipe_failed", "schema_changed", "too_large", "geometry_stale", "download_blocked",
-)
+AUTHORING_REASONS = frozenset({
+    FailReason.RECIPE_FAILED, FailReason.SCHEMA_CHANGED, FailReason.TOO_LARGE,
+    FailReason.GEOMETRY_STALE, FailReason.DOWNLOAD_BLOCKED,
+})
 
 
 def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
@@ -475,7 +484,7 @@ class WallBudgetExceeded(RecipeError):
     own; `refresh_one` counts them and escalates a run of them."""
 
     def __init__(self, message: str):
-        super().__init__(message, reason="fetch_failed")
+        super().__init__(message, reason=FailReason.FETCH_FAILED)
 
 
 class StrikeError(RecipeError):
@@ -499,7 +508,7 @@ def _limit_error(e: FetchLimitExceeded, what: str) -> RecipeError:
     if e.limit == "bytes":
         return RecipeError(
             f"{what}: {e} (REFRESH_MAX_BYTES / REFRESH_TOTAL_BYTES / recipe limits)",
-            reason="too_large",
+            reason=FailReason.TOO_LARGE,
         )
     if e.limit == "wall_budget":
         return WallBudgetExceeded(f"{what}: ran out of wall budget ({e})")
@@ -535,16 +544,16 @@ def _preview_strike(message: str) -> StrikeError:
     """A datastore preview that didn't answer. Slow CKAN, not a schema change:
     retried next run; an issue opens only once it repeats (e.g. a resource
     dropped from the datastore)."""
-    return StrikeError(message, reason="fetch_failed", strike=_PREVIEW_STRIKE,
-                       escalate_to="schema_changed")
+    return StrikeError(message, reason=FailReason.FETCH_FAILED, strike=_PREVIEW_STRIKE,
+                       escalate_to=FailReason.SCHEMA_CHANGED)
 
 
-def _strikes_after_probe(state: dict, probe: InputProbe | None) -> dict | None:
+def _strikes_after_probe(state: RefreshState, probe: InputProbe | None) -> dict | None:
     """The `transient_strikes` to write once this run's previews answered:
     a run of preview failures is broken, so that count restarts. None = leave
     the stored map alone (also when no preview was asked yet, e.g. a `by_id`
     input with no column check, whose preview comes only in `fetch_inputs`)."""
-    strikes = state.get("transient_strikes") or {}
+    strikes = state.transient_strikes or {}
     if probe is None or _PREVIEW_STRIKE not in strikes or not probe.answered():
         return None
     return {k: v for k, v in strikes.items() if k != _PREVIEW_STRIKE}
@@ -855,13 +864,13 @@ def fetch_inputs(
             if total <= 0 and not (res.get("params") or {}).get("optional"):
                 raise RecipeError(
                     f"input {inp.name!r}: resource {rid[:8]} has no rows",
-                    reason="fetch_failed",
+                    reason=FailReason.FETCH_FAILED,
                 )
             if total > max_records:
                 raise RecipeError(
                     f"input {inp.name!r}: {total:,} rows > REFRESH_MAX_RECORDS "
                     f"{max_records:,}",
-                    reason="too_large",
+                    reason=FailReason.TOO_LARGE,
                 )
             dest = dest_dir / f"{inp.name}__{i + 1}.csv"
             cap = min(max_bytes, remaining)
@@ -869,7 +878,7 @@ def fetch_inputs(
                 raise RecipeError(
                     f"input {inp.name!r}: earlier inputs used the whole "
                     "REFRESH_TOTAL_BYTES budget",
-                    reason="too_large",
+                    reason=FailReason.TOO_LARGE,
                 )
             try:
                 outcome = fetch_fn(
@@ -892,7 +901,7 @@ def fetch_inputs(
             if outcome is None:
                 raise RecipeError(
                     f"input {inp.name!r}: full fetch of {rid[:8]} failed (fetch error)",
-                    reason="fetch_failed",
+                    reason=FailReason.FETCH_FAILED,
                 )
             if inp.columns:
                 _project_csv(dest, inp.columns)
@@ -939,7 +948,7 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
     raw = dest_dir / f"{inp.name}__map.download"
     if max_bytes <= 0:
         raise RecipeError(f"{what}: earlier inputs used the whole REFRESH_TOTAL_BYTES budget",
-                          reason="too_large")
+                          reason=FailReason.TOO_LARGE)
     try:
         try:
             got = fetch_file_fn(res.get("url") or "", raw, max_bytes=max_bytes,
@@ -947,17 +956,17 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
         except FetchLimitExceeded as e:
             raise _limit_error(e, f"{what}: download") from None
         except DownloadBlocked as e:
-            raise StrikeError(f"{what}: download blocked ({e})", reason="fetch_failed",
-                              strike="download_blocked", escalate_to="download_blocked") from None
+            raise StrikeError(f"{what}: download blocked ({e})", reason=FailReason.FETCH_FAILED,
+                              strike="download_blocked", escalate_to=FailReason.DOWNLOAD_BLOCKED) from None
         except ValueError as e:  # not a data.gov.il URL: the resource moved off-site
-            raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
+            raise RecipeError(f"{what}: {e}", reason=FailReason.SCHEMA_CHANGED) from None
         except urllib_error.HTTPError as e:
             if e.code in (404, 410):
-                raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason="fetch_failed",
-                                  strike="download_missing", escalate_to="schema_changed") from None
-            raise RecipeError(f"{what}: download failed ({e})", reason="fetch_failed") from None
+                raise StrikeError(f"{what}: the file is gone (HTTP {e.code})", reason=FailReason.FETCH_FAILED,
+                                  strike="download_missing", escalate_to=FailReason.SCHEMA_CHANGED) from None
+            raise RecipeError(f"{what}: download failed ({e})", reason=FailReason.FETCH_FAILED) from None
         except (urllib_error.URLError, OSError, http.client.HTTPException) as e:  # timeouts too
-            raise RecipeError(f"{what}: download failed ({e!r})", reason="fetch_failed") from None
+            raise RecipeError(f"{what}: download failed ({e!r})", reason=FailReason.FETCH_FAILED) from None
     except BaseException:  # any failed download: no partial file left behind
         raw.unlink(missing_ok=True)
         raise
@@ -971,9 +980,9 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
             max_bytes=(inp.map_max_kb * 1000) if inp.map_max_kb else geo_snapshot.DEFAULT_MAX_BYTES,
         )
     except geo_snapshot.SnapshotTooLarge as e:
-        raise RecipeError(f"{what}: {e} (map_max_kb)", reason="too_large") from None
+        raise RecipeError(f"{what}: {e} (map_max_kb)", reason=FailReason.TOO_LARGE) from None
     except geo_snapshot.SnapshotError as e:
-        raise RecipeError(f"{what}: {e}", reason="schema_changed") from None
+        raise RecipeError(f"{what}: {e}", reason=FailReason.SCHEMA_CHANGED) from None
     finally:
         feats = None
         raw.unlink(missing_ok=True)
@@ -982,14 +991,14 @@ def _fetch_map(inp, res: dict, dest_dir: Path, fetch_file_fn: Callable, *,
            "features": [{"properties": p, "geometry": None if g == "null" else g}
                         for p, g in layer.features]}
     del layer
-    header, rows = feature_table(doc, what, reason="schema_changed")
+    header, rows = feature_table(doc, what, reason=FailReason.SCHEMA_CHANGED)
     del doc
     lost = [c for c in inp.required_columns if c not in header]
     if lost:
-        raise RecipeError(f"{what}: lacks column(s) {lost}", reason="schema_changed")
+        raise RecipeError(f"{what}: lacks column(s) {lost}", reason=FailReason.SCHEMA_CHANGED)
     rows = transform(rows)
     if not rows:
-        raise RecipeError(f"{what}: has no features", reason="schema_changed")
+        raise RecipeError(f"{what}: has no features", reason=FailReason.SCHEMA_CHANGED)
     log.info("map %s: %s bytes → %d features (%s, tolerance %s)",
              rid[:8], f"{got.bytes:,}", len(rows), crs, tol)
     return _write_table(inp, res, header, rows, dest_dir), got.bytes
@@ -1017,7 +1026,7 @@ def _project_csv(path: Path, columns: list[str]) -> None:
     lost = [c for c in columns if c not in header]
     if lost:
         raise RecipeError(
-            f"{path.name}: export lacks column(s) {lost}", reason="schema_changed"
+            f"{path.name}: export lacks column(s) {lost}", reason=FailReason.SCHEMA_CHANGED
         )
     idx = [header.index(c) for c in columns]
     tmp = path.with_suffix(".projected")
@@ -1065,7 +1074,7 @@ class _SpawnFlake(RecipeError):
     """
 
     def __init__(self, message: str):
-        super().__init__(message, reason="sandbox_failed")
+        super().__init__(message, reason=FailReason.SANDBOX_FAILED)
 
 
 def _is_spawn_flake(error_value: str, stderr: str) -> bool:
@@ -1272,20 +1281,19 @@ def failed_version_key(src, recipe: Recipe) -> str:
     return f"{base}|{code[:16]}"
 
 
-def needs_refresh(src, state: dict, recipe: Recipe) -> str | None:
+def needs_refresh(src, state: RefreshState, recipe: Recipe) -> str | None:
     """Why this source should be refreshed now, or None to skip it."""
     if src is None:
         return None
-    if src.analysis_status in ("unavailable", "restricted"):
+    if src.analysis_status in NO_DATA_STATUSES:
         return None  # data gone upstream; keep the frozen page
     rv = recipe.manifest.recipe_version
-    if state.get("refresh_reason") in AUTHORING_REASONS and state.get(
-        "refresh_failed_version"
-    ) == failed_version_key(src, recipe):
+    if (state.refresh_reason in AUTHORING_REASONS
+            and state.refresh_failed_version == failed_version_key(src, recipe)):
         return None  # same data + recipe + builder would fail the same way
-    if state.get("recipe_version") != rv:
+    if state.recipe_version != rv:
         return "recipe_version"
-    done = state.get("refreshed_metadata_modified")
+    done = state.refreshed_metadata_modified
     if done is None:
         return "never_refreshed"
     if src.metadata_modified and src.metadata_modified > done:
@@ -1339,7 +1347,7 @@ def _read_gcs(bucket: str, relpath: str) -> bytes | None:
 @dataclass
 class RefreshOutcome:
     id: str
-    status: str                      # refreshed | unchanged | failed | skipped | retry_later
+    status: OutcomeStatus
     trigger: str | None = None
     reason: str | None = None
     error: str | None = None
@@ -1369,7 +1377,7 @@ class _Unchanged(Exception):
         self.reason = reason
 
 
-def _precheck_may_skip(trigger: str, state: dict) -> bool:
+def _precheck_may_skip(trigger: str, state: RefreshState) -> bool:
     """Skipping is only safe for a plain data bump on a recently re-rendered
     page: a forced run, a recipe_version change, or a page older than
     REFRESH_PRECHECK_MAX_AGE_DAYS (bounds check A's blind spot and picks up
@@ -1378,7 +1386,7 @@ def _precheck_may_skip(trigger: str, state: dict) -> bool:
     came out identical (`last_verified_at`): it proved the live page right."""
     if trigger != "data_updated":
         return False
-    stamps = [state.get("last_refreshed_at"), state.get("last_verified_at")]
+    stamps = [state.last_refreshed_at, state.last_verified_at]
     stamps = [t if t.tzinfo else t.replace(tzinfo=UTC) for t in stamps if t]
     if not stamps:
         return False
@@ -1406,7 +1414,7 @@ def refresh_one(
     staging_bucket: str,
     work_root: Path,
     trigger: str,
-    previous_state: dict | None = None,
+    previous_state: RefreshState | None = None,
     notify: bool = True,
     write_gcs: Callable[[bytes, str, str], str] = _write_gcs,
     read_gcs: Callable[[str, str], bytes | None] = _read_gcs,
@@ -1421,20 +1429,20 @@ def refresh_one(
     started = time.monotonic()
     rv = recipe.manifest.recipe_version
     resources = src.resources
-    provider_key = getattr(src, "provider", None)
+    provider_key = src.provider
     if provider_key:
         # A non-CKAN source: its provider fetches (services/providers), CKAN
         # is never called. Disabled provider → leave the last-good page.
         p = provider_for_key(provider_key, providers)
         if p is None:
             log.info("refresh %s: provider %s is disabled — skipped", src.id, provider_key)
-            return RefreshOutcome(src.id, "skipped", trigger, f"provider_disabled:{provider_key}")
+            return RefreshOutcome(src.id, OutcomeStatus.SKIPPED, trigger, f"provider_disabled:{provider_key}")
         resources = fetchable_resources(src.resources)
         preview_fn, fetch_fn = p.fetch_fns(resources)
         fetch_kwargs.setdefault("preview_fn", preview_fn)
         fetch_kwargs.setdefault("fetch_fn", fetch_fn)
     mode = precheck_mode()
-    state = previous_state or {}
+    state = previous_state if previous_state is not None else RefreshState()
     may_skip = mode != "off" and _precheck_may_skip(trigger, state)
     pc: dict = {"mode": mode} if mode != "off" else {}
     hashes: dict[str, str | None] = {}  # stored on success; names match mark_refreshed kwargs
@@ -1449,17 +1457,17 @@ def refresh_one(
         if mode != "off":
             identity = recipe_identity(recipe)
             fp = hashes["input_fingerprint"] = input_fingerprint(recipe, probe, identity)
-            pc["fp_same"] = _same(fp, state.get("input_fingerprint"))
+            pc["fp_same"] = _same(fp, state.input_fingerprint)
             ff = hashes["file_fingerprint"] = file_fingerprint(recipe, probe, identity)
-            pc["fp2_same"] = _same(ff, state.get("file_fingerprint")) if ff else None
+            pc["fp2_same"] = _same(ff, state.file_fingerprint) if ff else None
             if may_skip and mode == "full" and pc["fp_same"] and pc["fp2_same"]:
                 raise _Unchanged("fingerprint")
 
             def after_fetch(inputs):
                 ih, iu = inputs_hashes(recipe, inputs, identity)
                 hashes["inputs_hash"], hashes["inputs_hash_unordered"] = ih, iu
-                pc["inputs_same"] = _same(ih, state.get("inputs_hash"))
-                pc["inputs_same_unordered"] = _same(iu, state.get("inputs_hash_unordered"))
+                pc["inputs_same"] = _same(ih, state.inputs_hash)
+                pc["inputs_same_unordered"] = _same(iu, state.inputs_hash_unordered)
                 if may_skip and mode in ("inputs", "full") and pc["inputs_same"]:
                     raise _Unchanged("inputs_hash")
 
@@ -1483,30 +1491,30 @@ def refresh_one(
         # Data went private upstream. Not the recipe's fault, not
         # actionable by re-authoring; the reconcile sweep owns this state.
         log.warning("refresh %s: restricted upstream: %s", src.id[:8], e)
-        return RefreshOutcome(src.id, "failed", trigger, "restricted", str(e))
+        return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.RESTRICTED, str(e))
     except RecipeError as e:
         if defer_transient and _retry_later(e):
             log.warning("refresh %s: %s — retrying at the end of the run", src.id[:8], e)
             return RefreshOutcome(
-                src.id, "retry_later", trigger, e.reason, _clip(str(e)),
+                src.id, OutcomeStatus.RETRY_LATER, trigger, e.reason, _clip(str(e)),
                 round(time.monotonic() - started, 2),
             )
         strikes = None
         if isinstance(e, WallBudgetExceeded):
-            strikes = int(state.get("wall_budget_strikes") or 0) + 1
+            strikes = int(state.wall_budget_strikes or 0) + 1
             limit = _env_int("REFRESH_WALL_BUDGET_STRIKES", _DEFAULT_WALL_BUDGET_STRIKES)
             if strikes >= limit:
                 # Reset, so a re-authored recipe gets a fresh run of tries.
                 e = RecipeError(
                     f"{e} — {strikes} runs in a row since the last full fetch",
-                    reason="too_large",
+                    reason=FailReason.TOO_LARGE,
                 )
                 strikes = 0
         transient = _strikes_after_probe(state, probe)
         if isinstance(e, StrikeError):
             # A preview strike (even one in fetch_inputs) continues the run.
             if transient is None or e.strike == _PREVIEW_STRIKE:
-                transient = dict(state.get("transient_strikes") or {})
+                transient = dict(state.transient_strikes or {})
             n = int(transient.get(e.strike) or 0) + 1
             if n >= _env_int("REFRESH_TRANSIENT_STRIKES", _DEFAULT_TRANSIENT_STRIKES):
                 transient.pop(e.strike, None)  # a fresh run of tries after the fix
@@ -1523,7 +1531,7 @@ def refresh_one(
             transient_strikes=transient,
         )
         outcome = RefreshOutcome(
-            src.id, "failed", trigger, e.reason, _clip(str(e)),
+            src.id, OutcomeStatus.FAILED, trigger, e.reason, _clip(str(e)),
             round(time.monotonic() - started, 2),
         )
         if notify and e.reason in AUTHORING_REASONS:
@@ -1536,10 +1544,10 @@ def refresh_one(
         store.mark_refresh_failed(
             src.id,
             error=f"{type(e).__name__}: {e}",
-            reason="error",
+            reason=FailReason.ERROR,
             failed_version=failed_version_key(src, recipe),
         )
-        return RefreshOutcome(src.id, "failed", trigger, "error", _clip(str(e)))
+        return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR, _clip(str(e)))
 
     snapshot = {
         "rows": {k: sum(p.rows for p in v) for k, v in inputs.items()},
@@ -1553,18 +1561,18 @@ def refresh_one(
     if page.warnings:
         log.warning("refresh %s: %d format warning(s): %s", src.id[:8],
                     len(page.warnings), "; ".join(page.warnings)[:500])
-    previous = state.get("last_snapshot")
+    previous = state.last_snapshot
     if mode != "off":
         ch = hashes["content_hash"] = content_hash(page)
-        pc["content_same"] = _same(ch, state.get("content_hash"))
+        pc["content_same"] = _same(ch, state.content_hash)
         _log_precheck(src.id, pc)
         # C: a data bump that rendered the live page byte for byte. Exact, so
         # no max-age gate; a forced run or a recipe_version change still
         # stages (the latter must record its version through mark_refreshed).
         # After a staging failure the staged body may not be the one the
         # stored hash describes (a failed rollback), so that render stages.
-        staging_suspect = (state.get("refresh_status") == "failed"
-                           and state.get("refresh_reason") == STAGE_FAILED)
+        staging_suspect = (state.refresh_status == RefreshStatus.FAILED
+                           and state.refresh_reason == STAGE_FAILED)
         if (mode in ("inputs", "full") and trigger == "data_updated"
                 and pc["content_same"] and not staging_suspect):
             out = _mark_unchanged(
@@ -1623,7 +1631,7 @@ def refresh_one(
         except Exception:
             log.exception("refresh %s: recording the staging failure failed", src.id[:8])
         return RefreshOutcome(
-            src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
+            src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED, _clip(str(e)),
             round(time.monotonic() - started, 2),
         )
     _stage_model_history(src.id, page.model, bucket=staging_bucket,
@@ -1631,7 +1639,7 @@ def refresh_one(
                          metadata_modified=src.metadata_modified)
     return RefreshOutcome(
         src.id,
-        "refreshed",
+        OutcomeStatus.REFRESHED,
         trigger,
         elapsed_s=round(time.monotonic() - started, 2),
         rows=snapshot["rows"],
@@ -1669,12 +1677,12 @@ def _mark_unchanged(
     except Exception as e:
         log.exception("refresh %s: recording the unchanged state failed", src.id[:8])
         return RefreshOutcome(
-            src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
+            src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED, _clip(str(e)),
             round(time.monotonic() - started, 2), precheck=pc,
         )
     log.info("refresh precheck %s: unchanged (%s) — skipped", src.id[:8], reason)
     return RefreshOutcome(
-        src.id, "unchanged", trigger, reason,
+        src.id, OutcomeStatus.UNCHANGED, trigger, reason,
         elapsed_s=round(time.monotonic() - started, 2), rows=rows or {}, precheck=pc,
     )
 
@@ -1732,9 +1740,9 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
     new need (e.g. the recipe later failed), so a fresh issue is opened."""
     from . import notify as _notify
 
-    state = store.get_refresh_state(src.id)
+    state = RefreshState.from_dict(store.get_refresh_state(src.id))  # fresh: guards duplicate issues
     store.mark_authoring_needed(src.id, reason)
-    recorded = state.get("authoring_issue")
+    recorded = state.authoring_issue
     if recorded and _notify.issue_state(int(recorded)) != "completed":
         # Back to `notified`, which mark_authoring_needed just overwrote:
         # the daily queue skips notified sources.
@@ -1767,15 +1775,15 @@ def _retry_later(e: RecipeError) -> bool:
     trouble. Not a wall-budget overrun (the dataset is slow; a retry doubles
     the time) nor a map download strike (a WAF block or a 404 won't clear
     within the run)."""
-    if e.reason != "fetch_failed" or isinstance(e, WallBudgetExceeded):
+    if e.reason != FailReason.FETCH_FAILED or isinstance(e, WallBudgetExceeded):
         return False
     return not isinstance(e, StrikeError) or e.strike == _PREVIEW_STRIKE
 
 
 def _spends_cap(o: RefreshOutcome) -> bool:
     # A `retry_later` slot keeps its place: the retry pass refreshes it.
-    return o.status != "skipped" and not (
-        o.status == "unchanged" and o.reason == "fingerprint"
+    return o.status != OutcomeStatus.SKIPPED and not (
+        o.status == OutcomeStatus.UNCHANGED and o.reason == "fingerprint"
     )
 
 
@@ -1810,7 +1818,7 @@ def run_refresh(
     heavy: list[tuple[str, Recipe]] = []
     retry_cap = max(0, _env_int("REFRESH_RETRY_CAP", _DEFAULT_RETRY_CAP))
     # outcome index, src, recipe, trigger, refresh state (the deferral wrote nothing)
-    deferred: list[tuple[int, object, Recipe, str, dict]] = []
+    deferred: list[tuple[int, object, Recipe, str, RefreshState]] = []
     last_deferred_at = 0.0
 
     def _count_staging(outcome: RefreshOutcome) -> None:
@@ -1823,7 +1831,7 @@ def run_refresh(
                     stage_failures,
                 )
                 staging_down = True
-        elif outcome.status == "refreshed":
+        elif outcome.status == OutcomeStatus.REFRESHED:
             stage_failures = 0
 
     def _queue():
@@ -1834,15 +1842,15 @@ def run_refresh(
     try:
         for dataset_id, recipe in _queue():
             if staging_down:
-                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="staging_down"))
+                outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="staging_down"))
                 continue
             # A fingerprint skip made no export, so it doesn't spend the cap.
             if len([o for o in outcomes if _spends_cap(o)]) >= cap:
-                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="cap"))
+                outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="cap"))
                 continue
             src = store.get_source(dataset_id)
             if src is None:
-                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="no_source_doc"))
+                outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="no_source_doc"))
                 continue
             if recipe is None:
                 try:
@@ -1850,24 +1858,24 @@ def run_refresh(
                 except Exception as e:
                     log.exception("recipe %s failed to load", dataset_id[:8])
                     outcome = RefreshOutcome(
-                        dataset_id, "failed", reason="recipe_invalid", error=_clip(str(e))
+                        dataset_id, OutcomeStatus.FAILED, reason=FailReason.RECIPE_INVALID, error=_clip(str(e))
                     )
                     # The page can't refresh until the recipe is fixed, so it
                     # needs authoring like any other broken recipe. Idempotent:
                     # the open issue is reused every night until then.
                     if notify:
                         outcome.issue = _queue_authoring_safely(
-                            store, src, "recipe_failed", detail=str(e)
+                            store, src, AuthoringReason.RECIPE_FAILED, detail=str(e)
                         )
                     outcomes.append(outcome)
                     continue
                 if recipe.manifest.heavy:
                     heavy.append((dataset_id, recipe))
                     continue
-            state = store.get_refresh_state(dataset_id)
+            state = src.refresh  # read with the source doc: one read per source
             trigger = "forced" if force else needs_refresh(src, state, recipe)
             if trigger is None:
-                outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="up_to_date"))
+                outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date"))
                 continue
             log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
             outcome = refresh_one(
@@ -1876,7 +1884,7 @@ def run_refresh(
                 trigger=trigger, previous_state=state, notify=notify,
                 defer_transient=len(deferred) < retry_cap, **kwargs,
             )
-            if outcome.status == "retry_later":
+            if outcome.status == OutcomeStatus.RETRY_LATER:
                 deferred.append((len(outcomes), src, recipe, trigger, state))
                 last_deferred_at = time.monotonic()
             outcomes.append(outcome)
@@ -1892,7 +1900,7 @@ def run_refresh(
         # Each deferred slot already counted toward the cap, so no cap check.
         for i, src, recipe, trigger, state in deferred:
             if staging_down:
-                outcomes[i] = RefreshOutcome(src.id, "skipped", reason="staging_down")
+                outcomes[i] = RefreshOutcome(src.id, OutcomeStatus.SKIPPED, reason="staging_down")
                 continue
             outcome = refresh_one(
                 src, recipe, store=store,
@@ -1904,9 +1912,9 @@ def run_refresh(
             _count_staging(outcome)
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
-    refreshed = [o.id for o in outcomes if o.status == "refreshed"]
-    unchanged = [o.id for o in outcomes if o.status == "unchanged"]
-    failed = [o.id for o in outcomes if o.status == "failed"]
+    refreshed = [o.id for o in outcomes if o.status == OutcomeStatus.REFRESHED]
+    unchanged = [o.id for o in outcomes if o.status == OutcomeStatus.UNCHANGED]
+    failed = [o.id for o in outcomes if o.status == OutcomeStatus.FAILED]
     return {
         "recipes": len(ids),
         "refreshed": refreshed,

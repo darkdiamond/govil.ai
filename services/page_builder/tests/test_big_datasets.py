@@ -37,6 +37,7 @@ from services.page_builder.tests.test_recipe_refresh import (
     _src,
 )
 from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
+from services.shared.states import RefreshState
 
 env = test_recipe_refresh.env  # the shared fixture, registered in this module too
 
@@ -259,8 +260,7 @@ def test_heavy_recipes_run_last(tmp_path, monkeypatch):
         order.append(src.id) or rf.RefreshOutcome(src.id, "refreshed")
     ))
     store = SimpleNamespace(
-        get_source=lambda i: SimpleNamespace(id=i, title=""),
-        get_refresh_state=lambda i: {},
+        get_source=lambda i: SimpleNamespace(id=i, title="", refresh=RefreshState()),
     )
     s = rf.run_refresh(store, rf.LocalRecipeRepo(recipes),
                        staging_bucket="bkt", work_root=tmp_path / "w", force=True)
@@ -282,8 +282,7 @@ def test_heavy_recipes_respect_the_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(rf, "refresh_one", lambda src, recipe, **kw: rf.RefreshOutcome(
         src.id, "refreshed"))
     store = SimpleNamespace(
-        get_source=lambda i: SimpleNamespace(id=i, title=""),
-        get_refresh_state=lambda i: {},
+        get_source=lambda i: SimpleNamespace(id=i, title="", refresh=RefreshState()),
     )
     s = rf.run_refresh(store, rf.LocalRecipeRepo(recipes), cap=1,
                        staging_bucket="bkt", work_root=tmp_path / "w", force=True)

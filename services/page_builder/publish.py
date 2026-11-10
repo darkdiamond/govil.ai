@@ -35,6 +35,7 @@ from pathlib import Path
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
 from services.shared.slug import hebrew_slugify
+from services.shared.states import AnalysisStatus
 
 from .related import compute_related
 from .schema import (
@@ -119,7 +120,7 @@ def dataset_meta_from_source(src: SourceRecord) -> DatasetMeta:
         last_analyzed_at=src.last_analyzed_at,
         analyzed_metadata_modified=src.analyzed_metadata_modified,
         source_status=(
-            "unavailable" if src.analysis_status == "unavailable" else "available"
+            "unavailable" if src.analysis_status == AnalysisStatus.UNAVAILABLE else "available"
         ),
         unavailable_since=src.unavailable_since,
         source=_source_info(src),

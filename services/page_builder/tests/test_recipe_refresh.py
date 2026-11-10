@@ -25,6 +25,7 @@ from services.page_builder.recipe import (
     render_template,
 )
 from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
+from services.shared.states import RefreshState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
 DS = "11111111-2222-3333-4444-555555555555"
@@ -72,7 +73,11 @@ class FakeStore:
         self.states: dict[str, dict] = {}
 
     def get_source(self, dataset_id):
-        return self.src if dataset_id == self.src.id else None
+        if dataset_id != self.src.id:
+            return None
+        # The real store reads the refresh state with the source doc.
+        self.src.refresh = RefreshState.from_dict(self.states.get(dataset_id))
+        return self.src
 
     def get_refresh_state(self, dataset_id):
         return dict(self.states.get(dataset_id, {}))
@@ -136,7 +141,7 @@ def _src(mm="2026-10-01"):
     return SimpleNamespace(
         id=DS, title="אירועים", organization={"title": "משרד"},
         metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=UTC),
-        analysis_status="succeeded",
+        analysis_status="succeeded", provider=None, refresh=RefreshState(),
         resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True,
                     "hash": "md5-v1", "size": 1000}],
     )
@@ -298,6 +303,32 @@ def test_schema_change_keeps_page_and_opens_issue_once(env):
     assert len(env.issues) == 1
 
 
+def test_refresh_reads_each_source_doc_once(env):
+    """The refresh state comes with the source doc (`src.refresh`); only
+    queue_authoring re-reads it (its duplicate-issue guard)."""
+    reads, sources = [], []
+
+    class CountingStore(FakeStore):
+        def get_source(self, dataset_id):
+            sources.append(dataset_id)
+            return super().get_source(dataset_id)
+
+        def get_refresh_state(self, dataset_id):
+            reads.append(dataset_id)
+            return super().get_refresh_state(dataset_id)
+
+    store = CountingStore(_src())
+    assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
+    store.src = _src("2026-11-01")
+    _run(env, store, FakeCkan(_rows([2024, 2025])))  # data bump, same rows
+    assert reads == [] and sources == [DS, DS]  # one doc read per source per run
+    store.src = _src("2026-12-01")
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    assert _run(env, store, FakeCkan(_rows([2024, 2025]), cols=renamed))["failed"] == [DS]
+    assert reads == [DS]  # queue_authoring's fresh read, nothing else
+    assert sources == [DS, DS, DS]
+
+
 class TimeoutCkan(FakeCkan):
     """CKAN's datastore_search timing out: fetch_resource_preview → None."""
 
@@ -384,7 +415,7 @@ def test_by_id_without_columns_missing_preview_is_a_strike(env, tmp_path, monkey
 def test_preview_strike_resets_only_once_a_preview_answered():
     # A by_id input with no column check asks its preview only in fetch_inputs;
     # a failure before that must not break a run of preview strikes.
-    state = {"transient_strikes": {"preview_unavailable": 2, "other": 1}}
+    state = RefreshState(transient_strikes={"preview_unavailable": 2, "other": 1})
     probe = rf.InputProbe({}, {}, lambda rid: None)
     assert rf._strikes_after_probe(state, probe) is None  # nothing asked
     probe._previews["r1"] = None
@@ -489,9 +520,9 @@ def test_lock_key_written_before_the_code_hash_does_not_hold(env):
     recipe = Recipe.load(FIXTURES / DS)
     src = _src()
     legacy = rf.version_key(src.metadata_modified, recipe.manifest.recipe_version)
-    state = {"refresh_reason": "recipe_failed", "refresh_failed_version": legacy}
+    state = RefreshState(refresh_reason="recipe_failed", refresh_failed_version=legacy)
     assert rf.needs_refresh(src, state, recipe) == "recipe_version"
-    state["refresh_failed_version"] = rf.failed_version_key(src, recipe)
+    state.refresh_failed_version = rf.failed_version_key(src, recipe)
     assert rf.needs_refresh(src, state, recipe) is None
 
 
@@ -1464,11 +1495,12 @@ def test_precheck_content_skip_ignores_the_max_age(env, monkeypatch):
 def test_precheck_may_skip_counts_the_last_verified_render(monkeypatch):
     old = datetime(2020, 1, 1, tzinfo=UTC)
     now = datetime.now(UTC)
-    assert not rf._precheck_may_skip("data_updated", {"last_refreshed_at": old})
+    S = RefreshState
+    assert not rf._precheck_may_skip("data_updated", S(last_refreshed_at=old))
     assert rf._precheck_may_skip(
-        "data_updated", {"last_refreshed_at": old, "last_verified_at": now})
-    assert rf._precheck_may_skip("data_updated", {"last_verified_at": now.replace(tzinfo=None)})
-    assert not rf._precheck_may_skip("forced", {"last_verified_at": now})
+        "data_updated", S(last_refreshed_at=old, last_verified_at=now))
+    assert rf._precheck_may_skip("data_updated", S(last_verified_at=now.replace(tzinfo=None)))
+    assert not rf._precheck_may_skip("forced", S(last_verified_at=now))
 
 
 def test_precheck_unordered_hash_sees_a_real_edit(env, monkeypatch, caplog):
@@ -1571,7 +1603,10 @@ class _MultiStore(FakeStore):
         self.srcs = {i: SimpleNamespace(**{**vars(_src()), "id": i}) for i in ids}
 
     def get_source(self, dataset_id):
-        return self.srcs.get(dataset_id)
+        src = self.srcs.get(dataset_id)
+        if src is not None:
+            src.refresh = RefreshState.from_dict(self.states.get(dataset_id))
+        return src
 
 
 def _many_recipes(tmp_path, ids):
@@ -1602,7 +1637,7 @@ def test_staging_failure_fails_one_source_and_the_batch_goes_on(env, tmp_path):
     st = store.states[ids[0]]
     assert st["refresh_reason"] == rf.STAGE_FAILED and env.issues == []
     # Not an authoring verdict: the next run retries it.
-    assert rf.needs_refresh(store.srcs[ids[0]], st, rf.LocalRecipeRepo(
+    assert rf.needs_refresh(store.srcs[ids[0]], RefreshState.from_dict(st), rf.LocalRecipeRepo(
         _many_recipes(tmp_path / "again", ids[:1])).load(ids[0], tmp_path / "s")) is not None
 
 

@@ -22,6 +22,7 @@ from services.scanner.main import Scanner
 from services.scanner.state import StateDB
 from services.shared import github
 from services.shared.firestore import FirestoreStateStore
+from services.shared.states import NO_DATA_STATUSES, AuthoringReason, RunStatus
 
 from . import refresh as _refresh
 from . import selector
@@ -36,24 +37,24 @@ log = logging.getLogger("page_builder.pipeline")
 # queue is red too: nobody would learn of new datasets. So is a scan that
 # failed (the rest of the run went ahead on yesterday's Firestore data) and
 # a reconcile sweep that crashed or aborted (see reconcile.reconcile_sources).
-FAILED_RUN_STATUSES = (
-    "refresh_unavailable", "refresh_failed", "scan_failed", "authoring_failed",
-    "reconcile_failed",
-)
+FAILED_RUN_STATUSES = frozenset({
+    RunStatus.REFRESH_UNAVAILABLE, RunStatus.REFRESH_FAILED, RunStatus.SCAN_FAILED,
+    RunStatus.AUTHORING_FAILED, RunStatus.RECONCILE_FAILED,
+})
 
 
 def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bool,
-                reconcile_failed: bool, refreshed: bool) -> str:
+                reconcile_failed: bool, refreshed: bool) -> RunStatus:
     """One status per run; the first failure in this order wins."""
     if refresh_broken:
-        return "refresh_failed"
+        return RunStatus.REFRESH_FAILED
     if scan_failed:
-        return "scan_failed"
+        return RunStatus.SCAN_FAILED
     if authoring_broken:
-        return "authoring_failed"
+        return RunStatus.AUTHORING_FAILED
     if reconcile_failed:
-        return "reconcile_failed"
-    return "ok" if refreshed else "idle"
+        return RunStatus.RECONCILE_FAILED
+    return RunStatus.OK if refreshed else RunStatus.IDLE
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
@@ -279,7 +280,7 @@ async def run_pipeline(
         recipe_ids = frozenset(await asyncio.to_thread(repo.list_ids))
     except Exception:
         log.exception("recipe list unavailable — nothing refreshed or queued")
-        summary["status"] = "refresh_unavailable"
+        summary["status"] = RunStatus.REFRESH_UNAVAILABLE
         return summary
 
     # [2.5] provider sources (services/providers): recipes with a
@@ -321,14 +322,15 @@ async def run_pipeline(
                 exclude_ids=recipe_ids,
                 **selector_gates,
             )
-        if only_ids or override_src.analysis_status in ("restricted", "unavailable"):
+        if only_ids or override_src.analysis_status in NO_DATA_STATUSES:
             return []
-        return [(override_src, "legacy_updated" if override_src.page_path else "new")]
+        return [(override_src, AuthoringReason.LEGACY_UPDATED if override_src.page_path
+                 else AuthoringReason.NEW)]
 
     if dry_run:
         summary["selected_for_authoring"] = [s.id for s, _ in await _authoring_candidates()]
         # A dry run is how a deploy is smoke-tested: a broken scan must show.
-        summary["status"] = "scan_failed" if scan_failed else "dry_run"
+        summary["status"] = RunStatus.SCAN_FAILED if scan_failed else RunStatus.DRY_RUN
         return summary
 
     # [4] refresh — deterministic re-render of recipe'd sources. First, and

@@ -531,6 +531,7 @@ are still read by the authoring selector.
 | Authoring skills       | `.claude/skills/author-dataset/SKILL.md`, `.claude/skills/solve-authoring-issues/SKILL.md` | One-dataset authoring workflow; the daily batch over open issues → one PR                                                                                                                 |
 | Firestore layer        | `services/shared/firestore.py`                                                             | `FirestoreStateStore`, schema, queries, refresh/authoring state writers                                                                                                                   |
 | Shared layer           | `services/shared/{ckan,fetch_types,github,model_history}.py`                               | Below page_builder, imported by it and by providers/scanner/news: CKAN UA + URL/date helpers, fetch outcomes/limit errors, GitHub repo/token/dispatch, the `models/` history format       |
+| Status vocabulary      | `services/shared/states.py`                                                                | StrEnums for every stored/logged status (`AnalysisStatus`, `RefreshStatus`, `FailReason`, `AuthoringReason`, `RunStatus`, …) + `RefreshState`, the typed refresh fields of a source doc   |
 | CKAN fetch             | `services/page_builder/ckan_export.py`                                                     | `fetch_resource_preview` / `fetch_resource_export` (file or `fetch_resource_records_to_file` pages), `fetch_resource_file` (map files), CSV normalization                                 |
 | Sanitizer + gate       | `services/page_builder/sanitize.py`, `page_gate.py`                                        | `sanitize_content_html` on every rendered body; `run_host_check` runs the image's check.py on the sanitized output                                                                        |
 | Compute sandbox        | `services/page_builder/local_sandbox.py`                                                   | Per-run subprocess workdir for recipe `compute.py`, scrubbed env, `sandbox` uid, command timeouts                                                                                         |
@@ -554,6 +555,12 @@ are still read by the authoring selector.
   (`services/shared/tests/test_shared_layer.py` checks it). A shared module
   stays light at import: no firestore/grpc/httpx at module level, and never
   `services.scanner` (its `__init__` needs deps the publisher image lacks).
+- **Statuses are `services/shared/states.py` StrEnums, not new literals.**
+  A member is its string (same Firestore/JSON bytes, `==` a plain string),
+  so a new status or reason is a new member there. The refresh reads a
+  source's refresh fields from `SourceRecord.refresh` (filled from the same
+  snapshot: one read per source); only `queue_authoring` re-reads the doc,
+  to avoid a duplicate issue.
 - **Don't autoscale the builder.** `--tasks=1 --parallelism=1` on the job
   is deliberate: one execution per tick (twice a day), refreshing recipes sequentially
   in one container (CKAN-bound, no model latency to hide). If a single

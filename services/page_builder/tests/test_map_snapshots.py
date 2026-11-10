@@ -37,6 +37,7 @@ from services.shared.fetch_types import (
     FetchOutcome,
     FileOutcome,
 )
+from services.shared.states import RefreshState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
 DS = "11111111-2222-3333-4444-555555555555"
@@ -587,7 +588,7 @@ def _refresh_env(tmp_path, monkeypatch):
     def src(mm):
         return SimpleNamespace(
             id=DS, title="t", organization={"title": "o"}, analysis_status="succeeded",
-            metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=UTC),
+            provider=None, refresh=RefreshState(), metadata_modified=datetime.fromisoformat(mm).replace(tzinfo=UTC),
             resources=[{"id": RID, "name": "events", "format": "CSV", "datastore_active": True,
                         "hash": "md5-v1", "size": 1000}, _map_resources()[1]],
         )
