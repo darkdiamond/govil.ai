@@ -17,7 +17,6 @@ from types import SimpleNamespace
 import pytest
 
 from services.page_builder import refresh as rf
-from services.page_builder.ckan_export import FetchLimitExceeded, FetchOutcome
 from services.page_builder.recipe import (
     Recipe,
     RecipeError,
@@ -25,6 +24,7 @@ from services.page_builder.recipe import (
     lint_template,
     render_template,
 )
+from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
 DS = "11111111-2222-3333-4444-555555555555"

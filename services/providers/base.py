@@ -37,7 +37,7 @@ from typing import ClassVar, Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from services.page_builder.ckan_export import FetchLimitExceeded, FetchOutcome
+from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
 
 log = logging.getLogger("providers")
 

@@ -18,10 +18,8 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from services.page_builder import ckan_export
-from services.page_builder.ckan_export import (
-    FetchLimitExceeded,
-    fetch_resource_records_to_file,
-)
+from services.page_builder.ckan_export import fetch_resource_records_to_file
+from services.shared.fetch_types import FetchLimitExceeded
 from services.shared.resources import select_prefetch_resources
 
 

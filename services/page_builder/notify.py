@@ -14,7 +14,8 @@ on the repo (the same fine-grained PAT that fires the publish dispatch).
 from __future__ import annotations
 
 import logging
-import os
+
+from services.shared import github
 
 log = logging.getLogger(__name__)
 
@@ -67,18 +68,7 @@ def issue_body(
 
 def _github(token: str | None, repo: str | None) -> tuple[str, str]:
     """Explicit args, else the job's env (the publish-dispatch PAT + repo)."""
-    return (
-        (token or os.environ.get("GITHUB_DISPATCH_TOKEN", "")).strip(),
-        repo or os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai"),
-    )
-
-
-def _headers(token: str) -> dict:
-    return {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
+    return (token or "").strip() or github.token(), repo or github.default_repo()
 
 
 def open_authoring_issue(
@@ -111,7 +101,7 @@ def open_authoring_issue(
                 ),
                 "labels": labels,
             },
-            headers=_headers(token),
+            headers=github.api_headers(token),
             timeout=30.0,
             follow_redirects=True,
         )
@@ -159,7 +149,7 @@ def add_labels(
         r = httpx.post(
             f"https://api.github.com/repos/{repo}/issues/{number}/labels",
             json={"labels": labels},
-            headers=_headers(token),
+            headers=github.api_headers(token),
             timeout=30.0,
             follow_redirects=True,
         )
@@ -186,7 +176,7 @@ def issue_state(
     try:
         r = httpx.get(
             f"https://api.github.com/repos/{repo}/issues/{number}",
-            headers=_headers(token),
+            headers=github.api_headers(token),
             timeout=30.0,
             follow_redirects=True,
         )

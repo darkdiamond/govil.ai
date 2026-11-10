@@ -12,7 +12,8 @@ import urllib.error as urllib_error
 import pytest
 
 from services.page_builder import ckan_export as ac
-from services.page_builder.ckan_export import FetchLimitExceeded, FetchOutcome
+from services.shared import ckan
+from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
 
 URL = "https://e.data.gov.il/dataset/d/resource/r1/download/r1.csv"
 RES = {"id": "r1-0000000", "format": "CSV", "url": URL}
@@ -114,7 +115,7 @@ def test_file_normalizes_to_the_datastore_export(monkeypatch, tmp_path, probes):
     # cell is read, at the first row whose value is whole (offset 1).
     assert probes == [(1, "ערך")]
     assert not ds
-    assert seen == [ac._CKAN_BROWSER_UA]
+    assert seen == [ckan.user_agent()]
     assert not dest.with_suffix(".raw").exists()
 
 
@@ -246,11 +247,11 @@ def test_normalizing_past_the_deadline_is_a_wall_budget_overrun(monkeypatch, tmp
 
 
 def test_blocked_builder_ua_retries_with_a_browser_ua(monkeypatch, tmp_path):
-    seen = _serve(monkeypatch, GOOD, blocked_uas={ac._CKAN_BROWSER_UA})
+    seen = _serve(monkeypatch, GOOD, blocked_uas={ckan.user_agent()})
     _datastore(monkeypatch)
     out, _ = _export(tmp_path, _preview())
     assert out.via == "file"
-    assert seen == [ac._CKAN_BROWSER_UA, ac._BROWSER_FALLBACK_UA]
+    assert seen == [ckan.user_agent(), ckan.BROWSER_FALLBACK_UA]
 
 
 @pytest.mark.parametrize("case", [
@@ -261,7 +262,7 @@ def test_anything_doubtful_falls_back_to_the_datastore(monkeypatch, tmp_path, ca
     body, preview, total, resource = GOOD, _preview(), 2, RES
     blocked, ctype, max_bytes = (), "text/csv", 1_000_000
     if case == "both_uas_blocked":
-        blocked = {ac._CKAN_BROWSER_UA, ac._BROWSER_FALLBACK_UA}
+        blocked = {ckan.user_agent(), ckan.BROWSER_FALLBACK_UA}
     elif case == "html_page":
         body, ctype = b"<!doctype html><html></html>", "text/html"
     elif case == "row_count":

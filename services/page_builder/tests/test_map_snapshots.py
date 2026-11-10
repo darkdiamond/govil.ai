@@ -20,12 +20,6 @@ import pytest
 
 from services.page_builder import geo_snapshot as gs
 from services.page_builder import refresh as rf
-from services.page_builder.ckan_export import (
-    DownloadBlocked,
-    FetchLimitExceeded,
-    FetchOutcome,
-    FileOutcome,
-)
 from services.page_builder.recipe import (
     GEOMETRY_COLUMN,
     MAP_MAX_KB_CEILING,
@@ -35,6 +29,13 @@ from services.page_builder.recipe import (
     RecipeManifest,
     resolve_inputs,
     snapshot_table,
+)
+from services.shared import ckan
+from services.shared.fetch_types import (
+    DownloadBlocked,
+    FetchLimitExceeded,
+    FetchOutcome,
+    FileOutcome,
 )
 
 FIXTURES = Path(__file__).parent / "fixtures" / "recipes"
@@ -688,7 +689,7 @@ def test_fetch_resource_file_rewrites_host_and_sends_the_ua(tmp_path, monkeypatc
     got = ac.fetch_resource_file(MAP_URL, tmp_path / "f", max_bytes=100, timeout_s=5,
                                  deadline=time.monotonic() + 60)
     assert seen[0].full_url.startswith("https://data.gov.il/dataset/")
-    assert seen[0].get_header("User-agent") == ac._CKAN_BROWSER_UA
+    assert seen[0].get_header("User-agent") == ckan.user_agent()
     assert got.bytes == 8 and got.sha256 == hashlib.sha256(b"PK\x03\x04data").hexdigest()
     assert (tmp_path / "f").read_bytes() == b"PK\x03\x04data"
 

@@ -13,7 +13,6 @@ import httpx
 import pytest
 
 from services.page_builder import refresh as rf
-from services.page_builder.ckan_export import FetchLimitExceeded
 from services.providers import (
     ProviderError,
     ProviderSettings,
@@ -26,6 +25,7 @@ from services.providers.base import normalize_csv
 from services.providers.boi import BoiSdmxProvider
 from services.providers.sync import sync_provider_sources
 from services.providers.tests.sync_helpers import FakeStore, make_repo
+from services.shared.fetch_types import FetchLimitExceeded
 
 BR_CSV = (
     "﻿SERIES_CODE,FREQ,IR_FV_TYPE,UNIT_MEASURE,TIME_PERIOD,OBS_VALUE,RELEASE_STATUS\r\n"

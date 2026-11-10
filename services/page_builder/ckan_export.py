@@ -12,31 +12,28 @@ import hashlib
 import io
 import json
 import logging
-import os
 import re
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
 
+from services.shared import ckan
 from services.shared.ckan import EXACT_TOTAL_THRESHOLD, is_authorization_error
+from services.shared.fetch_types import (
+    DownloadBlocked,
+    FetchLimitExceeded,
+    FetchOutcome,
+    FileOutcome,
+    ResourceRestrictedError,
+)
 
 log = logging.getLogger(__name__)
-
-
-class ResourceRestrictedError(Exception):
-    """The primary resource's CKAN datastore returns a 403 Authorization
-    Error — the dataset's data is access-restricted upstream (private /
-    de-listed). A build can't produce a real data page, and the 403 is
-    deterministic (retrying won't help), so the caller marks the source
-    `restricted` instead of burning an agent session or counting it as a
-    transient failure."""
 
 
 # CKAN schema preview — `fields + total + sample_rows` for one resource. The
@@ -46,14 +43,7 @@ class ResourceRestrictedError(Exception):
 # requests without a browser User-Agent (see scanner notes), and the CKAN
 # response can be ~50 MB without `limit`, so we hardcode limit=5 and a tight
 # wall-clock budget. On any error the preview returns None.
-_CKAN_DATASTORE_URL = "https://data.gov.il/api/3/action/datastore_search"
-# The WAF passes this UA on the API and on file downloads (2026-10-31: a bare
-# `Mozilla/5.0`, curl's and python-requests' UAs all 403). CKAN_USER_AGENT
-# overrides it, so a WAF change is a job env fix, not a redeploy.
-_CKAN_BROWSER_UA = (
-    os.environ.get("CKAN_USER_AGENT", "").strip()
-    or "Mozilla/5.0 (compatible; govdata-builder/1.0)"
-)
+# The User-Agent is `ckan.user_agent()` (CKAN_USER_AGENT or the builder UA).
 # The preview asks for an exact count (EXACT_TOTAL_THRESHOLD), a count(*)
 # that takes ~1.2s on a 4.2M-row table even when CKAN is idle. Keep headroom:
 # a preview that times out twice is a strike that escalates to schema_changed.
@@ -100,8 +90,8 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
         }
     )
-    url = f"{_CKAN_DATASTORE_URL}?{qs}"
-    req = urllib_request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
+    url = f"{ckan.DATASTORE_SEARCH_URL}?{qs}"
+    req = urllib_request.Request(url, headers={"User-Agent": ckan.user_agent()})
     last_err: BaseException | None = None
     payload: dict | None = None
     for attempt in (1, 2):
@@ -169,12 +159,6 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             preview["sample_rows"].pop()
     return preview
 
-@dataclass
-class FetchOutcome:
-    rows: int
-    bytes: int
-    via: str | None = None        # "file" | "datastore" (fetch_resource_export)
-
 
 # Sequential export paging (`fetch_resource_records_to_file`): the first page
 # is the old fixed size, later ones aim at about this much CSV, between
@@ -190,22 +174,6 @@ class _ByteCapExceeded(Exception):
 
 class _WallBudgetExceeded(Exception):
     pass
-
-
-FetchLimit = Literal["bytes", "wall_budget"]
-
-
-class FetchLimitExceeded(Exception):
-    """A fetch stopped at a limit, not on an error: `limit` is "bytes" (a
-    byte cap) or "wall_budget" (the deadline). Raised by the full-or-nothing
-    CKAN export and by provider fetchers. A byte overrun means the dataset
-    outgrew its cap, which a retry won't fix."""
-
-    def __init__(self, limit: FetchLimit, message: str):
-        if limit not in ("bytes", "wall_budget"):
-            raise ValueError(f"unknown fetch limit {limit!r}")
-        super().__init__(message)
-        self.limit = limit
 
 
 def _fetch_page(
@@ -225,7 +193,7 @@ def _fetch_page(
         params["fields"] = list(fields)
     qs = urlencode(params, doseq=True)
     req = urllib_request.Request(
-        f"{_CKAN_DATASTORE_URL}?{qs}", headers={"User-Agent": _CKAN_BROWSER_UA}
+        f"{ckan.DATASTORE_SEARCH_URL}?{qs}", headers={"User-Agent": ckan.user_agent()}
     )
     with urllib_request.urlopen(req, timeout=timeout) as resp:
         payload = json.loads(resp.read().decode("utf-8", errors="replace"))
@@ -348,17 +316,6 @@ def fetch_resource_records_to_file(
     return FetchOutcome(rows=rows, bytes=nbytes)
 
 
-class DownloadBlocked(Exception):
-    """data.gov.il answered a file download with a 403 or an HTML page (the
-    WAF's block page, or an OAuth login screen) instead of the file."""
-
-
-@dataclass
-class FileOutcome:
-    bytes: int
-    sha256: str
-
-
 _DOWNLOAD_CHUNK = 1 << 16
 _FILE_HOST = "https://data.gov.il/"
 
@@ -402,13 +359,11 @@ def fetch_resource_file(
     """
     import http.client
 
-    from services.scanner.models import _public_resource_url
-
-    url = _public_resource_url(url or "")
+    url = ckan.public_resource_url(url or "")
     # The URL is publisher-supplied: only ever fetch data.gov.il's own files.
     if not url.startswith(_FILE_HOST):
         raise ValueError(f"not a data.gov.il file URL ({url[:80]!r})")
-    req = urllib_request.Request(url, headers={"User-Agent": user_agent or _CKAN_BROWSER_UA})
+    req = urllib_request.Request(url, headers={"User-Agent": user_agent or ckan.user_agent()})
     for attempt in (1, 2):
         try:
             return _download(req, dest, max_bytes, timeout_s, deadline)
@@ -462,11 +417,6 @@ def _download(req, dest: Path, max_bytes: int, timeout_s: float, deadline: float
 # have written the export, and any doubt (header, row count, a column type we
 # can't reproduce, the preview's sample rows) falls back to datastore_search.
 
-# Tried when the WAF refuses the builder UA.
-_BROWSER_FALLBACK_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-)
 _FILE_TIMEOUT_S = 120.0
 _FILE_PROBE_TIMEOUT_S = 30.0
 # Datastore column types whose JSON → CSV form we reproduce from the file.
@@ -821,10 +771,8 @@ def fetch_resource_csv(
     bounded by `file_max_bytes` instead (never below `max_bytes`): a recipe
     reading 11 of 23 columns from an 879MB file exports ~400MB, and refusing
     the download at the export cap sent it to 42 datastore pages."""
-    from services.scanner.models import _public_resource_url
-
     rid = (resource.get("id") or "")[:8]
-    url = _public_resource_url(resource.get("url") or "")
+    url = ckan.public_resource_url(resource.get("url") or "")
     if (resource.get("format") or "").strip().upper() != "CSV" or not url.startswith(_FILE_HOST):
         return None
     if not preview or total <= 0:
@@ -832,14 +780,14 @@ def fetch_resource_csv(
     started = time.monotonic()
     raw = dest.with_suffix(".raw")
     try:
-        for ua in (_CKAN_BROWSER_UA, _BROWSER_FALLBACK_UA):
+        for ua in (ckan.user_agent(), ckan.BROWSER_FALLBACK_UA):
             try:
                 fetch_resource_file(url, raw, max_bytes=max(max_bytes, file_max_bytes or 0),
                                     timeout_s=_FILE_TIMEOUT_S, deadline=deadline,
                                     user_agent=ua)
                 break
             except DownloadBlocked as e:
-                if ua == _BROWSER_FALLBACK_UA:
+                if ua == ckan.BROWSER_FALLBACK_UA:
                     raise
                 log.info("fetch %s: file blocked for the builder UA (%s), trying a browser UA", rid, e)
         def probe(offset: int, column: str) -> Any:

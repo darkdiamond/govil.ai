@@ -16,7 +16,6 @@ the run crashed.
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
 import logging
 import os
@@ -25,6 +24,8 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+
+from services.shared import model_history
 
 from . import catalog as catalog_mod
 from . import demand as demand_mod
@@ -206,11 +207,14 @@ def _row(s: Signal, cat: dict) -> str:
 
 
 def _dispatch_publish() -> str | None:
-    from services.page_builder.pipeline import _trigger_publish_github
+    from services.shared import github
 
-    repo = os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
-    return asyncio.run(_trigger_publish_github(repo, "publish.yml",
-                                               os.environ.get("PUBLISH_BRANCH", "main")))
+    try:
+        return github.dispatch_workflow(github.default_repo(), "publish.yml",
+                                        os.environ.get("PUBLISH_BRANCH", "main"))
+    except Exception:
+        log.exception("news: publish dispatch failed")
+        return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -223,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     src = ap.add_mutually_exclusive_group()
     src.add_argument("--models-dir", type=Path, help="local snapshots instead of GCS")
     src.add_argument("--bucket", default=os.environ.get("GCS_STAGING_BUCKET", "govdata-il-staging"))
-    ap.add_argument("--prefix", default="models/")
+    ap.add_argument("--prefix", default=model_history.PREFIX + "/")
     ap.add_argument("--today", type=date.fromisoformat, default=None)
     ap.add_argument("--since-hours", type=float, default=24,
                     help="what counts as new: renders after now minus this (the last daily run); "
@@ -251,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
 
     now = datetime.now(UTC)
     today = a.today or now.date()
-    cutoff = ((now - timedelta(hours=a.since_hours)).strftime("%Y%m%dT%H%M%SZ")
+    cutoff = ((now - timedelta(hours=a.since_hours)).strftime(model_history.TS_FORMAT)
               if a.since_hours > 0 else None)
     snaps = LocalSnapshots(a.models_dir) if a.models_dir else GcsSnapshots(a.bucket, a.prefix)
     cat = {} if a.no_catalog else catalog_mod.load_catalog()

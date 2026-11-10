@@ -20,6 +20,7 @@ from datetime import UTC, datetime
 from services.scanner.config import ScannerSettings
 from services.scanner.main import Scanner
 from services.scanner.state import StateDB
+from services.shared import github
 from services.shared.firestore import FirestoreStateStore
 
 from . import refresh as _refresh
@@ -73,44 +74,11 @@ def _reconciled_today(store, now: datetime) -> bool:
 
 
 async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> str | None:
-    """Fire the GitHub Actions publish workflow (workflow_dispatch).
-
-    Fire-and-forget — the API returns 204 with no run id, so we return a
-    synthetic marker for the summary. Needs GITHUB_DISPATCH_TOKEN (a
-    fine-grained PAT with Actions:write on this repo, from Secret Manager).
-    """
-    token = os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip()
-    if not token:
-        log.error("PUBLISH_VIA=github but GITHUB_DISPATCH_TOKEN is not set")
-        return None
-
-    def _run() -> str | None:
-        import httpx
-
-        # follow_redirects: GitHub answers a renamed repo with a 307 that
-        # preserves the POST method + body. Without this a repo rename
-        # silently breaks the daily publish dispatch (govdata→govil.ai did
-        # exactly that — 307 → logged failure, pages built but not deployed).
-        r = httpx.post(
-            f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
-            json={"ref": branch},
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-            timeout=30.0,
-            follow_redirects=True,
-        )
-        if r.status_code != 204:
-            log.error(
-                "github workflow_dispatch failed: %s %s", r.status_code, r.text[:300]
-            )
-            return None
-        return f"gh-actions:{repo}/{workflow}@{branch}"
-
+    """Fire the GitHub Actions publish workflow (workflow_dispatch) off the
+    event loop; see `shared.github.dispatch_workflow`. A thin wrapper so tests
+    can patch the dispatch."""
     try:
-        return await asyncio.to_thread(_run)
+        return await asyncio.to_thread(github.dispatch_workflow, repo, workflow, branch)
     except Exception:
         log.exception("trigger_publish (github) failed")
         return None
@@ -221,7 +189,7 @@ async def run_pipeline(
     # Publish mechanism: "github" (Actions workflow_dispatch, default),
     # "cloudbuild" (legacy trigger, fallback), or "" to disable publishing.
     publish_via = os.environ.get("PUBLISH_VIA", "github").strip().lower()
-    publish_repo = os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
+    publish_repo = github.default_repo()
     publish_workflow = os.environ.get("PUBLISH_GITHUB_WORKFLOW", "publish.yml")
     trigger_id = os.environ.get("PUBLISH_TRIGGER_ID", "govdata-publish")
     publish_branch = os.environ.get("PUBLISH_BRANCH", "main")

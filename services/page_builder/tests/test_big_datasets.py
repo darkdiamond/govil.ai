@@ -36,6 +36,7 @@ from services.page_builder.tests.test_recipe_refresh import (
     _run,
     _src,
 )
+from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
 
 env = test_recipe_refresh.env  # the shared fixture, registered in this module too
 
@@ -414,7 +415,7 @@ def test_local_ckan_measures_the_cap_on_projected_columns(tmp_path):
     lc = _local_ckan(tmp_path)
     dest = tmp_path / "out.csv"
     # All columns: ~600 bytes, over 300. Only `a` (what prod exports): ~100.
-    with pytest.raises(ckan_export.FetchLimitExceeded):
+    with pytest.raises(FetchLimitExceeded):
         lc.fetch("r1", 50, dest, max_bytes=300)
     assert not dest.exists()
     out = lc.fetch("r1", 50, dest, max_bytes=300, fields=["a"])
@@ -423,7 +424,7 @@ def test_local_ckan_measures_the_cap_on_projected_columns(tmp_path):
 
 def test_local_ckan_replays_a_prepare_skip(tmp_path):
     lc = _local_ckan(tmp_path, file=None, skipped="bytes")
-    with pytest.raises(ckan_export.FetchLimitExceeded) as e:
+    with pytest.raises(FetchLimitExceeded) as e:
         lc.fetch("r1", 50, tmp_path / "out.csv", max_bytes=10**6)
     assert e.value.limit == "bytes"
 
@@ -486,7 +487,7 @@ def _prepare_env(tmp_path, monkeypatch, mutate):
             w = csv.writer(f)
             w.writerow(COLS)
             w.writerows(_rows([2023]))
-        return ckan_export.FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size)
+        return FetchOutcome(rows=12 * 3, bytes=dest.stat().st_size)
 
     monkeypatch.setattr(ckan_export, "fetch_resource_export", export)
     return author, calls

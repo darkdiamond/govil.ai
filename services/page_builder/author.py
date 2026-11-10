@@ -45,7 +45,8 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from .ckan_export import FetchLimitExceeded, FetchOutcome
+from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
+
 from .recipe import (
     COMPUTE_FILENAME,
     MANIFEST_FILENAME,
@@ -737,7 +738,9 @@ class _LocalFiles:
         self.by_url = {m["url"]: m["file"] for m in maps if m.get("file") and m.get("url")}
 
     def __call__(self, url, dest, **kw):
-        from .ckan_export import FileOutcome, fetch_resource_file
+        from services.shared.fetch_types import FileOutcome
+
+        from .ckan_export import fetch_resource_file
 
         name = self.by_url.get(url)
         if name is None:
@@ -1282,11 +1285,11 @@ def _ckan_resource(resource_id: str) -> dict:
     import urllib.parse
     import urllib.request
 
-    from .ckan_export import _CKAN_BROWSER_UA
+    from services.shared.ckan import user_agent
 
     url = ("https://data.gov.il/api/3/action/resource_show?"
            + urllib.parse.urlencode({"id": resource_id}))
-    req = urllib.request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
+    req = urllib.request.Request(url, headers={"User-Agent": user_agent()})
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.loads(r.read())["result"]
 

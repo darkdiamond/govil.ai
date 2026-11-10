@@ -17,10 +17,8 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from services.page_builder import ckan_export
-from services.page_builder.ckan_export import (
-    ResourceRestrictedError,
-    fetch_resource_preview,
-)
+from services.page_builder.ckan_export import fetch_resource_preview
+from services.shared.fetch_types import ResourceRestrictedError
 
 _AUTH_BODY = {
     "success": False,

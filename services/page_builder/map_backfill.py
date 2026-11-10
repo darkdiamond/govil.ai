@@ -43,10 +43,12 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from services.shared import github
+
 from .author import RECIPES_ROOT, _map_resources, _map_suffix, download_map
 from .recipe import TEMPLATE_FILENAME, Recipe, RecipeError
 
-REPO = os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
+REPO = github.default_repo()
 _NO_DATA = ("restricted", "unavailable")
 _DEFAULT_FLOOR = "2025-01-01"
 # A template that draws a map: Leaflet calls, GovMap, or a map element.

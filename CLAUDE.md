@@ -530,7 +530,8 @@ are still read by the authoring selector.
 | Authoring helpers      | `services/page_builder/author.py`                                                          | `prepare` (full fetch + BRIEF.md) and `verify` (determinism/robustness) for `/author-dataset`                                                                                             |
 | Authoring skills       | `.claude/skills/author-dataset/SKILL.md`, `.claude/skills/solve-authoring-issues/SKILL.md` | One-dataset authoring workflow; the daily batch over open issues → one PR                                                                                                                 |
 | Firestore layer        | `services/shared/firestore.py`                                                             | `FirestoreStateStore`, schema, queries, refresh/authoring state writers                                                                                                                   |
-| CKAN fetch             | `services/page_builder/ckan_export.py`                                                     | `fetch_resource_preview` / `fetch_resource_export` (file or `fetch_resource_records_to_file` pages), `fetch_resource_file` (map files), CSV normalization, `ResourceRestrictedError`      |
+| Shared layer           | `services/shared/{ckan,fetch_types,github,model_history}.py`                               | Below page_builder, imported by it and by providers/scanner/news: CKAN UA + URL/date helpers, fetch outcomes/limit errors, GitHub repo/token/dispatch, the `models/` history format       |
+| CKAN fetch             | `services/page_builder/ckan_export.py`                                                     | `fetch_resource_preview` / `fetch_resource_export` (file or `fetch_resource_records_to_file` pages), `fetch_resource_file` (map files), CSV normalization                                 |
 | Sanitizer + gate       | `services/page_builder/sanitize.py`, `page_gate.py`                                        | `sanitize_content_html` on every rendered body; `run_host_check` runs the image's check.py on the sanitized output                                                                        |
 | Compute sandbox        | `services/page_builder/local_sandbox.py`                                                   | Per-run subprocess workdir for recipe `compute.py`, scrubbed env, `sandbox` uid, command timeouts                                                                                         |
 | Publisher              | `services/page_builder/publish.py`                                                         | Reads each published `sources/<id>` and writes data.json, agent_data.json, manifest.json (single source of truth)                                                                         |
@@ -548,6 +549,11 @@ are still read by the authoring selector.
 
 - **Don't restore SQLite or add a fallback store.** Firestore is the
   only state store. `FIRESTORE_EMULATOR_HOST` for local/test is fine.
+- **Code two packages need goes in `services/shared`, not page_builder.**
+  providers and the scanner never import `services.page_builder`
+  (`services/shared/tests/test_shared_layer.py` checks it). A shared module
+  stays light at import: no firestore/grpc/httpx at module level, and never
+  `services.scanner` (its `__init__` needs deps the publisher image lacks).
 - **Don't autoscale the builder.** `--tasks=1 --parallelism=1` on the job
   is deliberate: one execution per tick (twice a day), refreshing recipes sequentially
   in one container (CKAN-bound, no model latency to hide). If a single

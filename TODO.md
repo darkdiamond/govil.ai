@@ -8,25 +8,25 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
-- **`_public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
+- **`public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
   `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
   for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).
-  Fix: catch `ValueError` around `urlsplit` in `services/scanner/models.py` and return "", with
+  Fix: catch `ValueError` around `urlsplit` in `services/shared/ckan.py` and return "", with
   a Python-only test (the shared vectors can't hold it unless `resource-url.ts` rejects it too).
   (2026-11-10)
 
 - **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
-  hardcoded Chrome User-Agent, while the builder's fetches (`ckan_export._CKAN_BROWSER_UA`) use
+  hardcoded Chrome User-Agent, while the builder's fetches (`services.shared.ckan.user_agent()`) use
   `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and
-  the reconcile probes. Fix: one User-Agent source in `services/shared/ckan.py`, after checking from
-  Cloud Run that the builder UA passes the CKAN API for the scan's calls too. (2026-11-10)
+  the reconcile probes. Fix: have the scanner call `shared.ckan.user_agent()` too, after checking
+  from Cloud Run that the builder UA passes the CKAN API for the scan's calls. (2026-11-10)
 
 - **Blank CKAN resource formats are inferred only at render time.** Some resources have an
   empty `format` (02789da8 and d6b5032b .docx docs, 0180a8e4 .rar on 2026-11-10); the frontend's
   `resourceFormat()` (`frontend/utils/resource-url.ts`) falls back to the URL extension for the
   download badge, explorer and JSON-LD `encodingFormat`, but Firestore and the manifest's
   `formats` stay blank. Fix: the same fallback in the scanner (`services/scanner/models.py`, next
-  to `_public_resource_url`), keeping the frontend helper as its mirror. (2026-11-10)
+  `Dataset.from_ckan_response`), keeping the frontend helper as its mirror. (2026-11-10)
 
 - **Raster map layers have no input type.** 022552b2 (מפות מפלסים ומליחות באקוויפרים, a top
   no-recipe page by search clicks) ships only zips of yearly GeoTIFFs: coastal-aquifer water
@@ -184,12 +184,15 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   forgets the branch treats a provider doc as CKAN. Add a `CkanProvider` adapter around the
   existing CKAN fetch/probe functions and one `provider_for(src)` that always returns a provider,
   so those paths dispatch instead of branching. (2026-10-30)
+- **`news/data.py` re-implements the refresh's provider branch and compute input spec.**
+  `DatasetTables._load` calls `refresh.fetch_inputs` and then rebuilds the provider
+  dispatch and the `load_frames` spec by hand, so a refresh change to either can drift from what
+  the news job's SQL tables hold. It is also the last `news → page_builder` dependency that
+  keeps the two packages in an import cycle with `publish.py → news.publish_news` (with
+  `news/run.py`'s `recipe_repo_from_env` and `news/ledger.py`'s `govlib.fmt`). Fix: one
+  `refresh.load_input_frames(recipe, src, …)` both call, and move `recipe_repo_from_env`'s repo
+  classes and `govlib.fmt` somewhere both packages may import. (2026-11-10)
 
-- **`MAP_MAX_KB_CEILING`'s comment in recipe.py still says the conversion takes ~25x the result
-  in memory.** Since the streaming conversion it is ~6-10x the CSV it writes (204 MB peak for
-  1d2d0ec1's 12 MB table, 384 MB for 65dafbb0's 37 MB). recipe.py is folded into every recipe's
-  hash, so a comment-only edit would re-export every recipe once: fix it with the next real
-  recipe.py change. (2026-11-06)
 - **65dafbb0's map input sits near the 50MB `map_max_kb` ceiling.** The תצ"ר layer converts to
   49.2MB at tolerance 2e-5, and its floor is 37.6MB (at 2e-4; coarser steps grow again as small
   rings fall back to full detail). About a third more plans and it fails `too_large`. Most of
