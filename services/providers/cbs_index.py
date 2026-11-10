@@ -333,6 +333,14 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
         chain_base = (_newest(chain_dated).get("currBase") or {}).get("baseDesc")
         if not chain_base:
             raise ProviderError(f"code {code}: newest row has no currBase")
+        # The chain answer is a separate request: at a rebase it can still show
+        # the old base while the data pages already hold rows on the new one,
+        # which `_factors` can't reach. Fail so the last-good page stays.
+        data_base = (_newest(dated).get("currBase") or {}).get("baseDesc")
+        if data_base != chain_base and (max(d[0] for d in dated)
+                                        >= max(d[0] for d in chain_dated)):
+            raise ProviderError(f"code {code}: chain answer is behind the data (newest "
+                                f"row on base {data_base!r}, chain on {chain_base!r})")
         links, eff = _links(chain_dated, dated)
         factors = _factors(chain_base, links)
         seen = set()
