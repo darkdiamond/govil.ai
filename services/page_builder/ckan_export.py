@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import http.client
 import io
 import json
 import logging
@@ -60,15 +61,14 @@ def _truncate_value(v: Any) -> Any:
 def _http_403_is_restriction(e: urllib_error.HTTPError) -> bool:
     """Decide whether a 403 from datastore_search is an access restriction.
 
-    We send a browser User-Agent, so the gov.il WAF won't 403 us — a 403 here
-    is the CKAN datastore Authorization Error. Confirm via the JSON body when
-    it parses; if it doesn't, treat a bare 403 as a restriction anyway
-    (rate-limiting is 429/503, never 403).
+    Only CKAN's JSON Authorization Error body means restricted. Any other 403
+    (the WAF's HTML block page, an empty or foreign body) is a failed preview,
+    retried like any other transient error.
     """
     try:
         body = json.loads(e.read().decode("utf-8", errors="replace"))
     except Exception:  # noqa: BLE001
-        return True
+        return False
     return ckan.is_authorization_error(body)
 
 
@@ -99,7 +99,7 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
                 payload = json.loads(resp.read().decode("utf-8", errors="replace"))
             break
         except urllib_error.HTTPError as e:
-            # A 403 here is a CKAN datastore Authorization Error — the data is
+            # A 403 with CKAN's Authorization Error body: the data is
             # access-restricted upstream. Deterministic, so don't retry: signal
             # the caller to mark the source `restricted` rather than fall through
             # to an agent session that will only 403 again.
@@ -110,7 +110,10 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             last_err = e
             if attempt == 1:
                 continue
-        except (urllib_error.URLError, TimeoutError, json.JSONDecodeError) as e:
+        except (OSError, http.client.HTTPException, ValueError) as e:
+            # OSError covers URLError, timeouts, resets and SSL errors;
+            # HTTPException a dropped or cut-off response (RemoteDisconnected
+            # is both); ValueError a body that isn't JSON.
             last_err = e
             if attempt == 1:
                 continue
@@ -118,6 +121,9 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
         log.warning(
             "ckan prefetch %s failed after retry: %s", resource_id[:8], last_err
         )
+        return None
+    if not isinstance(payload, dict):
+        log.warning("ckan prefetch %s: response is not a JSON object", resource_id[:8])
         return None
     if not payload or not payload.get("success"):
         # A 200 carrying the same Authorization Error is the restriction
@@ -128,7 +134,24 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             )
         log.warning("ckan prefetch %s success=false", resource_id[:8])
         return None
-    result = payload.get("result") or {}
+    result = payload.get("result")
+    if not isinstance(result, dict):
+        log.warning("ckan prefetch %s: result is not an object", resource_id[:8])
+        return None
+    fields_raw = result.get("fields") or []
+    records_raw = result.get("records") or []
+    try:
+        total = int(result.get("total") or 0)
+    except (TypeError, ValueError):
+        total = None
+    if (
+        total is None
+        or not isinstance(fields_raw, list)
+        or not isinstance(records_raw, list)
+        or not all(isinstance(x, dict) for x in fields_raw + records_raw)
+    ):
+        log.warning("ckan prefetch %s: malformed result", resource_id[:8])
+        return None
     if result.get("total_was_estimated"):
         # CKAN ignored the threshold: this total can be stale, and the export
         # is checked against it (a shrunk table then fails as cut off).
@@ -136,15 +159,15 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
                     "total_estimation_threshold", resource_id[:8], result.get("total"))
     fields = [
         {"id": f.get("id"), "type": f.get("type")}
-        for f in (result.get("fields") or [])
+        for f in fields_raw
         if f.get("id")
     ]
     rows = []
-    for row in (result.get("records") or [])[: _PREFETCH_SAMPLE_LIMIT]:
+    for row in records_raw[: _PREFETCH_SAMPLE_LIMIT]:
         rows.append({k: _truncate_value(v) for k, v in row.items() if k != "_id"})
     preview = {
         "fields": fields,
-        "total": int(result.get("total") or 0),
+        "total": total,
         "sample_rows": rows,
     }
     # Hard cap the serialized size so a wide table stays small (this preview
