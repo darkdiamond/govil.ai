@@ -156,35 +156,63 @@ def test_real_world_27b4b40e_pattern() -> None:
     assert out.count("</script>") == 1
 
 
-def test_balances_unclosed_script_tag() -> None:
-    """Real failure mode from dataset e4a5e2d7-…: an inline <script>
-    opened but never closed swallows the rest of the document. Sanitizer
-    must append the missing </script>."""
-    src = '<h1>x</h1>\n<script>\n(function(){console.log(1);})();\n'
-    out, recs = _logs(None, body=src)
-    assert out.count("<script") == 1
-    assert out.count("</script>") == 1
-    msgs = " ".join(r.getMessage() for r in recs)
-    assert "appended 1 missing </script>" in msgs
+def _raises_unbalanced(src: str) -> str:
+    try:
+        sanitize_content_html(src, dataset_id="x")
+    except ValueError as e:
+        return str(e)
+    raise AssertionError(f"expected ValueError for unbalanced body: {src!r}")
 
 
-def test_balances_two_unclosed_scripts() -> None:
-    src = (
-        '<script>(function(){a();})();\n'
-        '<script>(function(){b();})();\n'
+def test_unclosed_script_raises() -> None:
+    """Real failure mode from dataset e4a5e2d7-…: an inline <script> opened
+    but never closed swallows the rest of the document. Appending a closer at
+    the end never yields a correct page, so the render must fail instead."""
+    msg = _raises_unbalanced('<h1>x</h1>\n<script>\n(function(){console.log(1);})();\n')
+    assert "<script>" in msg and "1 opening" in msg and "0 closing" in msg
+
+
+def test_two_unclosed_scripts_raise() -> None:
+    msg = _raises_unbalanced("<script>(function(){a();})();\n<script>(function(){b();})();\n")
+    assert "2 opening" in msg and "0 closing" in msg
+
+
+def test_unclosed_style_raises() -> None:
+    """An unclosed <style> turns the rest of the page into CSS text: the page
+    renders blank and check.py has no rule that notices."""
+    msg = _raises_unbalanced(
+        '<style>.kpi{color:red;}\n<section class="card p-5 mb-6"><p>x</p>'
+        "<script>var a = 1;</script></section>"
     )
-    out, _ = _logs(None, body=src)
-    assert out.count("<script") == 2
-    assert out.count("</script>") == 2
+    assert "<style>" in msg and "1 opening" in msg and "0 closing" in msg
 
 
-def test_balances_unclosed_style_tag() -> None:
-    src = '<style>.x{color:red;}\n<h1>title</h1>'
-    out, recs = _logs(None, body=src)
-    assert out.count("<style") == 1
-    assert out.count("</style>") == 1
-    msgs = " ".join(r.getMessage() for r in recs)
-    assert "appended 1 missing </style>" in msgs
+def test_unclosed_style_minimal_raises() -> None:
+    _raises_unbalanced("<style>a{}<section>x</section>")
+
+
+def test_unclosed_json_island_raises() -> None:
+    """An unclosed JSON data island swallows the rest of the body, and
+    check.py skips JSON blocks when it parses scripts."""
+    msg = _raises_unbalanced(
+        '<script type="application/json" id="d">{"a": 1}\n<p>x</p>\n'
+        "<script>var a = 1;</script>"
+    )
+    assert "<script>" in msg and "2 opening" in msg and "1 closing" in msg
+
+
+def test_extra_closing_script_raises() -> None:
+    msg = _raises_unbalanced("<p>hi</p></script>")
+    assert "<script>" in msg and "0 opening" in msg and "1 closing" in msg
+
+
+def test_extra_closing_style_raises() -> None:
+    msg = _raises_unbalanced("<style>.a{}</style></style>")
+    assert "<style>" in msg and "1 opening" in msg and "2 closing" in msg
+
+
+def test_many_unclosed_scripts_raise() -> None:
+    _raises_unbalanced("<script>a\n<script>b\n<script>c\n<script>d\n<script>e\n<script>f\n")
 
 
 def test_balanced_input_unchanged() -> None:
@@ -192,6 +220,23 @@ def test_balanced_input_unchanged() -> None:
     out, recs = _logs(None, body=src)
     assert out == src
     assert not [r for r in recs if "appended" in r.getMessage()]
+
+
+def test_balanced_bodies_byte_identical() -> None:
+    """Balanced bodies pass through unchanged, logging nothing, including a
+    JSON island and a JS string holding an escaped end tag."""
+    for src in (
+        '<style>.a{}</style>\n<section><p>x</p></section>\n',
+        (
+            '<script type="application/json" id="d">{"a": [1, 2]}</script>\n'
+            '<script>var d = JSON.parse(document.getElementById("d").textContent);</script>'
+        ),
+        '<script>var s = "<\\/p>"; var t = "a<b";</script><style>.b>.c{}</style>',
+        '<div id="c"></div><script>(function(){echarts.init(1);})();</script>',
+    ):
+        out, recs = _logs(None, body=src)
+        assert out == src, src
+        assert not recs, [r.getMessage() for r in recs]
 
 
 def test_commented_out_script_does_not_count() -> None:
@@ -202,30 +247,10 @@ def test_commented_out_script_does_not_count() -> None:
     assert not [r for r in recs if "appended" in r.getMessage()]
 
 
-def test_stray_close_script_warns_but_unchanged() -> None:
-    src = '<p>hi</p></script>'
-    out, recs = _logs(None, body=src)
-    assert out == src
-    msgs = " ".join(r.getMessage() for r in recs)
-    assert "stray" in msgs
-
-
-def test_excess_unclosed_scripts_raises() -> None:
-    """If the body is structurally broken (more than the cap of unclosed
-    scripts), refuse to publish — a string-append won't safely repair it."""
-    src = "<script>a\n<script>b\n<script>c\n<script>d\n<script>e\n<script>f\n"
-    try:
-        sanitize_content_html(src)
-    except ValueError as e:
-        assert "exceeds auto-repair cap" in str(e)
-    else:
-        raise AssertionError("expected ValueError for excess unclosed scripts")
-
-
 def test_real_world_e4a5e2d7_pattern() -> None:
     """Exact failure shape from dataset e4a5e2d7-…: the inline ECharts
     IIFE is the only <script>, it never gets closed, and the file ends
-    on `})();\\n`. After sanitize there must be a matching </script>."""
+    on `})();\\n`. The render must fail so the last-good page stays."""
     src = (
         '<h1>title</h1>\n'
         '<div id="chart-monthly"></div>\n'
@@ -235,11 +260,7 @@ def test_real_world_e4a5e2d7_pattern() -> None:
         '  echarts.init(el).setOption({});\n'
         '})();\n'
     )
-    out, _ = _logs(None, body=src)
-    assert out.count("<script") == 1
-    assert out.count("</script>") == 1
-    # The IIFE itself must still be intact.
-    assert 'echarts.init' in out
+    _raises_unbalanced(src)
 
 
 def test_escapes_raw_lf_in_double_quoted_js_string() -> None:
@@ -387,13 +408,17 @@ def main() -> None:
         test_clean_input_pass_through_no_warnings,
         test_does_not_drop_local_lib_scripts,
         test_real_world_27b4b40e_pattern,
-        test_balances_unclosed_script_tag,
-        test_balances_two_unclosed_scripts,
-        test_balances_unclosed_style_tag,
+        test_unclosed_script_raises,
+        test_two_unclosed_scripts_raise,
+        test_unclosed_style_raises,
+        test_unclosed_style_minimal_raises,
+        test_unclosed_json_island_raises,
+        test_extra_closing_script_raises,
+        test_extra_closing_style_raises,
+        test_many_unclosed_scripts_raise,
         test_balanced_input_unchanged,
+        test_balanced_bodies_byte_identical,
         test_commented_out_script_does_not_count,
-        test_stray_close_script_warns_but_unchanged,
-        test_excess_unclosed_scripts_raises,
         test_real_world_e4a5e2d7_pattern,
         test_escapes_raw_lf_in_double_quoted_js_string,
         test_escapes_raw_lf_in_single_quoted_js_string,
