@@ -37,7 +37,7 @@ from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
 
-from services.shared.ckan import EXACT_TOTAL_THRESHOLD
+from services.shared.ckan import EXACT_TOTAL_THRESHOLD, is_authorization_error
 
 log = logging.getLogger(__name__)
 
@@ -120,17 +120,6 @@ def _truncate_value(v: Any) -> Any:
     return v
 
 
-def _payload_is_authorization_error(payload: dict) -> bool:
-    """True when a CKAN JSON envelope carries an Authorization Error.
-
-    CKAN reports a restricted resource as `{"success": false, "error":
-    {"__type": "Authorization Error", …}}` — surfaced either with HTTP 403
-    or (rarely) HTTP 200.
-    """
-    err = payload.get("error") or {}
-    return "Authorization" in str(err.get("__type") or "")
-
-
 def _http_403_is_restriction(e: urllib_error.HTTPError) -> bool:
     """Decide whether a 403 from datastore_search is an access restriction.
 
@@ -143,7 +132,7 @@ def _http_403_is_restriction(e: urllib_error.HTTPError) -> bool:
         body = json.loads(e.read().decode("utf-8", errors="replace"))
     except Exception:  # noqa: BLE001
         return True
-    return _payload_is_authorization_error(body)
+    return is_authorization_error(body)
 
 
 def fetch_resource_preview(resource_id: str) -> dict | None:
@@ -196,7 +185,7 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
     if not payload or not payload.get("success"):
         # A 200 carrying the same Authorization Error is the restriction
         # surfaced differently — treat it identically to the 403 path.
-        if payload and _payload_is_authorization_error(payload):
+        if payload and is_authorization_error(payload):
             raise ResourceRestrictedError(
                 f"CKAN datastore Authorization Error for resource {resource_id}"
             )

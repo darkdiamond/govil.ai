@@ -67,13 +67,11 @@ jobs:
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: frontend/public/datasets
-          # The key string predates the removed preview lane (whose input
-          # made it per-lane); `inputs.target` is now always empty, so it
-          # resolves to `datasets-live-…`. Keep it as is: changing it would
-          # orphan the existing cache and cost one full rsync.
-          key: datasets-${{ inputs.target || 'live' }}-${{ github.run_id }}
+          # `datasets-live-` is the prefix the removed preview lane's per-lane
+          # key resolved to for live runs; keep it so the existing cache hits.
+          key: datasets-live-${{ github.run_id }}
           restore-keys: |
-            datasets-${{ inputs.target || 'live' }}-
+            datasets-live-
 
       - name: Fetch agent pages from staging
         run: |
