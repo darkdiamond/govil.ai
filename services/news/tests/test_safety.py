@@ -97,7 +97,7 @@ def test_redirect_to_metadata_is_refused():
     import httpx
 
     def handler(req):
-        if req.url.host == "www.gov.il":
+        if req.headers["host"] == "www.gov.il":
             return httpx.Response(302, headers={"location": "https://meta.gov.il/computeMetadata/v1/"})
         return httpx.Response(200, text="token", headers={"content-type": "text/plain"})
 
@@ -108,6 +108,150 @@ def test_redirect_to_metadata_is_refused():
     client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=False)
     with pytest.raises(FetchRefused, match="non-public"):
         fetch_page("https://www.gov.il/a", client=client, resolve=resolve)
+
+
+def _infos(*addrs):
+    return [(socket.AF_INET6 if ":" in a else socket.AF_INET, socket.SOCK_STREAM, 6, "",
+             (a, 443, 0, 0) if ":" in a else (a, 443)) for a in addrs]
+
+
+@pytest.mark.parametrize("addrs", [
+    ("169.254.169.254",),
+    ("::ffff:169.254.169.254",),
+    ("::ffff:a9fe:a9fe",),
+    ("2002:a9fe:a9fe::1",),                 # 6to4 of the metadata address
+    ("93.184.216.34", "169.254.169.254"),   # one bad answer among good ones
+    (),                                      # no answer at all
+])
+def test_metadata_address_forms_are_refused(addrs):
+    with pytest.raises(FetchRefused):
+        _check_url("https://www.gov.il/a", lambda host, port, proto=0: _infos(*addrs))
+
+
+def test_connects_to_the_checked_address_not_a_rebound_one():
+    """DNS answers public to the check and the metadata address afterwards:
+    the request goes to the checked address, the hostname rides in Host/SNI."""
+    import httpx
+
+    calls = {"n": 0}
+
+    def resolve(host, port, proto=0):
+        calls["n"] += 1
+        return _infos("93.184.216.34" if calls["n"] == 1 else "169.254.169.254")
+
+    seen = []
+
+    def handler(req):
+        seen.append((req.url.host, req.headers["host"], req.extensions.get("sni_hostname")))
+        return httpx.Response(200, text="ok", headers={"content-type": "text/plain"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=False)
+    page = fetch_page("https://www.gov.il/a", client=client, resolve=resolve)
+    assert page.text == "ok" and page.url == "https://www.gov.il/a"
+    assert seen == [("93.184.216.34", "www.gov.il", "www.gov.il")]
+
+
+def test_redirect_hop_is_pinned_too():
+    import httpx
+
+    calls: dict[str, int] = {}
+
+    def resolve(host, port, proto=0):
+        calls[host] = calls.get(host, 0) + 1
+        if host == "www.gov.il":
+            return _infos("93.184.216.34")
+        return _infos("93.184.216.35" if calls[host] == 1 else "169.254.169.254")
+
+    seen = []
+
+    def handler(req):
+        seen.append(req.url.host)
+        if req.headers["host"] == "www.gov.il":
+            return httpx.Response(302, headers={"location": "https://b.gov.il/x"})
+        return httpx.Response(200, text="ok", headers={"content-type": "text/plain"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=False)
+    page = fetch_page("https://www.gov.il/a", client=client, resolve=resolve)
+    assert page.url == "https://b.gov.il/x"
+    assert seen == ["93.184.216.34", "93.184.216.35"]
+
+
+def test_slow_drip_body_hits_the_total_deadline():
+    import httpx
+
+    from services.news import fetch as fetch_mod
+
+    now = {"t": 0.0}
+
+    class Drip(httpx.SyncByteStream):
+        def __iter__(self):
+            for _ in range(1000):
+                now["t"] += 15.0          # each chunk under the per-read timeout
+                yield b"x"
+
+    def handler(req):
+        return httpx.Response(200, headers={"content-type": "text/plain"}, stream=Drip())
+
+    client = httpx.Client(transport=httpx.MockTransport(handler), follow_redirects=False)
+    with pytest.raises(FetchRefused, match="time limit"):
+        fetch_page("https://www.gov.il/a", client=client, resolve=_resolver("93.184.216.34"),
+                   clock=lambda: now["t"])
+    assert now["t"] <= fetch_mod.TOTAL_TIMEOUT + 15.0
+
+
+def test_real_transport_dials_the_ip_and_verifies_the_hostname(monkeypatch):
+    """Through httpx's own transport (network stubbed below httpcore): the TCP
+    connect goes to the checked IP, TLS gets the hostname as server_hostname
+    with certificate and hostname checks on, and the request carries Host."""
+    import ssl
+
+    import httpcore
+    import httpx
+
+    from services.news import fetch as fetch_mod
+
+    log = []
+    body = b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: 2\r\n\r\nok"
+
+    class Stream(httpcore.NetworkStream):
+        def __init__(self):
+            self.out = [body]
+
+        def read(self, max_bytes, timeout=None):
+            return self.out.pop(0) if self.out else b""
+
+        def write(self, buffer, timeout=None):
+            log.append(("write", buffer))
+
+        def close(self):
+            pass
+
+        def start_tls(self, ssl_context, server_hostname=None, timeout=None):
+            log.append(("tls", server_hostname, ssl_context.verify_mode, ssl_context.check_hostname))
+            return self
+
+        def get_extra_info(self, info):
+            return None
+
+    class Backend(httpcore.NetworkBackend):
+        def connect_tcp(self, host, port, timeout=None, local_address=None, socket_options=None):
+            log.append(("connect", host, port))
+            return Stream()
+
+    real_client = httpx.Client
+
+    def client_factory(**kw):
+        c = real_client(**kw)
+        c._transport._pool._network_backend = Backend()
+        return c
+
+    monkeypatch.setattr(fetch_mod.httpx, "Client", client_factory)
+    page = fetch_page("https://www.gov.il/a", resolve=_resolver("93.184.216.34"))
+    assert page.text == "ok"
+    assert log[0] == ("connect", "93.184.216.34", 443)
+    assert log[1] == ("tls", "www.gov.il", ssl.CERT_REQUIRED, True)
+    sent = b"".join(entry[1] for entry in log if entry[0] == "write")
+    assert sent.startswith(b"GET /a HTTP/1.1") and b"\r\nHost: www.gov.il\r\n" in sent
 
 
 def test_html_to_text_drops_scripts_and_chrome():

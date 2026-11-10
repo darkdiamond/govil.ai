@@ -12,6 +12,7 @@ from __future__ import annotations
 import ipaddress
 import re
 import socket
+import time
 from dataclasses import dataclass
 from urllib.parse import urljoin, urlparse
 
@@ -20,7 +21,8 @@ import httpx
 UA = "Mozilla/5.0 (compatible; govdata-news/1.0; +https://govil.ai/news/about/)"
 MAX_BYTES = 2_000_000
 MAX_REDIRECTS = 4
-TIMEOUT = 20.0
+TIMEOUT = 20.0          # per network operation
+TOTAL_TIMEOUT = 60.0    # wall clock for the whole fetch, redirects included
 _TEXT_TYPES = ("text/html", "application/xhtml+xml", "text/plain")
 
 
@@ -96,7 +98,10 @@ class Page:
     text: str
 
 
-def _check_url(url: str, resolve=socket.getaddrinfo) -> None:
+def _check_url(url: str, resolve=socket.getaddrinfo) -> str:
+    """Vet the URL and return the address to connect to. The host is
+    resolved once here and the connection goes to that address, so a second
+    DNS answer (rebinding) can't point it somewhere else."""
     u = urlparse(url)
     if u.scheme != "https":
         raise FetchRefused(f"only https is fetched: {url[:80]}")
@@ -111,10 +116,14 @@ def _check_url(url: str, resolve=socket.getaddrinfo) -> None:
         infos = resolve(host, 443, proto=socket.IPPROTO_TCP)
     except socket.gaierror as e:
         raise FetchRefused(f"cannot resolve {host}") from e
-    for info in infos:
-        ip = ipaddress.ip_address(info[4][0])
+    ips = [ipaddress.ip_address(info[4][0]) for info in infos]
+    if not ips:
+        raise FetchRefused(f"cannot resolve {host}")
+    for ip in ips:
         if not ip.is_global or ip.is_multicast:
             raise FetchRefused(f"{host} resolves to a non-public address")
+    # Cloud Run egress is IPv4, so prefer an IPv4 address when there is one.
+    return str(next((ip for ip in ips if ip.version == 4), ips[0]))
 
 
 def html_to_text(html: str) -> tuple[str, str]:
@@ -134,15 +143,26 @@ def html_to_text(html: str) -> tuple[str, str]:
     return title, text.strip()
 
 
-def fetch_page(url: str, *, client: httpx.Client | None = None, resolve=socket.getaddrinfo) -> Page:
+def fetch_page(url: str, *, client: httpx.Client | None = None, resolve=socket.getaddrinfo,
+               clock=time.monotonic) -> Page:
     own = client is None
-    client = client or httpx.Client(timeout=TIMEOUT, headers={"User-Agent": UA}, follow_redirects=False)
+    # No keep-alive: a pooled connection is keyed by IP, and one verified for
+    # one hostname must not carry a request for another on the same address.
+    client = client or httpx.Client(timeout=TIMEOUT, headers={"User-Agent": UA}, follow_redirects=False,
+                                    limits=httpx.Limits(max_keepalive_connections=0))
+    deadline = clock() + TOTAL_TIMEOUT
     try:
         for _ in range(MAX_REDIRECTS + 1):
-            _check_url(url, resolve)
+            addr = _check_url(url, resolve)
             if not allowed_source(url):
                 raise FetchRefused("not on the source allowlist (NEWS_SOURCE_DOMAINS)")
-            with client.stream("GET", url) as r:
+            if clock() > deadline:
+                raise FetchRefused("fetch took longer than the time limit")
+            # Connect to the vetted address; TLS SNI, certificate verification
+            # and the Host header still use the hostname.
+            target = httpx.URL(url)
+            with client.stream("GET", target.copy_with(host=addr), headers={"Host": target.netloc.decode("ascii")},
+                               extensions={"sni_hostname": target.host}) as r:
                 if r.status_code in (301, 302, 303, 307, 308) and r.headers.get("location"):
                     url = urljoin(url, r.headers["location"])
                     continue
@@ -156,6 +176,8 @@ def fetch_page(url: str, *, client: httpx.Client | None = None, resolve=socket.g
                     body += chunk
                     if len(body) > MAX_BYTES:
                         raise FetchRefused("page larger than the size cap")
+                    if clock() > deadline:
+                        raise FetchRefused("fetch took longer than the time limit")
                 raw = body.decode(r.encoding or "utf-8", errors="replace")
                 if ctype == "text/plain":
                     return Page(url, "", raw.strip())
