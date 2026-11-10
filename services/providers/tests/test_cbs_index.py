@@ -472,6 +472,44 @@ def test_chain_comes_from_the_chain_pages():
         rows_csv([data], [1], "month", [{"month": None, "paging": {}}])
 
 
+def test_chain_answer_behind_a_rebase_in_the_data_fails():
+    # The data pages already hold January on the new base B; the separate
+    # chain answer still shows December on A. Writing rows would leave the
+    # newest periods unchained and name A as the chain base.
+    data = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.4),
+                                           _row("month", 2025, 12, "A", 110.0),
+                                           _row("month", 2025, 11, "A", 109.9)])],
+            "paging": {"last_page": 1}}
+    chain = {"month": [_series(1, "month", [_row("month", 2025, 12, "A", 110.0,
+                                                 [{"coeff": 1.05, "baseDesc": "Z"}])])],
+             "paging": {"last_page": 1}}
+    with pytest.raises(ProviderError, match="chain answer is behind"):
+        rows_csv([data], [1], "month", [chain])
+    # A chain answer that lags by a period on the same base still chains.
+    same = {"month": [_series(1, "month", [_row("month", 2026, 1, "A", 100.4),
+                                           _row("month", 2025, 12, "A", 110.0)])],
+            "paging": {"last_page": 1}}
+    out = rows(rows_csv([same], [1], "month", [chain]))
+    assert {r["VALUE_CHAINED"] for r in out} == {"100.4", "110"}
+
+
+def test_download_fails_when_the_chain_answer_lags_a_rebase():
+    data = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.4),
+                                           _row("month", 2025, 12, "A", 110.0)])],
+            "paging": {"last_page": 1, "total_items": 2}}
+    chain = {"month": [_series(1, "month", [_row("month", 2025, 12, "A", 110.0)])],
+             "paging": {"last_page": 1}}
+    p = make_provider({"1": [data]})
+    real = p._send
+
+    def send(url, **kw):
+        return FakeResp(200, chain) if "last=1" in url else real(url, **kw)
+
+    p._send = send
+    with pytest.raises(ProviderError, match="chain answer is behind"):
+        p.download(resource(p, codes=[1], frequency="month"))
+
+
 def test_brief_names_quarters_by_time_period(tmp_path):
     page = {"quarter": [_series(40010, "quarter", [_row("quarter", 1993, 4, "B", 1.0),
                                                    _row("quarter", 1993, 1, "B", 1.0)])],
