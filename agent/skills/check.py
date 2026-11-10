@@ -205,7 +205,34 @@ SCRIPT_BLOCK_RE = re.compile(
 SCRIPT_TAG_RE = re.compile(
     r"<script\b([^>]*)>(.*?)" + SCRIPT_END, re.DOTALL | re.IGNORECASE
 )
-SCRIPT_TYPE_RE = re.compile(r"""type\s*=\s*["']?([^"'\s>]+)""", re.IGNORECASE)
+# One attribute of a start tag: name, then an optional value that is
+# double-quoted, single-quoted or unquoted (ends at whitespace or `>`).
+_ATTR_RE = re.compile(
+    r"""[\s/]*([^\s"'>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]*)))?"""
+)
+
+
+def _script_type(attrs: str) -> str | None:
+    """The value of the tag's own `type` attribute, read attribute by
+    attribute so `data-type=` or a `type=` inside another value doesn't
+    count. The first `type` wins, as in browsers. None when there is no
+    `type` or the attributes don't parse."""
+    pos, end = 0, len(attrs.rstrip(" \t\n\f\r/"))
+    while pos < end:
+        m = _ATTR_RE.match(attrs, pos)
+        if not m:
+            return None
+        if m.group(1).lower() == "type":
+            return next((g for g in m.group(2, 3, 4) if g is not None), "")
+        pos = m.end()
+    return None
+
+
+def _is_json_script(attrs: str) -> bool:
+    """A JSON data island (`type="application/json"` and the like), which
+    browsers never execute."""
+    t = _script_type(attrs)
+    return t is not None and "json" in t.lower()
 
 TOP_CARD_BARE_H2_RE = re.compile(
     r'<section\s+class="[^"]*\bcard\b[^"]*\bmb-6\b[^"]*"[^>]*>\s*<h2',
@@ -357,8 +384,10 @@ _SEC_JS_RULES: list[tuple[str, re.Pattern[str], str]] = [
 
 # Absolute URLs in src= must point at gov.il / OpenStreetMap (images,
 # tiles). Relative paths (/icons/…) and inline raster data: images pass.
+# Each tag, then every loading attribute in it (not just the first).
+_SRC_TAG_RE = re.compile(r"<[a-z][^<>]*", re.IGNORECASE)
 _SRC_ATTR_RE = re.compile(
-    r"<[a-z][^<>]*?\s(?:src|poster|background|data)\s*=\s*([\"']?)\s*([^\"'\s>]*)",
+    r"\s(?:src|poster|background|data)\s*=\s*([\"']?)\s*([^\"'\s>]*)",
     re.IGNORECASE,
 )
 _SRC_DATA_IMAGE_RE = re.compile(
@@ -406,30 +435,159 @@ def _sec_fail(rule: str, body: str, start: int, end: int, fix: str) -> None:
     fail(f"SECURITY/{rule}: forbidden construct near {near!r} — {fix}", code=11)
 
 
+# Dataset values reach a body as JS string literals (`| tojson`) and as
+# HTML text (autoescape). They are data, so the JS-API rules scan only the
+# code of JS <script> blocks and the URL rules only markup (tags, attribute
+# values, comments, <style> text) plus that code. Anything that can't be
+# split reliably (an untokenizable block, an unclosed <script>) is scanned
+# whole.
+_URL_RULES = ("SCRIPT-URL", "EXTERNAL-RESOURCE")
+_UNCLOSED_SCRIPT_RE = re.compile(r"<script\b", re.IGNORECASE)
+_MARKUP_START_RE = re.compile(r"<(?:/?[a-z]|[!?])", re.IGNORECASE)
+# Elements whose content is raw text (or kept as such here): kept whole.
+_RAWTEXT_OPEN_RE = re.compile(
+    r"<(style|script|xmp|iframe|noembed|noframes|noscript|plaintext)\b",
+    re.IGNORECASE,
+)
+_TAG_STOP_RE = re.compile(r"[>=]")
+
+
+def _literal_ranges(src: str) -> list[tuple[int, int]] | None:
+    """[start, end) of every string literal and template-literal piece in
+    a JS block (a template's `${...}` code lies between its pieces). None
+    when esprima is missing, the block doesn't tokenize, or a range doesn't
+    line up with a literal's delimiters."""
+    if _esprima is None:
+        return None
+    try:
+        tokens = _esprima.tokenize(src, {"range": True})
+    except Exception:  # noqa: BLE001
+        return None
+    ranges = []
+    for t in tokens:
+        if t.type not in ("String", "Template"):
+            continue
+        r0, r1 = t.range
+        if r1 - r0 < 2 or src[r0] not in "\"'`}" or src[r1 - 1] not in "\"'`{":
+            return None
+        ranges.append((r0, r1))
+    return ranges
+
+
+def _tag_end(s: str, i: int) -> int:
+    """Index just past the `>` closing the tag that starts at s[i]. A quote
+    opens a value only right after `=`, as in the HTML tokenizer. len(s)
+    when the tag never closes."""
+    n = len(s)
+    j = i + 1
+    while True:
+        m = _TAG_STOP_RE.search(s, j)
+        if not m:
+            return n
+        j = m.end()
+        if m.group() == ">":
+            return j
+        while j < n and s[j] in " \t\n\f\r":
+            j += 1
+        if j < n and s[j] in "\"'":
+            q = s.find(s[j], j + 1)
+            if q < 0:
+                return n
+            j = q + 1
+
+
+def _blank_text(seg: str) -> str:
+    """`seg` with HTML text nodes replaced by spaces; tags, comments and
+    raw-text elements are kept as they are."""
+    out = []
+    i, n = 0, len(seg)
+    while i < n:
+        m = _MARKUP_START_RE.search(seg, i)
+        if not m:
+            out.append(" " * (n - i))
+            break
+        out.append(" " * (m.start() - i))
+        i = m.start()
+        if seg.startswith("<!--", i):
+            e = seg.find("-->", i + 4)
+            e = n if e < 0 else e + 3
+        else:
+            e = _tag_end(seg, i)
+            raw = _RAWTEXT_OPEN_RE.match(seg, i)
+            if raw:
+                close = re.compile(r"</" + raw.group(1) + r"\b", re.IGNORECASE).search(seg, e)
+                e = n if close is None else close.start()
+        out.append(seg[i:e])
+        i = e
+    return "".join(out)
+
+
+def _code_and_markup(
+    scan: str,
+) -> tuple[list[tuple[str, list[tuple[int, int]]]], str]:
+    """(each JS <script> block with its literal ranges, the body with text
+    nodes, JSON islands and JS literal contents blanked, lengths kept).
+    An unclosed <script> runs to the end of the body, with no ranges."""
+    code: list[tuple[str, list[tuple[int, int]]]] = []
+    view: list[str] = []
+    pos = 0
+    for m in SCRIPT_TAG_RE.finditer(scan):
+        view.append(_blank_text(scan[pos:m.start(2)]))
+        src = m.group(2)
+        if _is_json_script(m.group(1)):
+            view.append(" " * len(src))
+        else:
+            ranges = _literal_ranges(src) or []
+            chars = list(src)
+            for r0, r1 in ranges:
+                chars[r0 + 1:r1 - 1] = " " * (r1 - r0 - 2)
+            code.append((src, ranges))
+            view.append("".join(chars))
+        pos = m.end(2)
+    tail = scan[pos:]
+    view.append(_blank_text(tail))
+    u = _UNCLOSED_SCRIPT_RE.search(tail)
+    if u:
+        code.append((tail[u.start():], []))
+    return code, "".join(view)
+
+
 def check_security(body: str) -> None:
     import html as _html
 
     scan = _SAFE_HANDLER_RE.sub(" ", body)
     decoded = _html.unescape(scan)
-    # `java\tscript:` / `java&#9;script:` — browsers strip the control char.
-    compact = _URL_STRIP_RE.sub("", decoded)
+    code, markup = _code_and_markup(scan)
+    markup_decoded = _html.unescape(markup)
     for rule, rx, fix in _SEC_HTML_RULES:
-        texts = (scan, decoded, compact) if rule == "SCRIPT-URL" else (scan, decoded)
+        if rule in _URL_RULES:
+            texts = (markup, markup_decoded)
+            if rule == "SCRIPT-URL":
+                # `java\tscript:` / `java&#9;script:`: browsers strip the control char.
+                texts += (_URL_STRIP_RE.sub("", markup_decoded),)
+        else:
+            texts = (scan, decoded)
         for text in texts:  # entity-encoded `java&#115;cript:`
             m = rx.search(text)
             if m:
                 _sec_fail(rule, text, m.start(), m.end(), fix)
     for rule, rx, fix in _SEC_JS_RULES:
-        m = rx.search(scan)
-        if m:
-            _sec_fail(rule, scan, m.start(), m.end(), fix)
-    for m in _SRC_ATTR_RE.finditer(scan):
-        val = _URL_STRIP_RE.sub("", _html.unescape(m.group(2)))
-        if not val or not _HAS_SCHEME_RE.match(val):
-            continue  # relative path, or a JS-concatenated src="' + x + '"
-        if not _src_allowed(val):
+        for src, ranges in code:
+            for m in rx.finditer(src):
+                # A match that lies wholly inside one literal is data; one
+                # that starts in code (`createElement('script')`) is not.
+                if any(r0 <= m.start() and m.end() <= r1 for r0, r1 in ranges):
+                    continue
+                _sec_fail(rule, src, m.start(), m.end(), fix)
+    for tag in _SRC_TAG_RE.finditer(scan):
+        for m in _SRC_ATTR_RE.finditer(tag.group()):
+            val = _URL_STRIP_RE.sub("", _html.unescape(m.group(2)))
+            if not val or not _HAS_SCHEME_RE.match(val):
+                continue  # relative path, or a JS-concatenated src="' + x + '"
+            if _src_allowed(val):
+                continue
             _sec_fail(
-                "EXTERNAL-SRC", scan, m.start(), m.end(),
+                "EXTERNAL-SRC", scan, tag.start() + m.start(), tag.start() + m.end(),
                 f"src={val[:80]!r} loads from a host outside the allowlist. "
                 "Only relative paths (/icons/…), https://*.gov.il and "
                 "https://*.openstreetmap.org may appear in src=. Drop the "
@@ -444,8 +602,7 @@ def check_js_tokens(body: str) -> None:
     for n, (attrs, src) in enumerate(SCRIPT_TAG_RE.findall(body), 1):
         if not src.strip():
             continue
-        m = SCRIPT_TYPE_RE.search(attrs)
-        if m and "json" in m.group(1).lower():
+        if _is_json_script(attrs):
             continue
         try:
             tokens = _esprima.tokenize(src, {"range": True})
@@ -723,8 +880,7 @@ def check_js_parses(body: str) -> None:
     for n, (attrs, src) in enumerate(SCRIPT_TAG_RE.findall(body), 1):
         if not src.strip():
             continue
-        m = SCRIPT_TYPE_RE.search(attrs)
-        if m and "json" in m.group(1).lower():
+        if _is_json_script(attrs):
             continue
         try:
             _esprima.parseScript(src)

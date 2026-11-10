@@ -258,3 +258,9 @@ def test_block_closed_by_any_end_tag_spelling_is_parsed(end):
     with pytest.raises(SystemExit):
         check.check_js_parses(f"<section><script>var a = ;{end}</section>")
     check.check_js_parses(f"<section><script>var a = 1;{end}</section>")
+
+
+def test_data_type_attribute_is_still_parsed_as_js():
+    with pytest.raises(SystemExit) as ei:
+        check.check_js_parses('<script data-type="json">var x = = ;</script>')
+    assert ei.value.code == 9

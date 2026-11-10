@@ -261,3 +261,101 @@ def test_script_url_with_control_chars(href, capsys):
 ])
 def test_dynamic_global_access_rejected(js, capsys):
     _rejects(_script(js), capsys, "DYNAMIC-CODE")
+
+
+# ── Data strings are data: the JS/URL rules scan code and markup only ──
+_DATA_TEMPLATE = (
+    '<section class="card p-5 mb-6"><p>{{ model.v }}</p>'
+    '<a href="/x" title="{{ model.v }}">x</a><script>(function(){'
+    "var rows = {{ model.rows|tojson }}; var t = `{{ model.v }}`;"
+    ' var el = document.getElementById("x");'
+    " if (el) { el.textContent = rows.length + t; }"
+    '})();</script><script type="application/json" id="d">{{ model.rows|tojson }}'
+    "</script></section>"
+)
+
+
+@pytest.mark.parametrize("value", [
+    "https://www.gov.il/he/service?location=12",
+    "Goods import (tons)",
+    "Job Function (role)",
+    "קורס JavaScript: מתקדם",
+    "Java Script: course",
+    "GPS navigator. דגם",
+    "eval(x) fetch(y) localStorage window.open(z) document.cookie",
+    "metadata: text/html",
+])
+def test_data_strings_do_not_trip_code_rules(value):
+    from services.page_builder.recipe import render_template
+
+    v = value
+    if "JavaScript:" in v or "Java Script:" in v or "text/html" in v:
+        # A javascript: URL in an attribute value is still caught (below),
+        # so keep URL-shaped values out of the title attribute here.
+        body = render_template(
+            _DATA_TEMPLATE.replace(' title="{{ model.v }}"', ""),
+            {"v": v, "rows": [{"name": v}]},
+        )
+    else:
+        body = render_template(_DATA_TEMPLATE, {"v": v, "rows": [{"name": v}]})
+    _passes(body)
+
+
+@pytest.mark.parametrize("js,rule", [
+    ("var u = location = 'x';", "NAVIGATION"),
+    ("import('x');", "DYNAMIC-CODE"),
+    ("var f = Function ('return 1');", "DYNAMIC-CODE"),
+    ("var n = navigator.userAgent;", "NETWORK-API"),
+    ("var s = `a ${eval('1')} b`;", "DYNAMIC-CODE"),
+    ("var s = `a ${`b ${fetch('//e')} c`} d`;", "NETWORK-API"),
+    ("var s = 'a' + window.open('x') + 'b';", "NAVIGATION"),
+])
+def test_same_constructs_in_code_still_fail(js, rule, capsys):
+    _rejects(_script(js), capsys, rule)
+
+
+def test_unparseable_block_is_scanned_whole(capsys):
+    # No tokens: the string is not known to be data, so it is scanned.
+    _rejects(_script("var a = 'x\n var b = \"fetch(1)\";"), capsys, "NETWORK-API")
+
+
+def test_unclosed_script_is_scanned(capsys):
+    _rejects('<p>x</p><script>var a = 1; fetch("//e");', capsys, "NETWORK-API")
+
+
+@pytest.mark.parametrize("body", [
+    '<a href="javascript:alert(1)">x</a>',
+    '<a title="x" href="java&#115;cript:alert(1)">x</a>',
+    "<a title=don't href=\"javascript:alert(1)\">x</a>",
+    '<a title=">" href="javascript:alert(1)">x</a>',
+    '<style>.a{background:url(javascript:x)}</style>',
+])
+def test_script_url_in_markup_still_fails(body, capsys):
+    _rejects(body, capsys, "SCRIPT-URL")
+
+
+# ── type= must be the real attribute ──
+def test_data_type_attribute_does_not_make_a_json_island(capsys):
+    if check._esprima is None:
+        pytest.skip("esprima not installed")
+    _rejects('<script data-type="json">ev\\u0061l("1")</script>', capsys, "ESCAPED-IDENTIFIER")
+    _rejects('<script data-type="json">var x = "a"; fetch("//e");</script>', capsys, "NETWORK-API")
+    _rejects('<script data-x="a type=json">fetch("//e");</script>', capsys, "NETWORK-API")
+
+
+@pytest.mark.parametrize("attrs", [
+    ' type="application/json"', " type='application/ld+json'", " type=application/json",
+    ' id="d" type="application/json"',
+])
+def test_real_json_islands_still_skipped(attrs):
+    _passes(f'<script{attrs}>{{"t": "fetch(1) eval(2) location=3"}}</script>')
+
+
+# ── every loading attribute of a tag is checked ──
+@pytest.mark.parametrize("body", [
+    '<img data="/a" src="https://evil.com/p.png">',
+    '<video poster="/a.png" src="https://evil.com/v.mp4"></video>',
+    '<img src="/icons/a.svg" alt="" data="https://evil.com/x">',
+])
+def test_every_loading_attribute_checked(body, capsys):
+    _rejects(body, capsys, "EXTERNAL-SRC")
