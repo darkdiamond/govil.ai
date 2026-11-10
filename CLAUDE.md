@@ -147,7 +147,15 @@ landing pages. Six layers:
    `news-sitemap.xml` + `news/feed.xml` (`build-sitemap.mjs`); the nav link
    and homepage strip appear once ≥1 article exists. Fallbacks: Cloud
    Build trigger `govdata-publish` (`PUBLISH_VIA=cloudbuild`) and
-   `infra/publish-local.sh` (same steps, your machine).
+   `infra/publish-local.sh` (same steps, your machine). Analytics IDs: the
+   GitHub repo variables `NUXT_PUBLIC_{GTAG,ADSENSE,CLARITY}_ID` in the
+   workflow; the trigger substitutions `_GTAG_ID` / `_ADSENSE_ID` /
+   `_CLARITY_ID` in Cloud Build (empty by default, so that path ships no GA,
+   AdSense or Clarity until they are set on the trigger with
+   `--update-substitutions`, see `cloudbuild-publish.yaml`); your env or
+   `frontend/.env` locally. `test_publish_paths.py` checks the three paths for
+   each step (news rsync, publish, generate + IDs, redirects, deploy,
+   IndexNow): a step added to one goes into all three.
 
 5. **Recipe refresh — the only page-producing path** —
    `services/page_builder/{recipe,recipe_exec,refresh}.py`. A recipe lives
@@ -524,7 +532,7 @@ are still read by the authoring selector.
 | Tags + related          | `services/page_builder/tags.py`, `related.py`, `taxonomy/`                                 | Tag vocabulary/assignment, tag index + legacy redirects, content-based related datasets; `suggest`/`report`/`assign`, `sample`/`explain` CLIs                                              |
 | Schema                  | `services/page_builder/schema.py`                                                          | `DatasetMeta` (scanner) + `AgentData` (interpretive) + merged `ManifestEntry` — split contract                                                                                             |
 | Slug helper             | `services/shared/slug.py`                                                                  | Deterministic Hebrew→Latin slug used by the scanner                                                                                                                                        |
-| Cloud Build pipeline    | `cloudbuild-publish.yaml`                                                                  | Fallback publisher: rsync content.html only → run publisher (writes data.json + agent_data.json + manifest.json from Firestore) → `nuxt generate` → Firebase deploy                        |
+| Cloud Build pipeline    | `cloudbuild-publish.yaml`                                                                  | Fallback publisher: content.html + news images → publisher (data.json, agent_data.json, manifest.json) → `nuxt generate` (IDs from trigger substitutions) → redirects → deploy → IndexNow  |
 | Hosting config          | `firebase.json`, `.firebaserc`                                                             | Firebase Hosting target + project binding                                                                                                                                                  |
 
 ## Conventions you will be tempted to violate (don't)

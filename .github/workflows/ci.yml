@@ -55,6 +55,18 @@ jobs:
               - 'ruff.toml'
               - 'pytest.ini'
               - '.github/workflows/ci.yml'
+              # Read by the contract-parity and publish-path tests
+              # (services/page_builder/tests/test_contract_parity.py,
+              # test_publish_paths.py, scanner/tests/test_models.py).
+              - 'frontend/types/manifest.ts'
+              - 'frontend/utils/search-index.ts'
+              - 'frontend/utils/resource-url.ts'
+              - 'frontend/scripts/gov-map.js'
+              - 'frontend/nuxt.config.ts'
+              - 'frontend/tests/fixtures/**'
+              - 'cloudbuild-publish.yaml'
+              - 'infra/publish-local.sh'
+              - '.github/workflows/publish.yml'
             frontend:
               - 'frontend/**'
               - '.github/workflows/ci.yml'
@@ -76,9 +88,9 @@ jobs:
             services/page_builder/requirements.txt
             services/news/requirements.txt
       - name: Install dependencies
-        # requirements-test.txt is intentionally omitted: it only pulls
-        # llm-sandbox[podman] for the manual harness, needs Podman, and is
-        # unused by the unit suite (every test mocks Firestore).
+        # Root + builder + news requirements cover every import in the suite
+        # (news' brings duckdb, so its query tests run here instead of
+        # skipping); every test mocks Firestore, so no emulator is needed.
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r services/page_builder/requirements.txt -r services/news/requirements.txt -r requirements-dev.txt
@@ -105,6 +117,10 @@ jobs:
       - name: Install
         working-directory: frontend
         run: npm ci --prefer-offline --no-audit --no-fund
+      - name: Unit tests
+        # Same command as the root `npm test` script and the husky hook.
+        working-directory: frontend
+        run: node --test tests/*.test.mjs
       - name: Type check
         working-directory: frontend
         run: npm run typecheck

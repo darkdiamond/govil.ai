@@ -307,10 +307,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   per-dataset og:image (e.g. a build-time card with the title and one headline number) passed
   to `useSeo` in `pages/datasets/[slug].vue`. (2026-11-10)
 
-- **`frontend/tests/*.test.mjs` don't run in CI.** `ci.yml` runs only `typecheck` and
-  `generate`, so `share.test.mjs`, `dataset-seo.test.mjs` and the rest run only by hand. Fix:
-  add a `node --test frontend/tests/` step to the frontend job. (2026-11-10)
-
 - **The shared `node_modules` lacks `vue-tsc`.** `npm run typecheck` fails locally ("A type
   checker is required") although `package.json` lists it; the main checkout's install predates
   it. Fix: `npm ci` in the main checkout's `frontend/` (not in a worktree). (2026-11-10)

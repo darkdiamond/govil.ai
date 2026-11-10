@@ -30,16 +30,15 @@ function loadGovMap(nodes = {}) {
 }
 
 test("GovMap.ring decodes govlib.geo.encode output", () => {
-  // python: geo.encode([ring], geo.origin(...)) for the ring below
-  const origin = [3478123, 3208011];
-  const flat = [0, 0, 78, 2, -2, 89, -76, -91];
-  const ring = [
-    [34.78123, 32.08011],
-    [34.78201, 32.08013],
-    [34.78199, 32.08102],
-    [34.78123, 32.08011],
-  ];
-  const got = loadGovMap().ring(flat, origin, 100000);
+  // python: geo.encode([ring], geo.origin(...)); the Python side asserts the
+  // same fixture (services/page_builder/tests/test_contract_parity.py).
+  const { origin, flat, ring, scale } = JSON.parse(
+    readFileSync(
+      new URL("./fixtures/gov-map-vectors.json", import.meta.url),
+      "utf8"
+    )
+  );
+  const got = loadGovMap().ring(flat, origin, scale);
   assert.equal(got.length, ring.length);
   got.forEach(([lat, lng], i) => {
     assert.ok(

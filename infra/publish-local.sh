@@ -1,18 +1,25 @@
 #!/usr/bin/env bash
-# Publish gov-il.ai from your local machine — same four steps as
-# cloudbuild-publish.yaml, just running here instead of in Cloud Build.
+# Publish govil.ai from your local machine — the same steps as
+# .github/workflows/publish.yml (the primary path) and cloudbuild-publish.yaml,
+# just running here. services/page_builder/tests/test_publish_paths.py checks
+# all three for each step.
 #
 #   1. rsync  gs://${GCS_STAGING_BUCKET}/datasets/  ->  frontend/public/datasets/
 #      (only content.html survives — data.json + agent_data.json are
 #      regenerated from Firestore in step 2 to keep the two paths in sync)
+#      and gs://${GCS_STAGING_BUCKET}/news/ -> frontend/public/news/ (images)
 #   2. publish from Firestore: write
 #        frontend/public/data/manifest.json
 #        frontend/public/datasets/<id>/data.json
 #        frontend/public/datasets/<id>/agent_data.json
-#   3. nuxt generate (+ sitemap)
-#   4. firebase deploy --only hosting
+#        frontend/public/news/ (article JSON)
+#   3. nuxt generate (+ sitemap), with NUXT_PUBLIC_GTAG_ID /
+#      NUXT_PUBLIC_ADSENSE_ID / NUXT_PUBLIC_CLARITY_ID from your environment
+#      or frontend/.env (unset → the site ships without GA/AdSense/Clarity)
+#   4. regenerate firebase.json redirects, firebase deploy --only hosting
+#   5. IndexNow ping (never fails the run)
 #
-# Or pass --serve to skip step 4 and serve the byte-identical static
+# Or pass --serve to skip steps 4-5 and serve the byte-identical static
 # output at http://localhost:${PORT:-3000} for review.
 #
 # Usage:
@@ -27,6 +34,8 @@
 #   FIREBASE_PROJECT      (default: govdata-il)
 #   GCS_STAGING_BUCKET    (default: govdata-il-staging)
 #   PORT                  (default: 3000, --serve only)
+#   NUXT_PUBLIC_GTAG_ID, NUXT_PUBLIC_ADSENSE_ID, NUXT_PUBLIC_CLARITY_ID
+#                         analytics/ads IDs (the GitHub repo variables)
 #
 # Requires: gcloud (with ADC), gsutil, node, npm, python3, firebase
 # CLI on PATH; venv activated for the manifest builder.
@@ -139,6 +148,16 @@ else
   step_begin "syncing gs://$BUCKET/datasets/ -> frontend/public/datasets/"
   GCS_STAGING_BUCKET="$BUCKET" bash infra/sync-datasets.sh --apply
   step_end
+
+  # News images (services/news); the publisher then writes the article JSON
+  # next to them and removes directories of articles not live.
+  step_begin "syncing gs://$BUCKET/news/ -> frontend/public/news/"
+  mkdir -p frontend/public/news
+  gsutil -m rsync -r -d \
+    -x '.*\.json$|.*/index\.html$' \
+    "gs://$BUCKET/news/" frontend/public/news/ \
+    || echo "no news images yet"
+  step_end
 fi
 
 # ---------------------------------------------- step 2: publish from Firestore
@@ -166,6 +185,15 @@ if (( SKIP_GENERATE )); then
   echo "==> [$(date +%H:%M:%S)] skipping nuxt generate (--skip-generate)"
 else
   step_begin "nuxt generate (frontend/)"
+  # Pass the analytics IDs through to nuxt.config.ts (export makes a plain
+  # shell variable visible to npm). nuxi also reads frontend/.env.
+  for var in NUXT_PUBLIC_GTAG_ID NUXT_PUBLIC_ADSENSE_ID NUXT_PUBLIC_CLARITY_ID; do
+    if [[ -n "${!var:-}" ]]; then
+      export "$var"
+    elif ! grep -qs "^${var}=." frontend/.env; then
+      echo "WARNING: $var is unset (env and frontend/.env); the site ships without it" >&2
+    fi
+  done
   ( cd frontend && npm run generate )
   step_end
 fi
@@ -204,6 +232,11 @@ else
     --only hosting \
     --project "$PROJECT" \
     --non-interactive
+  step_end
+
+  # Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
+  step_begin "IndexNow ping"
+  node frontend/scripts/indexnow-ping.mjs || echo "IndexNow ping failed (non-fatal)"
   step_end
 fi
 

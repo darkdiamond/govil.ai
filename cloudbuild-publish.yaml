@@ -3,6 +3,12 @@
 # govdata-builder-job after a run that re-rendered ≥1 page (see
 # services/page_builder/pipeline.py::_trigger_publish).
 #
+# Must do what .github/workflows/publish.yml (the primary path) does: pages +
+# news images from staging, publish from Firestore, nuxt generate with the
+# analytics IDs, gen-redirects, firebase deploy, IndexNow.
+# services/page_builder/tests/test_publish_paths.py checks the three paths
+# (this file, publish.yml, infra/publish-local.sh) for each of those steps.
+#
 # Uses a pre-baked image built by cloudbuild-publisher-image.yaml — it
 # carries node 22, firebase-tools, gsutil, page_builder Python deps, and
 # frontend/node_modules. That lets every step run on the same image
@@ -13,6 +19,14 @@
 #   _STAGING_BUCKET    GCS bucket the builder stages rendered pages to
 #   _FIREBASE_PROJECT  Firebase / GCP project that owns Hosting + Firestore
 #   _PUBLISHER_IMAGE   Pre-baked image (see cloudbuild-publisher-image.yaml)
+#   _GTAG_ID, _ADSENSE_ID, _CLARITY_ID
+#                      Analytics/ads IDs → NUXT_PUBLIC_GTAG_ID / _ADSENSE_ID /
+#                      _CLARITY_ID at generate time. Empty by default (kept
+#                      out of the repo, like publish.yml's repo variables): set
+#                      them on the trigger, or the site ships with no GA,
+#                      AdSense or Clarity at all:
+#                        gcloud builds triggers update manual govdata-publish \
+#                          --update-substitutions=_GTAG_ID=…,_ADSENSE_ID=…,_CLARITY_ID=…
 
 steps:
   # [1] Pull only the agent's content.html (and any extras) from staging.
@@ -32,6 +46,13 @@ steps:
         gsutil -m rsync -r \
           -x '.*/(data|agent_data)\.json$|.*/index\.html$' \
           "gs://${_STAGING_BUCKET}/datasets/" frontend/public/datasets/
+        # News images (services/news); the publisher then writes the article
+        # JSON next to them and removes directories of articles not live.
+        mkdir -p frontend/public/news
+        gsutil -m rsync -r -d \
+          -x '.*\.json$|.*/index\.html$' \
+          "gs://${_STAGING_BUCKET}/news/" frontend/public/news/ \
+          || echo "no news images yet"
 
   # [2] Emit per-dataset data.json + agent_data.json + aggregated manifest.json
   #     from Firestore — single source of truth.
@@ -66,6 +87,11 @@ steps:
   - id: "generate-and-deploy"
     name: "${_PUBLISHER_IMAGE}"
     entrypoint: "bash"
+    env:
+      # Optional analytics/ads; empty → the generated site has none of them.
+      - "NUXT_PUBLIC_GTAG_ID=${_GTAG_ID}"
+      - "NUXT_PUBLIC_ADSENSE_ID=${_ADSENSE_ID}"
+      - "NUXT_PUBLIC_CLARITY_ID=${_CLARITY_ID}"
     args:
       - "-c"
       - |
@@ -73,6 +99,10 @@ steps:
         cd frontend
         # NB: bash ALL_CAPS dollar-references get parsed as Cloud Build
         # substitutions (and rejected) — use lowercase locals.
+        # Empty analytics substitutions: warn, don't fail (forks have none).
+        [ -n "${_GTAG_ID}" ] || echo "WARNING: substitution _GTAG_ID is empty; the site ships without Google Analytics (set it on the trigger)"
+        [ -n "${_ADSENSE_ID}" ] || echo "WARNING: substitution _ADSENSE_ID is empty; the site ships without AdSense (set it on the trigger)"
+        [ -n "${_CLARITY_ID}" ] || echo "WARNING: substitution _CLARITY_ID is empty; the site ships without Clarity (set it on the trigger)"
         if [ -f /opt/frontend-deps/package-lock.json ] \
            && [ "$(md5sum < /opt/frontend-deps/package-lock.json | cut -d' ' -f1)" \
               = "$(md5sum < package-lock.json | cut -d' ' -f1)" ]; then
@@ -125,15 +155,36 @@ steps:
         fi
 
         cd ..
+        # Rebuild hosting.redirects from the fresh manifest (old dataset-uuid
+        # and tag URLs 301 to their current slug), before deploy reads
+        # firebase.json.
+        node frontend/scripts/gen-redirects.mjs
+
         firebase deploy \
           --only hosting \
           --project "${_FIREBASE_PROJECT}" \
           --non-interactive
 
+  # [4] Tell Bing/Yandex/etc. about every URL right after deploy (IndexNow).
+  #     Reads frontend/.output/public/sitemap.xml from the shared workspace;
+  #     a failure never fails the build.
+  - id: "indexnow"
+    name: "${_PUBLISHER_IMAGE}"
+    entrypoint: "bash"
+    waitFor: ["generate-and-deploy"]
+    allowFailure: true
+    args:
+      - "-c"
+      - |
+        node frontend/scripts/indexnow-ping.mjs
+
 substitutions:
   _STAGING_BUCKET: "govdata-il-staging"
   _FIREBASE_PROJECT: "govdata-il"
   _PUBLISHER_IMAGE: "me-west1-docker.pkg.dev/govdata-il/publisher/publisher:latest"
+  _GTAG_ID: ""
+  _ADSENSE_ID: ""
+  _CLARITY_ID: ""
 
 options:
   logging: CLOUD_LOGGING_ONLY
