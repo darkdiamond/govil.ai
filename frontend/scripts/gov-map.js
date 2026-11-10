@@ -432,6 +432,9 @@
     function loadAll() {
       var offset = 0;
       function step() {
+        // The container was replaced (e.g. the body re-rendered after
+        // hydration and ran this script again): stop this loop.
+        if (!container.isConnected) return;
         var batchLimit = Math.min(pageSize, totalCap - loaded);
         if (batchLimit <= 0) return finish();
         return fetchPage({
@@ -442,6 +445,7 @@
           limit: batchLimit,
           offset: offset,
         }).then(function (res) {
+          if (!container.isConnected) return;
           ingestBatch(res.records);
           loaded += res.records.length;
           offset += res.records.length;
