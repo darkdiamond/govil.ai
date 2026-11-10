@@ -81,9 +81,7 @@ landing pages. Six layers:
    → scan (guarded: one dataset's failure is recorded in `scan_runs.error` and
    the scan goes on; 20 in a row, or a listing failure, stop it. Either way
    the rest of the run goes ahead on the Firestore docs already there and
-   ends `status: scan_failed`) → reap legacy
-   `pending` markers (`PENDING_REAP_MINUTES`; nothing writes `pending`
-   any more, this only drains the set the retired agent builder left) →
+   ends `status: scan_failed`) →
    **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
    `RECIPES_SOURCE`, default `github:<PUBLISH_GITHUB_REPO>@main`;
    prod sets `RECIPES_FETCH=tarball` (code default `files`): one archive
@@ -307,10 +305,7 @@ snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    `agent_contract.py`) is folded into every hash. The job prints its
    summary as one-line JSON records: a `pipeline_summary` headline (with
    `refresh.counts`), then one `refresh_outcome` per source that did
-   anything (`pipeline.summarize_for_log`). Demo lane:
-   `infra/refresh-preview.deploy.sh` → job `govdata-refresh-preview` writes
-   only `preview_sources/*` + `gs://…/preview/`, and `publish.yml
-target=preview` deploys the `recipes-demo` Hosting channel.
+   anything (`pipeline.summarize_for_log`).
 
    **Providers: non-CKAN sources** (`services/providers/`). A recipe dir
    with a `source.json` is a dataset from another source. Bank of Israel
@@ -517,9 +512,9 @@ are still read by the authoring selector.
 
 | Area                    | File                                                                                       | Why                                                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Pipeline orchestration  | `services/page_builder/pipeline.py`                                                        | reconcile → scan → reap → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                 |
+| Pipeline orchestration  | `services/page_builder/pipeline.py`                                                        | reconcile → scan → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                        |
 | Authoring queue         | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                                     |
-| Recipe refresh          | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / GCS / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                              |
+| Recipe refresh          | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                    |
 | Providers (non-CKAN)    | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                                        |
 | Recipe contract         | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                                              |
 | GitHub issues           | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                                   |
@@ -724,9 +719,6 @@ python -m services.page_builder.pipeline --dry-run
 # GITHUB_DISPATCH_TOKEN; restricted/unavailable sources are never queued).
 # Needs GCS_STAGING_BUCKET.
 python -m services.page_builder.pipeline --source <dataset_id> --no-trigger-publish
-
-# Recipe refresh alone (defaults to the preview target — prod untouched)
-python -m services.page_builder.refresh run --source <dataset_id> --no-publish
 
 # Author a recipe (or just run /author-dataset <id> in Claude Code)
 python -m services.page_builder.author prepare <dataset_id>

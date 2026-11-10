@@ -72,16 +72,12 @@ def _reconciled_today(store, now: datetime) -> bool:
         return False
 
 
-async def _trigger_publish_github(
-    repo: str, workflow: str, branch: str, inputs: dict | None = None
-) -> str | None:
+async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> str | None:
     """Fire the GitHub Actions publish workflow (workflow_dispatch).
 
     Fire-and-forget — the API returns 204 with no run id, so we return a
     synthetic marker for the summary. Needs GITHUB_DISPATCH_TOKEN (a
     fine-grained PAT with Actions:write on this repo, from Secret Manager).
-    `inputs` are workflow_dispatch inputs (`{"target": "preview"}` deploys
-    the recipe-refresh demo channel instead of live).
     """
     token = os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip()
     if not token:
@@ -97,7 +93,7 @@ async def _trigger_publish_github(
         # exactly that — 307 → logged failure, pages built but not deployed).
         r = httpx.post(
             f"https://api.github.com/repos/{repo}/actions/workflows/{workflow}/dispatches",
-            json={"ref": branch, **({"inputs": inputs} if inputs else {})},
+            json={"ref": branch},
             headers={
                 "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github+json",
@@ -296,33 +292,12 @@ async def run_pipeline(
             scan_error = f"{type(e).__name__}: {e}"[:500]
     scan_failed = bool(scan_error) or bool(scan_summary and scan_summary.error_count)
 
-    # [1.5] reap orphaned `pending` markers left by the retired agent
-    # builder (a run that died mid-session). Recycled as `failed`, which the
-    # authoring queue treats as `new`. Nothing writes `pending` any more, so
-    # this only drains the legacy set.
-    reaped: list[str] = []
-    if not override_id and not dry_run:
-        reap_after = int(os.environ.get("PENDING_REAP_MINUTES", "120"))
-        try:
-            reaped = await asyncio.to_thread(
-                store.reap_stale_pending, older_than_minutes=reap_after
-            )
-            if reaped:
-                log.info(
-                    "reaped %d orphaned pending source(s): %s",
-                    len(reaped),
-                    ", ".join(i[:8] for i in reaped),
-                )
-        except Exception:
-            log.exception("pending reap failed — continuing")
-
     summary: dict = {
         "mode": mode,
         "dry_run": dry_run,
         "scan": (_scan_summary_dict(scan_summary) if scan_summary
                  else {"error": scan_error} if scan_error else None),
         "reconcile": reconcile_summary,
-        "reaped_pending": reaped,
         "refresh": None,
         "authoring_queued": [],
         "build_id": None,
@@ -398,7 +373,6 @@ async def run_pipeline(
                 _refresh.run_refresh,
                 store,
                 repo,
-                preview=False,
                 staging_bucket=staging_bucket,
                 only_ids=only_ids,
                 # A manual single-dataset run means "render it now", even

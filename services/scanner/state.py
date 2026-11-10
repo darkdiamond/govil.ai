@@ -23,10 +23,6 @@ class StateDB:
     def __init__(self, store: FirestoreStateStore | None = None):
         self.store = store or FirestoreStateStore()
 
-    # Scanner reads this to decide NEW / UPDATED / UNCHANGED.
-    def get_dataset_metadata_modified(self, dataset_id: str) -> datetime | None:
-        return self.store.get_dataset_metadata_modified(dataset_id)
-
     # Combined read (metadata_modified + analysis_status) for the change
     # detector — lets it also notice a `restricted` doc reappearing in CKAN.
     def get_scan_state(
@@ -67,6 +63,3 @@ class StateDB:
 
     def get_scan_history(self, limit: int = 10) -> list[dict]:
         return self.store.get_scan_history(limit=limit)
-
-    def get_all_dataset_ids(self) -> list[str]:
-        return self.store.get_all_dataset_ids()

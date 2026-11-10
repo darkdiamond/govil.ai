@@ -9,9 +9,10 @@ built from.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from unittest.mock import MagicMock
 
 from services.page_builder.selector import pick_authoring_candidates
-from services.shared.firestore import SourceRecord
+from services.shared.firestore import FirestoreStateStore, SourceRecord
 
 # Past the 2026-01-01 default floor so the age gate never interferes.
 MODIFIED = datetime(2026, 5, 1, tzinfo=UTC)
@@ -142,3 +143,19 @@ def test_notified_backlog_does_not_starve_unnotified_new_sources():
                     authoring_status="notified", authoring_issue=i) for i in range(300)]
     store = _FakeStore(backlog + [_new("waiting")])
     assert _ids(pick_authoring_candidates(store, 5)) == [("waiting", "new")]
+
+
+def _doc(doc_id: str, data: dict) -> MagicMock:
+    d = MagicMock()
+    d.id = doc_id
+    d.to_dict.return_value = data
+    return d
+
+
+def test_failed_retryable_not_starved_by_parked_docs():
+    parked = [_doc(f"p{i}", {"failed_attempts": 3}) for i in range(500)]
+    ok = _doc("ok1", {"failed_attempts": 1})
+    client = MagicMock()
+    client.collection.return_value.where.return_value.order_by.return_value.stream.return_value = iter(parked + [ok])
+    store = FirestoreStateStore(client=client)
+    assert [r.id for r in store.list_failed_retryable(limit=5)] == ["ok1"]

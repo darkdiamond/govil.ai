@@ -269,7 +269,7 @@ def _open_issue(c: Candidate, repo: str = REPO) -> int:
     title = src.title or src.id
     body = issue_body(dataset_id=src.id, title=title,
                       org=(src.organization or {}).get("title", "") or "",
-                      reason="map_available", detail=detail_text(c), preview=False,
+                      reason="map_available", detail=detail_text(c),
                       detail_caption="Map files")
     out = subprocess.run(
         ["gh", "issue", "create", "--repo", repo, "--title", issue_title(title, src.id),

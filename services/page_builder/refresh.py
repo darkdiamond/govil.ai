@@ -12,19 +12,13 @@ and — when a human has to act (recipe broke, schema moved, data outgrew
 the fetch cap) — opens a `needs-authoring` GitHub issue. A transient fetch
 failure just retries on the next run.
 
-Two targets share every step and differ only in where results land:
-    prod     `sources/<id>` + gs://<staging>/datasets/<id>/content.html
-    preview  `preview_sources/<id>` + gs://<staging>/preview/datasets/…
-             (`sources/*` is read, never written — the demo lane)
-
-CLI (what the preview Cloud Run job runs; also handy locally):
-    python -m services.page_builder.refresh run --target preview
-    python -m services.page_builder.refresh run --source <id> --no-publish
-    python -m services.page_builder.refresh overlay --out frontend/public/
+Results land in `sources/<id>` (refresh state + agent_data) and
+gs://<staging>/datasets/<id>/content.html. The daily job
+(`services.page_builder.pipeline`) drives `run_refresh`; for one dataset run
+`python -m services.page_builder.pipeline --source <id> --no-trigger-publish`.
 """
 from __future__ import annotations
 
-import argparse
 import csv
 import functools
 import gzip
@@ -37,7 +31,6 @@ import re
 import shutil
 import tempfile
 import time
-import uuid
 import weakref
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -226,48 +219,6 @@ class LocalRecipeRepo:
         if not path.is_file():
             return None
         return SourceConfig.model_validate_json(path.read_text(encoding="utf-8"))
-
-
-class GcsRecipeRepo:
-    """Recipes uploaded to gs://<bucket>/<prefix><id>/ — the preview lane
-    (`infra/refresh-preview.deploy.sh sync-recipes`)."""
-
-    def __init__(self, bucket: str, prefix: str = "recipes/"):
-        from google.cloud import storage
-
-        self._bucket = storage.Client().bucket(bucket)
-        self.prefix = prefix if prefix.endswith("/") else prefix + "/"
-
-    def list_ids(self) -> list[str]:
-        ids, with_source = set(), set()
-        for blob in self._bucket.client.list_blobs(self._bucket, prefix=self.prefix):
-            rel = blob.name[len(self.prefix):]
-            parts = rel.split("/")
-            if len(parts) == 2 and parts[1] == MANIFEST_FILENAME:
-                ids.add(parts[0])
-            elif len(parts) == 2 and parts[1] == SOURCE_CONFIG_FILENAME:
-                with_source.add(parts[0])
-        self._with_source = with_source & ids
-        return sorted(ids)
-
-    def provider_source_ids(self) -> list[str]:
-        ids = self.list_ids()
-        return [i for i in ids if i in self._with_source]
-
-    def source_config(self, dataset_id: str) -> SourceConfig | None:
-        blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{SOURCE_CONFIG_FILENAME}")
-        if not blob.exists():
-            return None
-        return SourceConfig.model_validate_json(blob.download_as_bytes())
-
-    def load(self, dataset_id: str, scratch: Path) -> Recipe:
-        def fetch(name: str, dest: Path) -> None:
-            blob = self._bucket.blob(f"{self.prefix}{dataset_id}/{name}")
-            if not blob.exists():
-                raise RecipeError(f"recipe {dataset_id} missing {name} in GCS")
-            blob.download_to_filename(str(dest))
-
-        return _load_remote(scratch / dataset_id, fetch)
 
 
 class GithubRecipeRepo:
@@ -461,10 +412,9 @@ def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:
     return Recipe.load(dest)
 
 
-def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo:
+def recipe_repo_from_env() -> LocalRecipeRepo | GithubRecipeRepo:
     """RECIPES_SOURCE:
       github:<owner/repo>@<ref>   (default: PUBLISH_GITHUB_REPO @ main)
-      gs://bucket/prefix/         (the preview lane's uploaded demo recipes)
       a local directory           (tests, local runs)
     RECIPES_FETCH (github only): `files` (default) | `tarball` — see
     `GithubRecipeRepo`.
@@ -481,9 +431,6 @@ def recipe_repo_from_env() -> LocalRecipeRepo | GcsRecipeRepo | GithubRecipeRepo
             token=os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip() or None,
             fetch=os.environ.get("RECIPES_FETCH", "files").strip().lower() or "files",
         )
-    if src.startswith("gs://"):
-        bucket, _, prefix = src[len("gs://"):].partition("/")
-        return GcsRecipeRepo(bucket, prefix or "recipes/")
     return LocalRecipeRepo(Path(src))
 
 
@@ -931,8 +878,6 @@ def fetch_inputs(
                     page_size=page_size,
                     page_timeout_s=_PAGE_TIMEOUT_S,
                     deadline=deadline,
-                    sample_target_rows=0,
-                    prefer_sample=False,
                     fields=inp.columns,
                     # The uploaded file is tried first; the datastore preview
                     # is what it must match (agent_contract.fetch_resource_csv).
@@ -942,7 +887,7 @@ def fetch_inputs(
                 )
             except FetchLimitExceeded as e:
                 raise _limit_error(e, f"input {inp.name!r}: export of {rid[:8]}") from None
-            if outcome is None or outcome.mode != "full":
+            if outcome is None:
                 raise RecipeError(
                     f"input {inp.name!r}: full fetch of {rid[:8]} failed (fetch error)",
                     reason="fetch_failed",
@@ -1375,7 +1320,7 @@ def history_model(model: dict) -> dict:
     }
 
 
-def _stage_model_history(src_id: str, model: dict, *, bucket: str, preview: bool,
+def _stage_model_history(src_id: str, model: dict, *, bucket: str,
                          write_gcs: Callable[[bytes, str, str], str],
                          recipe_version: int | None = None,
                          metadata_modified: datetime | None = None,
@@ -1385,7 +1330,6 @@ def _stage_model_history(src_id: str, model: dict, *, bucket: str, preview: bool
     is logged, never fails the refresh (the page is already staged and marked).
     `recipe_version` + `metadata_modified` let a reader tell a recipe change
     (model shape moved) from a data change."""
-    prefix = "preview/models" if preview else "models"
     ts = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
     try:
         body = gzip.compress(json.dumps(
@@ -1394,8 +1338,8 @@ def _stage_model_history(src_id: str, model: dict, *, bucket: str, preview: bool
              "model": history_model(model)},
             ensure_ascii=False, default=str, sort_keys=True,
         ).encode("utf-8"), mtime=0)
-        write_gcs(body, bucket, f"{prefix}/{src_id}/{ts}.json.gz")
-        write_gcs(body, bucket, f"{prefix}/{src_id}/latest.json.gz")
+        write_gcs(body, bucket, f"models/{src_id}/{ts}.json.gz")
+        write_gcs(body, bucket, f"models/{src_id}/latest.json.gz")
         return True
     except Exception:
         log.warning("refresh %s: writing model history failed", src_id[:8], exc_info=True)
@@ -1480,7 +1424,6 @@ def refresh_one(
     recipe: Recipe,
     *,
     store,
-    preview: bool,
     staging_bucket: str,
     work_root: Path,
     trigger: str,
@@ -1554,7 +1497,7 @@ def refresh_one(
         # even when CKAN never bumps the dataset again.
         return _mark_unchanged(
             store, src, trigger, u.reason, pc, hashes,
-            advance_version=u.reason == "inputs_hash", preview=preview, started=started,
+            advance_version=u.reason == "inputs_hash", started=started,
             transient_strikes=_strikes_after_probe(state, probe),
         )
     except ResourceRestrictedError as e:
@@ -1599,7 +1542,6 @@ def refresh_one(
             failed_version=failed_version_key(src, recipe),
             wall_budget_strikes=strikes,
             transient_strikes=transient,
-            preview=preview,
         )
         outcome = RefreshOutcome(
             src.id, "failed", trigger, e.reason, _clip(str(e)),
@@ -1607,7 +1549,7 @@ def refresh_one(
         )
         if notify and e.reason in AUTHORING_REASONS:
             outcome.issue = _queue_authoring_safely(
-                store, src, e.reason, detail=str(e), preview=preview
+                store, src, e.reason, detail=str(e)
             )
         return outcome
     except Exception as e:  # infra bug, not a data/recipe verdict
@@ -1617,7 +1559,6 @@ def refresh_one(
             error=f"{type(e).__name__}: {e}",
             reason="error",
             failed_version=failed_version_key(src, recipe),
-            preview=preview,
         )
         return RefreshOutcome(src.id, "failed", trigger, "error", _clip(str(e)))
 
@@ -1649,13 +1590,12 @@ def refresh_one(
                 and pc["content_same"] and not staging_suspect):
             out = _mark_unchanged(
                 store, src, trigger, "content_hash", pc, hashes,
-                advance_version=True, preview=preview, started=started,
+                advance_version=True, started=started,
                 rows=snapshot["rows"],
             )
             out.fetch_via = fetch_via
             return out
-    prefix = "preview/datasets" if preview else "datasets"
-    rel = f"{prefix}/{src.id}/{CONTENT_FILENAME}"
+    rel = f"datasets/{src.id}/{CONTENT_FILENAME}"
     previous_html: bytes | None = None
     staged = False
     try:
@@ -1677,7 +1617,6 @@ def refresh_one(
             agent_data=page.agent_data,
             page_path=f"datasets/{src.id}/",
             snapshot=snapshot,
-            preview=preview,
             **hashes,
         )
     except Exception as e:
@@ -1701,7 +1640,6 @@ def refresh_one(
                 error=f"{type(e).__name__}: {e}",
                 reason=STAGE_FAILED,
                 failed_version=failed_version_key(src, recipe),
-                preview=preview,
             )
         except Exception:
             log.exception("refresh %s: recording the staging failure failed", src.id[:8])
@@ -1709,7 +1647,7 @@ def refresh_one(
             src.id, "failed", trigger, STAGE_FAILED, _clip(str(e)),
             round(time.monotonic() - started, 2),
         )
-    _stage_model_history(src.id, page.model, bucket=staging_bucket, preview=preview,
+    _stage_model_history(src.id, page.model, bucket=staging_bucket,
                          write_gcs=write_gcs, recipe_version=rv,
                          metadata_modified=src.metadata_modified)
     return RefreshOutcome(
@@ -1728,7 +1666,7 @@ def refresh_one(
 
 def _mark_unchanged(
     store, src, trigger: str, reason: str, pc: dict, hashes: dict, *,
-    advance_version: bool, preview: bool, started: float, rows: dict | None = None,
+    advance_version: bool, started: float, rows: dict | None = None,
     transient_strikes: dict | None = None,
 ) -> RefreshOutcome:
     """Record a precheck skip (the live page stands). A failed state write is
@@ -1748,7 +1686,6 @@ def _mark_unchanged(
             reason=reason,
             advance_version=advance_version,
             transient_strikes=transient_strikes,
-            preview=preview,
         )
     except Exception as e:
         log.exception("refresh %s: recording the unchanged state failed", src.id[:8])
@@ -1808,7 +1745,7 @@ def snapshot_diff(before: dict | None, after: dict) -> dict:
     }
 
 
-def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool = False) -> int | None:
+def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
     """Flag a dataset for local authoring and open its issue (once).
 
     A recorded issue is reused while it is open or was closed as not
@@ -1816,13 +1753,13 @@ def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool 
     new need (e.g. the recipe later failed), so a fresh issue is opened."""
     from . import notify as _notify
 
-    state = store.get_refresh_state(src.id, preview=preview)
-    store.mark_authoring_needed(src.id, reason, preview=preview)
+    state = store.get_refresh_state(src.id)
+    store.mark_authoring_needed(src.id, reason)
     recorded = state.get("authoring_issue")
     if recorded and _notify.issue_state(int(recorded)) != "completed":
         # Back to `notified`, which mark_authoring_needed just overwrote:
         # the daily queue skips notified sources.
-        store.set_authoring_issue(src.id, int(recorded), preview=preview)
+        store.set_authoring_issue(src.id, int(recorded))
         return int(recorded)
     number = _notify.open_authoring_issue(
         dataset_id=src.id,
@@ -1830,10 +1767,9 @@ def queue_authoring(store, src, reason: str, *, detail: str = "", preview: bool 
         org=(src.organization or {}).get("title", "") or "",
         reason=reason,
         detail=detail,
-        preview=preview,
     )
     if number is not None:
-        store.set_authoring_issue(src.id, number, preview=preview)
+        store.set_authoring_issue(src.id, number)
     return number
 
 
@@ -1868,7 +1804,6 @@ def run_refresh(
     store,
     repo,
     *,
-    preview: bool,
     staging_bucket: str,
     only_ids: list[str] | None = None,
     cap: int | None = None,
@@ -1943,21 +1878,21 @@ def run_refresh(
                     # the open issue is reused every night until then.
                     if notify:
                         outcome.issue = _queue_authoring_safely(
-                            store, src, "recipe_failed", detail=str(e), preview=preview
+                            store, src, "recipe_failed", detail=str(e)
                         )
                     outcomes.append(outcome)
                     continue
                 if recipe.manifest.heavy:
                     heavy.append((dataset_id, recipe))
                     continue
-            state = store.get_refresh_state(dataset_id, preview=preview)
+            state = store.get_refresh_state(dataset_id)
             trigger = "forced" if force else needs_refresh(src, state, recipe)
             if trigger is None:
                 outcomes.append(RefreshOutcome(dataset_id, "skipped", reason="up_to_date"))
                 continue
             log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
             outcome = refresh_one(
-                src, recipe, store=store, preview=preview,
+                src, recipe, store=store,
                 staging_bucket=staging_bucket, work_root=work_root,
                 trigger=trigger, previous_state=state, notify=notify,
                 defer_transient=len(deferred) < retry_cap, **kwargs,
@@ -1981,7 +1916,7 @@ def run_refresh(
                 outcomes[i] = RefreshOutcome(src.id, "skipped", reason="staging_down")
                 continue
             outcome = refresh_one(
-                src, recipe, store=store, preview=preview,
+                src, recipe, store=store,
                 staging_bucket=staging_bucket, work_root=work_root,
                 trigger=trigger, previous_state=state, notify=notify, **kwargs,
             )
@@ -1994,7 +1929,6 @@ def run_refresh(
     unchanged = [o.id for o in outcomes if o.status == "unchanged"]
     failed = [o.id for o in outcomes if o.status == "failed"]
     return {
-        "target": "preview" if preview else "prod",
         "recipes": len(ids),
         "refreshed": refreshed,
         "unchanged": unchanged,
@@ -2002,134 +1936,3 @@ def run_refresh(
         "staging_down": staging_down,
         "outcomes": [o.__dict__ for o in outcomes],
     }
-
-
-# ── preview overlay (publish.yml, target=preview) ────────────────────────
-
-
-def overlay_preview(store, out_dir: Path) -> list[str]:
-    """Lay the preview lane over a freshly published prod tree.
-
-    publish.py has already written prod `datasets/<id>/agent_data.json` and
-    `data/manifest.json`; content.html for preview ids was rsynced from
-    gs://…/preview/datasets/ by the workflow. Here: replace agent_data.json
-    for every preview-refreshed id and patch its manifest summary so cards
-    and the page agree.
-    """
-    from .schema import AgentData
-
-    done: dict[str, dict] = {}
-    for dataset_id, state in store.iter_preview_states():
-        # agent_data is only ever written by a successful refresh, so its
-        # presence (not refresh_status, which a later failure overwrites)
-        # is what says "this id has a preview page to show".
-        ad = state.get("agent_data")
-        if not ad:
-            continue
-        AgentData.model_validate(ad)
-        d = out_dir / "datasets" / dataset_id
-        if not d.is_dir():
-            log.warning("overlay: %s has no published dir — skipped", dataset_id[:8])
-            continue
-        (d / "agent_data.json").write_text(
-            json.dumps(ad, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        done[dataset_id] = ad
-    manifest_path = out_dir / "data" / "manifest.json"
-    if done and manifest_path.is_file():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        for entry in manifest.get("datasets") or []:
-            ad = done.get(entry.get("id"))
-            if ad:
-                for k in ("summary_he", "temporal_coverage", "spatial_coverage"):
-                    if ad.get(k):
-                        entry[k] = ad[k]
-        manifest_path.write_text(
-            json.dumps(manifest, ensure_ascii=False), encoding="utf-8"
-        )
-    return sorted(done)
-
-
-# ── CLI ──────────────────────────────────────────────────────────────────
-
-
-def _cli() -> None:
-    p = argparse.ArgumentParser(description="Deterministic recipe refresh (no LLM).")
-    sub = p.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("run", help="refresh eligible recipe'd sources")
-    r.add_argument("--target", choices=("prod", "preview"),
-                   default=os.environ.get("REFRESH_TARGET", "preview"))
-    r.add_argument("--source", action="append", help="limit to dataset id(s)")
-    r.add_argument("--force", action="store_true", help="refresh even if up to date")
-    r.add_argument("--no-publish", action="store_true")
-    r.add_argument("--no-notify", action="store_true")
-    o = sub.add_parser("overlay", help="apply the preview lane to a published tree")
-    o.add_argument("--out", required=True, type=Path)
-    args = p.parse_args()
-
-    from services.shared.firestore import FirestoreStateStore
-
-    store = FirestoreStateStore()
-    if args.cmd == "overlay":
-        ids = overlay_preview(store, args.out)
-        print(json.dumps({"overlaid": ids}, indent=2))
-        return
-
-    preview = args.target == "preview"
-    bucket = os.environ.get("GCS_STAGING_BUCKET", "")
-    if not bucket:
-        raise SystemExit("GCS_STAGING_BUCKET must be set")
-    run_id = f"{datetime.now(UTC):%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:6]}"
-    started = datetime.now(UTC)
-    repo = recipe_repo_from_env()
-    # Provider sources (BoI, …) get their doc + version from the sync step,
-    # as the daily job does. Prod only: it writes `sources/<id>`, and the
-    # preview lane reads unmerged recipes, so it must never touch prod docs.
-    # A preview of a provider recipe therefore needs its prod doc to exist.
-    providers_summary = None
-    if not preview:
-        from services.providers.sync import sync_provider_sources
-
-        providers_summary = sync_provider_sources(store, repo, only_ids=args.source)
-    summary = run_refresh(
-        store,
-        repo,
-        preview=preview,
-        staging_bucket=bucket,
-        only_ids=args.source,
-        force=args.force,
-        notify=not args.no_notify,
-    )
-    summary["providers"] = providers_summary
-    summary["run_id"] = run_id
-    summary["started_at"] = started
-    summary["completed_at"] = datetime.now(UTC)
-
-    publish = None
-    if summary["refreshed"] and not args.no_publish:
-        import asyncio
-
-        from .pipeline import _trigger_publish_github
-
-        publish = asyncio.run(
-            _trigger_publish_github(
-                os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai"),
-                os.environ.get("PUBLISH_GITHUB_WORKFLOW", "publish.yml"),
-                os.environ.get("PUBLISH_BRANCH", "main"),
-                inputs={"target": "preview"} if preview else None,
-            )
-        )
-    summary["publish"] = publish
-    if preview:
-        try:
-            store.record_preview_run(run_id, summary)
-        except Exception:
-            log.exception("failed to record preview run report")
-    print(json.dumps(summary, indent=2, default=str, ensure_ascii=False))
-    if summary["failed"] and not (summary["refreshed"] or summary["unchanged"]):
-        raise SystemExit(1)
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
-    _cli()

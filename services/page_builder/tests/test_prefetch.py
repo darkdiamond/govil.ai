@@ -164,9 +164,8 @@ def test_preview_total_is_exact_not_the_planner_estimate(monkeypatch, tmp_path):
     out = agent_contract.fetch_resource_records_to_file(
         "rid", preview["total"], tmp_path / "out.csv", max_bytes=1_000_000,
         page_size=100_000, page_timeout_s=5.0, deadline=float("inf"),
-        sample_target_rows=0,
     )
-    assert out is not None and out.mode == "full" and out.rows == 7
+    assert out is not None and out.rows == 7
 
 
 def test_an_estimated_total_is_logged(monkeypatch, caplog):

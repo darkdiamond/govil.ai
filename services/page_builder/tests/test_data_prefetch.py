@@ -2,9 +2,8 @@
 and resource selection — what the recipe refresh and `author prepare` fetch.
 
 The fetcher pages datastore_search host-side and streams one CSV per
-resource; every failure/gate path must degrade to "no file". Over-cap
-resources fall back to a deterministic sample when sampling is requested;
-without sampling, a crossed byte cap or wall budget raises FetchLimitExceeded.
+resource, full or nothing: every failure/gate path must degrade to "no file",
+and a crossed byte cap or wall budget raises FetchLimitExceeded.
 """
 from __future__ import annotations
 
@@ -67,8 +66,8 @@ def _make_records(n: int) -> list[dict]:
     return [{"_id": i + 1, "שם": f"רשומה {i}", "ערך": i * 1.5 if i % 3 else None} for i in range(n)]
 
 
-def _fetch(dest, total, *, max_bytes=10_000_000, page_size=4, sample_rows=0,
-           prefer_sample=False, resource_id="res-1", deadline=None):
+def _fetch(dest, total, *, max_bytes=10_000_000, page_size=4, resource_id="res-1",
+           deadline=None):
     return fetch_resource_records_to_file(
         resource_id,
         total,
@@ -77,8 +76,6 @@ def _fetch(dest, total, *, max_bytes=10_000_000, page_size=4, sample_rows=0,
         page_size=page_size,
         page_timeout_s=5.0,
         deadline=time.monotonic() + 60 if deadline is None else deadline,
-        sample_target_rows=sample_rows,
-        prefer_sample=prefer_sample,
     )
 
 
@@ -89,7 +86,6 @@ def test_full_export_pages_and_normalizes(monkeypatch, tmp_path):
 
     outcome = _fetch(dest, total=10)
     assert outcome is not None
-    assert outcome.mode == "full"
     assert outcome.rows == 10
     assert calls == [0, 4, 8]
 
@@ -112,8 +108,6 @@ def test_gates_return_none(monkeypatch, tmp_path):
     assert _fetch(dest, total=10, resource_id="") is None
     assert _fetch(dest, total=0) is None
     assert _fetch(dest, total=10, max_bytes=0) is None
-    # prefer_sample with sampling disabled: no full fetch, no sample → None
-    assert _fetch(dest, total=10, prefer_sample=True, sample_rows=0) is None
 
 
 def test_pages_after_the_first_are_sized_by_row_width(monkeypatch, tmp_path):
@@ -160,60 +154,22 @@ def test_http_error_returns_none_and_removes_file(monkeypatch, tmp_path):
     assert not dest.exists()
 
 
-def test_byte_cap_falls_back_to_sample(monkeypatch, tmp_path):
-    records = _make_records(100)
-    calls = _paged_urlopen(monkeypatch, records, page_size_expected=4)
-    dest = tmp_path / "d.csv"
-
-    # Cap far below the full CSV: full fetch aborts mid-stream, sample of
-    # ~2 blocks (8 rows) fits.
-    outcome = _fetch(dest, total=100, max_bytes=600, sample_rows=8)
-    assert outcome is not None
-    assert outcome.mode == "sample"
-    assert outcome.rows == 8
-    assert "blocks" in outcome.sample_note
-    # Sample offsets restart from 0 with stride 50 after the aborted walk.
-    assert calls[-2:] == [0, 50]
-
-
-def test_byte_cap_without_sampling_raises(monkeypatch, tmp_path):
+def test_byte_cap_raises(monkeypatch, tmp_path):
     _paged_urlopen(monkeypatch, _make_records(100), page_size_expected=4)
     dest = tmp_path / "d.csv"
     with pytest.raises(FetchLimitExceeded) as e:
-        _fetch(dest, total=100, max_bytes=600, sample_rows=0)
+        _fetch(dest, total=100, max_bytes=600)
     assert e.value.limit == "bytes"
     assert not dest.exists()
 
 
-def test_wall_budget_without_sampling_raises(monkeypatch, tmp_path):
+def test_wall_budget_raises(monkeypatch, tmp_path):
     _paged_urlopen(monkeypatch, _make_records(100), page_size_expected=4)
     dest = tmp_path / "d.csv"
     with pytest.raises(FetchLimitExceeded) as e:
         _fetch(dest, total=100, deadline=time.monotonic() - 1)
     assert e.value.limit == "wall_budget"
     assert not dest.exists()
-
-
-def test_wall_budget_with_sampling_returns_none(monkeypatch, tmp_path):
-    _paged_urlopen(monkeypatch, _make_records(100), page_size_expected=4)
-    dest = tmp_path / "d.csv"
-    assert _fetch(dest, total=100, sample_rows=8, deadline=time.monotonic() - 1) is None
-    assert not dest.exists()
-
-
-def test_sample_offsets_are_deterministic(monkeypatch, tmp_path):
-    records = _make_records(100)
-    calls = _paged_urlopen(monkeypatch, records, page_size_expected=4)
-    dest = tmp_path / "d.csv"
-
-    outcome = _fetch(dest, total=100, sample_rows=8, prefer_sample=True)
-    assert outcome is not None
-    assert outcome.mode == "sample"
-    # ceil(8/4)=2 blocks, stride max(100//2, 4)=50 → offsets 0, 50
-    assert calls == [0, 50]
-    rows = list(csv.DictReader(io.StringIO(dest.read_text(encoding="utf-8"))))
-    assert [r["שם"] for r in rows[:2]] == ["רשומה 0", "רשומה 1"]
-    assert rows[4]["שם"] == "רשומה 50"
 
 
 # ---- resource selection -------------------------------------------------

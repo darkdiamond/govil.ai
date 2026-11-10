@@ -56,7 +56,7 @@ def _datastore(monkeypatch):
     def fake(rid, total, dest, **kw):
         calls.append(kw)
         dest.write_text("שם,ערך,קוד\r\n", encoding="utf-8")
-        return FetchOutcome(rows=total, bytes=10, mode="full")
+        return FetchOutcome(rows=total, bytes=10)
 
     monkeypatch.setattr(ac, "fetch_resource_records_to_file", fake)
     return calls
@@ -92,7 +92,7 @@ def _export(tmp_path, preview, total=2, fields=None, resource=RES, max_bytes=1_0
     out = ac.fetch_resource_export(
         resource["id"], total, dest, resource=resource, preview=preview,
         max_bytes=max_bytes, deadline=time.monotonic() + 60, fields=fields,
-        page_size=page_size, page_timeout_s=5.0, sample_target_rows=0, prefer_sample=False,
+        page_size=page_size, page_timeout_s=5.0,
     )
     return out, dest
 
@@ -106,7 +106,7 @@ def test_file_normalizes_to_the_datastore_export(monkeypatch, tmp_path, probes):
     ds = _datastore(monkeypatch)
     samples = [{"_id": 1, "שם": "חיפה", "ערך": 1.5, "קוד": "007"}]
     out, dest = _export(tmp_path, _preview(samples))
-    assert out.via == "file" and out.rows == 2 and out.mode == "full"
+    assert out.via == "file" and out.rows == 2
     # BOM, empty trailing columns, blank rows and edge whitespace gone;
     # numbers as the datastore JSON writes them; text kept verbatim.
     assert dest.read_bytes().decode("utf-8") == EXPORT
@@ -131,7 +131,7 @@ def _export_capped(tmp_path, max_bytes, file_max_bytes, fields):
     out = ac.fetch_resource_export(
         RES["id"], 2, dest, resource=RES, preview=_preview(), max_bytes=max_bytes,
         file_max_bytes=file_max_bytes, deadline=time.monotonic() + 60, fields=fields,
-        page_size=1, page_timeout_s=5.0, sample_target_rows=0, prefer_sample=False,
+        page_size=1, page_timeout_s=5.0,
     )
     return out, dest
 

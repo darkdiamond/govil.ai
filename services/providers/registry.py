@@ -39,12 +39,6 @@ def enabled_providers() -> dict[str, SourceProvider]:
     return _enabled
 
 
-def reset_providers() -> None:
-    """Forget the cached instances (tests; a long-lived process re-reading env)."""
-    global _enabled
-    _enabled = None
-
-
 def provider_for_key(key: str | None,
                      providers: Mapping[str, SourceProvider] | None = None
                      ) -> SourceProvider | None:

@@ -172,8 +172,8 @@ def test_preview_and_fetch_share_one_download(boi, tmp_path):
     pv = preview_fn("boi-br")
     assert pv["total"] == 3 and pv["fields"][0]["id"] == "SERIES_CODE"
     out = fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10**6, page_size=1,
-                   page_timeout_s=1, deadline=0, sample_target_rows=0, prefer_sample=False)
-    assert out.mode == "full" and out.rows == 3
+                   page_timeout_s=1, deadline=0)
+    assert out.rows == 3
     assert (tmp_path / "x.csv").read_bytes() == boi.csv_bytes(res)
     assert sum("/BR/" in c and "format=csv" in c for c in boi.calls) == 1
     assert preview_fn("unknown") is None
@@ -408,7 +408,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
                           metadata_modified=None, title="x")
     store = SimpleNamespace(mark_refresh_failed=lambda *a, **k: None)
     recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1), files=[], root=tmp_path)
-    out = rf.refresh_one(src, recipe, store=store, preview=True, staging_bucket="b",
+    out = rf.refresh_one(src, recipe, store=store, staging_bucket="b",
                          work_root=tmp_path, trigger="never_refreshed", notify=False,
                          providers={"boi_sdmx": boi})
     assert out.reason == "fetch_failed"
@@ -420,7 +420,7 @@ def test_refresh_of_a_provider_doc_never_calls_ckan(boi, monkeypatch, tmp_path):
 def test_refresh_skips_a_doc_whose_provider_is_disabled(tmp_path):
     src = SimpleNamespace(id="boi-x", provider="boi_sdmx", resources=[])
     recipe = SimpleNamespace(manifest=SimpleNamespace(recipe_version=1))
-    out = rf.refresh_one(src, recipe, store=None, preview=True, staging_bucket="b",
+    out = rf.refresh_one(src, recipe, store=None, staging_bucket="b",
                          work_root=tmp_path, trigger="never_refreshed", providers={})
     assert (out.status, out.reason) == ("skipped", "provider_disabled:boi_sdmx")
 

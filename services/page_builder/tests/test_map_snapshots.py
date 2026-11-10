@@ -188,7 +188,7 @@ def test_fetch_inputs_writes_snapshot_without_ckan(tmp_path):
         assert rid == RID
         with open(dest, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerows([cols, *rows])
-        return FetchOutcome(rows=1, bytes=dest.stat().st_size, mode="full")
+        return FetchOutcome(rows=1, bytes=dest.stat().st_size)
 
     out = rf.fetch_inputs(recipe, resources, tmp_path / "d", preview_fn=preview, fetch_fn=fetch,
                           snapshot_rows=lambda r: r[:2])
@@ -220,28 +220,6 @@ def test_github_repo_fetches_snapshot_files(tmp_path, monkeypatch):
     monkeypatch.setattr(repo, "_get", get)
     recipe = repo.load(DS, tmp_path / "scratch")
     assert fetched[-1] == "geo.geojson" and (recipe.root / "geo.geojson").is_file()
-
-
-def test_gcs_repo_fetches_snapshot_files(tmp_path):
-    recipes = _with_snapshot(tmp_path)
-
-    class Blob:
-        def __init__(self, name):
-            self.path = recipes / name[len("recipes/"):]
-
-        def exists(self):
-            return self.path.is_file()
-
-        def download_to_filename(self, dest):
-            shutil.copyfile(self.path, dest)
-
-    repo = rf.GcsRecipeRepo.__new__(rf.GcsRecipeRepo)
-    repo._bucket = type("B", (), {"blob": lambda self, n: Blob(n)})()
-    repo.prefix = "recipes/"
-    assert (repo.load(DS, tmp_path / "scratch").root / "geo.geojson").is_file()
-    (recipes / DS / "geo.geojson").unlink()
-    with pytest.raises(RecipeError, match=r"missing geo\.geojson"):
-        repo.load(DS, tmp_path / "scratch2")
 
 
 # ── author verify with a snapshot input ──────────────────────────────────
@@ -483,7 +461,7 @@ def _events_ckan():
     def fetch(rid, total, dest, **kw):
         with open(dest, "w", newline="", encoding="utf-8") as f:
             csv.writer(f).writerows([cols, ["2025", "1", "צפון", "4"]])
-        return FetchOutcome(rows=1, bytes=dest.stat().st_size, mode="full")
+        return FetchOutcome(rows=1, bytes=dest.stat().st_size)
 
     return preview, fetch
 
@@ -618,7 +596,7 @@ def _refresh_env(tmp_path, monkeypatch):
 
     def run(files):
         return rf.run_refresh(
-            store, rf.LocalRecipeRepo(recipes), preview=True, staging_bucket="bkt",
+            store, rf.LocalRecipeRepo(recipes), staging_bucket="bkt",
             work_root=tmp_path / "work",
             write_gcs=lambda d, b, r: staged.__setitem__(r, d) or r,
             read_gcs=lambda b, r: staged.get(r),
@@ -626,7 +604,7 @@ def _refresh_env(tmp_path, monkeypatch):
         )
 
     def state():
-        return store.get_refresh_state(DS, preview=True)
+        return store.get_refresh_state(DS)
 
     return SimpleNamespace(store=store, src=src, run=run, state=state, issues=issues)
 
