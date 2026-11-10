@@ -101,3 +101,19 @@ export function loadSearchIndex(): Promise<SearchIndex> {
   }
   return searchIndexCache;
 }
+
+/** Memoize an async loader without pinning a failure: a rejected attempt is
+ *  forgotten, so the next call runs `fn` again. Concurrent callers share the
+ *  in-flight promise. */
+export function memoRetry<T>(fn: () => Promise<T>): () => Promise<T> {
+  let pending: Promise<T> | null = null;
+  return () => {
+    if (!pending) {
+      pending = fn().catch((e) => {
+        pending = null;
+        throw e;
+      });
+    }
+    return pending;
+  };
+}

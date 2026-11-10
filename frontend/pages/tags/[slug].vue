@@ -17,7 +17,7 @@ interface Chip {
 // Built from the slim index, not the server-only manifest: tag chips are
 // NuxtLinks, and with payloadExtraction off a client-side navigation
 // re-runs this fetcher in the browser.
-const { data } = await useAsyncData(`tag-${slug.value}`, async () => {
+const { data, error } = await useAsyncData(`tag-${slug.value}`, async () => {
   const m = await loadSearchIndex();
   const index = m.tag_index ?? {};
   const found = Object.entries(index).find(([, t]) => t.slug === slug.value);
@@ -50,6 +50,14 @@ const { data } = await useAsyncData(`tag-${slug.value}`, async () => {
   };
 });
 
+// A failed fetch on client-side navigation (offline, 5xx) is not a 404.
+if (error.value) {
+  throw createError({
+    statusCode: 503,
+    statusMessage: "Tag unavailable",
+    fatal: true,
+  });
+}
 if (!data.value || data.value.entries.length === 0) {
   throw createError({
     statusCode: 404,
