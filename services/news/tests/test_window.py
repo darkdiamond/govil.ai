@@ -162,6 +162,16 @@ def test_failed_live_run_keeps_the_cursor(live, monkeypatch, capsys):
     assert _FakeArticles.cursor == CURSOR
 
 
+def test_model_error_in_a_story_keeps_the_cursor(live, monkeypatch, capsys):
+    day = {"published": [], "candidates": 1, "briefs": 1, "skipped": [], "model_errors": 1,
+           "rejected": [{"signal_keys": ["k"], "reason": "error", "headline": None}]}
+    monkeypatch.setattr(run, "write_day", lambda *_a, **_k: day)
+    assert run.main(live) == 0
+    s = _summary(capsys)
+    assert s["status"] == "idle" and s["cursor_advanced"] is False
+    assert _FakeArticles.cursor == CURSOR
+
+
 @pytest.mark.parametrize("extra", [["--since-hours", "3"], ["--dataset", "A"]])
 def test_partial_live_runs_keep_the_cursor(live, capsys, extra):
     assert run.main(live + extra) == 0

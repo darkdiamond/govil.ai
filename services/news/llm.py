@@ -57,8 +57,13 @@ class OpenRouter:
                 if r.status_code in (401, 402, 403):
                     raise LLMUnavailable(f"OpenRouter refused the key: HTTP {r.status_code} {r.text[:200]}")
                 if r.status_code == 200:
-                    data = r.json()
-                    if "error" in data and not data.get("choices"):
+                    try:
+                        data = r.json()
+                    except ValueError:  # a 200 with a cut-off or HTML body: retry like a 5xx
+                        data = None
+                    if not isinstance(data, dict):
+                        err = f"HTTP 200 with a non-JSON body: {r.text[:200]}"
+                    elif "error" in data and not data.get("choices"):
                         err = json.dumps(data["error"])[:300]
                     else:
                         self.calls += 1

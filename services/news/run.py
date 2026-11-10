@@ -40,7 +40,7 @@ from . import images as images_mod
 from .editor import choose, eligible
 from .ledger import Ledger
 from .links import attach_links, load_edges
-from .llm import LLMUnavailable
+from .llm import LLMError, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
@@ -184,6 +184,7 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
     briefs, skipped = choose(llm, cands, catalog, recent, max_briefs=max_per_day,
                              today=today.isoformat())
     published, rejected = [], []
+    model_errors = 0  # stories lost to the model service, not to an editorial decision
     for brief in briefs:
         ledger = Ledger()
         kw = {"fetcher": fetcher} if fetcher else {}
@@ -194,6 +195,10 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
                         max_tool_calls=max_tool_calls)
         except LLMUnavailable:
             raise  # the key is refused: no point writing the next story
+        except LLMError as e:  # still failing after retries: the story was never judged
+            log.exception("news: writing %s failed on the model service", brief["signal_keys"])
+            model_errors += 1
+            out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         except Exception as e:  # one story's crash must not cost the day's others
             log.exception("news: writing %s crashed", brief["signal_keys"])
             out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
@@ -231,7 +236,7 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
         store.publish(doc, files)
         published.append(slug)
     return {"candidates": len(cands), "briefs": len(briefs), "published": published,
-            "rejected": rejected, "skipped": skipped[:20]}
+            "rejected": rejected, "skipped": skipped[:20], "model_errors": model_errors}
 
 
 def _row(s: Signal, cat: dict) -> str:
@@ -364,7 +369,11 @@ def main(argv: list[str] | None = None) -> int:
         summary |= day | {"status": "ok" if day["published"] else "idle"}
         if live and day["published"]:
             summary["publish_dispatch"] = _dispatch_publish()
-        if live and window["upto"] and not (a.dataset or a.models_dir):
+        if live and window["upto"] and not (a.dataset or a.models_dir) and day.get("model_errors"):
+            # A story the model service never let us finish is not a story
+            # judged: keep the window so the next run sees its signals again.
+            summary["cursor_advanced"] = False
+        elif live and window["upto"] and not (a.dataset or a.models_dir):
             # Only a full run that got this far closes its window; a failed
             # one leaves it for the next run (cooldown + used signal keys stop
             # a story it did publish from being written twice). A --dataset
