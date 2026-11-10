@@ -9,3 +9,17 @@ from __future__ import annotations
 # `total_estimation_threshold` CKAN estimates; set past any table we read, it
 # counts exactly (`count(*)`: +0.6s on a 4.2M-row table).
 EXACT_TOTAL_THRESHOLD = 1_000_000_000
+
+
+def is_authorization_error(payload: object) -> bool:
+    """True when a CKAN JSON envelope carries an Authorization Error.
+
+    CKAN reports a restricted or removed resource/package as `{"success":
+    false, "error": {"__type": "Authorization Error", …}}`, usually with HTTP
+    403 (rarely 200). A 403 without that body is something else: data.gov.il's
+    WAF answers a refused User-Agent with its own HTML page.
+    """
+    if not isinstance(payload, dict):
+        return False
+    err = payload.get("error") or {}
+    return isinstance(err, dict) and "Authorization" in str(err.get("__type") or "")

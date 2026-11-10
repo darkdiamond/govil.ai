@@ -36,7 +36,8 @@ def harness(monkeypatch):
 
         async def scan(self, **kw):
             return SimpleNamespace(datasets_scanned=0, datasets_new=0,
-                                   datasets_updated=0, datasets_unchanged=0, errors=[])
+                                   datasets_updated=0, datasets_unchanged=0, errors=[],
+                                   error_count=0)
 
     monkeypatch.setattr(pipeline, "Scanner", _Scanner)
     h.selected = [(SourceRecord(id="new1", title="n"), "new"),
@@ -277,3 +278,127 @@ def test_summary_log_without_a_refresh():
     assert [json.loads(ln) for ln in lines] == [
         {"pipeline_summary": {"status": "refresh_unavailable", "refresh": None}}
     ]
+
+
+# ── scan and reconcile failures: the run goes on, and ends red ──────────────
+
+
+def _failing_scanner(monkeypatch, *, raises=True, errors=()):
+    class _Scanner:
+        def __init__(self, **kw):
+            pass
+
+        async def scan(self, **kw):
+            if raises:
+                raise RuntimeError("CKAN is down")
+            return SimpleNamespace(datasets_scanned=3, datasets_new=0, datasets_updated=0,
+                                   datasets_unchanged=2, errors=list(errors),
+                                   error_count=len(errors))
+
+    monkeypatch.setattr(pipeline, "Scanner", _Scanner)
+
+
+def test_scan_crash_still_refreshes_queues_publishes_and_goes_red(harness, monkeypatch):
+    _failing_scanner(monkeypatch)
+    harness.refreshed = ["rec1"]
+    s = _run()
+    assert harness.refresh_kw is not None  # the refresh ran
+    assert harness.queued and harness.published
+    assert s["scan"] == {"error": "RuntimeError: CKAN is down"}
+    assert s["status"] == "scan_failed" and s["status"] in pipeline.FAILED_RUN_STATUSES
+
+
+def test_per_dataset_scan_errors_turn_the_run_red(harness, monkeypatch):
+    _failing_scanner(monkeypatch, raises=False, errors=["abcd1234: RuntimeError: x"])
+    s = _run()
+    assert s["scan"]["error_count"] == 1
+    assert s["status"] == "scan_failed"
+
+
+def test_dry_run_reports_a_failed_scan(harness, monkeypatch):
+    # A dry run is the deploy smoke test: it must not hide a broken scan.
+    _failing_scanner(monkeypatch)
+    s = _run(dry_run=True)
+    assert s["status"] == "scan_failed"
+
+
+def test_refresh_failure_outranks_a_failed_scan(harness, monkeypatch):
+    _failing_scanner(monkeypatch)
+
+    def boom(*a, **kw):
+        raise RuntimeError("refresh crashed")
+
+    monkeypatch.setattr(rf, "run_refresh", boom)
+    assert _run()["status"] == "refresh_failed"
+
+
+def test_run_status_precedence():
+    kw = {"refresh_broken": False, "scan_failed": False, "authoring_broken": False,
+          "reconcile_failed": False, "refreshed": False}
+    assert pipeline._run_status(**kw) == "idle"
+    assert pipeline._run_status(**{**kw, "refreshed": True}) == "ok"
+    assert pipeline._run_status(**{**kw, "reconcile_failed": True, "refreshed": True}) \
+        == "reconcile_failed"
+    assert pipeline._run_status(**{**kw, "reconcile_failed": True,
+                                   "authoring_broken": True}) == "authoring_failed"
+    assert pipeline._run_status(**{**kw, "authoring_broken": True,
+                                   "scan_failed": True}) == "scan_failed"
+    assert pipeline._run_status(**{**kw, "scan_failed": True,
+                                   "refresh_broken": True}) == "refresh_failed"
+
+
+def _due_reconcile(harness, monkeypatch, summary_or_exc):
+    """Make today's sweep due and stub the sweep itself."""
+    import services.scanner.client as scanner_client
+    from services.page_builder import reconcile
+
+    markers = []
+    store = pipeline.FirestoreStateStore()
+    store.get_job_marker = lambda name: {}
+    store.set_job_marker = lambda name, fields: markers.append((name, fields))
+    monkeypatch.setattr(pipeline, "FirestoreStateStore", lambda: store)
+    monkeypatch.setattr(pipeline, "_reconcile_due", lambda *a, **k: True)
+    monkeypatch.setenv("RECONCILE_ENABLED", "true")
+
+    class _Ckan:
+        def __init__(self, **kw):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(scanner_client, "CKANClient", _Ckan)
+
+    async def sweep(store, client, **kw):
+        if isinstance(summary_or_exc, Exception):
+            raise summary_or_exc
+        return summary_or_exc
+
+    monkeypatch.setattr(reconcile, "reconcile_sources", sweep)
+    return markers
+
+
+def test_aborted_reconcile_goes_red_and_leaves_no_marker(harness, monkeypatch):
+    markers = _due_reconcile(harness, monkeypatch,
+                             {"checked": 9, "marked_unavailable": [], "recovered": [],
+                              "aborted": "too_many_gone"})
+    s = _run()
+    assert s["status"] == "reconcile_failed" and s["status"] in pipeline.FAILED_RUN_STATUSES
+    assert markers == []  # the afternoon run sweeps again
+
+
+def test_crashed_reconcile_goes_red(harness, monkeypatch):
+    markers = _due_reconcile(harness, monkeypatch, RuntimeError("sweep broke"))
+    s = _run()
+    assert s["status"] == "reconcile_failed" and markers == []
+
+
+def test_clean_reconcile_records_the_marker(harness, monkeypatch):
+    markers = _due_reconcile(harness, monkeypatch,
+                             {"checked": 9, "marked_unavailable": [], "recovered": [],
+                              "aborted": None})
+    s = _run()
+    assert s["status"] == "idle" and markers and markers[0][0] == "reconcile"

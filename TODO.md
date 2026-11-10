@@ -8,6 +8,12 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **The scanner's CKAN client ignores `CKAN_USER_AGENT`.** `services/scanner/client.py` sends a
+  hardcoded Chrome User-Agent, while the builder's fetches (`agent_contract._CKAN_BROWSER_UA`) use
+  `govdata-builder/1.0` or the env override. A WAF change then needs a code change for the scan and
+  the reconcile probes. Fix: one User-Agent source in `services/shared/ckan.py`, after checking from
+  Cloud Run that the builder UA passes the CKAN API for the scan's calls too. (2026-11-10)
+
 - **Blank CKAN resource formats are inferred only at render time.** Some resources have an
   empty `format` (02789da8 and d6b5032b .docx docs, 0180a8e4 .rar on 2026-11-10); the frontend's
   `resourceFormat()` (`frontend/utils/resource-url.ts`) falls back to the URL extension for the
