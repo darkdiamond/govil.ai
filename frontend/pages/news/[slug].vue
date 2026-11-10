@@ -110,13 +110,12 @@ useSeo({
         url: `${SITE_URL}/web-app-manifest-512x512.png`,
       },
     },
+    // Plain URLs, not typed Dataset nodes: Google validates every
+    // Dataset node it finds and requires description/license/creator, which
+    // article.json doesn't carry. The dataset page itself has the full Dataset.
     isBasedOn: article.value.datasets
       .filter((d) => d.href)
-      .map((d) => ({
-        "@type": "Dataset",
-        name: d.title,
-        url: `${SITE_URL}${d.href}`,
-      })),
+      .map((d) => `${SITE_URL}${d.href}`),
   },
 });
 </script>
