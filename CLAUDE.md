@@ -76,7 +76,7 @@ landing pages. Six layers:
    counts as removed only with CKAN's Authorization Error body; any other 403
    is `blocked` (the WAF). It probes everything first and flips nothing when
    more than `RECONCILE_MAX_FLIPS` (20) pages would go unavailable or that many
-   probes were blocked; a crashed or aborted sweep ends the run
+   probes were blocked or raised; a crashed or aborted sweep ends the run
    `status: reconcile_failed` and writes no marker, so the next run retries)
    → scan (guarded: one dataset's failure is recorded in `scan_runs.error` and
    the scan goes on; 20 in a row, or a listing failure, stop it. Either way

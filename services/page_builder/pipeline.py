@@ -294,7 +294,7 @@ async def run_pipeline(
         except Exception as e:
             log.exception("scan failed — continuing on the existing Firestore data")
             scan_error = f"{type(e).__name__}: {e}"[:500]
-    scan_failed = bool(scan_error) or bool(scan_summary and getattr(scan_summary, "errors", None))
+    scan_failed = bool(scan_error) or bool(scan_summary and scan_summary.error_count)
 
     # [1.5] reap orphaned `pending` markers left by the retired agent
     # builder (a run that died mid-session). Recycled as `failed`, which the

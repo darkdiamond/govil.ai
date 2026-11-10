@@ -177,3 +177,16 @@ def test_max_flips_env(monkeypatch):
     assert reconcile.max_flips_from_env() == 7
     monkeypatch.setenv("RECONCILE_MAX_FLIPS", "nonsense")
     assert reconcile.max_flips_from_env() == reconcile.DEFAULT_MAX_FLIPS
+
+
+@pytest.mark.asyncio
+async def test_many_raising_probes_abort_the_sweep():
+    # A probe bug in bulk must turn the run red, not pass as a quiet sweep.
+    store = _store([_src(f"x{i}", "succeeded", rid=f"rx{i}") for i in range(3)])
+    client = MagicMock()
+    client.probe_resource = AsyncMock(side_effect=RuntimeError("boom"))
+    client.probe_package = AsyncMock(return_value="unknown")
+
+    summary = await reconcile.reconcile_sources(store, client, max_flips=3)
+
+    assert summary["aborted"] == "too_many_errors" and summary["errors"] == 3

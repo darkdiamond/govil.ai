@@ -80,9 +80,10 @@ async def reconcile_sources(
     Two phases, so a sweep that looks wrong can stop before it writes: if
     more than `max_flips` live pages would be marked removed, or `max_flips`
     probes came back "blocked", nothing is marked (recoveries still apply)
-    and the summary carries `aborted`. Real removals arrive a few a week; a
+    and the summary carries `aborted`; so does a sweep where `max_flips`
+    probes raised. Real removals arrive a few a week; a
     burst means CKAN or its WAF is misbehaving, not that the site is gone.
-    A probe that raises counts as "unknown"."""
+    A probe that raises counts as "unknown" (and in `errors`)."""
     max_flips = max_flips_from_env() if max_flips is None else max_flips
     sources = list(store.iter_publishable_sources())
     log.info("reconcile: probing %d publishable source(s)", len(sources))
@@ -94,9 +95,11 @@ async def reconcile_sources(
 
     results = await asyncio.gather(*[_probe(s) for s in sources], return_exceptions=True)
     statuses: list[str] = []
+    errors = 0
     for src, r in zip(sources, results, strict=True):
         if isinstance(r, BaseException):
             log.warning("reconcile: probing %s raised %r — unknown", src.id[:8], r)
+            errors += 1
             r = "unknown"
         statuses.append(r)
 
@@ -110,11 +113,15 @@ async def reconcile_sources(
         aborted = "too_many_gone"
     elif max_flips and blocked >= max_flips:
         aborted = "too_many_blocked"
+    elif max_flips and errors >= max_flips:
+        # A probe that raises is a bug, not an answer: in bulk it must show
+        # (a red run), not pass as a quiet sweep of "unknown"s.
+        aborted = "too_many_errors"
     if aborted:
         log.error(
-            "reconcile: aborted (%s) — %d would be marked removed, %d blocked "
-            "(RECONCILE_MAX_FLIPS=%d); nothing marked",
-            aborted, len(gone), blocked, max_flips,
+            "reconcile: aborted (%s) — %d would be marked removed, %d blocked, "
+            "%d raised (RECONCILE_MAX_FLIPS=%d); nothing marked",
+            aborted, len(gone), blocked, errors, max_flips,
         )
         gone = []
 
@@ -136,5 +143,6 @@ async def reconcile_sources(
         "recovered": recovered,
         "unknown": statuses.count("unknown"),
         "blocked": blocked,
+        "errors": errors,
         "aborted": aborted,
     }

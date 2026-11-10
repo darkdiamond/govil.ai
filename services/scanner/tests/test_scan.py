@@ -143,3 +143,22 @@ async def test_unparseable_package_is_skipped_not_fatal():
     got = [d.id async for d in c.iter_all_packages(on_error=lambda pid, e: errors.append(pid))]
     assert got == ["aaaaaaaa-0000"]
     assert errors == ["bbbbbbbb-0000"]
+
+
+@pytest.mark.asyncio
+async def test_closing_the_scan_doc_failing_keeps_the_original_error(monkeypatch):
+    db = _db()
+    db.complete_scan.side_effect = RuntimeError("firestore down")
+    s = _scanner(monkeypatch, _fake_client(_datasets(5), listing_error_at=2), db)
+    with pytest.raises(RuntimeError, match="listing broke"):
+        await s.scan(limit=5)
+
+
+@pytest.mark.asyncio
+async def test_scan_doc_notes_errors_past_the_cap(monkeypatch):
+    monkeypatch.setattr(scanner_main, "MAX_ERRORS_KEPT", 3)
+    db = _db(save_fails={0, 2, 4, 6, 8})
+    s = _scanner(monkeypatch, _fake_client(_datasets(10)), db)
+    await s.scan(limit=10)
+    errors = db.complete_scan.call_args.kwargs["errors"]
+    assert len(errors) == 4 and errors[-1] == "… and 2 more"
