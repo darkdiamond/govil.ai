@@ -339,6 +339,51 @@ def test_requests_share_one_client_with_a_short_connect_timeout(monkeypatch):
     assert t.read == p.settings.timeout_s == 180.0
 
 
+def _served(monkeypatch, handler, **settings):
+    """A BoI provider whose real `_send` talks to a MockTransport."""
+    p = BoiSdmxProvider(BoiSdmxProvider.default_settings.model_copy(
+        update={"enabled": True, "min_interval_s": 0.0, "retries": 0, **settings}))
+    real = httpx.Client
+    monkeypatch.setattr("services.providers.base.httpx.Client",
+                        lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    return p
+
+
+def test_body_over_the_cap_is_refused_while_it_streams(monkeypatch):
+    # An endless body that claims to be 10 bytes: reading stops at the cap.
+    sent = []
+
+    def endless():
+        while True:
+            sent.append(1)
+            yield b"x" * 100
+
+    p = _served(monkeypatch, lambda req: httpx.Response(
+        200, headers={"content-length": "10"}, content=endless()), max_bytes=1000)
+    with pytest.raises(ProviderTooLarge) as e:
+        p.http_get("https://edge.boi.org.il/a", max_bytes=1000)
+    assert e.value.limit == "bytes" and isinstance(e.value, ProviderError)
+    assert len(sent) <= 11
+    sent.clear()
+    with pytest.raises(ProviderTooLarge):  # default: twice max_bytes
+        p.http_get("https://edge.boi.org.il/a")
+    assert 20 <= len(sent) <= 21
+
+
+def test_body_under_the_cap_reads_as_before(monkeypatch):
+    import gzip
+    data = BR_CSV.encode()
+    handler = lambda req: httpx.Response(
+        200, headers={"content-type": "text/csv; charset=utf-8", "content-encoding": "gzip"},
+        content=gzip.compress(data))
+    with httpx.Client(transport=httpx.MockTransport(handler)) as c:
+        want = c.get("https://edge.boi.org.il/a")
+    p = _served(monkeypatch, handler, max_bytes=len(data))
+    r = p.http_get("https://edge.boi.org.il/a", max_bytes=len(data))  # exactly at the cap
+    assert r.content == want.content == data
+    assert r.text == want.text and r.headers == want.headers and r.status_code == 200
+
+
 # ── liveness ─────────────────────────────────────────────────────────────
 
 
