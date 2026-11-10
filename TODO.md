@@ -8,6 +8,13 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **`_public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
+  `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
+  for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).
+  Fix: catch `ValueError` around `urlsplit` in `services/scanner/models.py` and return "", with
+  a Python-only test (the shared vectors can't hold it unless `resource-url.ts` rejects it too).
+  (2026-11-10)
+
 - **The removed preview lane left data in GCP.** The code, the Cloud Run job and its scheduler
   are gone, but `gs://govdata-il-staging/preview/` (still holds `datasets/`), the Firestore
   `preview_sources` and `preview_runs` collections and the `recipes-demo` Hosting channel may
@@ -324,10 +331,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   `/og-default.png` in WhatsApp/X/Facebook cards. News articles use their hero. Fix: a
   per-dataset og:image (e.g. a build-time card with the title and one headline number) passed
   to `useSeo` in `pages/datasets/[slug].vue`. (2026-11-10)
-
-- **`frontend/tests/*.test.mjs` don't run in CI.** `ci.yml` runs only `typecheck` and
-  `generate`, so `share.test.mjs`, `dataset-seo.test.mjs` and the rest run only by hand. Fix:
-  add a `node --test frontend/tests/` step to the frontend job. (2026-11-10)
 
 - **The shared `node_modules` lacks `vue-tsc`.** `npm run typecheck` fails locally ("A type
   checker is required") although `package.json` lists it; the main checkout's install predates

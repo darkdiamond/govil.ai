@@ -8,18 +8,25 @@
 //   - A /he/ or /en/ locale prefix before /dataset/ is routed to the new
 //     data.gov.il frontend, which answers with its "page not found" screen
 //     instead of the file. The bare /dataset/... path downloads.
-//   - Only http(s) URLs are rendered as links. CKAN resource URLs are
-//     publisher-supplied; a `javascript:`/`data:` URL would otherwise become a
-//     clickable script link on govil.ai. Anything else collapses to "".
+//   - Only absolute http(s) URLs with a host are rendered as links. CKAN
+//     resource URLs are publisher-supplied; a `javascript:`/`data:` URL would
+//     otherwise become a clickable script link on govil.ai. The scheme is
+//     judged with whitespace/control chars removed, as a browser would
+//     (`java\tscript:`). Anything else collapses to "".
+//
+// Both sides run the shared vectors in
+// frontend/tests/fixtures/resource-url-vectors.json.
 const GATED_HOST = /^https?:\/\/(?:aws-)?e\.data\.gov\.il\//;
 const LOCALE_PREFIX = /^https:\/\/data\.gov\.il\/(?:he|en)\/(?=dataset\/)/;
 
-const SAFE_SCHEME = /^https?:\/\//i;
+// Python: urlsplit(probe).scheme in (http, https) and a non-empty netloc.
+const SAFE_SCHEME = /^https?:\/\/[^/?#]/i;
+const IGNORED_CHARS = /[\x00-\x20\x7f]/g;
 
 export function publicResourceUrl(url: string | null | undefined): string {
   if (!url) return "";
   const trimmed = url.trim();
-  if (!SAFE_SCHEME.test(trimmed)) return "";
+  if (!SAFE_SCHEME.test(trimmed.replace(IGNORED_CHARS, ""))) return "";
   return trimmed
     .replace(GATED_HOST, "https://data.gov.il/")
     .replace(LOCALE_PREFIX, "https://data.gov.il/");

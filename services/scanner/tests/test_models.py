@@ -1,7 +1,19 @@
 """Tests for services.scanner.models parsing of CKAN responses."""
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
+import pytest
+
 from services.scanner.models import Dataset
+
+# Shared with frontend/tests/security-belts.test.mjs, which runs the same
+# vectors through frontend/utils/resource-url.ts (the render-time mirror).
+_URL_VECTORS = json.loads(
+    (Path(__file__).resolve().parents[3] / "frontend" / "tests" / "fixtures"
+     / "resource-url-vectors.json").read_text(encoding="utf-8")
+)["vectors"]
 
 
 def _ckan_package(resources: list[dict]) -> dict:
@@ -46,41 +58,18 @@ def test_from_ckan_response_keeps_file_hash():
     assert by_id["rid-2"].hash is None
 
 
-def test_public_resource_url_rewrites_gated_hosts_and_locale_prefix():
+@pytest.mark.parametrize(("url", "expected"), _URL_VECTORS)
+def test_public_resource_url_shared_vectors(url, expected):
     from services.scanner.models import _public_resource_url as f
 
-    path = "dataset/x/resource/y/download/a.csv"
-    assert f(f"https://e.data.gov.il/{path}") == f"https://data.gov.il/{path}"
-    assert f(f"https://aws-e.data.gov.il/{path}") == f"https://data.gov.il/{path}"
-    assert f(f"https://e.data.gov.il/he/{path}") == f"https://data.gov.il/{path}"
-    assert f(f"https://data.gov.il/en/{path}") == f"https://data.gov.il/{path}"
-    # Non-CKAN hosts keep their locale segments.
-    assert f("https://www.gov.il/he/Departments/x") == "https://www.gov.il/he/Departments/x"
-    assert f("") == ""
+    assert f(url) == expected
 
 
-def test_public_resource_url_drops_non_http_schemes():
+def test_public_resource_url_non_string_is_blank():
     from services.scanner.models import _public_resource_url as f
 
-    for bad in (
-        "javascript:alert(1)",
-        "JavaScript:alert(1)",
-        " javascript:alert(1)",
-        "java\tscript:alert(1)",
-        "\x01javascript:alert(1)",
-        "vbscript:msgbox(1)",
-        "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==",
-        "file:///etc/passwd",
-        "ftp://data.gov.il/x.csv",
-        "//evil.example/x.csv",
-        "/dataset/x/resource/y",
-        "https://",
-        None,
-    ):
-        assert f(bad) == "", bad
-    # http(s) survives (and is still normalized), surrounding space trimmed.
-    assert f(" https://e.data.gov.il/dataset/x/a.csv\n") == "https://data.gov.il/dataset/x/a.csv"
-    assert f("HTTP://example.org/a.csv") == "HTTP://example.org/a.csv"
+    assert f(None) == ""
+    assert f(123) == ""
 
 
 def test_dataset_with_script_resource_url_is_blanked():

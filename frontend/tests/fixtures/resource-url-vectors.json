@@ -1,0 +1,52 @@
+{
+  "_comment": "Shared [input, expected] vectors for services/scanner/models.py::_public_resource_url and frontend/utils/resource-url.ts::publicResourceUrl. Read by services/scanner/tests/test_models.py and frontend/tests/security-belts.test.mjs.",
+  "vectors": [
+    [
+      "https://e.data.gov.il/dataset/x/resource/y/download/a.csv",
+      "https://data.gov.il/dataset/x/resource/y/download/a.csv"
+    ],
+    [
+      "https://aws-e.data.gov.il/dataset/x/resource/y/download/a.csv",
+      "https://data.gov.il/dataset/x/resource/y/download/a.csv"
+    ],
+    [
+      "https://e.data.gov.il/he/dataset/x/resource/y/download/a.csv",
+      "https://data.gov.il/dataset/x/resource/y/download/a.csv"
+    ],
+    [
+      "https://data.gov.il/en/dataset/x/resource/y/download/a.csv",
+      "https://data.gov.il/dataset/x/resource/y/download/a.csv"
+    ],
+    [
+      "https://data.gov.il/he/dataset/x/resource/y",
+      "https://data.gov.il/dataset/x/resource/y"
+    ],
+    [
+      "https://www.gov.il/he/Departments/x",
+      "https://www.gov.il/he/Departments/x"
+    ],
+    ["http://example.org/a.csv", "http://example.org/a.csv"],
+    ["HTTP://example.org/a.csv", "HTTP://example.org/a.csv"],
+    [
+      " https://e.data.gov.il/dataset/x/a.csv\n",
+      "https://data.gov.il/dataset/x/a.csv"
+    ],
+    ["h\tttps://example.org/a.csv", "h\tttps://example.org/a.csv"],
+    ["", ""],
+    ["javascript:alert(1)", ""],
+    ["JavaScript:alert(1)", ""],
+    [" javascript:alert(1)", ""],
+    ["java\tscript:alert(1)", ""],
+    ["\u0001javascript:alert(1)", ""],
+    ["vbscript:msgbox(1)", ""],
+    ["data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==", ""],
+    ["data:text/html,<script>", ""],
+    ["file:///etc/passwd", ""],
+    ["ftp://data.gov.il/x.csv", ""],
+    ["//evil.example/x.csv", ""],
+    ["/dataset/x/resource/y", ""],
+    ["https://", ""],
+    ["http:///x", ""],
+    ["h\ttps://x", ""]
+  ]
+}

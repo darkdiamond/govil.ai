@@ -1,0 +1,12 @@
+{
+  "_comment": "Frozen govlib.geo output (services/page_builder/recipe_lib/govlib/geo.py): origin = geo.origin(lons, lats), flat = geo.encode([ring], origin)[0] at the default scale. services/page_builder/tests/test_contract_parity.py checks Python still produces exactly this; frontend/tests/gov-map.test.mjs checks GovMap.ring decodes it back to the ring.",
+  "scale": 100000,
+  "ring": [
+    [34.78123, 32.08011],
+    [34.78201, 32.08013],
+    [34.78199, 32.08102],
+    [34.78123, 32.08011]
+  ],
+  "origin": [3478123, 3208011],
+  "flat": [0, 0, 78, 2, -2, 89, -76, -91]
+}

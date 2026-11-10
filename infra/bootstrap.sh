@@ -174,9 +174,14 @@ if ! gcloud builds triggers describe "$TRIGGER_ID" --region=global --project "$P
   echo "        --build-config=cloudbuild-publish.yaml \\"
   echo "        --branch=$PUBLISH_BRANCH \\"
   echo "        --service-account=projects/$PROJECT/serviceAccounts/$PUBLISHER_SA \\"
+  echo "        --substitutions=_GTAG_ID=${NUXT_PUBLIC_GTAG_ID:-},_ADSENSE_ID=${NUXT_PUBLIC_ADSENSE_ID:-},_CLARITY_ID=${NUXT_PUBLIC_CLARITY_ID:-} \\"
   echo "        --project=$PROJECT"
+  echo "    (the analytics IDs come from NUXT_PUBLIC_GTAG_ID / _ADSENSE_ID / _CLARITY_ID"
+  echo "     in this shell — the GitHub repo variables; empty = no GA/AdSense/Clarity)"
 else
-  echo "    trigger already configured"
+  echo "    trigger already configured; to set its analytics IDs (the GitHub repo variables):"
+  echo "      gcloud builds triggers update manual $TRIGGER_ID --region=global \\"
+  echo "        --update-substitutions=_GTAG_ID=<id>,_ADSENSE_ID=<id>,_CLARITY_ID=<id>"
 fi
 
 echo "==> Cloud Build trigger '$IMAGE_TRIGGER_ID' (publisher image — cloudbuild-publisher-image.yaml)"
