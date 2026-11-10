@@ -30,7 +30,8 @@ def is_authorization_error(payload: object) -> bool:
     return isinstance(err, dict) and "Authorization" in str(err.get("__type") or "")
 
 
-DATASTORE_SEARCH_URL = "https://data.gov.il/api/3/action/datastore_search"
+ACTION_API = "https://data.gov.il/api/3/action"
+DATASTORE_SEARCH_URL = f"{ACTION_API}/datastore_search"
 
 # The WAF passes this UA on the API and on file downloads (2026-10-31: a bare
 # `Mozilla/5.0`, curl's and python-requests' UAs all 403).

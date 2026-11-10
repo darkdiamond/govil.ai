@@ -39,10 +39,10 @@ log = logging.getLogger(__name__)
 # refresh resolves inputs against it, and its sample rows (as truncated and
 # capped below) feed precheck fingerprint A and the export cross-check
 # (`_matches_sample`), so changing these limits moves both. The WAF 403s
-# requests without a browser User-Agent (`ckan.user_agent()`), and the CKAN
-# response can be ~50 MB without `limit`, so we hardcode limit=5 and a tight
-# wall-clock budget. On any error the preview returns None.
-# The User-Agent is `ckan.user_agent()` (CKAN_USER_AGENT or the builder UA).
+# requests without a browser User-Agent (we send `ckan.user_agent()`), and the
+# CKAN response can be ~50 MB without `limit`, so we hardcode limit=5 and a
+# tight wall-clock budget. On any error the preview returns None.
+#
 # The preview asks for an exact count (ckan.EXACT_TOTAL_THRESHOLD), a count(*)
 # that takes ~1.2s on a 4.2M-row table even when CKAN is idle. Keep headroom:
 # a preview that times out twice is a strike that escalates to schema_changed.

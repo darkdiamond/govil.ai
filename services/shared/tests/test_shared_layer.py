@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from services.shared import ckan, github
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_default_repo_and_token_come_from_the_env(monkeypatch):
@@ -73,7 +76,7 @@ def test_lower_packages_do_not_import_page_builder():
         "bad = sorted(m for m in sys.modules if m.startswith('services.page_builder'))\n"
         "assert not bad, bad\n"
     )
-    subprocess.run([sys.executable, "-c", code], check=True)
+    subprocess.run([sys.executable, "-c", code], check=True, cwd=REPO_ROOT)
 
 
 def test_shared_modules_import_nothing_heavy():
@@ -87,4 +90,4 @@ def test_shared_modules_import_nothing_heavy():
 
         "assert not bad, bad\n"
     )
-    subprocess.run([sys.executable, "-c", code], check=True)
+    subprocess.run([sys.executable, "-c", code], check=True, cwd=REPO_ROOT)

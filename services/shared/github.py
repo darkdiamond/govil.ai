@@ -33,7 +33,8 @@ def api_headers(tok: str | None = None) -> dict[str, str]:
 def dispatch_workflow(repo: str, workflow: str, ref: str) -> str | None:
     """Fire a workflow_dispatch (blocking). Returns a synthetic marker for the
     run summary (the API answers 204 with no run id), or None when there is no
-    token or GitHub refuses; never raises for an HTTP failure.
+    token or GitHub answers anything but 204. A transport error (timeout, DNS,
+    TLS) raises httpx's exception: callers that must not fail wrap the call.
 
     Needs GITHUB_DISPATCH_TOKEN with Actions:write on `repo`.
     """
