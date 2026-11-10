@@ -180,7 +180,6 @@
   (function () {
     var D = {{ model.charts.demand | tojson }};
     var H = window.__dh, c = H.mk("chart-demand"); if (!c) { return; }
-    var peak = Math.max.apply(null, D.ratio.filter(function (v) { return v !== null; }));
     c.setOption(window.GovEcharts.option({
       color: window.GOVIL_PALETTE,
       tooltip: { trigger: "axis", formatter: H.axisTip() },
@@ -194,7 +193,10 @@
       series: [
         { type: "bar", name: "הרשמות להגרלות ראשונות", data: D.subs, barMaxWidth: 36, itemStyle: { opacity: 0.75 } },
         { type: "line", name: "הרשמות לכל דירה", yAxisIndex: 1, symbolSize: 7, lineStyle: { width: 3 },
-          data: D.ratio.map(function (v) { return v === peak ? { value: v, itemStyle: { color: "#dc3545" }, symbolSize: 11 } : v; }) }
+          data: D.ratio.map(function (v, i) {
+            return i === D.peak ? { value: v, itemStyle: { color: "#dc3545" }, symbolSize: 11,
+              label: { show: true, position: "top", formatter: "שיא", color: "#dc3545", fontSize: 11 } } : v;
+          }) }
       ]
     }));
   })();

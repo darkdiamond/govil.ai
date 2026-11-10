@@ -24,7 +24,7 @@ NUMERIC = [
     "LotteryHousingUnits", "LotteryNativeHousingUnits", "PriceForMeter",
 ]
 
-# Known eligibility codes in a readable order; unknown values follow by size.
+# Known eligibility codes in a readable order; unknown values follow by name.
 ELIG_ORDER = ["א", "א+ב", "א+ב+ג", "חסרי ומשפרי דיור", "לא מוגדר"]
 ELIG_LABEL = {
     "א": "קבוצה א",
@@ -78,7 +78,6 @@ def compute(frames):
     units_first = _i(first["LotteryHousingUnits"].sum())
     units_cont = _i(cont["LotteryHousingUnits"].sum())
     subs_all = _i(df["Subscribers"].sum())
-    _i(first["Subscribers"].sum())
     winners = _i(df["Winners"].sum())
     n_cities = int(df.loc[df["LamasName"] != "", "LamasName"].nunique())
     n_projects = int(df.loc[df["ProjectId"] != "", "ProjectId"].nunique())
@@ -87,7 +86,14 @@ def compute(frames):
     last_dt = dated["dt"].max() if len(dated) else None
     first_dt = dated["dt"].min() if len(dated) else None
     years = sorted(int(y) for y in dated["year"].unique())
-    partial_last = bool(last_dt is not None and last_dt.month < 12 and len(years) > 1)
+    # The last year is partial when the data stops before December AND it
+    # covers fewer distinct months than a typical earlier year (a full year
+    # whose final round fell in November is not partial).
+    months = dated.groupby("year")["dt"].apply(lambda s: s.dt.month.nunique())
+    partial_last = bool(
+        last_dt is not None and last_dt.month < 12 and len(years) > 1
+        and months[years[-1]] < months[years[:-1]].median()
+    )
     full_years = years[:-1] if partial_last else years
     year_lbl = [str(y) for y in years]
 
@@ -127,10 +133,14 @@ def compute(frames):
                         fmt.int_he(c_units[y]), fmt.int_he(a_win[y])] for y in years]
     peak_units_y = max(years, key=lambda y: (f_units[y], -y)) if years else None
 
+    # Peak demand among full years only: a partial year's single round is not a "year".
+    peak_ys = [y for y in full_years if ratio_y.get(y) is not None]
+    peak_ratio_y = max(peak_ys, key=lambda y: (ratio_y[y], -y)) if peak_ys else None
     charts["demand"] = {
         "x": year_lbl,
         "subs": [_i(f_subs[y]) for y in years],
         "ratio": [_round1(ratio_y[y]) for y in years],
+        "peak": years.index(peak_ratio_y) if peak_ratio_y is not None else None,
     }
     tables["demand"] = [[str(y), fmt.int_he(f_subs[y]), fmt.int_he(f_units[y]),
                          fmt.num_he(ratio_y[y]) if ratio_y[y] is not None else "-"] for y in years]
@@ -224,8 +234,9 @@ def compute(frames):
     tables["groups_cols"] = ["שנה"] + [lbl for _, lbl in grp_cols]
 
     # ---- locals (בני מקום) ----------------------------------------------------
-    nat_u = ay["LotteryNativeHousingUnits"].sum().reindex(years, fill_value=0)
-    all_u = ay["LotteryHousingUnits"].sum().reindex(years, fill_value=0)
+    # First lotteries only, like every other flat count on the page.
+    nat_u = fy["LotteryNativeHousingUnits"].sum().reindex(years, fill_value=0)
+    all_u = f_units
     bm = dated[dated["WinnersBneyMakom"].notna()]
     bmy = bm.groupby("year")
     bm_w = bmy["WinnersBneyMakom"].sum().reindex(years)
@@ -279,7 +290,9 @@ def compute(frames):
     top10_share = _ratio(pv.head(10)["units"].sum(), pv["units"].sum())
 
     # ---- project / permit status (latest row per project) ---------------------
-    lp = df[df["ProjectId"] != ""].sort_values(["ProjectId", "dt", "LotteryId"], kind="stable")
+    # Undated rows sort first, so a dated lottery wins as the project's latest.
+    lp = df[df["ProjectId"] != ""].sort_values(["ProjectId", "dt", "LotteryId"], kind="stable",
+                                               na_position="first")
     lp = lp.groupby("ProjectId").tail(1)
     st = frame.ranked(lp.loc[lp["ProjectStatus"] != "", "ProjectStatus"])
     st_names = _ordered(st.index.tolist(), STATUS_ORDER)
@@ -371,7 +384,7 @@ def compute(frames):
     def ins_cont():
         if not n_projects or not n_cont:
             return None
-        pj = df[df["ProjectId"] != ""].groupby("ProjectId")["LotteryType"].apply(lambda s: bool((s == CONT).any()))
+        pj = (df["LotteryType"] == CONT)[df["ProjectId"] != ""].groupby(df["ProjectId"]).any()
         share = float(pj.mean())
         if share < 0.05:
             return None
@@ -502,7 +515,7 @@ def compute(frames):
         "groups_note": ("זוכים לפי סדרת הזכאות בכל שנה: סדרות א, ב ו-ג של חסרי הדיור, ומשפרי דיור, "
                         "כפי שהם מסווגים במאגר."),
         "groups_aria": f"גרף עמודות מוערמות: זוכים לפי סדרה ולפי שנה, {span}.",
-        "native_note": ("שיעור הדירות שהוקצו לבני המקום (תושבי היישוב) מכלל הדירות בהגרלות, שיעור בני המקום מבין "
+        "native_note": ("שיעור הדירות שהוקצו לבני המקום (תושבי היישוב) מהדירות בהגרלות הראשונות, שיעור בני המקום מבין "
                         "ההרשמות להגרלות הראשונות, ושיעורם מבין הזוכים בהגרלות שמדווחות על כך."),
         "native_aria": f"גרף קווים: שיעור בני המקום מהדירות, מההרשמות ומהזוכים לפי שנה, {span}.",
         "elig_note": "מספר ההגרלות בכל שנה לפי קבוצות הזכאות שהורשו להשתתף בהן.",
