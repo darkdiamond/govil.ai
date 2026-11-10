@@ -59,6 +59,8 @@ def test_signed_formats_are_isolated_with_a_real_minus():
     ("כ-1950 נפגעים", ["כ-1950"]),
     ("ב-2025 ומ-2019 ול-2026 והחל מ-2020", []),
     ("בין 2019 ל-2025, ינואר-2025 ומרץ–2026", []),
+    ("ב–2024 וב־2025", []),
+    ("כ־1980 וכ–1990 דירות", ["כ־1980", "וכ–1990"]),
 ])
 def test_stray_numbers(text, bad):
     assert stray_numbers(text) == bad
@@ -183,6 +185,8 @@ def test_gate_catches(mutate, needle):
     ("הוצאה של שלושה מיליוני שקלים", 1),
     ("השקעה של כחמישה מיליארד שקל", 1),
     ("פי שלושה מבעבר", 0),
+    ("וכחצי מיליון נוסעים", 1),
+    ("בכשלושה מיליון שקל", 1),
 ])
 def test_spelled_numbers(text, hits):
     from services.news.ledger import spelled_numbers

@@ -159,7 +159,7 @@ class Toolbox:
             n = q.con.execute(f'SELECT count(*) FROM "{name}"').fetchone()[0]
             sample = q.con.execute(f'SELECT * FROM "{name}" LIMIT {SAMPLE_ROWS}').fetchall()
             out[name] = {"rows": n, "columns": [{"name": _untrusted(c), "type": t} for c, t in cols],
-                         "sample": [[_cell(str(x)) if x is not None else None for x in r] for r in sample]}
+                         "sample": [[_cell(x) for x in r] for r in sample]}
         return out
 
     def t_sql(self, dataset_id: str, query: str) -> dict:
@@ -172,10 +172,12 @@ class Toolbox:
         shown = [_untrusted(c) for c in cols]
         size = len(json.dumps({"columns": shown, "rows": [], "truncated": True},
                               ensure_ascii=False, default=str))
+        if size > SQL_RESULT_CHARS:
+            raise ValueError("too many or too long columns: select fewer columns or shorter aliases")
         rows, truncated = [], res["truncated"]
         for i, r in enumerate(res["rows"]):
             key = "; ".join(f"{c}={v}" for c, v in zip(cols, r, strict=True) if not _is_num(v))[:120]
-            texts = [_cell(v) if isinstance(v, str) else v for v in r]
+            texts = [v if _is_num(v) else _cell(v) for v in r]
             row_size = len(json.dumps(texts, ensure_ascii=False, default=str)) + 1 + 40 * len(r)
             if size + row_size > SQL_RESULT_CHARS:
                 truncated = True
@@ -255,8 +257,16 @@ def _untrusted(text: str) -> str:
     return f"{UNTRUSTED_OPEN}\n{t}\n{UNTRUSTED_CLOSE}"
 
 
-def _cell(text: str) -> str:
-    """One dataset text cell for the model: capped, then fenced."""
+def _cell(v):
+    """One non-numeric dataset value for the model: None and bools as they are;
+    anything else (text, lists, structs, maps, blobs, dates) as a string,
+    capped, then fenced."""
+    if v is None or isinstance(v, bool):
+        return v
+    if isinstance(v, list | tuple | dict):
+        text = json.dumps(v, ensure_ascii=False, default=str)
+    else:
+        text = str(v)
     return _untrusted(text[:CELL_CHARS])
 
 
