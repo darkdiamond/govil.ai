@@ -1,0 +1,50 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-housing-prices",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T00:00:00Z",
+    "rows": { "national": 432, "districts": 636, "new": 92 }
+  },
+  "inputs": [
+    {
+      "name": "national",
+      "by_id": "national",
+      "required_columns": [
+        "CODE",
+        "FREQ",
+        "TIME_PERIOD",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "districts",
+      "by_id": "districts",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "TIME_PERIOD",
+        "VALUE_CHAINED"
+      ]
+    },
+    {
+      "name": "new",
+      "by_id": "new-dwellings",
+      "required_columns": [
+        "CODE",
+        "FREQ",
+        "TIME_PERIOD",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

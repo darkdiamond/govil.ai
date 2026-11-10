@@ -1,0 +1,327 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));">
+{%- for key in ["level", "mom", "yoy", "labour", "materials"] %}
+{%- if model.kpis[key] is defined %}
+  {{ gov.kpi(model.kpis[key], model.labels[key ~ "_kpi"]) }}
+{%- endif %}
+{%- endfor %}
+</div>
+
+<a href="#recent" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">מדד תשומות הבנייה האחרון וערכי המדד בכל חודש ←</span>
+    <span class="block text-sm text-subtle">חוזי רכישה של דירות חדשות מקבלן נוהגים להצמיד את יתרת התשלומים למדד זה. בטבלה: הערך שפורסם בכל חודש, הבסיס שלו והשינוי המצטבר עד החודש האחרון. העמוד מציג נתונים בלבד ואינו ייעוץ משפטי או פיננסי: אופן ההצמדה נקבע בחוזה.</span>
+  </span>
+</a>
+
+{{ gov.insights(model.insights) }}
+
+<section id="recent" class="card p-5 mb-6">
+  {{ gov.head("calendar", "מדד תשומות הבנייה בחודשים האחרונים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  {{ gov.chart("chart-recent", model.labels.recent_aria, "h-72 md:h-96") }}
+  <details class="mt-3" open>
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.recent_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th><th scope="col">המדד שפורסם</th><th scope="col">בסיס</th><th scope="col">שינוי חודשי</th><th scope="col">שינוי שנתי</th><th scope="col">{{ model.labels.cum_col }}</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.recent %}
+        <tr><th scope="row">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td>{{ r[2] }}</td><td dir="ltr">{{ r[3] }}</td><td dir="ltr">{{ r[4] }}</td><td dir="ltr">{{ r[5] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "המדד לאורך השנים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.history_note }}</p>
+  {{ gov.chart("chart-history", model.labels.history_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.history_caption, ["שנה", model.labels.history_level_col, "שינוי שנתי (דצמבר לדצמבר)"], model.tables.annual_all, ltr=(1, 2)) }}
+</section>
+
+{%- if model.flags.annual %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "השינוי השנתי במדד תשומות הבנייה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.annual_note }}</p>
+  {{ gov.chart("chart-annual", model.labels.annual_aria) }}
+  {{ gov.table(model.labels.annual_caption, ["שנה", "שינוי שנתי"], model.tables.annual, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.rebased %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "הקבוצות הראשיות: חומרים, שכר עבודה, ציוד והוצאות כלליות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rebased_note }}</p>
+  {{ gov.chart("chart-rebased", model.labels.rebased_aria, "h-72 md:h-96") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.rebased_caption }}</caption>
+      <thead><tr><th scope="col">חודש</th>{% for c in model.tables.rebased_cols %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.rebased %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.lvm %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "שכר עבודה מול חומרים ומוצרים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lvm_note }}</p>
+  {{ gov.chart("chart-lvm", model.labels.lvm_aria, "h-72 md:h-96") }}
+  {{ gov.table(model.labels.lvm_caption, ["חודש", "שכר עבודה", "חומרים ומוצרים", "המדד הכללי"], model.tables.lvm, ltr=(1, 2, 3)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.drivers %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "אילו תשומות התייקרו בשנה האחרונה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.drivers_note }}</p>
+  {{ gov.chart("chart-drivers", model.labels.drivers_aria, "h-[520px] md:h-[560px]") }}
+  {{ gov.table(model.labels.drivers_caption, ["קבוצה", "שינוי שנתי", "שינוי חודשי"], model.tables.drivers, ltr=(1, 2)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.decade %}
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "התשומות שהתייקרו ביותר בטווח הארוך") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.decade_note }}</p>
+  {{ gov.chart("chart-decade", model.labels.decade_aria, "h-[520px] md:h-[560px]") }}
+  {{ gov.table(model.labels.decade_caption, ["קבוצה", "שינוי מצטבר"], model.tables.decade, ltr=(1,)) }}
+</section>
+{%- endif %}
+
+{%- if model.flags.heat %}
+<section class="card p-5 mb-6">
+  {{ gov.head("calendar", "השינוי החודשי לפי חודש ושנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, "h-[480px] md:h-[520px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+    <table class="mt-2 w-full text-sm">
+      <caption class="sr-only">{{ model.labels.heat_caption }}</caption>
+      <thead><tr><th scope="col">שנה</th>{% for m in model.charts.heat.x %}<th scope="col">{{ m }}</th>{% endfor %}</tr></thead>
+      <tbody>
+{%- for r in model.tables.heat %}
+        <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td dir="ltr">{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+{%- endif %}
+
+{%- if model.flags.groups %}
+<section id="groups" class="card p-5 mb-6">
+  {{ gov.head("list", "כל הקבוצות המשניות") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.groups_note }}</p>
+  <div class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <caption class="sr-only">{{ model.labels.groups_caption }}</caption>
+    <thead><tr><th scope="col">קבוצה</th><th scope="col">שינוי חודשי</th><th scope="col">שינוי שנתי</th>{% if model.labels.dec_col %}<th scope="col">{{ model.labels.dec_col }}</th>{% endif %}</tr></thead>
+    <tbody>
+{%- for g in model.tables.groups %}
+      <tr><th scope="row"{% if g.parent %} class="font-semibold"{% else %} class="font-normal"{% endif %}>{{ g.name }}</th><td dir="ltr">{{ g.p }}</td><td dir="ltr">{{ g.py }}</td>{% if model.labels.dec_col %}<td dir="ltr">{{ g.dec }}</td>{% endif %}</tr>
+{%- endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{%- endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("tag", "על המדד") }}
+  <ul class="list-disc ps-5 m-0 space-y-2 text-sm text-subtle marker:text-brand">
+    <li>מדד מחירי התשומה בבנייה למגורים של הלשכה המרכזית לסטטיסטיקה מודד את השינוי במחירים שמשלם קבלן על התשומות של בניית דירות: חומרים ומוצרים, שכר עבודה, שכירת ציוד והוצאות כלליות. המדד אינו כולל מע"מ, ואינו מודד את מחירי הדירות עצמן.</li>
+    <li>{{ model.labels.base_note }}</li>
+    <li>השינוי החודשי והשנתי הם כפי שפרסמה הלמ"ס, מעוגלים לעשירית האחוז.</li>
+    <li>הלמ"ס מפרסמת גם פירוט של המדד לפי פרקי הבנייה (שלד, חשמל, אלומיניום, פיתוח ועוד) ומספר קבוצות חדשות בסל המדד העדכני. רוב הסדרות האלה מתחילות רק עם הבסיס הנוכחי, ולכן הן אינן מוצגות כאן עד שיצטבר להן עבר.</li>
+  </ul>
+</section>
+
+<script>
+  (function () {
+    const d = {{ model.charts.recent | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-recent"));
+    const pct = (v) => (v == null ? "–" : (v > 0 ? "+" : "") + Number(v).toFixed(1) + "%");
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[4]],
+      tooltip: { trigger: "axis", valueFormatter: pct },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: [
+        { type: "bar", name: "שינוי חודשי", data: d.mom.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[6] : pal[0] } })) },
+        { type: "line", name: "שינוי שנתי", data: d.yoy, symbolSize: 5, lineStyle: { width: 2 } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+<script>
+  (function () {
+    const d = {{ model.charts.history | tojson }};
+    const chart = echarts.init(document.getElementById("chart-history"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toPrecision(4) },
+      grid: { left: 16, right: 16, top: 24, bottom: 64, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "log", logBase: 10, axisLabel: { formatter: (v) => (v >= 1 ? String(v) : Number(v).toExponential(0)) } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [{ type: "line", showSymbol: false, name: "מדד תשומות הבנייה", data: d }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- if model.flags.annual %}
+<script>
+  (function () {
+    const d = {{ model.charts.annual | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-annual"));
+    chart.setOption(window.GovEcharts.option({
+      color: pal,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toFixed(1) + "%" },
+      grid: { left: 16, right: 16, top: 24, bottom: 40, containLabel: true },
+      xAxis: { type: "category", data: d.x, axisLabel: { rotate: 45 } },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      series: [{ type: "bar", name: "שינוי שנתי", data: d.y.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[6] : pal[0] } })) }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.rebased %}
+<script>
+  (function () {
+    const d = {{ model.charts.rebased | tojson }};
+    const chart = echarts.init(document.getElementById("chart-rebased"));
+    chart.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", valueFormatter: (v) => Number(v).toFixed(1) },
+      legend: { top: 0, type: "scroll" },
+      grid: { left: 16, right: 16, top: 48, bottom: 64, containLabel: true },
+      xAxis: { type: "time" },
+      yAxis: { type: "value", scale: true },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: d.lines.map((l, i) => ({ type: "line", showSymbol: false, name: l.name, data: l.data, lineStyle: { width: i === 0 ? 3 : 2 } }))
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.lvm %}
+<script>
+  (function () {
+    const d = {{ model.charts.lvm | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-lvm"));
+    chart.setOption(window.GovEcharts.option({
+      color: [pal[0], pal[4], pal[7]],
+      tooltip: { trigger: "axis", valueFormatter: (v) => (v == null ? "–" : Number(v).toFixed(1) + "%") },
+      legend: { top: 0 },
+      grid: { left: 16, right: 16, top: 36, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x },
+      yAxis: { type: "value", axisLabel: { formatter: (v) => v + "%" } },
+      dataZoom: [{ type: "inside" }, { type: "slider", bottom: 8, height: 20 }],
+      series: [
+        { type: "line", showSymbol: false, name: "שכר עבודה", data: d.lab },
+        { type: "line", showSymbol: false, name: "חומרים ומוצרים", data: d.mat },
+        { type: "line", showSymbol: false, name: "המדד הכללי", data: d.gen, lineStyle: { type: "dashed" } }
+      ]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.drivers %}
+<script>
+  (function () {
+    const d = {{ model.charts.drivers | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-drivers"));
+    chart.setOption(window.GovEcharts.option({
+      color: pal,
+      tooltip: { trigger: "axis", formatter: (ps) => echarts.format.encodeHTML(d.names[ps[0].dataIndex]) + "<br>" + Number(d.y[ps[0].dataIndex]).toFixed(1) + "%" },
+      grid: { left: 16, right: 40, top: 16, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: window.innerWidth >= 640, formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{
+        type: "bar",
+        data: d.y.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[6] : pal[0] } })),
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) + "%" }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.decade %}
+<script>
+  (function () {
+    const d = {{ model.charts.decade | tojson }};
+    const pal = window.GOVIL_PALETTE;
+    const chart = echarts.init(document.getElementById("chart-decade"));
+    chart.setOption(window.GovEcharts.option({
+      color: pal,
+      tooltip: { trigger: "axis", formatter: (ps) => echarts.format.encodeHTML(d.names[ps[0].dataIndex]) + "<br>" + Number(d.y[ps[0].dataIndex]).toFixed(1) + "%" },
+      grid: { left: 16, right: 40, top: 24, bottom: 16, containLabel: true },
+      xAxis: { type: "value", axisLabel: { show: window.innerWidth >= 640, formatter: (v) => v + "%" } },
+      yAxis: { type: "category", data: d.names, inverse: true },
+      series: [{
+        type: "bar",
+        data: d.y.map((v) => ({ value: v, itemStyle: { color: v < 0 ? pal[6] : pal[0] } })),
+        label: { show: true, position: "right", formatter: (p) => Number(p.value).toFixed(1) + "%" },
+        markLine: { symbol: "none", silent: true, lineStyle: { color: "#0b3668", type: "dashed" }, label: { formatter: "המדד הכללי" }, data: [{ xAxis: d.gen }] }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}
+{%- if model.flags.heat %}
+<script>
+  (function () {
+    const d = {{ model.charts.heat | tojson }};
+    const chart = echarts.init(document.getElementById("chart-heat"));
+    chart.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: (p) => echarts.format.encodeHTML(d.x[p.value[0]] + " " + d.y[p.value[1]]) + "<br>" + Number(p.value[2]).toFixed(1) + "%" },
+      grid: { left: 16, right: 16, top: 16, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: d.x, splitArea: { show: true } },
+      yAxis: { type: "category", data: d.y, inverse: true, splitArea: { show: true } },
+      visualMap: {
+        min: Math.min(d.min, 0), max: Math.max(d.max, 0.5), dimension: 2, calculable: true,
+        orient: "horizontal", left: "center", bottom: 8,
+        inRange: { color: ["#f0f4fa", "#dbe8fb", "#0068f5", "#0b3668"] },
+        textStyle: { fontFamily: "Rubik", color: "#0c3058" }
+      },
+      series: [{
+        type: "heatmap", data: d.cells,
+        label: { show: window.innerWidth >= 640, fontFamily: "Rubik", fontSize: 10, formatter: (p) => Number(p.value[2]).toFixed(1) },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } }
+      }]
+    }));
+    window.addEventListener("resize", () => chart.resize());
+  })();
+</script>
+{%- endif %}

@@ -1,0 +1,15 @@
+{
+  "services.CODE": "chart-rank, chart-qoq, chart-longrun, chart-cum, chart-annual, chart-spread, chart-group-194160, chart-group-194270, chart-group-194310 — selects the series; the main-industry / sub-index tree is spelled out per code in compute.py",
+  "services.NAME_HE": "chart-rank — display label for a code without a short label in compute.py",
+  "services.FREQ": "chart-rank — rows filtered to quarterly (Q); every code here is quarterly",
+  "services.YEAR": "chart-longrun, chart-qoq, chart-annual, kpi:top — the quarter axis (with PERIOD)",
+  "services.PERIOD": "chart-longrun, chart-qoq, kpi:top — quarter number",
+  "services.TIME_PERIOD": "skip: same as YEAR + PERIOD, which compute reads",
+  "services.DATE": "skip: the quarter's first day, derived from YEAR + PERIOD",
+  "services.VALUE": "table:rank — the published index level on its own base, shown only next to its base",
+  "services.BASE_DESC": "table:rank — base of the published level",
+  "services.PERCENT": "chart-qoq, chart-rank, insight:quarter_move — published change vs the previous quarter",
+  "services.PERCENT_YEAR": "chart-rank, chart-spread, kpi:top, kpi:bottom, kpi:median, kpi:up, insight:leader, insight:breadth, insight:streak, insight:spread",
+  "services.VALUE_CHAINED": "chart-longrun, chart-cum, chart-annual, chart-group-194160, chart-group-194270, chart-group-194310, insight:longrun, insight:annual — rebased to 100 at a shared start quarter",
+  "services.CHAIN_BASE": "chart-longrun — named in the about-the-data note (each code has its own base)"
+}

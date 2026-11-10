@@ -1,0 +1,62 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-cpi",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T00:00:00Z",
+    "rows": { "headline": 901, "groups": 4730, "secondary": 1710 }
+  },
+  "inputs": [
+    {
+      "name": "headline",
+      "by_id": "headline",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "groups",
+      "by_id": "groups",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "secondary",
+      "by_id": "secondary",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE",
+        "BASE_DESC",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "VALUE_CHAINED",
+        "CHAIN_BASE"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

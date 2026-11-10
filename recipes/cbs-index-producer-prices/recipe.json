@@ -1,0 +1,56 @@
+{
+  "contract_version": 1,
+  "dataset_id": "cbs-index-producer-prices",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T00:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T00:00:00Z",
+    "rows": { "long": 762, "branches": 4774, "subbranches": 7669 }
+  },
+  "inputs": [
+    {
+      "name": "long",
+      "by_id": "long",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE_CHAINED",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "branches",
+      "by_id": "branches",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE_CHAINED",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "CHAIN_BASE"
+      ]
+    },
+    {
+      "name": "subbranches",
+      "by_id": "subbranches",
+      "required_columns": [
+        "CODE",
+        "NAME_HE",
+        "FREQ",
+        "DATE",
+        "VALUE_CHAINED",
+        "PERCENT",
+        "PERCENT_YEAR",
+        "CHAIN_BASE"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
