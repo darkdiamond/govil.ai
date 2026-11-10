@@ -53,6 +53,12 @@ def test_signed_formats_are_isolated_with_a_real_minus():
     ("2019-2025", ["2019-"]),                    # a range still needs a lead for its first year
     ("עלייה של 2025%", ["2025%"]),
     ("נרשמו 2025,5 נקודות", ["2025,5"]),
+    # "כ-" means "about": a count, never a year.
+    ("נמכרו כ-1980 דירות", ["כ-1980"]),
+    ("כ-2040 עסקאות", ["כ-2040"]),
+    ("כ-1950 נפגעים", ["כ-1950"]),
+    ("ב-2025 ומ-2019 ול-2026 והחל מ-2020", []),
+    ("בין 2019 ל-2025, ינואר-2025 ומרץ–2026", []),
 ])
 def test_stray_numbers(text, bad):
     assert stray_numbers(text) == bad
@@ -172,6 +178,11 @@ def test_gate_catches(mutate, needle):
     ("ירידה של שתי נקודות אחוז", 1),
     ("זו הפעם הרביעית ברציפות, אחרי שלוש שנים", 0),
     ("בחמש השנים האחרונות", 0),
+    ("גידול של כשלושה מיליון שקל", 1),
+    ("כחצי מיליון נוסעים", 1),
+    ("הוצאה של שלושה מיליוני שקלים", 1),
+    ("השקעה של כחמישה מיליארד שקל", 1),
+    ("פי שלושה מבעבר", 0),
 ])
 def test_spelled_numbers(text, hits):
     from services.news.ledger import spelled_numbers
