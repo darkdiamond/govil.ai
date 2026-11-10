@@ -38,11 +38,12 @@ def _short(name):
     return SHORT.get(name, name)
 
 # Highest academic degree named in the free text. "תואר ראשון (מוסמך)" is the
-# Technion's B.Sc., so "מוסמך" alone is not a master's degree.
+# Technion's B.Sc., so "מוסמך" alone is not a master's degree; a הנדסאי
+# diploma is not an academic degree.
 DEGREES = [
     ("תואר שלישי", r"תואר\s*שלישי|דוקטור|Ph\.?D"),
     ("תואר שני", r"תואר\s*שני|מגיסטר|M\.?Sc|M\.?B\.?A"),
-    ("תואר ראשון", r"תואר\s*ראשון|B\.?Sc|הנדסאי"),
+    ("תואר ראשון", r"תואר\s*ראשון|B\.?Sc"),
 ]
 NO_DEGREE = "ללא תואר אקדמי מפורט"
 
@@ -64,7 +65,7 @@ CREDENTIALS = [
     ("בוררות וגישור", r"בורר|גישור|גשור"),
     ("נגישות", r"נגישות"),
     ("בטיחות", r"בטיחות"),
-    ("בקרת תכן", r"בקר"),
+    ("בקרת בנייה ותכן", r"בקר"),  # בקר תכן, בקרת בנייה, פנקס הבקרים, בקר מיגון
 ]
 
 _DISTRICT_PREFIX = re.compile(r"^\s*([א-ת])\s*-\s*")
@@ -83,18 +84,19 @@ def _families(text):
 
 
 def _districts(text):
-    """{name: letter} for one expert. 'ד- תל אביב' and 'ד - תל אביב' are one
-    district; the letter is the court administration's district order."""
+    """{key: name} for one expert. The key is the district's letter code
+    ('ד' for 'ד - תל אביב'), which is the court administration's district id
+    and order, so a new spelling of the name ('ד - תל-אביב') stays the same
+    district. A part with no letter prefix is keyed by its name (sorts last)."""
     out = {}
     for part in re.split(r"[,\n;]", text):
         part = _clean(part)
         if not part:
             continue
         m = _DISTRICT_PREFIX.match(part)
-        letter = m.group(1) if m else "ת"  # unknown order sorts last
         name = _clean(part[m.end():] if m else part).strip(".")
         if name:
-            out[name] = letter
+            out[m.group(1) if m else f"~{name}"] = name
     return out
 
 
@@ -112,6 +114,16 @@ def _first_match(text, table, default):
         if re.search(pat, text, flags=re.IGNORECASE):
             return name
     return default
+
+
+def _count_matches(texts, table):
+    """Experts whose text matches each (name, pattern), ranked; zero counts dropped."""
+    counts = Counter()
+    for t in texts:
+        for name, pat in table:
+            if re.search(pat, t):
+                counts[name] += 1
+    return [(nm, c) for nm, c in _rank(counts) if c]
 
 
 def _rank(counter, order=None):
@@ -142,8 +154,9 @@ def compute(frames):
     fam_counts = Counter(f for fs in fams for f in fs)
     fam_ranked = _rank(fam_counts, fam_order)
     fam_names = [f for f, _ in fam_ranked]
+    n_families = sum(1 for f in fam_names if f != OTHER)
     nspec = fams.map(len)
-    nspec_buckets = []
+    nspec_buckets = [("לא צוין", int((nspec == 0).sum()))] if (nspec == 0).any() else []
     for k in range(1, 4):
         nspec_buckets.append((f"{k}", int((nspec == k).sum())))
     nspec_buckets.append(("4+", int((nspec >= 4).sum())))
@@ -158,23 +171,33 @@ def compute(frames):
     pair_ranked = sorted(pairs.items(), key=lambda kv: (-kv[1], kv[0]))[:8]
 
     # ── districts ────────────────────────────────────────────────────────
-    letter_of = {}
+    # A district written without its letter ('ירושלים') joins the lettered
+    # district spelled the same way, so it is never a second column.
+    letter_by_name = {name: key for d in dists for key, name in d.items() if not key.startswith("~")}
+    dists = dists.map(lambda d: {(letter_by_name.get(name, key) if key.startswith("~") else key): name
+                                 for key, name in d.items()})
+    spellings: dict[str, Counter] = {}
     for d in dists:
-        for name, letter in d.items():
-            letter_of.setdefault(name, letter)
-    dist_names = sorted(letter_of, key=lambda nm: (letter_of[nm], nm))
-    dist_counts = {nm: sum(1 for d in dists if nm in d) for nm in dist_names}
+        for key, name in d.items():
+            spellings.setdefault(key, Counter())[name] += 1
+    dist_keys = sorted(spellings)  # letter order; prefix-less names (~) last
+    # Each district shows its most common spelling (ties: alphabetical).
+    name_of = {k: min(spellings[k].items(), key=lambda kv: (-kv[1], kv[0]))[0] for k in dist_keys}
+    dist_names = [name_of[k] for k in dist_keys]
+    dist_counts = {name_of[k]: sum(1 for d in dists if k in d) for k in dist_keys}
     n_dist = len(dist_names)
     ndist = dists.map(len)
     nationwide = int((ndist == n_dist).sum()) if n_dist > 1 else 0
-    ndist_hist = [(f"{k}", int((ndist == k).sum())) for k in range(1, max(n_dist, 1) + 1)]
+    ndist_hist = [("לא צוין", int((ndist == 0).sum()))] if (ndist == 0).any() else []
+    ndist_hist += [(f"{k}", int((ndist == k).sum())) for k in range(1, max(n_dist, 1) + 1)]
     single_district = int((ndist == 1).sum())
 
     # specialisation × district: experts available
     matrix = []
     for fi, f in enumerate(fam_names):
         for di, dn in enumerate(dist_names):
-            v = sum(1 for fs, d in zip(fams, dists, strict=True) if f in fs and dn in d)
+            k = dist_keys[di]
+            v = sum(1 for fs, d in zip(fams, dists, strict=True) if f in fs and k in d)
             matrix.append([di, fi, v])
     cell = {(m[1], m[0]): m[2] for m in matrix}
 
@@ -194,18 +217,9 @@ def compute(frames):
     deg_counts = [(d, c) for d, c in deg_counts if c]
     advanced = int(deg.isin(["תואר שלישי", "תואר שני"]).sum())
 
-    inst_counts = Counter()
-    for t in degree_text:
-        for name, pat in INSTITUTIONS:
-            if re.search(pat, t):
-                inst_counts[name] += 1
-    inst_ranked = [(nm, c) for nm, c in _rank(inst_counts) if c]
-    cred_counts = Counter()
-    for t in degree_text:
-        for name, pat in CREDENTIALS:
-            if re.search(pat, t):
-                cred_counts[name] += 1
-    cred_ranked = [(nm, c) for nm, c in _rank(cred_counts) if c]
+    inst_ranked = _count_matches(degree_text, INSTITUTIONS)
+    inst_counts = dict(inst_ranked)
+    cred_ranked = _count_matches(degree_text, CREDENTIALS)
 
     # ── insights ─────────────────────────────────────────────────────────
     insights = []
@@ -237,8 +251,9 @@ def compute(frames):
     def nation():
         if n_dist < 2 or nationwide == 0:
             return None
+        tail = (f", ו-{int_he(single_district)} רשומים במחוז אחד בלבד" if single_district else "")
         return (f"{int_he(nationwide)} מומחים ({pct(nationwide / n)}) מוכנים לקבל מינויים בכל "
-                f"{int_he(n_dist)} המחוזות, ו-{int_he(single_district)} רשומים במחוז אחד בלבד.")
+                f"{int_he(n_dist)} המחוזות{tail}.")
 
     def thin_cell():
         best = None
@@ -305,7 +320,7 @@ def compute(frames):
     worst_v = dist_counts[worst] if worst else 0
     kpis = {
         "experts": {"value": n, "display": int_he(n), "tone": "brand"},
-        "families": {"value": len(fam_names), "display": int_he(len(fam_names)), "tone": "brand"},
+        "families": {"value": n_families, "display": int_he(n_families), "tone": "brand"},
         "nationwide": {"value": nationwide, "display": int_he(nationwide), "tone": "info"},
         "weakest": {"value": worst_v, "display": int_he(worst_v),
                     "tone": "warn" if best_v and worst_v < 0.6 * best_v else "brand"},
@@ -318,7 +333,7 @@ def compute(frames):
 
     labels = {
         "lede": (f"הנהלת בתי המשפט מעמידה לרשות השופטים רשימה של {int_he(n)} מומחים בהנדסה אזרחית "
-                 f"שאפשר למנות לחוות דעת בתיק, ב-{int_he(len(fam_names))} תחומי התמחות "
+                 f"שאפשר למנות לחוות דעת בתיק, ב-{int_he(n_families)} תחומי התמחות "
                  f"וב-{int_he(n_dist)} מחוזות שיפוט. הדף מנתח את הרשימה לפי תחום, מחוז, שפה והשכלה; "
                  "פרטי הקשר של כל מומחה מופיעים בטבלת הנתונים שבתחתית הדף."),
         "experts_kpi": "מומחים ברשימה",
@@ -327,12 +342,13 @@ def compute(frames):
         "weakest_kpi": f"מומחים הזמינים במחוז {worst}" if worst else "מומחים במחוז הפחות מכוסה",
         "spec_note": (f"מספר המומחים הרשומים בכל תחום. {int_he(multi)} מומחים רשומים ביותר מתחום אחד, "
                       "ולכן סכום העמודות גדול ממספר המומחים."),
-        "spec_aria": f"מומחים לפי תחום התמחות, {int_he(len(fam_names))} תחומים",
+        "spec_aria": f"מומחים לפי תחום התמחות, {int_he(n_families)} תחומים",
         "nspec_note": f"בכמה תחומים רשום כל מומחה. {pct(multi / n)} רשומים ביותר מתחום אחד.",
         "nspec_aria": "מומחים לפי מספר תחומי ההתמחות",
         "dist_note": (f"מומחה בוחר את המחוזות שבהם יקבל מינויים. {int_he(nationwide)} זמינים בכל המחוזות."),
         "dist_aria": f"מומחים זמינים לפי מחוז שיפוט, {int_he(n_dist)} מחוזות",
-        "ndist_note": f"בכמה מחוזות זמין כל מומחה. {int_he(single_district)} רשומים במחוז אחד בלבד.",
+        "ndist_note": "בכמה מחוזות זמין כל מומחה."
+                      + (f" {int_he(single_district)} רשומים במחוז אחד בלבד." if single_district else ""),
         "ndist_aria": "מומחים לפי מספר המחוזות שבהם הם זמינים",
         "matrix_note": "כמה מומחים זמינים בכל צירוף של תחום ומחוז. תא בהיר מסמן מחסור יחסי.",
         "matrix_aria": "מפת חום של מומחים לפי תחום התמחות ומחוז",
