@@ -248,6 +248,7 @@ def fetch_resource_records_to_file(
     page_timeout_s: float,
     deadline: float,
     fields: list[str] | None = None,
+    preview: dict | None = None,
 ) -> FetchOutcome | None:
     """Full datastore export for one resource, streamed to `dest` as UTF-8 CSV.
 
@@ -257,21 +258,30 @@ def fetch_resource_records_to_file(
     FetchLimitExceeded (dest removed), so the caller can tell an outgrown
     dataset from a network error. Any other failure returns None (dest
     removed).
+
+    Never reads past `total`. An export of more than one page takes a fresh
+    preview at the end and fails when the table moved under it (another
+    total, or other fields or sample rows than `preview`, the preview the
+    export started from), or when that preview doesn't answer.
     """
     if not resource_id or total <= 0 or max_bytes <= 0:
         return None
 
-    def _walk() -> tuple[int, int]:
+    def _walk() -> tuple[int, int, int]:
         with open(dest, "wb") as f:
             w = _CsvStreamWriter(f, max_bytes)
             offset = 0
+            pages = 0
             limit = min(page_size, _FIRST_PAGE_ROWS)
             while offset < total:
                 if time.monotonic() > deadline:
                     raise _WallBudgetExceeded()
+                # Clipped to the preview's row count: rows a table gained
+                # since then are not part of this export.
                 page_fields, records = _fetch_page(
-                    resource_id, offset, limit, page_timeout_s, fields
+                    resource_id, offset, min(limit, total - offset), page_timeout_s, fields
                 )
+                pages += 1
                 if not records:
                     break
                 before = w.bytes
@@ -289,11 +299,28 @@ def fetch_resource_records_to_file(
                 raise RuntimeError(f"datastore ran out at row {offset:,} of {total:,}")
             if w.rows == 0:
                 raise RuntimeError("no records returned")
-            return w.rows, w.bytes
+            return w.rows, w.bytes, pages
+
+    def _check_unchanged() -> None:
+        # Pages are separate reads: a datastore reloaded between them leaves
+        # a file of two versions. One fresh preview after the walk catches
+        # a reload that moved the total, the fields or the first rows.
+        now = fetch_resource_preview(resource_id)
+        if now is None:
+            raise RuntimeError("no preview to confirm the export against")
+        if now.get("total") != total:
+            raise RuntimeError(f"datastore total moved from {total:,} to "
+                               f"{now.get('total')} during the export")
+        if preview is not None:
+            for key in ("fields", "sample_rows"):
+                if now.get(key) != preview.get(key):
+                    raise RuntimeError(f"datastore {key} moved during the export")
 
     started = time.monotonic()
     try:
-        rows, nbytes = _walk()
+        rows, nbytes, pages = _walk()
+        if pages > 1:
+            _check_unchanged()
     except _ByteCapExceeded:
         dest.unlink(missing_ok=True)
         raise FetchLimitExceeded(
@@ -859,7 +886,8 @@ def fetch_resource_export(
             return out
     out = fetch_resource_records_to_file(resource_id, total, dest, max_bytes=max_bytes,
                                          deadline=deadline, fields=fields,
-                                         page_size=page_size, **datastore_kw)
+                                         page_size=page_size, preview=preview,
+                                         **datastore_kw)
     if out is not None:
         out.via = "datastore"
     return out
