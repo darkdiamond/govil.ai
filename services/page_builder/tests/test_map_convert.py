@@ -15,8 +15,8 @@ import pytest
 
 from services.page_builder import geo_snapshot as gs
 from services.page_builder import refresh as rf
-from services.page_builder.agent_contract import FileOutcome
 from services.page_builder.recipe import RecipeError, RecipeInput, feature_table
+from services.shared.fetch_types import FileOutcome
 
 
 def _reference(features, *, crs, max_bytes=gs.DEFAULT_MAX_BYTES):

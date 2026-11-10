@@ -12,8 +12,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from services.page_builder import agent_contract
 from services.page_builder import local_sandbox as ls
+from services.page_builder import page_gate
 
 UID, GID = 10001, 10001
 
@@ -201,11 +201,11 @@ def test_host_check_uses_image_copy(tmp_path, monkeypatch):
         seen["argv"] = argv
         return subprocess.CompletedProcess(argv, 0, stdout="OK misc", stderr="")
 
-    monkeypatch.setattr(agent_contract.subprocess, "run", fake_run)
-    agent_contract.run_host_check("<p>x</p>", "{}", tmp_path)
+    monkeypatch.setattr(page_gate.subprocess, "run", fake_run)
+    page_gate.run_host_check("<p>x</p>", "{}", tmp_path)
     assert seen["argv"][1] == "-I"
-    assert seen["argv"][2] == str(agent_contract.CHECK_SCRIPT_PATH)
-    assert str(agent_contract.CHECK_SCRIPT_PATH).endswith("agent/skills/check.py")
+    assert seen["argv"][2] == str(page_gate.CHECK_SCRIPT_PATH)
+    assert str(page_gate.CHECK_SCRIPT_PATH).endswith("agent/skills/check.py")
     assert (tmp_path / "validated-content.html").read_text() == "<p>x</p>"
 
 

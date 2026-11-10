@@ -1,4 +1,4 @@
-"""Tests for the full-data export (agent_contract.fetch_resource_records_to_file)
+"""Tests for the full-data export (ckan_export.fetch_resource_records_to_file)
 and resource selection — what the recipe refresh and `author prepare` fetch.
 
 The fetcher pages datastore_search host-side and streams one CSV per
@@ -17,11 +17,9 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 
-from services.page_builder import agent_contract
-from services.page_builder.agent_contract import (
-    FetchLimitExceeded,
-    fetch_resource_records_to_file,
-)
+from services.page_builder import ckan_export
+from services.page_builder.ckan_export import fetch_resource_records_to_file
+from services.shared.fetch_types import FetchLimitExceeded
 from services.shared.resources import select_prefetch_resources
 
 
@@ -58,7 +56,7 @@ def _paged_urlopen(monkeypatch, records: list[dict], page_size_expected: int):
         }
         return _Resp(json.dumps(body, ensure_ascii=False).encode("utf-8"))
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", fake)
     return calls
 
 
@@ -103,7 +101,7 @@ def test_gates_return_none(monkeypatch, tmp_path):
     def boom(*_a, **_k):  # urlopen must not be reached when gated
         raise AssertionError("network touched despite gate")
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", boom)
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", boom)
     dest = tmp_path / "d.csv"
     assert _fetch(dest, total=10, resource_id="") is None
     assert _fetch(dest, total=0) is None
@@ -113,9 +111,9 @@ def test_gates_return_none(monkeypatch, tmp_path):
 def test_pages_after_the_first_are_sized_by_row_width(monkeypatch, tmp_path):
     """The builder holds a whole page in memory: after the first page, wide
     rows get smaller pages, never more rows than `page_size`."""
-    monkeypatch.setattr(agent_contract, "_FIRST_PAGE_ROWS", 4)
-    monkeypatch.setattr(agent_contract, "_PAGE_TARGET_BYTES", 220)
-    monkeypatch.setattr(agent_contract, "_MIN_PAGE_ROWS", 1)
+    monkeypatch.setattr(ckan_export, "_FIRST_PAGE_ROWS", 4)
+    monkeypatch.setattr(ckan_export, "_PAGE_TARGET_BYTES", 220)
+    monkeypatch.setattr(ckan_export, "_MIN_PAGE_ROWS", 1)
     records = [{"_id": i + 1, "שם": "x" * 100, "ערך": i} for i in range(10)]
     limits = []
 
@@ -127,7 +125,7 @@ def test_pages_after_the_first_are_sized_by_row_width(monkeypatch, tmp_path):
                 "result": {"fields": _FIELDS, "records": records[offset: offset + limit]}}
         return _Resp(json.dumps(body, ensure_ascii=False).encode("utf-8"))
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", fake)
     dest = tmp_path / "d.csv"
     outcome = _fetch(dest, total=10, page_size=10)
     assert outcome.rows == 10
@@ -148,7 +146,7 @@ def test_http_error_returns_none_and_removes_file(monkeypatch, tmp_path):
     def fake(req, timeout=None):
         raise urllib_error.HTTPError("http://x", 500, "err", None, io.BytesIO(b""))
 
-    monkeypatch.setattr(agent_contract.urllib_request, "urlopen", fake)
+    monkeypatch.setattr(ckan_export.urllib_request, "urlopen", fake)
     dest = tmp_path / "d.csv"
     assert _fetch(dest, total=10) is None
     assert not dest.exists()

@@ -60,13 +60,13 @@ def test_from_ckan_response_keeps_file_hash():
 
 @pytest.mark.parametrize(("url", "expected"), _URL_VECTORS)
 def test_public_resource_url_shared_vectors(url, expected):
-    from services.scanner.models import _public_resource_url as f
+    from services.shared.ckan import public_resource_url as f
 
     assert f(url) == expected
 
 
 def test_public_resource_url_non_string_is_blank():
-    from services.scanner.models import _public_resource_url as f
+    from services.shared.ckan import public_resource_url as f
 
     assert f(None) == ""
     assert f(123) == ""

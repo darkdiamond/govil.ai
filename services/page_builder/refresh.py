@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import csv
 import functools
-import gzip
 import hashlib
 import http.client
 import json
@@ -39,19 +38,21 @@ from pathlib import Path
 from urllib import error as urllib_error
 
 from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
-
-from . import geo_snapshot
-from .agent_contract import (
+from services.shared import github, model_history
+from services.shared.fetch_types import (
     DownloadBlocked,
     FetchLimitExceeded,
     ResourceRestrictedError,
+)
+
+from . import geo_snapshot
+from .ckan_export import (
     fetch_resource_export,
     fetch_resource_file,
     fetch_resource_preview,
-    run_host_check,
-    sanitize_content_html,
 )
 from .local_sandbox import LocalSandbox
+from .page_gate import run_host_check
 from .recipe import (
     MANIFEST_FILENAME,
     RECIPE_FILES,
@@ -66,6 +67,7 @@ from .recipe import (
     snapshot_table,
     validate_model,
 )
+from .sanitize import sanitize_content_html
 
 log = logging.getLogger("page_builder.refresh")
 
@@ -247,10 +249,7 @@ class GithubRecipeRepo:
         if fetch not in self.FETCH_MODES:
             raise ValueError(f"RECIPES_FETCH must be one of {self.FETCH_MODES}, got {fetch!r}")
         self.repo, self.ref, self.fetch = repo, ref, fetch
-        self._headers = {"Accept": "application/vnd.github+json",
-                         "X-GitHub-Api-Version": "2022-11-28"}
-        if token:
-            self._headers["Authorization"] = f"Bearer {token}"
+        self._headers = github.api_headers(token)
         self._sha: str | None = None
         self._ids: list[str] | None = None
         self._with_source: set[str] = set()
@@ -267,7 +266,7 @@ class GithubRecipeRepo:
     def list_ids(self) -> list[str]:
         if self._ids is None:
             sha = self._get(
-                f"https://api.github.com/repos/{self.repo}/commits/{self.ref}"
+                f"{github.API}/repos/{self.repo}/commits/{self.ref}"
             ).json()["sha"]
             self._sha = sha
             ids, with_source = set(), set()
@@ -285,7 +284,7 @@ class GithubRecipeRepo:
                         with_source.add(d.name)
             else:
                 listing = self._get(
-                    f"https://api.github.com/repos/{self.repo}/git/trees/{sha}",
+                    f"{github.API}/repos/{self.repo}/git/trees/{sha}",
                     params={"recursive": "1"},
                 ).json()
                 if listing.get("truncated"):
@@ -362,7 +361,7 @@ class GithubRecipeRepo:
         # the Authorization header on the cross-host hop; a private repo's
         # redirect URL carries its own token).
         with httpx.stream(
-            "GET", f"https://api.github.com/repos/{self.repo}/tarball/{self._sha}",
+            "GET", f"{github.API}/repos/{self.repo}/tarball/{self._sha}",
             headers=self._headers, timeout=60.0, follow_redirects=True,
         ) as r:
             r.raise_for_status()
@@ -421,14 +420,12 @@ def recipe_repo_from_env() -> LocalRecipeRepo | GithubRecipeRepo:
     """
     src = os.environ.get("RECIPES_SOURCE", "").strip()
     if not src:
-        src = "github:{}@main".format(
-            os.environ.get("PUBLISH_GITHUB_REPO", "darkdiamond/govil.ai")
-        )
+        src = f"github:{github.default_repo()}@main"
     if src.startswith("github:"):
         repo, _, ref = src[len("github:"):].partition("@")
         return GithubRecipeRepo(
             repo, ref or "main",
-            token=os.environ.get("GITHUB_DISPATCH_TOKEN", "").strip() or None,
+            token=github.token() or None,
             fetch=os.environ.get("RECIPES_FETCH", "files").strip().lower() or "files",
         )
     return LocalRecipeRepo(Path(src))
@@ -554,12 +551,17 @@ def _strikes_after_probe(state: dict, probe: InputProbe | None) -> dict | None:
 
 
 # Shared code between the data and the page: the compute runner, template
-# rendering/validation, the sanitizer. A deploy that changes any of them can
-# change the output with identical data, so it invalidates both prechecks.
+# rendering/validation, the sanitizer, and the CKAN export with its shared
+# helpers (CSV normalization, the file URL, `pick: "latest"`'s date parsing
+# shape the inputs compute sees, and fingerprint A can't see that). A deploy that changes any of them can change the output with
+# identical data, so it invalidates both prechecks. The check.py gate
+# (page_gate.py) doesn't shape output, so it isn't here.
 _RENDER_CODE_FILES = (
     RECIPE_EXEC_PATH,
     Path(__file__).resolve().parent / "recipe.py",
-    Path(__file__).resolve().parent / "agent_contract.py",
+    Path(__file__).resolve().parent / "sanitize.py",
+    Path(__file__).resolve().parent / "ckan_export.py",
+    Path(__file__).resolve().parents[1] / "shared" / "ckan.py",
 )
 # Builds a `map` input's table; folded only into recipes that have one, so
 # a change here doesn't re-render every other page.
@@ -880,7 +882,7 @@ def fetch_inputs(
                     deadline=deadline,
                     fields=inp.columns,
                     # The uploaded file is tried first; the datastore preview
-                    # is what it must match (agent_contract.fetch_resource_csv).
+                    # is what it must match (ckan_export.fetch_resource_csv).
                     resource=res,
                     preview=_preview(rid),
                     file_max_bytes=file_max_bytes,
@@ -1301,25 +1303,6 @@ def _write_gcs(data: bytes, bucket: str, relpath: str) -> str:
     return f"gs://{bucket}/{relpath}"
 
 
-MODEL_HISTORY_MAX_VALUE_BYTES = 2_000_000
-
-
-def history_model(model: dict) -> dict:
-    """The page model as kept for history (read by the news job): `tables`
-    dropped (row dumps, not series) and any value — top-level, or one level
-    inside a top-level dict (a chart, a KPI) — whose JSON tops
-    MODEL_HISTORY_MAX_VALUE_BYTES replaced by a marker, so one outsized value
-    can't bloat every snapshot."""
-    def capped(v):
-        size = len(json.dumps(v, ensure_ascii=False, default=str))
-        return v if size <= MODEL_HISTORY_MAX_VALUE_BYTES else {"__omitted_bytes__": size}
-
-    return {
-        k: ({kk: capped(vv) for kk, vv in v.items()} if isinstance(v, dict) else capped(v))
-        for k, v in model.items() if k != "tables"
-    }
-
-
 def _stage_model_history(src_id: str, model: dict, *, bucket: str,
                          write_gcs: Callable[[bytes, str, str], str],
                          recipe_version: int | None = None,
@@ -1330,16 +1313,12 @@ def _stage_model_history(src_id: str, model: dict, *, bucket: str,
     is logged, never fails the refresh (the page is already staged and marked).
     `recipe_version` + `metadata_modified` let a reader tell a recipe change
     (model shape moved) from a data change."""
-    ts = (now or datetime.now(UTC)).strftime("%Y%m%dT%H%M%SZ")
+    ts = model_history.stamp(now or datetime.now(UTC))
     try:
-        body = gzip.compress(json.dumps(
-            {"dataset_id": src_id, "rendered_at": ts, "recipe_version": recipe_version,
-             "metadata_modified": metadata_modified.isoformat() if metadata_modified else None,
-             "model": history_model(model)},
-            ensure_ascii=False, default=str, sort_keys=True,
-        ).encode("utf-8"), mtime=0)
-        write_gcs(body, bucket, f"models/{src_id}/{ts}.json.gz")
-        write_gcs(body, bucket, f"models/{src_id}/latest.json.gz")
+        body = model_history.encode(src_id, model, ts=ts, recipe_version=recipe_version,
+                                    metadata_modified=metadata_modified)
+        for name in model_history.object_names(src_id, ts):
+            write_gcs(body, bucket, name)
         return True
     except Exception:
         log.warning("refresh %s: writing model history failed", src_id[:8], exc_info=True)

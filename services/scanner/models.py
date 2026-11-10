@@ -5,13 +5,12 @@ These models represent datasets, resources, and scan results as returned
 from the CKAN API; `FirestoreStateStore.save_dataset` persists them.
 """
 
-import re
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
-from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field
 
+from services.shared.ckan import parse_ckan_datetime, public_resource_url
 from services.shared.slug import slugify
 
 
@@ -88,9 +87,9 @@ class Dataset(BaseModel):
                 id=res_data.get("id", ""),
                 name=res_data.get("name", ""),
                 format=res_data.get("format", "").upper(),
-                url=_public_resource_url(res_data.get("url", "")),
+                url=public_resource_url(res_data.get("url", "")),
                 size=res_data.get("size"),
-                last_modified=_parse_datetime(res_data.get("last_modified")),
+                last_modified=parse_ckan_datetime(res_data.get("last_modified")),
                 description=res_data.get("description"),
                 datastore_active=bool(res_data.get("datastore_active")),
                 hash=res_data.get("hash") or None,
@@ -110,8 +109,8 @@ class Dataset(BaseModel):
             update_frequency=data.get("update_frequency"),
             tags=tags,
             resources=resources,
-            metadata_created=_parse_datetime(data.get("metadata_created")),
-            metadata_modified=_parse_datetime(data.get("metadata_modified")),
+            metadata_created=parse_ckan_datetime(data.get("metadata_created")),
+            metadata_modified=parse_ckan_datetime(data.get("metadata_modified")),
         )
 
 
@@ -136,52 +135,3 @@ class ScanSummary(BaseModel):
     errors: list[str] = Field(default_factory=list)  # first MAX_ERRORS_KEPT only
     error_count: int = 0
     results: list[ScanResult] = Field(default_factory=list)
-
-
-_URL_IGNORED_CHARS_RE = re.compile(r"[\x00-\x20\x7f]")
-_GATED_HOST_RE = re.compile(r"^https?://(?:aws-)?e\.data\.gov\.il/")
-_LOCALE_PREFIX_RE = re.compile(r"^https://data\.gov\.il/(?:he|en)/(?=dataset/)")
-
-
-def _public_resource_url(url: str) -> str:
-    """CKAN publishes resource URLs on `e.data.gov.il` / `aws-e.data.gov.il`,
-    which sit behind an OAuth wall (Google IAP / AWS ALB) and redirect
-    anonymous clients to a login screen. The same path on `data.gov.il` (no
-    `e.` prefix) is publicly downloadable. Some URLs also carry a `/he/` or
-    `/en/` locale prefix before `/dataset/`; data.gov.il routes those to its
-    frontend's "page not found" screen, so drop it. Rewrite on ingest so any
-    consumer of the Firestore `resources[]` list sees a URL that actually
-    works in a browser. Mirrored by frontend/utils/resource-url.ts.
-
-    Anything that isn't an absolute http(s) URL (`javascript:`, `data:`,
-    `file:`, relative junk) becomes "" — CKAN fields are publisher-supplied,
-    the URL lands in every download button's href, and the publisher
-    already drops resources with an empty url. The scheme is judged with
-    whitespace/control chars removed, as a browser would (`java\tscript:`).
-    """
-    if not url or not isinstance(url, str):
-        return ""
-    url = url.strip()
-    probe = _URL_IGNORED_CHARS_RE.sub("", url)
-    parts = urlsplit(probe)
-    if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
-        return ""
-    url = _GATED_HOST_RE.sub("https://data.gov.il/", url)
-    return _LOCALE_PREFIX_RE.sub("https://data.gov.il/", url)
-
-
-def _parse_datetime(value: str | None) -> datetime | None:
-    """Parse datetime string from CKAN API. Always returns tz-aware UTC —
-    CKAN frequently returns naive ISO timestamps (e.g. `2024-01-15T10:30:00`)
-    that would be silently stored as UTC by Firestore and then come back
-    tz-aware, breaking naive/aware comparisons on the next scan."""
-    if not value:
-        return None
-    try:
-        dt = datetime.fromisoformat(value)
-    except (ValueError, TypeError):
-        return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=UTC)
-    return dt
-

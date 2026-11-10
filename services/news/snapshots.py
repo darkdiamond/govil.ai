@@ -1,21 +1,19 @@
 """Read the page-model history the builder writes
-(`refresh._stage_model_history`): models/<id>/<UTC ts>.json.gz, plus a
-latest.json.gz copy that this reader does not trust (it is written second and
-can lag on a partial failure) — the newest timestamped object is the latest.
+(`refresh._stage_model_history`, format in `services.shared.model_history`):
+models/<id>/<UTC ts>.json.gz, plus a latest.json.gz copy that this reader does
+not trust (it is written second and can lag on a partial failure) — the newest
+timestamped object is the latest.
 """
 from __future__ import annotations
 
-import gzip
-import json
 import logging
-import re
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-log = logging.getLogger(__name__)
+from services.shared import model_history
 
-_TS_NAME = re.compile(r"^(\d{8}T\d{6}Z)\.json(?:\.gz)?$")
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -36,7 +34,7 @@ class Snapshot:
                 return datetime.fromisoformat(v).date()
             except ValueError:
                 try:
-                    return datetime.strptime(v, "%Y%m%dT%H%M%SZ").date()
+                    return datetime.strptime(v, model_history.TS_FORMAT).date()
                 except ValueError:
                     continue
         return None
@@ -49,14 +47,8 @@ class Snapshot:
         return cls(dataset_id, None, None, None, doc)  # a bare model (local dumps)
 
 
-def _decode(data: bytes) -> dict:
-    if data[:2] == b"\x1f\x8b":
-        data = gzip.decompress(data)
-    return json.loads(data.decode("utf-8"))
-
-
 class GcsSnapshots:
-    def __init__(self, bucket: str, prefix: str = "models/"):
+    def __init__(self, bucket: str, prefix: str = model_history.PREFIX + "/"):
         from google.cloud import storage
 
         self._client = storage.Client()
@@ -73,12 +65,12 @@ class GcsSnapshots:
         """(timestamp, object name) of every snapshot, newest first."""
         out = []
         for b in self._client.list_blobs(self._bucket, prefix=f"{self.prefix}{dataset_id}/"):
-            if m := _TS_NAME.match(b.name.rsplit("/", 1)[-1]):
-                out.append((m[1], b.name))
+            if ts := model_history.ts_of(b.name):
+                out.append((ts, b.name))
         return sorted(out, reverse=True)
 
     def load(self, dataset_id: str, ref: str) -> Snapshot:
-        return Snapshot.from_doc(dataset_id, _decode(self._bucket.blob(ref).download_as_bytes()))
+        return Snapshot.from_doc(dataset_id, model_history.decode(self._bucket.blob(ref).download_as_bytes()))
 
 
 class LocalSnapshots:
@@ -96,13 +88,13 @@ class LocalSnapshots:
     def names(self, dataset_id: str) -> list[tuple[str, str]]:
         d = self.root / dataset_id
         if d.is_dir():
-            return sorted(((m[1], str(p)) for p in d.iterdir() if (m := _TS_NAME.match(p.name))),
+            return sorted(((ts, str(p)) for p in d.iterdir() if (ts := model_history.ts_of(p.name))),
                           reverse=True)
         f = self.root / f"{dataset_id}.json"
         return [("", str(f))] if f.is_file() else []  # a bare dump: no timestamp
 
     def load(self, dataset_id: str, ref: str) -> Snapshot:
-        return Snapshot.from_doc(dataset_id, _decode(Path(ref).read_bytes()))
+        return Snapshot.from_doc(dataset_id, model_history.decode(Path(ref).read_bytes()))
 
 
 def latest_and_baseline(store, dataset_id: str,

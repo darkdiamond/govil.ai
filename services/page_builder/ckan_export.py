@@ -1,19 +1,9 @@
-"""Host-side page contract shared by the recipe refresh and local authoring.
+"""CKAN datastore schema probe and full-data CSV export.
 
-1. `fetch_resource_preview` / `fetch_resource_export` — CKAN datastore
-   schema probe and full-data CSV export (with the 403 restriction gate,
-   `ResourceRestrictedError`): `datastore_search` pages, or for an input
-   bigger than one page, the uploaded CSV in one download, normalized to
-   the datastore's shape.
-2. `sanitize_content_html` — belt-and-braces cleanup for recurring
-   page-body failure modes (CDN script tags, fabricated SRI hashes,
-   unclosed <script>/<style>, raw control chars in JS strings). Runs on
-   every body before it can reach GCS.
-3. `run_host_check` — agent/skills/check.py on the sanitized body, the
-   final gate before anything is staged.
-
-(Named for the retired agent builder, whose output contract the recipe
-pages still satisfy.)
+`fetch_resource_preview` / `fetch_resource_export` (with the 403 restriction
+gate, `ResourceRestrictedError`): `datastore_search` pages, or for an input
+bigger than one page, the uploaded CSV in one download, normalized to the
+datastore's shape. `fetch_resource_file` downloads a map file.
 """
 from __future__ import annotations
 
@@ -22,91 +12,38 @@ import hashlib
 import io
 import json
 import logging
-import os
 import re
-import subprocess
-import sys
 import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 from urllib import error as urllib_error
 from urllib import request as urllib_request
 from urllib.parse import urlencode
 
-from services.shared.ckan import EXACT_TOTAL_THRESHOLD, is_authorization_error
+from services.shared import ckan
+from services.shared.fetch_types import (
+    DownloadBlocked,
+    FetchLimitExceeded,
+    FetchOutcome,
+    FileOutcome,
+    ResourceRestrictedError,
+)
 
 log = logging.getLogger(__name__)
-
-REPO_ROOT = Path(__file__).resolve().parents[2]
-CHECK_SCRIPT_PATH = REPO_ROOT / "agent" / "skills" / "check.py"
-
-
-def run_host_check(
-    content_html: str, agent_data_json: str, workdir: Path, *, recipe: bool = False
-) -> None:
-    """Run agent/skills/check.py on the sanitized outputs; raise on non-zero.
-
-    The sanitizer may have rewritten the body, so this runs on its output —
-    the authoritative gate. Used by the recipe refresh before anything
-    reaches GCS/Firestore and by `author verify`, so a recipe passes the
-    exact same bar locally as in production.
-
-    Trust boundary: this always runs the IMAGE's check.py
-    (`CHECK_SCRIPT_PATH`, root-owned under /app) — never a copy inside a
-    sandbox workdir, which sandboxed code could rewrite. `workdir` must be
-    a HOST-owned directory, not the sandbox workdir: the sandbox user owns
-    that tree and could pre-plant a symlink at validated-content.html that
-    this (root) process would write through.
-    `-I` keeps PYTHONPATH/user-site/cwd out of check.py's import path.
-    """
-    c = workdir / "validated-content.html"
-    a = workdir / "validated-agent_data.json"
-    c.write_text(content_html, encoding="utf-8")
-    a.write_text(agent_data_json, encoding="utf-8")
-    proc = subprocess.run(
-        [sys.executable, "-I", str(CHECK_SCRIPT_PATH), *(["--recipe"] if recipe else []),
-         str(c), str(a)],
-        capture_output=True,
-        text=True,
-        timeout=60,
-        check=False,  # the exit code is reported below, with the output
-    )
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f"host self-check failed (exit {proc.returncode}): "
-            f"{(proc.stdout or proc.stderr).strip()[:500]}"
-        )
-
-
-class ResourceRestrictedError(Exception):
-    """The primary resource's CKAN datastore returns a 403 Authorization
-    Error — the dataset's data is access-restricted upstream (private /
-    de-listed). A build can't produce a real data page, and the 403 is
-    deterministic (retrying won't help), so the caller marks the source
-    `restricted` instead of burning an agent session or counting it as a
-    transient failure."""
 
 
 # CKAN schema preview — `fields + total + sample_rows` for one resource. The
 # refresh resolves inputs against it, and its sample rows (as truncated and
 # capped below) feed precheck fingerprint A and the export cross-check
 # (`_matches_sample`), so changing these limits moves both. The WAF 403s
-# requests without a browser User-Agent (see scanner notes), and the CKAN
-# response can be ~50 MB without `limit`, so we hardcode limit=5 and a tight
-# wall-clock budget. On any error the preview returns None.
-_CKAN_DATASTORE_URL = "https://data.gov.il/api/3/action/datastore_search"
-# The WAF passes this UA on the API and on file downloads (2026-10-31: a bare
-# `Mozilla/5.0`, curl's and python-requests' UAs all 403). CKAN_USER_AGENT
-# overrides it, so a WAF change is a job env fix, not a redeploy.
-_CKAN_BROWSER_UA = (
-    os.environ.get("CKAN_USER_AGENT", "").strip()
-    or "Mozilla/5.0 (compatible; govdata-builder/1.0)"
-)
-# The preview asks for an exact count (EXACT_TOTAL_THRESHOLD), a count(*)
+# requests without a browser User-Agent (we send `ckan.user_agent()`), and the
+# CKAN response can be ~50 MB without `limit`, so we hardcode limit=5 and a
+# tight wall-clock budget. On any error the preview returns None.
+#
+# The preview asks for an exact count (ckan.EXACT_TOTAL_THRESHOLD), a count(*)
 # that takes ~1.2s on a 4.2M-row table even when CKAN is idle. Keep headroom:
 # a preview that times out twice is a strike that escalates to schema_changed.
 _PREFETCH_TIMEOUT_S = 10.0
@@ -132,7 +69,7 @@ def _http_403_is_restriction(e: urllib_error.HTTPError) -> bool:
         body = json.loads(e.read().decode("utf-8", errors="replace"))
     except Exception:  # noqa: BLE001
         return True
-    return is_authorization_error(body)
+    return ckan.is_authorization_error(body)
 
 
 def fetch_resource_preview(resource_id: str) -> dict | None:
@@ -149,11 +86,11 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             "resource_id": resource_id,
             "limit": _PREFETCH_SAMPLE_LIMIT,
             "include_total": "true",
-            "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
+            "total_estimation_threshold": ckan.EXACT_TOTAL_THRESHOLD,
         }
     )
-    url = f"{_CKAN_DATASTORE_URL}?{qs}"
-    req = urllib_request.Request(url, headers={"User-Agent": _CKAN_BROWSER_UA})
+    url = f"{ckan.DATASTORE_SEARCH_URL}?{qs}"
+    req = urllib_request.Request(url, headers={"User-Agent": ckan.user_agent()})
     last_err: BaseException | None = None
     payload: dict | None = None
     for attempt in (1, 2):
@@ -185,7 +122,7 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
     if not payload or not payload.get("success"):
         # A 200 carrying the same Authorization Error is the restriction
         # surfaced differently — treat it identically to the 403 path.
-        if payload and is_authorization_error(payload):
+        if payload and ckan.is_authorization_error(payload):
             raise ResourceRestrictedError(
                 f"CKAN datastore Authorization Error for resource {resource_id}"
             )
@@ -221,12 +158,6 @@ def fetch_resource_preview(resource_id: str) -> dict | None:
             preview["sample_rows"].pop()
     return preview
 
-@dataclass
-class FetchOutcome:
-    rows: int
-    bytes: int
-    via: str | None = None        # "file" | "datastore" (fetch_resource_export)
-
 
 # Sequential export paging (`fetch_resource_records_to_file`): the first page
 # is the old fixed size, later ones aim at about this much CSV, between
@@ -242,22 +173,6 @@ class _ByteCapExceeded(Exception):
 
 class _WallBudgetExceeded(Exception):
     pass
-
-
-FetchLimit = Literal["bytes", "wall_budget"]
-
-
-class FetchLimitExceeded(Exception):
-    """A fetch stopped at a limit, not on an error: `limit` is "bytes" (a
-    byte cap) or "wall_budget" (the deadline). Raised by the full-or-nothing
-    CKAN export and by provider fetchers. A byte overrun means the dataset
-    outgrew its cap, which a retry won't fix."""
-
-    def __init__(self, limit: FetchLimit, message: str):
-        if limit not in ("bytes", "wall_budget"):
-            raise ValueError(f"unknown fetch limit {limit!r}")
-        super().__init__(message)
-        self.limit = limit
 
 
 def _fetch_page(
@@ -277,7 +192,7 @@ def _fetch_page(
         params["fields"] = list(fields)
     qs = urlencode(params, doseq=True)
     req = urllib_request.Request(
-        f"{_CKAN_DATASTORE_URL}?{qs}", headers={"User-Agent": _CKAN_BROWSER_UA}
+        f"{ckan.DATASTORE_SEARCH_URL}?{qs}", headers={"User-Agent": ckan.user_agent()}
     )
     with urllib_request.urlopen(req, timeout=timeout) as resp:
         payload = json.loads(resp.read().decode("utf-8", errors="replace"))
@@ -400,17 +315,6 @@ def fetch_resource_records_to_file(
     return FetchOutcome(rows=rows, bytes=nbytes)
 
 
-class DownloadBlocked(Exception):
-    """data.gov.il answered a file download with a 403 or an HTML page (the
-    WAF's block page, or an OAuth login screen) instead of the file."""
-
-
-@dataclass
-class FileOutcome:
-    bytes: int
-    sha256: str
-
-
 _DOWNLOAD_CHUNK = 1 << 16
 _FILE_HOST = "https://data.gov.il/"
 
@@ -454,13 +358,11 @@ def fetch_resource_file(
     """
     import http.client
 
-    from services.scanner.models import _public_resource_url
-
-    url = _public_resource_url(url or "")
+    url = ckan.public_resource_url(url or "")
     # The URL is publisher-supplied: only ever fetch data.gov.il's own files.
     if not url.startswith(_FILE_HOST):
         raise ValueError(f"not a data.gov.il file URL ({url[:80]!r})")
-    req = urllib_request.Request(url, headers={"User-Agent": user_agent or _CKAN_BROWSER_UA})
+    req = urllib_request.Request(url, headers={"User-Agent": user_agent or ckan.user_agent()})
     for attempt in (1, 2):
         try:
             return _download(req, dest, max_bytes, timeout_s, deadline)
@@ -514,11 +416,6 @@ def _download(req, dest: Path, max_bytes: int, timeout_s: float, deadline: float
 # have written the export, and any doubt (header, row count, a column type we
 # can't reproduce, the preview's sample rows) falls back to datastore_search.
 
-# Tried when the WAF refuses the builder UA.
-_BROWSER_FALLBACK_UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
-)
 _FILE_TIMEOUT_S = 120.0
 _FILE_PROBE_TIMEOUT_S = 30.0
 # Datastore column types whose JSON → CSV form we reproduce from the file.
@@ -873,10 +770,8 @@ def fetch_resource_csv(
     bounded by `file_max_bytes` instead (never below `max_bytes`): a recipe
     reading 11 of 23 columns from an 879MB file exports ~400MB, and refusing
     the download at the export cap sent it to 42 datastore pages."""
-    from services.scanner.models import _public_resource_url
-
     rid = (resource.get("id") or "")[:8]
-    url = _public_resource_url(resource.get("url") or "")
+    url = ckan.public_resource_url(resource.get("url") or "")
     if (resource.get("format") or "").strip().upper() != "CSV" or not url.startswith(_FILE_HOST):
         return None
     if not preview or total <= 0:
@@ -884,14 +779,14 @@ def fetch_resource_csv(
     started = time.monotonic()
     raw = dest.with_suffix(".raw")
     try:
-        for ua in (_CKAN_BROWSER_UA, _BROWSER_FALLBACK_UA):
+        for ua in (ckan.user_agent(), ckan.BROWSER_FALLBACK_UA):
             try:
                 fetch_resource_file(url, raw, max_bytes=max(max_bytes, file_max_bytes or 0),
                                     timeout_s=_FILE_TIMEOUT_S, deadline=deadline,
                                     user_agent=ua)
                 break
             except DownloadBlocked as e:
-                if ua == _BROWSER_FALLBACK_UA:
+                if ua == ckan.BROWSER_FALLBACK_UA:
                     raise
                 log.info("fetch %s: file blocked for the builder UA (%s), trying a browser UA", rid, e)
         def probe(offset: int, column: str) -> Any:
@@ -968,308 +863,3 @@ def fetch_resource_export(
     if out is not None:
         out.via = "datastore"
     return out
-
-
-# Belt-and-braces cleanup for agent-emitted body fragments. The agent
-# prompt forbids `<script src=>` / `<link>` / `integrity=` / `<\/script>`,
-# but LLM hallucinations recur (one dataset shipped with both a fabricated
-# SRI hash on Leaflet AND `<\/script>` JSON-escape in every script-end tag,
-# silently breaking all viz). These regexes catch the same classes of bug
-# at the staging boundary so a regression on the prompt side never reaches
-# production. Each rule logs a WARNING when it fires.
-#
-# Comments and raw-text end tags are matched the way the HTML tokenizer
-# ends them, not just in their canonical spelling: a comment also closes at
-# `--!>` (and `<!-->` / `<!--->` are empty comments), and an end tag is
-# `</script` + whitespace, `/` or `>`, then anything up to `>`
-# (`</script >`, `</script foo>`, `</SCRIPT>`).
-HTML_COMMENT_RE = r"<!--(?:-?>|.*?--!?>)"
-SCRIPT_END_RE = r"</script(?:[\t\n\f\r /][^>]*)?>"
-_STYLE_END = r"</style(?:[\t\n\f\r /][^>]*)?>"
-_HTML_COMMENT = re.compile(HTML_COMMENT_RE, re.DOTALL)
-_SCRIPT_END_ESCAPED = re.compile(r"<\\/script(\s*)>", re.IGNORECASE)
-_INTEGRITY_ATTR = re.compile(r'\s+integrity\s*=\s*"[^"]*"', re.IGNORECASE)
-_CROSSORIGIN_ATTR = re.compile(r'\s+crossorigin(?:\s*=\s*"[^"]*")?', re.IGNORECASE)
-_CDN_HOSTS = r"(?:[\w-]+\.)*(?:unpkg\.com|cdn\.jsdelivr\.net|cdnjs\.cloudflare\.com)"
-_SCRIPT_CDN_TAG = re.compile(
-    rf'<script\b[^>]*\bsrc\s*=\s*"https?://{_CDN_HOSTS}[^"]*"[^>]*>\s*(?:{SCRIPT_END_RE})?',
-    re.IGNORECASE,
-)
-_LINK_CDN_TAG = re.compile(
-    rf'<link\b[^>]*\bhref\s*=\s*"https?://{_CDN_HOSTS}[^"]*"[^>]*/?>',
-    re.IGNORECASE,
-)
-# Cloudflare "Email Address Obfuscation": when the agent web_fetches a
-# gov.il page that sits behind Cloudflare with that feature on, the source
-# HTML has real mailto:s rewritten to `<a href="/cdn-cgi/l/email-protection
-# #HEX"><span class="__cf_email__" data-cfemail="HEX">[email protected]</span></a>`
-# (a client-side JS on Cloudflare decodes it). govil.ai is NOT behind
-# Cloudflare, so any such link the agent copies verbatim 404s on click and
-# the address never renders. The real address is XOR-encoded in the HEX
-# (first byte = key). Decode it back to a plain mailto: link on ingest.
-_CF_EMAIL_ANCHOR = re.compile(
-    r"<a\b[^>]*?/cdn-cgi/l/email-protection[^>]*>.*?</a>", re.IGNORECASE | re.DOTALL
-)
-_CF_EMAIL_HEX = re.compile(r'data-cfemail="([0-9a-fA-F]{4,})"', re.IGNORECASE)
-_CF_SCRIPT_TAG = re.compile(
-    r'<script\b[^>]*\bsrc\s*=\s*"[^"]*cdn-cgi[^"]*"[^>]*>\s*(?:' + SCRIPT_END_RE + ")?",
-    re.IGNORECASE,
-)
-
-
-def _decode_cfemail(hex_str: str) -> str | None:
-    """Decode a Cloudflare `data-cfemail` hex string to a plain address."""
-    try:
-        raw = bytes.fromhex(hex_str)
-    except ValueError:
-        return None
-    if len(raw) < 2:
-        return None
-    key = raw[0]
-    email = "".join(chr(b ^ key) for b in raw[1:])
-    return email if "@" in email else None
-
-
-def _deobfuscate_cf_email(match: re.Match) -> str:
-    anchor = match.group(0)
-    hex_match = _CF_EMAIL_HEX.search(anchor)
-    email = _decode_cfemail(hex_match.group(1)) if hex_match else None
-    if email:
-        return f'<a href="mailto:{email}">{email}</a>'
-    # No decodable address: neutralize the dead link, keep whatever text is
-    # there rather than dropping content.
-    inner = re.sub(r"<[^>]+>", "", anchor)
-    return inner or ""
-
-
-_OPEN_SCRIPT = re.compile(r"<script\b[^>]*>", re.IGNORECASE)
-_CLOSE_SCRIPT = re.compile(SCRIPT_END_RE, re.IGNORECASE)
-_OPEN_STYLE = re.compile(r"<style\b[^>]*>", re.IGNORECASE)
-_CLOSE_STYLE = re.compile(_STYLE_END, re.IGNORECASE)
-_SCRIPT_BLOCK = re.compile(
-    r"(<script\b[^>]*>)(.*?)(" + SCRIPT_END_RE + ")", re.IGNORECASE | re.DOTALL
-)
-_SCRIPT_DATA_TYPE = re.compile(
-    r'\btype\s*=\s*"(?:application/(?:[a-z0-9-]+\+)?json|text/[a-z0-9-]+)"',
-    re.IGNORECASE,
-)
-# Above this many missing closers the body is structurally broken in
-# ways a string-append can't safely fix — fail loudly instead.
-_MAX_AUTO_REPAIR = 5
-
-
-def _balance_raw_text_tag(
-    body: str,
-    opener: re.Pattern,
-    closer: re.Pattern,
-    name: str,
-    *,
-    tag: str,
-) -> str:
-    # `<script>` and `<style>` put the parser in a raw-text state until
-    # the matching `</…>`; an unclosed opener swallows the rest of the
-    # document, breaks the inline JS, and (for the agent body) blocks
-    # Nuxt hydration. Auto-repair: if opens > closes, append the missing
-    # closers so the parser can exit raw-text state cleanly.
-    counted = _HTML_COMMENT.sub("", body)
-    opens = len(opener.findall(counted))
-    closes = len(closer.findall(counted))
-    delta = opens - closes
-    if delta == 0:
-        return body
-    if delta < 0:
-        log.warning(
-            "%ssanitizer: %d stray </%s> than <%s> — leaving as-is",
-            tag, -delta, name, name,
-        )
-        return body
-    if delta > _MAX_AUTO_REPAIR:
-        raise ValueError(
-            f"{tag}sanitizer: {delta} unclosed <{name}> tags exceeds "
-            f"auto-repair cap ({_MAX_AUTO_REPAIR}); refusing to publish"
-        )
-    log.warning("%ssanitizer: appended %d missing </%s> tag(s)", tag, delta, name)
-    sep = "" if body.endswith("\n") else "\n"
-    return body + sep + (f"</{name}>\n" * delta)
-
-
-_JS_CTRL_ESCAPES: dict[str, str] = {
-    "\x08": "\\b",
-    "\x09": "\\t",
-    "\x0a": "\\n",
-    "\x0b": "\\v",
-    "\x0c": "\\f",
-    "\x0d": "\\r",
-    "\u2028": "\\u2028",
-    "\u2029": "\\u2029",
-}
-for _i in list(range(0x08)) + [0x0e, 0x0f] + list(range(0x10, 0x20)):
-    _JS_CTRL_ESCAPES.setdefault(chr(_i), f"\\u{_i:04x}")
-
-
-def _escape_js_string_controls(script_body: str) -> tuple[str, int]:
-    # Walk the script body tracking comment/string state and replace any raw
-    # control char or line terminator inside `"…"` / `'…'` literals with its
-    # JS escape. CKAN address fields routinely carry embedded LFs; when the
-    # agent inlines a row array as a JS literal those LFs land *unescaped*
-    # inside the string and V8 aborts the whole <script> with "Invalid or
-    # unexpected token" — taking every chart and the Leaflet map down with
-    # it (b2370286-… exhibited exactly this).
-    out: list[str] = []
-    i = 0
-    n = len(script_body)
-    count = 0
-    while i < n:
-        c = script_body[i]
-        # Line comment — preserve verbatim.
-        if c == "/" and i + 1 < n and script_body[i + 1] == "/":
-            j = script_body.find("\n", i)
-            if j < 0:
-                j = n
-            out.append(script_body[i:j])
-            i = j
-            continue
-        # Block comment — preserve verbatim.
-        if c == "/" and i + 1 < n and script_body[i + 1] == "*":
-            j = script_body.find("*/", i + 2)
-            j = n if j < 0 else j + 2
-            out.append(script_body[i:j])
-            i = j
-            continue
-        # Template literal — raw newlines are legal here, leave as-is. We do
-        # not try to parse `${…}` interpolation; for the purpose of this
-        # sanitizer it's enough to skip to the matching backtick honouring
-        # backslash escape.
-        if c == "`":
-            out.append(c)
-            i += 1
-            while i < n:
-                ch = script_body[i]
-                if ch == "\\" and i + 1 < n:
-                    out.append(script_body[i:i + 2])
-                    i += 2
-                    continue
-                out.append(ch)
-                i += 1
-                if ch == "`":
-                    break
-            continue
-        # `'…'` / `"…"` string — the only place we actually escape.
-        if c == '"' or c == "'":
-            quote = c
-            out.append(quote)
-            i += 1
-            while i < n:
-                ch = script_body[i]
-                if ch == "\\" and i + 1 < n:
-                    out.append(script_body[i:i + 2])
-                    i += 2
-                    continue
-                if ch == quote:
-                    out.append(quote)
-                    i += 1
-                    break
-                esc = _JS_CTRL_ESCAPES.get(ch)
-                if esc is not None:
-                    out.append(esc)
-                    count += 1
-                    i += 1
-                    continue
-                out.append(ch)
-                i += 1
-            continue
-        out.append(c)
-        i += 1
-    return "".join(out), count
-
-
-def _escape_script_string_controls(body: str, *, tag: str) -> str:
-    total = 0
-
-    def handle(match: re.Match[str]) -> str:
-        nonlocal total
-        opener, inner, closer = match.group(1), match.group(2), match.group(3)
-        # Skip data blocks (JSON-LD, application/json, etc.) — those aren't
-        # parsed as JS, raw newlines are fine and "fixing" them would break
-        # the JSON.
-        if _SCRIPT_DATA_TYPE.search(opener):
-            return match.group(0)
-        new_inner, n = _escape_js_string_controls(inner)
-        total += n
-        return opener + new_inner + closer
-
-    new_body = _SCRIPT_BLOCK.sub(handle, body)
-    if total:
-        log.warning(
-            "%ssanitizer: escaped %d raw control char(s) in JS string literal(s)",
-            tag, total,
-        )
-    return new_body
-
-
-def sanitize_content_html(body: str, *, dataset_id: str = "") -> str:
-    """Strip agent-output failure modes that recur as LLM hallucinations.
-
-    Drops `<script src=>` / `<link href=>` to known CDNs (unpkg, jsdelivr,
-    cdnjs) — the Nuxt shell pre-loads ECharts/Leaflet/MarkerCluster
-    same-origin and the agent contract forbids external resource refs.
-    Strips `integrity=` / `crossorigin=` attributes (any SRI hash the
-    agent emits is fabricated; same-origin loads don't need either).
-    Replaces `<\\/script>` (JSON string-escape) with `</script>` so the
-    HTML parser actually closes the tag. Auto-closes unclosed
-    `<script>`/`<style>` tags (e4a5e2d7-… shipped without the trailing
-    `</script>`, which let the parser swallow the page footer and the
-    Nuxt config bootstrap, blanking every chart and breaking hydration).
-    Escapes raw control chars (LF/CR/etc.) inside `"…"`/`'…'` JS string
-    literals (b2370286-… inlined CKAN address fields containing embedded
-    newlines as a JS array literal — V8 aborted the whole <script> on the
-    first one, blanking 4 ECharts + the Leaflet map).
-
-    Each transform logs a WARNING with a count and the dataset id so we
-    can trace prompt regressions even when the sanitizer silently fixes
-    them.
-    """
-    tag = f"[{dataset_id}] " if dataset_id else ""
-
-    new_body, n = _SCRIPT_END_ESCAPED.subn(r"</script\1>", body)
-    if n:
-        log.warning("%ssanitizer: replaced %d <\\/script> -> </script>", tag, n)
-    body = new_body
-
-    new_body, n = _INTEGRITY_ATTR.subn("", body)
-    if n:
-        log.warning("%ssanitizer: stripped %d integrity= attribute(s)", tag, n)
-    body = new_body
-
-    new_body, n = _CROSSORIGIN_ATTR.subn("", body)
-    if n:
-        log.warning("%ssanitizer: stripped %d crossorigin attribute(s)", tag, n)
-    body = new_body
-
-    new_body, n = _SCRIPT_CDN_TAG.subn("", body)
-    if n:
-        log.warning("%ssanitizer: dropped %d <script src=CDN> tag(s)", tag, n)
-    body = new_body
-
-    new_body, n = _LINK_CDN_TAG.subn("", body)
-    if n:
-        log.warning("%ssanitizer: dropped %d <link href=CDN> tag(s)", tag, n)
-    body = new_body
-
-    new_body, n = _CF_EMAIL_ANCHOR.subn(_deobfuscate_cf_email, body)
-    if n:
-        log.warning("%ssanitizer: decoded %d Cloudflare email-protection link(s)", tag, n)
-    body = new_body
-
-    new_body, n = _CF_SCRIPT_TAG.subn("", body)
-    if n:
-        log.warning("%ssanitizer: dropped %d <script src=/cdn-cgi/> tag(s)", tag, n)
-    body = new_body
-
-    body = _balance_raw_text_tag(body, _OPEN_SCRIPT, _CLOSE_SCRIPT, "script", tag=tag)
-    body = _balance_raw_text_tag(body, _OPEN_STYLE, _CLOSE_STYLE, "style", tag=tag)
-
-    # Run after balancing so every <script> has a closer the regex can find.
-    body = _escape_script_string_controls(body, tag=tag)
-
-    return body

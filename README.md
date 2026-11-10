@@ -69,7 +69,8 @@ services/
     selector.py                  which sources need a recipe authored
     notify.py                    needs-authoring GitHub issues
     author.py                    local authoring kit (prepare / verify)
-    agent_contract.py            CKAN fetch + output sanitizer + check.py gate
+    ckan_export.py               CKAN preview + full-data export + map-file download
+    sanitize.py / page_gate.py   page-body sanitizer / check.py gate
     local_sandbox.py             compute sandbox (subprocess, private workdir)
     publish.py                   Firestore → data.json/agent_data.json/manifest.json
     tags.py / related.py         tag vocabulary (taxonomy/) + content-based related datasets

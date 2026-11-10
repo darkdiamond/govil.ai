@@ -30,7 +30,7 @@ GeoJSON) reaches compute as a table: one row per feature, its properties as
 strings plus `__geometry` (the feature's geometry as compact WGS84 JSON).
 Two ways in:
   - `map: true` (preferred): the refresh downloads the file on every run
-    (`agent_contract.fetch_resource_file`, with a UA data.gov.il's WAF
+    (`ckan_export.fetch_resource_file`, with a UA data.gov.il's WAF
     passes) and converts it with `geo_snapshot`, so a new upload re-renders
     the page like any data bump.
   - `snapshot` (fallback, for a file the job can't download): the author
@@ -108,8 +108,9 @@ class SnapshotOf(BaseModel):
 
 
 # Ceiling for an input's `map_max_kb`, in KB of converted GeoJSON. The
-# conversion runs in the builder process (outside the compute heap cap), at
-# ~25x the result size in peak memory.
+# conversion runs in the builder process (outside the compute heap cap); the
+# streaming conversion peaks at ~6-10x the CSV it writes (204 MB for a 12 MB
+# table, 384 MB for 37 MB).
 MAP_MAX_KB_CEILING = 50_000
 
 
@@ -415,11 +416,11 @@ def _modified_key(resource: dict) -> datetime:
     """Sort key for `pick: "latest"`: the resource's CKAN `last_modified`
     (a datetime from Firestore, an ISO string from JSON), oldest when missing.
     Naive timestamps are UTC, as CKAN writes them."""
-    from services.scanner.models import _parse_datetime
+    from services.shared.ckan import parse_ckan_datetime
 
     v = resource.get("last_modified")
     if isinstance(v, str):
-        v = _parse_datetime(v)
+        v = parse_ckan_datetime(v)
     if not isinstance(v, datetime):
         return datetime.min.replace(tzinfo=UTC)
     return v if v.tzinfo else v.replace(tzinfo=UTC)

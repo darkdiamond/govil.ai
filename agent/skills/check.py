@@ -17,7 +17,7 @@ inline-data cap, percent-conflict across year contexts. Hence the
 runtime check.
 
 Run host-side on every sanitized recipe body by
-services/page_builder/refresh.py (via agent_contract.run_host_check)
+services/page_builder/refresh.py (via page_gate.run_host_check)
 before anything is staged — the nightly refresh and `author verify`
 share that path.
 """
