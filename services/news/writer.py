@@ -104,8 +104,8 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
         tools = TOOL_SPECS + [SUBMIT_SPEC] if calls < max_tool_calls else [SUBMIT_SPEC]
         offered = {t["function"]["name"] for t in tools}
         msg = llm.chat(messages, tools=tools, temperature=0.6)
-        # Keep reasoning_details: Gemini 3 needs its thought signatures back on
-        # every tool-calling turn (OpenRouter carries them there), or it 400s.
+        # Keep reasoning_details: reasoning models want them back on every
+        # tool-calling turn (Gemini 3 400s without its thought signatures).
         messages.append({k: msg[k] for k in ("tool_calls", "reasoning", "reasoning_details")
                          if msg.get(k) is not None}
                         | {"role": "assistant", "content": msg.get("content") or ""})

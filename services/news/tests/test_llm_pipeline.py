@@ -42,6 +42,23 @@ def test_retries_then_succeeds_and_sums_cost():
     assert len(calls) == 3 and llm.cost_usd == pytest.approx(0.02) and calls[0]["usage"] == {"include": True}
 
 
+def test_reasoning_effort_sent_on_chat_not_on_image():
+    bodies = []
+
+    def h(req):
+        bodies.append(json.loads(req.content))
+        if "modalities" in bodies[-1]:
+            return _ok({"images": [{"image_url": {"url": "data:image/png;base64,AA=="}}]})
+        return _ok({"role": "assistant", "content": "x"})
+
+    llm = OpenRouter("k", client=_client(h), sleep=lambda s: None)
+    llm.chat([{"role": "user", "content": "x"}], reasoning_effort="high")
+    llm.chat([{"role": "user", "content": "x"}], reasoning_effort=None)
+    llm.image("p")
+    assert bodies[0]["reasoning"] == {"effort": "high"}
+    assert "reasoning" not in bodies[1] and "reasoning" not in bodies[2]
+
+
 @pytest.mark.parametrize("status", [401, 402, 403])
 def test_refused_key_is_unavailable_not_retried(status):
     n = []
