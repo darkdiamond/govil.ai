@@ -1,0 +1,314 @@
+{% import "gov.j2" as gov %}
+{%- macro section(cid, icon, title, note, aria, h, cols, rows, ltr=()) %}
+<section class="card p-5 mb-6">
+  {{ gov.head(icon, title) }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ note }}</p>
+  {{ gov.chart(cid, aria, h) }}
+  {{ gov.table(aria, cols, rows, ltr) }}
+</section>
+{%- endmacro %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור הגרלה לפי יישוב, פרויקט או קבלן ←</span>
+    <span class="block text-sm text-subtle">{{ model.labels.lookup_sub }}</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.lotteries, model.labels.lotteries_kpi) }}
+  {{ gov.kpi(model.kpis.units, model.labels.units_kpi) }}
+  {{ gov.kpi(model.kpis.subs, model.labels.subs_kpi) }}
+  {{ gov.kpi(model.kpis.winners, model.labels.winners_kpi) }}
+  {% if model.flags.ratio_kpi %}{{ gov.kpi(model.kpis.ratio, model.labels.ratio_kpi) }}{% endif %}
+  {% if model.flags.price_kpi %}{{ gov.kpi(model.kpis.price, model.labels.price_kpi) }}{% endif %}
+  {{ gov.kpi(model.kpis.cities, model.labels.cities_kpi) }}
+  {{ gov.kpi(model.kpis.years, model.labels.years_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{% if model.labels.year_note %}
+<p class="text-sm text-subtle mb-6">{{ model.labels.year_note }}</p>
+{% endif %}
+
+{{ section("chart-years", "database", "הגרלות ודירות לפי שנה", model.labels.years_note, model.labels.years_aria, "h-72 md:h-96", ["שנה", "הגרלות ראשונות", "הגרלות המשך", "דירות (ראשונות)", "דירות (המשך)", "זוכים"], model.tables.years) }}
+
+{{ section("chart-demand", "database", "הביקוש: הרשמות לכל דירה", model.labels.demand_note, model.labels.demand_aria, "h-72 md:h-96", ["שנה", "הרשמות", "דירות", "הרשמות לדירה"], model.tables.demand) }}
+
+{% if model.flags.price %}
+{{ section("chart-price", "tag", "מחיר למטר רבוע לפי שנה", model.labels.price_note, model.labels.price_aria, "h-72 md:h-96", ["שנה", "רבעון תחתון", "חציון", "רבעון עליון", "הגרלות"], model.tables.price) }}
+{% endif %}
+
+{% if model.flags.rounds %}
+{{ section("chart-rounds", "list", "ההגרלות המרוכזות", model.labels.rounds_note, model.labels.rounds_aria, "h-80 md:h-[460px]", ["הגרלה מרוכזת", "מועד", "הגרלות", "דירות", "הרשמות", "הרשמות לדירה (ראשונות)"], model.tables.rounds) }}
+{% endif %}
+
+{{ section("chart-cities", "map-pin", "היישובים עם מספר הדירות הגבוה ביותר", model.labels.cities_note, model.labels.cities_aria, "h-80 md:h-[460px]", ["יישוב", "דירות", "שיעור מהדירות"], model.tables.cities) }}
+
+{% if model.flags.city_demand %}
+{{ section("chart-city-demand", "map-pin", "היישובים המבוקשים ביותר", model.labels.city_demand_note, model.labels.city_demand_aria, "h-80 md:h-[460px]", ["יישוב", "הרשמות לדירה", "דירות", "מחיר חציוני למ\"ר"], model.tables.city_demand) }}
+{% endif %}
+
+{% if model.flags.scatter %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מחיר מול ביקוש לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.scatter_note }}</p>
+  <div id="chart-scatter" class="h-72 md:h-96" role="img" aria-label="{{ model.labels.scatter_aria }}" data-fallback="explorer"></div>
+</section>
+{% endif %}
+
+{{ section("chart-groups", "list", "זוכים לפי סדרת זכאות", model.labels.groups_note, model.labels.groups_aria, "h-72 md:h-80", model.tables.groups_cols, model.tables.groups) }}
+
+{{ section("chart-native", "map-pin", "בני המקום", model.labels.native_note, model.labels.native_aria, "h-64 md:h-80", ["שנה", "דירות לבני המקום", "שיעור מהדירות", "שיעור מההרשמות", "שיעור מהזוכים"], model.tables.native) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "קבוצות הזכאות לאורך השנים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.elig_note }}</p>
+    {{ gov.chart("chart-elig", model.labels.elig_aria, "h-72 md:h-80") }}
+    {{ gov.table(model.labels.elig_aria, model.tables.elig_cols, model.tables.elig) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "הגוף המשווק") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.rep_note }}</p>
+    {{ gov.chart("chart-rep", model.labels.rep_aria, "h-72 md:h-80") }}
+    {{ gov.table(model.labels.rep_aria, model.tables.rep_cols, model.tables.rep) }}
+  </section>
+</div>
+
+{{ section("chart-providers", "building-2", "הקבלנים המובילים", model.labels.providers_note, model.labels.providers_aria, "h-80 md:h-[460px]", ["קבלן", "דירות", "הגרלות ראשונות"], model.tables.providers) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("circle-check", "שלב הפרויקט") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.status_note }}</p>
+    {{ gov.chart("chart-status", model.labels.status_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.status_aria, ["שלב", "פרויקטים", "שיעור"], model.tables.status) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("circle-check", "היתר בנייה") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.permit_note }}</p>
+    {{ gov.chart("chart-permit", model.labels.permit_aria, "h-64 md:h-80") }}
+    {{ gov.table(model.labels.permit_aria, ["מצב ההיתר", "פרויקטים", "שיעור"], model.tables.permit) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "תיאור מקורי") }}
+  <p class="m-0 text-sm text-subtle whitespace-pre-line">במאגר זה מתפרסמים נתונים סטטיסטיים תקופתיים בנושא תכנית דירה בהנחה.</p>
+</section>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function esc(s) { return echarts.format.encodeHTML(String(s)); }
+    function num(v) { return v === null || v === undefined ? "-" : Number(v).toLocaleString("he-IL"); }
+    function narrow() { return window.innerWidth < 500; }
+    function axisTip(unit) {
+      return function (ps) {
+        var out = esc(ps[0].name);
+        ps.forEach(function (p) {
+          if (p.value === null || p.value === undefined) { return; }
+          out += "<br/>" + p.marker + esc(p.seriesName) + ": " + num(p.value) + (unit && unit[p.seriesName] ? unit[p.seriesName] : "");
+        });
+        return out;
+      };
+    }
+    function hbar(id, names, data, sname, labelW) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: axisTip() },
+        grid: { left: 8, right: 16, top: 8, bottom: 8, containLabel: true },
+        xAxis: { type: "value", splitNumber: narrow() ? 3 : 5, axisLabel: { hideOverlap: true, fontSize: 11 } },
+        yAxis: { type: "category", inverse: true, data: names,
+          axisLabel: { interval: 0, width: narrow() ? 110 : (labelW || 200), overflow: "truncate", fontSize: 11 } },
+        series: [{ type: "bar", name: sname, data: data, barMaxWidth: 22 }]
+      }));
+    }
+    function stackYears(id, x, series, colors) {
+      var c = mk(id); if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: colors || window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: axisTip() },
+        legend: { top: 0 },
+        grid: { left: 8, right: 16, top: narrow() ? 76 : 40, bottom: 8, containLabel: true },
+        xAxis: { type: "category", data: x, axisLabel: { fontSize: 11, hideOverlap: true } },
+        yAxis: { type: "value", axisLabel: { fontSize: 11 } },
+        series: series.map(function (s) { return { type: "bar", name: s.name, data: s.data, stack: "t", barMaxWidth: 36 }; })
+      }));
+    }
+    window.__dh = { mk: mk, esc: esc, num: num, narrow: narrow, axisTip: axisTip, hbar: hbar, stackYears: stackYears };
+  })();
+</script>
+
+<script>
+  (function () {
+    var Y = {{ model.charts.years | tojson }};
+    var H = window.__dh, c = H.mk("chart-years"); if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: H.axisTip() },
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: H.narrow() ? 76 : 40, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: Y.x, axisLabel: { fontSize: 11, hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "הגרלות", axisLabel: { fontSize: 11 } },
+        { type: "value", name: "דירות", axisLabel: { fontSize: 11 }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "הגרלות ראשונות", stack: "n", data: Y.first, barMaxWidth: 36 },
+        { type: "bar", name: "הגרלות המשך", stack: "n", data: Y.cont, barMaxWidth: 36 },
+        { type: "line", name: "דירות בהגרלות ראשונות", yAxisIndex: 1, data: Y.units, symbolSize: 6, lineStyle: { width: 2.5 } }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var D = {{ model.charts.demand | tojson }};
+    var H = window.__dh, c = H.mk("chart-demand"); if (!c) { return; }
+    var peak = Math.max.apply(null, D.ratio.filter(function (v) { return v !== null; }));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: H.axisTip() },
+      legend: { top: 0 },
+      grid: { left: 8, right: 8, top: H.narrow() ? 56 : 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: D.x, axisLabel: { fontSize: 11, hideOverlap: true } },
+      yAxis: [
+        { type: "value", name: "הרשמות", axisLabel: { fontSize: 11, formatter: function (v) { return v >= 1e6 ? (v / 1e6) + "M" : v >= 1e3 ? (v / 1e3) + "K" : v; } } },
+        { type: "value", name: "לדירה", axisLabel: { fontSize: 11 }, splitLine: { show: false } }
+      ],
+      series: [
+        { type: "bar", name: "הרשמות להגרלות ראשונות", data: D.subs, barMaxWidth: 36, itemStyle: { opacity: 0.75 } },
+        { type: "line", name: "הרשמות לכל דירה", yAxisIndex: 1, symbolSize: 7, lineStyle: { width: 3 },
+          data: D.ratio.map(function (v) { return v === peak ? { value: v, itemStyle: { color: "#dc3545" }, symbolSize: 11 } : v; }) }
+      ]
+    }));
+  })();
+</script>
+
+{% if model.flags.price %}
+<script>
+  (function () {
+    var P = {{ model.charts.price | tojson }};
+    var H = window.__dh, c = H.mk("chart-price"); if (!c) { return; }
+    var data = P.box.map(function (b) { return b === null ? "-" : b; });
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var v = p.value; if (!v || v.length < 6) { return ""; }
+        return H.esc(p.name) + "<br/>שפם עליון: " + H.num(v[5]) + "<br/>רבעון עליון: " + H.num(v[4]) +
+          "<br/>חציון: " + H.num(v[3]) + "<br/>רבעון תחתון: " + H.num(v[2]) + "<br/>שפם תחתון: " + H.num(v[1]);
+      } },
+      grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: P.x, axisLabel: { fontSize: 11, hideOverlap: true } },
+      yAxis: { type: "value", scale: true, name: "ש\"ח למ\"ר", axisLabel: { fontSize: 11 } },
+      series: [{ type: "boxplot", name: "מחיר למ\"ר", data: data,
+        itemStyle: { color: "#dbe8fb", borderColor: "#0068f5" } }]
+    }));
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var H = window.__dh;
+{%- if model.flags.rounds %}
+    var R = {{ model.charts.rounds | tojson }};
+    H.hbar("chart-rounds", R.names, R.values, "הרשמות לדירה", 140);
+{%- endif %}
+    var C = {{ model.charts.cities | tojson }};
+    H.hbar("chart-cities", C.names, C.values, "דירות", 140);
+{%- if model.flags.city_demand %}
+    var Q = {{ model.charts.city_demand | tojson }};
+    H.hbar("chart-city-demand", Q.names, Q.values, "הרשמות לדירה", 140);
+{%- endif %}
+    var V = {{ model.charts.providers | tojson }};
+    H.hbar("chart-providers", V.names, V.values, "דירות", 240);
+    var M = {{ model.charts.permit | tojson }};
+    H.hbar("chart-permit", M.names, M.values, "פרויקטים", 200);
+  })();
+</script>
+
+{% if model.flags.scatter %}
+<script>
+  (function () {
+    var S = {{ model.charts.scatter | tojson }};
+    var H = window.__dh, c = H.mk("chart-scatter"); if (!c) { return; }
+    var maxU = Math.max.apply(null, S.map(function (r) { return r[2]; }));
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) {
+        var r = p.data;
+        return H.esc(r[3]) + "<br/>מחיר חציוני למ\"ר: " + H.num(r[0]) + "<br/>הרשמות לדירה: " + H.num(r[1]) + "<br/>דירות: " + H.num(r[2]);
+      } },
+      grid: { left: 8, right: 24, top: 32, bottom: 24, containLabel: true },
+      xAxis: { type: "value", scale: true, name: "מחיר למ\"ר", nameLocation: "middle", nameGap: 28, axisLabel: { fontSize: 11 } },
+      yAxis: { type: "value", name: "הרשמות לדירה", axisLabel: { fontSize: 11 } },
+      series: [{ type: "scatter", data: S, itemStyle: { opacity: 0.7 },
+        symbolSize: function (r) { return 6 + 22 * Math.sqrt(r[2] / maxU); } }]
+    }));
+  })();
+</script>
+{% endif %}
+
+<script>
+  (function () {
+    var H = window.__dh;
+    var G = {{ model.charts.groups | tojson }};
+    var P = window.GOVIL_PALETTE;
+    H.stackYears("chart-groups", G.x, G.series, [P[0], P[1], P[2], "#6c757d"]);
+    var E = {{ model.charts.elig | tojson }};
+    H.stackYears("chart-elig", E.x, E.series);
+    var R = {{ model.charts.rep | tojson }};
+    H.stackYears("chart-rep", R.x, R.series);
+  })();
+</script>
+
+<script>
+  (function () {
+    var N = {{ model.charts.native | tojson }};
+    var H = window.__dh, c = H.mk("chart-native"); if (!c) { return; }
+    var u = { "דירות לבני המקום": "%", "הרשמות בני המקום": "%", "זוכים בני המקום": "%" };
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", formatter: H.axisTip(u) },
+      legend: { top: 0 },
+      grid: { left: 8, right: 16, top: H.narrow() ? 56 : 36, bottom: 8, containLabel: true },
+      xAxis: { type: "category", data: N.x, axisLabel: { fontSize: 11, hideOverlap: true } },
+      yAxis: { type: "value", min: 0, max: 100, axisLabel: { fontSize: 11, formatter: "{value}%" } },
+      series: [
+        { type: "line", name: "דירות לבני המקום", data: N.units, symbolSize: 6, connectNulls: false },
+        { type: "line", name: "הרשמות בני המקום", data: N.subs, symbolSize: 6, connectNulls: false },
+        { type: "line", name: "זוכים בני המקום", data: N.winners, symbolSize: 6, connectNulls: false }
+      ]
+    }));
+  })();
+</script>
+
+<script>
+  (function () {
+    var S = {{ model.charts.status | tojson }};
+    var H = window.__dh, c = H.mk("chart-status"); if (!c) { return; }
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "item", formatter: function (p) { return H.esc(p.name) + ": " + H.num(p.value) + " (" + p.percent + "%)"; } },
+      legend: { bottom: 0 },
+      series: [{ type: "pie", radius: ["42%", "68%"], center: ["50%", "44%"], data: S,
+        label: { show: !H.narrow(), formatter: "{d}%" }, labelLine: { show: !H.narrow() } }]
+    }));
+  })();
+</script>
