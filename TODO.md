@@ -367,3 +367,18 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   cut verify's wall time about in half. The catch is memory: each pass may use up to
   `REFRESH_COMPUTE_MEMORY_MB` (3GB), so a heavy recipe would need up to 3× that. Fix: a thread
   pool sized by a flag, defaulting to serial for recipes with `limits`. (2026-11-01)
+
+## News
+
+- **`FirestoreArticles.advance_cursor` is a read-then-write, not a transaction.** Two news runs
+  that overlap (a manual execute during a scheduled one) can both read the old cursor, and the
+  one with the earlier window can write last, moving the cursor backwards despite the docstring.
+  Harmless for duplicates (cooldown + used signal keys) but it re-opens a closed window. Fix: do
+  the compare-and-set in a Firestore transaction (`@firestore.transactional`) and teach
+  `test_window.py`'s fake db a transaction. (2026-11-10)
+
+- **A news run advances its cursor even when snapshot reads failed.** `run._safe_pair` swallows
+  any GCS error per dataset as "no history", so a run during a GCS outage finds no signals, ends
+  `idle` and closes its window: those renders never reach a later run. Fix: count read failures
+  in `find_signals`' stats and skip `advance_cursor` above a threshold (not on any single failure,
+  or one corrupt object would pin the cursor until the lookback cap). (2026-11-10)

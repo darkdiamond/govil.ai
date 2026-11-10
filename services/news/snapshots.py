@@ -97,9 +97,13 @@ class LocalSnapshots:
         return Snapshot.from_doc(dataset_id, model_history.decode(Path(ref).read_bytes()))
 
 
-def latest_and_baseline(store, dataset_id: str,
-                        cutoff: str | None) -> tuple[Snapshot | None, Snapshot | None, bool]:
+def latest_and_baseline(store, dataset_id: str, cutoff: str | None,
+                        upto: str | None = None) -> tuple[Snapshot | None, Snapshot | None, bool]:
     """(latest snapshot, the one to diff it against, rendered since cutoff).
+
+    `upto` (same stamp format, exclusive) closes the window: snapshots stamped
+    at or after it are treated as not there yet, so they fall in the next
+    run's window instead of being counted by two runs.
 
     The baseline is the newest snapshot rendered before `cutoff` (the last
     news run, as a `YYYYmmddTHHMMSSZ` stamp): everything that appeared after
@@ -109,6 +113,8 @@ def latest_and_baseline(store, dataset_id: str,
     returned (as context for cross-dataset links) with `False`, and no
     baseline. No baseline otherwise → signals fall back to date freshness."""
     names = store.names(dataset_id)
+    if upto:
+        names = [(ts, ref) for ts, ref in names if not ts or ts < upto]
     if not names:
         return None, None, False
     latest = store.load(dataset_id, names[0][1])
