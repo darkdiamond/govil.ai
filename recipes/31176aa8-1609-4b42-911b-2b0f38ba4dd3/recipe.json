@@ -1,0 +1,42 @@
+{
+  "contract_version": 1,
+  "dataset_id": "31176aa8-1609-4b42-911b-2b0f38ba4dd3",
+  "recipe_version": 1,
+  "authored_at": "2026-11-10T12:00:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T10:30:28.764621+00:00",
+    "rows": { "main": 2352 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "7c8255d0-49ef-49db-8904-4cf917586031",
+      "required_columns": [
+        "LotteryId",
+        "LotteryType",
+        "LotteryExecutionDate",
+        "LamasName",
+        "ProjectId",
+        "ProviderName",
+        "Eligibility",
+        "MarketingRep",
+        "ProjectStatus",
+        "ConstructionPermitName",
+        "CentralizationType",
+        "Winners",
+        "WinnersSeriesA",
+        "WinnersSeriesB",
+        "WinnersSeriesC",
+        "WinnersMeshapryDiur",
+        "WinnersBneyMakom",
+        "Subscribers",
+        "SubscribersBenyMakom",
+        "LotteryHousingUnits",
+        "LotteryNativeHousingUnits",
+        "PriceForMeter"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}
