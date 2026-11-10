@@ -59,6 +59,7 @@ async function renderPage(
       related: [],
       allTags: [],
       publicResourceUrl: (url) => url,
+      resourceFormat: (r) => (r.format || "").toUpperCase(),
       datasetName: (e) => e.seo?.name || e.title,
       formatClass: () => "fmt-csv",
       formatBytes: String,
