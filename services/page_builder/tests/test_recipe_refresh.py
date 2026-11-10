@@ -306,9 +306,13 @@ def test_schema_change_keeps_page_and_opens_issue_once(env):
 def test_refresh_reads_each_source_doc_once(env):
     """The refresh state comes with the source doc (`src.refresh`); only
     queue_authoring re-reads it (its duplicate-issue guard)."""
-    reads = []
+    reads, sources = [], []
 
     class CountingStore(FakeStore):
+        def get_source(self, dataset_id):
+            sources.append(dataset_id)
+            return super().get_source(dataset_id)
+
         def get_refresh_state(self, dataset_id):
             reads.append(dataset_id)
             return super().get_refresh_state(dataset_id)
@@ -317,11 +321,12 @@ def test_refresh_reads_each_source_doc_once(env):
     assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
     store.src = _src("2026-11-01")
     _run(env, store, FakeCkan(_rows([2024, 2025])))  # data bump, same rows
-    assert reads == []
+    assert reads == [] and sources == [DS, DS]  # one doc read per source per run
     store.src = _src("2026-12-01")
     renamed = [c if c != "מחוז" else "אזור" for c in COLS]
     assert _run(env, store, FakeCkan(_rows([2024, 2025]), cols=renamed))["failed"] == [DS]
     assert reads == [DS]  # queue_authoring's fresh read, nothing else
+    assert sources == [DS, DS, DS]
 
 
 class TimeoutCkan(FakeCkan):
