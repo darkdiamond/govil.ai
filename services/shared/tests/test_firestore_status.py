@@ -118,3 +118,26 @@ def test_fingerprint_unchanged_keeps_stored_input_hashes():
     p = _unchanged("fingerprint", advance_version=False)
     assert "inputs_hash" not in p and "inputs_hash_unordered" not in p
     assert "last_verified_at" not in p and "refreshed_metadata_modified" not in p
+
+
+def test_save_dataset_omits_unasked_record_count_on_existing_doc():
+    # The scanner leaves record_count unassigned when it couldn't ask CKAN;
+    # the merge write must then keep the stored count.
+    store, ref = _store_with_existing({"record_count": 1234})
+    store.save_dataset(_dataset(), change_status="updated")
+    assert "record_count" not in _payload(ref)
+
+
+def test_save_dataset_writes_an_assigned_record_count():
+    for count in (None, 42):
+        store, ref = _store_with_existing({"record_count": 1234})
+        ds = _dataset()
+        ds.record_count = count
+        store.save_dataset(ds, change_status="updated")
+        assert _payload(ref)["record_count"] == count
+
+
+def test_save_dataset_new_doc_writes_record_count_even_unasked():
+    store, ref = _store_with_existing(None)
+    store.save_dataset(_dataset(), change_status="new")
+    assert _payload(ref)["record_count"] is None

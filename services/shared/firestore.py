@@ -240,6 +240,12 @@ class FirestoreStateStore:
             "change_status": change_status,
         }
 
+        # The scanner leaves record_count unassigned when it couldn't ask CKAN
+        # (a transient failure); keep the stored count instead of nulling it.
+        fields_set = getattr(dataset, "model_fields_set", None)
+        if snap.exists and fields_set is not None and "record_count" not in fields_set:
+            del payload["record_count"]
+
         old = (snap.to_dict() or {}) if snap.exists else {}
         # The page URL is built from the title (publish._build_page_slugs), so
         # a CKAN rename moves the page. Keep every old title: the publisher
