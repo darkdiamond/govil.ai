@@ -22,12 +22,13 @@ REGION=${REGION:-me-west1}
 JOB=${CLOUD_RUN_JOB:-govdata-builder-job}
 STAGING_BUCKET=${GCS_STAGING_BUCKET:-${PROJECT}-staging}
 # Wall-clock ceiling for one run. A full re-render of every recipe is
-# CKAN-export-bound; 6h is generous headroom. Keep it under the 8h gap
-# between the 06:00 and 14:00 scheduler ticks (infra/scheduler.setup.sh): the
-# scheduler starts a new execution even while one runs, and two executions
-# would write the same sources/* refresh state at once. --max-retries=0: a
+# CKAN-export-bound (~6-30 min since 2026-11); 4h is generous headroom. Keep it
+# under the shortest gap between scheduler ticks (infra/scheduler.setup.sh):
+# 5h, from the 14:00 tick to the 19:00 CBS release-evening tick on the
+# 13th-15th. The scheduler starts a new execution even while one runs, and two
+# executions would write the same sources/* refresh state at once. --max-retries=0: a
 # failed run is retried by the next tick, not re-run back to back.
-TASK_TIMEOUT=${TASK_TIMEOUT:-21600s}
+TASK_TIMEOUT=${TASK_TIMEOUT:-14400s}
 MAX_RETRIES=${MAX_RETRIES:-0}
 
 PUBLISH_VIA=${PUBLISH_VIA:-github}
