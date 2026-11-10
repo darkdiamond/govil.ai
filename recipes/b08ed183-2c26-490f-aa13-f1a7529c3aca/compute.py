@@ -233,7 +233,7 @@ def insight_unlisted(df):
 def insight_shared_phone(df):
     rows = []
     for _, r in df.iterrows():
-        for p in {r["phone"], r["phone2"]}:
+        for p in dict.fromkeys((r["phone"], r["phone2"])):
             t = _tel(p)
             if t:
                 rows.append((t, p, r["name"]))
