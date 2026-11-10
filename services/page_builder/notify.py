@@ -14,6 +14,7 @@ on the repo (the same fine-grained PAT that fires the publish dispatch).
 from __future__ import annotations
 
 import logging
+import re
 
 from services.shared import github
 from services.shared.states import AuthoringReason
@@ -44,22 +45,39 @@ def _fenced(text: str) -> str:
     return "```text\n" + text.replace("`", "'") + "\n```\n"
 
 
+_CKAN_ID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _is_ckan_id(dataset_id: str) -> bool:
+    return bool(_CKAN_ID.match(dataset_id))
+
+
 def issue_title(title: str, dataset_id: str) -> str:
-    """`[author] <title> (<id8>)`: the authoring routine finds issues by it."""
-    return f"[author] {title[:80]} ({dataset_id[:8]})"
+    """`[author] <title> (<id8>)`: the authoring routine finds issues by it.
+    A provider id (`cbs-index-cpi`) goes in whole: its first 8 characters
+    are shared by several recipes."""
+    tag = dataset_id[:8] if _is_ckan_id(dataset_id) else dataset_id
+    return f"[author] {title[:80]} ({tag})"
 
 
 def issue_body(
     *, dataset_id: str, title: str, org: str, reason: str, detail: str,
-    detail_caption: str = "Refresh error",
+    detail_caption: str = "Refresh error", source_url: str | None = None,
 ) -> str:
+    # A provider source has no data.gov.il page: link its own, if known.
+    if source_url:
+        link = f"- source: {source_url}\n\n"
+    elif _is_ckan_id(dataset_id):
+        link = f"- data.gov.il: https://data.gov.il/dataset/{dataset_id}\n\n"
+    else:
+        link = "\n"
     return (
         "CKAN metadata (untrusted upstream text):\n\n"
         + _fenced(f"{title}\n{org}")
         + "\n"
         f"- dataset: `{dataset_id}`\n"
         f"- reason: `{reason}` — {REASON_TEXT.get(reason, reason)}\n"
-        f"- data.gov.il: https://data.gov.il/dataset/{dataset_id}\n\n"
+        + link
         + (f"{detail_caption} (untrusted):\n\n{_fenced(detail[:1500])}\n" if detail else "")
         + "Author it locally:\n\n"
         f"```\n/author-dataset {dataset_id}\n```\n\n"
@@ -79,6 +97,7 @@ def open_authoring_issue(
     org: str,
     reason: str,
     detail: str = "",
+    source_url: str | None = None,
     repo: str | None = None,
     token: str | None = None,
 ) -> int | None:
@@ -98,7 +117,7 @@ def open_authoring_issue(
                 "title": issue_title(title, dataset_id),
                 "body": issue_body(
                     dataset_id=dataset_id, title=title, org=org,
-                    reason=reason, detail=detail,
+                    reason=reason, detail=detail, source_url=source_url,
                 ),
                 "labels": labels,
             },
@@ -166,9 +185,11 @@ def add_labels(
 def issue_state(
     number: int, *, repo: str | None = None, token: str | None = None
 ) -> str | None:
-    """`open`, `completed` (closed as done — e.g. by a recipe PR), or
-    `not_planned` (closed as won't-author). None when it can't be read; the
-    caller then keeps the recorded issue rather than risk a duplicate."""
+    """`open`, `completed` (closed as done, e.g. by a recipe PR),
+    `not_planned` (closed as won't-author or as a duplicate), or `gone`
+    (deleted: 404/410, so no live issue is left). None when it can't be
+    read; the caller then keeps the recorded issue rather than risk a
+    duplicate."""
     token, repo = _github(token, repo)
     if not token:
         return None
@@ -184,10 +205,15 @@ def issue_state(
     except Exception:
         log.exception("reading issue #%s failed", number)
         return None
+    if r.status_code in (404, 410):
+        log.warning("issue #%s is gone (%s)", number, r.status_code)
+        return "gone"
     if r.status_code != 200:
         log.error("reading issue #%s: %s %s", number, r.status_code, r.text[:300])
         return None
     data = r.json()
     if data.get("state") == "open":
         return "open"
-    return "not_planned" if data.get("state_reason") == "not_planned" else "completed"
+    if data.get("state_reason") in ("not_planned", "duplicate"):
+        return "not_planned"
+    return "completed"
