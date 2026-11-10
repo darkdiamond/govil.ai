@@ -39,6 +39,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 from services.shared.firestore import FirestoreStateStore, SourceRecord
+from services.shared.states import NO_DATA_STATUSES, AuthoringReason, AuthoringStatus
 
 log = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ SCAN_CAP = 5000
 # `failed` docs are a closed legacy set (nothing writes `failed` any more);
 # listed with no attempt budget so parked ones get a recipe too.
 _ANY_ATTEMPTS = 1 << 30
-_NO_DATA_STATUSES = ("restricted", "unavailable")
+
 
 
 def pick_authoring_candidates(
@@ -61,23 +62,23 @@ def pick_authoring_candidates(
     max_age_days: int = DEFAULT_MAX_AGE_DAYS,
     min_modified_floor: datetime = DEFAULT_MIN_MODIFIED_FLOOR,
     exclude_ids: frozenset[str] = frozenset(),
-) -> list[tuple[SourceRecord, str]]:
+) -> list[tuple[SourceRecord, AuthoringReason]]:
     """Up to `n` `(source, reason)` pairs, `new` first, newest CKAN
     change first within each kind."""
     now = datetime.now(UTC)
     age_cutoff = max(now - timedelta(days=max_age_days), _as_utc(min_modified_floor))
-    picks: list[tuple[SourceRecord, str]] = []
+    picks: list[tuple[SourceRecord, AuthoringReason]] = []
     seen: set[str] = set()
 
     def _skip(src: SourceRecord) -> bool:
         return (
             src.id in seen
             or src.id in exclude_ids
-            or src.authoring_status == "notified"
-            or src.analysis_status in _NO_DATA_STATUSES
+            or src.authoring_status == AuthoringStatus.NOTIFIED
+            or src.analysis_status in NO_DATA_STATUSES
             # Provider docs exist only for a recipe (sync reads source.json);
             # one whose recipe was deleted has nothing to author from.
-            or bool(getattr(src, "provider", None))
+            or bool(src.provider)
         )
 
     def _too_old(src: SourceRecord) -> bool:
@@ -96,7 +97,7 @@ def pick_authoring_candidates(
                 continue
             if _too_old(src):
                 break
-            picks.append((src, "new"))
+            picks.append((src, AuthoringReason.NEW))
             seen.add(src.id)
             if len(picks) >= n:
                 return picks
@@ -120,7 +121,7 @@ def pick_authoring_candidates(
         baseline = src.analyzed_metadata_modified or src.last_analyzed_at
         if baseline is not None and _as_utc(src.metadata_modified) <= _as_utc(baseline):
             continue
-        picks.append((src, "legacy_updated"))
+        picks.append((src, AuthoringReason.LEGACY_UPDATED))
         seen.add(src.id)
         if len(picks) >= n:
             break

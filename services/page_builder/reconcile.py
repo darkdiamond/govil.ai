@@ -28,6 +28,7 @@ import os
 from services.providers import provider_for_key
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
+from services.shared.states import AnalysisStatus
 
 log = logging.getLogger("page_builder.reconcile")
 
@@ -47,7 +48,7 @@ async def probe_one(client, src: SourceRecord, providers=None) -> str:
     A provider source (services/providers) is asked of its own provider —
     never of CKAN, whose 403 would wrongly mark it removed. A disabled
     provider is "unknown" (no change)."""
-    if getattr(src, "provider", None):
+    if src.provider:
         p = provider_for_key(src.provider, providers)
         if p is None:
             return "unknown"
@@ -104,9 +105,9 @@ async def reconcile_sources(
         statuses.append(r)
 
     gone = [s for s, st in zip(sources, statuses, strict=True)
-            if st == "gone" and s.analysis_status == "succeeded"]
+            if st == "gone" and s.analysis_status == AnalysisStatus.SUCCEEDED]
     back = [s for s, st in zip(sources, statuses, strict=True)
-            if st == "alive" and s.analysis_status == "unavailable"]
+            if st == "alive" and s.analysis_status == AnalysisStatus.UNAVAILABLE]
     blocked = statuses.count("blocked")
     aborted = None
     if len(gone) > max_flips:

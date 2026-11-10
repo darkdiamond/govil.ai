@@ -180,7 +180,7 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   resource name when it parses (snapshot datasets name their date), falling back to
   `last_modified`. (2026-10-30)
 - **Provider checks are scattered over the CKAN paths.** `refresh_one`, `reconcile.probe_one`
-  and `selector._skip` each branch on `getattr(src, "provider")`. A new CKAN-shaped path that
+  and `selector._skip` each branch on `src.provider`. A new CKAN-shaped path that
   forgets the branch treats a provider doc as CKAN. Add a `CkanProvider` adapter around the
   existing CKAN fetch/probe functions and one `provider_for(src)` that always returns a provider,
   so those paths dispatch instead of branching. (2026-10-30)
@@ -192,6 +192,20 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   `news/run.py`'s `recipe_repo_from_env` and `news/ledger.py`'s `govlib.fmt`). Fix: one
   `refresh.load_input_frames(recipe, src, …)` both call, and move `recipe_repo_from_env`'s repo
   classes and `govlib.fmt` somewhere both packages may import. (2026-11-10)
+- **Two writers build `sources/<id>.resources[]` by hand.** `FirestoreStateStore.save_dataset`
+  (CKAN) and `providers/sync.py` (provider docs) each assemble the resource dicts, so a field
+  added to one (a new CKAN fact, a renamed key) silently goes missing from the other. Fix: one
+  resource-doc builder in `services/shared` both call, with a golden-dict test per source kind.
+  (2026-11-10)
+- **`mark_refreshed` still writes the legacy `analysis_*` fields.** `analysis_status`,
+  `last_analyzed_at`, `analyzed_metadata_modified` and `last_analyzed_version` are agent-builder
+  names that the selector and publisher still read as "this source has a live page and its data
+  vintage". Fix: move those readers to `refresh_status` / `refreshed_metadata_modified` (legacy
+  pages keep their old fields), then stop writing the `analysis_*` copies. (2026-11-10)
+- **`record_count` means different things per source kind.** The scanner stores the primary
+  resource's datastore total (CKAN), provider sync stores the sum over all series. Pages and the
+  manifest show both as "records". Fix: pick one meaning (or store both, named), and say it in
+  `schema.DatasetMeta`. (2026-11-10)
 
 - **65dafbb0's map input sits near the 50MB `map_max_kb` ceiling.** The תצ"ר layer converts to
   49.2MB at tolerance 2e-5, and its floor is 37.6MB (at 2e-4; coarser steps grow again as small

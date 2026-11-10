@@ -21,6 +21,13 @@ from typing import Any
 from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
+from services.shared.states import (
+    AnalysisStatus,
+    AuthoringStatus,
+    RefreshState,
+    RefreshStatus,
+)
+
 SOURCES_COLL = "sources"
 SCAN_RUNS_COLL = "scan_runs"
 # Small per-job markers, one doc each (`job_state/reconcile`: last sweep date).
@@ -67,7 +74,7 @@ class SourceRecord:
     # succeeded before this field existed.
     analyzed_metadata_modified: datetime | None = None
     last_analyzed_version: int = 0
-    analysis_status: str = "never"
+    analysis_status: str = AnalysisStatus.NEVER
     last_error: str | None = None
     page_path: str | None = None
     # Failed builds of the retired agent builder (legacy; reset on a
@@ -103,6 +110,9 @@ class SourceRecord:
     # a page URL; the publisher redirects them to the current one.
     previous_titles: list[str] = field(default_factory=list)
 
+    # The refresh state, from the same snapshot (one read per source).
+    refresh: RefreshState = field(default_factory=RefreshState)
+
     @classmethod
     def from_doc(cls, doc) -> SourceRecord:
         data: dict[str, Any] = doc.to_dict() or {}
@@ -126,7 +136,7 @@ class SourceRecord:
             last_analyzed_at=data.get("last_analyzed_at"),
             analyzed_metadata_modified=data.get("analyzed_metadata_modified"),
             last_analyzed_version=int(data.get("last_analyzed_version") or 0),
-            analysis_status=data.get("analysis_status", "never"),
+            analysis_status=data.get("analysis_status", AnalysisStatus.NEVER),
             last_error=data.get("last_error"),
             page_path=data.get("page_path"),
             failed_attempts=int(data.get("failed_attempts") or 0),
@@ -139,6 +149,7 @@ class SourceRecord:
             presentation=data.get("presentation"),
             page_slug_suffix=data.get("page_slug_suffix"),
             previous_titles=data.get("previous_titles") or [],
+            refresh=RefreshState.from_dict(data),
         )
 
 
@@ -238,19 +249,19 @@ class FirestoreStateStore:
 
         if not snap.exists:
             payload["first_seen_at"] = now
-            payload["analysis_status"] = "never"
+            payload["analysis_status"] = AnalysisStatus.NEVER
             payload["last_analyzed_version"] = 0
             payload["last_analyzed_at"] = None
             payload["last_error"] = None
             payload["page_path"] = None
-        elif old.get("analysis_status") == "restricted":
+        elif old.get("analysis_status") == AnalysisStatus.RESTRICTED:
             # The dataset is back in CKAN's public search after having been
             # access-restricted (a datastore 403 parked it, in the retired
             # agent builder). Re-enable it: clear the exclusion so the
             # authoring queue sees it again. The scanner's change detector forces a re-save
             # for restricted docs (see ChangeDetector.detect_status), so this
             # branch fires even when CKAN's metadata_modified is unchanged.
-            payload["analysis_status"] = "never"
+            payload["analysis_status"] = AnalysisStatus.NEVER
             payload["last_error"] = None
             payload["failed_attempts"] = 0
         # Deliberately no analogous branch for `analysis_status == "unavailable"`
@@ -302,7 +313,7 @@ class FirestoreStateStore:
             doc.update(
                 metadata_created=now,
                 first_seen_at=now,
-                analysis_status="never",
+                analysis_status=AnalysisStatus.NEVER,
                 last_analyzed_version=0,
                 last_analyzed_at=None,
                 last_error=None,
@@ -414,7 +425,7 @@ class FirestoreStateStore:
     def list_never_analyzed(self, limit: int = 50) -> list[SourceRecord]:
         query = (
             self.client.collection(SOURCES_COLL)
-            .where(filter=FieldFilter("analysis_status", "==", "never"))
+            .where(filter=FieldFilter("analysis_status", "==", AnalysisStatus.NEVER))
             .order_by("metadata_modified", direction=firestore.Query.DESCENDING)
             .limit(limit)
         )
@@ -431,7 +442,7 @@ class FirestoreStateStore:
         """
         query = (
             self.client.collection(SOURCES_COLL)
-            .where(filter=FieldFilter("analysis_status", "==", "failed"))
+            .where(filter=FieldFilter("analysis_status", "==", AnalysisStatus.FAILED))
             .order_by("metadata_modified", direction=firestore.Query.DESCENDING)
         )
         # Streamed, not a fixed window: parked docs (attempts >= max) can sort
@@ -467,7 +478,7 @@ class FirestoreStateStore:
         ]
         out.sort(
             key=lambda s: (
-                s.analysis_status != "succeeded",
+                s.analysis_status != AnalysisStatus.SUCCEEDED,
                 -(s.metadata_modified.timestamp() if s.metadata_modified else 0),
             )
         )
@@ -475,7 +486,7 @@ class FirestoreStateStore:
 
     def iter_succeeded_sources(self) -> Iterator[SourceRecord]:
         query = self.client.collection(SOURCES_COLL).where(
-            filter=FieldFilter("analysis_status", "==", "succeeded")
+            filter=FieldFilter("analysis_status", "==", AnalysisStatus.SUCCEEDED)
         )
         for d in query.stream():
             yield SourceRecord.from_doc(d)
@@ -516,7 +527,7 @@ class FirestoreStateStore:
         snap = ref.get()
         already = (snap.to_dict() or {}).get("unavailable_since") if snap.exists else None
         payload: dict = {
-            "analysis_status": "unavailable",
+            "analysis_status": AnalysisStatus.UNAVAILABLE,
             "last_error": (error or "")[:1000],
         }
         if not already:
@@ -533,7 +544,7 @@ class FirestoreStateStore:
         """
         self.client.collection(SOURCES_COLL).document(dataset_id).set(
             {
-                "analysis_status": "succeeded",
+                "analysis_status": AnalysisStatus.SUCCEEDED,
                 "unavailable_since": firestore.DELETE_FIELD,
                 "last_error": None,
             },
@@ -548,7 +559,7 @@ class FirestoreStateStore:
         an archive banner.
         """
         query = self.client.collection(SOURCES_COLL).where(
-            filter=FieldFilter("analysis_status", "in", ["succeeded", "unavailable"])
+            filter=FieldFilter("analysis_status", "in", [AnalysisStatus.SUCCEEDED, AnalysisStatus.UNAVAILABLE])
         )
         for d in query.stream():
             yield SourceRecord.from_doc(d)
@@ -601,10 +612,10 @@ class FirestoreStateStore:
             "recipe_version": recipe_version,
             "refreshed_metadata_modified": metadata_modified,
             "last_refreshed_at": now,
-            "refresh_status": "succeeded",
+            "refresh_status": RefreshStatus.SUCCEEDED,
             "refresh_error": None,
             "refresh_failed_version": None,
-            "authoring_status": "done",
+            "authoring_status": AuthoringStatus.DONE,
             "authoring_reason": None,
             "authoring_issue": None,
             "last_snapshot": snapshot,
@@ -615,7 +626,7 @@ class FirestoreStateStore:
             "inputs_hash_unordered": inputs_hash_unordered,
             "wall_budget_strikes": None,
             "transient_strikes": None,
-            "analysis_status": "succeeded",
+            "analysis_status": AnalysisStatus.SUCCEEDED,
             "last_analyzed_at": now,
             "analyzed_metadata_modified": metadata_modified,
             "last_analyzed_version": firestore.Increment(1),
@@ -677,10 +688,10 @@ class FirestoreStateStore:
             payload.update(
                 {
                     "refreshed_metadata_modified": metadata_modified,
-                    "refresh_status": "succeeded",
+                    "refresh_status": RefreshStatus.SUCCEEDED,
                     "refresh_error": None,
                     "refresh_failed_version": None,
-                    "authoring_status": "done",
+                    "authoring_status": AuthoringStatus.DONE,
                     "authoring_reason": None,
                     "authoring_issue": None,
                     "analyzed_metadata_modified": metadata_modified,
@@ -710,7 +721,7 @@ class FirestoreStateStore:
         `transient_strikes` (consecutive runs per refresh `StrikeError`
         kind) are written only when given; other failures leave them alone."""
         payload: dict[str, Any] = {
-            "refresh_status": "failed",
+            "refresh_status": RefreshStatus.FAILED,
             "refresh_error": (error or "")[:1000],
             "refresh_reason": reason,
             "refresh_failed_version": failed_version,
@@ -727,20 +738,20 @@ class FirestoreStateStore:
 
     def mark_authoring_needed(self, dataset_id: str, reason: str) -> None:
         self._source_ref(dataset_id).set(
-            {"authoring_status": "needed", "authoring_reason": reason},
+            {"authoring_status": AuthoringStatus.NEEDED, "authoring_reason": reason},
             merge=True,
         )
 
     def set_authoring_issue(self, dataset_id: str, issue_number: int) -> None:
         self._source_ref(dataset_id).set(
-            {"authoring_status": "notified", "authoring_issue": issue_number},
+            {"authoring_status": AuthoringStatus.NOTIFIED, "authoring_issue": issue_number},
             merge=True,
         )
 
     def iter_authoring_queue(self) -> Iterator[tuple[str, dict]]:
         """Prod sources waiting for a locally-authored recipe."""
         query = self.client.collection(SOURCES_COLL).where(
-            filter=FieldFilter("authoring_status", "in", ["needed", "notified"])
+            filter=FieldFilter("authoring_status", "in", [AuthoringStatus.NEEDED, AuthoringStatus.NOTIFIED])
         )
         for d in query.stream():
             yield d.id, (d.to_dict() or {})
@@ -750,7 +761,7 @@ class FirestoreStateStore:
     def get_stats(self) -> dict[str, int]:
         coll = self.client.collection(SOURCES_COLL)
         counts: dict[str, int] = {"total": _count(coll)}
-        for status in ("never", "succeeded", "failed", "pending", "restricted", "unavailable"):
+        for status in AnalysisStatus:
             counts[status] = _count(
                 coll.where(filter=FieldFilter("analysis_status", "==", status))
             )

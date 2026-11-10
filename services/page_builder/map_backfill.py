@@ -44,12 +44,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from services.shared import github
+from services.shared.states import NO_DATA_STATUSES, AuthoringReason
 
 from .author import RECIPES_ROOT, _map_resources, _map_suffix, download_map
 from .recipe import TEMPLATE_FILENAME, Recipe, RecipeError
 
 REPO = github.default_repo()
-_NO_DATA = ("restricted", "unavailable")
 _DEFAULT_FLOOR = "2025-01-01"
 # A template that draws a map: Leaflet calls, GovMap, or a map element.
 _MAP_RE = re.compile(r"\bL\.[a-zA-Z]+\(|\bGovMap\b|id=\"map", re.IGNORECASE)
@@ -190,8 +190,8 @@ def find_candidates(store, *, floor: datetime, recipes_root: Path = RECIPES_ROOT
     out = []
     with tempfile.TemporaryDirectory(prefix="map-backfill-") as tmp:
         for src in _iter_sources(store):
-            if (src.id in skip_ids or getattr(src, "provider", None)
-                    or src.analysis_status in _NO_DATA
+            if (src.id in skip_ids or src.provider
+                    or src.analysis_status in NO_DATA_STATUSES
                     or src.metadata_modified is None
                     or src.metadata_modified.astimezone(UTC) < floor):
                 continue
@@ -271,7 +271,7 @@ def _open_issue(c: Candidate, repo: str = REPO) -> int:
     title = src.title or src.id
     body = issue_body(dataset_id=src.id, title=title,
                       org=(src.organization or {}).get("title", "") or "",
-                      reason="map_available", detail=detail_text(c),
+                      reason=AuthoringReason.MAP_AVAILABLE, detail=detail_text(c),
                       detail_caption="Map files")
     out = subprocess.run(
         ["gh", "issue", "create", "--repo", repo, "--title", issue_title(title, src.id),

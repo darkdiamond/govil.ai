@@ -16,23 +16,24 @@ from __future__ import annotations
 import logging
 
 from services.shared import github
+from services.shared.states import AuthoringReason
 
 log = logging.getLogger(__name__)
 
 AUTHORING_LABEL = "needs-authoring"
 
-REASON_TEXT = {
-    "new": "מאגר חדש — אין לו עמוד עדיין",
-    "legacy_updated": "עמוד ישן (נכתב ע״י סוכן בענן) והנתונים התעדכנו — אין לו מתכון",
-    "recipe_failed": "המתכון נכשל על הנתונים החדשים",
-    "schema_changed": "מבנה הנתונים השתנה (משאב/עמודה חסרים)",
-    "too_large": "המאגר גדל מעבר לתקרת הרענון",
-    "geometry_stale": "קובץ המפה התעדכן — עדיף להחליף את קלט ה-`snapshot` בקלט `map: true` "
+REASON_TEXT: dict[AuthoringReason, str] = {
+    AuthoringReason.NEW: "מאגר חדש — אין לו עמוד עדיין",
+    AuthoringReason.LEGACY_UPDATED: "עמוד ישן (נכתב ע״י סוכן בענן) והנתונים התעדכנו — אין לו מתכון",
+    AuthoringReason.RECIPE_FAILED: "המתכון נכשל על הנתונים החדשים",
+    AuthoringReason.SCHEMA_CHANGED: "מבנה הנתונים השתנה (משאב/עמודה חסרים)",
+    AuthoringReason.TOO_LARGE: "המאגר גדל מעבר לתקרת הרענון",
+    AuthoringReason.GEOMETRY_STALE: "קובץ המפה התעדכן — עדיף להחליף את קלט ה-`snapshot` בקלט `map: true` "
                       "(הריצה מורידה אותו בעצמה); אחרת להוריד אותו שוב בדפדפן ולהריץ `author snapshot`",
-    "download_blocked": "הורדת קובץ המפה נחסמה כמה ריצות ברצף (403 או דף HTML) — "
+    AuthoringReason.DOWNLOAD_BLOCKED: "הורדת קובץ המפה נחסמה כמה ריצות ברצף (403 או דף HTML) — "
                         "לבדוק את CKAN_USER_AGENT או לעבור לקלט `snapshot`",
-    "gsc_traffic": "עמוד ישן בלי מתכון שמקבל תנועה מחיפוש — הנתונים לא השתנו, ולכן הריצה היומית לא תפתח עליו בקשה",
-    "map_available": "למאגר יש קובץ מפה שהריצה יכולה להוריד — יש להוסיף למתכון קלט `map: true`",
+    AuthoringReason.GSC_TRAFFIC: "עמוד ישן בלי מתכון שמקבל תנועה מחיפוש — הנתונים לא השתנו, ולכן הריצה היומית לא תפתח עליו בקשה",
+    AuthoringReason.MAP_AVAILABLE: "למאגר יש קובץ מפה שהריצה יכולה להוריד — יש להוסיף למתכון קלט `map: true`",
 }
 
 
