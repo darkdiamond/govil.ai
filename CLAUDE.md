@@ -62,8 +62,13 @@ landing pages. Six layers:
    2026-11-04, when a run took ~6 min) via the Admin API's `:run`
    method. Run-counted thresholds (`REFRESH_*_STRIKES`) assume two runs a
    day, and the weekly reconcile sweep runs in both of Sunday's runs.
-   `--task-timeout` (6h) must stay under the 8h gap between ticks, or a
-   slow run overlaps the next execution. **No LLM runs in prod** — every
+   A third tick, `govdata-pipeline-cbs-release` (**19:00 on the 13th–15th**,
+   `0 19 13-15 * *`), catches CBS's price indices on release evening (the 15th
+   at 18:30; when the 15th is a Friday, Saturday or holiday, at 14:00 on that
+   Friday or the holiday eve). `--task-timeout` (4h) must stay under the
+   shortest gap between ticks (5h, 14:00 → 19:00 on those days), or a slow run
+   overlaps the next execution. Those days count three runs toward
+   `REFRESH_*_STRIKES`. **No LLM runs in prod** — every
    page is a recipe render.
    `pipeline.run_pipeline` drives:
    reconcile sweep (weekly, `RECONCILE_*`; once per IL day via the
@@ -343,7 +348,13 @@ catalog` lists chapters → subjects → codes.
 
 6. **News** — `services/news/`, Cloud Run job `govdata-news-job`
    (`infra/news-job.deploy.sh`, SA `govdata-news@`, `infra/news-iam.setup.sh`),
-   **08:00 Asia/Jerusalem**, after the builder. The only model-calling code
+   **08:00 Asia/Jerusalem**, after the builder, plus `govdata-news-cbs-release`
+   at 19:30 on the 13th–15th (args from `infra/news-cbs-release.body.json` via `SCHEDULER_MESSAGE_BODY`: only
+   renders of the last 3h, i.e. the 19:00 builder run's; the scheduler SA needs
+   `roles/run.jobsExecutorWithOverrides` on the job for arg overrides).
+   `NEWS_MAX_PER_DAY` is per run, so those days can publish up to 6; the dataset
+   cooldown keeps the next 08:00 run off a story the evening run wrote. The only
+   model-calling code
    (OpenRouter; `NEWS_MODEL` Gemini Flash, `NEWS_IMAGE_MODEL` Nano Banana,
    `NEWS_SEARCH_ENGINE` exa). Articles publish with **no human approval**
    (user decision), so the guards are mechanical:
