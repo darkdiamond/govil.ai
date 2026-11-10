@@ -446,15 +446,30 @@ class CbsIndexProvider(SourceProvider):
 
     def pages(self, r: CbsIndexResource) -> list[dict]:
         """The resource's rows, every page, without chaining coefficients."""
-        out, page = [], 1
+        out, page, total, got = [], 1, None, 0
         while True:
             data = self._get_json(self._url("data/price", **self._query(r), format="json",
                                             PageSize=PAGE_SIZE, Page=page))
-            if "paging" not in data:
+            paging = data.get("paging")
+            if not isinstance(paging, dict):
                 raise ProviderError(f"{r.id}: CBS Index API error: {str(data)[:200]}")
             out.append(data)
-            last = int((data.get("paging") or {}).get("last_page") or 0)
-            if page >= last:
+            n = sum(len(s.get("date") or []) for f in ("month", "quarter")
+                    for s in data.get(f) or [] if isinstance(s, dict))
+            got += n
+            last = paging.get("last_page")
+            last = last if isinstance(last, int) and not isinstance(last, bool) else None
+            if page == 1:
+                t = paging.get("total_items")
+                total = t if isinstance(t, int) and not isinstance(t, bool) else None
+                if last is None and total is None and n > 1:
+                    raise ProviderError(f"{r.id}: CBS Index API answered {n} rows with no "
+                                        f"usable paging: {str(paging)[:200]}")
+            if last is None or page >= last:
+                # A walk cut short (a missing last_page, a row withdrawn
+                # between pages) would publish a truncated history.
+                if total is not None and got < total:
+                    raise ProviderError(f"{r.id}: CBS Index API returned {got} of {total} rows")
                 return out
             page += 1
             if page > _MAX_PAGES:
@@ -498,7 +513,14 @@ class CbsIndexProvider(SourceProvider):
                 data = self._latest(",".join(str(c) for c in r.codes))
             except (ProviderError, ValueError):
                 return "unknown"
-            total = int((data.get("paging") or {}).get("total_items") or 0)
+            # Only a well-formed answer counts: an error body (no paging) or
+            # an inconsistent one says nothing about the codes.
+            paging = data.get("paging")
+            total = paging.get("total_items") if isinstance(paging, dict) else None
+            if not isinstance(total, int) or isinstance(total, bool) or total < 0:
+                return "unknown"
+            if total == 0 and (data.get("month") or data.get("quarter")):
+                return "unknown"
             found.append(total > 0)
         if all(found):
             return "alive"
