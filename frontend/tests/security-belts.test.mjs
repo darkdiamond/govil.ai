@@ -230,3 +230,25 @@ test("escaping never mutates the chart's own data objects", () => {
   assert.equal(value[1], evil);
   assert.ok(item.when instanceof Date);
 });
+
+test("treemap/sunburst treePathInfo and treeAncestors names are escaped", () => {
+  const { window } = loadGovEcharts();
+  const o = window.GovEcharts.option({
+    tooltip: {
+      formatter: (p) =>
+        p.marker +
+        p.treePathInfo.map((t) => t.name).join(" / ") +
+        p.treeAncestors.map((t) => t.name).join(" / "),
+    },
+  });
+  const path = [{ name: "root" }, { name: evil, value: 3 }];
+  const marker = '<span style="background:#0068f5"></span>';
+  const html = o.tooltip.formatter({
+    marker,
+    treePathInfo: path,
+    treeAncestors: path,
+  });
+  assert.ok(!html.includes("<img"), html);
+  assert.ok(html.startsWith(marker), "ECharts marker HTML untouched");
+  assert.equal(path[1].name, evil);
+});

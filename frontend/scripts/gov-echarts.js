@@ -143,11 +143,13 @@
   }
   // `data` and `value` can carry any dataset string (a treemap node's extra
   // fields, a sankey edge's source/target, a string slot in a value array),
-  // so they are escaped deeply. Copy-on-write: arrays and plain objects are
+  // so they are escaped deeply, as are the treemap/sunburst path arrays
+  // (`treePathInfo`, `treeAncestors`) whose names are dataset labels.
+  // Copy-on-write: arrays and plain objects are
   // copied only when a string below them changes, so the chart's own data is
   // never mutated and a clean (often large) data array costs one walk.
   // Numbers, null, Dates, functions and class instances pass through.
-  var DEEP_KEYS = ['data', 'value'];
+  var DEEP_KEYS = ['data', 'value', 'treePathInfo', 'treeAncestors'];
   var DEEP_MAX_DEPTH = 5;
   function isPlainObject(v) {
     // Realm-independent: a literal from another frame has its own Object.prototype.
