@@ -16,9 +16,11 @@ base in force when it was published (CPI since 1990 spans 15 bases), so raw
 values from different bases can't be compared. With `coef=true` each row also
 carries `prevBase`: the official chaining coefficients, newest to oldest,
 `{coeff, baseDesc, value}`, where `value` is the row's value carried back to
-that older base. `download()` uses the newest row's chain to put every row of
-a code on the newest base (`VALUE_CHAINED`), once, so no recipe re-derives
-base linking.
+that older base. `download()` uses the chain to put every row of a code on the
+newest base (`VALUE_CHAINED`), once, so no recipe re-derives base linking.
+Some codes (seasonal fresh produce) lack coefficients for a switch; `_links`
+then links it with the published PERCENT or PERCENT_YEAR, and a switch with neither leaves
+VALUE_CHAINED blank for the older rows.
 
 The catalog (`catalog/catalog` → chapters, `catalog/chapter?id=` → subjects,
 `catalog/subject?id=` → codes) is walked by the `catalog` CLI below.
@@ -133,22 +135,59 @@ def _date(freq: str, year: int, n: int) -> tuple[str, str]:
     return f"{year}-Q{n}", f"{year}-{3 * n - 2:02d}-01"
 
 
-def chain_factors(newest: dict) -> tuple[str, dict[str, float]]:
-    """From a code's newest row: (its base, {base: factor}). A value on base B
-    divided by factor[B] is on the newest base. `prevBase` lists the older
-    bases newest first, each `coeff` linking it to the one before."""
-    curr = (newest.get("currBase") or {}).get("baseDesc")
-    if not curr:
-        raise ProviderError("newest row has no currBase")
-    factors = {curr: 1.0}
-    f = 1.0
-    for p in newest.get("prevBase") or []:
-        desc, coeff = p.get("baseDesc"), p.get("coeff")
-        if not desc or not coeff:
-            raise ProviderError(f"unreadable chaining coefficient {p!r}")
-        f *= float(coeff)
-        factors.setdefault(desc, f)
-    return curr, factors
+def _links(chain_rows: list[tuple], data_rows: list[tuple]) -> dict[str, tuple[str, float]]:
+    """{base: (the base before it, coeff)}: a value on `base` times coeff is on the
+    older base. CBS's own coefficients come first (each row's `prevBase` walks
+    its bases back, newest first). CBS leaves some out (seasonal fresh produce:
+    a newest row with an empty `prevBase`, or a link missing from every row, and
+    months missing out of season), so a missing link is then derived from the
+    earliest row on the new base whose previous period (with its PERCENT) or
+    same period a year earlier (with its PERCENT_YEAR) is on another base. Both
+    are published rounded to 0.1, so such a link is good to ~0.1%."""
+    links: dict[str, tuple[str, float]] = {}
+    for d in sorted(chain_rows, key=lambda d: d[0], reverse=True) + sorted(
+            data_rows, key=lambda d: d[0], reverse=True):
+        r = d[5]
+        prev = (r.get("currBase") or {}).get("baseDesc")
+        for pb in r.get("prevBase") or []:
+            desc, coeff = pb.get("baseDesc"), pb.get("coeff")
+            if not desc or not coeff:
+                raise ProviderError(f"unreadable chaining coefficient {pb!r}")
+            if prev and prev != desc:
+                links.setdefault(prev, (desc, float(coeff)))
+            prev = desc
+    by_freq: dict[str, dict[int, dict]] = defaultdict(dict)
+    for d in data_rows:
+        per_year = 12 if d[1] == "month" else 4
+        by_freq[d[1]][d[3] * per_year + d[4]] = d[5]
+    for freq, rows in by_freq.items():
+        per_year = 12 if freq == "month" else 4
+        for k in sorted(rows):
+            nb = rows[k].get("currBase") or {}
+            new_base, vb = nb.get("baseDesc"), nb.get("value")
+            if not new_base or new_base in links or vb is None or not float(vb):
+                continue
+            for lag, field in ((1, "percent"), (per_year, "percentYear")):
+                ob = (rows.get(k - lag) or {}).get("currBase") or {}
+                old_base, va, pct = ob.get("baseDesc"), ob.get("value"), rows[k].get(field)
+                if old_base and old_base != new_base and va is not None and pct is not None:
+                    links[new_base] = (old_base,
+                                       float(va) * (1 + float(pct) / 100) / float(vb))
+                    break
+    return links
+
+
+def _factors(newest_base: str, links: dict[str, tuple[str, float]]) -> dict[str, float]:
+    """{base: factor} for every base reachable from the newest one; a value on base B
+    divided by factor[B] is on the newest base."""
+    factors, b, f = {newest_base: 1.0}, newest_base, 1.0
+    while b in links:
+        b, coeff = links[b]
+        if b in factors:
+            break
+        f *= coeff
+        factors[b] = f
+    return factors
 
 
 def _series_rows(pages: list[dict], freqs: tuple[str, ...]) -> dict[int, dict]:
@@ -187,10 +226,12 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
     """The API's pages for one query → the normalized table (unsorted; the
     caller's `normalize_csv` sorts). Raises when a requested code has no row.
 
-    Each code's newest row carries the chain to every older base. The data
-    pages may be fetched without `coef` (it multiplies the payload ~6x);
+    Each code's newest row usually carries the chain to every older base. The
+    data pages may be fetched without `coef` (it multiplies the payload ~6x);
     `chain_pages` is then a `last=1&coef=true` answer for the same codes.
-    Without it the chain is read from the data pages themselves."""
+    Without it the chain is read from the data pages themselves. Gaps in CBS's
+    coefficients are bridged by `_links`; a row on a base still unreachable
+    gets a blank VALUE_CHAINED."""
     freqs = ("month", "quarter") if frequency == "both" else (frequency,)
     by_code = _series_rows(payload_pages, freqs)
     chains = _series_rows(chain_pages, freqs) if chain_pages is not None else by_code
@@ -206,7 +247,11 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
         chain_rows = chains.get(code, {}).get("rows")
         if not chain_rows:
             raise ProviderError(f"code {code}: no row with chaining coefficients")
-        chain_base, factors = chain_factors(_newest(_dated(chain_rows)))
+        chain_dated = _dated(chain_rows)
+        chain_base = (_newest(chain_dated).get("currBase") or {}).get("baseDesc")
+        if not chain_base:
+            raise ProviderError(f"code {code}: newest row has no currBase")
+        factors = _factors(chain_base, _links(chain_dated, dated))
         seen = set()
         for date, freq, tp, year, n, r in dated:
             if (freq, tp) in seen:
@@ -214,14 +259,10 @@ def rows_csv(payload_pages: list[dict], codes: list[int], frequency: str,
             seen.add((freq, tp))
             base = (r.get("currBase") or {})
             desc, value = base.get("baseDesc"), base.get("value")
-            if value is None:
-                chained = None
-            elif desc in factors:
-                chained = float(value) / factors[desc]
-            else:
-                raise ProviderError(
-                    f"code {code} {tp}: base {desc!r} is not in the chain from {chain_base!r}"
-                )
+            # A base CBS gives no link to (no coefficient, no consecutive switch
+            # with a PERCENT) leaves VALUE_CHAINED blank for its rows and older.
+            chained = (float(value) / factors[desc]
+                       if value is not None and desc in factors else None)
             w.writerow([code, entry["name"], _FREQS[freq], tp, date, year, n, _num(value),
                         desc or "", _num(r.get("percent")), _num(r.get("percentYear")),
                         _num(chained, sig=_SIG_DIGITS), chain_base])
@@ -392,10 +433,11 @@ class CbsIndexProvider(SourceProvider):
                 k = (row["CODE"], row["FREQ"])
                 s = stats.setdefault(k, {"name": row["NAME_HE"], "n": 0, "first": None,
                                          "last": None, "last_row": None, "first_tp": "",
-                                         "bases": set(),
+                                         "bases": set(), "unchained": 0,
                                          "chain": row["CHAIN_BASE"]})
                 s["n"] += 1
                 s["bases"].add(row["BASE_DESC"])
+                s["unchained"] += row["VALUE"] != "" and row["VALUE_CHAINED"] == ""
                 if s["first"] is None or row["DATE"] < s["first"]:
                     s["first"], s["first_tp"] = row["DATE"], row["TIME_PERIOD"]
                 if s["last"] is None or row["DATE"] >= s["last"]:
@@ -405,8 +447,8 @@ class CbsIndexProvider(SourceProvider):
         out.write(f"- CBS Index API codes {', '.join(map(str, r.codes))} "
                   f"(frequency `{r.frequency}`, start `{r.start or 'full history'}`)\n\n")
         out.write("| CODE | NAME_HE | FREQ | rows | first | last | last VALUE (base) | "
-                  "last PERCENT / PERCENT_YEAR | bases | CHAIN_BASE |\n")
-        out.write("|---|---|---|---|---|---|---|---|---|---|\n")
+                  "last PERCENT / PERCENT_YEAR | bases | CHAIN_BASE | unchained |\n")
+        out.write("|---|---|---|---|---|---|---|---|---|---|---|\n")
         for i, ((code, freq), s) in enumerate(sorted(stats.items())):
             if i >= _BRIEF_MAX_CODES:
                 out.write(f"\n… {len(stats) - _BRIEF_MAX_CODES} more not listed\n")
@@ -415,7 +457,7 @@ class CbsIndexProvider(SourceProvider):
             out.write(f"| {code} | {s['name']} | {freq} | {s['n']:,} | {s['first_tp']} | "
                       f"{lr['TIME_PERIOD']} | {lr['VALUE']} ({lr['BASE_DESC']}) | "
                       f"{lr['PERCENT']} / {lr['PERCENT_YEAR']} | {len(s['bases'])} | "
-                      f"{s['chain']} |\n")
+                      f"{s['chain']} | {s['unchained']} |\n")
         return out.getvalue()
 
     def authoring_notes(self) -> str:
@@ -428,6 +470,12 @@ class CbsIndexProvider(SourceProvider):
             "  row of a code on its newest base (CHAIN_BASE) with CBS's official chaining\n"
             "  coefficients: use it for charts, long-run changes and \"index level\" figures,\n"
             "  and name CHAIN_BASE as the base (e.g. \"בסיס: ממוצע 2024 = 100\").\n"
+            "- Where CBS publishes no coefficient for a base switch (seasonal produce), the\n"
+            "  link uses the published PERCENT or PERCENT_YEAR at the switch (~0.1%\n"
+            "  precision). Where neither\n"
+            "  exists, VALUE_CHAINED is BLANK for the rows before the break: the brief's\n"
+            "  `unchained` column counts them. Chart only the chained span (drop blanks), and\n"
+            "  never splice VALUE onto it.\n"
             "- PERCENT (vs the previous period) and PERCENT_YEAR (vs the same period a year\n"
             "  earlier) are CBS's published changes, rounded to 0.1. Quote them as published;\n"
             "  a change recomputed from VALUE_CHAINED can differ by 0.1.\n"
@@ -507,4 +555,4 @@ if __name__ == "__main__":
     sys.exit(main())
 
 
-__all__ = ["CbsIndexDatasetConfig", "CbsIndexProvider", "chain_factors", "rows_csv"]
+__all__ = ["CbsIndexDatasetConfig", "CbsIndexProvider", "rows_csv"]
