@@ -365,9 +365,15 @@ catalog` lists chapters → subjects → codes.
 6. **News** — `services/news/`, Cloud Run job `govdata-news-job`
    (`infra/news-job.deploy.sh`, SA `govdata-news@`, `infra/news-iam.setup.sh`),
    **08:00 Asia/Jerusalem**, after the builder, plus `govdata-news-cbs-release`
-   at 19:30 on the 13th–15th (args from `infra/news-cbs-release.body.json` via `SCHEDULER_MESSAGE_BODY`: only
-   renders of the last 3h, i.e. the 19:00 builder run's; the scheduler SA needs
-   `roles/run.jobsExecutorWithOverrides` on the job for arg overrides).
+   at 19:30 on the 13th–15th (no args). Neither depends on the builder's timing:
+   a run treats as new the renders stamped in [cursor, now − 10 min), where the
+   cursor (`news_state/cursor` in the `news` database) is where the last
+   successful full live run's window ended (`run.news_window`). So a late,
+   repeated or skipped run loses and double-counts nothing; a render that lands
+   mid-run goes to the next run. Only an `ok`/`idle` live run with no
+   `--dataset` advances it; dry runs and `--signals-only` read it,
+   `--since-hours N` (ad-hoc) ignores it. No cursor → the last 24h; a cursor
+   older than `NEWS_MAX_LOOKBACK_HOURS` (168) is clamped to it.
    `NEWS_MAX_PER_DAY` is per run, so those days can publish up to 6; the dataset
    cooldown keeps the next 08:00 run off a story the evening run wrote. The only
    model-calling code

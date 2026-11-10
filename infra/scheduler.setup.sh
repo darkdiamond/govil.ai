@@ -30,8 +30,11 @@
 #   SCHEDULER_JOB=govdata-pipeline-cbs-release SCHEDULE="0 19 13-15 * *" \
 #     ./infra/scheduler.setup.sh
 #   CLOUD_RUN_JOB=govdata-news-job SCHEDULER_JOB=govdata-news-cbs-release \
-#     SCHEDULE="30 19 13-15 * *" SCHEDULER_MESSAGE_BODY="$(cat infra/news-cbs-release.body.json)" \
-#     ./infra/scheduler.setup.sh
+#     SCHEDULE="30 19 13-15 * *" ./infra/scheduler.setup.sh
+#
+# (The news tick needs no args: each news run covers the renders since the
+# last one's cursor, whenever it runs. Re-running that line on a tick created
+# with the old `--since-hours 3` body resets its body to '{}'.)
 #
 # Requires: infra/bootstrap.sh and infra/builder-job.deploy.sh already run.
 

@@ -1,7 +1,0 @@
-{
-  "overrides": {
-    "containerOverrides": [
-      { "args": ["-m", "services.news.run", "--since-hours", "3"] }
-    ]
-  }
-}

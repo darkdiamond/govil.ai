@@ -12,6 +12,13 @@ articles for cooldown, full tables) and calls the same models, but writes
 only to `--out`. Every mode prints one `news_summary` (or `news_signals`)
 JSON line. Exit status: 0 on ok/idle, 1 when the model key was refused or
 the run crashed.
+
+What counts as new is the render window [cursor, now − SETTLE): the cursor
+(`news_state/cursor`) is where the last successful live run's window ended,
+so the job can run at any time, late, twice, or after a skipped day, and
+every render is covered by exactly one live run (`news_window`). A dry run or
+--signals-only reads the cursor but never moves it; --since-hours N is an
+ad-hoc fixed window that neither reads nor moves it.
 """
 from __future__ import annotations
 
@@ -52,13 +59,44 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+# A render is stamped just before its model is uploaded: the window stops
+# this far short of now, so a stamp inside it is already listable in GCS.
+SETTLE = timedelta(minutes=10)
+BOOTSTRAP_HOURS = 24   # the first run, before any cursor exists
+MAX_LOOKBACK_HOURS = 168
+
+
+def news_window(now: datetime, *, cursor: str | None, since_hours: float | None = None,
+                max_lookback_hours: float = MAX_LOOKBACK_HOURS) -> dict:
+    """{cutoff, upto, from}: renders stamped in [cutoff, upto) are new.
+
+    from = "cursor" (the last live run's end), "capped" (the cursor is older
+    than `max_lookback_hours`: a long-stopped job resumes on recent data, not
+    weeks-old news), "bootstrap" (no cursor yet), or "since_hours" (explicit
+    ad-hoc window, open-ended, the cursor untouched; 0 = no cutoff at all, diff
+    each dataset's latest render against its previous one)."""
+    fmt = model_history.TS_FORMAT
+    if since_hours is not None:
+        cutoff = (now - timedelta(hours=since_hours)).strftime(fmt) if since_hours > 0 else None
+        return {"cutoff": cutoff, "upto": None, "from": "since_hours"}
+    upto_dt = now - SETTLE
+    upto = upto_dt.strftime(fmt)
+    if not cursor:
+        return {"cutoff": (upto_dt - timedelta(hours=BOOTSTRAP_HOURS)).strftime(fmt),
+                "upto": upto, "from": "bootstrap"}
+    floor = (upto_dt - timedelta(hours=max_lookback_hours)).strftime(fmt)
+    if cursor < floor:
+        return {"cutoff": floor, "upto": upto, "from": "capped"}
+    return {"cutoff": min(cursor, upto), "upto": upto, "from": "cursor"}
+
+
 def _series_of(snap: Snapshot, today: date) -> list[Series]:
     # No data date (a bare local dump): the run date still marks the
     # in-progress period as partial.
     return extract_series(snap.model, snap.dataset_id, as_of=snap.data_as_of or today)
 
 
-def find_signals(store, *, today: date, cutoff: str | None = None,
+def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | None = None,
                  catalog: dict[str, dict] | None = None,
                  demand_by_id: dict[str, dict] | None = None, workers: int = 16,
                  ids: list[str] | None = None,
@@ -67,10 +105,12 @@ def find_signals(store, *, today: date, cutoff: str | None = None,
     (a `YYYYmmddTHHMMSSZ` stamp, normally the last news run): only datasets
     re-rendered since then can signal, and only with what is new since.
     `context`, when given, receives `series` and `models` per dataset (the
-    writer's tools read them)."""
+    writer's tools read them). `upto` (exclusive) closes the window: later
+    renders belong to the next run."""
     ids = ids if ids is not None else store.ids()
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        pairs = dict(zip(ids, ex.map(lambda i: _safe_pair(store, i, cutoff), ids), strict=True))
+        pairs = dict(zip(ids, ex.map(lambda i: _safe_pair(store, i, cutoff, upto), ids),
+                         strict=True))
 
     series_by_ds: dict[str, list[Series]] = {}
     models: dict[str, dict] = {}
@@ -107,9 +147,9 @@ def find_signals(store, *, today: date, cutoff: str | None = None,
     return signals, stats
 
 
-def _safe_pair(store, ds: str, cutoff: str | None):
+def _safe_pair(store, ds: str, cutoff: str | None, upto: str | None = None):
     try:
-        return latest_and_baseline(store, ds, cutoff)
+        return latest_and_baseline(store, ds, cutoff, upto)
     except Exception:
         log.warning("news: reading snapshots of %s failed", ds, exc_info=True)
         return None, None, False
@@ -229,9 +269,11 @@ def main(argv: list[str] | None = None) -> int:
     src.add_argument("--bucket", default=os.environ.get("GCS_STAGING_BUCKET", "govdata-il-staging"))
     ap.add_argument("--prefix", default=model_history.PREFIX + "/")
     ap.add_argument("--today", type=date.fromisoformat, default=None)
-    ap.add_argument("--since-hours", type=float, default=24,
-                    help="what counts as new: renders after now minus this (the last daily run); "
-                         "0 = diff against the previous render")
+    ap.add_argument("--since-hours", type=float, default=None,
+                    help="ad-hoc window: renders after now minus this, ignoring and keeping the "
+                         "cursor; 0 = diff against the previous render. Default: since the cursor")
+    ap.add_argument("--max-lookback-hours", type=float,
+                    default=_env_int("NEWS_MAX_LOOKBACK_HOURS", MAX_LOOKBACK_HOURS))
     ap.add_argument("--dataset", action="append", help="limit to these dataset ids (repeatable)")
     ap.add_argument("--top", type=int, default=30)
     ap.add_argument("--per-dataset", type=int, default=3)
@@ -255,19 +297,32 @@ def main(argv: list[str] | None = None) -> int:
 
     now = datetime.now(UTC)
     today = a.today or now.date()
-    cutoff = ((now - timedelta(hours=a.since_hours)).strftime(model_history.TS_FORMAT)
-              if a.since_hours > 0 else None)
+    cursor = None
+    if a.since_hours is None and not a.models_dir:
+        try:
+            from .store import FirestoreArticles
+            cursor = FirestoreArticles().read_cursor()
+        except Exception as e:
+            if live:  # a live run that can't see its cursor can't know what is new
+                log.exception("news: reading the cursor failed")
+                print(json.dumps({"type": "news_summary", "status": "failed",
+                                  "error": f"cursor: {type(e).__name__}: {str(e)[:300]}"}))
+                return 1
+            log.warning("news: cursor unreadable — using the bootstrap window", exc_info=True)
+    window = news_window(now, cursor=cursor, since_hours=a.since_hours,
+                         max_lookback_hours=a.max_lookback_hours)
     snaps = LocalSnapshots(a.models_dir) if a.models_dir else GcsSnapshots(a.bucket, a.prefix)
     cat = {} if a.no_catalog else catalog_mod.load_catalog()
     dem = {} if (a.no_demand or not cat) else demand_mod.dataset_demand(
         demand_mod.fetch_page_rows(today=today), cat)
     ctx: dict = {}
-    signals, stats = find_signals(snaps, today=today, cutoff=cutoff, catalog=cat,
+    signals, stats = find_signals(snaps, today=today, cutoff=window["cutoff"],
+                                  upto=window["upto"], catalog=cat,
                                   demand_by_id=dem, ids=a.dataset, context=ctx)
     ranked = rank(signals, per_dataset=a.per_dataset, top=a.top)
 
     if a.signals_only:
-        print(json.dumps({"type": "news_signals", "today": today.isoformat(), "cutoff": cutoff,
+        print(json.dumps({"type": "news_signals", "today": today.isoformat(), "window": window,
                           **stats, "top": [s.key for s in ranked[:5]]}, ensure_ascii=False))
         for s in ranked:
             print(json.dumps(s.to_dict() | {"title": (cat.get(s.dataset_id) or {}).get("title")},
@@ -279,7 +334,7 @@ def main(argv: list[str] | None = None) -> int:
 
     run_id = f"{now:%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:6]}"
     summary: dict = {"type": "news_summary", "run_id": run_id, "mode": "live" if live else "dry_run",
-                     "today": today.isoformat(), "signals": stats}
+                     "today": today.isoformat(), "window": window, "signals": stats}
     tables = llm = None
     try:
         llm = OpenRouter()
@@ -306,6 +361,12 @@ def main(argv: list[str] | None = None) -> int:
         summary |= day | {"status": "ok" if day["published"] else "idle"}
         if live and day["published"]:
             summary["publish_dispatch"] = _dispatch_publish()
+        if live and window["upto"] and not (a.dataset or a.models_dir):
+            # Only a full run that got this far closes its window; a failed
+            # one leaves it for the next run (cooldown + used signal keys stop
+            # a story it did publish from being written twice). A --dataset
+            # run saw only some datasets, so it leaves the cursor alone.
+            summary["cursor_advanced"] = store.advance_cursor(window["upto"], run_id=run_id)
         rc = 0
     except LLMUnavailable as e:
         summary |= {"status": "llm_unavailable", "error": str(e)[:300]}

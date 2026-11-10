@@ -7,6 +7,11 @@ chart tables are). Rejected drafts go to `article_rejects/<id>` with their
 reasons, for tuning. Images go to `gs://<staging>/news/<slug>/` (the publisher
 rsyncs `news/` like `datasets/`).
 
+The run's cursor — the end of the render window the last successful live run
+covered (a `YYYYmmddTHHMMSSZ` stamp) — is `news_state/cursor` in the same
+database: the next run reads everything rendered from there on, whenever it
+runs (services/news/run.py `news_window`).
+
 `LocalArticles` mirrors this in a directory, for `run --dry-run --out DIR`.
 """
 from __future__ import annotations
@@ -18,6 +23,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 ARTICLES, REJECTS = "articles", "article_rejects"
+STATE, CURSOR = "news_state", "cursor"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
                "critic_scores", "correction")
@@ -59,6 +65,21 @@ class FirestoreArticles:
             project=project or os.environ.get("FIRESTORE_PROJECT_ID")
             or os.environ.get("GOOGLE_CLOUD_PROJECT"), database=database)
         self.bucket_name, self.prefix = bucket, prefix
+
+    def read_cursor(self) -> str | None:
+        """The stamp the last successful live run's window ended at, or None."""
+        snap = self.db.collection(STATE).document(CURSOR).get()
+        return (snap.to_dict() or {}).get("upto") if snap.exists else None
+
+    def advance_cursor(self, upto: str, *, run_id: str) -> bool:
+        """Move the cursor to `upto`; never backwards (a slower overlapping
+        run must not re-open a window a later one already closed)."""
+        current = self.read_cursor()
+        if current and current >= upto:
+            return False
+        self.db.collection(STATE).document(CURSOR).set(
+            {"upto": upto, "run_id": run_id, "at": datetime.now(UTC)})
+        return True
 
     def recent(self, days: int = 90) -> list[dict]:
         from google.cloud.firestore_v1.base_query import FieldFilter
