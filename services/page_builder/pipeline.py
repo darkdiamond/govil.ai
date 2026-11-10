@@ -33,21 +33,26 @@ log = logging.getLogger("page_builder.pipeline")
 # green one. `idle` is deliberately absent — a day with nothing to refresh
 # is a normal, healthy outcome. The refresh is the only way a page changes,
 # so a refresh that couldn't run (no recipe list, crash, staging down) is a
-# dead run even if the authoring queue still went out. A broken authoring
-# queue is red too: nobody would learn of new datasets. So is a scan that
-# failed (the rest of the run went ahead on yesterday's Firestore data) and
-# a reconcile sweep that crashed or aborted (see reconcile.reconcile_sources).
+# dead run even if the authoring queue still went out, and so is a run whose
+# re-rendered pages never got a publish dispatch (they stay staged, not live).
+# A broken authoring queue is red too: nobody would learn of new datasets.
+# So is a scan that failed (the rest of the run went ahead on yesterday's
+# Firestore data) and a reconcile sweep that crashed or aborted (see
+# reconcile.reconcile_sources).
 FAILED_RUN_STATUSES = frozenset({
-    RunStatus.REFRESH_UNAVAILABLE, RunStatus.REFRESH_FAILED, RunStatus.SCAN_FAILED,
-    RunStatus.AUTHORING_FAILED, RunStatus.RECONCILE_FAILED,
+    RunStatus.REFRESH_UNAVAILABLE, RunStatus.REFRESH_FAILED, RunStatus.PUBLISH_FAILED,
+    RunStatus.SCAN_FAILED, RunStatus.AUTHORING_FAILED, RunStatus.RECONCILE_FAILED,
 })
 
 
 def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bool,
-                reconcile_failed: bool, refreshed: bool) -> RunStatus:
+                reconcile_failed: bool, refreshed: bool,
+                publish_failed: bool = False) -> RunStatus:
     """One status per run; the first failure in this order wins."""
     if refresh_broken:
         return RunStatus.REFRESH_FAILED
+    if publish_failed:
+        return RunStatus.PUBLISH_FAILED
     if scan_failed:
         return RunStatus.SCAN_FAILED
     if authoring_broken:
@@ -364,26 +369,38 @@ async def run_pipeline(
         log.exception("authoring selector failed — no issues queued this run")
         to_queue, authoring_broken = [], True
     summary["selected_for_authoring"] = [s.id for s, _ in to_queue]
+    # queue_authoring answers None only when it tried to open an issue and
+    # couldn't. Without a token (a local run) that is expected; with one it
+    # is a GitHub error, and the source would wait silently.
+    have_token = bool(github.token())
     for src, reason in to_queue:
         try:
             issue = await asyncio.to_thread(_refresh.queue_authoring, store, src, reason)
         except Exception:
             log.exception("queueing %s for authoring failed", src.id[:8])
             issue, authoring_broken = None, True
+        else:
+            if issue is None and have_token:
+                log.error("authoring issue for %s could not be opened", src.id[:8])
+                authoring_broken = True
         summary["authoring_queued"].append({"id": src.id, "reason": reason, "issue": issue})
 
-    # [6] publish whatever re-rendered.
+    # [6] publish whatever re-rendered. A due dispatch that came back empty
+    # (no token, GitHub refused it, Cloud Build error, unknown PUBLISH_VIA)
+    # leaves the pages staged but not live: a failed run.
+    publish_due = bool(refreshed_ids) and not skip_publish
     summary["build_id"] = await _dispatch_publish(
-        bool(refreshed_ids) and not skip_publish,
+        publish_due,
         publish_via, publish_repo, publish_workflow, publish_branch,
         project_id, trigger_id, publish_region,
     )
+    publish_failed = publish_due and bool(publish_via) and summary["build_id"] is None
     # Pages that did refresh before a breakdown still publish (above); the
     # run is red either way.
     summary["status"] = _run_status(
         refresh_broken=refresh_broken, scan_failed=scan_failed,
         authoring_broken=authoring_broken, reconcile_failed=reconcile_failed,
-        refreshed=bool(refreshed_ids),
+        refreshed=bool(refreshed_ids), publish_failed=publish_failed,
     )
     return summary
 

@@ -87,6 +87,7 @@ class RunStatus(StrEnum):
     DRY_RUN = "dry_run"
     REFRESH_UNAVAILABLE = "refresh_unavailable"
     REFRESH_FAILED = "refresh_failed"
+    PUBLISH_FAILED = "publish_failed"
     SCAN_FAILED = "scan_failed"
     AUTHORING_FAILED = "authoring_failed"
     RECONCILE_FAILED = "reconcile_failed"
