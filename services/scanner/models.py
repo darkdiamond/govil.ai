@@ -103,7 +103,10 @@ class Dataset(BaseModel):
             )
             resources.append(resource)
         
-        dataset_id = data.get("id") or ""
+        dataset_id = data.get("id")
+        if not dataset_id:
+            # Every stored doc is keyed by the id; a package without one is unparseable.
+            raise ValueError("CKAN package has no id")
         title = data.get("title") or ""
         return cls(
             id=dataset_id,

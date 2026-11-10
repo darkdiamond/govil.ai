@@ -103,10 +103,21 @@ def test_null_organization_string_fields_parse(field):
     assert getattr(ds.organization, field) == ""
 
 
-@pytest.mark.parametrize("field", ["id", "name", "title"])
+@pytest.mark.parametrize("field", ["name", "title"])
 def test_null_dataset_string_fields_parse(field):
     ds = Dataset.from_ckan_response({**_ckan_package([]), field: None})
     assert getattr(ds, field) == ""
+
+
+@pytest.mark.parametrize("value", [None, "", "missing"])
+def test_dataset_without_id_is_unparseable(value):
+    pkg = _ckan_package([])
+    if value == "missing":
+        del pkg["id"]
+    else:
+        pkg["id"] = value
+    with pytest.raises(ValueError, match="no id"):
+        Dataset.from_ckan_response(pkg)
 
 
 @pytest.mark.parametrize("value", [None, "x", 5, {"a": 1}])
