@@ -27,8 +27,10 @@ from services.providers.cbs import CbsReleasesProvider
 from services.providers.cbs_index import (
     CbsIndexDatasetConfig,
     CbsIndexProvider,
+    _dated,
+    _factors,
+    _links,
     _num,
-    chain_factors,
     rows_csv,
 )
 from services.providers.sync import sync_provider_sources
@@ -187,14 +189,46 @@ def test_api_error_body_fails():
         p.csv_bytes(resource(p))
 
 
-def test_missing_base_in_chain_fails():
-    pages = copy.deepcopy(CPI_PAGES)
+def _strip_coefficients(pages):
     for page in pages:
         for r in page["month"][0]["date"]:
-            if r["currBase"]["baseDesc"] == "2022 ממוצע":
-                r["currBase"]["baseDesc"] = "1999 ממוצע"
-    with pytest.raises(ProviderError, match="not in the chain"):
-        rows_csv(pages, [120010], "both")
+            r["prevBase"] = []
+    return pages
+
+
+def test_switch_without_coefficient_is_linked_by_percent():
+    # Seasonal produce: CBS sometimes publishes no coefficient for a switch.
+    exact = {r["TIME_PERIOD"]: float(r["VALUE_CHAINED"])
+             for r in rows(rows_csv(CPI_PAGES, [120010], "both"))}
+    bridged = {r["TIME_PERIOD"]: float(r["VALUE_CHAINED"])
+               for r in rows(rows_csv(_strip_coefficients(copy.deepcopy(CPI_PAGES)),
+                                      [120010], "both"))}
+    assert exact.keys() == bridged.keys()
+    for tp, v in exact.items():
+        assert bridged[tp] == pytest.approx(v, rel=1.5e-3), tp
+    assert bridged["2025-01"] == exact["2025-01"]  # the newest base is untouched
+
+
+def test_switch_in_a_seasonal_gap_is_linked_by_percent_year():
+    # Oranges: no coefficient, and the month before the switch is out of season.
+    a = _row("month", 2024, 1, "A", 200.0)
+    b = _row("month", 2025, 1, "B", 100.0)
+    b["percent"], b["percentYear"] = None, 10.0
+    page = {"month": [_series(1, "month", [b, a])], "paging": {"last_page": 1}}
+    out = {r["TIME_PERIOD"]: r for r in rows(rows_csv([page], [1], "month"))}
+    assert float(out["2024-01"]["VALUE_CHAINED"]) == pytest.approx(200 / (200 * 1.1 / 100))
+
+
+def test_unlinkable_switch_leaves_older_rows_unchained():
+    pages = _strip_coefficients(copy.deepcopy(CPI_PAGES))
+    for page in pages:
+        for r in page["month"][0]["date"]:
+            if r["currBase"]["baseDesc"] == "2024 ממוצע":
+                r["percent"] = r["percentYear"] = None  # no coefficient, no change
+    out = {r["TIME_PERIOD"]: r for r in rows(rows_csv(pages, [120010], "both"))}
+    assert out["2024-12"]["VALUE"] and out["2024-12"]["VALUE_CHAINED"] == ""
+    assert out["2024-07"]["VALUE_CHAINED"] == ""
+    assert out["2025-01"]["VALUE_CHAINED"] and out["2025-01"]["CHAIN_BASE"] == "2024 ממוצע"
 
 
 def _series(code, freq, rows_):
@@ -242,9 +276,59 @@ def test_duplicate_period_fails():
 
 
 def test_chain_factors_multiply_coefficients():
-    newest = {"currBase": {"baseDesc": "C"},
-              "prevBase": [{"coeff": 2.0, "baseDesc": "B"}, {"coeff": 3.0, "baseDesc": "A"}]}
-    assert chain_factors(newest) == ("C", {"C": 1.0, "B": 2.0, "A": 6.0})
+    newest = _row("month", 2026, 1, "C", 100.0,
+                  [{"coeff": 2.0, "baseDesc": "B"}, {"coeff": 3.0, "baseDesc": "A"}])
+    links, _ = _links(_dated([("month", newest)]), [])
+    assert _factors("C", links) == {"C": 1.0, "B": 2.0, "A": 6.0}
+
+
+def test_links_are_the_union_of_every_rows_coefficients():
+    # 150010-like: the newest row stops at B; an older row on B carries B → A.
+    newest = _row("month", 2026, 1, "C", 100.0, [{"coeff": 2.0, "baseDesc": "B"}])
+    older = _row("month", 2023, 1, "B", 100.0, [{"coeff": 3.0, "baseDesc": "A"}])
+    links, _ = _links(_dated([("month", newest)]), _dated([("month", older)]))
+    assert _factors("C", links) == {"C": 1.0, "B": 2.0, "A": 6.0}
+
+
+def test_month_and_quarter_rows_on_one_base_share_its_chain():
+    # A label in both frequencies is one base, not two segments of it.
+    coef = [{"coeff": 2.0, "baseDesc": "A"}]
+    q = [_row("quarter", 2020, 4, "A", 200.0), _row("quarter", 2021, 1, "B", 100.0)]
+    m = [_row("month", 2021, 7, "B", 101.0), _row("month", 2021, 8, "B", 101.1, coef)]
+    page = {"month": [_series(1, "month", m)], "quarter": [_series(1, "quarter", q)],
+            "paging": {"last_page": 1}}
+    out = {r["TIME_PERIOD"]: r["VALUE_CHAINED"] for r in rows(rows_csv([page], [1], "both"))}
+    assert out == {"2021-07": "101", "2021-08": "101.1", "2021-Q1": "100", "2020-Q4": "100"}
+
+
+def test_zero_value_next_to_a_switch_is_no_link():
+    # A derived link of 0 would divide by zero; it is no link (VALUE_CHAINED blank).
+    a = _row("month", 2024, 12, "A", 0.0)
+    b = _row("month", 2025, 1, "B", 100.0)
+    page = {"month": [_series(1, "month", [b, a])], "paging": {"last_page": 1}}
+    out = {r["TIME_PERIOD"]: r for r in rows(rows_csv([page], [1], "month"))}
+    assert out["2024-12"]["VALUE_CHAINED"] == "" and out["2025-01"]["VALUE_CHAINED"] == "100"
+
+
+def test_scale_break_inside_one_label_is_split_and_linked_by_percent():
+    # CBS's CPI 1985: labelled "1980" but 100x smaller than 1984; the published
+    # 1985 → 1980 coefficient fits 1984's scale. Values from the real API.
+    def r(y, m, base, v, pct, prev=None):
+        row = _row("month", y, m, base, v, prev)
+        row["percent"] = pct
+        return row
+    coef = [{"coeff": 2.25 * 100, "baseDesc": "1980"}]
+    data = [r(1984, 12, "1980", 10754.8, 3.7), r(1985, 1, "1980", 113.2, 5.3),
+            r(1985, 12, "1980", 306.7, 1.3), r(1986, 1, "1985", 134.5, -1.3, coef)]
+    data[2]["month"], data[2]["year"] = 2, 1985  # make 1985 consecutive: Jan, Feb
+    data[2]["percent"] = 306.7 / 113.2 * 100 - 100
+    data[3]["year"], data[3]["month"] = 1985, 3
+    data[3]["percent"] = 134.5 * 2.25 / 306.7 * 100 - 100  # consistent with 1/100 rows
+    page = {"month": [_series(1, "month", data[::-1])], "paging": {"last_page": 1}}
+    out = {x["TIME_PERIOD"]: float(x["VALUE_CHAINED"]) for x in rows(rows_csv([page], [1], "month"))}
+    assert out["1985-01"] / out["1984-12"] == pytest.approx(1.053, rel=1e-3)
+    assert out["1985-03"] / out["1985-02"] == pytest.approx(134.5 * 2.25 / 306.7, rel=1e-3)
+    assert out["1985-03"] == 134.5  # newest base untouched
 
 
 def test_num_never_uses_exponents():
@@ -336,8 +420,9 @@ def test_chain_comes_from_the_chain_pages():
              "paging": {"last_page": 1}}
     by = {r["TIME_PERIOD"]: r for r in rows(rows_csv([data], [1], "month", [chain]))}
     assert by["2025-12"]["VALUE_CHAINED"] == "100"
-    with pytest.raises(ProviderError, match="not in the chain"):
-        rows_csv([data], [1], "month")  # data pages alone carry no chain
+    # Data pages alone carry no coefficient: the switch is linked by PERCENT (0.1).
+    alone = {r["TIME_PERIOD"]: r for r in rows(rows_csv([data], [1], "month"))}
+    assert float(alone["2025-12"]["VALUE_CHAINED"]) == pytest.approx(200 / (200 * 1.001 / 100))
     with pytest.raises(ProviderError, match="no row with chaining"):
         rows_csv([data], [1], "month", [{"month": None, "paging": {}}])
 
