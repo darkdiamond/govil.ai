@@ -29,8 +29,10 @@ export function publicResourceUrl(url: string | null | undefined): string {
 // DataDownload's encodingFormat (Google flags a distribution without one).
 // CKAN's `format` is publisher-supplied and sometimes blank; the URL's file
 // extension (".../download/report.docx") then names the type. Upper-case,
-// "" when neither says.
+// "" when neither says. Only the path's last segment counts (a bare host's TLD
+// is not a format), and web-page extensions are not file formats.
 const URL_EXT = /\.([a-z0-9]{1,8})$/i;
+const PAGE_EXTS = new Set(["ASPX", "ASP", "ASHX", "PHP", "HTM", "HTML", "JSP"]);
 
 export function resourceFormat(r: {
   format?: string | null;
@@ -38,6 +40,12 @@ export function resourceFormat(r: {
 }): string {
   const fmt = (r.format ?? "").trim();
   if (fmt) return fmt.toUpperCase();
-  const path = (r.url ?? "").split(/[?#]/, 1)[0];
-  return path.match(URL_EXT)?.[1].toUpperCase() ?? "";
+  let path: string;
+  try {
+    path = new URL(r.url ?? "").pathname;
+  } catch {
+    return "";
+  }
+  const ext = path.split("/").pop()?.match(URL_EXT)?.[1].toUpperCase() ?? "";
+  return PAGE_EXTS.has(ext) ? "" : ext;
 }

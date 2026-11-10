@@ -128,10 +128,19 @@ test("distribution encodingFormat falls back to the URL extension", () => {
       { url: `${dl}/.docx`, format: "", name: "methodology" },
       { url: `${dl}/raw-material-deposits.rar?x=1`, format: "" },
       { url: `${dl}/no-extension`, format: "" },
+      { url: "https://www.cbs.gov.il", format: "" },
+      { url: "https://www.gov.il/he/Pages/report.aspx", format: "" },
     ],
   };
   const formats = buildDatasetLd(entry, opts).distribution.map(
     (d) => d.encodingFormat
   );
-  assert.deepEqual(formats, ["CSV", "DOCX", "RAR", undefined]);
+  assert.deepEqual(formats, [
+    "CSV",
+    "DOCX",
+    "RAR",
+    undefined,
+    undefined,
+    undefined,
+  ]);
 });
