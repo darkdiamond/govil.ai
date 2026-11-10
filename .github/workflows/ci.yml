@@ -65,6 +65,9 @@ jobs:
               - 'cloudbuild-publish.yaml'
               - 'infra/publish-local.sh'
               - '.github/workflows/publish.yml'
+              # Read by test_hosting_cache.py and test_tags.py.
+              - 'firebase.json'
+              - 'taxonomy/**'
             frontend:
               - 'frontend/**'
               - '.github/workflows/ci.yml'
