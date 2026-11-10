@@ -248,6 +248,50 @@ def test_calc_scale():
         led.calc("scale", a.id, factor=0.37)
 
 
+def test_same_provenance_new_value_gets_a_new_fact():
+    led = Ledger()
+    a = led.add(1, label="x", provenance="p")
+    assert led.add(1, label="x", provenance="p").id == a.id
+    b = led.add(2, label="x", provenance="p")
+    assert b.id != a.id and b.value == 2 and led.facts[a.id].value == 1
+    assert led.add(2, label="x", provenance="p").id == b.id
+    assert led.add(1, label="x", provenance="p").id == a.id
+
+
+class _StubQuery:
+    def __init__(self, res):
+        self.res = res
+
+    def run(self, query):
+        return self.res
+
+
+def _sql_toolbox(res):
+    from services.news.tools import Toolbox
+
+    tb = Toolbox(ledger=Ledger(), series={}, models={}, catalog={})
+    tb._queries["ds1"] = _StubQuery(res)
+    return tb
+
+
+def test_sql_duplicate_column_names_get_their_own_facts():
+    tb = _sql_toolbox({"columns": ["cnt", "cnt"], "rows": [[120, 95]], "truncated": False})
+    cells = tb.t_sql("ds1", "SELECT a.cnt, b.cnt FROM t a JOIN t b ON true")["rows"][0]
+    assert cells[0]["fact"] != cells[1]["fact"]
+    for c in cells:
+        assert tb.ledger.facts[c["fact"]].value == c["v"]
+
+
+def test_sql_rerun_in_another_order_keeps_values_with_their_facts():
+    tb = _sql_toolbox({"columns": ["city", "n"], "rows": [["a", 10], ["b", 20]], "truncated": False})
+    q = "SELECT city, count(*) n FROM t GROUP BY city LIMIT 2"
+    tb.t_sql("ds1", q)
+    tb._queries["ds1"].res = {"columns": ["city", "n"], "rows": [["b", 20], ["a", 10]],
+                              "truncated": False}
+    for r in tb.t_sql("ds1", q)["rows"]:
+        assert tb.ledger.facts[r[1]["fact"]].value == r[1]["v"]
+
+
 def test_only_official_search_results_are_citable():
     from services.news.tools import Toolbox
 
