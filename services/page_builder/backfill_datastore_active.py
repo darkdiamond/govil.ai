@@ -10,11 +10,15 @@ the existing `CKANClient`) and merges `{resource_id: datastore_active}`
 into the Firestore doc. Re-runs are safe: sources whose resources all
 already carry the key are skipped.
 
+It only lists the pending sources unless given `--write`, which calls CKAN
+and writes the (production) Firestore docs. `--dry-run` is still accepted
+and is the default.
+
 Usage:
     source venv/bin/activate
-    python -m services.page_builder.backfill_datastore_active --dry-run
-    python -m services.page_builder.backfill_datastore_active --limit 3
     python -m services.page_builder.backfill_datastore_active
+    python -m services.page_builder.backfill_datastore_active --write --limit 3
+    python -m services.page_builder.backfill_datastore_active --write
 """
 from __future__ import annotations
 
@@ -82,14 +86,18 @@ async def backfill(*, dry_run: bool = False, limit: int | None = None,
 
 def _cli() -> None:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--dry-run", action="store_true",
-                   help="List sources that need the flag; don't call CKAN or write Firestore.")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--write", action="store_true",
+                      help="Call CKAN and write the flags to Firestore (default: list only).")
+    mode.add_argument("--dry-run", action="store_true",
+                      help="List sources that need the flag; don't call CKAN or write "
+                           "Firestore. The default; kept so older command lines still run.")
     p.add_argument("--limit", type=int, default=None,
                    help="Backfill at most N sources (smoke-test).")
     args = p.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    summary = asyncio.run(backfill(dry_run=args.dry_run, limit=args.limit))
+    summary = asyncio.run(backfill(dry_run=not args.write, limit=args.limit))
     print(json.dumps(summary, indent=2))
 
 
