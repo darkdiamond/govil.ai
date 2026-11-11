@@ -323,6 +323,38 @@ def test_memory_guard_turns_overuse_into_memory_error(monkeypatch):
     assert out == ["1000", "MemoryError"]
 
 
+def test_memory_guard_caps_file_size(monkeypatch):
+    default = rf._DEFAULT_COMPUTE_FILE_MAX_BYTES
+    assert f"_fsize = {default}\n" in _guard(monkeypatch)
+    # A recipe allowed bigger inputs may write a file as big as one.
+    assert "_fsize = 3900000000\n" in _guard(monkeypatch, {"total_bytes": 3_900_000_000})
+    monkeypatch.setenv("REFRESH_COMPUTE_FILE_MAX_BYTES", "bogus")
+    assert f"_fsize = {default}\n" in _guard(monkeypatch)
+    monkeypatch.setenv("REFRESH_COMPUTE_FILE_MAX_BYTES", "0")
+    assert "RLIMIT_FSIZE" not in _guard(monkeypatch)
+    monkeypatch.setenv("REFRESH_COMPUTE_FILE_MAX_BYTES", "1000000")
+    assert "_fsize = 600000000\n" in _guard(monkeypatch)  # never below an input
+    monkeypatch.setenv("REFRESH_MAX_BYTES", "1000")
+    monkeypatch.setenv("REFRESH_TOTAL_BYTES", "1000")
+    code = _guard(monkeypatch) + (
+        "import os, tempfile\n"
+        "p = os.path.join(tempfile.mkdtemp(), 'big')\n"
+        "with open(p, 'wb') as f:\n"
+        "    f.write(b'x' * 900_000)\n"
+        "try:\n"
+        "    with open(p, 'ab') as f:\n"
+        "        f.write(b'x' * 200_000)\n"
+        "    print('written')\n"
+        "except OSError as e:\n"
+        "    print('EFBIG' if e.errno == 27 else e)\n"
+        "print(os.path.getsize(p) <= 1_000_000)\n"
+        "os.remove(p)\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False,
+                         timeout=60).stdout.split()
+    assert out == ["EFBIG", "True"]
+
+
 # ── review follow-ups ────────────────────────────────────────────────────
 
 

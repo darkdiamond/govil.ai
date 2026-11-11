@@ -620,6 +620,55 @@ def test_malformed_model_json_is_a_recipe_failure(env, monkeypatch, payload):
     assert "model" in s["outcomes"][0]["error"]
 
 
+def test_over_cap_model_json_is_too_large_and_keeps_the_page(env, monkeypatch):
+    store = FakeStore(_src())
+    assert _run(env, store, FakeCkan(_rows([2024, 2025])))["refreshed"] == [DS]
+    staged_before = dict(env.staged)
+    agent_data_before = store.states[DS]["agent_data"]
+
+    monkeypatch.setenv("REFRESH_MODEL_MAX_BYTES", "1000")  # the fixture model is ~10KB
+    store.src = _src("2026-11-01")
+    s = _run(env, store, FakeCkan(_rows([2024, 2025, 2026])))
+    out = s["outcomes"][0]
+    assert out["reason"] == "too_large" and "model.json" in out["error"]
+    assert env.staged == staged_before and store.states[DS]["agent_data"] == agent_data_before
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "too_large"
+
+
+def _failing_recipe(tmp_path, noise_mb):
+    """The fixture recipe with a compute() that prints `noise_mb` MB to
+    stdout and stderr, then raises."""
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    path = recipes / DS / "compute.py"
+    path.write_text(
+        path.read_text(encoding="utf-8").replace(
+            "def compute(frames):",
+            "def compute(frames):\n"
+            "    import sys\n"
+            f"    for _ in range({noise_mb}):\n"
+            "        sys.stdout.write('o' * 1_000_000); sys.stderr.write('e' * 1_000_000)\n"
+            "    raise ValueError('boom-marker')\n"
+            "\n\ndef _unused(frames):",
+            1,
+        ),
+        encoding="utf-8",
+    )
+    return recipes
+
+
+@pytest.mark.parametrize("noise_mb", [0, 50])
+def test_compute_error_excerpt_survives_huge_output(env, tmp_path, noise_mb):
+    store = FakeStore(_src())
+    recipes = _failing_recipe(tmp_path, noise_mb)
+    s = _assert_recipe_failure_locks(env, store, FakeCkan(_rows([2024, 2025])), recipes)
+    err = s["outcomes"][0]["error"]
+    assert err.startswith("compute() failed (NonZeroExit: exit code 1): ")
+    assert err.endswith("ValueError: boom-marker")
+    if noise_mb == 0:
+        assert "Traceback (most recent call last)" in err
+
+
 def _flaky_sandbox(monkeypatch, stderr, fail_times):
     """Make the first `fail_times` sandbox runs exit -6 with `stderr`."""
     from services.page_builder import local_sandbox as ls

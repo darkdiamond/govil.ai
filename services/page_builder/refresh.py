@@ -59,7 +59,7 @@ from .ckan_export import (
     fetch_resource_file,
     fetch_resource_preview,
 )
-from .local_sandbox import LocalSandbox
+from .local_sandbox import LocalSandbox, OutputTooLarge
 from .page_gate import run_host_check
 from .recipe import (
     MANIFEST_FILENAME,
@@ -127,6 +127,17 @@ _COMPUTE_TIMEOUT_S = 300
 # Heap cap for compute (see `_memory_guard`). The job has 4Gi; the rest is
 # the builder, the page cache and the exported CSVs on the tmpfs.
 _DEFAULT_COMPUTE_MEMORY_MB = 3072
+# What the root builder reads back from compute, which runs outside the
+# compute heap cap. model.json over REFRESH_MODEL_MAX_BYTES fails as
+# `too_large` before it is read (largest model seen while authoring: 109KB,
+# 2026-11-11; 0 = no cap). Of stdout / stderr only the last
+# REFRESH_COMPUTE_OUTPUT_TAIL_BYTES are kept (errors quote 1,500 chars).
+# REFRESH_COMPUTE_FILE_MAX_BYTES is compute's RLIMIT_FSIZE, so its scratch
+# files can't fill the in-memory /tmp; never below the largest input the
+# recipe may fetch (the host writes the inputs, but a recipe may copy one).
+_DEFAULT_MODEL_MAX_BYTES = 64 * 1024 * 1024
+_DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES = 64 * 1024
+_DEFAULT_COMPUTE_FILE_MAX_BYTES = 1_000_000_000
 # Sandbox-spawn flake (gRPC atfork handlers abort the forked child, SIGABRT
 # + an `ev_epoll1_linux` line on stderr): not the recipe's fault, so retry
 # in a fresh sandbox instead of opening an authoring issue. If every attempt
@@ -1057,7 +1068,8 @@ def _memory_guard(recipe: Recipe) -> str:
     failure) and volunteers as the OOM killer's first victim, so a recipe
     that outgrows the container takes down itself, not the builder and the
     rest of the night's refresh. Cap: the recipe's
-    `limits.compute_memory_mb`, else REFRESH_COMPUTE_MEMORY_MB; 0 = no cap."""
+    `limits.compute_memory_mb`, else REFRESH_COMPUTE_MEMORY_MB; 0 = no cap.
+    It also caps each file it writes (RLIMIT_FSIZE, REFRESH_COMPUTE_FILE_MAX_BYTES)."""
     limits = recipe.manifest.limits
     mb = limits.compute_memory_mb or _env_int(
         "REFRESH_COMPUTE_MEMORY_MB", _DEFAULT_COMPUTE_MEMORY_MB
@@ -1071,6 +1083,23 @@ def _memory_guard(recipe: Recipe) -> str:
     if mb > 0:
         n = mb * 1024 * 1024
         code += f"import resource; resource.setrlimit(resource.RLIMIT_DATA, ({n}, {n}))\n"
+    fsize = _env_int("REFRESH_COMPUTE_FILE_MAX_BYTES", _DEFAULT_COMPUTE_FILE_MAX_BYTES)
+    if fsize > 0:
+        largest_input = max(
+            limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES),
+            limits.total_bytes or max(
+                _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
+            ),
+        )
+        n = max(fsize, largest_input)
+        # Python ignores SIGXFSZ, so a write past it raises OSError (EFBIG).
+        code += (
+            f"import resource; _fsize = {n}\n"
+            "_h = resource.getrlimit(resource.RLIMIT_FSIZE)[1]\n"
+            "if _h != resource.RLIM_INFINITY:\n"
+            "    _fsize = min(_fsize, _h)\n"
+            "resource.setrlimit(resource.RLIMIT_FSIZE, (_fsize, _fsize))\n"
+        )
     return code
 
 
@@ -1135,7 +1164,9 @@ def _run_compute_once(
     """
     work_root.mkdir(parents=True, exist_ok=True)
     workdir = Path(tempfile.mkdtemp(prefix=f"{recipe.dataset_id[:8]}-recipe-", dir=work_root))
-    sandbox = LocalSandbox.create(workdir)
+    model_max = _env_int("REFRESH_MODEL_MAX_BYTES", _DEFAULT_MODEL_MAX_BYTES)
+    tail = _env_int("REFRESH_COMPUTE_OUTPUT_TAIL_BYTES", _DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES)
+    sandbox = LocalSandbox.create(workdir, max_read_bytes=model_max if model_max > 0 else None)
     try:
         (workdir / "recipe").mkdir()
         for name in RECIPE_FILES:
@@ -1171,6 +1202,7 @@ def _run_compute_once(
             + "import runpy; runpy.run_path('recipe_exec.py', run_name='__main__')",
             language="python",
             timeout=timeout,
+            max_output_bytes=tail if tail > 0 else _DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES,
         )
         if execution.error is not None:
             stderr = (execution.logs.stderr or "").strip()
@@ -1187,6 +1219,11 @@ def _run_compute_once(
             raw = sandbox.files.read("outputs/model.json")
         except FileNotFoundError as e:
             raise RecipeError(f"compute() wrote no model: {e}") from e
+        except OutputTooLarge as e:
+            raise RecipeError(
+                f"compute() model.json too large: {e} (REFRESH_MODEL_MAX_BYTES)",
+                reason=FailReason.TOO_LARGE,
+            ) from None
         try:
             model = json.loads(raw.decode("utf-8"))
         except ValueError as e:  # bad JSON or bad UTF-8: what compute() returned

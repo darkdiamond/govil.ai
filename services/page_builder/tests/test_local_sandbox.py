@@ -24,7 +24,7 @@ class _RunRecorder:
 
     def __call__(self, argv, **kw):
         self.calls.append((argv, kw))
-        return subprocess.CompletedProcess(argv, 0, stdout=b"ok\n", stderr=b"")
+        return 0, b"ok\n", b""
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def as_root(monkeypatch):
         ),
     )
     rec = _RunRecorder()
-    monkeypatch.setattr(ls.subprocess, "run", rec)
+    monkeypatch.setattr(ls, "_run_capped", rec)
     return SimpleNamespace(chowns=chowns, run=rec)
 
 
@@ -120,7 +120,7 @@ def test_root_without_default_user_degrades(tmp_path, as_root, monkeypatch):
 def test_non_root_is_unchanged(tmp_path, monkeypatch):
     monkeypatch.setattr(ls.os, "geteuid", lambda: 1000)
     rec = _RunRecorder()
-    monkeypatch.setattr(ls.subprocess, "run", rec)
+    monkeypatch.setattr(ls, "_run_capped", rec)
     chowns = []
     monkeypatch.setattr(ls.os, "chown", lambda *a, **k: chowns.append(a))
     sb = ls.LocalSandbox.create(tmp_path / "s")
@@ -191,6 +191,70 @@ def test_read_untrusted_rejects_fifo_without_blocking(tmp_path):
     os.mkfifo(wd / "outputs" / "content.html")
     with pytest.raises(FileNotFoundError):
         sb.files.read(str(wd / "outputs" / "content.html"))
+
+
+# ── what the host reads back is bounded ──
+@pytest.mark.parametrize("privsep", [False, True])
+def test_read_refuses_oversized_output(tmp_path, privsep):
+    if privsep:
+        wd = tmp_path / "w"
+        (wd / "outputs").mkdir(parents=True)
+        sb = ls.LocalSandbox(wd, ident=(os.getuid(), os.getgid()), max_read_bytes=1_000_000)
+    else:
+        sb = ls.LocalSandbox.create(tmp_path / "w", max_read_bytes=1_000_000)
+        wd = sb.workdir
+    (wd / "outputs" / "model.json").write_bytes(b"x" * 2_000_000)
+    with pytest.raises(ls.OutputTooLarge):
+        sb.files.read("outputs/model.json")
+    (wd / "outputs" / "model.json").write_bytes(b"x" * 1_000_000)
+    assert len(sb.files.read("outputs/model.json")) == 1_000_000
+
+
+def test_huge_output_keeps_a_bounded_tail(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("exercises the unprivileged path")
+    import tracemalloc
+
+    sb = ls.LocalSandbox.create(tmp_path / "s")
+    code = (
+        "import sys\n"
+        "chunk = 'x' * 1_000_000\n"
+        "for _ in range(50):\n"
+        "    sys.stdout.write(chunk); sys.stderr.write(chunk)\n"
+        "sys.stdout.write('OUT-END'); sys.stderr.write('ERR-END')\n"
+        "sys.exit(3)\n"
+    )
+    tracemalloc.start()
+    try:
+        exe = sb.run_code(code, language="python", timeout=60, max_output_bytes=64 * 1024)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+        sb.kill()
+    assert exe.error is not None and exe.error.value == "exit code 3"
+    assert exe.logs.stdout.endswith("OUT-END") and exe.logs.stderr.endswith("ERR-END")
+    assert len(exe.logs.stdout) <= 64 * 1024 and len(exe.logs.stderr) <= 64 * 1024
+    assert peak < 8_000_000  # 100MB went through the pipes, not into host memory
+
+
+def test_timeout_keeps_output_so_far(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("exercises the unprivileged path")
+    sb = ls.LocalSandbox.create(tmp_path / "s")
+    exe = sb.run_code("echo started; echo oops >&2; sleep 30", language="bash", timeout=1)
+    sb.kill()
+    assert exe.error is not None and exe.error.name == "Timeout"
+    assert exe.logs.stdout == "started\n" and exe.logs.stderr == "oops\n"
+
+
+def test_small_output_is_returned_whole(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("exercises the unprivileged path")
+    sb = ls.LocalSandbox.create(tmp_path / "s")
+    exe = sb.run_code("printf 'a\\nb\\n'; printf 'שגיאה\\n' >&2; exit 1", language="bash")
+    sb.kill()
+    assert exe.error is not None and exe.error.value == "exit code 1"
+    assert exe.logs.stdout == "a\nb\n" and exe.logs.stderr == "שגיאה\n"
 
 
 # ── host check always runs the image's check.py, isolated ──
