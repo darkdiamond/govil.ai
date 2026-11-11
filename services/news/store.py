@@ -26,7 +26,7 @@ ARTICLES, REJECTS = "articles", "article_rejects"
 STATE, CURSOR = "news_state", "cursor"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
-               "critic_scores", "correction")
+               "critic_scores", "correction", "kind")
 BODY_FIELDS = ("blocks", "charts", "sources", "ledger")
 
 
@@ -45,6 +45,23 @@ def join(stored: dict) -> dict:
 
 def _iso(v):
     return v.isoformat() if isinstance(v, datetime) else v
+
+
+LIVE_STATUSES = ("published", "corrected")
+
+
+def published_at(a: dict) -> datetime | None:
+    """An article's (or reject's) timestamp as an aware datetime: `published_at`
+    (ISO string or datetime), else a reject's `at`; None when unreadable."""
+    ts = a.get("published_at") or a.get("at")
+    if isinstance(ts, str):
+        try:
+            ts = datetime.fromisoformat(ts)
+        except ValueError:
+            return None
+    if not isinstance(ts, datetime):
+        return None
+    return ts if ts.tzinfo else ts.replace(tzinfo=UTC)
 
 
 NEWS_DATABASE = os.environ.get("NEWS_FIRESTORE_DATABASE", "news")
@@ -117,6 +134,16 @@ class FirestoreArticles:
     def reject(self, doc: dict) -> None:
         self.db.collection(REJECTS).add(json.loads(json.dumps(doc, ensure_ascii=False, default=str)))
 
+    def recent_rejects(self, days: int = 7) -> list[dict]:
+        """Rejected drafts of the last `days`: kind, brief, reason (no bodies).
+        `at` is stored as an ISO string, so the range compares as text."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        since = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        q = self.db.collection(REJECTS).where(filter=FieldFilter("at", ">=", since))
+        return [{k: x.get(k) for k in ("at", "kind", "brief", "reason")}
+                for x in (d.to_dict() or {} for d in q.stream())]
+
     def set_status(self, slug: str, status: str, *, correction: str | None = None) -> None:
         upd = {"status": status, "updated_at": datetime.now(UTC)}
         if correction:
@@ -162,3 +189,13 @@ class LocalArticles:
         n = len(list(d.glob("*.json"))) + 1
         (d / f"{n:03d}.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1, default=str),
                                          encoding="utf-8")
+
+    def recent_rejects(self, days: int = 7) -> list[dict]:
+        since = datetime.now(UTC) - timedelta(days=days)
+        out = []
+        for p in sorted((self.root / "_rejected").glob("*.json")):
+            x = json.loads(p.read_text(encoding="utf-8"))
+            ts = published_at(x)
+            if ts and ts >= since:
+                out.append({k: x.get(k) for k in ("at", "kind", "brief", "reason")})
+        return out

@@ -48,9 +48,10 @@ const when = computed(() => {
       </h4>
       <p class="m-0 mt-1 text-subtle line-clamp-2">{{ article.dek }}</p>
       <p
-        v-if="article.topic || article.minutes"
-        class="m-0 mt-2 text-xs text-subtle flex flex-wrap gap-x-3"
+        v-if="article.topic || article.minutes || article.kind"
+        class="m-0 mt-2 text-xs text-subtle flex flex-wrap items-center gap-x-3"
       >
+        <NewsKindBadge :kind="article.kind" />
         <span v-if="article.topic" class="text-brand-700 font-medium">{{
           article.topic.label
         }}</span>

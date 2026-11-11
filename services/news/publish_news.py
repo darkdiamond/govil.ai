@@ -112,6 +112,7 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
             "slug": slug, "status": a["status"], "headline": a.get("headline"), "dek": a.get("dek"),
             "published_at": a.get("published_at"), "updated_at": a.get("updated_at"),
             "byline": a.get("byline"), "tags": a.get("tags") or [], "correction": a.get("correction"),
+            "kind": a.get("kind") or "news",
             "hero": {"sizes": sizes, "alt": hero.get("alt"), "caption": hero.get("caption"),
                      "kind": hero.get("kind")},
             "blocks": _relink(a.get("blocks") or [], page_slugs), "charts": a.get("charts") or [],
@@ -124,7 +125,7 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
         (d / "article.json").write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
         words = int(a.get("words") or 0)
         index.append({k: doc[k] for k in ("slug", "headline", "dek", "published_at", "updated_at",
-                                           "tags", "status")}
+                                           "tags", "status", "kind")}
                      | {"hero": sizes.get("16x9"), "hero_alt": hero.get("alt"),
                         "dataset_ids": [c["id"] for c in cards],
                         "datasets": [{k: c.get(k) for k in ("id", "title", "href")} for c in cards],

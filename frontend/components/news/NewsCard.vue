@@ -20,9 +20,12 @@ defineProps<{ article: NewsIndexEntry; compact?: boolean }>();
       class="block w-full aspect-[16/9] object-cover"
     />
     <div class="p-4">
-      <time :datetime="article.published_at" class="text-xs text-subtle">
-        {{ newsDate(article.published_at) }}
-      </time>
+      <div class="flex flex-wrap items-center gap-2">
+        <NewsKindBadge :kind="article.kind" />
+        <time :datetime="article.published_at" class="text-xs text-subtle">
+          {{ newsDate(article.published_at) }}
+        </time>
+      </div>
       <h3 class="m-0 mt-1 text-lg font-display text-ink leading-snug">
         {{ article.headline }}
       </h3>

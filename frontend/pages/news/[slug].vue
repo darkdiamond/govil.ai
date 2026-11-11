@@ -132,6 +132,7 @@ useSeo({
 
     <article class="max-w-3xl mx-auto">
       <header>
+        <NewsKindBadge :kind="article.kind" class="mb-2" />
         <h1
           class="text-3xl sm:text-4xl font-display text-ink-deep leading-tight m-0"
         >

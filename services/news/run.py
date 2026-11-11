@@ -1,4 +1,6 @@
-"""The news run: signals → editor → writer → gates → image → article store.
+"""The news run: signals → editor → writer → gates → image → article store,
+then the daily floor (`--min-articles` / NEWS_MIN_PER_DAY): explainers on
+high-demand datasets when event news left the Israel date short.
 
     python -m services.news.run --signals-only                 # rank signals, write nothing
     python -m services.news.run --signals-only --models-dir D  # …from local snapshots/dumps
@@ -31,20 +33,24 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from services.shared import model_history
+from services.shared.states import ArticleKind, StoryResult
 
 from . import catalog as catalog_mod
 from . import demand as demand_mod
+from . import features as features_mod
 from . import images as images_mod
 from . import llm as llm_mod
-from .editor import choose, eligible
+from .editor import choose, choose_features, eligible
 from .ledger import Ledger
 from .links import attach_links, load_edges
 from .llm import LLMError, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
+from .store import LIVE_STATUSES, published_at
 from .tools import Toolbox
 from .writer import Outcome, write
 
@@ -175,35 +181,52 @@ def _unique_slug(store, slug: str, today: date) -> str:
     return f"{dated}-{n}"
 
 
-def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, catalog: dict,
-              vocab: set[str], store, tables=None, today: date, run_id: str,
-              max_per_day: int = 3, cooldown_days: int = 21, editor_candidates: int = 15,
-              max_tool_calls: int = 25, images: bool = True, fetcher=None,
-              stored: list | None = None) -> dict:
-    """One day's editorial pass. Returns the summary (also what main prints).
-    `stored` (if given) collects the slugs stored so far, so a caller still
-    sees them when the pass raises."""
-    recent = store.recent(90)
-    cands = eligible(ranked, recent, cooldown_days=cooldown_days)[:editor_candidates]
-    briefs, skipped = choose(llm, cands, catalog, recent, max_briefs=max_per_day,
-                             today=today.isoformat())
-    published = stored if stored is not None else []
-    rejected = []
-    model_errors = 0  # stories lost to the model service, not to an editorial decision
-    store_errors = 0  # accepted stories the store failed to save
-    for brief in briefs:
+IL_TZ = ZoneInfo("Asia/Jerusalem")
+# A dataset whose explainer was rejected sits out the fill this long.
+FEATURE_REJECT_DAYS = 7
+
+
+def published_today(recent: list[dict], today_il: date) -> int:
+    """Live articles published on `today_il` (an Israel calendar date); an
+    unpublished one doesn't meet the floor."""
+    n = 0
+    for a in recent:
+        ts = published_at(a)
+        if ts and (a.get("status") or "published") in LIVE_STATUSES:
+            n += ts.astimezone(IL_TZ).date() == today_il
+    return n
+
+
+class _Day:
+    """One run's writing state: every brief, event or fill, goes through
+    `write_one`, so they share the store, reject and error accounting."""
+
+    def __init__(self, llm, *, series_by_ds, models, catalog, vocab, store, tables, today, run_id,
+                 max_tool_calls, images, fetcher, published, feature_tool_calls=None):
+        self.llm, self.series_by_ds, self.models, self.catalog = llm, series_by_ds, models, catalog
+        self.vocab, self.store, self.tables, self.today, self.run_id = vocab, store, tables, today, run_id
+        self.max_tool_calls, self.images, self.fetcher = max_tool_calls, images, fetcher
+        self.published, self.rejected = published, []
+        # explainers do the data work themselves (no seeded signal facts)
+        self.feature_tool_calls = feature_tool_calls or max_tool_calls
+
+    def write_one(self, brief: dict) -> StoryResult:
+        llm, store, today = self.llm, self.store, self.today
+        kind = brief.get("kind") or ArticleKind.NEWS
         ledger = Ledger()
-        kw = {"fetcher": fetcher} if fetcher else {}
-        tb = Toolbox(ledger=ledger, series=series_by_ds, models=models, catalog=catalog,
-                     tables=tables, llm=llm, **kw)
+        kw = {"fetcher": self.fetcher} if self.fetcher else {}
+        tb = Toolbox(ledger=ledger, series=self.series_by_ds, models=self.models, catalog=self.catalog,
+                     tables=self.tables, llm=llm, **kw)
+        status = None
         try:
-            out = write(llm, tb, brief, catalog=catalog, vocab=vocab, today=today.isoformat(),
-                        max_tool_calls=max_tool_calls)
+            out = write(llm, tb, brief, catalog=self.catalog, vocab=self.vocab, today=today.isoformat(),
+                        max_tool_calls=(self.feature_tool_calls if kind == ArticleKind.FEATURE
+                                        else self.max_tool_calls))
         except LLMUnavailable:
             raise  # the key is refused: no point writing the next story
         except LLMError as e:  # still failing after retries: the story was never judged
             log.exception("news: writing %s failed on the model service", brief["signal_keys"])
-            model_errors += 1
+            status = StoryResult.MODEL_ERROR
             out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         except Exception as e:  # one story's crash must not cost the day's others
             log.exception("news: writing %s crashed", brief["signal_keys"])
@@ -212,29 +235,30 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
             tb.close()
         keys = brief["signal_keys"]
         if out.status != "accepted":
-            rejected.append({"signal_keys": keys, "reason": out.reason,
-                             "headline": (out.core or {}).get("headline")})
-            store.reject({"run_id": run_id, "at": datetime.now(UTC).isoformat(), "brief":
-                          {k: brief[k] for k in ("signal_keys", "dataset_ids", "angle_he")},
+            self.rejected.append({"signal_keys": keys, "kind": kind, "reason": out.reason,
+                                  "headline": (out.core or {}).get("headline")})
+            store.reject({"run_id": self.run_id, "at": datetime.now(UTC).isoformat(), "kind": kind,
+                          "brief": {k: brief[k] for k in ("signal_keys", "dataset_ids", "angle_he")},
                           "reason": out.reason, "problems": out.problems, "critic": out.critic,
                           "core": out.core, "tool_calls": out.tool_calls, "tools": tb.log,
                           "ledger": ledger.dump()})
-            continue
+            return status or StoryResult.REJECTED
         core = out.core
         try:
             slug = _unique_slug(store, core["slug"], today)
             line = next((c for c in core["charts"] if c["type"] == "line"), None)
             fallback = [v for v in (line["option"]["series"][0]["data"] if line else []) if v is not None]
-            hero, files = images_mod.hero(llm if images else None, core["image_brief"], fallback)
+            hero, files = images_mod.hero(llm if self.images else None, core["image_brief"], fallback)
             now = datetime.now(UTC).isoformat()
             doc = {
-                "slug": slug, "status": "published", "headline": core["headline"], "dek": core["dek"],
+                "slug": slug, "status": "published", "kind": kind,
+                "headline": core["headline"], "dek": core["dek"],
                 "published_at": now, "updated_at": now, "byline": BYLINE,
                 "dataset_ids": core["dataset_ids"], "tags": core["tags"], "signal_keys": keys,
                 "hero": hero | {"alt": core["image_alt"] or core["headline"],
                                 "caption": "איור" if hero["kind"] == "illustration" else None},
                 "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
-                "ledger": ledger.dump(), "words": core["words"], "run_id": run_id,
+                "ledger": ledger.dump(), "words": core["words"], "run_id": self.run_id,
                 "critic_scores": (out.critic or {}).get("scores"),
                 "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
                            "image": os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
@@ -245,13 +269,86 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
             raise
         except Exception:  # storage down for this story: retried next run, the others go on
             log.exception("news: storing %s failed", keys)
-            store_errors += 1
-            rejected.append({"signal_keys": keys, "reason": "error", "headline": core.get("headline")})
-            continue
-        published.append(slug)
-    return {"candidates": len(cands), "briefs": len(briefs), "published": published,
-            "rejected": rejected, "skipped": skipped[:20], "model_errors": model_errors,
-            "store_errors": store_errors}
+            self.rejected.append({"signal_keys": keys, "kind": kind, "reason": "error",
+                                  "headline": core.get("headline")})
+            return StoryResult.STORE_ERROR
+        self.published.append(slug)
+        return StoryResult.PUBLISHED
+
+
+def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, catalog: dict,
+              vocab: set[str], store, tables=None, today: date, run_id: str,
+              max_per_day: int = 3, cooldown_days: int = 21, editor_candidates: int = 15,
+              max_tool_calls: int = 25, images: bool = True, fetcher=None,
+              stored: list | None = None, min_per_day: int = 0, demand_by_id: dict | None = None,
+              feature_cooldown_days: int = 60, fill_attempts: int = 2,
+              feature_tool_calls: int | None = None, now: datetime | None = None) -> dict:
+    """One day's editorial pass. Returns the summary (also what main prints).
+    `stored` (if given) collects the slugs stored so far, so a caller still
+    sees them when the pass raises.
+
+    Event news first (signals → editor). Then the floor: when fewer than
+    `min_per_day` articles came out on this Israel date (this run's and earlier
+    runs'), explainers fill the gap (`features.py` → `editor.choose_features`),
+    up to `fill_attempts` briefs per missing article. A fill goes through the
+    same gates and critic, so a day can still end short."""
+    now = now or datetime.now(UTC)
+    recent = store.recent(90)
+    cands = eligible(ranked, recent, cooldown_days=cooldown_days)[:editor_candidates]
+    briefs, skipped = choose(llm, cands, catalog, recent, max_briefs=max_per_day,
+                             today=today.isoformat())
+    day = _Day(llm, series_by_ds=series_by_ds, models=models, catalog=catalog, vocab=vocab,
+               store=store, tables=tables, today=today, run_id=run_id,
+               max_tool_calls=max_tool_calls, images=images, fetcher=fetcher,
+               published=stored if stored is not None else [], feature_tool_calls=feature_tool_calls)
+    model_errors = 0  # event stories lost to the model service, not to an editorial decision
+    store_errors = 0  # accepted stories the store failed to save
+    for brief in briefs:
+        r = day.write_one(brief)
+        model_errors += r == StoryResult.MODEL_ERROR
+        store_errors += r == StoryResult.STORE_ERROR
+
+    out = {"candidates": len(cands), "briefs": len(briefs), "published": day.published,
+           "rejected": day.rejected, "skipped": skipped[:20], "model_errors": model_errors,
+           "store_errors": store_errors}
+    if day.published:
+        # What this run just published counts too: the fill must not repeat
+        # its dataset or signal, and the floor counts it (from the store).
+        recent = store.recent(90)
+    today_count = published_today(recent, now.astimezone(IL_TZ).date())
+    need = min(min_per_day - today_count, max_per_day - len(day.published))
+    if need > 0:
+        out["fill"] = _fill(day, need=need, recent=recent, demand_by_id=demand_by_id or {},
+                            cooldown_days=feature_cooldown_days, attempts=fill_attempts, now=now)
+    return out
+
+
+def _fill(day: _Day, *, need: int, recent: list[dict], demand_by_id: dict, cooldown_days: int,
+          attempts: int, now: datetime) -> dict:
+    """Explainers until `need` are published or the attempts run out. A fill's
+    model or store error doesn't hold the cursor: explainers don't come from
+    the render window, and the next run's floor tries again anyway."""
+    try:
+        rejects = day.store.recent_rejects(FEATURE_REJECT_DAYS)
+    except Exception:
+        log.warning("news: reading recent rejects failed", exc_info=True)
+        rejects = []
+    cands = features_mod.candidates(catalog=day.catalog, models=day.models, series=day.series_by_ds,
+                                    demand_by_id=demand_by_id, recent=recent,
+                                    cooldown_days=cooldown_days, now=now,
+                                    exclude=features_mod.rejected_leads(rejects))
+    used = {k for a in recent for k in a.get("signal_keys") or []}
+    briefs = [b for b in choose_features(day.llm, cands, recent, max_briefs=need * attempts,
+                                         today=day.today.isoformat())
+              if not used & set(b["signal_keys"])]
+    tried = published = 0
+    for brief in briefs:
+        if published >= need:
+            break
+        tried += 1
+        published += day.write_one(brief) == StoryResult.PUBLISHED
+    return {"kind": ArticleKind.FEATURE, "need": need, "candidates": len(cands), "briefs": len(briefs),
+            "attempts": tried, "published": published}
 
 
 def _row(s: Signal, cat: dict) -> str:
@@ -298,6 +395,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--top", type=int, default=30)
     ap.add_argument("--per-dataset", type=int, default=3)
     ap.add_argument("--max-articles", type=int, default=_env_int("NEWS_MAX_PER_DAY", 3))
+    ap.add_argument("--min-articles", type=int, default=_env_int("NEWS_MIN_PER_DAY", 0),
+                    help="daily floor (Israel date): explainers fill up to this many when "
+                         "event news falls short; still capped by --max-articles")
     ap.add_argument("--no-catalog", action="store_true")
     ap.add_argument("--no-demand", action="store_true")
     ap.add_argument("--no-tables", action="store_true", help="no full-table SQL (faster dry runs)")
@@ -382,7 +482,10 @@ def main(argv: list[str] | None = None) -> int:
                         run_id=run_id, max_per_day=a.max_articles,
                         cooldown_days=_env_int("NEWS_DATASET_COOLDOWN_DAYS", 21),
                         max_tool_calls=_env_int("NEWS_MAX_TOOL_CALLS", 25), images=not a.no_images,
-                        stored=stored)
+                        stored=stored, min_per_day=a.min_articles, demand_by_id=dem,
+                        feature_cooldown_days=_env_int("NEWS_FEATURE_COOLDOWN_DAYS", 60),
+                        fill_attempts=_env_int("NEWS_FILL_ATTEMPTS", 2),
+                        feature_tool_calls=_env_int("NEWS_FEATURE_MAX_TOOL_CALLS", 35))
         summary |= day | {"status": "ok" if day["published"] else "idle"}
         if live and day["published"]:
             summary["publish_dispatch"] = _dispatch_publish()

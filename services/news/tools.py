@@ -117,6 +117,8 @@ class Toolbox:
         return {
             "dataset_id": dataset_id, "title": cat.get("title"), "publisher": cat.get("organization"),
             "kind": cat.get("dataset_kind"), "summary": (model.get("agent_data") or {}).get("summary_he"),
+            # when the publisher last updated the data: date a registry snapshot by it
+            "data_updated": str(cat.get("metadata_modified") or "")[:10] or None,
             "page": f"https://govil.ai/datasets/{cat.get('page_slug', dataset_id)}/",
             "kpis": kpis,
             "insights_on_page": [i.get("text_he") for i in model.get("insights") or [] if isinstance(i, dict)],

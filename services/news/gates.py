@@ -345,7 +345,7 @@ def as_markdown(core: dict) -> str:
             out.append(f"## {b['text']}")
         elif b["type"] == "chart":
             c = charts[b["chart"]]
-            out.append(f"[תרשים: {c['title']} ({c['unit']}), {len(c['table']) - 1} נקודות]")
+            out.append(f"[CHART RENDERS HERE: {c['title']} ({c['unit']}), {len(c['table']) - 1} points]")
         elif b["type"] == "stat":
             out.append(f"**{b['value']}** ({b['label']})")
         out.append("")
@@ -368,12 +368,13 @@ def _strings(x) -> tuple[list[str], bool]:
     return [str(x)[:500]], False
 
 
-def critique(llm, core: dict) -> dict:
+def critique(llm, core: dict, *, kind: str = "news") -> dict:
     style = (PROMPTS / "style_he.md").read_text(encoding="utf-8")
     system = (PROMPTS / "critic.md").read_text(encoding="utf-8") + "\n\n# Style guide\n\n" + style
+    body = f"KIND: {kind}\n\n" + as_markdown(core)
     try:
         verdict = llm.chat_json([{"role": "system", "content": system},
-                                 {"role": "user", "content": as_markdown(core)}], temperature=0.2)
+                                 {"role": "user", "content": body}], temperature=0.2)
     except ValueError:  # no JSON object in the reply, even after the re-ask
         verdict = {}
     v = verdict.get("verdict")

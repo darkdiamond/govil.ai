@@ -13,6 +13,8 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from services.shared.states import ArticleKind
+
 from . import gates
 from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 
@@ -20,6 +22,7 @@ log = logging.getLogger(__name__)
 PROMPTS = Path(__file__).with_name("prompts")
 REVISIONS = 2
 MAX_TURNS = 45            # model calls per article, whatever they contain
+WEB_TOOLS = {"web_search", "fetch_url"}
 
 
 @dataclass
@@ -75,8 +78,14 @@ def seed_facts(tb: Toolbox, brief: dict) -> list[dict]:
 def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], today: str,
           max_tool_calls: int = 25) -> Outcome:
     seeds = seed_facts(tb, brief)
+    kind = str(brief.get("kind") or ArticleKind.NEWS)
+    # An explainer is told from our data alone: in dry runs its web fetches
+    # were nearly all refused and ate the tool budget (2026-11-11).
+    specs = [t for t in TOOL_SPECS if kind != ArticleKind.FEATURE
+             or t["function"]["name"] not in WEB_TOOLS]
     user = {
         "today": today,
+        "kind": kind,
         "brief": {k: brief[k] for k in ("angle_he", "why_now_he", "questions", "dataset_ids")},
         "signals": seeds,
         "datasets": {d: {"title": (catalog.get(d) or {}).get("title"),
@@ -102,7 +111,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
             # Turns that don't count as tool calls (bad JSON, repeated bad
             # submissions) must still end: every turn is a paid model call.
             return Outcome("rejected", reason="turn_limit", tool_calls=calls)
-        tools = TOOL_SPECS + [SUBMIT_SPEC] if calls < max_tool_calls else [SUBMIT_SPEC]
+        tools = specs + [SUBMIT_SPEC] if calls < max_tool_calls else [SUBMIT_SPEC]
         offered = {t["function"]["name"] for t in tools}
         msg = llm.chat(messages, tools=tools, temperature=0.6)
         # Keep reasoning_details: reasoning models want them back on every
@@ -149,7 +158,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
         core, problems = gates.check(draft, ledger=tb.ledger, series_by_ds=tb.series,
                                      catalog=catalog, vocab=vocab)
         if not problems:
-            critic = gates.critique(llm, core)
+            critic = gates.critique(llm, core, kind=kind)
             if critic["verdict"] == "pass":
                 return Outcome("accepted", core=core, critic=critic, tool_calls=calls)
             if critic["verdict"] == "kill":

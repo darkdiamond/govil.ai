@@ -39,9 +39,13 @@ export interface NewsDatasetCard {
   organization?: string;
 }
 
+/** news = a fresh data move; feature = an explainer; digest = the weekly roundup. */
+export type NewsKind = "news" | "feature" | "digest";
+
 export interface NewsArticle {
   slug: string;
   status: "published" | "corrected";
+  kind?: NewsKind;
   headline: string;
   dek: string;
   published_at: string;
@@ -66,6 +70,7 @@ export interface NewsIndexEntry {
   updated_at: string;
   tags: string[];
   status: string;
+  kind?: NewsKind;
   hero?: string | null;
   hero_alt?: string | null;
   dataset_ids: string[];

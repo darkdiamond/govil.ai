@@ -396,6 +396,20 @@ catalog` lists chapters → subjects → codes.
    - signals (deterministic, from the `models/` history the builder keeps) →
      editor picks ≤ `NEWS_MAX_PER_DAY` (3) stories or none → writer agent →
      `gates.check` + critic (pass/revise/kill, 2 revisions) → image → store.
+   - **daily floor** (`NEWS_MIN_PER_DAY`, code default 0, prod 1): when event news
+     leaves the Israel date short (this run's articles plus earlier runs'), the
+     run writes explainers (`kind: feature`, shown as "ניתוח נתונים"): candidates are
+     datasets with a model, ranked by GSC demand, minus any dataset an article used
+     in the last `NEWS_FEATURE_COOLDOWN_DAYS` (60) (`features.py`) → features editor
+     (`prompts/features.md`) → the same writer, gates and critic (critic judges
+     "informative" instead of "new"; aggregates only, no named person or business
+     from a registry). Up to `NEWS_FILL_ATTEMPTS` (code 2, prod 3) briefs per
+     missing article, each with `NEWS_FEATURE_MAX_TOOL_CALLS` (35) tool calls, so a
+     day can still end empty; a rejected explainer's dataset sits out the fill for
+     7 days (`article_rejects`). Only `news` articles start the 21-day event
+     cooldown, so an explainer never keeps a dataset's next real move off the page.
+     `--min-articles N` overrides it for one run (seeding).
+     Articles carry `kind` (`news` | `feature` | `digest`; missing = `news`).
    - every printed number is a ledger fact token (a typed or spelled-out
      number fails); links go only to our dataset pages and official
      gov.il / boi.org.il pages (quote-verified); hedged explanations need no
