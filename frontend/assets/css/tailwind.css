@@ -5,8 +5,8 @@
 /* Self-hosted Rubik (variable, wght 300–700) — same files Google Fonts v31
    serves, split by unicode-range so a page only downloads the subsets it
    renders. Self-hosting drops the fonts.googleapis.com/fonts.gstatic.com
-   connections from first paint, and public/fonts/ gets the immutable
-   1-year cache from firebase.json's woff2 rule. */
+   connections from first paint. The files keep their names when their bytes
+   change, so firebase.json's woff2 rule has browsers revalidate them. */
 @font-face {
   font-family: 'Rubik';
   font-style: normal;

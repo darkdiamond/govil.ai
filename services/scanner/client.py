@@ -243,8 +243,7 @@ class CKANClient:
         - "alive": 2xx with `success: true`;
         - "unknown": anything else (404, 5xx, success:false, parse or
           transport error); the caller leaves the flag unchanged.
-        Stricter than `ckan_export._http_403_is_restriction` on purpose:
-        that one only skips a render, this one flips a live page."""
+        The same 403 rule as `ckan_export._http_403_is_restriction`."""
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")
         await self._rate_limit()
