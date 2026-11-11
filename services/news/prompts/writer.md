@@ -120,3 +120,22 @@ news flash.
 
 Structure: lead → (h2) the breakdown → (h2) over time, when there's a series →
 (h2) what it means / how to use the data. 1–3 charts.
+
+## When `kind` is "digest" (the weekly roundup)
+
+The brief's signals are the week's smaller moves, one per dataset, none big
+enough for its own article. Write ONE roundup:
+
+- A short lead (2–3 sentences) naming the week's common thread if there is
+  one, else the most notable item. No "this week in data" filler.
+- Then one h2 per item, strongest first: 1–2 short paragraphs each with the
+  new figure, its comparison (previous period, a year ago, record or "highest
+  since") and a link to its dataset page. Use the seeded facts; `get_series`
+  when you need one more point.
+- Keep the flags honest: a streak is a streak, a record is a record. Don't
+  inflate a small move, and drop an item you can't explain in plain words
+  (its dataset then leaves `dataset_ids`).
+- No web tools. An explanation, when obvious, is one hedged clause.
+- Each item's period (the month the figure is for) is enough. Don't repeat
+  when the data was published or the dataset updated, item after item.
+- 1–2 charts at most, for the strongest items.

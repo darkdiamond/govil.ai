@@ -23,6 +23,7 @@ PROMPTS = Path(__file__).with_name("prompts")
 REVISIONS = 2
 MAX_TURNS = 45            # model calls per article, whatever they contain
 WEB_TOOLS = {"web_search", "fetch_url"}
+DATA_ONLY_KINDS = {ArticleKind.FEATURE, ArticleKind.DIGEST}
 
 
 @dataclass
@@ -79,9 +80,9 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
           max_tool_calls: int = 25) -> Outcome:
     seeds = seed_facts(tb, brief)
     kind = str(brief.get("kind") or ArticleKind.NEWS)
-    # An explainer is told from our data alone: in dry runs its web fetches
-    # were nearly all refused and ate the tool budget (2026-11-11).
-    specs = [t for t in TOOL_SPECS if kind != ArticleKind.FEATURE
+    # Explainers and digests are told from our data alone: in dry runs web
+    # fetches were nearly all refused and ate the tool budget (2026-11-11).
+    specs = [t for t in TOOL_SPECS if kind not in DATA_ONLY_KINDS
              or t["function"]["name"] not in WEB_TOOLS]
     user = {
         "today": today,

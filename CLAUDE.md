@@ -414,6 +414,14 @@ catalog` lists chapters → subjects → codes.
      release's new period (ids `cbs-*`/`boi-*`, freq M/Q/E) signals `new_release`
      even when nothing is unusual (a held rate included), weaker than any anomaly,
      one per dataset, the model's first series leading (`signals.RELEASE_*`).
+   - **weekly digest** (`NEWS_DIGEST_WEEKDAY`, Python weekday; unset = off, prod
+     4 = Friday): every run pools the editor's candidates that no published
+     article used (a rejected brief's included) in `signal_pool/` (news
+     database, kept 14 days); on that IL weekday the run writes one `kind: digest`
+     roundup of the week's strongest pooled signals (`digest.py`: ≥4, ≤6, one per
+     dataset, not used, not in cooldown, not suspect, not release-only), deduped
+     by its `digest:<ISO week>` key. It has its own slot (not capped by
+     `NEWS_MAX_PER_DAY`) and counts toward the floor.
    - every printed number is a ledger fact token (a typed or spelled-out
      number fails); links go only to our dataset pages and official
      gov.il / boi.org.il pages (quote-verified); hedged explanations need no

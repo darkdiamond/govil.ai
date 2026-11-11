@@ -12,6 +12,9 @@ covered (a `YYYYmmddTHHMMSSZ` stamp) — is `news_state/cursor` in the same
 database: the next run reads everything rendered from there on, whenever it
 runs (services/news/run.py `news_window`).
 
+`signal_pool/<hash of key>` holds the signals the editor saw but didn't use,
+the weekly digest's raw material (digest.py), kept POOL_KEEP_DAYS.
+
 `LocalArticles` mirrors this in a directory, for `run --dry-run --out DIR`.
 """
 from __future__ import annotations
@@ -22,7 +25,8 @@ import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-ARTICLES, REJECTS = "articles", "article_rejects"
+ARTICLES, REJECTS, POOL = "articles", "article_rejects", "signal_pool"
+POOL_KEEP_DAYS = 14
 STATE, CURSOR = "news_state", "cursor"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
@@ -45,6 +49,13 @@ def join(stored: dict) -> dict:
 
 def _iso(v):
     return v.isoformat() if isinstance(v, datetime) else v
+
+
+def _pool_id(key: str) -> str:
+    """Signal keys hold '/' and brackets; a Firestore id can't hold '/'."""
+    import hashlib
+
+    return hashlib.sha1(key.encode("utf-8")).hexdigest()[:24]
 
 
 LIVE_STATUSES = ("published", "corrected")
@@ -114,6 +125,28 @@ class FirestoreArticles:
     def slug_taken(self, slug: str) -> bool:
         return self.db.collection(ARTICLES).document(slug).get().exists
 
+    def pool(self, items: list[dict]) -> None:
+        """Keep signals the editor saw but didn't use, for the weekly digest
+        (`signal_pool/<hash of key>`, the latest sighting wins), and drop
+        entries older than POOL_KEEP_DAYS."""
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        col = self.db.collection(POOL)
+        now = datetime.now(UTC)
+        for it in items:
+            col.document(_pool_id(it["signal"]["key"])).set(it | {"pooled_at": now})
+        old = col.where(filter=FieldFilter("pooled_at", "<", now - timedelta(days=POOL_KEEP_DAYS)))
+        for d in old.stream():
+            d.reference.delete()
+
+    def read_pool(self, days: int = 7) -> list[dict]:
+        from google.cloud.firestore_v1.base_query import FieldFilter
+
+        since = datetime.now(UTC) - timedelta(days=days)
+        q = self.db.collection(POOL).where(filter=FieldFilter("pooled_at", ">=", since))
+        return [x | {"pooled_at": _iso(x.get("pooled_at"))}
+                for x in (d.to_dict() or {} for d in q.stream())]
+
     def publish(self, doc: dict, files: dict[str, bytes]) -> None:
         if files:
             if not self.bucket_name:
@@ -174,6 +207,23 @@ class LocalArticles:
 
     def slug_taken(self, slug: str) -> bool:
         return (self.root / slug / "article.json").exists() or any(a.get("slug") == slug for a in self._seed)
+
+    def pool(self, items: list[dict]) -> None:
+        d = self.root / "_pool"
+        d.mkdir(exist_ok=True)
+        now = datetime.now(UTC).isoformat()
+        for it in items:
+            (d / f"{_pool_id(it['signal']['key'])}.json").write_text(
+                json.dumps(it | {"pooled_at": now}, ensure_ascii=False, default=str), encoding="utf-8")
+
+    def read_pool(self, days: int = 7) -> list[dict]:
+        since = datetime.now(UTC) - timedelta(days=days)
+        out = []
+        for p in sorted((self.root / "_pool").glob("*.json")):
+            it = json.loads(p.read_text(encoding="utf-8"))
+            if datetime.fromisoformat(it["pooled_at"]) >= since:
+                out.append(it)
+        return out
 
     def publish(self, doc: dict, files: dict[str, bytes]) -> None:
         d = self.root / doc["slug"]
