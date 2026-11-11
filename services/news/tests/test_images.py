@@ -45,3 +45,14 @@ def test_hero_refuses_oversized_image_before_decoding(monkeypatch):
     monkeypatch.setattr(images, "MAX_HERO_PIXELS", 1200 * 700 - 1)
     meta, _ = images.hero(_LLM(_encode("PNG")), "brief", [1.0, 2.0])
     assert meta["kind"] == "chart"
+
+
+def test_hero_lets_a_refused_key_through():
+    from services.news.llm import LLMUnavailable
+
+    class _Refused:
+        def image(self, prompt):
+            raise LLMUnavailable("key refused")
+
+    with pytest.raises(LLMUnavailable):
+        images.hero(_Refused(), "brief", [1.0, 2.0])

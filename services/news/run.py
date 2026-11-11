@@ -12,8 +12,9 @@ Live writes `articles/<slug>` (Firestore) + `gs://<staging>/news/<slug>/`
 A dry run reads the same inputs (models, catalog, GSC, prod's recent
 articles for cooldown, full tables) and calls the same models, but writes
 only to `--out`. Every mode prints one `news_summary` (or `news_signals`)
-JSON line. Exit status: 0 on ok/idle, 1 when the model key was refused or
-the run crashed.
+JSON line. Exit status: 0 on ok/idle, 1 when the model key was refused, an
+accepted story failed to store (`store_failed`, after the stored ones are
+dispatched), or the run crashed.
 
 What counts as new is the render window [cursor, now − SETTLE): the cursor
 (`news_state/cursor`) is where the last successful live run's window ended,
@@ -36,7 +37,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from services.shared import model_history
-from services.shared.states import ArticleKind, StoryResult
+from services.shared.states import ArticleKind, NewsRunStatus, StoryResult
 
 from . import catalog as catalog_mod
 from . import demand as demand_mod
@@ -248,11 +249,14 @@ class _Day:
         if out.status != "accepted":
             self.rejected.append({"signal_keys": keys, "kind": kind, "reason": out.reason,
                                   "headline": (out.core or {}).get("headline")})
-            store.reject({"run_id": self.run_id, "at": datetime.now(UTC).isoformat(), "kind": kind,
-                          "brief": {k: brief[k] for k in ("signal_keys", "dataset_ids", "angle_he")},
-                          "reason": out.reason, "problems": out.problems, "critic": out.critic,
-                          "core": out.core, "tool_calls": out.tool_calls, "tools": tb.log,
-                          "ledger": ledger.dump()})
+            try:  # the record is for tuning: losing it must not cost the day's other stories
+                store.reject({"run_id": self.run_id, "at": datetime.now(UTC).isoformat(), "kind": kind,
+                              "brief": {k: brief[k] for k in ("signal_keys", "dataset_ids", "angle_he")},
+                              "reason": out.reason, "problems": out.problems, "critic": out.critic,
+                              "core": out.core, "tool_calls": out.tool_calls, "tools": tb.log,
+                              "ledger": ledger.dump()})
+            except Exception:
+                log.exception("news: recording the rejection of %s failed", keys)
             return status or StoryResult.REJECTED
         core = out.core
         try:
@@ -380,17 +384,24 @@ def _fill(day: _Day, *, need: int, recent: list[dict], demand_by_id: dict, coold
                                     cooldown_days=cooldown_days, now=now,
                                     exclude=features_mod.rejected_leads(rejects))
     used = {k for a in recent for k in a.get("signal_keys") or []}
-    briefs = [b for b in choose_features(day.llm, cands, recent, max_briefs=need * attempts,
-                                         today=day.today.isoformat())
-              if not used & set(b["signal_keys"])]
-    tried = published = 0
+    out = {"kind": ArticleKind.FEATURE, "need": need, "candidates": len(cands), "briefs": 0,
+           "attempts": 0, "published": 0, "store_errors": 0}
+    try:
+        chosen = choose_features(day.llm, cands, recent, max_briefs=need * attempts,
+                                 today=day.today.isoformat())
+    except (LLMError, ValueError) as e:  # a refused key (LLMUnavailable) still ends the run
+        log.exception("news: the features editor failed")
+        return out | {"error": f"{type(e).__name__}: {str(e)[:300]}"}
+    briefs = [b for b in chosen if not used & set(b["signal_keys"])]
+    out["briefs"] = len(briefs)
     for brief in briefs:
-        if published >= need:
+        if out["published"] >= need:
             break
-        tried += 1
-        published += day.write_one(brief) == StoryResult.PUBLISHED
-    return {"kind": ArticleKind.FEATURE, "need": need, "candidates": len(cands), "briefs": len(briefs),
-            "attempts": tried, "published": published}
+        out["attempts"] += 1
+        r = day.write_one(brief)
+        out["published"] += r == StoryResult.PUBLISHED
+        out["store_errors"] += r == StoryResult.STORE_ERROR
+    return out
 
 
 def _row(s: Signal, cat: dict) -> str:
@@ -455,7 +466,7 @@ def main(argv: list[str] | None = None) -> int:
     if a.dry_run and not a.out:
         ap.error("--dry-run needs --out")
     if live and os.environ.get("NEWS_PUBLISH", "off").strip().lower() != "live":
-        print(json.dumps({"type": "news_summary", "status": "disabled",
+        print(json.dumps({"type": "news_summary", "status": NewsRunStatus.DISABLED,
                           "reason": "NEWS_PUBLISH is not 'live'"}))
         return 0
 
@@ -470,7 +481,7 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as e:
             if live:  # a live run that can't see its cursor can't know what is new
                 log.exception("news: reading the cursor failed")
-                print(json.dumps({"type": "news_summary", "status": "failed",
+                print(json.dumps({"type": "news_summary", "status": NewsRunStatus.FAILED,
                                   "error": f"cursor: {type(e).__name__}: {str(e)[:300]}"}))
                 return 1
             log.warning("news: cursor unreadable — using the bootstrap window", exc_info=True)
@@ -530,7 +541,12 @@ def main(argv: list[str] | None = None) -> int:
                         fill_attempts=_env_int("NEWS_FILL_ATTEMPTS", 2),
                         feature_tool_calls=_env_int("NEWS_FEATURE_MAX_TOOL_CALLS", 35),
                         digest_weekday=_digest_weekday())
-        summary |= day | {"status": "ok" if day["published"] else "idle"}
+        # An accepted story the store lost (event, digest or fill) turns the
+        # job red: a store that fails every day must not look like a quiet one.
+        store_failed = bool(day.get("store_errors") or (day.get("fill") or {}).get("store_errors")
+                            or (day.get("digest") or {}).get("status") == StoryResult.STORE_ERROR)
+        summary |= day | {"status": NewsRunStatus.STORE_FAILED if store_failed
+                          else NewsRunStatus.OK if day["published"] else NewsRunStatus.IDLE}
         if live and day["published"]:
             summary["publish_dispatch"] = _dispatch_publish()
         if (live and window["upto"] and not (a.dataset or a.models_dir)
@@ -552,13 +568,13 @@ def main(argv: list[str] | None = None) -> int:
                 log.exception("news: advancing the cursor failed")
                 summary |= {"cursor_advanced": False,
                             "cursor_error": f"{type(e).__name__}: {str(e)[:300]}"}
-        rc = 0
+        rc = 1 if store_failed else 0
     except LLMUnavailable as e:
-        summary |= {"status": "llm_unavailable", "error": str(e)[:300]}
+        summary |= {"status": NewsRunStatus.LLM_UNAVAILABLE, "error": str(e)[:300]}
         rc = 1
     except Exception as e:
         log.exception("news run crashed")
-        summary |= {"status": "failed", "error": f"{type(e).__name__}: {str(e)[:300]}"}
+        summary |= {"status": NewsRunStatus.FAILED, "error": f"{type(e).__name__}: {str(e)[:300]}"}
         rc = 1
     finally:
         if tables is not None:

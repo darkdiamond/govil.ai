@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from datetime import date
 
+import pytest
+
 from services.news import charts
 from services.news.ledger import Ledger
 from services.news.series import extract_series
@@ -186,3 +188,93 @@ def test_store_failure_after_a_stored_story_keeps_it(tmp_path, monkeypatch):
     out, store = _two_story_day(tmp_path, {2}, monkeypatch)
     assert store.calls == 2
     assert out["published"] == ["mortgage-volume-september"] and out["store_errors"] == 1
+
+
+class _RejectDownStore(_FlakyStore):
+    """LocalArticles whose reject write always fails (Firestore down, or a doc too large)."""
+
+    def reject(self, doc):
+        raise RuntimeError("firestore: document too large")
+
+
+def test_failed_reject_write_does_not_cost_the_day(tmp_path, monkeypatch):
+    import services.news.run as run_mod
+    from services.news.store import LocalArticles
+    from services.news.tests.test_llm_pipeline import _fetcher, _world
+
+    series, models, sig, cat = _world()
+    briefs = [{"signal_keys": [s.key], "dataset_ids": [s.dataset_id], "angle_he": "a",
+               "why_now_he": "b", "questions": [], "signals": [s]} for s in (sig, sig)]
+    monkeypatch.setattr(run_mod, "choose", lambda *a, **k: (briefs, []))
+    store = _RejectDownStore(LocalArticles(tmp_path), set())
+    llm = _PerStoryLLM([_draft(), _draft()], critic=("kill", "pass"))
+    out = run_mod.write_day(llm, ranked=[sig], series_by_ds=series, models=models, catalog=cat,
+                            vocab={"משכנתאות", "ריבית"}, store=store,
+                            today=date(2026, 11, 9), run_id="r1", fetcher=_fetcher, images=False)
+    assert out["rejected"][0]["reason"] == "critic_kill"
+    assert out["published"] == ["mortgage-volume-september"]
+
+
+def _editor_signal():
+    from services.news.tests.test_llm_pipeline import _world
+
+    _series, _models, sig, cat = _world()
+    return sig, cat
+
+
+class _ReplyLLM:
+    def __init__(self, reply):
+        self.reply = reply
+
+    def chat_json(self, messages, **kw):
+        return self.reply
+
+
+def test_editor_skips_wrong_shaped_briefs():
+    from services.news.editor import choose
+
+    sig, cat = _editor_signal()
+    reply = {"briefs": ["a string", None, 3,
+                        {"signal_keys": [["nested"], {"k": 1}, sig.key], "dataset_ids": [["x"], {}, 5],
+                         "angle_he": "זווית"}],
+             "skipped": []}
+    briefs, _ = choose(_ReplyLLM(reply), [sig], cat, [], max_briefs=3, today="2026-11-09")
+    assert len(briefs) == 1 and briefs[0]["signal_keys"] == [sig.key]
+    assert briefs[0]["dataset_ids"] == [sig.dataset_id]
+
+
+def test_features_editor_skips_wrong_shaped_briefs():
+    from services.news.editor import choose_features
+
+    cands = [{"dataset_id": "A"}, {"dataset_id": "B"}]
+    reply = {"briefs": ["text", [1], {"dataset_ids": [["A"], {"B": 1}, "B", "A"]}]}
+    briefs = choose_features(_ReplyLLM(reply), cands, [], max_briefs=3, today="2026-11-09")
+    assert [b["dataset_ids"] for b in briefs] == [["B", "A"]]
+
+
+def _gate(mutate):
+    from services.news import gates
+    from services.news.tests.test_ledger_gates import _draft as gate_draft
+    from services.news.tests.test_ledger_gates import _setup
+
+    series, led, cat, f1 = _setup()
+    d = gate_draft(f1)
+    mutate(d)
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    return problems
+
+
+@pytest.mark.parametrize("mutate, needle", [
+    (lambda d: d.__setitem__("slug_en", 12345678), "slug_en"),
+    (lambda d: d.__setitem__("slug_en", ["mortgage-volume"]), "slug_en"),
+    (lambda d: d.__setitem__("dataset_ids", "boi-mortgage-rates"), "dataset_ids: must be a list"),
+    (lambda d: d.__setitem__("dataset_ids", 7), "dataset_ids: must be a list"),
+    (lambda d: d["blocks"][4].__setitem__("fact", ["f1"]), "block 4"),
+    (lambda d: d["blocks"][4].__setitem__("fact", {"id": "f1"}), "block 4"),
+    (lambda d: d["blocks"][1].__setitem__("chart", {"id": "c1"}), "block 1"),
+    (lambda d: d["sources"][0].__setitem__("id", ["s1"]), "sources"),
+    (lambda d: d["charts"].append(dict(d["charts"][0], title="עוד גרף")), "duplicate chart id"),
+])
+def test_wrong_typed_draft_fields_are_problems_not_crashes(mutate, needle):
+    problems = _gate(mutate)
+    assert any(needle in p for p in problems), problems

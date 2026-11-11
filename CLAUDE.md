@@ -438,6 +438,9 @@ catalog` lists chapters → subjects → codes.
      a publish run. Rejected drafts: `admin list --rejected`.
    - spending is capped by the key's limit in OpenRouter + a GCP budget
      alert, not by code; a refused key ends the run `llm_unavailable`.
+   - an accepted story the store failed to save ends the run `store_failed`
+     (non-zero, after the stored ones are dispatched); an event story's also
+     holds the cursor.
 
 State: Firestore `sources/{id}` (per-dataset, incl. refresh state and
 `authoring_status`/`authoring_issue`), `scan_runs/{run_id}` (per

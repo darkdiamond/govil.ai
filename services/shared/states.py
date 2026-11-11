@@ -93,6 +93,16 @@ class RunStatus(StrEnum):
     RECONCILE_FAILED = "reconcile_failed"
 
 
+class NewsRunStatus(StrEnum):
+    """`news_summary.status` (services/news/run.py). All but OK/IDLE/DISABLED exit non-zero."""
+    OK = "ok"
+    IDLE = "idle"
+    DISABLED = "disabled"                # NEWS_PUBLISH is not 'live'
+    FAILED = "failed"
+    LLM_UNAVAILABLE = "llm_unavailable"  # the model key was refused
+    STORE_FAILED = "store_failed"        # an accepted story the store failed to save
+
+
 class ArticleKind(StrEnum):
     """News `articles/<slug>.kind` (missing = NEWS: every article before kinds)."""
     NEWS = "news"          # a fresh period that moved (signals → editor)

@@ -132,7 +132,8 @@ def test_fill_attempts_are_capped_and_rejections_recorded(tmp_path):
     llm = FloorLLM([_draft()] * 4, critic=("kill",) * 4, feature_leads=((MORT,), (RATE,), ("unknown",)))
     out, _ = _day(tmp_path, llm, min_per_day=1, fill_attempts=2)
     assert out["published"] == [] and out["fill"] == {
-        "kind": "feature", "need": 1, "candidates": 2, "briefs": 2, "attempts": 2, "published": 0}
+        "kind": "feature", "need": 1, "candidates": 2, "briefs": 2, "attempts": 2, "published": 0,
+        "store_errors": 0}
     assert {r["kind"] for r in out["rejected"]} == {"feature"} and len(out["rejected"]) == 2
     assert len(list((tmp_path / "_rejected").glob("*.json"))) == 2
     # the next day's fill leaves both rejected leads out instead of retrying them
@@ -232,3 +233,46 @@ def test_explainers_get_their_own_tool_budget(tmp_path, monkeypatch):
     _day(tmp_path, FloorLLM([_draft()] * 3, critic=("kill",) * 3), ranked=[sig], min_per_day=2,
          max_tool_calls=25, feature_tool_calls=35, fill_attempts=1)
     assert seen[0] == ("news", 25) and seen[1] == ("feature", 35)
+
+
+class _FeatureEditorDown(FloorLLM):
+    def __init__(self, exc, drafts):
+        super().__init__(drafts)
+        self.exc = exc
+
+    def chat_json(self, messages, **kw):
+        if messages[0]["content"].startswith("You are the features editor"):
+            raise self.exc
+        return super().chat_json(messages, **kw)
+
+
+def test_features_editor_failure_costs_only_the_fill(tmp_path):
+    from services.news.llm import LLMError
+
+    for exc in (LLMError("OpenRouter failed after 4 attempts: HTTP 503"), ValueError("no JSON object")):
+        out, _ = _day(tmp_path / type(exc).__name__, _FeatureEditorDown(exc, [_draft()]), min_per_day=1)
+        assert out["fill"]["published"] == 0 and out["fill"]["briefs"] == 0
+        assert out["fill"]["candidates"] == 2
+        assert type(exc).__name__ in out["fill"]["error"]
+
+
+def test_features_editor_refused_key_still_stops_the_run(tmp_path):
+    import pytest
+
+    from services.news.llm import LLMUnavailable
+
+    with pytest.raises(LLMUnavailable):
+        _day(tmp_path, _FeatureEditorDown(LLMUnavailable("key refused"), [_draft()]), min_per_day=1)
+
+
+def test_fill_counts_its_store_errors(tmp_path):
+    from services.news.tests.test_robustness import _FlakyStore
+
+    series, models, _sig, cat = _world()
+    store = _FlakyStore(LocalArticles(tmp_path), {1})
+    out = run.write_day(FloorLLM([_draft()]), ranked=[], series_by_ds=series, models=models,
+                        catalog=cat, vocab={"משכנתאות", "ריבית"}, store=store,
+                        today=date(2026, 11, 9), run_id="r1", fetcher=_fetcher,
+                        demand_by_id=DEMAND, images=False, min_per_day=1, fill_attempts=1)
+    assert out["fill"]["published"] == 0 and out["fill"]["store_errors"] == 1
+    assert out["store_errors"] == 0   # the event count (and the cursor) are not the fill's

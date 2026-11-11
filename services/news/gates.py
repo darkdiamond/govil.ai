@@ -128,6 +128,15 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         draft = {**draft, key: kept}
     draft = {**draft, "tags": [t for t in draft.get("tags") or [] if isinstance(t, str)]
              if isinstance(draft.get("tags"), list) else []}
+    if not isinstance(draft.get("dataset_ids") or [], list):
+        problems.append("dataset_ids: must be a list")
+        draft = {**draft, "dataset_ids": []}
+    if not isinstance(draft.get("slug_en") or "", str):
+        problems.append("slug_en: must be a string")
+        draft = {**draft, "slug_en": ""}
+    if any(not isinstance(s.get("id"), str) for s in draft["sources"]):
+        problems.append("sources: every id must be a string")
+        draft = {**draft, "sources": [s for s in draft["sources"] if isinstance(s.get("id"), str)]}
 
     def href(ds):
         if ds in catalog:
@@ -190,6 +199,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     for spec in (draft.get("charts") or [])[:MAX_CHARTS + 1]:
         try:
             c = charts_mod.resolve(spec, series_by_ds, ledger)
+            if c["id"] in chart_ids:  # the page keys charts by id: the second would replace the first
+                problems.append(f"charts: duplicate chart id {c['id']}")
+                continue
             charts_out.append(c)
             chart_ids.add(c["id"])
             # The strings the chart prints, fallbacks included (a bar with no
@@ -235,19 +247,19 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             body_text.append(htxt)
         elif kind == "chart":
             cid = b.get("chart")
-            if cid not in chart_ids:
-                problems.append(f"block {i}: unknown chart {cid}")
+            if not isinstance(cid, str) or cid not in chart_ids:
+                problems.append(f"block {i}: unknown chart {str(cid)[:40]}")
             else:
                 placed.add(cid)
                 blocks.append({"type": "chart", "chart": cid})
         elif kind == "stat":
             stats += 1
-            f = ledger.facts.get(b.get("fact"))
+            f = ledger.facts.get(b["fact"]) if isinstance(b.get("fact"), str) else None
             _, label = text(f"block {i} label", b.get("label"))
             printed.append(label)
             sfmt = b.get("fmt") or None
             if f is None:
-                problems.append(f"block {i}: unknown fact {b.get('fact')}")
+                problems.append(f"block {i}: unknown fact {str(b.get('fact'))[:40]}")
             elif sfmt is not None and sfmt not in FORMATS:
                 problems.append(f"block {i}: format {str(sfmt)[:40]!r} is not one of {list(FORMATS)}")
             else:
@@ -296,8 +308,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         if m := rx.search(every):
             problems.append(f"punctuation: «{every[max(0, m.start() - 15):m.end() + 15]}» — {why}")
 
-    quotes = {s.get("id"): str(s.get("quote") or "") for s in draft.get("sources") or []
-              if isinstance(s, dict)}
+    quotes = {s["id"]: str(s.get("quote") or "") for s in draft["sources"]}
     sources = []
     for sid in sorted(linked_sources, key=lambda x: int(x[1:]) if x[1:].isdigit() else 0):
         src = ledger.sources.get(sid)

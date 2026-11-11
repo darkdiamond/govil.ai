@@ -16,6 +16,8 @@ import logging
 
 from PIL import Image, ImageDraw, ImageFilter
 
+from .llm import LLMUnavailable
+
 log = logging.getLogger(__name__)
 
 HOUSE_STYLE = (
@@ -104,6 +106,8 @@ def hero(llm, brief: str, fallback_values: list[float]) -> tuple[dict, dict[str,
             img.load()
             if img.size[0] < 1024:
                 raise ValueError(f"image too small: {img.size}")
+        except LLMUnavailable:
+            raise  # a refused key ends the run; it is not an image failure
         except Exception:
             log.warning("news: illustration failed — chart card instead", exc_info=True)
             img = None
