@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { CONTACT_TOPICS, topicFromQuery } from '~/utils/contact-topics'
+
 const SITE_URL = 'https://govil.ai'
 
 useSeo({
@@ -40,7 +42,12 @@ useSeo({
 })
 
 const route = useRoute()
-const initialTopic = String(route.query.topic || '')
+// Applied after mount: the page is prerendered without a query, and hydration
+// does not patch a select's value. Only an exact option name is accepted.
+const topic = ref('')
+onMounted(() => {
+  topic.value = topicFromQuery(route.query.topic)
+})
 
 type Status = 'idle' | 'sending' | 'sent' | 'error'
 const status = ref<Status>('idle')
@@ -59,6 +66,7 @@ async function onSubmit(e: Event) {
     if (res.ok) {
       status.value = 'sent'
       form.reset()
+      topic.value = ''
       return
     }
     const data = await res.json().catch(() => null) as { errors?: { message?: string }[] } | null
@@ -169,16 +177,11 @@ async function onSubmit(e: Event) {
           <select
             id="topic"
             name="topic"
-            :value="initialTopic"
+            v-model="topic"
             class="w-full border border-rule rounded-gov px-3 py-2 bg-white text-ink"
           >
             <option value="">בחרו נושא…</option>
-            <option>תיקון שגיאה / אי-דיוק בנתונים</option>
-            <option>בקשת הוספת מאגר מ-data.gov.il</option>
-            <option>נגישות האתר</option>
-            <option>שאלה כללית</option>
-            <option>שיתוף פעולה או תקשורת</option>
-            <option>אחר</option>
+            <option v-for="t in CONTACT_TOPICS" :key="t" :value="t">{{ t }}</option>
           </select>
         </div>
 

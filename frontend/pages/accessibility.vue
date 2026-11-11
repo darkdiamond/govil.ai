@@ -162,7 +162,9 @@ useSeo({
         </li>
         <li>
           <strong>ערוץ פנייה ראשי:</strong>
-          <NuxtLink to="/contact/?topic=נגישות" class="text-brand-700 underline"
+          <NuxtLink
+            to="/contact/?topic=נגישות האתר"
+            class="text-brand-700 underline"
             >טופס יצירת קשר — נושא "נגישות"</NuxtLink
           >
         </li>
