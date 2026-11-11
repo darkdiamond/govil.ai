@@ -43,10 +43,11 @@ from pathlib import Path
 from typing import ClassVar, Literal
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .base import (
     Availability,
+    ProviderDatasetConfig,
     ProviderError,
     ProviderFacts,
     ProviderResource,
@@ -110,17 +111,8 @@ class CbsIndexResource(BaseModel):
         return v
 
 
-class CbsIndexDatasetConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CbsIndexDatasetConfig(ProviderDatasetConfig):
     resources: list[CbsIndexResource] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def _unique_ids(self):
-        ids = [r.id for r in self.resources]
-        if len(ids) != len(set(ids)):
-            raise ValueError("resource ids must be unique")
-        return self
 
 
 def _period(freq: str, row: dict) -> tuple[int, int]:
@@ -394,13 +386,7 @@ class CbsIndexProvider(SourceProvider):
         return self._url("data/price", **self._query(r), format="csv", PageSize=PAGE_SIZE)
 
     def _get_json(self, url: str) -> dict:
-        r = self.http_get(url)
-        if r.status_code != 200:
-            raise ProviderError(f"HTTP {r.status_code} from the CBS Index API for {url[:160]}")
-        try:
-            data = r.json()
-        except ValueError as e:
-            raise ProviderError(f"CBS Index API answered non-JSON for {url[:160]}: {e}") from e
+        data = self.get_json(url, source="the CBS Index API")
         if not isinstance(data, dict):
             raise ProviderError(f"CBS Index API answered {type(data).__name__} for {url[:160]}")
         return data
@@ -441,14 +427,11 @@ class CbsIndexProvider(SourceProvider):
             {"id": resource["id"], "name": resource.get("name") or resource["id"],
              **(resource.get("params") or {})})
 
-    def _cached(self, resource: dict) -> tuple[bytes, int]:
+    def _cache_key(self, resource: dict) -> str:
         # Two resources can share a URL (same codes and start) and differ in
         # `frequency`, which the CSV export URL doesn't carry.
         freq = (resource.get("params") or {}).get("frequency") or "both"
-        key = f"{resource['url']}#frequency={freq}"
-        if key not in self._cache:
-            self._cache[key] = self._load(resource)
-        return self._cache[key]
+        return f"{resource['url']}#frequency={freq}"
 
     def pages(self, r: CbsIndexResource) -> list[dict]:
         """The resource's rows, every page, without chaining coefficients."""

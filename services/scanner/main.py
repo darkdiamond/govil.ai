@@ -17,7 +17,7 @@ from .client import CKANClient, CKANError
 from .config import ScannerSettings, settings
 from .detector import ChangeDetector
 from .filters import DatasetFilter, create_filter
-from .models import DatasetStatus, ScanResult, ScanSummary
+from .models import DatasetStatus, ScanSummary
 from .state import StateDB
 
 log = logging.getLogger("scanner")
@@ -160,7 +160,6 @@ class Scanner:
             summary.datasets_updated += 1
         else:
             summary.datasets_unchanged += 1
-        summary.results.append(ScanResult(dataset=dataset, status=status))
 
 
 # ----- CLI (optional — only loaded if typer/rich are installed) --------------

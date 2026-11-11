@@ -144,7 +144,7 @@ def test_facts_share_cbs_credit_and_link_csv_export():
 def test_download_pages_and_chains_across_bases():
     calls = []
     p = make_provider(calls=calls)
-    data = p.csv_bytes(resource(p, start="07-2024"))
+    data = p._capped(resource(p, start="07-2024"))[0]
     data_calls = [u for u in calls if "Page=" in u]
     chain_calls = [u for u in calls if "last=1" in u]
     assert len(data_calls) == 3  # every page, once, without the ~6x coef payload
@@ -169,24 +169,24 @@ def test_download_pages_and_chains_across_bases():
 
 def test_csv_is_deterministic_under_page_order():
     p1, p2 = make_provider(), make_provider({"120010": CPI_PAGES})
-    a = p1.csv_bytes(resource(p1, start="07-2024"))
+    a = p1._capped(resource(p1, start="07-2024"))[0]
     rev = copy.deepcopy(CPI_PAGES)
     for page in rev:
         page["month"][0]["date"].reverse()
     p2 = make_provider({"120010": rev})
-    assert p2.csv_bytes(resource(p2, start="07-2024")) == a
+    assert p2._capped(resource(p2, start="07-2024"))[0] == a
 
 
 def test_unknown_code_fails_the_download():
     p = make_provider({})
     with pytest.raises(ProviderError, match="no both rows for code"):
-        p.csv_bytes(resource(p, codes=[999999]))
+        p._capped(resource(p, codes=[999999]))[0]
 
 
 def test_api_error_body_fails():
     p = make_provider({"120010": [{"Message": "Error: Price Data"}]})
     with pytest.raises(ProviderError, match="CBS Index API error"):
-        p.csv_bytes(resource(p))
+        p._capped(resource(p))[0]
 
 
 def test_walk_short_of_total_items_fails():
@@ -194,7 +194,7 @@ def test_walk_short_of_total_items_fails():
     del pages[0]["paging"]["last_page"]  # would stop after page 1 (10 of 27 rows)
     p = make_provider({"120010": pages})
     with pytest.raises(ProviderError, match="10 of 27 rows"):
-        p.csv_bytes(resource(p, start="07-2024"))
+        p._capped(resource(p, start="07-2024"))[0]
 
 
 def test_page_dropping_rows_mid_walk_fails():
@@ -202,7 +202,7 @@ def test_page_dropping_rows_mid_walk_fails():
     pages[1]["month"][0]["date"].pop()  # a row withdrawn between page requests
     p = make_provider({"120010": pages})
     with pytest.raises(ProviderError, match="26 of 27 rows"):
-        p.csv_bytes(resource(p, start="07-2024"))
+        p._capped(resource(p, start="07-2024"))[0]
 
 
 def test_multi_row_page_without_paging_counts_fails():
@@ -211,14 +211,14 @@ def test_multi_row_page_without_paging_counts_fails():
             "paging": {"current_page": 1}}
     p = make_provider({"1": [page]})
     with pytest.raises(ProviderError, match="no usable paging"):
-        p.csv_bytes(resource(p, codes=[1], frequency="month"))
+        p._capped(resource(p, codes=[1], frequency="month"))[0]
 
 
 def test_single_row_page_without_counts_passes():
     page = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.0)])],
             "paging": {}}
     p = make_provider({"1": [page]})
-    assert len(rows(p.csv_bytes(resource(p, codes=[1], frequency="month")))) == 1
+    assert len(rows(p._capped(resource(p, codes=[1], frequency="month"))[0])) == 1
 
 
 def _strip_coefficients(pages):
@@ -411,7 +411,7 @@ def test_brief_section(tmp_path):
     p = make_provider()
     res = resource(p, start="07-2024")
     f = tmp_path / "cpi.csv"
-    f.write_bytes(p.csv_bytes(res))
+    f.write_bytes(p._capped(res)[0])
     brief = p.brief_section(res, f)
     assert "120010" in brief and "2024-07" in brief and "2026-09" in brief
     assert "| 2 |" in brief  # two bases
@@ -444,8 +444,8 @@ def test_same_codes_different_frequency_do_not_share_the_cache():
     monthly = resource(p, codes=[40010], frequency="month")
     quarterly = resource(p, codes=[40010], frequency="quarter")
     assert monthly["url"] == quarterly["url"]  # the CSV export can't tell them apart
-    assert {r["FREQ"] for r in rows(p.csv_bytes(monthly))} == {"M"}
-    assert {r["FREQ"] for r in rows(p.csv_bytes(quarterly))} == {"Q"}
+    assert {r["FREQ"] for r in rows(p._capped(monthly)[0])} == {"M"}
+    assert {r["FREQ"] for r in rows(p._capped(quarterly)[0])} == {"Q"}
 
 
 def test_published_figures_pass_through_exactly():
@@ -517,7 +517,7 @@ def test_brief_names_quarters_by_time_period(tmp_path):
     p = make_provider({"40010": [page]})
     res = resource(p, codes=[40010], frequency="quarter")
     f = tmp_path / "q.csv"
-    f.write_bytes(p.csv_bytes(res))
+    f.write_bytes(p._capped(res)[0])
     brief = p.brief_section(res, f)
     assert "| 1993-Q1 | 1993-Q4 |" in brief
 
