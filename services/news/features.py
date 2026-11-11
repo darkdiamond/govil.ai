@@ -13,23 +13,14 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from services.shared.states import ArticleKind
+
 from .series import Series, kpi_values
+from .store import published_at
 
 MAX_SERIES = 8
 MAX_KPIS = 6
 MAX_INSIGHTS = 4
-
-
-def _published(a: dict) -> datetime | None:
-    ts = a.get("published_at")
-    if isinstance(ts, str):
-        try:
-            ts = datetime.fromisoformat(ts)
-        except ValueError:
-            return None
-    if isinstance(ts, datetime) and ts.tzinfo is None:
-        ts = ts.replace(tzinfo=UTC)
-    return ts if isinstance(ts, datetime) else None
 
 
 def covered(recent: list[dict], *, days: int, now: datetime | None = None) -> set[str]:
@@ -37,10 +28,17 @@ def covered(recent: list[dict], *, days: int, now: datetime | None = None) -> se
     now = now or datetime.now(UTC)
     out: set[str] = set()
     for a in recent:
-        ts = _published(a)
+        ts = published_at(a)
         if ts and now - ts < timedelta(days=days):
             out.update(a.get("dataset_ids") or [])
     return out
+
+
+def rejected_leads(rejects: list[dict]) -> set[str]:
+    """Lead datasets of recently rejected explainers: the ranking is
+    deterministic, so without this the same failing story is retried daily."""
+    return {(r.get("brief") or {}).get("dataset_ids", [None])[0] for r in rejects
+            if r.get("kind") == ArticleKind.FEATURE and (r.get("brief") or {}).get("dataset_ids")}
 
 
 def _series_brief(s: Series) -> dict:
@@ -70,9 +68,10 @@ def compact(ds: str, *, catalog: dict, models: dict, series: dict, demand: dict 
 
 def candidates(*, catalog: dict, models: dict, series: dict, demand_by_id: dict,
                recent: list[dict], cooldown_days: int, top: int = 12,
-               now: datetime | None = None) -> list[dict]:
-    """The `top` explainer candidates, compacted for the editor, strongest demand first."""
-    skip = covered(recent, days=cooldown_days, now=now)
+               exclude: set[str] = frozenset(), now: datetime | None = None) -> list[dict]:
+    """The `top` explainer candidates, compacted for the editor, strongest
+    demand first. `exclude`: datasets to leave out (recently rejected leads)."""
+    skip = covered(recent, days=cooldown_days, now=now) | set(exclude)
     pool = []
     for ds, model in models.items():
         if ds in skip or ds not in catalog or not isinstance(model, dict):

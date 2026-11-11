@@ -13,8 +13,9 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from services.shared.states import ArticleKind
+
 from . import gates
-from .kinds import ArticleKind
 from .tools import SUBMIT_SPEC, TOOL_SPECS, Toolbox
 
 log = logging.getLogger(__name__)

@@ -93,6 +93,21 @@ class RunStatus(StrEnum):
     RECONCILE_FAILED = "reconcile_failed"
 
 
+class ArticleKind(StrEnum):
+    """News `articles/<slug>.kind` (missing = NEWS: every article before kinds)."""
+    NEWS = "news"          # a fresh period that moved (signals → editor)
+    FEATURE = "feature"    # an explainer on a high-demand dataset (the daily floor's fill)
+    DIGEST = "digest"      # the weekly roundup of small moves
+
+
+class StoryResult(StrEnum):
+    """What became of one news brief (`run._Day.write_one`)."""
+    PUBLISHED = "published"
+    REJECTED = "rejected"        # gates or critic said no: an editorial decision
+    MODEL_ERROR = "model_error"  # the model service failed after retries: never judged
+    STORE_ERROR = "store_error"  # accepted, but the store failed to save it
+
+
 @dataclass
 class RefreshState:
     """The refresh fields of a `sources/<id>` doc (all optional; absent = None).

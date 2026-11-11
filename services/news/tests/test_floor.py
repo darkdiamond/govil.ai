@@ -5,7 +5,6 @@ import json
 from datetime import UTC, date, datetime, timedelta
 
 from services.news import features, gates, run
-from services.news.kinds import ArticleKind
 from services.news.publish_news import write_news
 from services.news.store import LocalArticles
 from services.news.tests.test_llm_pipeline import (
@@ -16,6 +15,7 @@ from services.news.tests.test_llm_pipeline import (
     _fetcher,
     _world,
 )
+from services.shared.states import ArticleKind
 
 
 class FloorLLM(FakeLLM):
@@ -135,6 +135,35 @@ def test_fill_attempts_are_capped_and_rejections_recorded(tmp_path):
         "kind": "feature", "need": 1, "candidates": 2, "briefs": 2, "attempts": 2, "published": 0}
     assert {r["kind"] for r in out["rejected"]} == {"feature"} and len(out["rejected"]) == 2
     assert len(list((tmp_path / "_rejected").glob("*.json"))) == 2
+    # the next day's fill leaves both rejected leads out instead of retrying them
+    llm2 = FloorLLM([_draft()])
+    out2, _ = _day(tmp_path, llm2, min_per_day=1)
+    assert out2["fill"]["candidates"] == 0 and llm2.feature_calls == []
+
+
+def test_fill_does_not_repeat_this_runs_event_dataset(tmp_path):
+    sig = _world()[2]   # the event story draws on MORT and RATE, our only two datasets
+    llm = FloorLLM([_draft()] * 2, feature_leads=((MORT,), (RATE,)))
+    out, _ = _day(tmp_path, llm, ranked=[sig], min_per_day=2)
+    assert len(out["published"]) == 1 and out["fill"]["need"] == 1
+    assert out["fill"]["candidates"] == 0 and llm.feature_calls == []
+
+
+def test_unpublished_article_does_not_meet_the_floor(tmp_path):
+    seed = [{"slug": "x", "status": "unpublished", "dataset_ids": ["other"], "signal_keys": ["k"],
+             "published_at": datetime.now(UTC).isoformat()}]
+    out, _ = _day(tmp_path, FloorLLM([_draft()]), seed=seed, min_per_day=1)
+    assert out["fill"]["published"] == 1
+
+
+def test_only_news_articles_start_a_dataset_cooldown():
+    from services.news.editor import eligible
+
+    sig = _world()[2]
+    now = datetime.now(UTC).isoformat()
+    for kind, kept in (("feature", True), ("digest", True), ("news", False), (None, False)):
+        recent = [{"kind": kind, "dataset_ids": [sig.dataset_id], "signal_keys": [], "published_at": now}]
+        assert bool(eligible([sig], recent, cooldown_days=21)) is kept, kind
 
 
 def test_floor_respects_max_per_day(tmp_path):

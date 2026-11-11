@@ -36,6 +36,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from services.shared import model_history
+from services.shared.states import ArticleKind, StoryResult
 
 from . import catalog as catalog_mod
 from . import demand as demand_mod
@@ -43,13 +44,13 @@ from . import features as features_mod
 from . import images as images_mod
 from . import llm as llm_mod
 from .editor import choose, choose_features, eligible
-from .kinds import ArticleKind
 from .ledger import Ledger
 from .links import attach_links, load_edges
 from .llm import LLMError, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
+from .store import LIVE_STATUSES, published_at
 from .tools import Toolbox
 from .writer import Outcome, write
 
@@ -181,21 +182,17 @@ def _unique_slug(store, slug: str, today: date) -> str:
 
 
 IL_TZ = ZoneInfo("Asia/Jerusalem")
+# A dataset whose explainer was rejected sits out the fill this long.
+FEATURE_REJECT_DAYS = 7
 
 
 def published_today(recent: list[dict], today_il: date) -> int:
-    """Articles published on `today_il` (an Israel calendar date)."""
+    """Live articles published on `today_il` (an Israel calendar date); an
+    unpublished one doesn't meet the floor."""
     n = 0
     for a in recent:
-        ts = a.get("published_at")
-        if isinstance(ts, str):
-            try:
-                ts = datetime.fromisoformat(ts)
-            except ValueError:
-                continue
-        if isinstance(ts, datetime):
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=UTC)
+        ts = published_at(a)
+        if ts and (a.get("status") or "published") in LIVE_STATUSES:
             n += ts.astimezone(IL_TZ).date() == today_il
     return n
 
@@ -213,8 +210,7 @@ class _Day:
         # explainers do the data work themselves (no seeded signal facts)
         self.feature_tool_calls = feature_tool_calls or max_tool_calls
 
-    def write_one(self, brief: dict) -> str:
-        """published | rejected | model_error | store_error."""
+    def write_one(self, brief: dict) -> StoryResult:
         llm, store, today = self.llm, self.store, self.today
         kind = brief.get("kind") or ArticleKind.NEWS
         ledger = Ledger()
@@ -230,7 +226,7 @@ class _Day:
             raise  # the key is refused: no point writing the next story
         except LLMError as e:  # still failing after retries: the story was never judged
             log.exception("news: writing %s failed on the model service", brief["signal_keys"])
-            status = "model_error"
+            status = StoryResult.MODEL_ERROR
             out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         except Exception as e:  # one story's crash must not cost the day's others
             log.exception("news: writing %s crashed", brief["signal_keys"])
@@ -246,7 +242,7 @@ class _Day:
                           "reason": out.reason, "problems": out.problems, "critic": out.critic,
                           "core": out.core, "tool_calls": out.tool_calls, "tools": tb.log,
                           "ledger": ledger.dump()})
-            return status or "rejected"
+            return status or StoryResult.REJECTED
         core = out.core
         try:
             slug = _unique_slug(store, core["slug"], today)
@@ -275,9 +271,9 @@ class _Day:
             log.exception("news: storing %s failed", keys)
             self.rejected.append({"signal_keys": keys, "kind": kind, "reason": "error",
                                   "headline": core.get("headline")})
-            return "store_error"
+            return StoryResult.STORE_ERROR
         self.published.append(slug)
-        return "published"
+        return StoryResult.PUBLISHED
 
 
 def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, catalog: dict,
@@ -309,14 +305,18 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
     store_errors = 0  # accepted stories the store failed to save
     for brief in briefs:
         r = day.write_one(brief)
-        model_errors += r == "model_error"
-        store_errors += r == "store_error"
+        model_errors += r == StoryResult.MODEL_ERROR
+        store_errors += r == StoryResult.STORE_ERROR
 
     out = {"candidates": len(cands), "briefs": len(briefs), "published": day.published,
            "rejected": day.rejected, "skipped": skipped[:20], "model_errors": model_errors,
            "store_errors": store_errors}
-    earlier = published_today(recent, now.astimezone(IL_TZ).date())
-    need = min(min_per_day - earlier - len(day.published), max_per_day - len(day.published))
+    if day.published:
+        # What this run just published counts too: the fill must not repeat
+        # its dataset or signal, and the floor counts it (from the store).
+        recent = store.recent(90)
+    today_count = published_today(recent, now.astimezone(IL_TZ).date())
+    need = min(min_per_day - today_count, max_per_day - len(day.published))
     if need > 0:
         out["fill"] = _fill(day, need=need, recent=recent, demand_by_id=demand_by_id or {},
                             cooldown_days=feature_cooldown_days, attempts=fill_attempts, now=now)
@@ -328,9 +328,15 @@ def _fill(day: _Day, *, need: int, recent: list[dict], demand_by_id: dict, coold
     """Explainers until `need` are published or the attempts run out. A fill's
     model or store error doesn't hold the cursor: explainers don't come from
     the render window, and the next run's floor tries again anyway."""
+    try:
+        rejects = day.store.recent_rejects(FEATURE_REJECT_DAYS)
+    except Exception:
+        log.warning("news: reading recent rejects failed", exc_info=True)
+        rejects = []
     cands = features_mod.candidates(catalog=day.catalog, models=day.models, series=day.series_by_ds,
                                     demand_by_id=demand_by_id, recent=recent,
-                                    cooldown_days=cooldown_days, now=now)
+                                    cooldown_days=cooldown_days, now=now,
+                                    exclude=features_mod.rejected_leads(rejects))
     used = {k for a in recent for k in a.get("signal_keys") or []}
     briefs = [b for b in choose_features(day.llm, cands, recent, max_briefs=need * attempts,
                                          today=day.today.isoformat())
@@ -340,7 +346,7 @@ def _fill(day: _Day, *, need: int, recent: list[dict], demand_by_id: dict, coold
         if published >= need:
             break
         tried += 1
-        published += day.write_one(brief) == "published"
+        published += day.write_one(brief) == StoryResult.PUBLISHED
     return {"kind": ArticleKind.FEATURE, "need": need, "candidates": len(cands), "briefs": len(briefs),
             "attempts": tried, "published": published}
 

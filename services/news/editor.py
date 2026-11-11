@@ -12,8 +12,10 @@ import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from .kinds import ArticleKind
+from services.shared.states import ArticleKind
+
 from .signals import Signal
+from .store import published_at
 
 log = logging.getLogger(__name__)
 PROMPT = Path(__file__).with_name("prompts") / "editor.md"
@@ -22,14 +24,17 @@ FEATURES_PROMPT = Path(__file__).with_name("prompts") / "features.md"
 
 def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
              now: datetime | None = None) -> list[Signal]:
-    """Signals whose dataset isn't in cooldown and whose key isn't used yet."""
+    """Signals whose dataset isn't in cooldown and whose key isn't used yet.
+    Only news articles start a cooldown: an explainer or a digest line about a
+    dataset must not keep its next real move off the page (their signal keys
+    still count as used)."""
     now = now or datetime.now(UTC)
     used = {k for a in recent for k in a.get("signal_keys") or []}
     cool = set()
     for a in recent:
-        ts = a.get("published_at")
-        if isinstance(ts, str):
-            ts = datetime.fromisoformat(ts)
+        if (a.get("kind") or ArticleKind.NEWS) != ArticleKind.NEWS:
+            continue
+        ts = published_at(a)
         if ts and now - ts < timedelta(days=cooldown_days):
             cool.update(a.get("dataset_ids") or [])
     return [s for s in signals if s.key not in used and s.dataset_id not in cool]
