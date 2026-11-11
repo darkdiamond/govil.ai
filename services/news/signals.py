@@ -16,6 +16,8 @@ since") and zero or more flags, each with a surprise weight:
     event_change                 a step series moved (e.g. a rate decision)
     pivot                        …and in the opposite direction to the last move
     year_closed                  a calendar year completed (always worth a look)
+    new_release                  a headline indicator's new period, nothing unusual
+                                 (release datasets only, opt-in: `releases=True`)
 
 surprise = strongest flag + a quarter of the rest. Ranking multiplies in
 search demand (`demand.py`) and cross-dataset links (`links.py`).
@@ -40,6 +42,13 @@ STREAK_MIN = {"D": 10, "W": 8, "M": 6, "Q": 4, "Y": 4}
 YOY_TURN_RUN = {"M": 12, "Q": 4, "W": 26}
 Z_MIN = 2.5
 SINCE_MIN_YEARS = 5
+# Release datasets: recurring official releases (CBS reports and price indices,
+# Bank of Israel series) whose every new period is a fair story on its own,
+# "what the new figure says", even with no flag. Weak on purpose: any anomaly
+# outranks it, and later series in a model (sub-indices) rank below the first.
+RELEASE_PREFIXES = ("cbs-", "boi-")
+RELEASE_FREQS = {"M", "Q", "E"}
+RELEASE_WEIGHT = 0.6
 
 
 @dataclass
@@ -138,8 +147,17 @@ def _suspect_incomplete(vals: list[float]) -> bool:
     return med > 0 and vals[-1] < SUSPECT_DROP * med
 
 
-def detect(series: Series, as_of: date, previous: Series | None = None) -> Signal | None:
-    """The signal for the series' latest complete period, or None."""
+def is_release(series: Series) -> bool:
+    return series.dataset_id.startswith(RELEASE_PREFIXES) and series.freq in RELEASE_FREQS
+
+
+def detect(series: Series, as_of: date, previous: Series | None = None, *,
+           releases: bool = False, order: int = 0) -> Signal | None:
+    """The signal for the series' latest complete period, or None.
+    `releases`: a release series' new period signals even when nothing is
+    unusual (`new_release`); `order` is its place in the model, so the
+    headline series outranks its sub-series."""
+    release = releases and is_release(series)
     pts = series.complete
     if len(pts) < MIN_HISTORY.get(series.freq, 8):
         return None
@@ -160,10 +178,11 @@ def detect(series: Series, as_of: date, previous: Series | None = None) -> Signa
     flags: dict[str, float] = {}
 
     if series.freq == "E":
-        if last_v == prev_v:
+        if last_v == prev_v and not release:
             return None
-        flags["event_change"] = 2.5
-        if len(pts) >= 3:
+        if last_v != prev_v:
+            flags["event_change"] = 2.5
+        if last_v != prev_v and len(pts) >= 3:
             before = prev_v - pts[-3][1]
             if before and (before > 0) != (last_v > prev_v):
                 flags["pivot"] = 1.0
@@ -221,6 +240,8 @@ def detect(series: Series, as_of: date, previous: Series | None = None) -> Signa
         if series.freq == "Y":
             flags["year_closed"] = 0.8
 
+    if not flags and release:
+        flags["new_release"] = round(RELEASE_WEIGHT * (1 - min(order, 50) / 200), 4)
     if not flags:
         return None
     ws = sorted(flags.values(), reverse=True)
@@ -238,11 +259,12 @@ def detect(series: Series, as_of: date, previous: Series | None = None) -> Signa
 
 
 def detect_all(series: list[Series], as_of: date,
-               previous: dict[str, Series] | None = None) -> list[Signal]:
+               previous: dict[str, Series] | None = None, *, releases: bool = False) -> list[Signal]:
     """`previous`: path → the same series in the previous snapshot."""
     out = []
-    for s in series:
-        sig = detect(s, as_of, (previous or {}).get(s.path) if previous is not None else None)
+    for i, s in enumerate(series):
+        sig = detect(s, as_of, (previous or {}).get(s.path) if previous is not None else None,
+                     releases=releases, order=i)
         if sig:
             out.append(sig)
     # A half-loaded period taints every series drawn from it: a chart's
@@ -265,10 +287,15 @@ def rank(signals: list[Signal], *, per_dataset: int = 3, top: int | None = None)
     for s in signals:
         link_bonus = 1 + 0.15 * min(len(s.links), 3)
         s.score = round(s.surprise * s.demand * link_bonus, 3)
-    out, per = [], {}
+    out, per, released = [], {}, set()
     for s in sorted(signals, key=lambda s: (-s.score, s.key)):
         if per.get(s.dataset_id, 0) >= per_dataset:
             continue
+        if s.flags == ["new_release"]:
+            # A release is one story: its headline series, not every sub-index.
+            if s.dataset_id in released:
+                continue
+            released.add(s.dataset_id)
         per[s.dataset_id] = per.get(s.dataset_id, 0) + 1
         out.append(s)
     return out[:top] if top else out
