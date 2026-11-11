@@ -244,12 +244,13 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 - **Failures that repeat every run but count as transient never escalate.** Only `StrikeError`
   and wall-budget overruns keep a strike count. A plain `fetch_failed` (a required resource that
   "has no rows", an export that comes back short every run, a table that grows during every
-  multi-page walk so the export always "moved during the export") and any other exception
+  multi-page walk so the export always "moved during the export") and a generic exception
   recorded as `error` open no issue and set no lock: the page stays last-good with only log
-  lines, and every run repeats the full export and compute. Fix: count them in
-  `transient_strikes` (one strike key per kind, reset when `failed_version_key` moves) and
-  escalate after `REFRESH_TRANSIENT_STRIKES` runs (`schema_changed` or `too_large` for a fetch,
-  `recipe_failed` for an error). (2026-11-11)
+  lines, and every run repeats the full export and compute. A borderline page whose check.py run
+  flaps around its timeout would also be better served by a strike count than by one outcome per
+  run. Fix: count them in `transient_strikes` (one strike key per kind, reset when
+  `failed_version_key` moves) and escalate after `REFRESH_TRANSIENT_STRIKES` runs
+  (`schema_changed` or `too_large` for a fetch, `recipe_failed` for an error). (2026-11-11)
 
 - **A code bug that fails every source can end the run green.** `run_refresh` turns an
   exception from `needs_refresh` or `refresh_one`'s set-up into that source's `FAILED`/`error`
@@ -395,6 +396,42 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   every provider dataset's normalized CSV in memory for the whole job run; nothing calls
   `clear_cache()`. Fix: clear each enabled provider's cache after `run_refresh`, or drop a
   source's entries once its refresh is done. (2026-11-11)
+
+- **The datastore page walk has no per-page retry.** `fetch_resource_records_to_file`
+  (`ckan_export.py`) calls `_fetch_page` once per page, so one transient error (a timeout, a reset,
+  a 5xx) discards a whole multi-page export, and the end-of-run retry starts again from row 0.
+  Fix: retry a failed page a bounded number of times (with a short backoff, inside the wall
+  budget) before failing the export; the post-walk re-preview already catches a table that moved
+  between pages. (2026-11-11)
+
+- **Every GCS read or write builds a new `storage.Client()`.** `_write_gcs` and `_read_gcs`
+  (`refresh.py`) create a client per call, about four per refreshed source (the previous body read
+  for rollback, the body, two model-history objects), each with its own auth and connection setup. Fix: reuse one client per run,
+  after checking it is safe across the sandbox spawns (the gRPC fork abort behind
+  `sandbox_failed`, see CLAUDE.md layer 5). (2026-11-11)
+
+- **A snapshot input's resource rename can still fingerprint-skip.** `input_fingerprint` and
+  `file_fingerprint` add only `[name, by_id, "snapshot"]` for a snapshot input, not its CKAN
+  resource name, so in `full` mode a bump that only renamed that resource (other inputs unchanged)
+  skips until the 14-day max age forces a render. Rare, and bounded like check A's other blind
+  spots. Fix: add the resolved resource's name for snapshot inputs too. (2026-11-11)
+
+- **A provider lookup in `refresh_one` sits outside its `try`.** `provider_for_key` runs before
+  the guarded block, so if it ever raised, the batch guard would record a bare `error` instead of
+  a provider outcome; settings errors no longer reach it, so this is defence in depth. Also, a
+  provider dropped for bad settings shows up downstream exactly like a disabled one
+  (`provider_disabled:<key>`), with one ERROR log line as the only signal. Fix: move the lookup
+  inside the `try`, and give a provider dropped for bad settings its own skip reason.
+  (2026-11-11)
+
+- **check.py's SCRIPT-URL rule still fires on data in attribute values.** The security rules now
+  skip string literals in code, but attribute values stay scanned, so a template that puts a data
+  value in `title="{{ v }}"` fails when the value happens to read like a `javascript:` URL.
+  Fix: decide whether attribute values written from autoescaped data can be exempted (for
+  non-URL attributes only), or tell authors to keep data out of attributes. Separately,
+  `test_check_security.py`'s `_DATA_TEMPLATE` puts autoescaped `{{ model.v }}` inside a JS
+  template literal (autoescape doesn't touch a backtick or `${`): switch it to
+  `{{ model.v|tojson }}` so the test doesn't model a pattern recipes must not copy. (2026-11-11)
 
 ## CBS reports (cbs_releases provider)
 
@@ -545,6 +582,29 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   discount mass resubmission. Fix: keep the last ping time (an actions/cache entry, or the live
   sitemap fetched before deploy) and submit only URLs whose `<lastmod>` is newer. (2026-11-11)
 
+- **The publish cache can carry stale `index.html` and orphan dataset dirs.** `publish.yml`'s
+  "Drop cached publisher JSON" step deletes only `data.json`/`agent_data.json`, while
+  `infra/sync-datasets.sh` also deletes `index.html`; the rsync excludes `index.html`, so a cached
+  one could linger under `public/datasets/<id>/`. A staged body whose dataset has no manifest
+  entry is still copied into the deploy by `nuxt generate`. Fix: delete `index.html` in the same
+  step, and have the publisher remove dataset dirs with no manifest entry. (2026-11-11)
+
+- **Header search shows "אין תוצאות" while the index loads or after it failed.** A failed load is
+  retried on the next open, but there is no loading or retry hint, and the hub pages' 503 path for
+  a failed index fetch has no automated test (it lives in an SFC). Fix: a loading state and a
+  "try again" line in `HeaderSearch.vue`, and move the hub's fetch-failure branch somewhere the
+  `node --test` suite can reach. (2026-11-11)
+
+- **Explorer search misses cells spelled without the geresh/gershayim.** `buildTsQuery`
+  (`frontend/utils/explorer-query.ts`) turns `בע"מ` into the phrase `בע <-> מ:*`, which matches
+  cells written with the mark, but not `בעמ`. Fix: emit `(בעמ:* | בע <-> מ:*)` for such words,
+  after checking the live counts as for the phrase form. (2026-11-11)
+
+- **The "updated since the analysis" icon compares UTC days.** `sourceUpdatedSinceAnalysis` in
+  `pages/datasets/[slug].vue` reduces both dates to UTC calendar days, so near midnight Israel
+  time a same-day update can show or hide the icon wrongly. Fix: compare Asia/Jerusalem days.
+  (2026-11-11)
+
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
@@ -563,6 +623,11 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   a lock, so each image gets whatever pip resolves on deploy day. Fix: `pillow>=13.0.0`, and a
   hashed lock file (`pip-compile --generate-hashes`) that the Dockerfiles and CI install from, so
   Dependabot sees the resolved versions. (2026-11-11)
+- **The fallback publisher image runs Python 3.11, the primary path 3.12.** `infra/Dockerfile.publisher`
+  installs Debian bookworm's `python3` (3.11), while `publish.yml` sets up 3.12, so the Cloud Build
+  path runs `services.page_builder.publish` on a different interpreter than the one CI tests.
+  Fix: install 3.12 in the image (e.g. copy it from `python:3.12-slim`, or `uv python install`).
+  (2026-11-11)
 
 ## Validation speed
 
