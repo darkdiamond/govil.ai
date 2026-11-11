@@ -3,7 +3,7 @@ import test from "node:test";
 
 // nuxt.config.ts calls the auto-imported defineNuxtConfig; outside Nuxt it is
 // the identity, so importing the file gives the config object Nuxt sees.
-globalThis.defineNuxtConfig = (config) => config;
+Object.assign(globalThis, { defineNuxtConfig: (config) => config });
 const { default: config } = await import("../nuxt.config.ts");
 
 // A route that fails to prerender writes no file. If the build went on, the
