@@ -884,6 +884,122 @@ def test_preview_carries_provider_presentation(tmp_path, monkeypatch):
     assert src.source_url == "https://boi.org.il/x"
 
 
+class _FakeNuxt:
+    """Stands in for `nuxt dev`: logs the port it says it bound, never exits."""
+
+    def __init__(self, logged_ports, started):
+        self.logged_ports, self.started = logged_ports, started
+
+    def __call__(self, cmd, stdout=None, **kw):
+        port = int(cmd[cmd.index("--port") + 1])
+        self.started.append(port)
+        bound = self.logged_ports.pop(0)
+        if bound is not None:
+            stdout.write(f"  \u279c Local:    http://127.0.0.1:{bound}/\n".encode())
+        return SimpleNamespace(pid=4242, poll=lambda: None, returncode=None)
+
+
+def _fake_preview_server(preview, tmp_path, monkeypatch, servers, logged_ports, free_ports):
+    """`servers` maps a port to the callable returning its /__preview/stamp
+    body: what is listening there, ours or another checkout's."""
+    import urllib.error
+    import urllib.parse
+
+    monkeypatch.setattr(preview, "REPO_ROOT", tmp_path)
+    front = tmp_path / "frontend"
+    (front / "node_modules" / ".bin").mkdir(parents=True)
+    (front / "node_modules" / ".bin" / "nuxt").touch()
+    monkeypatch.setattr(preview, "FRONTEND", front)
+    monkeypatch.setattr(preview.subprocess, "run", lambda *a, **k: None)
+    started, killed = [], []
+    monkeypatch.setattr(preview.subprocess, "Popen", _FakeNuxt(list(logged_ports), started))
+    ports = iter(free_ports)
+    monkeypatch.setattr(preview, "_free_port", lambda: next(ports))
+    monkeypatch.setattr(preview, "_kill", killed.append)
+    clock = [0.0]
+    monkeypatch.setattr(preview, "time", SimpleNamespace(
+        monotonic=lambda: clock[0], time_ns=lambda: 1_700_000_000_000_000_000,
+        sleep=lambda s: clock.__setitem__(0, clock[0] + s)))
+    monkeypatch.setattr(preview, "SERVER_READY_TIMEOUT_S", 5)
+
+    class _Resp:
+        def __init__(self, body):
+            self.body, self.status = body, 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return self.body
+
+    def urlopen(url, timeout=None):
+        port = urllib.parse.urlsplit(url).port
+        if port not in servers:
+            raise urllib.error.URLError("connection refused")
+        return _Resp(servers[port]().encode())
+
+    monkeypatch.setattr(preview.urllib.request, "urlopen", urlopen)
+    return started, killed
+
+
+def test_preview_rejects_a_foreign_server(tmp_path, monkeypatch):
+    """Two checkouts picked port 3100; the other one's preview server holds it
+    and answers the readiness probe. Ours must never adopt it."""
+    from services.page_builder.cli import preview
+
+    other, ours = tmp_path / "other" / "preview", tmp_path / "ours" / "preview"
+    for root, stamp in ((other, "111"), (ours, "222")):
+        root.mkdir(parents=True)
+        (root / "stamp").write_text(stamp)
+    servers = {3100: lambda: (other / "stamp").read_text()}
+    _, killed = _fake_preview_server(preview, tmp_path, monkeypatch, servers,
+                                     logged_ports=[None], free_ports=[3100])
+    with pytest.raises(SystemExit, match="not ready"):
+        preview.ensure_server(ours)
+    assert killed == [4242] and not (ours / "server.json").exists()
+
+    # A recorded server whose port now answers for another checkout is not ours.
+    (ours / "server.json").write_text(json.dumps({"pid": 4242, "port": 3100}))
+    monkeypatch.setattr(preview, "_is_ours", lambda info: True)
+    assert preview.running_server(ours) is None
+
+
+def test_preview_restarts_when_nuxt_binds_another_port(tmp_path, monkeypatch, capsys):
+    """nuxt dev falls back to another port, silently, when ours was taken
+    after the probe: the CLI notices from the log, stops it and starts again."""
+    from services.page_builder.cli import preview
+
+    other, ours = tmp_path / "other" / "preview", tmp_path / "ours" / "preview"
+    for root, stamp in ((other, "111"), (ours, "222")):
+        root.mkdir(parents=True)
+        (root / "stamp").write_text(stamp)
+    servers = {3100: lambda: (other / "stamp").read_text(),
+               3000: lambda: (ours / "stamp").read_text(),
+               3101: lambda: (ours / "stamp").read_text()}
+    started, killed = _fake_preview_server(preview, tmp_path, monkeypatch, servers,
+                                           logged_ports=[3000, 3101], free_ports=[3100, 3101])
+    info = preview.ensure_server(ours)
+    assert info["port"] == 3101 and started == [3100, 3101] and killed == [4242]
+    assert json.loads((ours / "server.json").read_text())["port"] == 3101
+    assert "bound port 3000, not 3100" in capsys.readouterr().out
+
+
+def test_preview_server_normal_start(tmp_path, monkeypatch):
+    from services.page_builder.cli import preview
+
+    ours = tmp_path / "ours" / "preview"  # nothing staged yet: no stamp
+    servers = {3100: lambda: (ours / "stamp").read_text()}
+    started, killed = _fake_preview_server(preview, tmp_path, monkeypatch, servers,
+                                           logged_ports=[3100], free_ports=[3100])
+    info = preview.ensure_server(ours)
+    assert info["port"] == 3100 and started == [3100] and killed == []
+    assert json.loads((ours / "server.json").read_text())["pid"] == 4242
+    assert (ours / "stamp").read_text()  # the identity the probe compared
+
+
 def test_author_verify_requires_valid_tags(tmp_path, monkeypatch, capsys):
     author = _prepared(tmp_path, monkeypatch, _rows([2023, 2024, 2025]))
     pending = tmp_path / "authoring" / DS / "tags.json"
