@@ -53,6 +53,12 @@ not mark it down for lacking a new event, but kill filler that restates the
 dataset's description. Under RISK, a feature that names, ranks or singles out a
 private individual or a named business from a registry is a "kill".
 
+If the article is marked KIND: digest, it is the weekly roundup of small moves:
+judge each item as "worth a line", not "worth an article". Score "news" on
+whether the roundup as a whole tells readers what moved this week, clearly
+and with each comparison's basis. Kill only for artefacts or misleading items,
+not for the items being modest.
+
 "pass" only if every score is ≥ 4. "kill" when there is no real story or the
 problem cannot be fixed by rewriting (wrong premise, artefact). Otherwise
 "revise" with concrete fixes.

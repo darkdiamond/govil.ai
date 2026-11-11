@@ -40,6 +40,7 @@ from services.shared.states import ArticleKind, StoryResult
 
 from . import catalog as catalog_mod
 from . import demand as demand_mod
+from . import digest as digest_mod
 from . import features as features_mod
 from . import images as images_mod
 from . import llm as llm_mod
@@ -52,7 +53,7 @@ from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
 from .store import LIVE_STATUSES, published_at
 from .tools import Toolbox
-from .writer import Outcome, write
+from .writer import DATA_ONLY_KINDS, Outcome, write
 
 log = logging.getLogger("services.news.run")
 TAGS_PATH = Path(__file__).resolve().parents[2] / "taxonomy" / "tags.json"
@@ -64,6 +65,12 @@ def _env_int(name: str, default: int) -> int:
         return int(os.environ.get(name, default))
     except ValueError:
         return default
+
+
+def _digest_weekday() -> int | None:
+    """NEWS_DIGEST_WEEKDAY: Python weekday 0-6 (4 = Friday); unset or bad = off."""
+    v = os.environ.get("NEWS_DIGEST_WEEKDAY", "").strip()
+    return int(v) if v.isdigit() and int(v) <= 6 else None
 
 
 def _env_flag(name: str) -> bool:
@@ -224,7 +231,7 @@ class _Day:
         status = None
         try:
             out = write(llm, tb, brief, catalog=self.catalog, vocab=self.vocab, today=today.isoformat(),
-                        max_tool_calls=(self.feature_tool_calls if kind == ArticleKind.FEATURE
+                        max_tool_calls=(self.feature_tool_calls if kind in DATA_ONLY_KINDS
                                         else self.max_tool_calls))
         except LLMUnavailable:
             raise  # the key is refused: no point writing the next story
@@ -286,12 +293,15 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
               max_tool_calls: int = 25, images: bool = True, fetcher=None,
               stored: list | None = None, min_per_day: int = 0, demand_by_id: dict | None = None,
               feature_cooldown_days: int = 60, fill_attempts: int = 2,
-              feature_tool_calls: int | None = None, now: datetime | None = None) -> dict:
+              feature_tool_calls: int | None = None, digest_weekday: int | None = None,
+              now: datetime | None = None) -> dict:
     """One day's editorial pass. Returns the summary (also what main prints).
     `stored` (if given) collects the slugs stored so far, so a caller still
     sees them when the pass raises.
 
-    Event news first (signals → editor). Then the floor: when fewer than
+    Event news first (signals → editor); the candidates it didn't use go to
+    the signal pool. On `digest_weekday` (Israel date, Python weekday), the
+    weekly digest of pooled signals (`digest.py`). Then the floor: when fewer than
     `min_per_day` articles came out on this Israel date (this run's and earlier
     runs'), explainers fill the gap (`features.py` → `editor.choose_features`),
     up to `fill_attempts` briefs per missing article. A fill goes through the
@@ -307,24 +317,52 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
                published=stored if stored is not None else [], feature_tool_calls=feature_tool_calls)
     model_errors = 0  # event stories lost to the model service, not to an editorial decision
     store_errors = 0  # accepted stories the store failed to save
+    published_keys: set[str] = set()   # a rejected brief's signals may still make the digest
     for brief in briefs:
         r = day.write_one(brief)
         model_errors += r == StoryResult.MODEL_ERROR
         store_errors += r == StoryResult.STORE_ERROR
+        if r == StoryResult.PUBLISHED:
+            published_keys.update(brief["signal_keys"])
 
     out = {"candidates": len(cands), "briefs": len(briefs), "published": day.published,
            "rejected": day.rejected, "skipped": skipped[:20], "model_errors": model_errors,
            "store_errors": store_errors}
+    il_today = now.astimezone(IL_TZ).date()
+    try:  # the digest's raw material; losing one run's worth costs little
+        store.pool(digest_mod.pool_items(cands, published_keys, skipped, run_id))
+    except Exception:
+        log.warning("news: pooling the editor's unused signals failed", exc_info=True)
     if day.published:
-        # What this run just published counts too: the fill must not repeat
-        # its dataset or signal, and the floor counts it (from the store).
+        # What this run just published counts too: the digest and the fill
+        # must not repeat its signal or dataset, and the floor counts it.
         recent = store.recent(90)
-    today_count = published_today(recent, now.astimezone(IL_TZ).date())
+    if digest_weekday is not None and il_today.weekday() == digest_weekday:
+        # Its own weekly slot: a busy Friday (max_per_day reached) must not
+        # silently cost the week its digest.
+        out["digest"] = _digest(day, recent=recent, today=il_today, cooldown_days=cooldown_days)
+        if out["digest"].get("status") == StoryResult.PUBLISHED:
+            recent = store.recent(90)
+    today_count = published_today(recent, il_today)
     need = min(min_per_day - today_count, max_per_day - len(day.published))
     if need > 0:
         out["fill"] = _fill(day, need=need, recent=recent, demand_by_id=demand_by_id or {},
                             cooldown_days=feature_cooldown_days, attempts=fill_attempts, now=now)
     return out
+
+
+def _digest(day: _Day, *, recent: list[dict], today: date, cooldown_days: int) -> dict:
+    """This week's digest, once (its `digest:<week>` key dedups later runs)."""
+    try:
+        pool = day.store.read_pool(7)
+    except Exception:
+        log.warning("news: reading the signal pool failed", exc_info=True)
+        return {"status": StoryResult.POOL_UNREADABLE}
+    b = digest_mod.brief(pool, recent, today=today, cooldown_days=cooldown_days,
+                         series_by_ds=day.series_by_ds, catalog=day.catalog)
+    if b is None:
+        return {"status": StoryResult.DIGEST_SKIPPED, "pooled": len(pool)}
+    return {"status": day.write_one(b), "pooled": len(pool), "items": len(b["signals"])}
 
 
 def _fill(day: _Day, *, need: int, recent: list[dict], demand_by_id: dict, cooldown_days: int,
@@ -490,7 +528,8 @@ def main(argv: list[str] | None = None) -> int:
                         stored=stored, min_per_day=a.min_articles, demand_by_id=dem,
                         feature_cooldown_days=_env_int("NEWS_FEATURE_COOLDOWN_DAYS", 60),
                         fill_attempts=_env_int("NEWS_FILL_ATTEMPTS", 2),
-                        feature_tool_calls=_env_int("NEWS_FEATURE_MAX_TOOL_CALLS", 35))
+                        feature_tool_calls=_env_int("NEWS_FEATURE_MAX_TOOL_CALLS", 35),
+                        digest_weekday=_digest_weekday())
         summary |= day | {"status": "ok" if day["published"] else "idle"}
         if live and day["published"]:
             summary["publish_dispatch"] = _dispatch_publish()

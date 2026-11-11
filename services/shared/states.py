@@ -106,6 +106,9 @@ class StoryResult(StrEnum):
     REJECTED = "rejected"        # gates or critic said no: an editorial decision
     MODEL_ERROR = "model_error"  # the model service failed after retries: never judged
     STORE_ERROR = "store_error"  # accepted, but the store failed to save it
+    # the weekly digest only (`news_summary.digest.status`)
+    DIGEST_SKIPPED = "skipped"            # already written this week, or too few items
+    POOL_UNREADABLE = "pool_unreadable"   # the signal pool couldn't be read
 
 
 @dataclass
