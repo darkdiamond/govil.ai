@@ -359,3 +359,30 @@ def test_real_json_islands_still_skipped(attrs):
 ])
 def test_every_loading_attribute_checked(body, capsys):
     _rejects(body, capsys, "EXTERNAL-SRC")
+
+
+def test_many_matching_data_strings_are_checked_quickly():
+    # 30k data strings that each match a JS rule: the literal lookup must
+    # not be linear per match. Absolute bound with a wide margin (this
+    # takes well under a second on a dev machine; the quadratic lookup took
+    # about a minute at this size).
+    import json
+    import time
+
+    if check._esprima is None:
+        pytest.skip("esprima not installed")
+    rows = [{"name": f"GPS navigator. model {i}", "v": i} for i in range(30000)]
+    body = _script(f"var rows = {json.dumps(rows)}; var n = rows.length;")
+    t0 = time.monotonic()
+    _passes(body)
+    assert time.monotonic() - t0 < 20
+
+
+@pytest.mark.parametrize("js,rule", [
+    ('var a=1;<!--<script></script>\nfetch("//e");\n', "NETWORK-API"),
+    ('var a=1;<!--<script></script>\nlocation.href = "//e";\n', "NAVIGATION"),
+])
+def test_comment_opener_in_script_scans_rest_of_body(js, rule, capsys):
+    # After `<!--<script` the browser does not end the block at the next
+    # `</script>`, so the code after it still runs.
+    _rejects(f"<section><script>{js}</script></section>", capsys, rule)

@@ -23,6 +23,7 @@ share that path.
 """
 from __future__ import annotations
 
+import bisect
 import json
 import re
 import sys
@@ -541,7 +542,13 @@ def _code_and_markup(
             chars = list(src)
             for r0, r1 in ranges:
                 chars[r0 + 1:r1 - 1] = " " * (r1 - r0 - 2)
-            code.append((src, ranges))
+            if "<!--" in src:
+                # `<!--<script` puts the HTML tokenizer in the double-escaped
+                # state, so the block may end at a later `</script>` than
+                # the one matched here: scan the rest of the body whole.
+                code.append((scan[m.start(2):], []))
+            else:
+                code.append((src, ranges))
             view.append("".join(chars))
         pos = m.end(2)
     tail = scan[pos:]
@@ -573,10 +580,12 @@ def check_security(body: str) -> None:
                 _sec_fail(rule, text, m.start(), m.end(), fix)
     for rule, rx, fix in _SEC_JS_RULES:
         for src, ranges in code:
+            starts = [r0 for r0, _ in ranges]  # sorted, non-overlapping
             for m in rx.finditer(src):
                 # A match that lies wholly inside one literal is data; one
                 # that starts in code (`createElement('script')`) is not.
-                if any(r0 <= m.start() and m.end() <= r1 for r0, r1 in ranges):
+                i = bisect.bisect_right(starts, m.start()) - 1
+                if i >= 0 and m.end() <= ranges[i][1]:
                     continue
                 _sec_fail(rule, src, m.start(), m.end(), fix)
     for tag in _SRC_TAG_RE.finditer(scan):
