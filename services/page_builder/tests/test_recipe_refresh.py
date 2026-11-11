@@ -2344,3 +2344,70 @@ def test_precheck_hashes_see_resource_rename(tmp_path):
 def test_schema_is_render_code():
     """schema.py validators rewrite agent_data, so it is render code."""
     assert Path(rf.__file__).resolve().parent / "schema.py" in rf._RENDER_CODE_FILES
+
+
+# ── loading a recipe from GitHub file by file (RECIPES_FETCH=files) ─────
+
+
+def _github_files(monkeypatch, fail):
+    """Fake GitHub for `GithubRecipeRepo(fetch="files")` serving the fixture
+    recipe. `fail[name]` is how fetching that recipe file fails: an HTTP
+    status, "timeout", or bytes served instead of the file."""
+    import httpx
+
+    def get(url, **kw):
+        req = httpx.Request("GET", url)
+        if url.endswith("/commits/main"):
+            return httpx.Response(200, json={"sha": "abc123"}, request=req)
+        if "/git/trees/abc123" in url:
+            tree = [{"path": f"recipes/{DS}/{p.name}"} for p in (FIXTURES / DS).iterdir()]
+            return httpx.Response(200, json={"tree": tree}, request=req)
+        prefix = f"https://raw.githubusercontent.com/o/r/abc123/recipes/{DS}/"
+        assert url.startswith(prefix), url
+        name = url[len(prefix):]
+        how = fail.get(name)
+        if how == "timeout":
+            raise httpx.ReadTimeout("timed out", request=req)
+        if isinstance(how, int):
+            return httpx.Response(how, request=req)
+        if isinstance(how, bytes):
+            return httpx.Response(200, content=how, request=req)
+        return httpx.Response(200, content=(FIXTURES / DS / name).read_bytes(), request=req)
+
+    monkeypatch.setattr(httpx, "get", get)
+
+
+def _run_github(env, store, ckan):
+    return rf.run_refresh(
+        store, rf.GithubRecipeRepo("o/r", "main", fetch="files"), staging_bucket="bkt",
+        work_root=env.tmp / "work", write_gcs=env.write_gcs, read_gcs=env.read_gcs,
+        preview_fn=ckan.preview, fetch_fn=ckan.fetch,
+    )
+
+
+@pytest.mark.parametrize("how", [503, 429, "timeout"])
+def test_transient_error_loading_a_recipe_is_retried_without_an_issue(env, monkeypatch, how):
+    fail = {"compute.py": how}
+    _github_files(monkeypatch, fail)
+    store = FakeStore(_src())
+    ckan = FakeCkan(_rows([2024, 2025]))
+    s = _run_github(env, store, ckan)
+    out = s["outcomes"][0]
+    assert out["status"] == "failed" and out["reason"] == "fetch_failed", out
+    assert env.issues == [] and env.staged == {} and store.states == {}
+    fail.clear()  # GitHub is back: the next run renders it
+    assert _run_github(env, store, ckan)["refreshed"] == [DS]
+    assert env.issues == []
+
+
+@pytest.mark.parametrize("fail", [
+    {"template.html.j2": 404},
+    {"recipe.json": b"{not json"},
+])
+def test_missing_or_malformed_recipe_file_is_still_recipe_invalid(env, monkeypatch, fail):
+    _github_files(monkeypatch, fail)
+    store = FakeStore(_src())
+    s = _run_github(env, store, FakeCkan(_rows([2024, 2025])))
+    assert s["outcomes"][0]["reason"] == "recipe_invalid"
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "recipe_failed"
+    assert env.staged == {}

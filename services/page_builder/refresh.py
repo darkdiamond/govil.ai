@@ -416,6 +416,21 @@ class GithubRecipeRepo:
         return size, len(members)
 
 
+def _is_transient_fetch_error(e: BaseException) -> bool:
+    """A recipe file download that failed in transit (timeout, connection,
+    GitHub 5xx or rate limit), not a missing or broken recipe: retried next
+    run. A 404 and anything the recipe's own bytes caused stay recipe errors."""
+    import httpx
+
+    if isinstance(e, httpx.TransportError):
+        return True
+    if isinstance(e, httpx.HTTPStatusError):
+        r = e.response
+        return (r.status_code >= 500 or r.status_code == 429
+                or (r.status_code == 403 and r.headers.get("x-ratelimit-remaining") == "0"))
+    return False
+
+
 def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:
     """Download a recipe with `fetch(name, path)`: the fixed files, then the
     snapshot files its recipe.json declares. The names are validated (plain
@@ -1948,6 +1963,15 @@ def run_refresh(
                 try:
                     recipe = repo.load(dataset_id, scratch)
                 except Exception as e:
+                    if _is_transient_fetch_error(e):
+                        # Nothing recorded and no issue: the next run loads it again.
+                        log.warning("recipe %s: fetching its files failed, retrying next run: %s",
+                                    dataset_id[:8], e)
+                        outcomes.append(RefreshOutcome(
+                            dataset_id, OutcomeStatus.FAILED, reason=FailReason.FETCH_FAILED,
+                            error=_clip(f"{type(e).__name__}: {e}"),
+                        ))
+                        continue
                     log.exception("recipe %s failed to load", dataset_id[:8])
                     outcome = RefreshOutcome(
                         dataset_id, OutcomeStatus.FAILED, reason=FailReason.RECIPE_INVALID, error=_clip(str(e))
