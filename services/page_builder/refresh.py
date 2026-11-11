@@ -1187,7 +1187,15 @@ def _run_compute_once(
             raw = sandbox.files.read("outputs/model.json")
         except FileNotFoundError as e:
             raise RecipeError(f"compute() wrote no model: {e}") from e
-        return json.loads(raw.decode("utf-8"))
+        try:
+            model = json.loads(raw.decode("utf-8"))
+        except ValueError as e:  # bad JSON or bad UTF-8: what compute() returned
+            raise RecipeError(f"compute() wrote an unreadable model.json: {e}") from e
+        if not isinstance(model, dict):
+            raise RecipeError(
+                f"compute() model.json is a {type(model).__name__}, not an object"
+            )
+        return model
     finally:
         sandbox.kill()
 
@@ -1222,7 +1230,10 @@ def render_page(
     template_src = recipe.template_path.read_text(encoding="utf-8")
     # The template sees exactly what compute() returned (extras included).
     html = render_template(template_src, raw_model, inputs_context(inputs or {}))
-    html = sanitize_content_html(html, dataset_id=recipe.dataset_id)
+    try:
+        html = sanitize_content_html(html, dataset_id=recipe.dataset_id)
+    except ValueError as e:  # e.g. unbalanced <style>/<script>: the template's output
+        raise RecipeError(str(e)) from e
     check_root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="check-", dir=check_root) as d:
         try:

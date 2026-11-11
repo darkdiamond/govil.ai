@@ -8,6 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_SCRIPT_PATH = REPO_ROOT / "agent" / "skills" / "check.py"
+_CHECK_TIMEOUT_S = 60
 
 
 def run_host_check(
@@ -32,14 +33,22 @@ def run_host_check(
     a = workdir / "validated-agent_data.json"
     c.write_text(content_html, encoding="utf-8")
     a.write_text(agent_data_json, encoding="utf-8")
-    proc = subprocess.run(
-        [sys.executable, "-I", str(CHECK_SCRIPT_PATH), *(["--recipe"] if recipe else []),
-         str(c), str(a)],
-        capture_output=True,
-        text=True,
-        timeout=60,
-        check=False,  # the exit code is reported below, with the output
-    )
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-I", str(CHECK_SCRIPT_PATH), *(["--recipe"] if recipe else []),
+             str(c), str(a)],
+            capture_output=True,
+            text=True,
+            timeout=_CHECK_TIMEOUT_S,
+            check=False,  # the exit code is reported below, with the output
+        )
+    except subprocess.TimeoutExpired as e:
+        # The body decides how long check.py takes, so this is the page's
+        # failure like any other verdict, not a crash.
+        raise RuntimeError(
+            f"host self-check timed out after {_CHECK_TIMEOUT_S}s "
+            f"({len(content_html):,} bytes of content)"
+        ) from e
     if proc.returncode != 0:
         raise RuntimeError(
             f"host self-check failed (exit {proc.returncode}): "

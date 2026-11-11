@@ -567,6 +567,59 @@ def test_compute_crash_is_a_recipe_failure(env, tmp_path):
     assert "boom" in s["outcomes"][0]["error"]
 
 
+def _assert_recipe_failure_locks(env, store, ckan, recipes):
+    """A deterministic recipe-side failure: issue opened, last-good page kept,
+    and the same data + recipe are not retried."""
+    s = _run(env, store, ckan, recipes=recipes)
+    assert s["outcomes"][0]["reason"] == "recipe_failed"
+    assert env.staged == {}
+    assert len(env.issues) == 1 and env.issues[0]["reason"] == "recipe_failed"
+    assert _run(env, store, ckan, recipes=recipes)["outcomes"][0]["reason"] == "up_to_date"
+    assert len(env.issues) == 1
+    return s
+
+
+def test_unclosed_style_in_template_is_a_recipe_failure(env, tmp_path):
+    recipes = tmp_path / "recipes"
+    shutil.copytree(FIXTURES / DS, recipes / DS)
+    tpl = recipes / DS / "template.html.j2"
+    tpl.write_text("<style>.x{color:red}\n" + tpl.read_text(encoding="utf-8"), encoding="utf-8")
+    store = FakeStore(_src())
+    s = _assert_recipe_failure_locks(env, store, FakeCkan(_rows([2024, 2025])), recipes)
+    assert "unbalanced <style>" in s["outcomes"][0]["error"]
+
+
+def test_check_timeout_is_a_recipe_failure(env, monkeypatch):
+    from services.page_builder import page_gate
+
+    def slow(cmd, **kw):
+        raise subprocess.TimeoutExpired(cmd, kw.get("timeout"))
+
+    # Only page_gate's view of subprocess: compute's sandbox must still run.
+    # The unmemoized gate: the suite's cache would answer for the fixture page.
+    monkeypatch.setattr(page_gate, "subprocess", SimpleNamespace(
+        run=slow, TimeoutExpired=subprocess.TimeoutExpired,
+    ))
+    monkeypatch.setattr(rf, "run_host_check", page_gate.run_host_check)
+    store = FakeStore(_src())
+    s = _assert_recipe_failure_locks(env, store, FakeCkan(_rows([2024, 2025])), FIXTURES)
+    assert "timed out" in s["outcomes"][0]["error"]
+
+
+@pytest.mark.parametrize("payload", [b"{not json", b"\xff\xfe", b"[1, 2]"])
+def test_malformed_model_json_is_a_recipe_failure(env, monkeypatch, payload):
+    from services.page_builder import local_sandbox as ls
+
+    real = ls._Files.read
+    monkeypatch.setattr(
+        ls._Files, "read",
+        lambda self, path: payload if path == "outputs/model.json" else real(self, path),
+    )
+    store = FakeStore(_src())
+    s = _assert_recipe_failure_locks(env, store, FakeCkan(_rows([2024, 2025])), FIXTURES)
+    assert "model" in s["outcomes"][0]["error"]
+
+
 def _flaky_sandbox(monkeypatch, stderr, fail_times):
     """Make the first `fail_times` sandbox runs exit -6 with `stderr`."""
     from services.page_builder import local_sandbox as ls
