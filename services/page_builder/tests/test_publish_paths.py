@@ -9,6 +9,7 @@ forgot to write it.
 """
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -71,4 +72,25 @@ def test_publish_path_has_step(rel, step):
     assert found, (
         f"{rel} lacks the '{step}' step (/{MARKERS[step]}/); keep the publish "
         f"paths in step: {', '.join(PATHS)}"
+    )
+
+
+def test_publisher_image_pins_match_the_primary_path():
+    # The fallback image must run the Node and firebase-tools the primary path
+    # runs: publish.yml pins Node away from a release that breaks the deploy's
+    # auth, and deploys with the lockfile's firebase-tools.
+    workflow = (ROOT / ".github/workflows/publish.yml").read_text(encoding="utf-8")
+    node = re.search(r'node-version:\s*"([0-9.]+)"', workflow)
+    assert node, "publish.yml node-version not found"
+    lock = json.loads((ROOT / "frontend/package-lock.json").read_text(encoding="utf-8"))
+    firebase = lock["packages"]["node_modules/firebase-tools"]["version"]
+
+    dockerfile = (ROOT / "infra/Dockerfile.publisher").read_text(encoding="utf-8")
+    base = re.search(r"^FROM\s+node:(\S+)", dockerfile, re.MULTILINE)
+    assert base, "Dockerfile.publisher FROM node:<tag> not found"
+    assert re.match(rf"{re.escape(node.group(1))}(-|$)", base.group(1)), (
+        f"Dockerfile.publisher node:{base.group(1)} vs publish.yml {node.group(1)}"
+    )
+    assert re.search(rf"firebase-tools@{re.escape(firebase)}\b", dockerfile), (
+        f"Dockerfile.publisher must install firebase-tools@{firebase} (the lockfile's)"
     )
