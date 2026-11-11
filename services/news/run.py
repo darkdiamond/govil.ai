@@ -37,6 +37,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from services.shared import model_history
+from services.shared.env import env_int as _env_int
 from services.shared.states import ArticleKind, NewsRunStatus, StoryResult
 
 from . import catalog as catalog_mod
@@ -59,13 +60,6 @@ from .writer import DATA_ONLY_KINDS, Outcome, write
 log = logging.getLogger("services.news.run")
 TAGS_PATH = Path(__file__).resolve().parents[2] / "taxonomy" / "tags.json"
 BYLINE = "מערכת govil.ai"
-
-
-def _env_int(name: str, default: int) -> int:
-    try:
-        return int(os.environ.get(name, default))
-    except ValueError:
-        return default
 
 
 def _digest_weekday() -> int | None:

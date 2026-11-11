@@ -39,6 +39,8 @@ from urllib import error as urllib_error
 
 from services.providers import SOURCE_CONFIG_FILENAME, SourceConfig, provider_for_key
 from services.shared import github, model_history
+from services.shared.env import env_float as _env_float
+from services.shared.env import env_int as _env_int
 from services.shared.fetch_types import (
     DownloadBlocked,
     FetchLimitExceeded,
@@ -61,13 +63,14 @@ from .ckan_export import (
     fetch_resource_preview,
 )
 from .local_sandbox import LocalSandbox, OutputTooLarge
-from .page_gate import run_host_check
+from .page_gate import CHECK_SCRIPT_PATH, run_host_check
 from .recipe import (
     MANIFEST_FILENAME,
     RECIPE_FILES,
     PreviewUnavailable,
     Recipe,
     RecipeError,
+    RecipeLimits,
     RecipeManifest,
     feature_table,
     kpi_format_findings,
@@ -163,20 +166,6 @@ AUTHORING_REASONS = frozenset({
 def _clip(msg: str, head: int = 150, tail: int = 450) -> str:
     """Keep what a traceback is about (head) AND where it ended (tail)."""
     return msg if len(msg) <= head + tail else f"{msg[:head]} … {msg[-tail:]}"
-
-
-def _env_int(name: str, default: int) -> int:
-    try:
-        return int(os.environ.get(name, "") or default)
-    except ValueError:
-        return default
-
-
-def _env_float(name: str, default: float) -> float:
-    try:
-        return float(os.environ.get(name, "") or default)
-    except ValueError:
-        return default
 
 
 # No-op precheck (REFRESH_PRECHECK): CKAN bumps `metadata_modified` on every
@@ -674,7 +663,6 @@ def _recipe_lib_hash() -> str:
 # _RENDER_CODE_FILES on purpose: a deploy that changes any of it retries
 # locked sources once, but must not re-render every page through the prechecks.
 _SERVICES_DIR = Path(__file__).resolve().parent.parent
-_CHECK_SCRIPT = _SERVICES_DIR.parent / "agent" / "skills" / "check.py"
 
 
 @functools.lru_cache(maxsize=1)
@@ -686,7 +674,7 @@ def _builder_code_hash() -> str:
         if "tests" not in p.relative_to(_SERVICES_DIR).parts
     )
     h = hashlib.sha256()
-    for path in [*files, _CHECK_SCRIPT]:
+    for path in [*files, CHECK_SCRIPT_PATH]:
         if not path.is_file():
             continue
         h.update(str(path.relative_to(_SERVICES_DIR.parent)).encode())
@@ -824,6 +812,37 @@ def content_hash(page: RenderedPage) -> str:
     return h.hexdigest()
 
 
+@dataclass(frozen=True)
+class FetchLimits:
+    """The fetch caps one recipe runs under: its `limits`, else the env
+    `REFRESH_*` knobs, else the defaults above. `fetch_inputs` fetches under
+    them and `_memory_guard` keeps compute's RLIMIT_FSIZE at or above the
+    largest input they admit, so both read them from here."""
+    max_records: int
+    max_bytes: int  # one input (REFRESH_MAX_BYTES)
+    total_bytes: int  # all inputs together (REFRESH_TOTAL_BYTES)
+    page_size: int
+    file_max_bytes: int
+    wall_budget_s: float
+
+
+def resolved_limits(limits: RecipeLimits) -> FetchLimits:
+    return FetchLimits(
+        max_records=limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS),
+        max_bytes=limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES),
+        # A per-resource cap above the dataset total would be clipped by it.
+        total_bytes=limits.total_bytes or max(
+            _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
+        ),
+        page_size=_env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE),
+        file_max_bytes=_env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES),
+        wall_budget_s=float(
+            limits.wall_budget_s
+            or _env_int("REFRESH_WALL_BUDGET_S", int(_DEFAULT_WALL_BUDGET_S))
+        ),
+    )
+
+
 def fetch_inputs(
     recipe: Recipe,
     resources: list[dict],
@@ -851,19 +870,13 @@ def fetch_inputs(
     _preview = probe.preview
     resolved = probe.resolved
 
-    limits = recipe.manifest.limits
-    max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
-    max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
-    # A per-resource cap above the dataset total would be clipped by it.
-    remaining = limits.total_bytes or max(
-        _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
-    )
-    page_size = _env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE)
-    file_max_bytes = _env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES)
-    deadline = time.monotonic() + float(
-        limits.wall_budget_s
-        or _env_int("REFRESH_WALL_BUDGET_S", int(_DEFAULT_WALL_BUDGET_S))
-    )
+    caps = resolved_limits(recipe.manifest.limits)
+    max_records = caps.max_records
+    max_bytes = caps.max_bytes
+    remaining = caps.total_bytes
+    page_size = caps.page_size
+    file_max_bytes = caps.file_max_bytes
+    deadline = time.monotonic() + caps.wall_budget_s
 
     dest_dir.mkdir(parents=True, exist_ok=True)
     out: dict[str, list[FetchedInput]] = {}
@@ -1094,12 +1107,8 @@ def _memory_guard(recipe: Recipe) -> str:
         code += f"import resource; resource.setrlimit(resource.RLIMIT_DATA, ({n}, {n}))\n"
     fsize = _env_int("REFRESH_COMPUTE_FILE_MAX_BYTES", _DEFAULT_COMPUTE_FILE_MAX_BYTES)
     if fsize > 0:
-        largest_input = max(
-            limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES),
-            limits.total_bytes or max(
-                _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
-            ),
-        )
+        caps = resolved_limits(limits)
+        largest_input = max(caps.max_bytes, caps.total_bytes)
         n = max(fsize, largest_input)
         # Python ignores SIGXFSZ, so a write past it raises OSError (EFBIG).
         code += (

@@ -27,6 +27,7 @@ from .fetch import official_source
 from .ledger import (
     FORMATS,
     LINK,
+    MONTHS,
     TOKEN,
     YEARLIKE,
     Ledger,
@@ -36,7 +37,7 @@ from .ledger import (
     spelled_numbers,
     stray_numbers,
 )
-from .series import MONTHS_HE, parse_period
+from .series import parse_period
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
@@ -57,12 +58,11 @@ PUNCTUATION = [
     (re.compile("…|\\.\\.\\."), "no ellipses"),
     (re.compile(r"[\U0001F300-\U0001FAFF☀-➿]"), "no emoji or symbols"),
 ]
-_MONTHS = "ינואר|פברואר|מרץ|מרס|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר"
 # Tautologies the first real drafts leaned on (2026-11-09 dry runs), and raw
 # source units a reader shouldn't see.
 PATTERNS = [
     (re.compile(r"(?:19|20)\d\d\s+אשתקד"), "a year plus אשתקד — one or the other"),
-    (re.compile(rf"(?:{_MONTHS})\s+(?:19|20)\d\d\s+(?:הנוכחי|האחרון|הקרוב|שעבר)"),
+    (re.compile(rf"(?:{MONTHS})\s+(?:19|20)\d\d\s+(?:הנוכחי|האחרון|הקרוב|שעבר)"),
      "month + year + הנוכחי/האחרון — the date already says it"),
     (re.compile(r"ועד כה|ועד היום|ומאז החל|באותה תקופה"), "filler after a date"),
     (re.compile(r"אלפי (?:שקלים|ש\"ח|ש״ח)"), "thousands of shekels — scale to millions/billions (calc scale)"),
@@ -82,7 +82,7 @@ _YEAR_SPAN = re.compile(r"(?:19|20)\d\d[/–-]\d\d")
 _Y = r"(?:1[89]\d\d|20\d\d)"
 _PERIOD_LABEL = re.compile(
     rf"{_Y}|{_Y}-(?:0[1-9]|1[0-2])|{_Y}[- ]?Q[1-4]|Q[1-4][- ]?{_Y}|{_Y}-\d\d-\d\d"
-    rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{'|'.join(MONTHS_HE)}|מרס)\s+{_Y}",
+    rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{MONTHS})\s+{_Y}",
     re.IGNORECASE)
 _PER_N = re.compile(r"(?<![א-ת])(?:ל-?|לכל\s+)(?:10|100|1,?000|10,?000|100,?000)"
                     r"(?=\s+(?!(?:אלף|אלפי|מיליון|מיליוני|מיליארד)(?![א-ת]))[א-ת])")

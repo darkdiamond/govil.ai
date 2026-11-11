@@ -414,14 +414,7 @@ def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
     from services.shared.resources import select_prefetch_resources
 
     from .ckan_export import fetch_resource_export, fetch_resource_preview
-    from .refresh import (
-        _DEFAULT_FILE_MAX_BYTES,
-        _DEFAULT_MAX_BYTES,
-        _DEFAULT_MAX_RECORDS,
-        _DEFAULT_PAGE_SIZE,
-        _env_int,
-        _project_csv,
-    )
+    from .refresh import _DEFAULT_PAGE_SIZE, _project_csv, resolved_limits
 
     provider = _provider_for_recipe(dataset_id)
     if provider is not None:
@@ -446,8 +439,9 @@ def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
     # still takes the limits.
     recipe = _committed_recipe(dataset_id)
     limits = recipe.manifest.limits if recipe else RecipeLimits()
-    max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
-    max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
+    caps = resolved_limits(limits)
+    max_records = caps.max_records
+    max_bytes = caps.max_bytes
     wall_s = max(_PREPARE_WALL_S, limits.wall_budget_s or 0)
     modified = {r.get("id"): r.get("last_modified") for r in src.resources or []}
     by_id = {r.get("id"): r for r in src.resources or []}  # url + format, for the file fetch
@@ -483,7 +477,7 @@ def prepare(dataset_id: str, *, all_columns: bool = False) -> Path:
                 fetch_resource_export, res["id"], total, dest,
                 resource=by_id.get(res["id"]), preview=preview, fields=cols,
                 max_bytes=max_bytes, page_size=_DEFAULT_PAGE_SIZE, page_timeout_s=60.0,
-                file_max_bytes=_env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES),
+                file_max_bytes=caps.file_max_bytes,
                 deadline=time.monotonic() + wall_s,
             )
             if out is not None and cols:

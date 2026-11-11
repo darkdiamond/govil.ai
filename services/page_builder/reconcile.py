@@ -23,9 +23,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 
 from services.providers import provider_for_key
+from services.shared.env import env_int
 from services.shared.firestore import FirestoreStateStore, SourceRecord
 from services.shared.resources import pick_primary_resource_id
 from services.shared.states import AnalysisStatus
@@ -62,10 +62,7 @@ async def probe_one(client, src: SourceRecord, providers=None) -> str:
 
 
 def max_flips_from_env() -> int:
-    try:
-        return max(0, int(os.environ.get("RECONCILE_MAX_FLIPS", "") or DEFAULT_MAX_FLIPS))
-    except ValueError:
-        return DEFAULT_MAX_FLIPS
+    return max(0, env_int("RECONCILE_MAX_FLIPS", DEFAULT_MAX_FLIPS))
 
 
 async def reconcile_sources(
