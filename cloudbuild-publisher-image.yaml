@@ -3,7 +3,7 @@
 # Register as a second Cloud Build trigger, path-filtered to:
 #   - infra/Dockerfile.publisher
 #   - frontend/package-lock.json
-#   - services/page_builder/requirements.txt
+#   - services/page_builder/requirements-publish.txt
 #
 # Example:
 #   gcloud builds triggers create manual \
@@ -16,31 +16,31 @@
 # (Or the equivalent github-trigger variant — see infra/DEPLOY.md.)
 
 steps:
-  - id: 'build-image'
-    name: 'gcr.io/cloud-builders/docker'
+  - id: "build-image"
+    name: "gcr.io/cloud-builders/docker"
     args:
-      - 'build'
-      - '--cache-from=${_IMAGE}:latest'
-      - '-t'
-      - '${_IMAGE}:latest'
-      - '-t'
-      - '${_IMAGE}:${COMMIT_SHA}'
-      - '-f'
-      - 'infra/Dockerfile.publisher'
-      - '.'
+      - "build"
+      - "--cache-from=${_IMAGE}:latest"
+      - "-t"
+      - "${_IMAGE}:latest"
+      - "-t"
+      - "${_IMAGE}:${COMMIT_SHA}"
+      - "-f"
+      - "infra/Dockerfile.publisher"
+      - "."
 
-  - id: 'push-image'
-    name: 'gcr.io/cloud-builders/docker'
-    args: ['push', '--all-tags', '${_IMAGE}']
+  - id: "push-image"
+    name: "gcr.io/cloud-builders/docker"
+    args: ["push", "--all-tags", "${_IMAGE}"]
 
 substitutions:
-  _IMAGE: 'me-west1-docker.pkg.dev/govdata-il/publisher/publisher'
+  _IMAGE: "me-west1-docker.pkg.dev/govdata-il/publisher/publisher"
 
 images:
-  - '${_IMAGE}:latest'
-  - '${_IMAGE}:${COMMIT_SHA}'
+  - "${_IMAGE}:latest"
+  - "${_IMAGE}:${COMMIT_SHA}"
 
 options:
   logging: CLOUD_LOGGING_ONLY
 
-timeout: '1200s'
+timeout: "1200s"
