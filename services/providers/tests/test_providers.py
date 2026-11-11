@@ -249,6 +249,17 @@ def test_bad_answers_are_provider_errors(boi, resp):
         boi.csv_bytes(_res(boi))
 
 
+def test_non_utf8_csv_is_a_provider_error(boi):
+    """A byte that isn't UTF-8 fails the download as a ProviderError (a None
+    preview, so a strike that escalates), not a bare UnicodeDecodeError."""
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode() + "שקל\n".encode("cp1255"))
+    res = _res(boi)
+    with pytest.raises(ProviderError, match="boi-br") as e:
+        boi.version(res)
+    assert isinstance(e.value.__cause__, UnicodeDecodeError)
+    assert boi.preview(res) is None
+
+
 def test_server_errors_are_retried(boi, monkeypatch):
     boi.settings = boi.settings.model_copy(update={"retries": 1})
     monkeypatch.setattr("services.providers.base.time.sleep", lambda s: None)

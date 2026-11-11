@@ -54,7 +54,6 @@ from .base import (
     SourceConfig,
     SourcePresentation,
     SourceProvider,
-    normalize_csv,
 )
 from .cbs import CbsReleasesProvider
 
@@ -448,8 +447,7 @@ class CbsIndexProvider(SourceProvider):
         freq = (resource.get("params") or {}).get("frequency") or "both"
         key = f"{resource['url']}#frequency={freq}"
         if key not in self._cache:
-            self._cache[key] = normalize_csv(self.download(resource), self.sort_keys,
-                                             count=True)
+            self._cache[key] = self._load(resource)
         return self._cache[key]
 
     def pages(self, r: CbsIndexResource) -> list[dict]:

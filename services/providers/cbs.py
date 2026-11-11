@@ -53,7 +53,6 @@ from .base import (
     SourceConfig,
     SourcePresentation,
     SourceProvider,
-    normalize_csv,
 )
 
 SITE = "https://www.cbs.gov.il"
@@ -533,7 +532,7 @@ class CbsReleasesProvider(SourceProvider):
         # different number of editions.
         key = self._key(resource)
         if key not in self._cache:
-            self._cache[key] = normalize_csv(self.download(resource), self.sort_keys, count=True)
+            self._cache[key] = self._load(resource)
         return self._cache[key]
 
     def download(self, resource: dict) -> bytes:

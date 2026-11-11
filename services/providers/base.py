@@ -254,9 +254,19 @@ class SourceProvider(abc.ABC):
     def _cached(self, resource: dict) -> tuple[bytes, int]:
         url = resource["url"]
         if url not in self._cache:
-            data, rows = normalize_csv(self.download(resource), self.sort_keys, count=True)
-            self._cache[url] = (data, rows)
+            self._cache[url] = self._load(resource)
         return self._cache[url]
+
+    def _load(self, resource: dict) -> tuple[bytes, int]:
+        """`download` + `normalize_csv`. A reply the parsing can't read (a null
+        where a number goes, a non-UTF-8 byte, a missing key) is a ProviderError
+        like any other provider failure, so preview/fetch turn it into a strike
+        that escalates instead of a bare exception the refresh only logs."""
+        try:
+            return normalize_csv(self.download(resource), self.sort_keys, count=True)
+        except (ValueError, KeyError, TypeError, IndexError) as e:  # incl. UnicodeDecodeError
+            raise ProviderError(f"{resource.get('id')}: unreadable answer from {self.key} "
+                                f"({type(e).__name__}: {e})") from e
 
     def _capped(self, resource: dict) -> tuple[bytes, int]:
         """`_cached`, refused over the provider's `max_bytes`. `version` reads

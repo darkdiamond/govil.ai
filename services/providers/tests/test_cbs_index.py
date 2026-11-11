@@ -520,3 +520,22 @@ def test_brief_names_quarters_by_time_period(tmp_path):
     f.write_bytes(p.csv_bytes(res))
     brief = p.brief_section(res, f)
     assert "| 1993-Q1 | 1993-Q4 |" in brief
+
+
+@pytest.mark.parametrize("bad", [
+    {"year": None},       # int(None): TypeError
+    {"month": "x"},       # int("x"): ValueError
+    {"currBase": {"baseDesc": "B", "value": "N/A"}},  # float("N/A"): ValueError
+])
+def test_malformed_row_is_a_provider_error(bad):
+    """A reply the parser can't read fails like any other provider failure:
+    ProviderError from version(), None from preview() (a transient strike that
+    escalates), never a bare TypeError the refresh records as a plain error."""
+    row = {**_row("month", 2026, 1, "B", 100.0), **bad}
+    page = {"month": [_series(1, "month", [row])], "paging": {"last_page": 1}}
+    p = make_provider({"1": [page]})
+    res = resource(p, codes=[1], frequency="month")
+    with pytest.raises(ProviderError, match="cpi") as e:
+        p.version(res)
+    assert isinstance(e.value.__cause__, (TypeError, ValueError))
+    assert p.preview(res) is None
