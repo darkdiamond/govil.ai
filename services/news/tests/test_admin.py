@@ -6,7 +6,7 @@ import pytest
 
 from services.news import admin
 from services.news import store as store_mod
-from services.news.publish_news import LIVE
+from services.news.store import LIVE_STATUSES
 
 
 class _Snap:
@@ -59,7 +59,7 @@ def test_correct_on_a_live_article_marks_it_corrected(docs, status):
 def test_correct_on_an_unpublished_article_keeps_it_off_the_site(docs, capsys):
     docs["pulled-article"] = {"slug": "pulled-article", "status": "unpublished"}
     assert admin.main(["correct", "pulled-article", "--note", "תיקון"]) == 1
-    assert docs["pulled-article"]["status"] not in LIVE
+    assert docs["pulled-article"]["status"] not in LIVE_STATUSES
     assert "correction" not in docs["pulled-article"]
     assert "unpublished" in capsys.readouterr().err
 

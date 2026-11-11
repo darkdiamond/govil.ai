@@ -143,9 +143,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             return f"/datasets/{catalog[ds].get('page_slug') or ds}/"
         return f"/datasets/{ds}/" if ds in series_by_ds else None
 
-    def text(field_name: str, s, *, numbers_ok=False) -> tuple[list[dict], str]:
+    def text(field_name: str, s) -> tuple[list[dict], str]:
         s = str(s or "")
-        if not numbers_ok and (bad := stray_numbers(s)):
+        if bad := stray_numbers(s):
             # A year has no fact token: telling the writer to use one gives it
             # nothing to fix (the 2026-11-09 live story died on exactly that).
             years = [b for b in bad if YEARLIKE.fullmatch(b)]
@@ -157,7 +157,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
                     f"{field_name}: years without date context {years[:5]} — write the year as "
                     "a date ('בשנת 2025', 'ב-2025', after a month name, 'מאז 2019', a range "
                     "'2019–2025'); if it is a count that only looks like a year, use a fact token")
-        if not numbers_ok and (bad := spelled_numbers(s)):
+        if bad := spelled_numbers(s):
             problems.append(f"{field_name}: quantities spelled in words {bad[:3]} — a number from "
                             "data needs a fact token; one from a source needs that source linked "
                             "and quoted, or leave it out")

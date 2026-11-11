@@ -276,8 +276,7 @@ class _Day:
                 "ledger": ledger.dump(), "words": core["words"], "run_id": self.run_id,
                 "critic_scores": (out.critic or {}).get("scores"),
                 "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
-                           "image": os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
-                           if hero["kind"] == "illustration" else None},
+                           "image": llm_mod.IMAGE_MODEL if hero["kind"] == "illustration" else None},
             }
             store.publish(doc, files)
         except LLMUnavailable:

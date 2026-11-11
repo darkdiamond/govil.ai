@@ -17,8 +17,10 @@ import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
+# store.py is light at import (google.cloud only inside methods): fine in the publisher image.
+from .store import LIVE_STATUSES
+
 log = logging.getLogger(__name__)
-LIVE = ("published", "corrected")
 
 
 def _dataset_href(ds: str, page_slugs: dict[str, str]) -> str | None:
@@ -96,7 +98,7 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
     page_slugs = {i: d["page_slug"] for i, d in datasets.items() if d.get("page_slug")}
     news_root = out_root / "news"
     news_root.mkdir(parents=True, exist_ok=True)
-    live = [a for a in articles if a.get("status") in LIVE and a.get("slug")]
+    live = [a for a in articles if a.get("status") in LIVE_STATUSES and a.get("slug")]
     live.sort(key=lambda a: str(a.get("published_at") or ""), reverse=True)
 
     index = []

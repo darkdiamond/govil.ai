@@ -187,7 +187,7 @@ class FirestoreArticles:
         from google.cloud.firestore_v1.base_query import FieldFilter
 
         for d in self.db.collection(ARTICLES).where(
-                filter=FieldFilter("status", "in", ["published", "corrected"])).stream():
+                filter=FieldFilter("status", "in", list(LIVE_STATUSES))).stream():
             x = join(d.to_dict() or {})
             x["published_at"], x["updated_at"] = _iso(x.get("published_at")), _iso(x.get("updated_at"))
             yield x
