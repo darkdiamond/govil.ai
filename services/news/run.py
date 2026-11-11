@@ -519,7 +519,7 @@ def main(argv: list[str] | None = None) -> int:
                 seed = []
             store = LocalArticles(a.out, seed=seed)
         if not a.no_tables:
-            from services.page_builder.refresh import recipe_repo_from_env
+            from services.page_builder.recipe_repo import recipe_repo_from_env
             from services.shared.firestore import FirestoreStateStore
 
             from .data import DatasetTables

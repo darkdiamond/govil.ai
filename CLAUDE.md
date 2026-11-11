@@ -88,7 +88,7 @@ landing pages. Six layers:
    the scan goes on; 20 in a row, or a listing failure, stop it. Either way
    the rest of the run goes ahead on the Firestore docs already there and
    ends `status: scan_failed`) →
-   **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
+   **load the recipe list from git `main`** (`recipe_repo.recipe_repo_from_env`,
    `RECIPES_SOURCE`, default `github:<PUBLISH_GITHUB_REPO>@main`;
    prod sets `RECIPES_FETCH=tarball` (code default `files`): one archive
    download per run instead of 3+ GitHub requests per recipe, which cost
@@ -575,7 +575,7 @@ are still read by the authoring selector.
 | ---------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pipeline orchestration | `services/page_builder/pipeline.py`                                                        | reconcile → scan → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                       |
 | Authoring queue        | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                                    |
-| Recipe refresh         | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                   |
+| Recipe refresh         | `services/page_builder/{refresh,recipe_repo}.py`                                           | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                   |
 | Providers (non-CKAN)   | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                                       |
 | Recipe contract        | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                                             |
 | GitHub issues          | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                                  |

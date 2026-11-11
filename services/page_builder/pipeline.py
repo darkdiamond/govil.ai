@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import logging
 import os
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from services.scanner.config import ScannerSettings
@@ -174,6 +175,135 @@ async def _dispatch_publish(
     return None
 
 
+@dataclass(frozen=True)
+class PipelineSettings:
+    """The job's env knobs, read once per run by `run_pipeline` (`from_env`)."""
+    scan_limit: int
+    notify_cap: int
+    selector_gates: dict
+    staging_bucket: str
+    project_id: str
+    publish_via: str
+    publish_repo: str
+    publish_workflow: str
+    trigger_id: str
+    publish_branch: str
+    publish_region: str
+    reconcile_enabled: bool
+    reconcile_weekday: int
+
+    @classmethod
+    def from_env(cls, *, require_staging_bucket: bool) -> PipelineSettings:
+        """Malformed SCAN_LIMIT / AUTHORING_NOTIFY_CAP / MIN_MODIFIED_FLOOR /
+        MAX_AGE_DAYS raise (the run fails); a malformed RECONCILE_WEEKDAY warns
+        and falls back to Sunday. `require_staging_bucket` (a real run) raises
+        when GCS_STAGING_BUCKET is unset, before the reconcile knobs are read."""
+        # SCAN_LIMIT bounds how many CKAN datasets (sorted metadata_modified
+        # desc) the daily scan ingests into Firestore. The authoring queue can
+        # only see what's been scanned, so this must cover the eligible window:
+        # 2026 (~433) + 2025 (~92) → 800 with headroom. Raise it in lockstep
+        # when MIN_MODIFIED_FLOOR drops to admit an older year.
+        scan_limit = int(os.environ.get("SCAN_LIMIT", "800"))
+        # New issues opened per run — a fuse against a scan anomaly flooding the
+        # tracker. Already-notified sources don't count (the selector skips them).
+        notify_cap = int(os.environ.get("AUTHORING_NOTIFY_CAP", "100"))
+        # Selection date gates, env-overridable so widening coverage one year
+        # at a time is a `gcloud run` env change, not a redeploy. Unset →
+        # selector.DEFAULT_* (floor 2026-01-01, rolling window 365d).
+        selector_gates: dict = {}
+        floor_env = os.environ.get("MIN_MODIFIED_FLOOR", "").strip()
+        if floor_env:
+            floor_dt = datetime.fromisoformat(floor_env)
+            if floor_dt.tzinfo is None:
+                floor_dt = floor_dt.replace(tzinfo=UTC)
+            selector_gates["min_modified_floor"] = floor_dt
+        max_age_env = os.environ.get("MAX_AGE_DAYS", "").strip()
+        if max_age_env:
+            selector_gates["max_age_days"] = int(max_age_env)
+        staging_bucket = os.environ.get("GCS_STAGING_BUCKET", "")
+        project_id = (
+            os.environ.get("FIREBASE_PROJECT")
+            or os.environ.get("GOOGLE_CLOUD_PROJECT")
+            or "govdata-il"
+        )
+        # Publish mechanism: "github" (Actions workflow_dispatch, default),
+        # "cloudbuild" (legacy trigger, fallback), or "" to disable publishing.
+        publish_via = os.environ.get("PUBLISH_VIA", "github").strip().lower()
+        publish_repo = github.default_repo()
+        publish_workflow = os.environ.get("PUBLISH_GITHUB_WORKFLOW", "publish.yml")
+        trigger_id = os.environ.get("PUBLISH_TRIGGER_ID", "govdata-publish")
+        publish_branch = os.environ.get("PUBLISH_BRANCH", "main")
+        publish_region = os.environ.get("PUBLISH_REGION", "me-west1")
+
+        if require_staging_bucket and not staging_bucket:
+            raise RuntimeError(
+                "GCS_STAGING_BUCKET must be set for a real pipeline run"
+            )
+
+        # Weekly reconcile gates: RECONCILE_ENABLED + RECONCILE_WEEKDAY
+        # (Asia/Jerusalem), default off / Sunday.
+        reconcile_enabled = os.environ.get("RECONCILE_ENABLED", "false").lower() in (
+            "true", "1", "yes",
+        )
+        try:
+            reconcile_weekday = int(os.environ.get("RECONCILE_WEEKDAY", "6"))
+        except ValueError:
+            log.warning("invalid RECONCILE_WEEKDAY=%r — defaulting to 6 (Sunday)",
+                        os.environ.get("RECONCILE_WEEKDAY"))
+            reconcile_weekday = 6
+        return cls(
+            scan_limit=scan_limit,
+            notify_cap=notify_cap,
+            selector_gates=selector_gates,
+            staging_bucket=staging_bucket,
+            project_id=project_id,
+            publish_via=publish_via,
+            publish_repo=publish_repo,
+            publish_workflow=publish_workflow,
+            trigger_id=trigger_id,
+            publish_branch=publish_branch,
+            publish_region=publish_region,
+            reconcile_enabled=reconcile_enabled,
+            reconcile_weekday=reconcile_weekday,
+        )
+
+
+def _il_now() -> datetime:
+    try:
+        from zoneinfo import ZoneInfo
+        il_now = datetime.now(ZoneInfo("Asia/Jerusalem"))
+    except Exception:  # noqa: BLE001
+        il_now = datetime.now(UTC)
+    return il_now
+
+
+async def _reconcile_sweep(store, config, il_now: datetime) -> tuple[dict | None, bool]:
+    """Run the reconcile sweep; (its summary, whether the run must end
+    `reconcile_failed`). Records the IL date marker only after a full sweep."""
+    reconcile_summary = None
+    reconcile_failed = False
+    from services.scanner.client import CKANClient
+
+    from . import reconcile as _reconcile
+    try:
+        async with CKANClient(config=config) as _ckan:
+            reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
+        log.info("reconcile: %s", reconcile_summary)
+        if reconcile_summary.get("aborted"):
+            # No marker: the next run today sweeps again.
+            reconcile_failed = True
+        else:
+            try:
+                store.set_job_marker("reconcile", {"last_date": il_now.date().isoformat()})
+            except Exception:
+                log.warning("reconcile: couldn't record the sweep; the next run today "
+                            "repeats it", exc_info=True)
+    except Exception:
+        log.exception("reconcile sweep failed — continuing with scan/refresh")
+        reconcile_failed = True
+    return reconcile_summary, reconcile_failed
+
+
 async def run_pipeline(
     *,
     mode: str = "scheduled",
@@ -184,48 +314,7 @@ async def run_pipeline(
     """The one entry point the job (CLI) uses."""
     store = FirestoreStateStore()
     config = ScannerSettings()
-
-    # SCAN_LIMIT bounds how many CKAN datasets (sorted metadata_modified
-    # desc) the daily scan ingests into Firestore. The authoring queue can
-    # only see what's been scanned, so this must cover the eligible window:
-    # 2026 (~433) + 2025 (~92) → 800 with headroom. Raise it in lockstep
-    # when MIN_MODIFIED_FLOOR drops to admit an older year.
-    scan_limit = int(os.environ.get("SCAN_LIMIT", "800"))
-    # New issues opened per run — a fuse against a scan anomaly flooding the
-    # tracker. Already-notified sources don't count (the selector skips them).
-    notify_cap = int(os.environ.get("AUTHORING_NOTIFY_CAP", "100"))
-    # Selection date gates, env-overridable so widening coverage one year
-    # at a time is a `gcloud run` env change, not a redeploy. Unset →
-    # selector.DEFAULT_* (floor 2026-01-01, rolling window 365d).
-    selector_gates: dict = {}
-    floor_env = os.environ.get("MIN_MODIFIED_FLOOR", "").strip()
-    if floor_env:
-        floor_dt = datetime.fromisoformat(floor_env)
-        if floor_dt.tzinfo is None:
-            floor_dt = floor_dt.replace(tzinfo=UTC)
-        selector_gates["min_modified_floor"] = floor_dt
-    max_age_env = os.environ.get("MAX_AGE_DAYS", "").strip()
-    if max_age_env:
-        selector_gates["max_age_days"] = int(max_age_env)
-    staging_bucket = os.environ.get("GCS_STAGING_BUCKET", "")
-    project_id = (
-        os.environ.get("FIREBASE_PROJECT")
-        or os.environ.get("GOOGLE_CLOUD_PROJECT")
-        or "govdata-il"
-    )
-    # Publish mechanism: "github" (Actions workflow_dispatch, default),
-    # "cloudbuild" (legacy trigger, fallback), or "" to disable publishing.
-    publish_via = os.environ.get("PUBLISH_VIA", "github").strip().lower()
-    publish_repo = github.default_repo()
-    publish_workflow = os.environ.get("PUBLISH_GITHUB_WORKFLOW", "publish.yml")
-    trigger_id = os.environ.get("PUBLISH_TRIGGER_ID", "govdata-publish")
-    publish_branch = os.environ.get("PUBLISH_BRANCH", "main")
-    publish_region = os.environ.get("PUBLISH_REGION", "me-west1")
-
-    if not dry_run and not staging_bucket:
-        raise RuntimeError(
-            "GCS_STAGING_BUCKET must be set for a real pipeline run"
-        )
+    settings = PipelineSettings.from_env(require_staging_bucket=not dry_run)
 
     # [0] weekly reconcile — probe already-published sources and flag those
     # removed upstream (they vanish from CKAN's list, so the scan below
@@ -233,43 +322,12 @@ async def run_pipeline(
     # (Asia/Jerusalem), default off / Sunday. Full sweep, no cursor.
     reconcile_summary = None
     reconcile_failed = False
-    reconcile_enabled = os.environ.get("RECONCILE_ENABLED", "false").lower() in (
-        "true", "1", "yes",
-    )
-    try:
-        reconcile_weekday = int(os.environ.get("RECONCILE_WEEKDAY", "6"))
-    except ValueError:
-        log.warning("invalid RECONCILE_WEEKDAY=%r — defaulting to 6 (Sunday)",
-                    os.environ.get("RECONCILE_WEEKDAY"))
-        reconcile_weekday = 6
-    try:
-        from zoneinfo import ZoneInfo
-        il_now = datetime.now(ZoneInfo("Asia/Jerusalem"))
-    except Exception:  # noqa: BLE001
-        il_now = datetime.now(UTC)
+    il_now = _il_now()
     if not dry_run and not override_id and _reconcile_due(
-        il_now, enabled=reconcile_enabled, weekday=reconcile_weekday
+        il_now, enabled=settings.reconcile_enabled, weekday=settings.reconcile_weekday
     ) and not _reconciled_today(store, il_now):
-        from services.scanner.client import CKANClient
-
-        from . import reconcile as _reconcile
-        log.info("reconcile: due (weekday=%s) — running sweep", reconcile_weekday)
-        try:
-            async with CKANClient(config=config) as _ckan:
-                reconcile_summary = await _reconcile.reconcile_sources(store, _ckan)
-            log.info("reconcile: %s", reconcile_summary)
-            if reconcile_summary.get("aborted"):
-                # No marker: the next run today sweeps again.
-                reconcile_failed = True
-            else:
-                try:
-                    store.set_job_marker("reconcile", {"last_date": il_now.date().isoformat()})
-                except Exception:
-                    log.warning("reconcile: couldn't record the sweep; the next run today "
-                                "repeats it", exc_info=True)
-        except Exception:
-            log.exception("reconcile sweep failed — continuing with scan/refresh")
-            reconcile_failed = True
+        log.info("reconcile: due (weekday=%s) — running sweep", settings.reconcile_weekday)
+        reconcile_summary, reconcile_failed = await _reconcile_sweep(store, config, il_now)
 
     # [1] scan — unless override_id is set (manual single-source run)
     # A failed scan doesn't stop the run: provider sync, refresh and the
@@ -281,7 +339,7 @@ async def run_pipeline(
     if not override_id:
         scanner = Scanner(config=config, store=store)
         try:
-            scan_summary = await scanner.scan(limit=scan_limit, mode=mode)
+            scan_summary = await scanner.scan(limit=settings.scan_limit, mode=mode)
         except Exception as e:
             log.exception("scan failed — continuing on the existing Firestore data")
             scan_error = f"{type(e).__name__}: {e}"[:500]
@@ -344,9 +402,9 @@ async def run_pipeline(
             return await asyncio.to_thread(
                 selector.pick_authoring_candidates,
                 store,
-                notify_cap,
+                settings.notify_cap,
                 exclude_ids=recipe_ids,
-                **selector_gates,
+                **settings.selector_gates,
             )
         if only_ids or override_src.analysis_status in NO_DATA_STATUSES:
             return []
@@ -369,7 +427,7 @@ async def run_pipeline(
                 _refresh.run_refresh,
                 store,
                 repo,
-                staging_bucket=staging_bucket,
+                staging_bucket=settings.staging_bucket,
                 only_ids=only_ids,
                 # A manual single-dataset run means "render it now", even
                 # when the page is already up to date.
@@ -416,10 +474,10 @@ async def run_pipeline(
     publish_due = (bool(refreshed_ids) or bool(pending)) and not skip_publish
     summary["build_id"] = await _dispatch_publish(
         publish_due,
-        publish_via, publish_repo, publish_workflow, publish_branch,
-        project_id, trigger_id, publish_region,
+        settings.publish_via, settings.publish_repo, settings.publish_workflow,
+        settings.publish_branch, settings.project_id, settings.trigger_id, settings.publish_region,
     )
-    publish_failed = publish_due and bool(publish_via) and summary["build_id"] is None
+    publish_failed = publish_due and bool(settings.publish_via) and summary["build_id"] is None
     if publish_failed:
         _set_publish_pending(store, True)
     elif summary["build_id"] is not None and pending is not False:
