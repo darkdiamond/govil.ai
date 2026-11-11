@@ -813,9 +813,10 @@ def test_preview_stages_a_new_dataset_with_manifest_entry(tmp_path, monkeypatch,
         "id": DS, "title": "תאונות דרכים לפי מחוז", "slug": "road-accidents",
         "organization": {"name": "police", "title": "משטרת ישראל"},
         "metadata_modified": "2026-10-20T08:00:00+00:00", "record_count": 72,
-        "resources": [{"id": RID, "url": "https://data.gov.il/x.csv", "format": "csv"}],
+        "resources": [{"id": RID, "url": "https://data.gov.il/x.csv", "format": "csv",
+                       "datastore_active": True}],
     }, ensure_ascii=False))
-    other = "99999999-0000-0000-0000-000000000000"
+    other ="99999999-0000-0000-0000-000000000000"
     # related.py drops features found in >50% of docs: unrelated filler keeps
     # the shared words informative.
     filler = [{"id": f"f{i}", "slug": f"f{i}", "title": t}
@@ -1900,6 +1901,47 @@ def test_author_runtime_parity(tmp_path, monkeypatch):
     ]
     versions["pandas"] = "3.1.0"
     assert author.runtime_parity_problems(reqs) == []
+
+
+def test_author_runtime_parity_covers_numpy(tmp_path, monkeypatch):
+    from importlib import metadata
+
+    from services.page_builder import author
+
+    reqs = tmp_path / "requirements.txt"
+    reqs.write_text("pandas>=3.0.5,<4\nnumpy>=2,<3\njinja2>=3.1.6\n")
+    versions = {"pandas": "3.1.0", "numpy": "1.26.4", "jinja2": "3.1.6"}
+    monkeypatch.setattr(metadata, "version", lambda name: versions[name])
+    assert author.runtime_parity_problems(reqs) == [
+        "numpy 1.26.4 here, builder image pins numpy>=2,<3"
+    ]
+    versions["numpy"] = "2.5.1"
+    assert author.runtime_parity_problems(reqs) == []
+    # The real builder pins include numpy.
+    assert any(line.startswith("numpy") for line in
+               author.BUILDER_REQUIREMENTS.read_text(encoding="utf-8").splitlines())
+
+
+@pytest.mark.parametrize("bad", ["../x", "/etc", "", "/tmp/x", "cbs-", "nope-x", "AAAAAAAA-0000-0000-0000-000000000001"])
+def test_author_rejects_path_like_ids(tmp_path, monkeypatch, bad):
+    from services.page_builder import author
+    from services.page_builder.cli import preview
+
+    monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
+    monkeypatch.setattr(preview, "PREVIEW_ROOT", tmp_path / "preview")
+    for argv in (["verify", bad], ["prepare", bad], ["snapshot", bad, "f.geojson", "--resource", RID]):
+        with pytest.raises(SystemExit, match="not a dataset id"):
+            author._cli(argv)
+    with pytest.raises(SystemExit, match="not a dataset id"):
+        preview.main(["--no-serve", bad])
+    assert not (tmp_path / "authoring").exists() and not (tmp_path / "preview").exists()
+
+
+@pytest.mark.parametrize("good", [DS, "cbs-average-wage", "boi-interest-rate", "cbs-index-cpi"])
+def test_author_accepts_dataset_and_provider_ids(good):
+    from services.page_builder import author
+
+    assert author.validate_dataset_id(good) == good
 
 
 # ── agent_data.seo: recipe-owned search metadata ─────────────────────────

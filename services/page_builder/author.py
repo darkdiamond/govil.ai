@@ -79,9 +79,10 @@ SHUFFLE_SEED = 1729
 # Libraries whose behaviour shapes a recipe's output; verify refuses to run
 # when the local one falls outside the builder image's pin. pandas 2 keeps
 # None in a str column where pandas 3 stores NaN, so a recipe verified on
-# pandas 2 passed locally and crashed in the job (2026-10-30).
+# pandas 2 passed locally and crashed in the job (2026-10-30). numpy 1
+# formats round(np.float64) as "2.0" where numpy 2 prints "2".
 BUILDER_REQUIREMENTS = REPO_ROOT / "services" / "page_builder" / "requirements.txt"
-PARITY_PACKAGES = ("pandas", "jinja2")
+PARITY_PACKAGES = ("pandas", "numpy", "jinja2")
 
 
 # name, optional [extras], version spec, optional ; marker
@@ -129,6 +130,27 @@ def runtime_parity_problems(requirements: Path = BUILDER_REQUIREMENTS) -> list[s
         if have is None or not _satisfies(have, spec):
             problems.append(f"{name} {have or 'not installed'} here, builder image pins {name}{spec}")
     return problems
+
+
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+_PROVIDER_ID_RE = re.compile(r"^[a-z0-9-]+$")
+
+
+def validate_dataset_id(dataset_id: str) -> str:
+    """`dataset_id` if it is a CKAN UUID or a provider id (a registered id
+    prefix plus lowercase letters, digits and hyphens); else SystemExit, so a
+    path-like id never reaches a path join or rmtree."""
+    from services.providers import PROVIDER_CLASSES
+
+    if _UUID_RE.match(dataset_id):
+        return dataset_id
+    if _PROVIDER_ID_RE.match(dataset_id) and any(
+        dataset_id.startswith(c.id_prefix) and dataset_id != c.id_prefix
+        for c in PROVIDER_CLASSES.values()
+    ):
+        return dataset_id
+    raise SystemExit(f"{dataset_id!r}: not a dataset id (a lowercase CKAN UUID or a provider id "
+                     f"starting with one of {sorted(c.id_prefix for c in PROVIDER_CLASSES.values())})")
 
 
 def _paths(dataset_id: str) -> dict[str, Path]:
@@ -1126,6 +1148,20 @@ def _snapshot_resources(recipe: Recipe, source_path: Path) -> list[dict]:
     return [r for r in facts.get("resources") or [] if r.get("id") in wanted]
 
 
+def _source_resources(source_path: Path) -> list[dict] | None:
+    """The resource list the refresh resolves inputs against, as prepare()
+    recorded it in source.json: the scanner's list in CKAN order, or a
+    provider's resources (with their `params`) made fetchable the way
+    `refresh_one` does. None when source.json has no `resources`."""
+    from .refresh import fetchable_resources
+
+    facts = json.loads(source_path.read_text(encoding="utf-8")) if source_path.is_file() else {}
+    resources = facts.get("resources")
+    if not isinstance(resources, list):
+        return None
+    return fetchable_resources(resources) if facts.get("provider") else resources
+
+
 def load_local(dataset_id: str, recipes_root: Path = RECIPES_ROOT) -> tuple[Recipe, list[dict], list[dict]]:
     """(recipe, prepare's data manifest, resources) for a local render."""
     p = _paths(dataset_id)
@@ -1133,7 +1169,12 @@ def load_local(dataset_id: str, recipes_root: Path = RECIPES_ROOT) -> tuple[Reci
         raise SystemExit(f"run `author prepare {dataset_id}` first")
     manifest = json.loads(p["manifest"].read_text(encoding="utf-8"))
     recipe = Recipe.load(recipes_root / dataset_id)
-    resources = _resources_from_manifest(manifest) + _snapshot_resources(recipe, p["source"])
+    resources = _source_resources(p["source"])
+    if resources is None:
+        print(f"warning: {_display_path(p['source'])} has no resource list; resolving inputs "
+              "against prepare's manifest, whose order can differ from the refresh's. "
+              f"Re-run `author prepare {dataset_id}`.", file=sys.stderr)
+        resources = _resources_from_manifest(manifest) + _snapshot_resources(recipe, p["source"])
     return recipe, manifest, resources
 
 
@@ -1388,6 +1429,8 @@ def _cli(argv: list[str] | None = None) -> int:
     ss.add_argument("--name", default="geo", help="input name and snapshot file stem")
     ss.add_argument("--max-kb", type=int, default=150)
     args = ap.parse_args(argv)
+    if getattr(args, "dataset_id", None) is not None:
+        validate_dataset_id(args.dataset_id)
     if args.cmd == "snapshot":
         return snapshot(args.dataset_id, args.map_file, args.resource,
                         name=args.name, max_kb=args.max_kb)

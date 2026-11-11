@@ -485,6 +485,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-serve", action="store_true", help="stage into tmp/preview/ only")
     p.add_argument("--recipes", type=Path, default=author.RECIPES_ROOT)
     args = p.parse_args(argv)
+    for did in args.ids:
+        author.validate_dataset_id(did)
 
     root = PREVIEW_ROOT
     ok = [did for did in args.ids if render(did, args.recipes, root)]
