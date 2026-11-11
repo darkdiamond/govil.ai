@@ -35,6 +35,12 @@ class LLMError(Exception):
     pass
 
 
+class LLMRetriesExhausted(LLMError):
+    """Transient trouble (timeouts, 429/5xx, cut-off bodies) outlasted the
+    retries. Unlike a plain LLMError (a 4xx the request itself caused), the
+    same call may well succeed on the next run."""
+
+
 class OpenRouter:
     def __init__(self, api_key: str | None = None, *, client: httpx.Client | None = None,
                  timeout: float = 240.0, sleep=time.sleep):
@@ -79,7 +85,7 @@ class OpenRouter:
                 log.warning("openrouter: %s — retry %d in %.0fs", err, attempt + 1, delay)
                 self._sleep(delay)
                 delay *= 2
-        raise LLMError(f"OpenRouter failed after {RETRIES} attempts: {err}")
+        raise LLMRetriesExhausted(f"OpenRouter failed after {RETRIES} attempts: {err}")
 
     def chat(self, messages: list[dict], *, model: str = TEXT_MODEL, tools: list[dict] | None = None,
              json_mode: bool = False, temperature: float | None = None,

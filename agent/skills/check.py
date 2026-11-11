@@ -439,7 +439,9 @@ def _sec_fail(rule: str, body: str, start: int, end: int, fix: str) -> None:
 # Dataset values reach a body as JS string literals (`| tojson`) and as
 # HTML text (autoescape). They are data, so the JS-API rules scan only the
 # code of JS <script> blocks and the URL rules only markup (tags, attribute
-# values, comments, <style> text) plus that code. Anything that can't be
+# values, comments, <style> text) plus that code, and of string literals
+# only the URL-shaped ones (a value starting with javascript:, an absolute
+# CSS url()), which a script could hand to href/src/style. Anything that can't be
 # split reliably (an untokenizable block, an unclosed <script>) is scanned
 # whole.
 _URL_RULES = ("SCRIPT-URL", "EXTERNAL-RESOURCE")
@@ -523,22 +525,48 @@ def _blank_text(seg: str) -> str:
     return "".join(out)
 
 
+# A string value a script can hand to a URL sink (href, src, location,
+# style): a dangerous scheme at its very start (browsers drop leading C0 and
+# space and any tab/CR/LF), or an absolute CSS url(). Prose that merely
+# mentions "JavaScript:" mid-sentence is not URL-shaped and passes.
+_LITERAL_SCRIPT_URL_RE = re.compile(
+    r"^[\x00-\x20]*(?:(?:java|vb)script:|data:\s*text/html)", re.IGNORECASE
+)
+_LITERAL_CSS_URL_RE = re.compile(r"url\(\s*[\"']?\s*(?:https?:)?//", re.IGNORECASE)
+_JS_ESCAPE_RE = re.compile(r"\\(?:x([0-9a-fA-F]{2})|u([0-9a-fA-F]{4})|([tnrfv]))")
+_JS_SIMPLE_ESCAPES = {"t": "\t", "n": "\n", "r": "\r", "f": "\f", "v": "\v"}
+
+
+def _js_unescape(s: str) -> str:
+    """The common JS string escapes (`\\t`, `\\x6a`, `\\u006a`) decoded, so
+    `"java\\tscript:"` reads as the browser would see it."""
+    def one(m: re.Match) -> str:
+        if m.group(3):
+            return _JS_SIMPLE_ESCAPES[m.group(3)]
+        return chr(int(m.group(1) or m.group(2), 16))
+    return _JS_ESCAPE_RE.sub(one, s)
+
+
 def _code_and_markup(
     scan: str,
-) -> tuple[list[tuple[str, list[tuple[int, int]]]], str]:
+) -> tuple[list[tuple[str, list[tuple[int, int]]]], str, list[str]]:
     """(each JS <script> block with its literal ranges, the body with text
-    nodes, JSON islands and JS literal contents blanked, lengths kept).
+    nodes, JSON islands and JS literal contents blanked, lengths kept, the
+    contents of every JS and JSON-island string literal).
     An unclosed <script> runs to the end of the body, with no ranges."""
     code: list[tuple[str, list[tuple[int, int]]]] = []
     view: list[str] = []
+    literals: list[str] = []
     pos = 0
     for m in SCRIPT_TAG_RE.finditer(scan):
         view.append(_blank_text(scan[pos:m.start(2)]))
         src = m.group(2)
         if _is_json_script(m.group(1)):
             view.append(" " * len(src))
+            literals += [src[r0 + 1:r1 - 1] for r0, r1 in _literal_ranges(src) or []]
         else:
             ranges = _literal_ranges(src) or []
+            literals += [src[r0 + 1:r1 - 1] for r0, r1 in ranges]
             chars = list(src)
             for r0, r1 in ranges:
                 chars[r0 + 1:r1 - 1] = " " * (r1 - r0 - 2)
@@ -556,7 +584,7 @@ def _code_and_markup(
     u = _UNCLOSED_SCRIPT_RE.search(tail)
     if u:
         code.append((tail[u.start():], []))
-    return code, "".join(view)
+    return code, "".join(view), literals
 
 
 def check_security(body: str) -> None:
@@ -564,10 +592,12 @@ def check_security(body: str) -> None:
 
     scan = _SAFE_HANDLER_RE.sub(" ", body)
     decoded = _html.unescape(scan)
-    code, markup = _code_and_markup(scan)
+    code, markup, literals = _code_and_markup(scan)
     markup_decoded = _html.unescape(markup)
+    url_fix = {}
     for rule, rx, fix in _SEC_HTML_RULES:
         if rule in _URL_RULES:
+            url_fix[rule] = fix
             texts = (markup, markup_decoded)
             if rule == "SCRIPT-URL":
                 # `java\tscript:` / `java&#9;script:`: browsers strip the control char.
@@ -578,6 +608,17 @@ def check_security(body: str) -> None:
             m = rx.search(text)
             if m:
                 _sec_fail(rule, text, m.start(), m.end(), fix)
+    # Literal contents are blanked from the markup view above, but a string a
+    # script (or a row of data it reads) can assign to href/src/style is still
+    # a URL: flag the URL-shaped ones.
+    for lit in literals:
+        v = _js_unescape(lit)
+        m = _LITERAL_SCRIPT_URL_RE.match(re.sub(r"[\t\n\r]", "", v))
+        if m:
+            _sec_fail("SCRIPT-URL", v, 0, len(m.group()), url_fix["SCRIPT-URL"])
+        m = _LITERAL_CSS_URL_RE.search(v)
+        if m:
+            _sec_fail("EXTERNAL-RESOURCE", v, m.start(), m.end(), url_fix["EXTERNAL-RESOURCE"])
     for rule, rx, fix in _SEC_JS_RULES:
         for src, ranges in code:
             starts = [r0 for r0, _ in ranges]  # sorted, non-overlapping

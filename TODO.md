@@ -8,6 +8,22 @@ This repo is public: describe a security gap by what to change, never by how to 
 
 ## Recipes and refresh
 
+- **An estimated datastore total fails every multi-page export.** `fetch_resource_records_to_file`
+  now re-reads the preview after a walk of more than one page and fails when `total` moved. When
+  CKAN ignores `total_estimation_threshold` (`total_was_estimated`, logged by
+  `fetch_resource_preview`), two previews can carry different planner estimates, so such an input
+  fails `fetch_failed` every run without escalating, and the clipped walk can also stop short of
+  the real row count. Fix: keep `total_was_estimated` on the preview dict (outside
+  `_preview_shape`) and, for such a resource, skip the total comparison and walk until a short
+  page, comparing fields and sample rows only. (2026-11-11)
+
+- **A recipe file download outage is invisible in `files` mode.** A transient GitHub error while
+  loading a recipe (`_is_transient_fetch_error`) records a `fetch_failed` outcome and nothing
+  else, so a raw.githubusercontent outage after the listing fails every recipe while the run
+  ends `ok`/`idle`; each such outcome also spends a `REFRESH_CAP` slot. Prod uses
+  `RECIPES_FETCH=tarball`, which doesn't take this path. Fix: count these and end the run
+  `refresh_failed` past a threshold, and leave them out of `_spends_cap`. (2026-11-11)
+
 - **`public_resource_url` raises on a malformed bracketed host.** `urlsplit` throws
   `ValueError` for a resource URL like `https://[::1/x`, so `Dataset.from_ckan_response` fails
   for the whole dataset instead of blanking that one URL (the frontend mirror just returns it).
@@ -643,6 +659,14 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   dropping the test. (2026-11-11)
 
 ## News
+
+- **SQL results fence every cell, which costs most of the result budget.** `Toolbox.t_sql` and
+  `t_table_schema` wrap each text cell and each column name in its own ~80-character
+  `<<<PAGE TEXT ...>>>` fence, so a result with a couple of text columns fits only about a hundred
+  rows under `SQL_RESULT_CHARS` before it is truncated, the fence calls dataset cells "data from
+  the web", and a column name holding `<<<` or `>>>` comes back altered (the writer then queries
+  a column that doesn't exist). Fix: fence the whole `columns` + `rows` payload once and
+  sanitize only the fence markers, and update `prompts/writer.md` to match. (2026-11-11)
 
 - **`FirestoreArticles.advance_cursor` is a read-then-write, not a transaction.** Two news runs
   that overlap (a manual execute during a scheduled one) can both read the old cursor, and the

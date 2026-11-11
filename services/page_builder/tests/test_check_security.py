@@ -386,3 +386,19 @@ def test_comment_opener_in_script_scans_rest_of_body(js, rule, capsys):
     # After `<!--<script` the browser does not end the block at the next
     # `</script>`, so the code after it still runs.
     _rejects(f"<section><script>{js}</script></section>", capsys, rule)
+
+
+# ── URL-shaped string literals are still URLs ──
+@pytest.mark.parametrize("body,rule", [
+    (_script('var a = document.createElement("a"); a.href = "javascript:alert(1)";'), "SCRIPT-URL"),
+    (_script('var rows = [{"u": "java\\tscript:alert(1)"}];'), "SCRIPT-URL"),
+    (_script("var u = ' JavaScript:void(0)';"), "SCRIPT-URL"),
+    (_script('var u = "data:text/html,<b>x</b>";'), "SCRIPT-URL"),
+    ('<script type="application/json">{"u": "javascript:alert(1)"}</script>', "SCRIPT-URL"),
+    (_script('document.getElementById("c1").style.background = "url(https://e.com/t.gif)";'),
+     "EXTERNAL-RESOURCE"),
+])
+def test_url_shaped_literals_fail(body, rule, capsys):
+    if check._esprima is None:
+        pytest.skip("esprima not installed")
+    _rejects(body, capsys, rule)

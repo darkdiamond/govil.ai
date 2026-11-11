@@ -14,7 +14,13 @@ from PIL import Image
 
 from services.news import run
 from services.news.fetch import Page
-from services.news.llm import LLMError, LLMUnavailable, OpenRouter, parse_json
+from services.news.llm import (
+    LLMError,
+    LLMRetriesExhausted,
+    LLMUnavailable,
+    OpenRouter,
+    parse_json,
+)
 from services.news.series import extract_series
 from services.news.signals import Signal
 from services.news.store import LocalArticles, join, split
@@ -315,13 +321,24 @@ def test_well_formed_critic_pass_passes():
 
 class _DownLLM(FakeLLM):
     def chat(self, messages, tools=None, **kw):
-        raise LLMError("OpenRouter failed after 4 attempts: HTTP 503")
+        raise LLMRetriesExhausted("OpenRouter failed after 4 attempts: HTTP 503")
+
+
+class _BadRequestLLM(FakeLLM):
+    def chat(self, messages, tools=None, **kw):
+        raise LLMError("HTTP 400: context length exceeded")
 
 
 def test_model_error_in_the_writer_is_counted_apart_from_rejections(tmp_path):
     out, _, _ = _day(tmp_path, _DownLLM([]))
     assert out["published"] == [] and out["rejected"][0]["reason"] == "error"
     assert out["model_errors"] == 1
+
+
+def test_a_deterministic_4xx_does_not_hold_the_window(tmp_path):
+    out, _, _ = _day(tmp_path, _BadRequestLLM([]))
+    assert out["rejected"][0]["reason"] == "error"
+    assert out["model_errors"] == 0
 
 
 def test_editorial_rejection_is_not_a_model_error(tmp_path):

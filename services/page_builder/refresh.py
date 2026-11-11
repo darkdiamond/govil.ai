@@ -860,10 +860,7 @@ def fetch_inputs(
     limits = recipe.manifest.limits
     max_records = limits.max_records or _env_int("REFRESH_MAX_RECORDS", _DEFAULT_MAX_RECORDS)
     max_bytes = limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES)
-    # A per-resource cap above the dataset total would be clipped by it.
-    remaining = limits.total_bytes or max(
-        _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
-    )
+    remaining = _total_bytes_budget(limits)
     page_size = _env_int("REFRESH_PAGE_SIZE", _DEFAULT_PAGE_SIZE)
     file_max_bytes = _env_int("REFRESH_FILE_MAX_BYTES", _DEFAULT_FILE_MAX_BYTES)
     deadline = time.monotonic() + float(
@@ -1077,6 +1074,15 @@ def _project_csv(path: Path, columns: list[str]) -> None:
 # ── compute + render ─────────────────────────────────────────────────────
 
 
+def _total_bytes_budget(limits) -> int:
+    """The bytes all of a recipe's inputs may fetch together: its
+    `limits.total_bytes`, else REFRESH_TOTAL_BYTES (never below its own
+    per-resource `limits.max_bytes`, which the total would otherwise clip)."""
+    return limits.total_bytes or max(
+        _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
+    )
+
+
 def _memory_guard(recipe: Recipe) -> str:
     """Python prologue for the compute process. It caps its own heap
     (RLIMIT_DATA: allocations past it raise MemoryError, a clean recipe
@@ -1100,13 +1106,8 @@ def _memory_guard(recipe: Recipe) -> str:
         code += f"import resource; resource.setrlimit(resource.RLIMIT_DATA, ({n}, {n}))\n"
     fsize = _env_int("REFRESH_COMPUTE_FILE_MAX_BYTES", _DEFAULT_COMPUTE_FILE_MAX_BYTES)
     if fsize > 0:
-        largest_input = max(
-            limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES),
-            limits.total_bytes or max(
-                _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
-            ),
-        )
-        n = max(fsize, largest_input)
+        # No input the host writes is bigger than the whole fetch budget.
+        n = max(fsize, _total_bytes_budget(limits))
         # Python ignores SIGXFSZ, so a write past it raises OSError (EFBIG).
         code += (
             f"import resource; _fsize = {n}\n"
@@ -1635,6 +1636,7 @@ def refresh_one(
             return RefreshOutcome(
                 src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
                 _clip(f"{type(e).__name__}: {e}; {type(me).__name__}: {me}"),
+                round(time.monotonic() - started, 2),
             )
         return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR, _clip(str(e)))
 

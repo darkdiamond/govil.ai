@@ -41,7 +41,7 @@ from . import llm as llm_mod
 from .editor import choose, eligible
 from .ledger import Ledger
 from .links import attach_links, load_edges
-from .llm import LLMError, LLMUnavailable
+from .llm import LLMError, LLMRetriesExhausted, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
@@ -201,9 +201,13 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
                         max_tool_calls=max_tool_calls)
         except LLMUnavailable:
             raise  # the key is refused: no point writing the next story
-        except LLMError as e:  # still failing after retries: the story was never judged
+        except LLMError as e:
             log.exception("news: writing %s failed on the model service", brief["signal_keys"])
-            model_errors += 1
+            # Only transient trouble that outlasted the retries holds the
+            # window: a 4xx the request itself causes would fail the same way
+            # every run and pin the cursor until the lookback clamp.
+            if isinstance(e, LLMRetriesExhausted):
+                model_errors += 1
             out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         except Exception as e:  # one story's crash must not cost the day's others
             log.exception("news: writing %s crashed", brief["signal_keys"])
