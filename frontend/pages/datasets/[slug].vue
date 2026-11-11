@@ -36,7 +36,10 @@ const { data } = await useAsyncData(`dataset-${slug}`, async () => {
   // them out — they're SSR/prerender-only. Without the guard Vite
   // emits a "Module 'node:fs/promises' has been externalized for
   // browser compatibility" warning per build. On the client useAsyncData
-  // hydrates from the prerendered payload, never re-runs this fetcher.
+  // hydrates from the prerendered payload. With payloadExtraction off a
+  // client-side navigation would re-run this fetcher and 404, so
+  // middleware/dataset-document.global.ts turns every one (Back included)
+  // into a document load.
   if (!import.meta.server) return null;
   const fs = await import("node:fs/promises");
   const path = await import("node:path");

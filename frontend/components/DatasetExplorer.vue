@@ -7,6 +7,11 @@
 // rows already loaded. CORS: data.gov.il allows plain GETs to
 // /api/3/action/ with no custom headers, so no preflight is issued.
 import type { ResourceEntry } from "~/types/manifest";
+import {
+  explorerFailureKind,
+  type DatastoreError,
+  type ExplorerFailure,
+} from "~/utils/explorer-probe";
 import { buildTsQuery } from "~/utils/explorer-query";
 import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
 
@@ -25,6 +30,9 @@ const PAGE_SIZE = 50;
 // horizontally. MAX_COLS is only a backstop against pathological
 // resources (hundreds of columns) where a table stops making sense.
 const MAX_COLS = 60;
+// A hung data.gov.il call ends in the fetch-error state (with a retry)
+// instead of an endless skeleton.
+const FETCH_TIMEOUT_MS = 20_000;
 
 interface Candidate {
   rid: string;
@@ -135,7 +143,8 @@ const loading = ref(false);
 const fetchError = ref(false);
 // Source made private / removed upstream: the live datastore_search returns
 // HTTP 403 ("Authorization Error"). Distinct from a resource that was never
-// datastore-backed (404 / success:false) — that still collapses the section.
+// datastore-backed (404 / success:false) — that still collapses the section
+// (utils/explorer-probe.ts sorts the failures).
 // Seeded from the publisher-stamped `source_status` (via the sourceUnavailable
 // prop) so the gone-state renders deterministically at first paint (SSG),
 // without waiting on the live probe below.
@@ -146,18 +155,6 @@ const fetchError = ref(false);
 // the weekly reconcile → publish cycle, not a live re-probe. Don't "fix"
 // this into a two-way toggle.
 const sourceGone = ref(Boolean(props.sourceUnavailable));
-// rid whose schema probe last returned 403. Consumed by activate() only
-// after its staleness guard, so a stale probe for an abandoned resource
-// can't flip sourceGone for the resource the user actually switched to.
-const goneRid = ref<string | null>(null);
-
-function isGoneError(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    (err as { status?: number }).status === 403
-  );
-}
 // Server-side sort over the whole resource, like search. null = CKAN's
 // default order (_id, or rank under q).
 const sortCol = ref<string | null>(null);
@@ -215,12 +212,16 @@ async function dsSearch(
   if (p.sort) params.set("sort", p.sort);
   const res = await fetch(`${API}?${params}`, { signal });
   if (!res.ok) {
-    const err = new Error(`http ${res.status}`) as Error & { status?: number };
+    const err = new Error(`http ${res.status}`) as Error & DatastoreError;
     err.status = res.status;
     throw err;
   }
   const data = await res.json();
-  if (!data?.success || !data.result) throw new Error("ckan reject");
+  if (!data?.success || !data.result) {
+    const err = new Error("ckan reject") as Error & DatastoreError;
+    err.rejected = true;
+    throw err;
+  }
   return {
     records: data.result.records ?? [],
     total: data.result.total ?? 0,
@@ -230,14 +231,20 @@ async function dsSearch(
 
 // Returns the schema (possibly with zero usable columns — a valid but
 // empty datastore, e.g. a resource that was registered and never
-// loaded); null only when the probe itself fails (not datastore-backed,
-// 404, network). The distinction matters: probe failure drops the
-// tab/section, an empty datastore keeps its tab with an empty state.
-async function loadSchema(rid: string): Promise<Schema | null> {
+// loaded), or why the probe failed. The distinction matters: "absent"
+// (not datastore-backed) drops the tab/section, a transient failure keeps
+// it with a retry, an empty datastore keeps its tab with an empty state.
+// The kind is returned rather than stored, so activate()'s staleness guard
+// covers it: a stale probe for an abandoned resource can't flip sourceGone
+// for the resource the user actually switched to.
+async function loadSchema(rid: string): Promise<Schema | ExplorerFailure> {
   const cached = schemaCache.get(rid);
   if (cached) return cached;
   try {
-    const res = await dsSearch({ resource_id: rid, limit: 0 });
+    const res = await dsSearch(
+      { resource_id: rid, limit: 0 },
+      AbortSignal.timeout(FETCH_TIMEOUT_MS)
+    );
     const all = (res.fields ?? []).filter((f) => !HIDDEN_FIELDS.has(f.id));
     const sch: Schema = {
       cols: all.slice(0, MAX_COLS).map((f) => {
@@ -256,8 +263,7 @@ async function loadSchema(rid: string): Promise<Schema | null> {
     schemaCache.set(rid, sch);
     return sch;
   } catch (err) {
-    if (isGoneError(err)) goneRid.value = rid;
-    return null;
+    return explorerFailureKind(err);
   }
 }
 
@@ -269,14 +275,27 @@ async function activate(rid: string) {
   fetchError.value = false;
   const sch = await loadSchema(rid);
   if (activeRid.value !== rid) return; // user switched away mid-probe
-  if (!sch) {
-    if (goneRid.value === rid) {
-      // This resource is access-revoked (403) and still the current one.
-      // Keep the section; the template renders the gone-state.
-      sourceGone.value = true;
-      loading.value = false;
-      return;
-    }
+  if (sch === "gone") {
+    // This resource is access-revoked (403) and still the current one.
+    // Keep the section; the template renders the gone-state.
+    sourceGone.value = true;
+    loading.value = false;
+    return;
+  }
+  if (sch === "transient") {
+    // data.gov.il timed out or erred: say so and offer a retry, rather
+    // than dropping a tab that may well be fine on the next try. A page
+    // request still in flight for the previous tab must not land over it.
+    ++reqSeq;
+    aborter?.abort();
+    schema.value = null;
+    rows.value = [];
+    total.value = 0;
+    fetchError.value = true;
+    loading.value = false;
+    return;
+  }
+  if (sch === "absent") {
     // Resource isn't datastore-backed (or the datastore was dropped since
     // the scan). Unverified single candidate → the whole section goes;
     // verified candidate with siblings → drop just this tab.
@@ -308,7 +327,14 @@ async function loadPage() {
   if (!rid || !sch) return;
   const seq = ++reqSeq;
   aborter?.abort();
-  aborter = new AbortController();
+  const ctrl = new AbortController();
+  aborter = ctrl;
+  // Aborted with a TimeoutError reason, so the catch below shows the error
+  // state; a plain abort (superseded request) stays silent.
+  const timer = setTimeout(
+    () => ctrl.abort(new DOMException("timed out", "TimeoutError")),
+    FETCH_TIMEOUT_MS
+  );
   loading.value = true;
   fetchError.value = false;
   try {
@@ -322,7 +348,7 @@ async function loadPage() {
         // against data.gov.il). Ids containing `"` are unsortable.
         sort: sortCol.value ? `"${sortCol.value}" ${sortDir.value}` : undefined,
       },
-      aborter.signal
+      ctrl.signal
     );
     if (seq !== reqSeq) return;
     rows.value = res.records;
@@ -335,7 +361,7 @@ async function loadPage() {
       (err instanceof DOMException && err.name === "AbortError")
     )
       return;
-    if (isGoneError(err)) {
+    if (explorerFailureKind(err) === "gone") {
       sourceGone.value = true;
       rows.value = [];
       total.value = 0;
@@ -346,7 +372,18 @@ async function loadPage() {
     total.value = 0;
     fetchError.value = true;
     loading.value = false;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+// The fetch-error state's retry: the schema probe if that is what failed,
+// else the current page.
+function retry() {
+  const rid = activeRid.value;
+  if (!rid) return;
+  if (schema.value) void loadPage();
+  else void activate(rid);
 }
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -442,6 +479,9 @@ const legendCols = computed<Col[]>(() => {
 const schemaEmpty = computed(() =>
   Boolean(schema.value && !schema.value.cols.length)
 );
+
+// The schema probe itself failed transiently: no columns to search or show.
+const probeFailed = computed(() => fetchError.value && !schema.value);
 
 const rangeText = computed(() => {
   if (!total.value) return "";
@@ -576,7 +616,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <template v-if="!schemaEmpty">
+      <template v-if="!schemaEmpty && !probeFailed">
         <input
           v-model="searchText"
           type="search"
@@ -661,6 +701,9 @@ onBeforeUnmount(() => {
                   class="explorer-state explorer-state--error"
                 >
                   לא ניתן לטעון את הנתונים כעת.
+                  <button type="button" class="explorer-retry" @click="retry">
+                    נסו שוב
+                  </button>
                   <a :href="activeUrl" target="_blank" rel="noopener"
                     >להורדת הקובץ המלא</a
                   >
@@ -688,6 +731,18 @@ onBeforeUnmount(() => {
               </tr>
             </tbody>
           </table>
+          <div
+            v-else-if="probeFailed"
+            class="explorer-state explorer-state--error"
+          >
+            לא ניתן לטעון את הנתונים כעת.
+            <button type="button" class="explorer-retry" @click="retry">
+              נסו שוב
+            </button>
+            <a :href="activeUrl" target="_blank" rel="noopener"
+              >להורדת הקובץ המלא</a
+            >
+          </div>
           <div v-else-if="loading" class="py-6">
             <span
               v-for="i in 3"
@@ -912,6 +967,24 @@ onBeforeUnmount(() => {
 }
 .explorer-state--error {
   color: #dc3545;
+}
+.explorer-retry {
+  margin-inline: 0.5rem;
+  border: 1px solid #c3cfe7;
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.75rem;
+  background: #fff;
+  color: #0068f5;
+  font-family: Rubik, sans-serif;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.explorer-retry:hover {
+  background: #f1f7ff;
+}
+.explorer-retry:focus-visible {
+  outline: 2px solid #0068f5;
+  outline-offset: 1px;
 }
 .explorer-pill {
   display: inline-flex;
