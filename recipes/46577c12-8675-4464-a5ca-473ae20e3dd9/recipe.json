@@ -1,0 +1,28 @@
+{
+  "contract_version": 1,
+  "dataset_id": "46577c12-8675-4464-a5ca-473ae20e3dd9",
+  "recipe_version": 1,
+  "authored_at": "2026-11-11T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-11T01:00:18.252101+00:00",
+    "rows": { "treaties": 1104 }
+  },
+  "inputs": [
+    {
+      "name": "treaties",
+      "by_id": "5c98ccc0-5462-41e9-b335-786cf617c314",
+      "required_columns": [
+        "folder_number",
+        "Entry_into_force",
+        "Date_of_Signature",
+        "Treaty_Name",
+        "Parties",
+        "Subject_main",
+        "treaty",
+        "Language1"
+      ]
+    }
+  ],
+  "min_insights": 4,
+  "lint_allow_numbers": []
+}

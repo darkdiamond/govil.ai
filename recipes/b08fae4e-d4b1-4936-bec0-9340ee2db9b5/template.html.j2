@@ -1,0 +1,235 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור בית דיור לפי יישוב, שם או חברה מנהלת ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם הבית, יישוב, כתובת, מיקוד וחברה מנהלת</span>
+  </span>
+</a>
+
+<div class="grid gap-4 mb-6" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+  {{ gov.kpi(model.kpis.homes, model.labels.kpi_homes) }}
+  {{ gov.kpi(model.kpis.units, model.labels.kpi_units) }}
+  {{ gov.kpi(model.kpis.cities, model.labels.kpi_cities) }}
+  {{ gov.kpi(model.kpis.median, model.labels.kpi_median) }}
+  {{ gov.kpi(model.kpis.companies, model.labels.kpi_companies) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+{% if model.flags.map %}
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "מפת בתי הדיור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.map_note }}</p>
+  <div id="map-main" class="h-72 md:h-[420px]" role="region" aria-label="{{ model.labels.map_aria }}"></div>
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "החברות המנהלות: בתים ויחידות דיור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.comp_note }}</p>
+  {{ gov.chart("chart-comp", model.labels.comp_aria) }}
+  {{ gov.table(model.labels.comp_caption, ["חברה", "בתים", "יחידות דיור", "שיעור מהיחידות", "חציון יחידות לבית"], model.tables.comp) }}
+</section>
+
+{% if model.flags.box %}
+<section class="card p-5 mb-6">
+  {{ gov.head("building-2", "גודל הבתים אצל כל חברה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.box_note }}</p>
+  {{ gov.chart("chart-box", model.labels.box_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.box_caption, ["חברה", "בתים", "הקטן ביותר", "חציון", "הגדול ביותר"], model.tables.box) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("map-pin", "בתי הדיור לפי יישוב") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.city_note }}</p>
+  {{ gov.chart("chart-city", model.labels.city_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.city_caption, ["יישוב", "בתים", "יחידות דיור"], model.tables.city) }}
+</section>
+
+{% if model.flags.mix %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "מי מנהל את הבתים ביישובים המובילים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.mix_note }}</p>
+  {{ gov.chart("chart-mix", model.labels.mix_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.mix_caption, model.tables.mix_cols, model.tables.mix) }}
+</section>
+{% endif %}
+
+{% if model.flags.pareto %}
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "עד כמה המלאי מרוכז") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.pareto_note }}</p>
+  {{ gov.chart("chart-pareto", model.labels.pareto_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.pareto_caption, ["מספר יישובים", "שיעור מצטבר מהיחידות"], model.tables.pareto) }}
+</section>
+{% endif %}
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "כמה יחידות יש בבית דיור") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.bands_note }}</p>
+  {{ gov.chart("chart-bands", model.labels.bands_aria, "h-64 md:h-80") }}
+  {{ gov.table(model.labels.bands_caption, ["יחידות בבית", "בתים", "שיעור מהבתים", "יחידות בסך הכול"], model.tables.bands, ltr=(0,)) }}
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "בתי הדיור הגדולים ביותר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.homes_note }}</p>
+  {{ gov.chart("chart-homes", model.labels.homes_aria, "h-80 md:h-[460px]") }}
+  {{ gov.table(model.labels.homes_caption, ["בית", "יישוב", "חברה", "יחידות דיור"], model.tables.homes) }}
+</section>
+
+<script>
+  (function () {
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function hbar(id, names, values, unit) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: names.slice().reverse(), axisLabel: { width: window.innerWidth < 640 ? 140 : 260, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: values.slice().reverse() }]
+      }));
+    }
+
+    var cp = {{ model.charts.comp | tojson }};
+    var c1 = mk("chart-comp");
+    if (c1) {
+      c1.setOption(window.GovEcharts.option({
+        color: [window.GOVIL_PALETTE[0], window.GOVIL_PALETTE[4]],
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 8, top: 32, bottom: 40, containLabel: true },
+        xAxis: { type: "category", data: cp.names, axisLabel: { interval: 0 } },
+        yAxis: [
+          { type: "value", name: "יחידות דיור" },
+          { type: "value", name: "בתים", splitLine: { show: false } }
+        ],
+        series: [
+          { type: "bar", name: "יחידות דיור", data: cp.units },
+          { type: "bar", name: "בתים", yAxisIndex: 1, data: cp.homes }
+        ]
+      }));
+    }
+
+    var bx = {{ model.charts.box | tojson }};
+    var c2 = mk("chart-box");
+    if (c2) {
+      c2.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "item", formatter: function (p) {
+          var v = p.data.slice(-5);
+          return echarts.format.encodeHTML(p.name) + "<br/>הקטן ביותר: " + v[0] + "<br/>רבעון תחתון: " + v[1] +
+            "<br/>חציון: " + v[2] + "<br/>רבעון עליון: " + v[3] + "<br/>הגדול ביותר: " + v[4];
+        } },
+        grid: { left: 8, right: 16, top: 16, bottom: 24, containLabel: true },
+        xAxis: { type: "category", data: bx.names, axisLabel: { interval: 0 } },
+        yAxis: { type: "value", name: "יחידות בבית" },
+        series: [{ type: "boxplot", name: "יחידות בבית", data: bx.data }]
+      }));
+    }
+
+    var ct = {{ model.charts.city | tojson }};
+    var c3 = mk("chart-city");
+    if (c3) {
+      c3.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ct.names.length - 1 - ps[0].dataIndex;
+          return echarts.format.encodeHTML(ct.names[i]) + "<br/>יחידות דיור: " + ct.units[i].toLocaleString("he-IL") +
+            "<br/>בתים: " + ct.homes[i];
+        } },
+        grid: { left: 8, right: 24, top: 8, bottom: 24, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: ct.names.slice().reverse(), axisLabel: { width: 140, overflow: "truncate" } },
+        series: [{ type: "bar", name: "יחידות דיור", data: ct.units.slice().reverse() }]
+      }));
+    }
+
+    var mx = {{ model.charts.mix | tojson }};
+    var c4 = mk("chart-mix");
+    if (c4) {
+      c4.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        legend: { bottom: 0 },
+        grid: { left: 8, right: 24, top: 8, bottom: 48, containLabel: true },
+        xAxis: { type: "value", axisLabel: { hideOverlap: true } },
+        yAxis: { type: "category", data: mx.cities.slice().reverse(), axisLabel: { width: 120, overflow: "truncate" } },
+        series: mx.series.map(function (s) {
+          var o = { type: "bar", stack: "u", name: s.name, data: s.data.slice().reverse() };
+          if (s.other) { o.itemStyle = { color: "#adb5bd" }; }
+          return o;
+        })
+      }));
+    }
+
+    var pr = {{ model.charts.pareto | tojson }};
+    var c5 = mk("chart-pareto");
+    if (c5) {
+      c5.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return pr.x[i] + " יישובים (עד " + echarts.format.encodeHTML(pr.names[i]) + ")<br/>" + pr.cum[i] + "% מהיחידות";
+        } },
+        grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
+        xAxis: { type: "category", data: pr.x, name: "יישובים", nameLocation: "middle", nameGap: 26 },
+        yAxis: { type: "value", max: 100, axisLabel: { formatter: "{value}%" } },
+        series: [{ type: "line", name: "שיעור מצטבר", data: pr.cum, areaStyle: { opacity: 0.15 }, symbolSize: 4 }]
+      }));
+    }
+
+    var bd = {{ model.charts.bands | tojson }};
+    var c6 = mk("chart-bands");
+    if (c6) {
+      c6.setOption(window.GovEcharts.option({
+        color: window.GOVIL_PALETTE,
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (ps) {
+          var i = ps[0].dataIndex;
+          return bd.labels[i] + " יחידות<br/>בתים: " + bd.counts[i] + "<br/>יחידות בסך הכול: " + bd.units[i].toLocaleString("he-IL");
+        } },
+        grid: { left: 8, right: 16, top: 16, bottom: 32, containLabel: true },
+        xAxis: { type: "category", data: bd.labels, name: "יחידות בבית", nameLocation: "middle", nameGap: 26 },
+        yAxis: { type: "value", name: "בתים" },
+        series: [{ type: "bar", name: "בתים", data: bd.counts }]
+      }));
+    }
+
+    var hm = {{ model.charts.homes | tojson }};
+    hbar("chart-homes", hm.names, hm.units, "יחידות דיור");
+  })();
+</script>
+{% if model.flags.map %}
+<script>
+  GovMap.create({
+    container: "#map-main",
+    resourceId: {{ inputs.main[0].id | tojson }},
+    latField: "Latitude",
+    lngField: "Longitude",
+    projection: "wgs84",
+    initialView: {{ model.map_view | tojson }},
+    popupTitleField: "HomeName",
+    popupFields: [
+      { field: "CompanyName", label: "חברה מנהלת" },
+      { field: "CityName", label: "יישוב" },
+      { field: "Address", label: "כתובת" },
+      { field: "HousingUnits", label: "יחידות דיור" }
+    ]
+  });
+</script>
+{% endif %}

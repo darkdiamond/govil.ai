@@ -1,0 +1,11 @@
+{
+  "treaties.folder_number": "kpi:total, insight:supplements — unique per row; a letter suffix marks a follow-up instrument in an existing folder",
+  "treaties.Comment_for_website": "skip: free-text notes, 96% empty; readable per row in the data explorer",
+  "treaties.Entry_into_force": "chart-decades, chart-years, chart-lag, table:recent, insight:lag — year used when the signature date is missing",
+  "treaties.Date_of_Signature": "chart-decades, chart-years, chart-regions, chart-newp, chart-heat, chart-lag, table:recent, kpi:span, insight:peak_decade, insight:decade_trend, insight:recent_leader, insight:new_partners, insight:lag",
+  "treaties.Treaty_Name": "chart-forms, table:recent — English title; only its instrument word (agreement, convention, exchange of notes, ...) is used, the title itself is searchable in the explorer",
+  "treaties.Parties": "chart-partners, chart-regions, chart-newp, table:recent, kpi:partners, insight:top_partner, insight:new_partners, insight:recent_leader — mapped to Hebrew names and regions",
+  "treaties.Subject_main": "chart-subjects, chart-heat, table:recent, insight:top_subject",
+  "treaties.treaty": "docs-note — links to the scanned text files; counted and typed by extension, not linked",
+  "treaties.Language1": "chart-langs, kpi:hebrew, insight:hebrew"
+}
