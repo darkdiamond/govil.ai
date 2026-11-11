@@ -1,0 +1,31 @@
+{
+  "contract_version": 1,
+  "dataset_id": "b08fae4e-d4b1-4936-bec0-9340ee2db9b5",
+  "recipe_version": 1,
+  "authored_at": "2026-11-11T08:30:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-10T21:00:19.279328+00:00",
+    "rows": {
+      "main": 123
+    }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "0c6fa0a9-a0ef-4860-aa42-ba4d4c78caa4",
+      "required_columns": [
+        "CompanyName",
+        "CityCode",
+        "CityName",
+        "HomeName",
+        "Address",
+        "Zip",
+        "HousingUnits",
+        "Longitude",
+        "Latitude"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}

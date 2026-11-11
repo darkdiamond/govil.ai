@@ -1,0 +1,13 @@
+{
+  "main.CompanyName": "chart-comp, chart-box, chart-mix, chart-homes, insight:company, kpi:companies, map-main",
+  "main.CityCode": "chart-city, chart-mix, chart-pareto, kpi:cities — CBS locality code, used as the grouping key so a respelled name stays one locality",
+  "main.CityName": "chart-city, chart-mix, chart-pareto, chart-homes, insight:city, insight:spread, insight:extent, kpi:cities, map-main",
+  "main.HomeName": "chart-homes, insight:largest, map-main — building names, not people's private data",
+  "main.Address": "map-main, insight:zip — street address of the building, shown only in the map popup",
+  "main.Zip": "insight:zip — only its presence is reported (missing on part of the rows)",
+  "main.HousingUnits": "chart-comp, chart-box, chart-city, chart-mix, chart-pareto, chart-bands, chart-homes, kpi:units, kpi:median, insight:company, insight:largest, insight:size, map-main",
+  "main.Longitude": "map-main, insight:extent",
+  "main.Latitude": "map-main, insight:extent",
+  "main.X": "skip: ITM easting, the same location as Longitude/Latitude",
+  "main.Y": "skip: ITM northing, the same location as Longitude/Latitude"
+}

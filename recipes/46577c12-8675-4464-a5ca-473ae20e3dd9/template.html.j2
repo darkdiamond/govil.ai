@@ -1,0 +1,273 @@
+{% import "gov.j2" as gov %}
+<h1>{{ model.agent_data.seo.name }}</h1>
+
+{{ gov.lede(model.labels.lede) }}
+
+<a href="#data-explorer" class="card p-4 mb-6 flex items-center gap-3 no-underline">
+  <img src="/icons/search.svg" alt="" class="w-5 h-5 shrink-0" />
+  <span>
+    <span class="block font-semibold text-ink-deep">איתור אמנה או הסכם לפי מדינה, נושא או שם ←</span>
+    <span class="block text-sm text-subtle">חיפוש חי בכל רשומות המאגר: שם האמנה (באנגלית), המדינה השותפה, הנושא, תאריכי החתימה והכניסה לתוקף ומספר התיק</span>
+  </span>
+</a>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+  {{ gov.kpi(model.kpis.total, model.labels.total_kpi) }}
+  {{ gov.kpi(model.kpis.partners, model.labels.partners_kpi) }}
+  {{ gov.kpi(model.kpis.span, model.labels.span_kpi) }}
+  {{ gov.kpi(model.kpis.hebrew, model.labels.hebrew_kpi) }}
+</div>
+
+{{ gov.insights(model.insights) }}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("chart-bar", "אמנות לפי עשור") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.decade_note }}</p>
+    {{ gov.chart("chart-decades", model.labels.decade_aria) }}
+    {{ gov.table(model.labels.decade_aria, ["עשור", "מסמכים", "שיעור"], model.tables.decades, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("building-2", "מדינות שותפות חדשות בכל עשור") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.new_note }}</p>
+    {{ gov.chart("chart-newp", model.labels.new_aria) }}
+    {{ gov.table(model.labels.new_aria, ["עשור", "מדינות חדשות"], model.tables.newp) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "אמנות והסכמים לפי שנה") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.years_note }}</p>
+  <div id="chart-years" class="h-72 md:h-80" role="img" aria-label="{{ model.labels.years_aria }}" data-fallback="explorer"></div>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("map-pin", "השותפות המובילות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.partners_note }}</p>
+    {{ gov.chart("chart-partners", model.labels.partners_aria, h="h-80 md:h-[460px]") }}
+    {{ gov.table(model.labels.partners_aria, ["מדינה או גוף", "מסמכים"], model.tables.partners) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("map-pin", "אזורים בעולם לאורך העשורים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.regions_note }}</p>
+    {{ gov.chart("chart-regions", model.labels.regions_aria, h="h-80 md:h-[460px]") }}
+    <details class="mt-3">
+      <summary class="text-sm text-subtle">הצג כטבלה</summary>
+      <div class="overflow-x-auto">
+        <table class="mt-2 w-full text-sm">
+          <caption class="sr-only">{{ model.labels.regions_aria }}</caption>
+          <thead><tr><th scope="col">אזור</th>{% for c in model.charts.regions.x %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>
+{%- for r in model.tables.regions %}
+            <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("tag", "נושאי האמנות") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.subjects_note }}</p>
+    {{ gov.chart("chart-subjects", model.labels.subjects_aria, h="h-80 md:h-[460px]") }}
+    {{ gov.table(model.labels.subjects_aria, ["נושא", "מסמכים", "מכלל המסמכים"], model.tables.subjects, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("list", "סוגי המסמכים") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.forms_note }}</p>
+    {{ gov.chart("chart-forms", model.labels.forms_aria, h="h-80 md:h-[460px]") }}
+    {{ gov.table(model.labels.forms_aria, ["סוג", "מסמכים", "שיעור"], model.tables.forms, ltr=(2,)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("database", "נושאים לאורך העשורים") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.heat_note }}</p>
+  {{ gov.chart("chart-heat", model.labels.heat_aria, h="h-80 md:h-[460px]") }}
+  <details class="mt-3">
+    <summary class="text-sm text-subtle">הצג כטבלה</summary>
+    <div class="overflow-x-auto">
+      <table class="mt-2 w-full text-sm">
+        <caption class="sr-only">{{ model.labels.heat_aria }}</caption>
+        <thead><tr><th scope="col">נושא</th>{% for c in model.charts.heat.x %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+        <tbody>
+{%- for r in model.tables.heat %}
+          <tr>{% for v in r %}{% if loop.first %}<th scope="row">{{ v }}</th>{% else %}<td>{{ v }}</td>{% endif %}{% endfor %}</tr>
+{%- endfor %}
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+  <section class="card p-5">
+    {{ gov.head("chart-bar", "מחתימה לכניסה לתוקף") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.lag_note }}</p>
+    {{ gov.chart("chart-lag", model.labels.lag_aria) }}
+    {{ gov.table(model.labels.lag_aria, ["זמן עד הכניסה לתוקף", "מסמכים", "שיעור"], model.tables.lag, ltr=(2,)) }}
+  </section>
+  <section class="card p-5">
+    {{ gov.head("list", "שפות הנוסח") }}
+    <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.langs_note }}</p>
+    {{ gov.chart("chart-langs", model.labels.langs_aria) }}
+    {{ gov.table(model.labels.langs_aria, ["שפה", "מסמכים", "מהמסמכים ששפתם ידועה"], model.tables.langs, ltr=(2,)) }}
+  </section>
+</div>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("list", "המסמכים האחרונים במאגר") }}
+  <p class="m-0 text-sm text-subtle mb-3">{{ model.labels.recent_note }}</p>
+  <div class="overflow-x-auto">
+    <table id="recent" class="w-full text-sm">
+      <caption class="sr-only">{{ model.labels.recent_note }}</caption>
+      <thead><tr><th scope="col">תאריך חתימה</th><th scope="col">כניסה לתוקף</th><th scope="col">מדינה או גוף</th><th scope="col">נושא</th><th scope="col">סוג</th></tr></thead>
+      <tbody>
+{%- for r in model.tables.recent %}
+        <tr><th scope="row" dir="ltr">{{ r[0] }}</th><td dir="ltr">{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td>{{ r[4] }}</td></tr>
+{%- endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="card p-5 mb-6">
+  {{ gov.head("info", "על המאגר") }}
+  <p class="m-0 text-sm text-subtle mb-2">רשימת האמנות וההסכמים הבילטרליים שישראל צד להם, מאז קום המדינה. את נוסחי האמנות עצמם אפשר לקרוא במאגר האמנות באתר משרד החוץ.</p>
+  <p id="docs-note" class="m-0 text-sm text-subtle">{{ model.labels.docs_note }}</p>
+</section>
+
+<script>
+  (function () {
+    var esc = echarts.format.encodeHTML;
+    var narrow = window.innerWidth < 500;
+    function mk(id) {
+      var el = document.getElementById(id);
+      if (!el) { return null; }
+      var c = echarts.init(el);
+      window.addEventListener("resize", function () { c.resize(); });
+      return c;
+    }
+    function tip(unit) {
+      return function (p) {
+        return esc(String(p[0].name)) + ": " + Number(p[0].value).toLocaleString("he-IL") + " " + unit;
+      };
+    }
+    function hbar(id, d, unit, color) {
+      var c = mk(id);
+      if (!c) { return; }
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: tip(unit) },
+        grid: { left: 16, right: 32, top: 8, bottom: 16, containLabel: true },
+        xAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+        yAxis: { type: "category", data: d.names, inverse: true,
+                 axisLabel: { fontSize: 11, interval: 0, width: narrow ? 96 : 150, overflow: "truncate" } },
+        series: [{ type: "bar", name: unit, data: d.values, itemStyle: { color: color, borderRadius: [0, 4, 4, 0] },
+                   label: { show: true, position: "right", fontSize: 11 } }]
+      }));
+    }
+    function vbar(id, x, y, unit, color, peak) {
+      var c = mk(id);
+      if (!c) { return; }
+      var data = y.map(function (v, i) {
+        return i === peak ? { value: v, itemStyle: { color: "#0b3668" } } : v;
+      });
+      c.setOption(window.GovEcharts.option({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: tip(unit) },
+        grid: { left: 16, right: 16, top: 24, bottom: 16, containLabel: true },
+        xAxis: { type: "category", data: x, axisLabel: { interval: 0, rotate: narrow ? 45 : 30, fontSize: 11 } },
+        yAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+        series: [{ type: "bar", name: unit, data: data, itemStyle: { color: color, borderRadius: [4, 4, 0, 0] },
+                   label: { show: true, position: "top", fontSize: 11 } }]
+      }));
+    }
+
+    var dec = {{ model.charts.decades | tojson }};
+    vbar("chart-decades", dec.x, dec.y, "מסמכים", "#0068f5", dec.peak);
+    var np = {{ model.charts.newp | tojson }};
+    vbar("chart-newp", np.x, np.y, "מדינות", "#0068f5", -1);
+    var lag = {{ model.charts.lag | tojson }};
+    vbar("chart-lag", lag.names, lag.values, "מסמכים", "#0068f5", -1);
+    hbar("chart-partners", {{ model.charts.partners | tojson }}, "מסמכים", "#0068f5");
+    hbar("chart-subjects", {{ model.charts.subjects | tojson }}, "מסמכים", "#0b3668");
+    hbar("chart-forms", {{ model.charts.forms | tojson }}, "מסמכים", "#0068f5");
+    hbar("chart-langs", {{ model.charts.langs | tojson }}, "מסמכים", "#0b3668");
+  })();
+</script>
+
+<script>
+  (function () {
+    var yr = {{ model.charts.years | tojson }};
+    var el = document.getElementById("chart-years");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        return echarts.format.encodeHTML(String(p[0].name)) + ": " + Number(p[0].value).toLocaleString("he-IL") + " מסמכים";
+      } },
+      grid: { left: 16, right: 16, top: 16, bottom: 56, containLabel: true },
+      xAxis: { type: "category", data: yr.x, axisLabel: { hideOverlap: true } },
+      yAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+      dataZoom: [{ type: "inside" }, { type: "slider", height: 20, bottom: 8 }],
+      series: [{ type: "bar", name: "מסמכים", data: yr.y, itemStyle: { color: "#0068f5" } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var R = {{ model.charts.regions | tojson }};
+    var el = document.getElementById("chart-regions");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    c.setOption(window.GovEcharts.option({
+      color: window.GOVIL_PALETTE,
+      tooltip: { trigger: "axis", axisPointer: { type: "shadow" }, formatter: function (p) {
+        var s = echarts.format.encodeHTML(String(p[0].name));
+        p.forEach(function (q) {
+          if (q.value) { s += "<br/>" + q.marker + echarts.format.encodeHTML(String(q.seriesName)) + ": " + Number(q.value).toLocaleString("he-IL"); }
+        });
+        return s;
+      } },
+      legend: { type: "scroll", bottom: 0, textStyle: { fontSize: 11 } },
+      grid: { left: 16, right: 16, top: 16, bottom: 72, containLabel: true },
+      xAxis: { type: "category", data: R.x, axisLabel: { interval: 0, rotate: window.innerWidth < 500 ? 45 : 30, fontSize: 11 } },
+      yAxis: { type: "value", splitNumber: 4, minInterval: 1 },
+      series: R.series.map(function (s) {
+        return { type: "bar", stack: "r", name: s.name, data: s.data };
+      })
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var H = {{ model.charts.heat | tojson }};
+    var el = document.getElementById("chart-heat");
+    if (!el) { return; }
+    var c = echarts.init(el);
+    var narrow = window.innerWidth < 500;
+    c.setOption(window.GovEcharts.option({
+      tooltip: { position: "top", formatter: function (p) {
+        return echarts.format.encodeHTML(String(H.y[p.value[1]])) + "<br/>" + echarts.format.encodeHTML(String(H.x[p.value[0]])) +
+          ": " + Number(p.value[2]).toLocaleString("he-IL") + " מסמכים";
+      } },
+      grid: { left: 8, right: 16, top: 8, bottom: 64, containLabel: true },
+      xAxis: { type: "category", data: H.x, splitArea: { show: true },
+               axisLabel: { interval: 0, fontSize: 11, rotate: narrow ? 45 : 30 } },
+      yAxis: { type: "category", data: H.y, inverse: true, splitArea: { show: true },
+               axisLabel: { fontSize: 11, width: narrow ? 80 : 150, overflow: "truncate" } },
+      visualMap: { min: 0, max: H.max, dimension: 2, calculable: true, orient: "horizontal", left: "center", bottom: 0,
+                   inRange: { color: ["#dbe8fb", "#0068f5", "#0b3668"] }, textStyle: { fontFamily: "Rubik", color: "#0c3058" } },
+      series: [{ type: "heatmap", data: H.data, label: { show: !narrow, fontFamily: "Rubik", fontSize: 10 },
+                 emphasis: { itemStyle: { shadowBlur: 8, shadowColor: "rgba(0,104,245,.3)" } } }]
+    }));
+    window.addEventListener("resize", function () { c.resize(); });
+  })();
+</script>
