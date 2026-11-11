@@ -93,9 +93,6 @@ _SCRIPT_DATA_TYPE = re.compile(
     r'\btype\s*=\s*"(?:application/(?:[a-z0-9-]+\+)?json|text/[a-z0-9-]+)"',
     re.IGNORECASE,
 )
-# Above this many missing closers the body is structurally broken in
-# ways a string-append can't safely fix — fail loudly instead.
-_MAX_AUTO_REPAIR = 5
 
 
 def _balance_raw_text_tag(
@@ -108,29 +105,19 @@ def _balance_raw_text_tag(
 ) -> str:
     # `<script>` and `<style>` put the parser in a raw-text state until
     # the matching `</…>`; an unclosed opener swallows the rest of the
-    # document, breaks the inline JS, and (for the agent body) blocks
-    # Nuxt hydration. Auto-repair: if opens > closes, append the missing
-    # closers so the parser can exit raw-text state cleanly.
+    # document (an unclosed <style> renders the page blank, an unclosed
+    # <script> breaks the inline JS). No string edit can tell where the
+    # block should have ended, so an imbalance fails the render and the
+    # last-good page stays live.
     counted = _HTML_COMMENT.sub("", body)
     opens = len(opener.findall(counted))
     closes = len(closer.findall(counted))
-    delta = opens - closes
-    if delta == 0:
-        return body
-    if delta < 0:
-        log.warning(
-            "%ssanitizer: %d stray </%s> than <%s> — leaving as-is",
-            tag, -delta, name, name,
-        )
-        return body
-    if delta > _MAX_AUTO_REPAIR:
+    if opens != closes:
         raise ValueError(
-            f"{tag}sanitizer: {delta} unclosed <{name}> tags exceeds "
-            f"auto-repair cap ({_MAX_AUTO_REPAIR}); refusing to publish"
+            f"{tag}sanitizer: unbalanced <{name}> tags ({opens} opening, "
+            f"{closes} closing); refusing to publish"
         )
-    log.warning("%ssanitizer: appended %d missing </%s> tag(s)", tag, delta, name)
-    sep = "" if body.endswith("\n") else "\n"
-    return body + sep + (f"</{name}>\n" * delta)
+    return body
 
 
 _JS_CTRL_ESCAPES: dict[str, str] = {
@@ -256,10 +243,11 @@ def sanitize_content_html(body: str, *, dataset_id: str = "") -> str:
     Strips `integrity=` / `crossorigin=` attributes (any SRI hash the
     agent emits is fabricated; same-origin loads don't need either).
     Replaces `<\\/script>` (JSON string-escape) with `</script>` so the
-    HTML parser actually closes the tag. Auto-closes unclosed
-    `<script>`/`<style>` tags (e4a5e2d7-… shipped without the trailing
-    `</script>`, which let the parser swallow the page footer and the
-    Nuxt config bootstrap, blanking every chart and breaking hydration).
+    HTML parser actually closes the tag. Raises ValueError when
+    `<script>`/`<style>` openers and closers don't balance (e4a5e2d7-…
+    shipped without the trailing `</script>`, which let the parser swallow
+    the page footer and the Nuxt config bootstrap, blanking every chart and
+    breaking hydration).
     Escapes raw control chars (LF/CR/etc.) inside `"…"`/`'…'` JS string
     literals (b2370286-… inlined CKAN address fields containing embedded
     newlines as a JS array literal — V8 aborted the whole <script> on the
@@ -309,7 +297,7 @@ def sanitize_content_html(body: str, *, dataset_id: str = "") -> str:
     body = _balance_raw_text_tag(body, _OPEN_SCRIPT, _CLOSE_SCRIPT, "script", tag=tag)
     body = _balance_raw_text_tag(body, _OPEN_STYLE, _CLOSE_STYLE, "style", tag=tag)
 
-    # Run after balancing so every <script> has a closer the regex can find.
+    # Run after the balance check so every <script> has a closer the regex can find.
     body = _escape_script_string_controls(body, tag=tag)
 
     return body

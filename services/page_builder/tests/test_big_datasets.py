@@ -323,6 +323,38 @@ def test_memory_guard_turns_overuse_into_memory_error(monkeypatch):
     assert out == ["1000", "MemoryError"]
 
 
+def test_memory_guard_caps_file_size(monkeypatch):
+    default = rf._DEFAULT_COMPUTE_FILE_MAX_BYTES
+    assert f"_fsize = {default}\n" in _guard(monkeypatch)
+    # A recipe allowed bigger inputs may write a file as big as one.
+    assert "_fsize = 3900000000\n" in _guard(monkeypatch, {"total_bytes": 3_900_000_000})
+    monkeypatch.setenv("REFRESH_COMPUTE_FILE_MAX_BYTES", "bogus")
+    assert f"_fsize = {default}\n" in _guard(monkeypatch)
+    monkeypatch.setenv("REFRESH_COMPUTE_FILE_MAX_BYTES", "0")
+    assert "RLIMIT_FSIZE" not in _guard(monkeypatch)
+    monkeypatch.setenv("REFRESH_COMPUTE_FILE_MAX_BYTES", "1000000")
+    assert "_fsize = 600000000\n" in _guard(monkeypatch)  # never below an input
+    monkeypatch.setenv("REFRESH_MAX_BYTES", "1000")
+    monkeypatch.setenv("REFRESH_TOTAL_BYTES", "1000")
+    code = _guard(monkeypatch) + (
+        "import os, tempfile\n"
+        "p = os.path.join(tempfile.mkdtemp(), 'big')\n"
+        "with open(p, 'wb') as f:\n"
+        "    f.write(b'x' * 900_000)\n"
+        "try:\n"
+        "    with open(p, 'ab') as f:\n"
+        "        f.write(b'x' * 200_000)\n"
+        "    print('written')\n"
+        "except OSError as e:\n"
+        "    print('EFBIG' if e.errno == 27 else e)\n"
+        "print(os.path.getsize(p) <= 1_000_000)\n"
+        "os.remove(p)\n"
+    )
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=False,
+                         timeout=60).stdout.split()
+    assert out == ["EFBIG", "True"]
+
+
 # ── review follow-ups ────────────────────────────────────────────────────
 
 
@@ -568,3 +600,75 @@ def test_empty_resource_fails_unless_its_provider_marks_it_optional(tmp_path, op
     assert part.rows == 0
     with open(part.file, encoding="utf-8", newline="") as f:
         assert list(csv.reader(f)) == [COLS]
+
+
+# ── author verify resolves inputs against the refresh's resource list ────
+
+_RA, _RB, _RC = (f"{c * 8}-0000-0000-0000-000000000000" for c in "abc")
+_PROD_RESOURCES = [
+    {"id": _RA, "name": "a", "format": "XLSX", "datastore_active": True},
+    {"id": _RC, "name": "c", "format": "CSV", "datastore_active": False},
+    {"id": _RB, "name": "b", "format": "CSV", "datastore_active": True},
+]
+
+
+def _verify_layout(tmp_path, monkeypatch, source, manifest, inputs):
+    from services.page_builder import author
+
+    recipes = _fixture_copy(tmp_path, lambda d: d.update(inputs=inputs))
+    monkeypatch.setattr(author, "AUTHORING_ROOT", tmp_path / "authoring")
+    data = tmp_path / "authoring" / DS / "data"
+    data.mkdir(parents=True)
+    (data / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    if source is not None:
+        (tmp_path / "authoring" / DS / "source.json").write_text(json.dumps(source), encoding="utf-8")
+    return author, recipes, data
+
+
+@pytest.mark.parametrize("order", [[0, 1, 2], [2, 1, 0]])
+def test_verify_resolves_inputs_in_prod_order(tmp_path, monkeypatch, order):
+    prod = [_PROD_RESOURCES[i] for i in order]
+    manifest = [{"resource_id": r["id"], "name": r["name"], "format": r["format"],
+                 "fields": COLS, "field_types": {}, "total": 1, "file": None, "rows": 0}
+                for r in sorted((r for r in prod if r["datastore_active"]), key=lambda r: r["id"])]
+    author, recipes, _ = _verify_layout(
+        tmp_path, monkeypatch, {"resources": prod}, manifest,
+        [{"name": "events", "by_schema": COLS, "concat": True}],
+    )
+    recipe, _, resources = author.load_local(DS, recipes)
+    got = [r["id"] for r in resolve_inputs(recipe.manifest, resources, lambda rid: COLS)["events"]]
+    want = [r["id"] for r in resolve_inputs(recipe.manifest, prod, lambda rid: COLS)["events"]]
+    assert got == want
+    assert got == ([_RA, _RB] if order == [0, 1, 2] else [_RB, _RA])
+
+
+def test_verify_without_a_source_list_falls_back_to_the_manifest(tmp_path, monkeypatch, capsys):
+    manifest = [{"resource_id": RID, "name": "events", "format": "CSV", "fields": COLS,
+                 "field_types": {}, "total": 1, "file": None, "rows": 0}]
+    author, recipes, _ = _verify_layout(
+        tmp_path, monkeypatch, None, manifest,
+        [{"name": "events", "by_id": RID, "required_columns": COLS}],
+    )
+    _, _, resources = author.load_local(DS, recipes)
+    assert [r["id"] for r in resources] == [RID]
+    assert "has no resource list" in capsys.readouterr().err
+
+
+def test_verify_accepts_an_empty_optional_provider_table(tmp_path, monkeypatch):
+    res = {"id": RID, "name": "table 3", "format": "CSV", "datastore_active": False,
+           "params": {"optional": True}}
+    manifest = [{"resource_id": RID, "name": "table 3", "format": "CSV", "fields": COLS,
+                 "field_types": {}, "total": 0, "file": "1.csv", "rows": 0}]
+    author, recipes, data = _verify_layout(
+        tmp_path, monkeypatch, {"provider": "cbs_releases", "resources": [res]}, manifest,
+        [{"name": "events", "by_id": RID, "required_columns": COLS}],
+    )
+    with open(data / "1.csv", "w", newline="", encoding="utf-8") as f:
+        csv.writer(f).writerow(COLS)
+    recipe, manifest, resources = author.load_local(DS, recipes)
+    assert resources[0]["params"] == {"optional": True} and resources[0]["datastore_active"]
+    ckan = author._LocalCkan(data, manifest)
+    out = rf.fetch_inputs(recipe, resources, tmp_path / "work",
+                          preview_fn=ckan.preview, fetch_fn=ckan.fetch)
+    (part,) = out["events"]
+    assert part.rows == 0

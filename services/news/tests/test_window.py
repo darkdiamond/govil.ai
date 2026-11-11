@@ -162,6 +162,45 @@ def test_failed_live_run_keeps_the_cursor(live, monkeypatch, capsys):
     assert _FakeArticles.cursor == CURSOR
 
 
+def test_model_error_in_a_story_keeps_the_cursor(live, monkeypatch, capsys):
+    day = {"published": [], "candidates": 1, "briefs": 1, "skipped": [], "model_errors": 1,
+           "rejected": [{"signal_keys": ["k"], "reason": "error", "headline": None}]}
+    monkeypatch.setattr(run, "write_day", lambda *_a, **_k: day)
+    assert run.main(live) == 0
+    s = _summary(capsys)
+    assert s["status"] == "idle" and s["cursor_advanced"] is False
+    assert _FakeArticles.cursor == CURSOR
+
+
+def test_store_error_dispatches_the_stored_stories_and_keeps_the_cursor(live, monkeypatch, capsys):
+    day = {"published": ["a-story-slug"], "candidates": 2, "briefs": 2, "skipped": [],
+           "model_errors": 0, "store_errors": 1,
+           "rejected": [{"signal_keys": ["k"], "reason": "error", "headline": "h"}]}
+    monkeypatch.setattr(run, "write_day", lambda *_a, **_k: day)
+    dispatched = []
+    monkeypatch.setattr(run, "_dispatch_publish", lambda: dispatched.append(1) or "ok")
+    assert run.main(live) == 0
+    s = _summary(capsys)
+    assert s["status"] == "ok" and s["publish_dispatch"] == "ok" and dispatched == [1]
+    assert s["cursor_advanced"] is False
+    assert _FakeArticles.cursor == CURSOR
+
+
+@pytest.mark.parametrize("exc", [llm_mod.LLMUnavailable("key refused"), RuntimeError("boom")])
+def test_crash_after_a_stored_story_still_dispatches(live, monkeypatch, capsys, exc):
+    def partial(*_a, stored, **_k):
+        stored.append("a-story-slug")
+        raise exc
+    monkeypatch.setattr(run, "write_day", partial)
+    dispatched = []
+    monkeypatch.setattr(run, "_dispatch_publish", lambda: dispatched.append(1) or "ok")
+    assert run.main(live) == 1
+    s = _summary(capsys)
+    assert s["status"] in ("llm_unavailable", "failed") and s["publish_dispatch"] == "ok"
+    assert s["published"] == ["a-story-slug"] and dispatched == [1]
+    assert _FakeArticles.cursor == CURSOR
+
+
 @pytest.mark.parametrize("extra", [["--since-hours", "3"], ["--dataset", "A"]])
 def test_partial_live_runs_keep_the_cursor(live, capsys, extra):
     assert run.main(live + extra) == 0

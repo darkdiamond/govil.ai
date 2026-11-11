@@ -25,8 +25,12 @@ Hardening within that boundary:
 - per-command wall-clock timeout (default 120s, SIGKILL on expiry); at
   session end, privilege-separated, stray background processes the
   session left running are killed before the workdir is removed.
-- output size is bounded by the caller (refresh.py reads back only the
-  compute result file).
+- bounded read-back: of everything a command prints, the host keeps only
+  the last `max_output_bytes` of stdout and of stderr (default 64KB each;
+  the rest is read from the pipe and dropped), and `files.read` refuses a
+  file over `max_read_bytes` with `OutputTooLarge`. What the sandbox writes
+  to its workdir is bounded by the caller's RLIMIT_FSIZE prologue
+  (refresh.py `_memory_guard`), not here.
 
 When the builder is NOT root (local dev, tests) none of the privilege
 separation applies and commands run as the invoking user, as before.
@@ -48,11 +52,13 @@ from __future__ import annotations
 import logging
 import os
 import pwd
+import selectors
 import shutil
 import signal
 import stat
 import subprocess
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,6 +66,14 @@ log = logging.getLogger(__name__)
 
 _BASE_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 _DEFAULT_SANDBOX_USER = "sandbox"
+# Tail of stdout / stderr the host keeps per command. Callers quote at most
+# the last 1,500 characters of stderr in errors and issues.
+DEFAULT_OUTPUT_TAIL_BYTES = 64 * 1024
+_PIPE_CHUNK = 64 * 1024
+
+
+class OutputTooLarge(Exception):
+    """A sandbox file is bigger than the reader's `max_read_bytes`."""
 
 
 @dataclass
@@ -125,15 +139,106 @@ class _Files:
             return self._sb._read_untrusted(p)
         if not p.is_file():
             raise FileNotFoundError(f"sandbox file not readable: {p}")
-        return p.read_bytes()
+        with open(p, "rb") as f:
+            return _read_capped(f, p, self._sb.max_read_bytes)
+
+
+def _read_capped(f, p: Path, max_bytes: int | None) -> bytes:
+    """Read an open file whole, refusing it past `max_bytes` (None = no cap)
+    by its size and by what is actually read, in case it grows meanwhile."""
+    if max_bytes is None:
+        return f.read()
+    size = os.fstat(f.fileno()).st_size
+    if size > max_bytes:
+        raise OutputTooLarge(f"{p.name} is {size:,} bytes, over the {max_bytes:,}-byte cap")
+    data = f.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise OutputTooLarge(f"{p.name} is over the {max_bytes:,}-byte cap")
+    return data
+
+
+def _killpg(proc: subprocess.Popen) -> None:
+    """SIGKILL the child's whole process group (it leads its own session),
+    so a background process it left can't hold the pipes open. Called before
+    the child is reaped, so its pid (= the group id) can't have been reused."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def _run_capped(
+    argv: list[str], *, timeout: int, max_output_bytes: int, **popen_kw
+) -> tuple[int | None, bytes, bytes]:
+    """Run `argv`; return (returncode, stdout tail, stderr tail).
+
+    Like `subprocess.run(capture_output=True, timeout=...)` (both pipes are
+    drained on this thread until EOF or the deadline), except that the host
+    holds at most `max_output_bytes` of each stream. returncode None means
+    the timeout expired: the child's process group is SIGKILLed and the
+    output read so far is returned. Pipes held open after the child exits
+    (a background process) count against the same timeout. Nothing reads
+    either pipe once this returns.
+    """
+    deadline = time.monotonic() + timeout
+    with subprocess.Popen(
+        argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        start_new_session=True, **popen_kw,
+    ) as proc:
+        tails = {proc.stdout.fileno(): bytearray(), proc.stderr.fileno(): bytearray()}
+        try:
+            timed_out = False
+            with selectors.DefaultSelector() as sel:
+                for fd in tails:
+                    sel.register(fd, selectors.EVENT_READ)
+                while sel.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        break
+                    for key, _ in sel.select(remaining):
+                        chunk = os.read(key.fd, _PIPE_CHUNK)
+                        if not chunk:
+                            sel.unregister(key.fd)
+                            continue
+                        tail = tails[key.fd]
+                        tail += chunk
+                        if len(tail) > max_output_bytes:
+                            del tail[:-max_output_bytes]
+            if not timed_out:
+                try:
+                    proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+        except BaseException:
+            # Interrupted (Ctrl-C, SystemExit, an unexpected OSError): the child
+            # leads its own session, so no terminal signal reaches it. Kill it.
+            _killpg(proc)
+            proc.kill()
+            proc.wait()
+            raise
+        if timed_out:
+            _killpg(proc)
+            proc.kill()
+            proc.wait()
+        rc = None if timed_out else proc.returncode
+        return rc, bytes(tails[proc.stdout.fileno()]), bytes(tails[proc.stderr.fileno()])
 
 
 class LocalSandbox:
     """Per-session subprocess executor with a private workdir."""
 
-    def __init__(self, workdir: Path, ident: tuple[int, int] | None = None):
+    def __init__(
+        self,
+        workdir: Path,
+        ident: tuple[int, int] | None = None,
+        *,
+        max_read_bytes: int | None = None,
+    ):
         self.workdir = workdir
         self.ident = ident
+        # Largest file `files.read` returns; None = no cap.
+        self.max_read_bytes = max_read_bytes
         self.files = _Files(self)
         self._closed = False
         self._handed_over = False
@@ -161,7 +266,7 @@ class LocalSandbox:
             self._env["TMPDIR"] = str(workdir / ".tmp")
 
     @classmethod
-    def create(cls, workdir: str | Path) -> LocalSandbox:
+    def create(cls, workdir: str | Path, *, max_read_bytes: int | None = None) -> LocalSandbox:
         wd = Path(workdir)
         (wd / "outputs").mkdir(parents=True, exist_ok=True)
         ident = _resolve_sandbox_identity()
@@ -176,7 +281,7 @@ class LocalSandbox:
             wd,
             f" (tools run as uid {ident[0]})" if ident else "",
         )
-        return cls(wd, ident)
+        return cls(wd, ident, max_read_bytes=max_read_bytes)
 
     # ── privilege separation ────────────────────────────────────────────
     def handover(self) -> None:
@@ -229,7 +334,7 @@ class LocalSandbox:
                     f"the sandbox user): {p}"
                 )
             with os.fdopen(fd, "rb", closefd=False) as f:
-                return f.read()
+                return _read_capped(f, p, self.max_read_bytes)
         finally:
             os.close(fd)
 
@@ -273,6 +378,7 @@ class LocalSandbox:
         *,
         language: str = "python",
         timeout: int = 120,
+        max_output_bytes: int = DEFAULT_OUTPUT_TAIL_BYTES,
     ) -> _Execution:
         if language == "bash":
             argv = ["bash", "-c", code]
@@ -285,29 +391,22 @@ class LocalSandbox:
             self.handover()
             uid, gid = self.ident
             privsep = {"user": uid, "group": gid, "extra_groups": [], "umask": 0o077}
-        try:
-            proc = subprocess.run(
-                argv,
-                cwd=self.workdir,
-                env=self._env,
-                capture_output=True,
-                timeout=timeout,
-                check=False,  # a failing compute is an _Execution error, not an exception
-                **privsep,
-            )
-        except subprocess.TimeoutExpired as e:
-            return _Execution(
-                logs=_Logs(
-                    stdout=(e.stdout or b"").decode("utf-8", errors="replace"),
-                    stderr=(e.stderr or b"").decode("utf-8", errors="replace"),
-                ),
-                error=_Error(name="Timeout", value=f"killed after {timeout}s"),
-            )
-        out = proc.stdout.decode("utf-8", errors="replace")
-        err = proc.stderr.decode("utf-8", errors="replace")
-        error = (
-            _Error(name="NonZeroExit", value=f"exit code {proc.returncode}")
-            if proc.returncode != 0
-            else None
+        # A failing compute is an _Execution error, not an exception.
+        rc, out_b, err_b = _run_capped(
+            argv,
+            cwd=self.workdir,
+            env=self._env,
+            timeout=timeout,
+            max_output_bytes=max_output_bytes,
+            **privsep,
         )
-        return _Execution(logs=_Logs(stdout=out, stderr=err), error=error)
+        logs = _Logs(
+            stdout=out_b.decode("utf-8", errors="replace"),
+            stderr=err_b.decode("utf-8", errors="replace"),
+        )
+        if rc is None:
+            return _Execution(
+                logs=logs, error=_Error(name="Timeout", value=f"killed after {timeout}s")
+            )
+        error = _Error(name="NonZeroExit", value=f"exit code {rc}") if rc != 0 else None
+        return _Execution(logs=logs, error=error)

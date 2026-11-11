@@ -27,6 +27,7 @@ log = logging.getLogger(__name__)
 
 SAMPLE_ROWS = 3
 CELL_CHARS = 60
+SQL_RESULT_CHARS = 20000
 FETCH_TEXT_CHARS = 7000
 
 
@@ -157,28 +158,42 @@ class Toolbox:
         for name, cols in q.schema.items():
             n = q.con.execute(f'SELECT count(*) FROM "{name}"').fetchone()[0]
             sample = q.con.execute(f'SELECT * FROM "{name}" LIMIT {SAMPLE_ROWS}').fetchall()
-            out[name] = {"rows": n, "columns": [{"name": c, "type": t} for c, t in cols],
-                         "sample": [[str(x)[:CELL_CHARS] if x is not None else None for x in r] for r in sample]}
+            out[name] = {"rows": n, "columns": [{"name": _untrusted(c), "type": t} for c, t in cols],
+                         "sample": [[_cell(x) for x in r] for r in sample]}
         return out
 
     def t_sql(self, dataset_id: str, query: str) -> dict:
         res = self._query(dataset_id).run(query)
         qid = hashlib.sha1(query.encode("utf-8")).hexdigest()[:10]
         cols = res["columns"]
-        rows = []
+        # Dataset text is untrusted: each text cell is capped and fenced, and
+        # rows stop once the serialized result would pass SQL_RESULT_CHARS
+        # (no fact is registered for a row the model never sees).
+        shown = [_untrusted(c) for c in cols]
+        size = len(json.dumps({"columns": shown, "rows": [], "truncated": True},
+                              ensure_ascii=False, default=str))
+        if size > SQL_RESULT_CHARS:
+            raise ValueError("too many or too long columns: select fewer columns or shorter aliases")
+        rows, truncated = [], res["truncated"]
         for i, r in enumerate(res["rows"]):
             key = "; ".join(f"{c}={v}" for c, v in zip(cols, r, strict=True) if not _is_num(v))[:120]
+            texts = [v if _is_num(v) else _cell(v) for v in r]
+            row_size = len(json.dumps(texts, ensure_ascii=False, default=str)) + 1 + 40 * len(r)
+            if size + row_size > SQL_RESULT_CHARS:
+                truncated = True
+                break
             row = []
-            for c, v in zip(cols, r, strict=True):
+            for j, (c, v) in enumerate(zip(cols, r, strict=True)):
                 if _is_num(v):
                     f = self.ledger.add(float(v), label=f"{c} ({key})" if key else c,
-                                        provenance=f"sql:{dataset_id}:{qid}:{i}:{c}",
+                                        provenance=f"sql:{dataset_id}:{qid}:{i}:{j}:{c}",
                                         dataset_id=dataset_id)
                     row.append({"v": v, "fact": f.id})
                 else:
-                    row.append(v)
+                    row.append(texts[j])
+            size += len(json.dumps(row, ensure_ascii=False, default=str)) + 1
             rows.append(row)
-        return {"columns": cols, "rows": rows, "truncated": res["truncated"]}
+        return {"columns": shown, "rows": rows, "truncated": truncated}
 
     def t_calc(self, op: str, a: str, b: str | None = None, label: str = "",
                factor: float | None = None) -> dict:
@@ -240,6 +255,19 @@ def _untrusted(text: str) -> str:
     A page can't fake the fence: the markers are stripped from its text."""
     t = text.replace("<<<", "‹‹‹").replace(">>>", "›››")
     return f"{UNTRUSTED_OPEN}\n{t}\n{UNTRUSTED_CLOSE}"
+
+
+def _cell(v):
+    """One non-numeric dataset value for the model: None and bools as they are;
+    anything else (text, lists, structs, maps, blobs, dates) as a string,
+    capped, then fenced."""
+    if v is None or isinstance(v, bool):
+        return v
+    if isinstance(v, list | tuple | dict):
+        text = json.dumps(v, ensure_ascii=False, default=str)
+    else:
+        text = str(v)
+    return _untrusted(text[:CELL_CHARS])
 
 
 def _is_num(v) -> bool:

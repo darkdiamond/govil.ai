@@ -367,11 +367,16 @@ class SourceProvider(abc.ABC):
 
     def http_get(self, url: str, *, params: dict | None = None,
                  ok: tuple[int, ...] = (200,),
-                 headers: dict | None = None) -> httpx.Response:
+                 headers: dict | None = None,
+                 max_bytes: int | None = None) -> httpx.Response:
         """GET with the provider's timeout, politeness interval and retries
         (on transport errors and 5xx/429). A status outside `ok` that isn't
-        retryable comes back to the caller as is."""
+        retryable comes back to the caller as is. A body past `max_bytes`
+        (default twice `settings.max_bytes`, so a series just over the cap
+        still downloads and `version` still moves) raises ProviderTooLarge."""
         headers = {"User-Agent": self.settings.user_agent, **(headers or {})}
+        if max_bytes is None:
+            max_bytes = 2 * self.settings.max_bytes
         last: Exception | None = None
         attempt = connect_stalls = 0
         while True:
@@ -381,7 +386,7 @@ class SourceProvider(abc.ABC):
             if slot > time.monotonic():
                 time.sleep(slot - time.monotonic())
             try:
-                r = self._send(url, params=params, headers=headers)
+                r = self._send(url, params=params, headers=headers, max_bytes=max_bytes)
             # A stalled connect, or a pooled keep-alive socket the server closed
             # just as we reused it: reconnect at once, without backoff.
             except (httpx.ConnectTimeout, httpx.RemoteProtocolError) as e:
@@ -405,12 +410,25 @@ class SourceProvider(abc.ABC):
         raise ProviderError(f"GET {url} failed after {attempt + 1 + connect_stalls} "
                             f"attempts: {last}")
 
-    def _send(self, url: str, **kw) -> httpx.Response:
-        """One GET on the shared client (the seam tests replace)."""
+    def _send(self, url: str, *, max_bytes: int, **kw) -> httpx.Response:
+        """One GET on the shared client (the seam tests replace). The body is
+        read in chunks and refused once it passes `max_bytes`, whatever the
+        server says its length is."""
         with self._lock:
             if self._client is None:
                 self._client = httpx.Client(
                     timeout=httpx.Timeout(self.settings.timeout_s,
                                           connect=self.settings.connect_timeout_s),
                     follow_redirects=True)
-        return self._client.get(url, **kw)
+        with self._client.stream("GET", url, **kw) as r:
+            chunks, size = [], 0
+            for chunk in r.iter_bytes():
+                size += len(chunk)
+                if size > max_bytes:
+                    raise ProviderTooLarge(
+                        f"GET {httpx.URL(url).host}: body over {max_bytes:,} bytes")
+                chunks.append(chunk)
+            # What Response.read() stores, so .content/.text/.json() work
+            # after the stream is closed.
+            r._content = b"".join(chunks)
+        return r

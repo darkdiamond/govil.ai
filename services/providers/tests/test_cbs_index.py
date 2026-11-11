@@ -189,6 +189,38 @@ def test_api_error_body_fails():
         p.csv_bytes(resource(p))
 
 
+def test_walk_short_of_total_items_fails():
+    pages = copy.deepcopy(CPI_PAGES)
+    del pages[0]["paging"]["last_page"]  # would stop after page 1 (10 of 27 rows)
+    p = make_provider({"120010": pages})
+    with pytest.raises(ProviderError, match="10 of 27 rows"):
+        p.csv_bytes(resource(p, start="07-2024"))
+
+
+def test_page_dropping_rows_mid_walk_fails():
+    pages = copy.deepcopy(CPI_PAGES)
+    pages[1]["month"][0]["date"].pop()  # a row withdrawn between page requests
+    p = make_provider({"120010": pages})
+    with pytest.raises(ProviderError, match="26 of 27 rows"):
+        p.csv_bytes(resource(p, start="07-2024"))
+
+
+def test_multi_row_page_without_paging_counts_fails():
+    page = {"month": [_series(1, "month", [_row("month", 2026, 2, "B", 101.0),
+                                           _row("month", 2026, 1, "B", 100.0)])],
+            "paging": {"current_page": 1}}
+    p = make_provider({"1": [page]})
+    with pytest.raises(ProviderError, match="no usable paging"):
+        p.csv_bytes(resource(p, codes=[1], frequency="month"))
+
+
+def test_single_row_page_without_counts_passes():
+    page = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.0)])],
+            "paging": {}}
+    p = make_provider({"1": [page]})
+    assert len(rows(p.csv_bytes(resource(p, codes=[1], frequency="month")))) == 1
+
+
 def _strip_coefficients(pages):
     for page in pages:
         for r in page["month"][0]["date"]:
@@ -359,6 +391,19 @@ def test_probe_is_unknown_when_api_is_down():
     assert p.probe_available([{"id": "x", "params": {"codes": [1]}}]) == "unknown"
 
 
+@pytest.mark.parametrize("answer", [
+    {"Message": "Error: Price Data"},
+    {"month": None, "quarter": None, "paging": None},
+    {"month": None, "quarter": None, "paging": {"last_page": 0}},
+    {"month": None, "quarter": None, "paging": {"total_items": "0"}},
+    {"month": [{"code": 1, "date": [{}]}], "paging": {"total_items": 0}},
+])
+def test_probe_is_unknown_on_a_malformed_answer(answer):
+    p = make_provider({"120010": CPI_PAGES, "1": [answer]})
+    assert p.healthy()
+    assert p.probe_available([{"id": "x", "params": {"codes": [1]}}]) == "unknown"
+
+
 # ── authoring + sync ──────────────────────────────────────────────────────
 
 
@@ -425,6 +470,44 @@ def test_chain_comes_from_the_chain_pages():
     assert float(alone["2025-12"]["VALUE_CHAINED"]) == pytest.approx(200 / (200 * 1.001 / 100))
     with pytest.raises(ProviderError, match="no row with chaining"):
         rows_csv([data], [1], "month", [{"month": None, "paging": {}}])
+
+
+def test_chain_answer_behind_a_rebase_in_the_data_fails():
+    # The data pages already hold January on the new base B; the separate
+    # chain answer still shows December on A. Writing rows would leave the
+    # newest periods unchained and name A as the chain base.
+    data = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.4),
+                                           _row("month", 2025, 12, "A", 110.0),
+                                           _row("month", 2025, 11, "A", 109.9)])],
+            "paging": {"last_page": 1}}
+    chain = {"month": [_series(1, "month", [_row("month", 2025, 12, "A", 110.0,
+                                                 [{"coeff": 1.05, "baseDesc": "Z"}])])],
+             "paging": {"last_page": 1}}
+    with pytest.raises(ProviderError, match="chain answer is behind"):
+        rows_csv([data], [1], "month", [chain])
+    # A chain answer that lags by a period on the same base still chains.
+    same = {"month": [_series(1, "month", [_row("month", 2026, 1, "A", 100.4),
+                                           _row("month", 2025, 12, "A", 110.0)])],
+            "paging": {"last_page": 1}}
+    out = rows(rows_csv([same], [1], "month", [chain]))
+    assert {r["VALUE_CHAINED"] for r in out} == {"100.4", "110"}
+
+
+def test_download_fails_when_the_chain_answer_lags_a_rebase():
+    data = {"month": [_series(1, "month", [_row("month", 2026, 1, "B", 100.4),
+                                           _row("month", 2025, 12, "A", 110.0)])],
+            "paging": {"last_page": 1, "total_items": 2}}
+    chain = {"month": [_series(1, "month", [_row("month", 2025, 12, "A", 110.0)])],
+             "paging": {"last_page": 1}}
+    p = make_provider({"1": [data]})
+    real = p._send
+
+    def send(url, **kw):
+        return FakeResp(200, chain) if "last=1" in url else real(url, **kw)
+
+    p._send = send
+    with pytest.raises(ProviderError, match="chain answer is behind"):
+        p.download(resource(p, codes=[1], frequency="month"))
 
 
 def test_brief_names_quarters_by_time_period(tmp_path):

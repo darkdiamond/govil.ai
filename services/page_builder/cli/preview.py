@@ -32,6 +32,7 @@ import argparse
 import fcntl
 import json
 import os
+import re
 import shutil
 import signal
 import socket
@@ -67,6 +68,7 @@ PROD_URL_BASE = "https://govil.ai/datasets"
 HOST = "127.0.0.1"
 PORTS = range(3100, 3200)        # clear of `npm run dev`'s 3000
 SERVER_READY_TIMEOUT_S = 240
+START_ATTEMPTS = 3
 WATCH_INTERVAL_S = 0.5
 
 
@@ -265,6 +267,46 @@ def _get(url: str, timeout: float) -> int | None:
         return None
 
 
+def _get_body(url: str, timeout: float) -> str | None:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as r:
+            return r.read().decode("utf-8", errors="replace").strip() if r.status == 200 else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _read_stamp(root: Path) -> str:
+    try:
+        return (root / "stamp").read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+
+
+def _serves_root(port: int, root: Path) -> bool:
+    """The server on `port` reads this checkout's overlay: its /__preview/stamp
+    is our stamp file. Another checkout's preview server answers with its own
+    stamp. Read before and after, so a render bumping it mid-probe still
+    matches."""
+    before = _read_stamp(root)
+    body = _get_body(f"http://{HOST}:{port}/__preview/stamp", timeout=3)
+    return bool(body) and body in (before, _read_stamp(root))
+
+
+_LOCAL_URL = re.compile(r"Local:\s+https?://[^\s/]*:(\d+)")
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _logged_port(log_path: Path) -> int | None:
+    """The port nuxt dev reports it listens on. It falls back to another port,
+    with no error, when the requested one was taken after we probed it."""
+    try:
+        text = _ANSI.sub("", log_path.read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        return None
+    m = _LOCAL_URL.search(text)
+    return int(m.group(1)) if m else None
+
+
 def _pid_alive(pid: int) -> bool:
     try:
         os.kill(pid, 0)
@@ -292,7 +334,7 @@ def running_server(root: Path | None = None) -> dict | None:
     info = _read_server(root)
     if not info or not _is_ours(info):
         return None
-    if _get(f"http://{HOST}:{info['port']}/__preview/stamp", timeout=3) != 200:
+    if not _serves_root(info["port"], root):
         return None
     return info
 
@@ -333,6 +375,19 @@ def _ensure_server(root: Path) -> dict:
     # `npm run dev`'s predev: viz libs into public/lib/ (gitignored, per checkout).
     subprocess.run(["node", "scripts/copy-libs.mjs"], cwd=FRONTEND, check=True,
                    stdout=subprocess.DEVNULL)
+    if not _read_stamp(root):  # the identity the readiness check compares
+        (root / "stamp").write_text(str(time.time_ns()), encoding="utf-8")
+    for _ in range(START_ATTEMPTS):
+        info = _start_server(nuxt, root)
+        if info:
+            return info
+    raise SystemExit(f"nuxt dev kept losing its port to another server ({START_ATTEMPTS} tries)")
+
+
+def _start_server(nuxt: Path, root: Path) -> dict | None:
+    """Start nuxt dev and wait until it serves this checkout's overlay. None
+    when it came up on another port than requested (another checkout's server
+    took ours between the probe and the bind): it is stopped, to be retried."""
     port = _free_port()
     log_path = root / "server.log"
     env = {**os.environ, "NUXT_PREVIEW_ROOT": str(root.resolve())}
@@ -351,7 +406,13 @@ def _ensure_server(root: Path) -> dict:
             tail = log_path.read_text(encoding="utf-8", errors="replace")[-2000:]
             _server_file(root).unlink(missing_ok=True)
             raise SystemExit(f"nuxt dev exited ({proc.returncode}):\n{tail}")
-        if _get(f"http://{HOST}:{port}/__preview/stamp", timeout=3) == 200:
+        bound = _logged_port(log_path)
+        if bound is not None and bound != port:
+            print(f"nuxt dev bound port {bound}, not {port} (taken meanwhile); restarting")
+            _kill(proc.pid)
+            _server_file(root).unlink(missing_ok=True)
+            return None
+        if _serves_root(port, root):
             print(f"server ready in {time.monotonic() - t0:.0f}s")
             return info
         time.sleep(1)
@@ -485,6 +546,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-serve", action="store_true", help="stage into tmp/preview/ only")
     p.add_argument("--recipes", type=Path, default=author.RECIPES_ROOT)
     args = p.parse_args(argv)
+    for did in args.ids:
+        author.validate_dataset_id(did)
 
     root = PREVIEW_ROOT
     ok = [did for did in args.ids if render(did, args.recipes, root)]

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
-import { loadArticle, loadNewsIndex, newsDate } from "~/utils/news";
+import { loadArticle, loadNewsIndex, newsDate, safeHref } from "~/utils/news";
 
 const route = useRoute();
 const slug = String(route.params.slug);
@@ -219,9 +219,15 @@ useSeo({
         <h2 class="m-0 mb-1 text-sm font-display">מקורות רשמיים</h2>
         <ul class="m-0 ps-5">
           <li v-for="s in article.sources" :key="s.url">
-            <a :href="s.url" target="_blank" rel="noopener">{{
-              s.title || s.url
-            }}</a>
+            <!-- Model-chosen URLs: only http(s) becomes a link, as in ArticleBody. -->
+            <a
+              v-if="safeHref(s.url)"
+              :href="safeHref(s.url)!"
+              target="_blank"
+              rel="noopener"
+              >{{ s.title || s.url }}</a
+            >
+            <span v-else>{{ s.title || s.url }}</span>
           </li>
         </ul>
       </section>

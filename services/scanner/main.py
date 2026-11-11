@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 
 from services.shared.resources import pick_primary_resource_id
 
-from .client import CKANClient
+from .client import CKANClient, CKANError
 from .config import ScannerSettings, settings
 from .detector import ChangeDetector
 from .filters import DatasetFilter, create_filter
@@ -142,8 +142,14 @@ class Scanner:
         )
         if status in (DatasetStatus.NEW, DatasetStatus.UPDATED):
             primary_id = pick_primary_resource_id(dataset.resources)
-            if primary_id:
-                dataset.record_count = await client.datastore_total(primary_id)
+            if not primary_id:
+                dataset.record_count = None
+            else:
+                try:
+                    dataset.record_count = await client.datastore_total(primary_id)
+                except CKANError as exc:
+                    # Left unassigned, so save_dataset keeps the stored count.
+                    log.warning("record count unavailable for %s: %s", dataset.id[:8], exc)
             self.db.save_dataset(dataset, status)
         # Counted once the dataset's work is done, so a failed save isn't
         # reported as scanned.

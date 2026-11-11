@@ -59,7 +59,7 @@ from .ckan_export import (
     fetch_resource_file,
     fetch_resource_preview,
 )
-from .local_sandbox import LocalSandbox
+from .local_sandbox import LocalSandbox, OutputTooLarge
 from .page_gate import run_host_check
 from .recipe import (
     MANIFEST_FILENAME,
@@ -127,6 +127,17 @@ _COMPUTE_TIMEOUT_S = 300
 # Heap cap for compute (see `_memory_guard`). The job has 4Gi; the rest is
 # the builder, the page cache and the exported CSVs on the tmpfs.
 _DEFAULT_COMPUTE_MEMORY_MB = 3072
+# What the root builder reads back from compute, which runs outside the
+# compute heap cap. model.json over REFRESH_MODEL_MAX_BYTES fails as
+# `too_large` before it is read (largest model seen while authoring: 109KB,
+# 2026-11-11; 0 = no cap). Of stdout / stderr only the last
+# REFRESH_COMPUTE_OUTPUT_TAIL_BYTES are kept (errors quote 1,500 chars).
+# REFRESH_COMPUTE_FILE_MAX_BYTES is compute's RLIMIT_FSIZE, so its scratch
+# files can't fill the in-memory /tmp; never below the largest input the
+# recipe may fetch (the host writes the inputs, but a recipe may copy one).
+_DEFAULT_MODEL_MAX_BYTES = 64 * 1024 * 1024
+_DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES = 64 * 1024
+_DEFAULT_COMPUTE_FILE_MAX_BYTES = 1_000_000_000
 # Sandbox-spawn flake (gRPC atfork handlers abort the forked child, SIGABRT
 # + an `ev_epoll1_linux` line on stderr): not the recipe's fault, so retry
 # in a fresh sandbox instead of opening an authoring issue. If every attempt
@@ -405,6 +416,21 @@ class GithubRecipeRepo:
         return size, len(members)
 
 
+def _is_transient_fetch_error(e: BaseException) -> bool:
+    """A recipe file download that failed in transit (timeout, connection,
+    GitHub 5xx or rate limit), not a missing or broken recipe: retried next
+    run. A 404 and anything the recipe's own bytes caused stay recipe errors."""
+    import httpx
+
+    if isinstance(e, httpx.TransportError):
+        return True
+    if isinstance(e, httpx.HTTPStatusError):
+        r = e.response
+        return (r.status_code >= 500 or r.status_code == 429
+                or (r.status_code == 403 and r.headers.get("x-ratelimit-remaining") == "0"))
+    return False
+
+
 def _load_remote(dest: Path, fetch: Callable[[str, Path], None]) -> Recipe:
     """Download a recipe with `fetch(name, path)`: the fixed files, then the
     snapshot files its recipe.json declares. The names are validated (plain
@@ -571,6 +597,7 @@ _RENDER_CODE_FILES = (
     Path(__file__).resolve().parent / "sanitize.py",
     Path(__file__).resolve().parent / "ckan_export.py",
     Path(__file__).resolve().parents[1] / "shared" / "ckan.py",
+    Path(__file__).resolve().parent / "schema.py",  # validators rewrite agent_data
 )
 # Builds a `map` input's table; folded only into recipes that have one, so
 # a change here doesn't re-render every other page.
@@ -686,7 +713,8 @@ def _digest(parts: list, identity: str) -> str:
 
 def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
     """Check A: what the datastore preview says about every input — row total,
-    columns, first rows (`_id` dropped) — plus `recipe_identity`. A snapshot
+    columns, first rows (`_id` dropped) — plus each resource's name and
+    `recipe_identity`. A snapshot
     input has no datastore; its bytes are already in the identity. A map
     input contributes CKAN's size/md5 of its file."""
     parts = []
@@ -696,7 +724,8 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
             continue
         if inp.map:
             res = probe.resolved[inp.name][0]
-            parts.append([inp.name, inp.by_id, "map", res.get("size"), res.get("hash")])
+            parts.append([inp.name, inp.by_id, "map", res.get("size"), res.get("hash"),
+                          res.get("name") or ""])
             continue
         for res in probe.resolved[inp.name]:
             p = probe.preview(res["id"]) or {}
@@ -704,6 +733,7 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
                 [
                     inp.name,
                     res["id"],
+                    res.get("name") or "",
                     *_preview_shape(p),
                     [
                         {k: v for k, v in row.items() if k != "_id"}
@@ -715,8 +745,8 @@ def input_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str:
 
 
 def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str | None:
-    """Check A′: CKAN's md5 + size of every input's uploaded file, the
-    preview's row total and columns, plus `recipe_identity`. None when any
+    """Check A′: CKAN's md5 + size of every input's uploaded file, its
+    resource name, the preview's row total and columns, plus `recipe_identity`. None when any
     input has no CKAN hash (API-pushed resource, or a source doc scanned before
     the scanner kept it) — it never vouches for an input it can't see. A
     snapshot input is exact by construction (its bytes are in the identity).
@@ -731,14 +761,16 @@ def file_fingerprint(recipe: Recipe, probe: InputProbe, identity: str) -> str | 
             res = probe.resolved[inp.name][0]
             if not res.get("hash"):
                 return None
-            parts.append([inp.name, inp.by_id, "map", res["hash"], res.get("size")])
+            parts.append([inp.name, inp.by_id, "map", res["hash"], res.get("size"),
+                          res.get("name") or ""])
             continue
         for res in probe.resolved[inp.name]:
             if not res.get("hash"):
                 return None
             p = probe.preview(res["id"]) or {}
             parts.append(
-                [inp.name, res["id"], res["hash"], res.get("size"), *_preview_shape(p)]
+                [inp.name, res["id"], res.get("name") or "", res["hash"], res.get("size"),
+                 *_preview_shape(p)]
             )
     return _digest(parts, identity)
 
@@ -760,7 +792,10 @@ def inputs_hashes(
     unordered = hashlib.sha256()
     for inp in recipe.manifest.inputs:
         for part in inputs.get(inp.name, []):
-            tag = f"{inp.name}|{part.resource_id}|".encode()
+            # The resource name reaches compute and the template; length-prefixed
+            # since it can hold any character.
+            rname = part.resource_name.encode()
+            tag = f"{inp.name}|{part.resource_id}|{len(rname)}|".encode() + rname
             ordered.update(tag)
             acc = 0
             with open(part.file, "rb") as f:
@@ -1048,7 +1083,8 @@ def _memory_guard(recipe: Recipe) -> str:
     failure) and volunteers as the OOM killer's first victim, so a recipe
     that outgrows the container takes down itself, not the builder and the
     rest of the night's refresh. Cap: the recipe's
-    `limits.compute_memory_mb`, else REFRESH_COMPUTE_MEMORY_MB; 0 = no cap."""
+    `limits.compute_memory_mb`, else REFRESH_COMPUTE_MEMORY_MB; 0 = no cap.
+    It also caps each file it writes (RLIMIT_FSIZE, REFRESH_COMPUTE_FILE_MAX_BYTES)."""
     limits = recipe.manifest.limits
     mb = limits.compute_memory_mb or _env_int(
         "REFRESH_COMPUTE_MEMORY_MB", _DEFAULT_COMPUTE_MEMORY_MB
@@ -1062,6 +1098,23 @@ def _memory_guard(recipe: Recipe) -> str:
     if mb > 0:
         n = mb * 1024 * 1024
         code += f"import resource; resource.setrlimit(resource.RLIMIT_DATA, ({n}, {n}))\n"
+    fsize = _env_int("REFRESH_COMPUTE_FILE_MAX_BYTES", _DEFAULT_COMPUTE_FILE_MAX_BYTES)
+    if fsize > 0:
+        largest_input = max(
+            limits.max_bytes or _env_int("REFRESH_MAX_BYTES", _DEFAULT_MAX_BYTES),
+            limits.total_bytes or max(
+                _env_int("REFRESH_TOTAL_BYTES", _DEFAULT_TOTAL_BYTES), limits.max_bytes or 0
+            ),
+        )
+        n = max(fsize, largest_input)
+        # Python ignores SIGXFSZ, so a write past it raises OSError (EFBIG).
+        code += (
+            f"import resource; _fsize = {n}\n"
+            "_h = resource.getrlimit(resource.RLIMIT_FSIZE)[1]\n"
+            "if _h != resource.RLIM_INFINITY:\n"
+            "    _fsize = min(_fsize, _h)\n"
+            "resource.setrlimit(resource.RLIMIT_FSIZE, (_fsize, _fsize))\n"
+        )
     return code
 
 
@@ -1126,7 +1179,9 @@ def _run_compute_once(
     """
     work_root.mkdir(parents=True, exist_ok=True)
     workdir = Path(tempfile.mkdtemp(prefix=f"{recipe.dataset_id[:8]}-recipe-", dir=work_root))
-    sandbox = LocalSandbox.create(workdir)
+    model_max = _env_int("REFRESH_MODEL_MAX_BYTES", _DEFAULT_MODEL_MAX_BYTES)
+    tail = _env_int("REFRESH_COMPUTE_OUTPUT_TAIL_BYTES", _DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES)
+    sandbox = LocalSandbox.create(workdir, max_read_bytes=model_max if model_max > 0 else None)
     try:
         (workdir / "recipe").mkdir()
         for name in RECIPE_FILES:
@@ -1162,6 +1217,7 @@ def _run_compute_once(
             + "import runpy; runpy.run_path('recipe_exec.py', run_name='__main__')",
             language="python",
             timeout=timeout,
+            max_output_bytes=tail if tail > 0 else _DEFAULT_COMPUTE_OUTPUT_TAIL_BYTES,
         )
         if execution.error is not None:
             stderr = (execution.logs.stderr or "").strip()
@@ -1178,7 +1234,20 @@ def _run_compute_once(
             raw = sandbox.files.read("outputs/model.json")
         except FileNotFoundError as e:
             raise RecipeError(f"compute() wrote no model: {e}") from e
-        return json.loads(raw.decode("utf-8"))
+        except OutputTooLarge as e:
+            raise RecipeError(
+                f"compute() model.json too large: {e} (REFRESH_MODEL_MAX_BYTES)",
+                reason=FailReason.TOO_LARGE,
+            ) from None
+        try:
+            model = json.loads(raw.decode("utf-8"))
+        except ValueError as e:  # bad JSON or bad UTF-8: what compute() returned
+            raise RecipeError(f"compute() wrote an unreadable model.json: {e}") from e
+        if not isinstance(model, dict):
+            raise RecipeError(
+                f"compute() model.json is a {type(model).__name__}, not an object"
+            )
+        return model
     finally:
         sandbox.kill()
 
@@ -1213,7 +1282,10 @@ def render_page(
     template_src = recipe.template_path.read_text(encoding="utf-8")
     # The template sees exactly what compute() returned (extras included).
     html = render_template(template_src, raw_model, inputs_context(inputs or {}))
-    html = sanitize_content_html(html, dataset_id=recipe.dataset_id)
+    try:
+        html = sanitize_content_html(html, dataset_id=recipe.dataset_id)
+    except ValueError as e:  # e.g. unbalanced <style>/<script>: the template's output
+        raise RecipeError(str(e)) from e
     check_root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="check-", dir=check_root) as d:
         try:
@@ -1522,14 +1594,24 @@ def refresh_one(
             else:
                 transient[e.strike] = n
         log.warning("refresh %s failed (%s): %s", src.id[:8], e.reason, e)
-        store.mark_refresh_failed(
-            src.id,
-            error=str(e),
-            reason=e.reason,
-            failed_version=failed_version_key(src, recipe),
-            wall_budget_strikes=strikes,
-            transient_strikes=transient,
-        )
+        try:
+            store.mark_refresh_failed(
+                src.id,
+                error=str(e),
+                reason=e.reason,
+                failed_version=failed_version_key(src, recipe),
+                wall_budget_strikes=strikes,
+                transient_strikes=transient,
+            )
+        except Exception as me:
+            # Nothing recorded, so the next run retries it (and files the
+            # issue then). A failed state write counts as a staging failure.
+            log.exception("refresh %s: recording the failure failed", src.id[:8])
+            return RefreshOutcome(
+                src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
+                _clip(f"{e.reason}: {e}; {type(me).__name__}: {me}"),
+                round(time.monotonic() - started, 2),
+            )
         outcome = RefreshOutcome(
             src.id, OutcomeStatus.FAILED, trigger, e.reason, _clip(str(e)),
             round(time.monotonic() - started, 2),
@@ -1541,12 +1623,19 @@ def refresh_one(
         return outcome
     except Exception as e:  # infra bug, not a data/recipe verdict
         log.exception("refresh %s crashed", src.id[:8])
-        store.mark_refresh_failed(
-            src.id,
-            error=f"{type(e).__name__}: {e}",
-            reason=FailReason.ERROR,
-            failed_version=failed_version_key(src, recipe),
-        )
+        try:
+            store.mark_refresh_failed(
+                src.id,
+                error=f"{type(e).__name__}: {e}",
+                reason=FailReason.ERROR,
+                failed_version=failed_version_key(src, recipe),
+            )
+        except Exception as me:
+            log.exception("refresh %s: recording the crash failed", src.id[:8])
+            return RefreshOutcome(
+                src.id, OutcomeStatus.FAILED, trigger, STAGE_FAILED,
+                _clip(f"{type(e).__name__}: {e}; {type(me).__name__}: {me}"),
+            )
         return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR, _clip(str(e)))
 
     snapshot = {
@@ -1737,13 +1826,14 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
 
     A recorded issue is reused while it is open or was closed as not
     planned. One closed as completed means a recipe PR landed and this is a
-    new need (e.g. the recipe later failed), so a fresh issue is opened."""
+    new need (e.g. the recipe later failed), so a fresh issue is opened, as
+    when the recorded issue was deleted."""
     from . import notify as _notify
 
     state = RefreshState.from_dict(store.get_refresh_state(src.id))  # fresh: guards duplicate issues
     store.mark_authoring_needed(src.id, reason)
     recorded = state.authoring_issue
-    if recorded and _notify.issue_state(int(recorded)) != "completed":
+    if recorded and _notify.issue_state(int(recorded)) not in ("completed", "gone"):
         # Back to `notified`, which mark_authoring_needed just overwrote:
         # the daily queue skips notified sources.
         store.set_authoring_issue(src.id, int(recorded))
@@ -1754,6 +1844,7 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
         org=(src.organization or {}).get("title", "") or "",
         reason=reason,
         detail=detail,
+        source_url=getattr(src, "source_url", None),
     )
     if number is not None:
         store.set_authoring_issue(src.id, number)
@@ -1821,6 +1912,9 @@ def run_refresh(
     deferred: list[tuple[int, object, Recipe, str, RefreshState]] = []
     last_deferred_at = 0.0
 
+    # Failed outcomes recorded without a successful state write.
+    _NO_WRITE = (FailReason.ERROR, FailReason.RESTRICTED, FailReason.RECIPE_INVALID)
+
     def _count_staging(outcome: RefreshOutcome) -> None:
         nonlocal stage_failures, staging_down
         if outcome.reason == STAGE_FAILED:
@@ -1831,7 +1925,10 @@ def run_refresh(
                     stage_failures,
                 )
                 staging_down = True
-        elif outcome.status == OutcomeStatus.REFRESHED:
+        elif outcome.status in (OutcomeStatus.REFRESHED, OutcomeStatus.UNCHANGED) or (
+            outcome.status == OutcomeStatus.FAILED and outcome.reason not in _NO_WRITE
+        ):
+            # Its state write went through, so the store is up.
             stage_failures = 0
 
     def _queue():
@@ -1848,7 +1945,17 @@ def run_refresh(
             if len([o for o in outcomes if _spends_cap(o)]) >= cap:
                 outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="cap"))
                 continue
-            src = store.get_source(dataset_id)
+            try:
+                src = store.get_source(dataset_id)
+            except Exception as e:
+                # A store error, like a failed state write: this source only,
+                # counted toward `staging_down`.
+                log.exception("refresh %s: reading the source doc failed", dataset_id[:8])
+                outcome = RefreshOutcome(dataset_id, OutcomeStatus.FAILED, reason=STAGE_FAILED,
+                                         error=_clip(f"{type(e).__name__}: {e}"))
+                outcomes.append(outcome)
+                _count_staging(outcome)
+                continue
             if src is None:
                 outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="no_source_doc"))
                 continue
@@ -1856,6 +1963,15 @@ def run_refresh(
                 try:
                     recipe = repo.load(dataset_id, scratch)
                 except Exception as e:
+                    if _is_transient_fetch_error(e):
+                        # Nothing recorded and no issue: the next run loads it again.
+                        log.warning("recipe %s: fetching its files failed, retrying next run: %s",
+                                    dataset_id[:8], e)
+                        outcomes.append(RefreshOutcome(
+                            dataset_id, OutcomeStatus.FAILED, reason=FailReason.FETCH_FAILED,
+                            error=_clip(f"{type(e).__name__}: {e}"),
+                        ))
+                        continue
                     log.exception("recipe %s failed to load", dataset_id[:8])
                     outcome = RefreshOutcome(
                         dataset_id, OutcomeStatus.FAILED, reason=FailReason.RECIPE_INVALID, error=_clip(str(e))
@@ -1872,18 +1988,25 @@ def run_refresh(
                 if recipe.manifest.heavy:
                     heavy.append((dataset_id, recipe))
                     continue
-            state = src.refresh  # read with the source doc: one read per source
-            trigger = "forced" if force else needs_refresh(src, state, recipe)
-            if trigger is None:
-                outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date"))
-                continue
-            log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
-            outcome = refresh_one(
-                src, recipe, store=store,
-                staging_bucket=staging_bucket, work_root=work_root,
-                trigger=trigger, previous_state=state, notify=notify,
-                defer_transient=len(deferred) < retry_cap, **kwargs,
-            )
+            trigger = None
+            try:
+                state = src.refresh  # read with the source doc: one read per source
+                trigger = "forced" if force else needs_refresh(src, state, recipe)
+                if trigger is None:
+                    outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date"))
+                    continue
+                log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
+                outcome = refresh_one(
+                    src, recipe, store=store,
+                    staging_bucket=staging_bucket, work_root=work_root,
+                    trigger=trigger, previous_state=state, notify=notify,
+                    defer_transient=len(deferred) < retry_cap, **kwargs,
+                )
+            except Exception as e:
+                # One source's crash must not cost the outcomes already made.
+                log.exception("refresh %s crashed", dataset_id[:8])
+                outcome = RefreshOutcome(dataset_id, OutcomeStatus.FAILED, trigger,
+                                         FailReason.ERROR, _clip(f"{type(e).__name__}: {e}"))
             if outcome.status == OutcomeStatus.RETRY_LATER:
                 deferred.append((len(outcomes), src, recipe, trigger, state))
                 last_deferred_at = time.monotonic()
@@ -1902,11 +2025,16 @@ def run_refresh(
             if staging_down:
                 outcomes[i] = RefreshOutcome(src.id, OutcomeStatus.SKIPPED, reason="staging_down")
                 continue
-            outcome = refresh_one(
-                src, recipe, store=store,
-                staging_bucket=staging_bucket, work_root=work_root,
-                trigger=trigger, previous_state=state, notify=notify, **kwargs,
-            )
+            try:
+                outcome = refresh_one(
+                    src, recipe, store=store,
+                    staging_bucket=staging_bucket, work_root=work_root,
+                    trigger=trigger, previous_state=state, notify=notify, **kwargs,
+                )
+            except Exception as e:
+                log.exception("refresh %s crashed", src.id[:8])
+                outcome = RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger,
+                                         FailReason.ERROR, _clip(f"{type(e).__name__}: {e}"))
             outcome.retried = True
             outcomes[i] = outcome
             _count_staging(outcome)

@@ -12,6 +12,7 @@ from typing import Any, Self
 
 import httpx
 from tenacity import (
+    RetryError,
     retry,
     retry_if_exception_type,
     stop_after_attempt,
@@ -28,6 +29,14 @@ log = logging.getLogger("scanner.client")
 
 class CKANError(Exception):
     """Exception raised for CKAN API errors."""
+
+
+# Retry policy shared by the client's CKAN requests.
+_ckan_retry = retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception_type((httpx.HTTPError, httpx.TimeoutException)),
+)
 
 
 class CKANClient:
@@ -79,11 +88,7 @@ class CKANClient:
                 await asyncio.sleep(delay - elapsed)
             self._last_request_time = loop.time()
     
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type((httpx.HTTPError, httpx.TimeoutException)),
-    )
+    @_ckan_retry
     async def _request(self, url: str, params: dict | None = None) -> dict:
         """Make a rate-limited request to the CKAN API."""
         if not self._client:
@@ -159,38 +164,65 @@ class CKANClient:
         
         return Dataset.from_ckan_response(result)
     
+    @_ckan_retry
+    async def _datastore_search(self, params: dict) -> httpx.Response:
+        """One rate-limited datastore_search call. Transport errors, 5xx, 408
+        and 429 raise (and are retried); any other reply is returned."""
+        await self._rate_limit()
+        response = await self._client.get(self.config.datastore_search_url, params=params)
+        if response.status_code >= 500 or response.status_code in (408, 429):
+            raise httpx.HTTPStatusError(
+                f"datastore_search HTTP {response.status_code}",
+                request=response.request, response=response,
+            )
+        return response
+
     async def datastore_total(self, resource_id: str) -> int | None:
         """Return the total row count of a datastore-backed resource.
 
         Calls `/datastore_search?resource_id=<rid>&limit=0&include_total=true`
         with an estimation threshold past any table, so `result.total` is an
-        exact count, and returns it. Returns `None` for resources that aren't
-        in the datastore (PDF, ZIP, …), 4xx responses, or transport errors —
-        the caller treats `None` as "unknown" and moves on.
+        exact count, and returns it. Returns `None` when CKAN answers that
+        there is no count: resources that aren't in the datastore (PDF, ZIP,
+        ...), i.e. a 4xx carrying CKAN's `success: false` envelope (for a 403,
+        its Authorization Error), or `success: false`. Raises `CKANError` when
+        it couldn't ask (transport errors, 5xx, 408, 429 after the shared
+        retries, an unparseable body, or a 4xx without CKAN's error body), so
+        the caller can keep the count it already has.
         """
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")
 
-        await self._rate_limit()
         try:
-            response = await self._client.get(
-                self.config.datastore_search_url,
-                params={
-                    "resource_id": resource_id,
-                    "limit": 0,
-                    "include_total": "true",
-                    # Exact count, not a stale planner estimate.
-                    "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
-                },
-            )
-        except (httpx.HTTPError, httpx.TimeoutException):
-            return None
+            response = await self._datastore_search({
+                "resource_id": resource_id,
+                "limit": 0,
+                "include_total": "true",
+                # Exact count, not a stale planner estimate.
+                "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
+            })
+        except RetryError as exc:
+            raise CKANError(
+                f"datastore_search unavailable for {resource_id}: "
+                f"{exc.last_attempt.exception()!r}") from exc
 
-        if response.status_code >= 400:
-            return None
         try:
             data = response.json()
-        except ValueError:
+        except ValueError as exc:
+            raise CKANError(
+                f"datastore_search HTTP {response.status_code} without JSON for {resource_id}"
+            ) from exc
+        if response.status_code >= 400:
+            # Only CKAN's own error envelope is a definite answer. A 4xx page
+            # from the WAF or a proxy says nothing about the count; a 403 counts
+            # only with CKAN's Authorization Error (as in `_probe`).
+            definite = isinstance(data, dict) and data.get("success") is False
+            if response.status_code == 403:
+                definite = definite and is_authorization_error(data)
+            if not definite:
+                raise CKANError(
+                    f"datastore_search HTTP {response.status_code} without CKAN's "
+                    f"error body for {resource_id}")
             return None
         if not data.get("success"):
             return None
@@ -211,8 +243,7 @@ class CKANClient:
         - "alive": 2xx with `success: true`;
         - "unknown": anything else (404, 5xx, success:false, parse or
           transport error); the caller leaves the flag unchanged.
-        Stricter than `ckan_export._http_403_is_restriction` on purpose:
-        that one only skips a render, this one flips a live page."""
+        The same 403 rule as `ckan_export._http_403_is_restriction`."""
         if not self._client:
             raise RuntimeError("Client not initialized. Use 'async with' context.")
         await self._rate_limit()

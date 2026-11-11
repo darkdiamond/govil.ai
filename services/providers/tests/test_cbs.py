@@ -18,6 +18,7 @@ import pytest
 
 from services.providers import (
     ProviderError,
+    ProviderTooLarge,
     SourceConfig,
     build_providers,
     provider_for_id,
@@ -360,6 +361,34 @@ def test_bad_workbook_raises(cbs):
     with pytest.raises(ProviderError, match="unreadable workbook"):
         cbs.download(res)
     assert cbs.preview(res) is None  # preview reports a failed download as None
+
+
+def test_table_file_over_the_cap_is_refused_whatever_the_listing_says(cbs, monkeypatch):
+    # The listing claims 1 byte; the real file is past max_bytes. The read
+    # stops at the cap on the real (streamed) client path.
+    import httpx
+    fake = cbs._send
+    monkeypatch.delattr(cbs, "_send")  # back to the real _send, over a MockTransport
+
+    def handler(req):
+        r = fake(str(req.url))
+        body = r.content
+        if "GetFolderByServerRelativeUrl(" in unquote(str(req.url)):
+            doc = json.loads(body)
+            for f in doc["value"]:
+                f["Length"] = "1"
+            body = json.dumps(doc).encode()
+        return httpx.Response(r.status_code, content=body, headers=r.headers)
+
+    real = httpx.Client
+    monkeypatch.setattr("services.providers.base.httpx.Client",
+                        lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    res = resource(cbs, table_cfg())
+    cbs.settings = cbs.settings.model_copy(update={"max_bytes": len(XLSX) - 1})
+    with pytest.raises(ProviderTooLarge):
+        cbs.download(res)
+    cbs.settings = cbs.settings.model_copy(update={"max_bytes": len(XLSX)})
+    assert cbs.download(res).startswith(b"RELEASE_NO,")
 
 
 def test_real_cbs_xls_reads_hebrew():

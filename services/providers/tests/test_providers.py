@@ -105,6 +105,42 @@ def test_providers_are_off_unless_enabled():
     assert list(on) == ["boi_sdmx"] and isinstance(on["boi_sdmx"], BoiSdmxProvider)
 
 
+def test_bad_setting_on_disabled_provider_is_ignored():
+    on = build_providers({"PROVIDER_BOI_SDMX_ENABLED": "true",
+                          "PROVIDER_CBS_INDEX_TIMEOUT_S": "60s"})
+    assert list(on) == ["boi_sdmx"]
+
+
+def test_bad_setting_drops_only_that_provider(caplog):
+    with caplog.at_level("ERROR", logger="providers"):
+        on = build_providers({"PROVIDER_BOI_SDMX_ENABLED": "true",
+                              "PROVIDER_CBS_INDEX_ENABLED": "true",
+                              "PROVIDER_CBS_INDEX_TIMEOUT_S": "60s"})
+    assert list(on) == ["boi_sdmx"]
+    assert "cbs_index" in caplog.text
+
+
+def test_bad_enabled_value_leaves_provider_off(caplog):
+    with caplog.at_level("ERROR", logger="providers"):
+        on = build_providers({"PROVIDER_BOI_SDMX_ENABLED": "yes please",
+                              "PROVIDER_CBS_INDEX_ENABLED": "true"})
+    assert list(on) == ["cbs_index"]
+    assert "boi_sdmx" in caplog.text
+
+
+def test_enabled_providers_cached_after_a_bad_setting(monkeypatch):
+    from services.providers import registry
+    monkeypatch.setattr(registry, "_enabled", None)
+    monkeypatch.setenv("PROVIDER_BOI_SDMX_ENABLED", "true")
+    monkeypatch.setenv("PROVIDER_CBS_INDEX_ENABLED", "true")
+    monkeypatch.setenv("PROVIDER_CBS_INDEX_TIMEOUT_S", "60s")
+    first = registry.enabled_providers()
+    assert list(first) == ["boi_sdmx"]
+    monkeypatch.setattr(registry, "build_providers", lambda *a, **k: 1 / 0)
+    assert registry.enabled_providers() is first
+    assert registry.provider_for_key("cbs_index") is None
+
+
 def test_id_prefix_claims_ids():
     assert provider_for_id("boi-interest-rate") is BoiSdmxProvider
     assert provider_for_id("11111111-2222-3333-4444-555555555555") is None
@@ -301,6 +337,51 @@ def test_requests_share_one_client_with_a_short_connect_timeout(monkeypatch):
     t = made[0]["timeout"]
     assert t.connect == p.settings.connect_timeout_s == 10.0
     assert t.read == p.settings.timeout_s == 180.0
+
+
+def _served(monkeypatch, handler, **settings):
+    """A BoI provider whose real `_send` talks to a MockTransport."""
+    p = BoiSdmxProvider(BoiSdmxProvider.default_settings.model_copy(
+        update={"enabled": True, "min_interval_s": 0.0, "retries": 0, **settings}))
+    real = httpx.Client
+    monkeypatch.setattr("services.providers.base.httpx.Client",
+                        lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    return p
+
+
+def test_body_over_the_cap_is_refused_while_it_streams(monkeypatch):
+    # An endless body that claims to be 10 bytes: reading stops at the cap.
+    sent = []
+
+    def endless():
+        while True:
+            sent.append(1)
+            yield b"x" * 100
+
+    p = _served(monkeypatch, lambda req: httpx.Response(
+        200, headers={"content-length": "10"}, content=endless()), max_bytes=1000)
+    with pytest.raises(ProviderTooLarge) as e:
+        p.http_get("https://edge.boi.org.il/a", max_bytes=1000)
+    assert e.value.limit == "bytes" and isinstance(e.value, ProviderError)
+    assert len(sent) <= 11
+    sent.clear()
+    with pytest.raises(ProviderTooLarge):  # default: twice max_bytes
+        p.http_get("https://edge.boi.org.il/a")
+    assert 20 <= len(sent) <= 21
+
+
+def test_body_under_the_cap_reads_as_before(monkeypatch):
+    import gzip
+    data = BR_CSV.encode()
+    handler = lambda req: httpx.Response(
+        200, headers={"content-type": "text/csv; charset=utf-8", "content-encoding": "gzip"},
+        content=gzip.compress(data))
+    with httpx.Client(transport=httpx.MockTransport(handler)) as c:
+        want = c.get("https://edge.boi.org.il/a")
+    p = _served(monkeypatch, handler, max_bytes=len(data))
+    r = p.http_get("https://edge.boi.org.il/a", max_bytes=len(data))  # exactly at the cap
+    assert r.content == want.content == data
+    assert r.text == want.text and r.headers == want.headers and r.status_code == 200
 
 
 # ── liveness ─────────────────────────────────────────────────────────────

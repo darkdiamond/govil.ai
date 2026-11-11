@@ -20,8 +20,12 @@ on:
     branches: [main]
     paths:
       - "frontend/**"
+      - "services/__init__.py"
+      - "services/page_builder/__init__.py"
       - "services/page_builder/publish.py"
+      - "services/news/__init__.py"
       - "services/news/publish_news.py"
+      - "services/news/store.py"
       - "services/page_builder/dataset_successors.json"
       - "services/page_builder/legacy_page_slugs.json"
       - "services/page_builder/related.py"
@@ -79,6 +83,13 @@ jobs:
           gcloud storage rsync "gs://${STAGING_BUCKET}/datasets/" frontend/public/datasets/ \
             --recursive --delete-unmatched-destination-objects \
             --exclude='.*/(data|agent_data)\.json$|.*/index\.html$'
+
+      # The cache restored the previous run's publisher output, which rsync
+      # neither updates nor deletes (excluded above). Drop it so only what
+      # the publisher writes below is deployed, as in infra/sync-datasets.sh.
+      - name: Drop cached publisher JSON
+        run: |
+          find frontend/public/datasets \( -name 'data.json' -o -name 'agent_data.json' \) -delete
 
       # News images (services/news); the publisher then writes the article
       # JSON next to them and removes directories of articles not live.

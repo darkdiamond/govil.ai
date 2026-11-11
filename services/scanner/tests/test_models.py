@@ -79,3 +79,76 @@ def test_dataset_with_script_resource_url_is_blanked():
         {"id": "rid-1", "name": "x", "format": "csv", "url": "javascript:alert(document.domain)"},
     ]))
     assert ds.resources[0].url == ""
+
+
+_FULL_RESOURCE = {
+    "id": "rid-1",
+    "name": "main",
+    "format": "csv",
+    "url": "https://data.gov.il/dataset/x/resource/rid-1/download/x.csv",
+}
+_FULL_ORG = {"id": "org-1", "name": "moh", "title": "משרד הבריאות"}
+
+
+@pytest.mark.parametrize("field", ["id", "name", "format", "url"])
+def test_null_resource_string_fields_parse(field):
+    ds = Dataset.from_ckan_response(_ckan_package([{**_FULL_RESOURCE, field: None}]))
+    assert getattr(ds.resources[0], field) == ""
+
+
+@pytest.mark.parametrize("field", ["id", "name", "title"])
+def test_null_organization_string_fields_parse(field):
+    pkg = {**_ckan_package([]), "organization": {**_FULL_ORG, field: None}}
+    ds = Dataset.from_ckan_response(pkg)
+    assert getattr(ds.organization, field) == ""
+
+
+@pytest.mark.parametrize("field", ["name", "title"])
+def test_null_dataset_string_fields_parse(field):
+    ds = Dataset.from_ckan_response({**_ckan_package([]), field: None})
+    assert getattr(ds, field) == ""
+
+
+@pytest.mark.parametrize("value", [None, "", "missing"])
+def test_dataset_without_id_is_unparseable(value):
+    pkg = _ckan_package([])
+    if value == "missing":
+        del pkg["id"]
+    else:
+        pkg["id"] = value
+    with pytest.raises(ValueError, match="no id"):
+        Dataset.from_ckan_response(pkg)
+
+
+@pytest.mark.parametrize("value", [None, "x", 5, {"a": 1}])
+def test_null_or_odd_collections_parse(value):
+    ds = Dataset.from_ckan_response({**_ckan_package(value), "tags": value})
+    assert ds.tags == []
+    assert ds.resources == []
+
+
+def test_non_dict_collection_entries_are_skipped():
+    pkg = {
+        **_ckan_package([None, "junk", _FULL_RESOURCE]),
+        "tags": [None, "junk", {"name": "בריאות"}, {"name": None}],
+    }
+    ds = Dataset.from_ckan_response(pkg)
+    assert ds.tags == ["בריאות", ""]
+    assert [r.id for r in ds.resources] == ["rid-1"]
+
+
+def test_well_formed_input_unchanged():
+    pkg = {
+        **_ckan_package([_FULL_RESOURCE]),
+        "organization": _FULL_ORG,
+        "tags": [{"name": "בריאות"}],
+    }
+    ds = Dataset.from_ckan_response(pkg)
+    assert (ds.id, ds.name, ds.title) == ("abc-123", "test-dataset", "מאגר בדיקה")
+    assert (ds.organization.id, ds.organization.name, ds.organization.title) == (
+        "org-1", "moh", "משרד הבריאות")
+    assert ds.tags == ["בריאות"]
+    r = ds.resources[0]
+    assert (r.id, r.name, r.format, r.url) == (
+        "rid-1", "main", "CSV",
+        "https://data.gov.il/dataset/x/resource/rid-1/download/x.csv")

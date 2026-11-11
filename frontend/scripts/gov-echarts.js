@@ -141,15 +141,56 @@
   function escapeText(s) {
     return s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
+  // `data` and `value` can carry any dataset string (a treemap node's extra
+  // fields, a sankey edge's source/target, a string slot in a value array),
+  // so they are escaped deeply, as are the treemap/sunburst path arrays
+  // (`treePathInfo`, `treeAncestors`) whose names are dataset labels.
+  // Copy-on-write: arrays and plain objects are
+  // copied only when a string below them changes, so the chart's own data is
+  // never mutated and a clean (often large) data array costs one walk.
+  // Numbers, null, Dates, functions and class instances pass through.
+  var DEEP_KEYS = ['data', 'value', 'treePathInfo', 'treeAncestors'];
+  var DEEP_MAX_DEPTH = 5;
+  function isPlainObject(v) {
+    // Realm-independent: a literal from another frame has its own Object.prototype.
+    var pr = Object.getPrototypeOf(v);
+    return pr === null || Object.getPrototypeOf(pr) === null;
+  }
+  function escapeDeep(v, depth) {
+    if (typeof v === 'string') return /[<>]/.test(v) ? escapeText(v) : v;
+    if (!v || typeof v !== 'object' || depth >= DEEP_MAX_DEPTH) return v;
+    var out = null;
+    var i, e;
+    if (Array.isArray(v)) {
+      for (i = 0; i < v.length; i++) {
+        e = escapeDeep(v[i], depth + 1);
+        if (e !== v[i]) {
+          if (!out) out = v.slice();
+          out[i] = e;
+        }
+      }
+      return out || v;
+    }
+    if (!isPlainObject(v)) return v;
+    var keys = Object.keys(v);
+    for (i = 0; i < keys.length; i++) {
+      e = escapeDeep(v[keys[i]], depth + 1);
+      if (e !== v[keys[i]]) {
+        if (!out) out = Object.assign({}, v);
+        out[keys[i]] = e;
+      }
+    }
+    return out || v;
+  }
   function escapeParam(p) {
     if (!p || typeof p !== 'object') return p;
     var q = Object.assign({}, p);
     ESCAPED_KEYS.forEach(function (k) {
       if (typeof q[k] === 'string') q[k] = escapeText(q[k]);
     });
-    if (q.data && typeof q.data === 'object' && !Array.isArray(q.data) && typeof q.data.name === 'string') {
-      q.data = Object.assign({}, q.data, { name: escapeText(q.data.name) });
-    }
+    DEEP_KEYS.forEach(function (k) {
+      q[k] = escapeDeep(q[k], 0);
+    });
     return q;
   }
   function escapeParams(p) {
@@ -173,18 +214,51 @@
       if (tt && typeof tt === 'object' && tt.formatter) tt.formatter = safeFormatter(tt.formatter);
     });
   }
+  function asList(v) {
+    return Array.isArray(v) ? v : v ? [v] : [];
+  }
+  function secureItemTooltips(items) {
+    if (!Array.isArray(items)) return;
+    items.forEach(function (d) { if (d && typeof d === 'object' && d.tooltip) secureTooltip(d.tooltip); });
+  }
+  // Top-level components that accept their own `tooltip` block.
+  var TOOLTIP_COMPONENTS = ['legend', 'toolbox', 'geo', 'xAxis', 'yAxis', 'radiusAxis', 'angleAxis',
+    'singleAxis', 'parallelAxis', 'radar', 'calendar'];
+  var MARK_KEYS = ['markPoint', 'markLine', 'markArea'];
+  function secureOptionTooltips(o) {
+    if (!o || typeof o !== 'object') return;
+    secureTooltip(o.tooltip);
+    TOOLTIP_COMPONENTS.forEach(function (k) {
+      asList(o[k]).forEach(function (c) {
+        if (!c || typeof c !== 'object') return;
+        secureTooltip(c.tooltip);
+        secureItemTooltips(c.regions);
+      });
+    });
+    asList(o.series).forEach(function (s) {
+      if (!s) return;
+      secureTooltip(s.tooltip);
+      secureItemTooltips(s.data);
+      secureItemTooltips(s.nodes);
+      secureItemTooltips(s.links);
+      secureItemTooltips(s.edges);
+      MARK_KEYS.forEach(function (k) {
+        var m = s[k];
+        if (!m || typeof m !== 'object') return;
+        secureTooltip(m.tooltip);
+        secureItemTooltips(m.data);
+      });
+    });
+  }
+  // A timeline / media option holds whole option objects under
+  // baseOption, options[] and media[].option.
   function secureTooltips(o) {
     try {
       if (!o || typeof o !== 'object') return o;
-      secureTooltip(o.tooltip);
-      var ss = Array.isArray(o.series) ? o.series : o.series ? [o.series] : [];
-      ss.forEach(function (s) {
-        if (!s) return;
-        secureTooltip(s.tooltip);
-        if (Array.isArray(s.data)) {
-          s.data.forEach(function (d) { if (d && typeof d === 'object' && d.tooltip) secureTooltip(d.tooltip); });
-        }
-      });
+      secureOptionTooltips(o);
+      secureOptionTooltips(o.baseOption);
+      asList(o.options).forEach(secureOptionTooltips);
+      asList(o.media).forEach(function (m) { if (m && typeof m === 'object') secureOptionTooltips(m.option); });
     } catch (e) { /* never break a page over a tooltip */ }
     return o;
   }

@@ -33,6 +33,43 @@ updates:
         exclude-patterns:
           - "ruff"
 
+  - package-ecosystem: "pip"
+    directory: "/services/news"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      pip-news:
+        patterns:
+          - "*"
+
+  # Base images: Dockerfile (builder) and infra/Dockerfile.publisher.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      docker:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker"
+    directory: "/infra"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      docker-publisher:
+        patterns:
+          - "*"
+
   - package-ecosystem: "npm"
     directory: "/frontend"
     schedule:

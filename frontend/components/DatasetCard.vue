@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import type { SlimEntry } from "~/types/manifest";
+import { cardDateLabel } from "~/utils/dataset-dates";
 
 defineProps<{ entry: SlimEntry }>();
+
+// The relative time depends on the visitor's clock: prerender the absolute
+// date and switch after mount, so hydration sees the same text.
+const mounted = ref(false);
+onMounted(() => {
+  mounted.value = true;
+});
 </script>
 
 <template>
@@ -34,8 +42,12 @@ defineProps<{ entry: SlimEntry }>();
         v-if="entry.last_analyzed_at || entry.metadata_modified"
         class="text-xs text-subtle"
       >
-        עודכן
-        {{ relativeTimeHe(entry.last_analyzed_at || entry.metadata_modified) }}
+        {{
+          cardDateLabel(
+            entry.last_analyzed_at || entry.metadata_modified,
+            mounted
+          )
+        }}
       </div>
       <div v-if="entry.tags?.length" class="flex gap-1">
         <span v-for="t in entry.tags.slice(0, 2)" :key="t" class="tag-chip">{{

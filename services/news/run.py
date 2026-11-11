@@ -41,7 +41,7 @@ from . import llm as llm_mod
 from .editor import choose, eligible
 from .ledger import Ledger
 from .links import attach_links, load_edges
-from .llm import LLMUnavailable
+from .llm import LLMError, LLMUnavailable
 from .series import Series, extract_series
 from .signals import Signal, detect_all, rank
 from .snapshots import GcsSnapshots, LocalSnapshots, Snapshot, latest_and_baseline
@@ -178,13 +178,19 @@ def _unique_slug(store, slug: str, today: date) -> str:
 def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, catalog: dict,
               vocab: set[str], store, tables=None, today: date, run_id: str,
               max_per_day: int = 3, cooldown_days: int = 21, editor_candidates: int = 15,
-              max_tool_calls: int = 25, images: bool = True, fetcher=None) -> dict:
-    """One day's editorial pass. Returns the summary (also what main prints)."""
+              max_tool_calls: int = 25, images: bool = True, fetcher=None,
+              stored: list | None = None) -> dict:
+    """One day's editorial pass. Returns the summary (also what main prints).
+    `stored` (if given) collects the slugs stored so far, so a caller still
+    sees them when the pass raises."""
     recent = store.recent(90)
     cands = eligible(ranked, recent, cooldown_days=cooldown_days)[:editor_candidates]
     briefs, skipped = choose(llm, cands, catalog, recent, max_briefs=max_per_day,
                              today=today.isoformat())
-    published, rejected = [], []
+    published = stored if stored is not None else []
+    rejected = []
+    model_errors = 0  # stories lost to the model service, not to an editorial decision
+    store_errors = 0  # accepted stories the store failed to save
     for brief in briefs:
         ledger = Ledger()
         kw = {"fetcher": fetcher} if fetcher else {}
@@ -195,6 +201,10 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
                         max_tool_calls=max_tool_calls)
         except LLMUnavailable:
             raise  # the key is refused: no point writing the next story
+        except LLMError as e:  # still failing after retries: the story was never judged
+            log.exception("news: writing %s failed on the model service", brief["signal_keys"])
+            model_errors += 1
+            out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
         except Exception as e:  # one story's crash must not cost the day's others
             log.exception("news: writing %s crashed", brief["signal_keys"])
             out = Outcome("rejected", reason="error", problems=[f"{type(e).__name__}: {str(e)[:300]}"])
@@ -211,28 +221,37 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
                           "ledger": ledger.dump()})
             continue
         core = out.core
-        slug = _unique_slug(store, core["slug"], today)
-        line = next((c for c in core["charts"] if c["type"] == "line"), None)
-        fallback = [v for v in (line["option"]["series"][0]["data"] if line else []) if v is not None]
-        hero, files = images_mod.hero(llm if images else None, core["image_brief"], fallback)
-        now = datetime.now(UTC).isoformat()
-        doc = {
-            "slug": slug, "status": "published", "headline": core["headline"], "dek": core["dek"],
-            "published_at": now, "updated_at": now, "byline": BYLINE,
-            "dataset_ids": core["dataset_ids"], "tags": core["tags"], "signal_keys": keys,
-            "hero": hero | {"alt": core["image_alt"] or core["headline"],
-                            "caption": "איור" if hero["kind"] == "illustration" else None},
-            "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
-            "ledger": ledger.dump(), "words": core["words"], "run_id": run_id,
-            "critic_scores": (out.critic or {}).get("scores"),
-            "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
-                       "image": os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
-                       if hero["kind"] == "illustration" else None},
-        }
-        store.publish(doc, files)
+        try:
+            slug = _unique_slug(store, core["slug"], today)
+            line = next((c for c in core["charts"] if c["type"] == "line"), None)
+            fallback = [v for v in (line["option"]["series"][0]["data"] if line else []) if v is not None]
+            hero, files = images_mod.hero(llm if images else None, core["image_brief"], fallback)
+            now = datetime.now(UTC).isoformat()
+            doc = {
+                "slug": slug, "status": "published", "headline": core["headline"], "dek": core["dek"],
+                "published_at": now, "updated_at": now, "byline": BYLINE,
+                "dataset_ids": core["dataset_ids"], "tags": core["tags"], "signal_keys": keys,
+                "hero": hero | {"alt": core["image_alt"] or core["headline"],
+                                "caption": "איור" if hero["kind"] == "illustration" else None},
+                "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
+                "ledger": ledger.dump(), "words": core["words"], "run_id": run_id,
+                "critic_scores": (out.critic or {}).get("scores"),
+                "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
+                           "image": os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
+                           if hero["kind"] == "illustration" else None},
+            }
+            store.publish(doc, files)
+        except LLMUnavailable:
+            raise
+        except Exception:  # storage down for this story: retried next run, the others go on
+            log.exception("news: storing %s failed", keys)
+            store_errors += 1
+            rejected.append({"signal_keys": keys, "reason": "error", "headline": core.get("headline")})
+            continue
         published.append(slug)
     return {"candidates": len(cands), "briefs": len(briefs), "published": published,
-            "rejected": rejected, "skipped": skipped[:20]}
+            "rejected": rejected, "skipped": skipped[:20], "model_errors": model_errors,
+            "store_errors": store_errors}
 
 
 def _row(s: Signal, cat: dict) -> str:
@@ -340,6 +359,7 @@ def main(argv: list[str] | None = None) -> int:
     summary: dict = {"type": "news_summary", "run_id": run_id, "mode": "live" if live else "dry_run",
                      "today": today.isoformat(), "window": window, "signals": stats}
     tables = llm = None
+    stored: list = []  # slugs stored so far, seen even if the day crashes
     try:
         llm = OpenRouter()
         if live:
@@ -361,11 +381,18 @@ def main(argv: list[str] | None = None) -> int:
                         catalog=cat, vocab=load_vocab(), store=store, tables=tables, today=today,
                         run_id=run_id, max_per_day=a.max_articles,
                         cooldown_days=_env_int("NEWS_DATASET_COOLDOWN_DAYS", 21),
-                        max_tool_calls=_env_int("NEWS_MAX_TOOL_CALLS", 25), images=not a.no_images)
+                        max_tool_calls=_env_int("NEWS_MAX_TOOL_CALLS", 25), images=not a.no_images,
+                        stored=stored)
         summary |= day | {"status": "ok" if day["published"] else "idle"}
         if live and day["published"]:
             summary["publish_dispatch"] = _dispatch_publish()
-        if live and window["upto"] and not (a.dataset or a.models_dir):
+        if (live and window["upto"] and not (a.dataset or a.models_dir)
+                and (day.get("model_errors") or day.get("store_errors"))):
+            # A story the model service never let us finish, or the store
+            # never saved, is not a story judged: keep the window so the next
+            # run sees its signals again.
+            summary["cursor_advanced"] = False
+        elif live and window["upto"] and not (a.dataset or a.models_dir):
             # Only a full run that got this far closes its window; a failed
             # one leaves it for the next run (cooldown + used signal keys stop
             # a story it did publish from being written twice). A --dataset
@@ -389,6 +416,9 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         if tables is not None:
             tables.close()
+    if rc and live and stored and "publish_dispatch" not in summary:
+        # The day crashed after storing some stories: put those on the site now.
+        summary |= {"published": stored, "publish_dispatch": _dispatch_publish()}
     if llm is not None:
         summary["cost_usd"], summary["llm_calls"] = round(llm.cost_usd, 4), llm.calls
     print(json.dumps(summary, ensure_ascii=False, default=str))

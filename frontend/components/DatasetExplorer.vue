@@ -7,6 +7,7 @@
 // rows already loaded. CORS: data.gov.il allows plain GETs to
 // /api/3/action/ with no custom headers, so no preflight is issued.
 import type { ResourceEntry } from "~/types/manifest";
+import { buildTsQuery } from "~/utils/explorer-query";
 import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
 
 const props = defineProps<{
@@ -225,20 +226,6 @@ async function dsSearch(
     total: data.result.total ?? 0,
     fields: data.result.fields,
   };
-}
-
-// Turn free user input into a safe PostgreSQL tsquery: every word
-// becomes a prefix match (tok:*), multiple words AND together. Any
-// non-letter/digit char is stripped first — raw tsquery metacharacters
-// (& | ! ( ) : * ' ") make CKAN return an Invalid-query error.
-function buildTsQuery(raw: string): string | null {
-  const tokens = raw
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 6);
-  if (!tokens.length) return null;
-  return tokens.map((t) => `${t}:*`).join(" & ");
 }
 
 // Returns the schema (possibly with zero usable columns — a valid but

@@ -65,6 +65,14 @@ jobs:
               - 'cloudbuild-publish.yaml'
               - 'infra/publish-local.sh'
               - '.github/workflows/publish.yml'
+              - 'infra/Dockerfile.publisher'
+              - 'frontend/package-lock.json'
+              # Read by test_hosting_cache.py, test_tags.py, test_skills.py
+              # and test_ci_paths.py.
+              - 'firebase.json'
+              - 'taxonomy/**'
+              - '.claude/skills/**'
+              - '.github/dependabot.yml'
             frontend:
               - 'frontend/**'
               - '.github/workflows/ci.yml'

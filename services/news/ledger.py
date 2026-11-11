@@ -40,11 +40,14 @@ _DATE_DMY = re.compile(
 _YEAR = re.compile(r"(?<![\d.,])(?:19[4-9]\d|20[0-4]\d)(?:[/–-]\d{2}(?!\d))?(?![\d%]|[.,]\d)")
 YEARLIKE = re.compile(r"\D*(?:19[4-9]\d|20[0-4]\d)(?:[/–-]\d{2})?\D*")
 _YEAR_LEAD = re.compile(
-    rf"(?:(?:^|[\s(\"'״])[ובלמהשכ]{{1,3}}-?"
+    # No "כ": "כ-1980" is "about 1980", a count, not a year.
+    rf"(?:(?:^|[\s(\"'״])[ובלמהש]{{1,3}}[-־–]?"
     rf"|(?:{MONTHS}|שנת|שנות|שנים|מאז|עד|לפני|אחרי|לעומת|מול|בין|מתחילת|מסוף|בשנים|בשנת)\s+"
     # "שנת התקציב 2025", "בשנת הלימודים 2024-25": one word between
     r"|(?:שנת|בשנת|שנות|בשנות)\s+[א-ת\"״']+\s+"
-    rf"|\(|[–-]\s*)$"
+    # the second year of a range ("2019–2025", "מרץ–2025"); a hyphen after
+    # any other word is not one
+    rf"|\(|(?:\d|{MONTHS})\s*[–-]\s*)$"
 )
 _DIGITS = re.compile(r"\d")
 SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
@@ -53,8 +56,8 @@ SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
 _NUMBER_WORD = (r"(?:אחד|אחת|שתיים|שניים|שתי|שני|שלוש|שלושה|ארבע|ארבעה|חמש|חמישה|שש|שישה|שבע|"
                 r"שבעה|שמונה|תשע|תשעה|עשר|עשרה|עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|"
                 r"תשעים|מאה|מאתיים|מאות|אלף|אלפיים|אלפים|חצי|רבע|שליש)")
-_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהש]?{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD}))*\s+"
-                      r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודות|מיליון|מיליארד|מיליארדי|אלף|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
+_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD}))*\s+"
+                      r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודות|מיליון|מיליוני|מיליארד|מיליארדי|אלף|אלפי|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
 
 
 def spelled_numbers(text: str) -> list[str]:
@@ -123,20 +126,21 @@ class Ledger:
     def __init__(self):
         self.facts: dict[str, Fact] = {}
         self.sources: dict[str, Source] = {}
-        self._by_prov: dict[str, str] = {}
+        self._by_prov: dict[tuple[str, float], str] = {}
         self._by_url: dict[str, str] = {}
 
     def add(self, value: float, *, label: str, provenance: str, unit: str | None = None,
             period: str | None = None, dataset_id: str | None = None) -> Fact:
-        """Register a value (the same provenance gets the same id)."""
+        """Register a value (the same provenance and value get the same id; a
+        new value under a known provenance is a new fact)."""
         v = float(value)
         if not math.isfinite(v):
             raise ValueError("facts must be finite numbers")
-        if (fid := self._by_prov.get(provenance)) is not None:
+        if (fid := self._by_prov.get((provenance, v))) is not None:
             return self.facts[fid]
         f = Fact(f"f{len(self.facts) + 1}", v, label, provenance, unit, period, dataset_id)
         self.facts[f.id] = f
-        self._by_prov[provenance] = f.id
+        self._by_prov[(provenance, v)] = f.id
         return f
 
     def add_source(self, url: str, title: str, text: str, *, kind: str = "fetched") -> Source:

@@ -9,7 +9,7 @@ const route = useRoute();
 const kind = computed(() => String(route.params.kind));
 
 // Bake only this kind's slim entries into the page payload.
-const { data } = await useAsyncData(`kind-${kind.value}`, async () => {
+const { data, error } = await useAsyncData(`kind-${kind.value}`, async () => {
   const index = await loadSearchIndex();
   return index.datasets.filter((d) => d.dataset_kind === kind.value);
 });
@@ -19,6 +19,14 @@ const label = computed(
   () => KIND_INFO[kind.value as DatasetKind]?.label ?? kind.value
 );
 
+// A failed fetch on client-side navigation (offline, 5xx) is not a 404.
+if (error.value) {
+  throw createError({
+    statusCode: 503,
+    statusMessage: "Kind unavailable",
+    fatal: true,
+  });
+}
 if (entries.value.length === 0) {
   throw createError({
     statusCode: 404,

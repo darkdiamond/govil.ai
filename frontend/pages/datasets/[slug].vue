@@ -7,6 +7,7 @@ import {
 } from "~/composables/useDatasetLd";
 import { formatBytes, formatNumber } from "~/composables/useRelativeTime";
 import type { AgentData, DatasetMeta, ManifestEntry } from "~/types/manifest";
+import { datasetDate } from "~/utils/dataset-dates";
 import {
   buildDatasetLibTags,
   detectDatasetLibs,
@@ -245,11 +246,8 @@ const sourceUpdatedSinceAnalysis = computed<boolean>(() => {
   return dayUTC(live) > dayUTC(snap);
 });
 
-const HE_DATE = new Intl.DateTimeFormat("he-IL", { dateStyle: "long" });
 function formatDateHe(iso?: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : HE_DATE.format(d);
+  return datasetDate(iso);
 }
 function formatClass(fmt?: string | null): string {
   switch ((fmt || "").toUpperCase()) {
@@ -515,25 +513,31 @@ async function awaitDatasetLibs(
   }
 }
 
+// Registered here, not inside onMounted: a hook registered after an await
+// is not bound to the component and never runs.
+let raf = 0;
+let ro: ResizeObserver | null = null;
+let unmounted = false;
+onBeforeUnmount(() => {
+  unmounted = true;
+  cancelAnimationFrame(raf);
+  ro?.disconnect();
+});
+
 onMounted(async () => {
   await awaitDatasetLibs(data.value!.libs);
-  if (!bodyEl.value) return;
+  if (unmounted || !bodyEl.value) return;
   void executeBodyScripts(bodyEl.value);
   // Bridge container-width changes (orientation, sidebar reflow at lg) into
   // a window resize so ECharts re-fits via the agent's existing
   // `chart.resize()` listeners. rAF-debounced to coalesce smooth resizes.
-  let raf = 0;
-  const ro = new ResizeObserver(() => {
+  ro = new ResizeObserver(() => {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(() =>
       window.dispatchEvent(new Event("resize"))
     );
   });
   ro.observe(bodyEl.value);
-  onBeforeUnmount(() => {
-    cancelAnimationFrame(raf);
-    ro.disconnect();
-  });
 });
 </script>
 

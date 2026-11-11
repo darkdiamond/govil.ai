@@ -6,10 +6,13 @@ the refresh share its download cache.
 """
 from __future__ import annotations
 
+import logging
 import os
 from collections.abc import Mapping
 
-from .base import SourceProvider
+from pydantic import ValidationError
+
+from .base import ProviderSettings, SourceProvider
 from .boi import BoiSdmxProvider
 from .cbs import CbsReleasesProvider
 from .cbs_index import CbsIndexProvider
@@ -20,15 +23,29 @@ PROVIDER_CLASSES: dict[str, type[SourceProvider]] = {
     CbsIndexProvider.key: CbsIndexProvider,
 }
 
+log = logging.getLogger("providers")
+
 _enabled: dict[str, SourceProvider] | None = None
 
 
 def build_providers(environ: Mapping[str, str] = os.environ) -> dict[str, SourceProvider]:
+    """The enabled providers. A provider's other settings are read only once
+    its `ENABLED` var says it is on, and one whose settings don't validate is
+    logged and left out, so a bad value can't cost the other providers."""
     out = {}
     for key, cls in PROVIDER_CLASSES.items():
-        p = cls.from_env(environ)
-        if p.settings.enabled:
-            out[key] = p
+        enabled_var = f"PROVIDER_{key.upper()}_ENABLED"
+        try:
+            on = ProviderSettings.from_env(
+                key, cls.default_settings,
+                {enabled_var: environ[enabled_var]} if enabled_var in environ else {},
+            ).enabled
+            if not on:
+                continue
+            out[key] = cls.from_env(environ)
+        except ValidationError as e:
+            log.error("provider %s left off: invalid PROVIDER_%s_* setting: %s",
+                      key, key.upper(), e)
     return out
 
 

@@ -237,3 +237,128 @@ test("wheel gate: popups/controls scroll natively, sideways swipes show no hint"
 test("wheel gate: no Leaflet on the page → nothing installed, no throw", () => {
   assert.ok(loadGovMap().ring);
 });
+
+// --- create(): the paged fetch loop ---
+
+// A map on a stub container, with fetch answered by hand: each call is held
+// until the test resolves it with one full page of points.
+function createWithPagedFetch({ total, pageSize }) {
+  const pending = [];
+  const ingested = [];
+  const el = () => {
+    const e = {
+      children: [],
+      style: {},
+      className: "",
+      textContent: "",
+      attrs: {},
+    };
+    e.appendChild = (c) => {
+      e.children.push(c);
+      c.parentNode = e;
+      return c;
+    };
+    e.removeChild = (c) => {
+      e.children.splice(e.children.indexOf(c), 1);
+      c.parentNode = null;
+      return c;
+    };
+    e.setAttribute = (k, v) => (e.attrs[k] = v);
+    e.querySelector = () => null;
+    e.classList = { add: () => {} };
+    return e;
+  };
+  const head = el();
+  const container = el();
+  container.isConnected = true;
+  const document = {
+    getElementById: (id) => head.children.find((c) => c.id === id) || null,
+    querySelector: (sel) => (sel === "#map" ? container : null),
+    createElement: el,
+    head,
+  };
+  const bounds = { extend: () => {}, isValid: () => true };
+  const L = {
+    map: () => ({ fitBounds: () => {}, invalidateSize: () => {} }),
+    tileLayer: () => ({ addTo: () => {} }),
+    layerGroup: () => ({
+      addTo: () => {},
+      addLayers: (ms) => ingested.push(ms.length),
+    }),
+    latLngBounds: () => bounds,
+    circleMarker: () => ({}),
+  };
+  const fetch = () =>
+    new Promise((resolve) => {
+      const offset = pending.length * pageSize;
+      pending.push(() =>
+        resolve({
+          ok: true,
+          json: () => ({
+            success: true,
+            result: {
+              total,
+              records: Array.from({ length: pageSize }, (_, i) => ({
+                lat: 31 + (offset + i) / 1e6,
+                lng: 35,
+              })),
+            },
+          }),
+        })
+      );
+    });
+  const window = { L };
+  vm.runInNewContext(
+    readFileSync(new URL("../scripts/gov-map.js", import.meta.url), "utf8"),
+    {
+      window,
+      document,
+      L,
+      fetch,
+      URLSearchParams,
+      console: { warn: () => {} },
+    }
+  );
+  window.GovMap.create({
+    container: "#map",
+    resourceId: "r",
+    latField: "lat",
+    lngField: "lng",
+    cluster: false,
+    pageSize,
+  });
+  const settle = () => new Promise((r) => setTimeout(r, 0));
+  return { pending, ingested, container, settle };
+}
+
+test("GovMap.create stops fetching once its container leaves the document", async () => {
+  const { pending, ingested, container, settle } = createWithPagedFetch({
+    total: 5000,
+    pageSize: 1000,
+  });
+  assert.equal(pending.length, 1);
+  pending[0]();
+  await settle();
+  assert.equal(pending.length, 2, "connected: the next page is requested");
+  assert.deepEqual(ingested, [1000]);
+  // Replaced by hydration while page 2 is in flight.
+  container.isConnected = false;
+  pending[1]();
+  await settle();
+  assert.equal(pending.length, 2, "no request after disconnection");
+  assert.deepEqual(ingested, [1000], "a late batch is not ingested");
+});
+
+test("GovMap.create fetches every page while its container stays connected", async () => {
+  const { pending, ingested, settle } = createWithPagedFetch({
+    total: 5000,
+    pageSize: 1000,
+  });
+  for (let i = 0; i < 5; i++) {
+    assert.equal(pending.length, i + 1);
+    pending[i]();
+    await settle();
+  }
+  assert.equal(pending.length, 5, "stops at the dataset total");
+  assert.deepEqual(ingested, [1000, 1000, 1000, 1000, 1000]);
+});

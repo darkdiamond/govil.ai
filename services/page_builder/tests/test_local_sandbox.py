@@ -8,6 +8,8 @@ image's check.py. Off-root (local dev, CI) nothing may change.
 import os
 import subprocess
 import sys
+import threading
+import time
 from types import SimpleNamespace
 
 import pytest
@@ -24,7 +26,7 @@ class _RunRecorder:
 
     def __call__(self, argv, **kw):
         self.calls.append((argv, kw))
-        return subprocess.CompletedProcess(argv, 0, stdout=b"ok\n", stderr=b"")
+        return 0, b"ok\n", b""
 
 
 @pytest.fixture
@@ -47,7 +49,7 @@ def as_root(monkeypatch):
         ),
     )
     rec = _RunRecorder()
-    monkeypatch.setattr(ls.subprocess, "run", rec)
+    monkeypatch.setattr(ls, "_run_capped", rec)
     return SimpleNamespace(chowns=chowns, run=rec)
 
 
@@ -120,7 +122,7 @@ def test_root_without_default_user_degrades(tmp_path, as_root, monkeypatch):
 def test_non_root_is_unchanged(tmp_path, monkeypatch):
     monkeypatch.setattr(ls.os, "geteuid", lambda: 1000)
     rec = _RunRecorder()
-    monkeypatch.setattr(ls.subprocess, "run", rec)
+    monkeypatch.setattr(ls, "_run_capped", rec)
     chowns = []
     monkeypatch.setattr(ls.os, "chown", lambda *a, **k: chowns.append(a))
     sb = ls.LocalSandbox.create(tmp_path / "s")
@@ -191,6 +193,151 @@ def test_read_untrusted_rejects_fifo_without_blocking(tmp_path):
     os.mkfifo(wd / "outputs" / "content.html")
     with pytest.raises(FileNotFoundError):
         sb.files.read(str(wd / "outputs" / "content.html"))
+
+
+# ── what the host reads back is bounded ──
+@pytest.mark.parametrize("privsep", [False, True])
+def test_read_refuses_oversized_output(tmp_path, privsep):
+    if privsep:
+        wd = tmp_path / "w"
+        (wd / "outputs").mkdir(parents=True)
+        sb = ls.LocalSandbox(wd, ident=(os.getuid(), os.getgid()), max_read_bytes=1_000_000)
+    else:
+        sb = ls.LocalSandbox.create(tmp_path / "w", max_read_bytes=1_000_000)
+        wd = sb.workdir
+    (wd / "outputs" / "model.json").write_bytes(b"x" * 2_000_000)
+    with pytest.raises(ls.OutputTooLarge):
+        sb.files.read("outputs/model.json")
+    (wd / "outputs" / "model.json").write_bytes(b"x" * 1_000_000)
+    assert len(sb.files.read("outputs/model.json")) == 1_000_000
+
+
+def test_huge_output_keeps_a_bounded_tail(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("exercises the unprivileged path")
+    import tracemalloc
+
+    sb = ls.LocalSandbox.create(tmp_path / "s")
+    code = (
+        "import sys\n"
+        "chunk = 'x' * 1_000_000\n"
+        "for _ in range(50):\n"
+        "    sys.stdout.write(chunk); sys.stderr.write(chunk)\n"
+        "sys.stdout.write('OUT-END'); sys.stderr.write('ERR-END')\n"
+        "sys.exit(3)\n"
+    )
+    tracemalloc.start()
+    try:
+        exe = sb.run_code(code, language="python", timeout=60, max_output_bytes=64 * 1024)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+        sb.kill()
+    assert exe.error is not None and exe.error.value == "exit code 3"
+    assert exe.logs.stdout.endswith("OUT-END") and exe.logs.stderr.endswith("ERR-END")
+    assert len(exe.logs.stdout) <= 64 * 1024 and len(exe.logs.stderr) <= 64 * 1024
+    assert peak < 8_000_000  # 100MB went through the pipes, not into host memory
+
+
+def test_timeout_keeps_output_so_far(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("exercises the unprivileged path")
+    sb = ls.LocalSandbox.create(tmp_path / "s")
+    exe = sb.run_code("echo started; echo oops >&2; sleep 30", language="bash", timeout=1)
+    sb.kill()
+    assert exe.error is not None and exe.error.name == "Timeout"
+    assert exe.logs.stdout == "started\n" and exe.logs.stderr == "oops\n"
+
+
+def test_small_output_is_returned_whole(tmp_path):
+    if os.geteuid() == 0:
+        pytest.skip("exercises the unprivileged path")
+    sb = ls.LocalSandbox.create(tmp_path / "s")
+    exe = sb.run_code("printf 'a\\nb\\n'; printf 'שגיאה\\n' >&2; exit 1", language="bash")
+    sb.kill()
+    assert exe.error is not None and exe.error.value == "exit code 1"
+    assert exe.logs.stdout == "a\nb\n" and exe.logs.stderr == "שגיאה\n"
+
+
+def _gone(pid: int, wait_s: float = 3.0) -> bool:
+    """The process no longer runs (gone or a zombie awaiting its reaper)."""
+    end = time.monotonic() + wait_s
+    while time.monotonic() < end:
+        try:
+            with open(f"/proc/{pid}/stat") as f:
+                if f.read().rsplit(")", 1)[1].split()[0] == "Z":
+                    return True
+        except (FileNotFoundError, ProcessLookupError):  # it exited mid-read
+            return True
+        time.sleep(0.05)
+    return False
+
+
+# A background process keeps stdout/stderr open and writes after the parent
+# exits (or while it still runs).
+_HOLDS_PIPE = {
+    "parent_exits": "(sleep 1.5; echo LATE; echo LATE >&2; sleep 30) & echo $!",
+    "parent_runs": "(sleep 1.5; echo LATE; sleep 30) & echo $!; sleep 30",
+}
+
+
+@pytest.mark.parametrize("case", sorted(_HOLDS_PIPE))
+def test_background_process_holding_the_pipes_is_killed_and_nothing_reads_later(case):
+    threads_before = threading.active_count()
+    started = time.monotonic()
+    rc, out, err = ls._run_capped(
+        ["bash", "-c", _HOLDS_PIPE[case]], timeout=1, max_output_bytes=64 * 1024
+    )
+    elapsed = time.monotonic() - started
+    assert rc is None and elapsed < 1.5, elapsed
+    assert threading.active_count() == threads_before
+    assert b"LATE" not in out and err == b""
+    assert _gone(int(out.split()[0]))
+    # Descriptors opened after the return get every byte written to them.
+    time.sleep(1.0)  # past the moment the background process would have written
+    pipes = [os.pipe() for _ in range(3)]
+    for r, w in pipes:
+        os.write(w, b"x" * 210)
+        os.close(w)
+    for r, _ in pipes:
+        got = b""
+        while chunk := os.read(r, 4096):
+            got += chunk
+        os.close(r)
+        assert got == b"x" * 210
+
+
+def test_interrupted_read_loop_kills_the_child_and_its_background_process(tmp_path, monkeypatch):
+    import selectors
+
+    class _InterruptedSelector(selectors.DefaultSelector):
+        def select(self, timeout=None):
+            ready = super().select(timeout)
+            if ready:  # the child is up and has written its pids
+                raise KeyboardInterrupt
+            return ready
+
+    monkeypatch.setattr(ls, "selectors", SimpleNamespace(
+        DefaultSelector=_InterruptedSelector, EVENT_READ=selectors.EVENT_READ,
+    ))
+    code = (f"sleep 30 & echo $! > {tmp_path}/bg.pid; echo $$ > {tmp_path}/me.pid; "
+            "echo ready; sleep 30")
+    started = time.monotonic()
+    with pytest.raises(KeyboardInterrupt):
+        ls._run_capped(["bash", "-c", code], timeout=60, max_output_bytes=64 * 1024)
+    assert time.monotonic() - started < 5
+    for name in ("me.pid", "bg.pid"):
+        assert _gone(int((tmp_path / name).read_text())), name
+
+
+def test_normal_exit_returns_at_once_and_keeps_the_contract():
+    started = time.monotonic()
+    rc, out, err = ls._run_capped(
+        ["bash", "-c", "(sleep 30 >/dev/null 2>&1 &); echo ok; echo e >&2; exit 4"],
+        timeout=10, max_output_bytes=64 * 1024,
+    )
+    assert (rc, out, err) == (4, b"ok\n", b"e\n")
+    assert time.monotonic() - started < 2
 
 
 # ── host check always runs the image's check.py, isolated ──

@@ -73,12 +73,13 @@ class ClarityServerError(RuntimeError):
     pass
 
 
-# Retry only on transient network/transport errors. NEVER retry on HTTP status
-# errors (401/403/429/500) — each retry burns daily quota for nothing.
+# Retry only when the request never reached Clarity (connect failures). NEVER retry
+# on HTTP status errors (401/403/429/500): each retry burns daily quota for nothing.
+# A read timeout or dropped response may already have been counted, so no retry.
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=10),
-    retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
+    retry=retry_if_exception_type((httpx.ConnectError, httpx.ConnectTimeout)),
     reraise=True,
 )
 async def _fetch(
@@ -128,8 +129,15 @@ def _format_plan(num_of_days: int) -> str:
     return "\n".join(lines)
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def _write_readme(out_dir: Path, num_of_days: int, fetched_at: str) -> None:
-    rel = out_dir.relative_to(REPO_ROOT)
+    rel = _display_path(out_dir)
     lines = [
         f"# Clarity snapshot — {fetched_at}",
         "",
@@ -194,7 +202,7 @@ async def _run(token: str, num_of_days: int, out_dir: Path) -> int:
     log.info(
         "wrote %d files to %s (errors: %d)",
         meta["request_count"],
-        out_dir.relative_to(REPO_ROOT),
+        _display_path(out_dir),
         len(meta["errors"]),
     )
     return 0 if not meta["errors"] else 1
@@ -243,7 +251,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
-    out_dir = args.out or (DEFAULT_OUT_DIR / datetime.now(UTC).strftime("%Y-%m-%d"))
+    out_dir = (args.out or (DEFAULT_OUT_DIR / datetime.now(UTC).strftime("%Y-%m-%d"))).resolve()
+    # Fail on an unusable --out before spending any of the daily request quota.
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        print(f"error: cannot create --out {out_dir}: {exc}", file=sys.stderr)
+        return 2
+    if not os.access(out_dir, os.W_OK):
+        print(f"error: --out {out_dir} is not writable", file=sys.stderr)
+        return 2
     return asyncio.run(_run(token, args.days, out_dir))
 
 
