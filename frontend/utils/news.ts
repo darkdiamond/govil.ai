@@ -13,11 +13,23 @@ function readJson<T>(rel: string): Promise<T | null> {
   return readPublicJson<T>(rel).catch(() => null);
 }
 
-export async function loadNewsIndexServer(): Promise<NewsIndexEntry[]> {
-  const doc = await readJson<{ articles?: NewsIndexEntry[] }>(
-    "news/index.json"
-  );
-  return doc?.articles ?? [];
+// Memoized like loadFullManifestServer (utils/search-index.ts): during
+// `nuxt generate` every dataset page reads the index, and each Nitro worker
+// now parses it once. A dev server (a recipe preview included) re-reads it
+// on every call, so an index written under a running server is seen at once.
+let newsIndexServerCache: Promise<NewsIndexEntry[]> | null = null;
+
+export function loadNewsIndexServer(): Promise<NewsIndexEntry[]> {
+  if (
+    !newsIndexServerCache ||
+    import.meta.dev ||
+    process.env.NUXT_PREVIEW_ROOT
+  ) {
+    newsIndexServerCache = readJson<{ articles?: NewsIndexEntry[] }>(
+      "news/index.json"
+    ).then((doc) => doc?.articles ?? []);
+  }
+  return newsIndexServerCache;
 }
 
 export async function loadArticleServer(

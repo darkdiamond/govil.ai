@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SlimEntry } from "~/types/manifest";
 import { cardDateLabel } from "~/utils/dataset-dates";
+import { datasetPath } from "~/utils/paths";
 
 defineProps<{ entry: SlimEntry }>();
 
@@ -14,7 +15,7 @@ onMounted(() => {
 
 <template>
   <a
-    :href="`/datasets/${encodeURI(entry.page_slug || entry.id)}/`"
+    :href="datasetPath(entry)"
     class="card card-hover p-4 no-underline hover:no-underline block"
   >
     <div class="flex gap-2 flex-wrap mb-2 text-xs">

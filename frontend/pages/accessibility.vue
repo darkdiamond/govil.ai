@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 const lastUpdated = "3 בספטמבר 2026";
 
 useSeo({
@@ -14,8 +15,8 @@ useSeo({
     "תקנות שוויון זכויות",
   ],
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "הצהרת נגישות", url: "https://govil.ai/accessibility/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "הצהרת נגישות", url: `${SITE_URL}/accessibility/` },
   ],
 });
 </script>

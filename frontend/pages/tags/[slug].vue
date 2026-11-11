@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
+import { SITE_URL, tagPath } from "~/utils/paths";
 import { loadSearchIndex } from "~/utils/search-index";
 
 const route = useRoute();
@@ -37,7 +38,7 @@ const { data, error } = await useAsyncData(`tag-${slug.value}`, async () => {
     .filter((t) => index[t])
     .map((t) => ({
       label: t,
-      href: `/tags/${encodeURI(index[t]!.slug)}/`,
+      href: tagPath(index[t]!.slug),
       count: index[t]!.count,
     }));
   return {
@@ -70,7 +71,6 @@ const page = computed(() => data.value!);
 const tag = computed(() => page.value.tag);
 const entries = computed(() => page.value.entries);
 
-const SITE_URL = "https://govil.ai";
 const tagDescription = computed(() => {
   const lead = `${entries.value.length} מאגרי מידע ציבוריים בנושא ${tag.value}`;
   const firstSentence = page.value.intro.split(".")[0];
@@ -78,13 +78,12 @@ const tagDescription = computed(() => {
     ? `${lead}. ${firstSentence}.`
     : `${lead}, עם תקצירים ותובנות בעברית.`;
 });
-const encodedSlug = computed(() => encodeURI(slug.value));
-const canonicalUrl = computed(() => `${SITE_URL}/tags/${encodedSlug.value}/`);
+const canonicalUrl = computed(() => `${SITE_URL}${tagPath(slug.value)}`);
 
 useSeo({
   title: `מאגרי מידע ממשלתיים בנושא ${tag.value}`,
   description: tagDescription.value,
-  path: `/tags/${encodedSlug.value}/`,
+  path: tagPath(slug.value),
   keywords: [tag.value],
   breadcrumbs: [
     { name: "ראשי", url: `${SITE_URL}/` },

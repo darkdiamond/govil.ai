@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 import type { NewsIndexEntry } from "~/types/news";
 import { loadNewsIndex, newsDate } from "~/utils/news";
 
@@ -150,7 +151,6 @@ const filterTo = (patch: Record<string, string | null>) => {
   return { path: "/news/", query };
 };
 
-const SITE_URL = "https://govil.ai";
 useSeo({
   title: "חדשות govil.ai",
   description:

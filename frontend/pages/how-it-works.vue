@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 useSeo({
   title: "מתודולוגיית העבודה — מחקר וניתוח מאגרי data.gov.il",
   description:
@@ -12,8 +13,8 @@ useSeo({
     "שקיפות ציבורית",
   ],
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "איך זה עובד", url: "https://govil.ai/how-it-works/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "איך זה עובד", url: `${SITE_URL}/how-it-works/` },
   ],
 });
 

@@ -46,8 +46,9 @@ export function buildDatasetLibTags(needs: DatasetLibNeeds): {
   // Plain <script> tags (no defer/async): head-blocking so window.L /
   // window.echarts / window.GovExplorer exist before the body's inline
   // init runs during initial parse. On SPA nav useHead appends the same
-  // tags to <head>; executeBodyScripts() in pages/datasets/[slug].vue
-  // waits on the page's needed globals before re-running body scripts.
+  // tags to <head>; pages/datasets/[slug].vue waits on the page's needed
+  // globals (awaitDatasetLibs, utils/body-scripts.ts) before re-running body
+  // scripts.
   //
   // Hand-written browser libs (sourced from frontend/scripts/, copied
   // into public/lib/ by scripts/copy-libs.mjs):

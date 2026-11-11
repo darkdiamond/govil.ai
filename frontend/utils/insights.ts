@@ -1,4 +1,5 @@
 import type { DatasetKind, SlimEntry } from "~/types/manifest";
+import { datasetPath } from "~/utils/paths";
 
 export interface InsightSlide {
   id: string;
@@ -77,7 +78,7 @@ export function buildInsightPool(entries: SlimEntry[]): InsightSlide[] {
       stat: buildStat(e),
       primary_tag: buildPrimaryTag(e),
       is_fresh: buildIsFresh(e.metadata_modified),
-      href: `/datasets/${encodeURI(e.page_slug || e.id)}/`,
+      href: datasetPath(e),
     });
   }
   return pool;

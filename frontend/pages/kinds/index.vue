@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 import { loadSearchIndex } from "~/utils/search-index";
 import { useKindLabels } from "~/composables/useKindLabels";
 import hubIntros from "~/content/hub-intros.json";
@@ -13,8 +14,8 @@ useSeo({
     "מאגרי המידע הציבוריים מחולקים לפי אופי הנתונים: מפות, סדרות זמן, רשימות ישויות ודירוגים. בחרו סוג כדי לראות את כל המאגרים שלו.",
   path: "/kinds/",
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "סוגי מידע", url: "https://govil.ai/kinds/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "סוגי מידע", url: `${SITE_URL}/kinds/` },
   ],
 });
 

@@ -540,11 +540,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
 - **Stale Firestore fields.** `sources/<id>.embedding` (Voyage, removed) is still on the docs
   that had it; nothing reads it. A one-off cleanup would shrink the docs. (2026-10-30)
-- **`executeBodyScripts` has no test.** It lives inside `pages/datasets/[slug].vue`, out of
-  reach of the `node --test` suite, so a change that re-wraps `<script type="application/json">`
-  data blocks in the IIFE (PR #272's bug: blank map on d9b1e04c) would pass CI. Move the
-  script-type check (or the whole function) to `frontend/utils/` and test that data blocks are
-  left untouched and every JS type is re-created. (2026-10-31)
 
 ## Frontend
 

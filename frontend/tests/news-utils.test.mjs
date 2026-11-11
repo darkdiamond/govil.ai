@@ -13,7 +13,7 @@ const { outputFiles } = await build({
   format: "cjs",
   platform: "node",
   // Browser branch of the dual-mode loaders; esbuild's cjs output has no import.meta.
-  define: { "import.meta.server": "false" },
+  define: { "import.meta.server": "false", "import.meta.dev": "false" },
   plugins: [
     {
       name: "nuxt-tilde",

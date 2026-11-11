@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type FuseT from "fuse.js";
 import type { SlimEntry } from "~/types/manifest";
+import { datasetPath } from "~/utils/paths";
 import { loadSearchIndex, memoRetry } from "~/utils/search-index";
 import {
   normalizeSearchText,
@@ -114,7 +115,7 @@ const search = computed<SearchResults>(() => {
 const results = computed(() => search.value.items);
 
 function datasetHref(entry: SlimEntry): string {
-  return `/datasets/${encodeURI(entry.page_slug || entry.id)}/`;
+  return datasetPath(entry);
 }
 
 watch(results, () => {

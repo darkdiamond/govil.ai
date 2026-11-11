@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 const lastUpdated = "3 בספטמבר 2026";
 
 useSeo({
@@ -14,8 +15,8 @@ useSeo({
     "data.gov.il",
   ],
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "הבהרה משפטית", url: "https://govil.ai/disclaimer/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "הבהרה משפטית", url: `${SITE_URL}/disclaimer/` },
   ],
 });
 </script>

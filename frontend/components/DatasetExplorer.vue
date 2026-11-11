@@ -12,8 +12,10 @@ import {
   type DatastoreError,
   type ExplorerFailure,
 } from "~/utils/explorer-probe";
+import { explorerCandidates } from "~/utils/explorer-candidates";
+import { cellText, colLabel, type Col } from "~/utils/explorer-format";
 import { buildTsQuery } from "~/utils/explorer-query";
-import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
+import { publicResourceUrl } from "~/utils/resource-url";
 
 const props = defineProps<{
   resources: ResourceEntry[];
@@ -34,26 +36,6 @@ const MAX_COLS = 60;
 // instead of an endless skeleton.
 const FETCH_TIMEOUT_MS = 20_000;
 
-interface Candidate {
-  rid: string;
-  name: string;
-  format: string;
-  url: string;
-  /** Legacy data.json has no datastore_active flags — the runtime
-   *  limit=0 probe decides whether the section stays. */
-  verified: boolean;
-}
-
-interface Col {
-  id: string;
-  numeric: boolean;
-  date: boolean;
-  /** CKAN Data Dictionary (fields[].info) — publisher-curated Hebrew
-   *  label/explanation. Present on ~15% of data.gov.il resources. */
-  label?: string;
-  notes?: string;
-}
-
 interface DsResult {
   records: Record<string, unknown>[];
   total: number;
@@ -64,62 +46,9 @@ interface DsResult {
   }[];
 }
 
-const RESOURCE_URL_RE =
-  /\/resource\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\//;
-
-function resourceId(r: ResourceEntry): string | null {
-  return r.id ?? r.url.match(RESOURCE_URL_RE)?.[1] ?? null;
-}
-
-const candidates = computed<Candidate[]>(() => {
-  const resources = props.resources ?? [];
-  const hasFlags = resources.some(
-    (r) => typeof r.datastore_active === "boolean"
-  );
-  const out: Candidate[] = [];
-  const seen = new Set<string>();
-
-  if (hasFlags) {
-    for (const r of resources) {
-      const rid = resourceId(r);
-      if (!rid || seen.has(rid) || r.datastore_active !== true) continue;
-      seen.add(rid);
-      out.push({
-        rid,
-        name: r.name || resourceFormat(r) || "קובץ",
-        format: resourceFormat(r),
-        url: r.url,
-        verified: true,
-      });
-    }
-    // Primary resource first — it's the file the page's content is based on.
-    out.sort(
-      (a, b) =>
-        Number(b.rid === props.primaryResourceId) -
-        Number(a.rid === props.primaryResourceId)
-    );
-    return out;
-  }
-
-  // Legacy data.json (no flags anywhere): expose only the primary resource,
-  // unverified — the schema probe collapses the section if it isn't
-  // datastore-backed. Probing every resource per page view would be too
-  // chatty for a question whose answer is static.
-  const primary =
-    resources.find((r) => resourceId(r) === props.primaryResourceId) ??
-    resources.find((r) => resourceId(r) !== null);
-  const rid = primary ? resourceId(primary) : null;
-  if (primary && rid) {
-    out.push({
-      rid,
-      name: primary.name || resourceFormat(primary) || "קובץ",
-      format: resourceFormat(primary),
-      url: primary.url,
-      verified: false,
-    });
-  }
-  return out;
-});
+const candidates = computed(() =>
+  explorerCandidates(props.resources, props.primaryResourceId)
+);
 
 const droppedRids = ref<Set<string>>(new Set());
 const visibleCandidates = computed(() =>
@@ -452,20 +381,6 @@ function switchResource(rid: string) {
 
 const HE_NUM = (n: number) => n.toLocaleString("he-IL");
 
-// Display label for a column: publisher's Data Dictionary label when
-// present, otherwise the raw field id prettified — underscores→spaces,
-// camelCase split (operator_nm → "operator nm", WinnersMeshapryDiur →
-// "Winners Meshapry Diur"). Hebrew ids pass through unchanged. Sorting
-// always uses the raw id.
-function colLabel(col: Col): string {
-  if (col.label) return col.label;
-  return col.id
-    .replace(/_/g, " ")
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 // Columns worth a legend entry: a publisher explanation (notes), or a
 // curated label that differs from the raw id (so users can map the
 // header back to the downloadable file's column).
@@ -500,20 +415,6 @@ const pageText = computed(() => {
   const pages = Math.ceil(total.value / PAGE_SIZE);
   return `עמוד ${HE_NUM(page)} מתוך ${HE_NUM(pages)}`;
 });
-
-// Many CKAN columns store dates as text — "2027-04-06 00:00:00.000".
-// Trim the redundant midnight time for display; non-midnight times are
-// meaningful and kept verbatim.
-const MIDNIGHT_RE = /^(\d{4}-\d{2}-\d{2})[T ]00:00:00(?:\.0+)?$/;
-
-function cellText(v: unknown, col: Col): string {
-  if (v === null || v === undefined || v === "") return "—";
-  const s = String(v);
-  if (col.date) return s.slice(0, 10);
-  const m = s.match(MIDNIGHT_RE);
-  if (m) return m[1]!;
-  return s;
-}
 
 // Horizontal-scroll cues: gradient fades on the edge(s) that still hide
 // columns. RTL scrollLeft is negative in Chromium/Firefox — Math.abs

@@ -2,7 +2,8 @@
 // and JSON-LD blocks (WebSite always; BreadcrumbList + extras when given).
 // Keywords seeded with the AI/agentic terms the site ranks on (Hebrew + English).
 
-const SITE_URL = "https://govil.ai";
+import { SITE_URL } from "~/utils/paths";
+
 const SITE_NAME = "govil.ai";
 const DEFAULT_OG = "/og-default.png";
 
