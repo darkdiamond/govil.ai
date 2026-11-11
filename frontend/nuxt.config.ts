@@ -341,7 +341,12 @@ export default defineNuxtConfig({
         "/news/about/",
         ...NEWS_SLUGS.map((s) => `/news/${s}/`),
       ],
-      failOnError: false,
+      // A route that fails writes no file, so a deploy would turn a live page
+      // into the 404 page while the sitemap still lists it. Every route above
+      // comes from an artifact that exists, so a failure is always a bug:
+      // Nitro logs each failed route with its status and the build exits
+      // non-zero, which keeps the last good release live.
+      failOnError: true,
     },
     // DrvFs polling for the Nitro server-route watcher — see WATCH_POLL
     // and the comment on `watchers` below.
