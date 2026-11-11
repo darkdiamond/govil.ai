@@ -410,6 +410,10 @@ catalog` lists chapters → subjects → codes.
      cooldown, so an explainer never keeps a dataset's next real move off the page.
      `--min-articles N` overrides it for one run (seeding).
      Articles carry `kind` (`news` | `feature` | `digest`; missing = `news`).
+   - **release stories** (`NEWS_RELEASE_SIGNALS`, code off, prod on): a CBS/BoI
+     release's new period (ids `cbs-*`/`boi-*`, freq M/Q/E) signals `new_release`
+     even when nothing is unusual (a held rate included), weaker than any anomaly,
+     one per dataset, the model's first series leading (`signals.RELEASE_*`).
    - every printed number is a ledger fact token (a typed or spelled-out
      number fails); links go only to our dataset pages and official
      gov.il / boi.org.il pages (quote-verified); hedged explanations need no

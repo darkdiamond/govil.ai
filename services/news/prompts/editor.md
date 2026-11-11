@@ -28,6 +28,14 @@ Prefer:
   ago) when the change is large or reverses a trend;
 - topics with search demand (higher `demand`), all else equal.
 
+A signal flagged only `new_release` is a recurring official release (a CBS
+report or price index, a Bank of Israel series) whose new period moved
+nothing unusual. It is a fair story when it is the release's MAIN monthly
+number that readers follow (the CPI, the average wage, unemployment, the
+interest rate, housing deals, tourist arrivals): "what the new figure says",
+compared with a year ago and the trend. Skip it for sub-indices and niche
+components, and prefer any real anomaly over it.
+
 Reply with ONE JSON object:
 {
 "briefs": [

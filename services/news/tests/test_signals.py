@@ -152,3 +152,41 @@ def test_falling_share_is_not_suspect_incomplete():
     s = _series(vals)
     sig = detect(s, _after(s))
     assert sig and not sig.facts.get("suspect_incomplete")
+
+
+# ── release stories ─────────────────────────────────────────────────────
+
+def test_quiet_release_period_signals_only_when_enabled():
+    s = _series(_noise(48), ds="cbs-average-wage")
+    assert detect(s, _after(s)) is None
+    sig = detect(s, _after(s), releases=True)
+    assert sig and sig.flags == ["new_release"] and sig.facts.get("yoy_pct") is not None
+    # not for other datasets, and not for an old period
+    other = _series(_noise(48), ds="9c64c522-aaaa")
+    assert detect(other, _after(other), releases=True) is None
+    assert detect(s, _after(s, days=400), releases=True) is None
+
+
+def test_release_is_weaker_than_any_anomaly_and_sub_series_rank_below():
+    quiet = _series(_noise(48), ds="cbs-cpi")
+    spike = _series(_noise(48) + [180.0], ds="d")
+    head = detect(quiet, _after(quiet), releases=True, order=0)
+    sub = detect(quiet, _after(quiet), releases=True, order=5)
+    anomaly = detect(spike, _after(spike), releases=True)
+    assert anomaly.surprise > head.surprise > sub.surprise
+
+
+def test_rank_keeps_one_release_story_per_dataset():
+    sigs = []
+    for i, k in enumerate(("headline", "food", "fuel")):
+        s = _series(_noise(48), key=k, ds="cbs-cpi")
+        sigs.append(detect(s, _after(s), releases=True, order=i))
+    assert [s.series_path for s in rank(sigs)] == ["c.headline"]
+
+
+def test_held_rate_is_a_release_not_silence():
+    pairs = [[f"2025-{m:02d}-01", "4.0"] for m in range(1, 10)]
+    s = extract_series({"charts": {"history": pairs}}, "boi-interest-rate", as_of=date(2025, 10, 1))[0]
+    assert detect(s, date(2025, 9, 5)) is None
+    sig = detect(s, date(2025, 9, 5), releases=True)
+    assert sig and sig.flags == ["new_release"] and sig.facts["change"] == 0

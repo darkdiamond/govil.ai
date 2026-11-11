@@ -66,6 +66,10 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 # A render is stamped just before its model is uploaded: the window stops
 # this far short of now, so a stamp inside it is already listable in GCS.
 SETTLE = timedelta(minutes=10)
@@ -107,7 +111,7 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
                  catalog: dict[str, dict] | None = None,
                  demand_by_id: dict[str, dict] | None = None, workers: int = 16,
                  ids: list[str] | None = None,
-                 context: dict | None = None) -> tuple[list[Signal], dict]:
+                 context: dict | None = None, releases: bool = False) -> tuple[list[Signal], dict]:
     """Every dataset's signals, linked and scored (unranked). `cutoff`
     (a `YYYYmmddTHHMMSSZ` stamp, normally the last news run): only datasets
     re-rendered since then can signal, and only with what is new since.
@@ -138,7 +142,7 @@ def find_signals(store, *, today: date, cutoff: str | None = None, upto: str | N
             # can say what is new.
             prev_map = {s.path: s for s in _series_of(base, today)}
             with_history += 1
-        signals += detect_all(cur, today, prev_map)
+        signals += detect_all(cur, today, prev_map, releases=releases)
 
     attach_links(signals, series_by_ds, load_edges(set(series_by_ds)))
     for s in signals:
@@ -441,7 +445,8 @@ def main(argv: list[str] | None = None) -> int:
     ctx: dict = {}
     signals, stats = find_signals(snaps, today=today, cutoff=window["cutoff"],
                                   upto=window["upto"], catalog=cat,
-                                  demand_by_id=dem, ids=a.dataset, context=ctx)
+                                  demand_by_id=dem, ids=a.dataset, context=ctx,
+                                  releases=_env_flag("NEWS_RELEASE_SIGNALS"))
     ranked = rank(signals, per_dataset=a.per_dataset, top=a.top)
 
     if a.signals_only:
