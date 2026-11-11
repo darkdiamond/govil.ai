@@ -390,7 +390,7 @@ catalog` lists chapters → subjects → codes.
    `NEWS_MAX_PER_DAY` is per run, so those days can publish up to 6; the dataset
    cooldown keeps the next 08:00 run off a story the evening run wrote. The only
    model-calling code
-   (OpenRouter; `NEWS_MODEL` Gemini Flash, `NEWS_IMAGE_MODEL` Nano Banana,
+   (OpenRouter; `NEWS_MODEL` GPT-6.1 Terra at `NEWS_REASONING_EFFORT=high`, `NEWS_IMAGE_MODEL` Nano Banana,
    `NEWS_SEARCH_ENGINE` exa). Articles publish with **no human approval**
    (user decision), so the guards are mechanical:
    - signals (deterministic, from the `models/` history the builder keeps) →

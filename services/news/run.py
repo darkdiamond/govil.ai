@@ -37,6 +37,7 @@ from services.shared import model_history
 from . import catalog as catalog_mod
 from . import demand as demand_mod
 from . import images as images_mod
+from . import llm as llm_mod
 from .editor import choose, eligible
 from .ledger import Ledger
 from .links import attach_links, load_edges
@@ -235,7 +236,7 @@ def write_day(llm, *, ranked: list[Signal], series_by_ds: dict, models: dict, ca
                 "blocks": core["blocks"], "charts": core["charts"], "sources": core["sources"],
                 "ledger": ledger.dump(), "words": core["words"], "run_id": run_id,
                 "critic_scores": (out.critic or {}).get("scores"),
-                "models": {"text": os.environ.get("NEWS_MODEL", "google/gemini-3.8-flash"),
+                "models": {"text": llm_mod.TEXT_MODEL, "reasoning_effort": llm_mod.REASONING_EFFORT or None,
                            "image": os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
                            if hero["kind"] == "illustration" else None},
             }

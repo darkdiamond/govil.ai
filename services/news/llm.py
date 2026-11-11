@@ -19,7 +19,9 @@ import httpx
 log = logging.getLogger(__name__)
 
 BASE_URL = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-TEXT_MODEL = os.environ.get("NEWS_MODEL", "google/gemini-3.8-flash")
+TEXT_MODEL = os.environ.get("NEWS_MODEL", "openai/gpt-6.1-terra")
+# OpenRouter's unified `reasoning.effort` (minimal|low|medium|high|xhigh); empty = model default.
+REASONING_EFFORT = os.environ.get("NEWS_REASONING_EFFORT", "high").strip()
 IMAGE_MODEL = os.environ.get("NEWS_IMAGE_MODEL", "google/gemini-3.1-flash-image")
 SEARCH_ENGINE = os.environ.get("NEWS_SEARCH_ENGINE", "exa")
 RETRIES = 4
@@ -81,9 +83,14 @@ class OpenRouter:
 
     def chat(self, messages: list[dict], *, model: str = TEXT_MODEL, tools: list[dict] | None = None,
              json_mode: bool = False, temperature: float | None = None,
-             plugins: list[dict] | None = None, max_tokens: int | None = None) -> dict:
-        """The assistant message (with `tool_calls` / `annotations` when present)."""
+             plugins: list[dict] | None = None, max_tokens: int | None = None,
+             reasoning_effort: str | None = REASONING_EFFORT) -> dict:
+        """The assistant message (with `tool_calls` / `annotations` when present).
+        `temperature` is dropped by OpenRouter for models that don't take it
+        (OpenAI reasoning models), so callers can pass it regardless."""
         body: dict = {"model": model, "messages": messages, "usage": {"include": True}}
+        if reasoning_effort:
+            body["reasoning"] = {"effort": reasoning_effort}
         if tools:
             body["tools"], body["tool_choice"] = tools, "auto"
         if json_mode:
@@ -117,8 +124,8 @@ class OpenRouter:
         msg = self.chat(
             [{"role": "user", "content": "Find recent, authoritative sources (news, official "
               f"publications) for this question and list them briefly:\n{query}"}],
-            # Exa, not the model's native search: with Gemini, native grounding
-            # returns only opaque vertexaisearch redirect links with no page text.
+            # Exa, not the model's native search: native grounding (Gemini's at
+            # least) returns only opaque redirect links with no page text.
             model=model, plugins=[{"id": "web", "engine": SEARCH_ENGINE, "max_results": max_results}],
         )
         out, seen = [], set()

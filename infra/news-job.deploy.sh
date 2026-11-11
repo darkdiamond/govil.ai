@@ -3,7 +3,7 @@
 # signals from the page-model history → editor → writer agent → gates +
 # critic → image → Firestore articles/ + gs://<staging>/news/ → publish
 # dispatch when ≥1 article was accepted. The ONLY job that calls a model
-# (OpenRouter: Gemini Flash for text, Nano Banana for the illustration).
+# (OpenRouter: GPT-6.1 Terra at high effort for text, Nano Banana for the illustration).
 #
 # Same image as the builder (Dockerfile), different command and its own,
 # minimal service account (infra/news-iam.setup.sh — run that first).
@@ -28,7 +28,8 @@ STAGING_BUCKET=${GCS_STAGING_BUCKET:-${PROJECT}-staging}
 TASK_TIMEOUT=${TASK_TIMEOUT:-3600s}
 
 NEWS_PUBLISH=${NEWS_PUBLISH:-live}
-NEWS_MODEL=${NEWS_MODEL:-google/gemini-3.8-flash}
+NEWS_MODEL=${NEWS_MODEL:-openai/gpt-6.1-terra}
+NEWS_REASONING_EFFORT=${NEWS_REASONING_EFFORT:-high}
 NEWS_IMAGE_MODEL=${NEWS_IMAGE_MODEL:-google/gemini-3.1-flash-image}
 NEWS_SEARCH_ENGINE=${NEWS_SEARCH_ENGINE:-exa}
 NEWS_MAX_PER_DAY=${NEWS_MAX_PER_DAY:-3}
@@ -44,7 +45,7 @@ SCHEDULER_SA="govdata-scheduler@${PROJECT}.iam.gserviceaccount.com"
 
 # The provider flags and RECIPES_FETCH let the SQL tool load a dataset's
 # full tables the way the refresh does (services/news/data.py).
-ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},NEWS_FIRESTORE_DATABASE=news,GCS_STAGING_BUCKET=${STAGING_BUCKET},NEWS_PUBLISH=${NEWS_PUBLISH},NEWS_MODEL=${NEWS_MODEL},NEWS_IMAGE_MODEL=${NEWS_IMAGE_MODEL},NEWS_SEARCH_ENGINE=${NEWS_SEARCH_ENGINE},NEWS_MAX_PER_DAY=${NEWS_MAX_PER_DAY},NEWS_DATASET_COOLDOWN_DAYS=${NEWS_DATASET_COOLDOWN_DAYS},NEWS_MAX_TOOL_CALLS=${NEWS_MAX_TOOL_CALLS},PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},PUBLISH_BRANCH=${PUBLISH_BRANCH},PROVIDER_BOI_SDMX_ENABLED=true,PROVIDER_CBS_RELEASES_ENABLED=true,PROVIDER_CBS_INDEX_ENABLED=true,RECIPES_FETCH=tarball"
+ENV_VARS="FIRESTORE_PROJECT_ID=${PROJECT},GOOGLE_CLOUD_PROJECT=${PROJECT},NEWS_FIRESTORE_DATABASE=news,GCS_STAGING_BUCKET=${STAGING_BUCKET},NEWS_PUBLISH=${NEWS_PUBLISH},NEWS_MODEL=${NEWS_MODEL},NEWS_REASONING_EFFORT=${NEWS_REASONING_EFFORT},NEWS_IMAGE_MODEL=${NEWS_IMAGE_MODEL},NEWS_SEARCH_ENGINE=${NEWS_SEARCH_ENGINE},NEWS_MAX_PER_DAY=${NEWS_MAX_PER_DAY},NEWS_DATASET_COOLDOWN_DAYS=${NEWS_DATASET_COOLDOWN_DAYS},NEWS_MAX_TOOL_CALLS=${NEWS_MAX_TOOL_CALLS},PUBLISH_GITHUB_REPO=${PUBLISH_GITHUB_REPO},PUBLISH_BRANCH=${PUBLISH_BRANCH},PROVIDER_BOI_SDMX_ENABLED=true,PROVIDER_CBS_RELEASES_ENABLED=true,PROVIDER_CBS_INDEX_ENABLED=true,RECIPES_FETCH=tarball"
 # Its own dispatch PAT (Actions: write only), not the builder's token.
 SECRETS="OPENROUTER_API_KEY=openrouter-news-key:latest,GITHUB_DISPATCH_TOKEN=github-news-dispatch-token:latest"
 
