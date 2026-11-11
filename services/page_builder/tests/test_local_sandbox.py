@@ -307,6 +307,29 @@ def test_background_process_holding_the_pipes_is_killed_and_nothing_reads_later(
         assert got == b"x" * 210
 
 
+def test_interrupted_read_loop_kills_the_child_and_its_background_process(tmp_path, monkeypatch):
+    import selectors
+
+    class _InterruptedSelector(selectors.DefaultSelector):
+        def select(self, timeout=None):
+            ready = super().select(timeout)
+            if ready:  # the child is up and has written its pids
+                raise KeyboardInterrupt
+            return ready
+
+    monkeypatch.setattr(ls, "selectors", SimpleNamespace(
+        DefaultSelector=_InterruptedSelector, EVENT_READ=selectors.EVENT_READ,
+    ))
+    code = (f"sleep 30 & echo $! > {tmp_path}/bg.pid; echo $$ > {tmp_path}/me.pid; "
+            "echo ready; sleep 30")
+    started = time.monotonic()
+    with pytest.raises(KeyboardInterrupt):
+        ls._run_capped(["bash", "-c", code], timeout=60, max_output_bytes=64 * 1024)
+    assert time.monotonic() - started < 5
+    for name in ("me.pid", "bg.pid"):
+        assert _gone(int((tmp_path / name).read_text())), name
+
+
 def test_normal_exit_returns_at_once_and_keeps_the_contract():
     started = time.monotonic()
     rc, out, err = ls._run_capped(

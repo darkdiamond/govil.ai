@@ -186,29 +186,37 @@ def _run_capped(
         start_new_session=True, **popen_kw,
     ) as proc:
         tails = {proc.stdout.fileno(): bytearray(), proc.stderr.fileno(): bytearray()}
-        timed_out = False
-        with selectors.DefaultSelector() as sel:
-            for fd in tails:
-                sel.register(fd, selectors.EVENT_READ)
-            while sel.get_map():
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
+        try:
+            timed_out = False
+            with selectors.DefaultSelector() as sel:
+                for fd in tails:
+                    sel.register(fd, selectors.EVENT_READ)
+                while sel.get_map():
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0:
+                        timed_out = True
+                        break
+                    for key, _ in sel.select(remaining):
+                        chunk = os.read(key.fd, _PIPE_CHUNK)
+                        if not chunk:
+                            sel.unregister(key.fd)
+                            continue
+                        tail = tails[key.fd]
+                        tail += chunk
+                        if len(tail) > max_output_bytes:
+                            del tail[:-max_output_bytes]
+            if not timed_out:
+                try:
+                    proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired:
                     timed_out = True
-                    break
-                for key, _ in sel.select(remaining):
-                    chunk = os.read(key.fd, _PIPE_CHUNK)
-                    if not chunk:
-                        sel.unregister(key.fd)
-                        continue
-                    tail = tails[key.fd]
-                    tail += chunk
-                    if len(tail) > max_output_bytes:
-                        del tail[:-max_output_bytes]
-        if not timed_out:
-            try:
-                proc.wait(timeout=max(0.0, deadline - time.monotonic()))
-            except subprocess.TimeoutExpired:
-                timed_out = True
+        except BaseException:
+            # Interrupted (Ctrl-C, SystemExit, an unexpected OSError): the child
+            # leads its own session, so no terminal signal reaches it. Kill it.
+            _killpg(proc)
+            proc.kill()
+            proc.wait()
+            raise
         if timed_out:
             _killpg(proc)
             proc.kill()
