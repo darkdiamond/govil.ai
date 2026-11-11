@@ -24,7 +24,12 @@ def harness(monkeypatch):
                         refresh_kw=None)
     h.sources = {"rec1": SourceRecord(id="rec1", title="r", page_path="datasets/rec1/"),
                  "solo": SourceRecord(id="solo", title="s")}
-    store = SimpleNamespace(get_source=lambda i: h.sources.get(i))
+    h.markers = {}  # job_state/<name> docs
+    store = SimpleNamespace(
+        get_source=lambda i: h.sources.get(i),
+        get_job_marker=lambda name: dict(h.markers.get(name, {})),
+        set_job_marker=lambda name, fields: h.markers.setdefault(name, {}).update(fields),
+    )
     monkeypatch.setattr(pipeline, "FirestoreStateStore", lambda: store)
     monkeypatch.setattr(pipeline, "StateDB", lambda store: None)
     monkeypatch.setattr(pipeline, "ScannerSettings", lambda: None)
@@ -336,6 +341,7 @@ def test_run_status_precedence():
           "authoring_broken": False, "reconcile_failed": False, "refreshed": False}
     assert pipeline._run_status(**kw) == "idle"
     assert pipeline._run_status(**{**kw, "refreshed": True}) == "ok"
+    assert pipeline._run_status(**{**kw, "published": True}) == "ok"
     assert pipeline._run_status(**{**kw, "reconcile_failed": True, "refreshed": True}) \
         == "reconcile_failed"
     assert pipeline._run_status(**{**kw, "reconcile_failed": True,
@@ -474,3 +480,65 @@ def test_unopened_issue_without_a_token_stays_green(harness, monkeypatch):
     monkeypatch.delenv("GITHUB_DISPATCH_TOKEN", raising=False)
     monkeypatch.setattr(rf, "queue_authoring", lambda store, src, reason, **kw: None)
     assert _run()["status"] == "idle"
+
+
+# ── a failed dispatch is retried by the next run ─────────────────────────────
+
+
+def test_failed_dispatch_is_retried_by_an_idle_next_run(harness, monkeypatch):
+    # The pages a publish_failed run staged are marked refreshed, so the next
+    # run re-renders nothing; the pending marker makes it dispatch anyway.
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    _dispatch_returns_none(monkeypatch)
+    assert _run()["status"] == "publish_failed"
+    assert harness.markers["publish"]["pending"] is True
+
+    harness.refreshed = []
+    assert _run()["status"] == "publish_failed"  # still refused: still pending
+    assert harness.markers["publish"]["pending"] is True
+
+    monkeypatch.setattr(pipeline, "_trigger_publish_github",
+                        lambda *a, **kw: _gh(harness, a))
+    s = _run()
+    assert s["build_id"] == "gh" and len(harness.published) == 1
+    assert s["status"] == "ok"  # it published, so not idle
+    assert harness.markers["publish"]["pending"] is False
+
+    s = _run()  # cleared: back to idle, no dispatch
+    assert s["status"] == "idle" and len(harness.published) == 1
+
+
+async def _gh(harness, a):
+    harness.published.append(a)
+    return "gh"
+
+
+def test_dry_run_and_no_trigger_publish_leave_the_marker_alone(harness, monkeypatch):
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    _dispatch_returns_none(monkeypatch)
+    _run(skip_publish=True)
+    _run(dry_run=True)
+    assert "publish" not in harness.markers  # never set
+    harness.markers["publish"] = {"pending": True}
+    monkeypatch.setattr(pipeline, "_trigger_publish_github",
+                        lambda *a, **kw: _gh(harness, a))
+    assert _run(skip_publish=True)["status"] == "ok"
+    _run(dry_run=True)
+    assert harness.markers["publish"] == {"pending": True} and not harness.published
+
+
+def test_marker_errors_never_cost_the_run_or_the_dispatch(harness, monkeypatch):
+    harness.selected = []
+    harness.refreshed = ["rec1"]
+    store = pipeline.FirestoreStateStore()
+
+    def boom(*a, **kw):
+        raise RuntimeError("firestore down")
+
+    store.get_job_marker = store.set_job_marker = boom
+    s = _run()
+    assert s["status"] == "ok" and harness.published
+    _dispatch_returns_none(monkeypatch)
+    assert _run()["status"] == "publish_failed"  # recorded nothing, crashed nothing

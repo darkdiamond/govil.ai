@@ -381,7 +381,9 @@ def feature_table(doc: Any, what: str, *,
         raise RecipeError(f"{what}: not a GeoJSON FeatureCollection", reason=reason)
     keys: dict[str, None] = {}
     for f in feats:
-        props = (f or {}).get("properties") or {}
+        if not isinstance(f, dict):
+            raise RecipeError(f"{what}: bad feature (not an object)", reason=reason)
+        props = f.get("properties") or {}
         if not isinstance(props, dict) or GEOMETRY_COLUMN in props:
             raise RecipeError(f"{what}: bad feature properties", reason=reason)
         keys.update(dict.fromkeys(props))

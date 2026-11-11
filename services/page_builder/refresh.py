@@ -47,6 +47,7 @@ from services.shared.fetch_types import (
 from services.shared.states import (
     NO_DATA_STATUSES,
     AuthoringReason,
+    AuthoringStatus,
     FailReason,
     OutcomeStatus,
     RefreshState,
@@ -1353,6 +1354,23 @@ def failed_version_key(src, recipe: Recipe) -> str:
     return f"{base}|{code[:16]}"
 
 
+def _failure_locked(src, state: RefreshState, recipe: Recipe) -> bool:
+    """A recorded authoring failure pinned to this exact data + recipe +
+    builder (see `failed_version_key`): retrying would fail the same way."""
+    return (state.refresh_reason in AUTHORING_REASONS
+            and state.refresh_failed_version is not None  # cheap: skip the hashing
+            and state.refresh_failed_version == failed_version_key(src, recipe))
+
+
+def _issue_missing(src, state: RefreshState, recipe: Recipe) -> bool:
+    """A locked authoring failure whose issue never got recorded (GitHub or
+    Firestore refused it when the failure was written). The lock keeps the
+    source from re-failing, so this is the only place its issue gets opened."""
+    return (state.authoring_status != AuthoringStatus.NOTIFIED
+            and src.analysis_status not in NO_DATA_STATUSES
+            and _failure_locked(src, state, recipe))
+
+
 def needs_refresh(src, state: RefreshState, recipe: Recipe) -> str | None:
     """Why this source should be refreshed now, or None to skip it."""
     if src is None:
@@ -1360,8 +1378,7 @@ def needs_refresh(src, state: RefreshState, recipe: Recipe) -> str | None:
     if src.analysis_status in NO_DATA_STATUSES:
         return None  # data gone upstream; keep the frozen page
     rv = recipe.manifest.recipe_version
-    if (state.refresh_reason in AUTHORING_REASONS
-            and state.refresh_failed_version == failed_version_key(src, recipe)):
+    if _failure_locked(src, state, recipe):
         return None  # same data + recipe + builder would fail the same way
     if state.recipe_version != rv:
         return "recipe_version"
@@ -1853,7 +1870,8 @@ def queue_authoring(store, src, reason: str, *, detail: str = "") -> int | None:
 
 def _queue_authoring_safely(store, src, reason: str, **kw) -> int | None:
     """queue_authoring for use mid-batch: a Firestore/GitHub error costs this
-    source its issue (retried next run), never the rest of the refresh."""
+    source its issue (retried next run: `run_refresh` re-queues a locked
+    source with no recorded issue), never the rest of the refresh."""
     try:
         return queue_authoring(store, src, reason, **kw)
     except Exception:
@@ -1993,7 +2011,12 @@ def run_refresh(
                 state = src.refresh  # read with the source doc: one read per source
                 trigger = "forced" if force else needs_refresh(src, state, recipe)
                 if trigger is None:
-                    outcomes.append(RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date"))
+                    outcome = RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date")
+                    if notify and _issue_missing(src, state, recipe):
+                        outcome.issue = _queue_authoring_safely(
+                            store, src, state.refresh_reason, detail=state.refresh_error or ""
+                        )
+                    outcomes.append(outcome)
                     continue
                 log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])
                 outcome = refresh_one(

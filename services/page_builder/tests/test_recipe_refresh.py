@@ -304,6 +304,45 @@ def test_schema_change_keeps_page_and_opens_issue_once(env):
     assert len(env.issues) == 1
 
 
+def test_issue_that_failed_to_open_is_retried_on_the_locked_source(env, monkeypatch):
+    # The failure lock is written before the issue opens. When GitHub refuses
+    # it, later runs skip the locked source, so they must open the issue then.
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
+                        lambda **kw: env.issues.append(kw) and None)
+    s = _run(env, store, FakeCkan(_rows([2024, 2025]), cols=renamed))
+    assert s["outcomes"][0]["reason"] == "schema_changed"
+    assert s["outcomes"][0]["issue"] is None and len(env.issues) == 1
+
+    monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
+                        lambda **kw: env.issues.append(kw) or 78)
+    ckan = FakeCkan(_rows([2024, 2025]), cols=renamed)
+    s = _run(env, store, ckan)
+    assert s["outcomes"][0]["reason"] == "up_to_date" and ckan.fetches == 0  # still locked
+    assert s["outcomes"][0]["issue"] == 78 and len(env.issues) == 2
+    assert env.issues[1]["reason"] == "schema_changed"
+    assert env.issues[1]["detail"] == store.states[DS]["refresh_error"]
+    assert store.states[DS]["authoring_issue"] == 78
+
+    s = _run(env, store, ckan)  # recorded now: no second issue
+    assert s["outcomes"][0]["issue"] is None and len(env.issues) == 2
+    assert _run(env, store, ckan, notify=False)["outcomes"][0]["issue"] is None
+
+
+def test_notify_off_never_retries_the_issue(env, monkeypatch):
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    ckan = FakeCkan(_rows([2024, 2025]), cols=renamed)
+    _run(env, store, ckan, notify=False)
+    _run(env, store, ckan, notify=False)
+    assert env.issues == []
+
+
 def test_refresh_reads_each_source_doc_once(env):
     """The refresh state comes with the source doc (`src.refresh`); only
     queue_authoring re-reads it (its duplicate-issue guard)."""

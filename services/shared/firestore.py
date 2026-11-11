@@ -640,7 +640,10 @@ class FirestoreStateStore:
             "last_error": None,
             "failed_attempts": 0,
         }
-        self._source_ref(dataset_id).set(payload, merge=True)
+        # merge= field paths, not merge=True: `agent_data` and `last_snapshot`
+        # are replaced whole, so a key the recipe stopped emitting is really
+        # gone (merge=True deep-merges maps). The Increment still applies.
+        self._source_ref(dataset_id).set(payload, merge=list(payload))
 
     def mark_refresh_unchanged(
         self,

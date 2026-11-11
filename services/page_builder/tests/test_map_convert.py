@@ -366,3 +366,17 @@ def test_deeply_nested_geometry_collection_is_a_snapshot_error():
 def test_shallow_nested_collections_still_convert():
     feat = {"type": "Feature", "properties": {}, "geometry": _nested_collection(3)}
     assert len(gs.simplify_features(list(gs._checked(iter([feat]), "x")), crs="wgs84").features) == 1
+
+
+@pytest.mark.parametrize("feature", [None, "Feature", 3, ["Feature"]])
+def test_a_feature_that_is_not_an_object_is_a_recipe_verdict(feature):
+    # A committed snapshot with `"features": [null]` used to raise
+    # AttributeError (recorded as a generic `error`), not a recipe failure.
+    doc = {"type": "FeatureCollection", "features": [
+        {"type": "Feature", "properties": {"a": 1}, "geometry": None}, feature]}
+    with pytest.raises(RecipeError, match="bad feature") as e:
+        feature_table(doc, "snapshot x.geojson")
+    assert e.value.reason == "recipe_failed"
+    with pytest.raises(RecipeError) as e:
+        feature_table(doc, "map x", reason="schema_changed")
+    assert e.value.reason == "schema_changed"

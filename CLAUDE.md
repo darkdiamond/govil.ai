@@ -111,7 +111,10 @@ landing pages. Six layers:
    dispatch skipped — a healthy outcome). A due dispatch that comes back
    empty (no token, GitHub or Cloud Build refused it, an unknown
    `PUBLISH_VIA`) ends the run
-   `status: publish_failed`, non-zero: the pages stay staged, not live.
+   `status: publish_failed`, non-zero: the pages stay staged, not live,
+   and the `job_state/publish` marker (`pending`) makes every later run
+   dispatch (`status: ok`) until one succeeds (`--no-trigger-publish` and dry
+   runs leave it alone).
    One status per run, first match
    wins: `refresh_unavailable` → `refresh_failed` → `publish_failed` →
    `scan_failed` →

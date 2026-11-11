@@ -120,6 +120,27 @@ def test_fingerprint_unchanged_keeps_stored_input_hashes():
     assert "last_verified_at" not in p and "refreshed_metadata_modified" not in p
 
 
+def test_mark_refreshed_replaces_agent_data_and_snapshot_whole():
+    # merge=True would deep-merge the maps: a key the recipe stopped emitting
+    # (a dropped seo.title, a legacy agent's field) would stay forever. The
+    # update mask must name the maps whole, and the Increment still applies.
+    from google.cloud.firestore_v1 import _helpers
+
+    store, ref = _store_with_existing({})
+    store.mark_refreshed(
+        "ds", metadata_modified=None, recipe_version=2, page_path="datasets/ds/",
+        agent_data={"summary_he": "s", "seo": {"description": "d"}},
+        snapshot={"rows": 3},
+    )
+    (doc,), kw = ref.set.call_args
+    (write,) = _helpers.pbs_for_set_with_merge(
+        "projects/p/databases/(default)/documents/sources/ds", doc, kw["merge"])
+    mask = list(write.update_mask.field_paths)
+    assert "agent_data" in mask and "last_snapshot" in mask
+    assert not [p for p in mask if p.startswith(("agent_data.", "last_snapshot."))]
+    assert [t.field_path for t in write.update_transforms] == ["last_analyzed_version"]
+
+
 def test_save_dataset_omits_unasked_record_count_on_existing_doc():
     # The scanner leaves record_count unassigned when it couldn't ask CKAN;
     # the merge write must then keep the stored count.

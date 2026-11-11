@@ -4,7 +4,8 @@ Cloud Scheduler, 06:00 + 14:00 Asia/Jerusalem: scan CKAN → refresh every recip
 source CKAN moved past (deterministic, no LLM — services/page_builder/
 refresh.py) → queue every new or changed source that has no recipe for
 authoring (one `needs-authoring` GitHub issue each, solved by the daily
-local Claude Code routine) → if ≥1 page re-rendered, trigger the publisher.
+local Claude Code routine) → if ≥1 page re-rendered (or an earlier run's
+dispatch failed), trigger the publisher.
 
 No model runs here. A recipe merged to main is picked up on the next run
 (the refresh reads recipes/ straight from git).
@@ -47,8 +48,10 @@ FAILED_RUN_STATUSES = frozenset({
 
 def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bool,
                 reconcile_failed: bool, refreshed: bool,
-                publish_failed: bool = False) -> RunStatus:
-    """One status per run; the first failure in this order wins."""
+                publish_failed: bool = False, published: bool = False) -> RunStatus:
+    """One status per run; the first failure in this order wins. `published`:
+    a dispatch went out (e.g. for an earlier run's pages) even though this
+    run re-rendered nothing; that run did something, so it is `ok`."""
     if refresh_broken:
         return RunStatus.REFRESH_FAILED
     if publish_failed:
@@ -59,7 +62,7 @@ def _run_status(*, refresh_broken: bool, scan_failed: bool, authoring_broken: bo
         return RunStatus.AUTHORING_FAILED
     if reconcile_failed:
         return RunStatus.RECONCILE_FAILED
-    return RunStatus.OK if refreshed else RunStatus.IDLE
+    return RunStatus.OK if refreshed or published else RunStatus.IDLE
 
 
 def _reconcile_due(now: datetime, *, enabled: bool, weekday: int) -> bool:
@@ -77,6 +80,26 @@ def _reconciled_today(store, now: datetime) -> bool:
     except Exception:
         log.warning("reconcile: couldn't read the last-sweep marker", exc_info=True)
         return False
+
+
+def _publish_pending(store) -> bool | None:
+    """Whether an earlier run's dispatch failed and its staged pages still
+    wait to go live (`job_state/publish`). None when the marker can't be read:
+    the run goes on, and a set marker stays for the next run."""
+    try:
+        return bool(store.get_job_marker("publish").get("pending"))
+    except Exception:
+        log.warning("publish: couldn't read the pending-publish marker", exc_info=True)
+        return None
+
+
+def _set_publish_pending(store, pending: bool) -> None:
+    """Record (or clear) a failed dispatch; a write failure only logs."""
+    try:
+        store.set_job_marker("publish", {"pending": pending})
+    except Exception:
+        log.warning("publish: couldn't %s the pending-publish marker",
+                    "set" if pending else "clear", exc_info=True)
 
 
 async def _trigger_publish_github(repo: str, workflow: str, branch: str) -> str | None:
@@ -387,20 +410,29 @@ async def run_pipeline(
 
     # [6] publish whatever re-rendered. A due dispatch that came back empty
     # (no token, GitHub refused it, Cloud Build error, unknown PUBLISH_VIA)
-    # leaves the pages staged but not live: a failed run.
-    publish_due = bool(refreshed_ids) and not skip_publish
+    # leaves the pages staged but not live: a failed run. Those pages are
+    # already marked refreshed, so the next run wouldn't re-render them; the
+    # `job_state/publish` marker makes it dispatch anyway, until one succeeds.
+    # `--no-trigger-publish` neither reads, sets nor clears it.
+    pending = None if skip_publish else _publish_pending(store)
+    publish_due = (bool(refreshed_ids) or bool(pending)) and not skip_publish
     summary["build_id"] = await _dispatch_publish(
         publish_due,
         publish_via, publish_repo, publish_workflow, publish_branch,
         project_id, trigger_id, publish_region,
     )
     publish_failed = publish_due and bool(publish_via) and summary["build_id"] is None
+    if publish_failed:
+        _set_publish_pending(store, True)
+    elif summary["build_id"] is not None and pending is not False:
+        _set_publish_pending(store, False)  # set, or unknown (the read failed)
     # Pages that did refresh before a breakdown still publish (above); the
     # run is red either way.
     summary["status"] = _run_status(
         refresh_broken=refresh_broken, scan_failed=scan_failed,
         authoring_broken=authoring_broken, reconcile_failed=reconcile_failed,
         refreshed=bool(refreshed_ids), publish_failed=publish_failed,
+        published=summary["build_id"] is not None,
     )
     return summary
 
