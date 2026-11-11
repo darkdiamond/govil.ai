@@ -91,18 +91,18 @@ class DatasetMeta(BaseModel):
     resources: list[ResourceEntry] = Field(default_factory=list)
 
     # CKAN's free-text description. Captured by the scanner so the dataset
-    # page can fall back to it for SEO meta-description when the agent's
-    # short summary_he is missing (rare — selector gates publish on agent
-    # success, but this guarantees a non-empty description even on a
-    # transient agent_data.json read failure).
+    # page can fall back to it for the SEO meta-description when
+    # agent_data's summary_he is missing (e.g. a transient agent_data.json
+    # read failure), so the description is never empty.
     notes: str | None = None
 
-    # When the agent last (re)built the page for this dataset. Rendered as
-    # "הדף נוצר ב-" in the sidebar.
+    # When the page was last rendered (a recipe refresh, or the retired
+    # agent builder for a legacy page). Rendered as "הדף נוצר ב-" in the
+    # sidebar.
     last_analyzed_at: datetime | None = None
 
-    # Source's `metadata_modified` snapshotted at the moment the agent
-    # ran — i.e. the vintage of the data the page's content is based on.
+    # Source's `metadata_modified` snapshotted when the page was rendered,
+    # i.e. the vintage of the data the page's content is based on.
     # Distinct from the live `metadata_modified` above, which the scanner
     # overwrites on every poll. Rendered as "המידע נכון ל-" in the sidebar
     # when present; legacy sources (analyzed before this field existed)
@@ -210,11 +210,13 @@ class SeoMeta(BaseModel):
 
 
 class AgentData(BaseModel):
-    """Agent-derived per-dataset judgments. Written to `agent_data.json`
-    by the publisher from the Firestore `sources/<id>.agent_data` field.
+    """Per-dataset interpretive fields, produced by a recipe's `compute()`
+    (legacy pages keep what the retired agent builder wrote; the name is
+    legacy). Written to `agent_data.json` by the publisher from the
+    Firestore `sources/<id>.agent_data` field.
 
-    `extra='allow'` so future agent fields can be added without breaking
-    existing pages (e.g. `key_findings`, `quality_notes`).
+    `extra='allow'` so legacy pages carrying extra keys (e.g.
+    `key_findings`, `quality_notes`) still validate.
     """
     model_config = ConfigDict(extra="allow")
 

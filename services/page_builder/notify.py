@@ -109,7 +109,6 @@ def open_authoring_issue(
         return None
     import httpx
 
-    labels = [AUTHORING_LABEL]
     try:
         r = httpx.post(
             f"{github.API}/repos/{repo}/issues",
@@ -119,7 +118,7 @@ def open_authoring_issue(
                     dataset_id=dataset_id, title=title, org=org,
                     reason=reason, detail=detail, source_url=source_url,
                 ),
-                "labels": labels,
+                "labels": [AUTHORING_LABEL],
             },
             headers=github.api_headers(token),
             timeout=30.0,
@@ -131,55 +130,13 @@ def open_authoring_issue(
     if r.status_code != 201:
         log.error("authoring issue for %s: %s %s", dataset_id, r.status_code, r.text[:300])
         return None
-    created = r.json()
-    number = int(created["number"])
     # GitHub silently drops `labels` on create unless the token has push
-    # access, which the job's Issues-only PAT doesn't — so issues #112–#236
-    # opened unlabelled and the authoring routine (which then listed by
-    # label) never saw them. The add-labels endpoint 403s for that PAT too
-    # (2026-10-30), so the routine now lists by author + the `[author] … (<id8>)`
-    # title instead, and the label is only for humans browsing the tracker.
-    # The issue stays recorded either way: a label failure must not open a
-    # duplicate next run, so nothing here may raise.
-    try:
-        have = {lb.get("name") for lb in created.get("labels") or [] if isinstance(lb, dict)}
-        if not set(labels) <= have and not any(
-            add_labels(number, labels, repo=repo, token=token) for _ in range(2)
-        ):
-            log.warning(
-                "issue #%s for %s opened unlabelled (the routine still finds it by title); "
-                "to label it: gh issue edit %s --repo %s --add-label %s",
-                number, dataset_id, number, repo, ",".join(labels),
-            )
-    except Exception:
-        log.exception("labelling issue #%s failed", number)
-    return number
-
-
-def add_labels(
-    number: int, labels: list[str], *, repo: str | None = None, token: str | None = None
-) -> bool:
-    """Add labels to an existing issue; True on success."""
-    token, repo = _github(token, repo)
-    if not token:
-        return False
-    import httpx
-
-    try:
-        r = httpx.post(
-            f"{github.API}/repos/{repo}/issues/{number}/labels",
-            json={"labels": labels},
-            headers=github.api_headers(token),
-            timeout=30.0,
-            follow_redirects=True,
-        )
-    except Exception:
-        log.exception("labelling issue #%s failed", number)
-        return False
-    if r.status_code != 200:
-        log.error("labelling issue #%s: %s %s", number, r.status_code, r.text[:300])
-        return False
-    return True
+    # access, which the job's Issues-only PAT doesn't, and the add-labels
+    # endpoint 403s for it too (2026-10-30). So no label call is made: the
+    # authoring routine lists issues by author + the `[author] … (<id8>)`
+    # title, labelled or not. `labels` stays in the create payload, where
+    # it costs nothing and works if the token ever gains push access.
+    return int(r.json()["number"])
 
 
 def issue_state(

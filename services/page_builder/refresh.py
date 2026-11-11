@@ -814,13 +814,6 @@ def inputs_hashes(
     return ordered.hexdigest(), unordered.hexdigest()
 
 
-def inputs_hash(
-    recipe: Recipe, inputs: dict[str, list[FetchedInput]], identity: str
-) -> str:
-    """Check B alone (see `inputs_hashes`)."""
-    return inputs_hashes(recipe, inputs, identity)[0]
-
-
 def content_hash(page: RenderedPage) -> str:
     h = hashlib.sha256()
     h.update(page.content_html.encode("utf-8"))

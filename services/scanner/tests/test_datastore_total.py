@@ -212,7 +212,6 @@ def _scan_with_stored(stored: dict, datastore_total):
 
     from services.scanner.main import Scanner
     from services.scanner.models import Dataset, DatasetStatus, ScanSummary
-    from services.scanner.state import StateDB
     from services.shared.firestore import FirestoreStateStore
 
     doc = dict(stored)
@@ -227,7 +226,7 @@ def _scan_with_stored(stored: dict, datastore_total):
     store.client.collection.return_value.document.return_value = ref
 
     scanner = Scanner.__new__(Scanner)
-    scanner.db = StateDB(store=store)
+    scanner.store = store
     detector = MagicMock()
     detector.detect_status.return_value = DatasetStatus.UPDATED
     client = MagicMock()
@@ -255,6 +254,8 @@ def test_definite_no_count_overwrites_stored_count():
 def test_fresh_count_overwrites_stored_count():
     doc = _scan_with_stored({"record_count": 1234}, AsyncMock(return_value=99))
     assert doc["record_count"] == 99
+    # The scanner passes the enum's value: a plain string in the doc.
+    assert doc["change_status"] == "updated" and type(doc["change_status"]) is str
 
 
 @pytest.mark.parametrize("status", [403, 404])

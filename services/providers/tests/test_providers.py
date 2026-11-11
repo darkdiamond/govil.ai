@@ -566,7 +566,7 @@ def test_selector_never_queues_a_provider_doc():
                           analysis_status="never", page_path=None,
                           metadata_modified=datetime(2026, 10, 29, tzinfo=UTC))
     store = SimpleNamespace(list_never_analyzed=lambda limit: [doc],
-                            list_failed_retryable=lambda limit, max_attempts: [],
+                            list_failed=lambda limit: [],
                             iter_changed_sources=lambda: iter([]))
     assert selector.pick_authoring_candidates(store, 10) == []
 

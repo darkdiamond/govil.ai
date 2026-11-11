@@ -78,7 +78,7 @@ class SourceRecord:
     last_error: str | None = None
     page_path: str | None = None
     # Failed builds of the retired agent builder (legacy; reset on a
-    # restricted source re-enabling). `list_failed_retryable` filters on it.
+    # restricted source re-enabling). Nothing reads it any more.
     failed_attempts: int = 0
 
     # UTC timestamp the reconcile sweep first flagged the source as removed
@@ -437,31 +437,16 @@ class FirestoreStateStore:
         )
         return [SourceRecord.from_doc(d) for d in query.stream()]
 
-    def list_failed_retryable(
-        self, limit: int = 50, max_attempts: int = 3
-    ) -> list[SourceRecord]:
-        """Failed sources still under the daily-retry budget, newest first.
-
-        `failed_attempts < max_attempts` is filtered client-side: the field
-        was introduced 2026-06 and older failed docs may lack it (treated
-        as 1 — they failed at least once).
-        """
+    def list_failed(self, limit: int = 50) -> list[SourceRecord]:
+        """Sources whose legacy agent build failed (a closed set: nothing
+        writes `failed` any more), newest first."""
         query = (
             self.client.collection(SOURCES_COLL)
             .where(filter=FieldFilter("analysis_status", "==", AnalysisStatus.FAILED))
             .order_by("metadata_modified", direction=firestore.Query.DESCENDING)
+            .limit(limit)
         )
-        # Streamed, not a fixed window: parked docs (attempts >= max) can sort
-        # ahead of retryable ones, and a `limit * 2` fetch would fill entirely
-        # with them and starve the eligible tail.
-        out: list[SourceRecord] = []
-        for d in query.stream():
-            attempts = (d.to_dict() or {}).get("failed_attempts")
-            if int(attempts if attempts is not None else 1) < max_attempts:
-                out.append(SourceRecord.from_doc(d))
-                if len(out) >= limit:
-                    break
-        return out
+        return [SourceRecord.from_doc(d) for d in query.stream()]
 
     def list_org_sources(
         self, org_name: str, exclude_id: str = "", limit: int = 15

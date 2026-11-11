@@ -31,7 +31,6 @@ def harness(monkeypatch):
         set_job_marker=lambda name, fields: h.markers.setdefault(name, {}).update(fields),
     )
     monkeypatch.setattr(pipeline, "FirestoreStateStore", lambda: store)
-    monkeypatch.setattr(pipeline, "StateDB", lambda store: None)
     monkeypatch.setattr(pipeline, "ScannerSettings", lambda: None)
 
     class _Scanner:

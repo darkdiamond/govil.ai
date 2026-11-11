@@ -20,7 +20,6 @@ from datetime import UTC, datetime
 
 from services.scanner.config import ScannerSettings
 from services.scanner.main import Scanner
-from services.scanner.state import StateDB
 from services.shared import github
 from services.shared.firestore import FirestoreStateStore
 from services.shared.states import NO_DATA_STATUSES, AuthoringReason, RunStatus
@@ -184,7 +183,6 @@ async def run_pipeline(
 ) -> dict:
     """The one entry point the job (CLI) uses."""
     store = FirestoreStateStore()
-    db = StateDB(store=store)
     config = ScannerSettings()
 
     # SCAN_LIMIT bounds how many CKAN datasets (sorted metadata_modified
@@ -281,7 +279,7 @@ async def run_pipeline(
     scan_summary = None
     scan_error: str | None = None
     if not override_id:
-        scanner = Scanner(config=config, db=db)
+        scanner = Scanner(config=config, store=store)
         try:
             scan_summary = await scanner.scan(limit=scan_limit, mode=mode)
         except Exception as e:

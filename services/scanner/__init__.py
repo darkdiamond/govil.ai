@@ -13,7 +13,6 @@ from .config import ScannerSettings, settings
 from .detector import ChangeDetector
 from .filters import DatasetFilter, create_filter
 from .models import Dataset, DatasetStatus, Resource, ScanSummary
-from .state import StateDB
 
 __all__ = [
     "CKANClient",
@@ -24,7 +23,6 @@ __all__ = [
     "Resource",
     "ScanSummary",
     "ScannerSettings",
-    "StateDB",
     "create_filter",
     "settings",
 ]

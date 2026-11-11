@@ -50,10 +50,6 @@ DEFAULT_MIN_MODIFIED_FLOOR = datetime(2026, 1, 1, tzinfo=UTC)
 # break is the real terminator, this only bounds a pathological run (e.g. a
 # floor set so low nothing breaks). Well above the live corpus (~1.2k docs).
 SCAN_CAP = 5000
-# `failed` docs are a closed legacy set (nothing writes `failed` any more);
-# listed with no attempt budget so parked ones get a recipe too.
-_ANY_ATTEMPTS = 1 << 30
-
 
 
 def pick_authoring_candidates(
@@ -90,7 +86,7 @@ def pick_authoring_candidates(
     # ahead of unnotified ones and would fill it.
     for rows in (
         store.list_never_analyzed(limit=SCAN_CAP),
-        store.list_failed_retryable(limit=SCAN_CAP, max_attempts=_ANY_ATTEMPTS),
+        store.list_failed(limit=SCAN_CAP),
     ):
         for src in rows:
             if _skip(src):

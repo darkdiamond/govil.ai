@@ -39,14 +39,15 @@ _LINK_CDN_TAG = re.compile(
     rf'<link\b[^>]*\bhref\s*=\s*"https?://{_CDN_HOSTS}[^"]*"[^>]*/?>',
     re.IGNORECASE,
 )
-# Cloudflare "Email Address Obfuscation": when the agent web_fetches a
-# gov.il page that sits behind Cloudflare with that feature on, the source
-# HTML has real mailto:s rewritten to `<a href="/cdn-cgi/l/email-protection
-# #HEX"><span class="__cf_email__" data-cfemail="HEX">[email protected]</span></a>`
-# (a client-side JS on Cloudflare decodes it). govil.ai is NOT behind
-# Cloudflare, so any such link the agent copies verbatim 404s on click and
-# the address never renders. The real address is XOR-encoded in the HEX
-# (first byte = key). Decode it back to a plain mailto: link on ingest.
+# Cloudflare "Email Address Obfuscation": a gov.il page behind Cloudflare
+# with that feature on has its mailto:s rewritten to `<a href="/cdn-cgi/l/
+# email-protection#HEX"><span class="__cf_email__" data-cfemail="HEX">
+# [email protected]</span></a>` (decoded client-side by Cloudflare's JS).
+# Legacy agent bodies copied that markup verbatim. govil.ai is proxied
+# through Cloudflare too, but with the feature off, and `/cdn-cgi/l/
+# email-protection` 404s on this zone, so such a link never renders the
+# address. The real address is XOR-encoded in the HEX (first byte = key).
+# Decode it back to a plain mailto: link on ingest.
 _CF_EMAIL_ANCHOR = re.compile(
     r"<a\b[^>]*?/cdn-cgi/l/email-protection[^>]*>.*?</a>", re.IGNORECASE | re.DOTALL
 )

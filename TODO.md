@@ -433,6 +433,14 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   template literal (autoescape doesn't touch a backtick or `${`): switch it to
   `{{ model.v|tojson }}` so the test doesn't model a pattern recipes must not copy. (2026-11-11)
 
+- **check.py's non-recipe mode has no production caller.** Since the agent builder was retired,
+  every caller passes `--recipe` (`refresh.py` via `page_gate.run_host_check(..., recipe=True)`),
+  so `check_percent_consistency` (the one rule gated on `not recipe`), the `--recipe` flag and
+  `run_host_check`'s `recipe=False` default are dead; only one test (`test_local_sandbox.py`)
+  still runs that mode. Removing it is safe. check.py is folded into the failure-lock hash
+  (`_builder_code_hash`, not the render-code hash), so it retries every locked source once after
+  the deploy: do it in a builder-code change that moves that hash anyway. (2026-11-11)
+
 ## CBS reports (cbs_releases provider)
 
 - **Yearly CBS reports (~50) have no pages.** Run `catalog --months 38` to find the ones

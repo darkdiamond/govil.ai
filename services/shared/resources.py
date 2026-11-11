@@ -1,8 +1,8 @@
 """Shared helpers for picking a 'primary' resource on a CKAN dataset.
 
-The agent + scanner + builder all want to anchor on the same resource for
-a given dataset (the one most likely to be the actual data file). Keeping
-the priority order in one place avoids drift.
+The scanner (record count), the reconcile probe and the publisher all
+anchor on the same resource for a given dataset (the one most likely to be
+the actual data file). Keeping the priority order in one place avoids drift.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def _accessor(item: Any, key: str) -> Any:
 
 
 def pick_primary_resource_id(resources: Sequence[Any]) -> str | None:
-    """Return the id of the most agent-friendly resource on a dataset.
+    """Return the id of the resource most likely to be the data file.
 
     Walks `PRIMARY_FORMAT_PRIORITY` in order; first hit wins. Falls back
     to the first resource. Returns `None` if `resources` is empty.
