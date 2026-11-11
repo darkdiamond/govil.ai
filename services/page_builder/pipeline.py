@@ -509,7 +509,8 @@ def summarize_for_log(summary: dict) -> list[str]:
     line per refresh outcome that did something. The whole summary as one
     indented block was ~4,000 lines stamped in the same millisecond, which
     Cloud Logging reordered and partly dropped (2026-10-31). Up-to-date skips,
-    most of every run, only count in the headline."""
+    most of every run, only count in the headline. One whose missing authoring
+    issue this run opened (`issue`, see `run_refresh`) keeps its line."""
     import json
     from collections import Counter
 
@@ -528,7 +529,8 @@ def summarize_for_log(summary: dict) -> list[str]:
         head["refresh"] = refresh
     lines = [line({"pipeline_summary": head})]
     for o in outcomes:
-        if o.get("status") == "skipped" and o.get("reason") == "up_to_date":
+        if (o.get("status") == "skipped" and o.get("reason") == "up_to_date"
+                and o.get("issue") is None):
             continue
         kept = {k: v for k, v in o.items() if v is not None and v != {} and v != []}
         lines.append(line({"refresh_outcome": kept}))

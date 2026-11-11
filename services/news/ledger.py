@@ -106,19 +106,24 @@ _FRACTION = re.compile(
     r"(?!(?:מאה|מאות|מאתיים|מיליון|מיליוני|מיליארד|מיליארדי)(?![א-ת]))מ[א-ת-]+"
     rf"|(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}\s+(?:שלישים|רבעים|חמישיות|עשיריות)(?![א-ת])")
 _MAGNITUDE = re.compile(r"(?<![א-ת])[ובלמהשכ]{0,3}(?:מיליון|מיליארד|טריליון)(?![א-ת])")
+# A _COUNT match that is "אלף" alone before a noun: in prose a figure ("אלף
+# דירות"), in a label the thousand scale ("אלף טון", "אלף דונם"), like "מיליון".
+_THOUSAND_SCALE = re.compile(r"[ובלמכש]{0,3}אלף\s+[א-ת]+")
 _TOKEN_MARK = "\ue000"   # a fact token's place: a magnitude right after it is its scale
 
 
 def spelled_numbers(text: str, *, scale_ok: bool = False) -> list[str]:
     """Quantities written out in Hebrew words instead of fact tokens.
     `scale_ok`: a bare magnitude is a scale, not a figure (a chart unit or
-    title, a series name, the stat block's label: "מיליון ש\"ח")."""
+    title, a series name, the stat block's label: "מיליון ש\"ח", "אלף טון")."""
     t = unicodedata.normalize("NFKC", text)
     t = LINK.sub(lambda m: f" {m[1]} ", TOKEN.sub(f" {_TOKEN_MARK} ", t))
     spans = [m.span() for m in _SPELLED.finditer(t)]
     spans += [m.span() for m in _TIMES.finditer(t)] + [m.span() for m in _FRACTION.finditer(t)]
     for rx in (_COUNT,) if scale_ok else (_COUNT, _MAGNITUDE):
         for m in rx.finditer(t):
+            if scale_ok and _THOUSAND_SCALE.fullmatch(m[0]):
+                continue
             i = m.start() - 1   # the last character before it, past spaces and dashes
             while i >= 0 and t[i] in " \t\n-־–":
                 i -= 1

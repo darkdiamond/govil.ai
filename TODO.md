@@ -831,3 +831,13 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
   the deploy with the two before; if stories die on phrasing the writer can't tokenize,
   loosen that rule in `ledger.spelled_numbers`. (2026-11-11)
+- **"מאות אלפי" fails the number gate though the writer prompt allows vague magnitudes.**
+  `_SPELLED` (`services/news/ledger.py`) reads "מאות אלפי נוסעים" and "מאות מיליוני שקלים" as a
+  number word plus a unit, and "לכל מאה אלף תושבים" the same way, while the prompts say words
+  like "עשרות" and "אלפי" are fine. Fix: decide whether these are vague (a lookahead in
+  `_SPELLED`) or figures (say so in `prompts/writer.md` and `style_he.md`). (2026-11-11)
+- **The scanner no longer retries a 4xx, and data.gov.il's edge can turn an origin error into
+  a 404 page.** A CKAN 409 was seen arriving as an HTTP 404 HTML page on 2026-11-11. If an
+  origin 5xx is rewritten the same way, `package_search` fails on the first try and the scan
+  ends `scan_failed` (the next run retries). Fix: capture what a real origin 5xx looks like
+  from Cloud Run; if it is masked, retry a 404 whose body is not CKAN JSON. (2026-11-11)

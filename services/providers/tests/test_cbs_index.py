@@ -526,6 +526,7 @@ def test_brief_names_quarters_by_time_period(tmp_path):
     {"year": None},       # int(None): TypeError
     {"month": "x"},       # int("x"): ValueError
     {"currBase": {"baseDesc": "B", "value": "N/A"}},  # float("N/A"): ValueError
+    {"currBase": "B"},    # "B".get(...): AttributeError
 ])
 def test_malformed_row_is_a_provider_error(bad):
     """A reply the parser can't read fails like any other provider failure:
@@ -537,5 +538,5 @@ def test_malformed_row_is_a_provider_error(bad):
     res = resource(p, codes=[1], frequency="month")
     with pytest.raises(ProviderError, match="cpi") as e:
         p.version(res)
-    assert isinstance(e.value.__cause__, (TypeError, ValueError))
+    assert isinstance(e.value.__cause__, (TypeError, ValueError, AttributeError))
     assert p.preview(res) is None

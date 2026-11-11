@@ -260,6 +260,20 @@ def test_non_utf8_csv_is_a_provider_error(boi):
     assert boi.preview(res) is None
 
 
+def test_csv_the_reader_refuses_is_a_provider_error(boi):
+    """csv.Error is not a ValueError: an over-long field must still fail as a
+    ProviderError, not a bare exception."""
+    import csv
+
+    cell = "x" * (csv.field_size_limit() + 1)
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode() + f'"{cell}"\n'.encode())
+    res = _res(boi)
+    with pytest.raises(ProviderError, match="boi-br") as e:
+        boi.version(res)
+    assert isinstance(e.value.__cause__, csv.Error)
+    assert boi.preview(res) is None
+
+
 def test_server_errors_are_retried(boi, monkeypatch):
     boi.settings = boi.settings.model_copy(update={"retries": 1})
     monkeypatch.setattr("services.providers.base.time.sleep", lambda s: None)

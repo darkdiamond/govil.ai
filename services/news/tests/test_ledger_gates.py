@@ -367,6 +367,21 @@ def test_a_bare_magnitude_is_a_scale_in_a_label():
     assert spelled_numbers("חמש מאות דירות", scale_ok=True)
 
 
+@pytest.mark.parametrize("unit", ["אלף טון", "אלף דונם", "באלף תושבים", "אלף ש״ח"])
+def test_a_bare_thousand_is_a_scale_in_a_label(unit):
+    from services.news.ledger import spelled_numbers
+
+    assert spelled_numbers(unit, scale_ok=True) == []
+    assert spelled_numbers(unit)   # in prose it is a count of a thousand
+
+
+@pytest.mark.parametrize("text", ["אלף ומאה דירות", "מאה אלף תושבים", "אלף מאתיים טון"])
+def test_a_thousand_with_more_number_words_is_still_a_figure_in_a_label(text):
+    from services.news.ledger import spelled_numbers
+
+    assert spelled_numbers(text, scale_ok=True)
+
+
 @pytest.mark.parametrize("text", ["עלייה של ½ אחוז", "גידול של 3² דירות", "בשלב ① נרשמו"])
 def test_compatibility_digits_are_digits(text):
     assert stray_numbers(text)

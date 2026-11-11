@@ -15,7 +15,7 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { explorerFailureKind, abortAfter } = mod.exports;
+const { explorerFailureKind, probeFailureKind, abortAfter } = mod.exports;
 
 const http = (status) => Object.assign(new Error(`http ${status}`), { status });
 
@@ -58,6 +58,31 @@ test("network errors and unparseable replies are transient", () => {
   assert.equal(explorerFailureKind("boom"), "transient");
 });
 
+// data.gov.il's edge answers CKAN's error replies (a missing table's 404
+// included) with an HTML page that has no CORS header, so in the browser they
+// are a bare TypeError, the same as a network failure.
+test("a hidden reply drops an unverified candidate, not a verified one", () => {
+  const hidden = new TypeError("Failed to fetch");
+  assert.equal(probeFailureKind(hidden, false), "absent");
+  assert.equal(probeFailureKind(hidden, true), "transient");
+});
+
+test("verified or not, every other failure reads as explorerFailureKind", () => {
+  const timeout = new DOMException("timed out", "TimeoutError");
+  const abort = new DOMException("aborted", "AbortError");
+  for (const verified of [true, false]) {
+    assert.equal(probeFailureKind(http(403), verified), "gone");
+    assert.equal(probeFailureKind(http(404), verified), "absent");
+    assert.equal(probeFailureKind(http(503), verified), "transient");
+    assert.equal(probeFailureKind(timeout, verified), "transient");
+    assert.equal(probeFailureKind(abort, verified), "transient");
+    assert.equal(
+      probeFailureKind(new SyntaxError("Unexpected token <"), verified),
+      "transient"
+    );
+  }
+});
+
 // The fetch timeout: AbortController + setTimeout, not AbortSignal.timeout,
 // which Safari/iOS < 16 and Chrome < 103 lack (it threw there, so the schema
 // probe failed on every try).
@@ -75,4 +100,25 @@ test("abortAfter's clear stops the timer", async () => {
   abortAfter(ctrl, 5)();
   await new Promise((r) => setTimeout(r, 30));
   assert.equal(ctrl.signal.aborted, false);
+});
+
+// Safari < 15.4 and Chrome < 98 drop abort's reason: the fetch rejects with a
+// plain AbortError, as a superseded request does. onTimeout is how the caller
+// still knows it was the timeout.
+test("abortAfter reports the timeout before it aborts", async () => {
+  const calls = [];
+  const ctrl = { abort: () => calls.push("abort") }; // ignores the reason
+  const clear = abortAfter(ctrl, 5, () => calls.push("timeout"));
+  await new Promise((r) => setTimeout(r, 30));
+  clear();
+  assert.deepEqual(calls, ["timeout", "abort"]);
+});
+
+test("a cleared abortAfter never reports a timeout", async () => {
+  let timedOut = false;
+  abortAfter(new AbortController(), 5, () => {
+    timedOut = true;
+  })();
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(timedOut, false);
 });

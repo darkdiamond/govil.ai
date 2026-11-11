@@ -269,16 +269,18 @@ class SourceProvider(abc.ABC):
         """Normalized CSV and its row count, downloaded once per run: the sync
         step's version probe and the refresh share it.
 
-        A reply the parsing can't read (a null where a number goes, a non-UTF-8
-        byte, a missing key) is a ProviderError like any other provider failure,
-        so preview/fetch turn it into a strike that escalates instead of a bare
+        A reply the parsing can't read (a null where a number goes, a string
+        where an object goes, a non-UTF-8 byte, a missing key, a CSV the reader
+        refuses) is a ProviderError like any other provider failure, so
+        preview/fetch turn it into a strike that escalates instead of a bare
         exception the refresh only logs."""
         key = self._cache_key(resource)
         if key not in self._cache:
             try:
                 self._cache[key] = normalize_csv(self.download(resource), self.sort_keys,
                                                  count=True)
-            except (ValueError, KeyError, TypeError, IndexError) as e:  # incl. UnicodeDecodeError
+            except (ValueError, KeyError, TypeError, IndexError,  # incl. UnicodeDecodeError
+                    AttributeError, csv.Error) as e:
                 raise ProviderError(f"{resource.get('id')}: unreadable answer from {self.key} "
                                     f"({type(e).__name__}: {e})") from e
         return self._cache[key]

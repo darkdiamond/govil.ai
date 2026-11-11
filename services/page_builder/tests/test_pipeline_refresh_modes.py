@@ -276,6 +276,18 @@ def test_summary_log_is_compact_and_drops_up_to_date():
     assert summary["refresh"]["outcomes"]                      # input untouched
 
 
+def test_summary_log_keeps_an_up_to_date_skip_that_opened_its_issue():
+    # run_refresh re-queues a locked source's unrecorded issue from its
+    # up_to_date skip: the summary must show the issue it opened.
+    summary = {"status": "idle", "refresh": {"outcomes": [
+        _outcome("quiet", "skipped", "up_to_date"),
+        _outcome("locked", "skipped", "up_to_date", issue=78),
+    ]}}
+    lines = pipeline.summarize_for_log(summary)
+    outs = [json.loads(ln)["refresh_outcome"] for ln in lines[1:]]
+    assert [(o["id"], o["issue"]) for o in outs] == [("locked", 78)]
+
+
 def test_summary_log_without_a_refresh():
     lines = pipeline.summarize_for_log({"status": "refresh_unavailable", "refresh": None})
     assert [json.loads(ln) for ln in lines] == [

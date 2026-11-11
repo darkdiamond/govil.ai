@@ -10,6 +10,7 @@ import type { ResourceEntry } from "~/types/manifest";
 import {
   abortAfter,
   explorerFailureKind,
+  probeFailureKind,
   type DatastoreError,
   type ExplorerFailure,
 } from "~/utils/explorer-probe";
@@ -73,7 +74,8 @@ const loading = ref(false);
 const fetchError = ref(false);
 // Source made private / removed upstream: the live datastore_search returns
 // HTTP 403 ("Authorization Error"). Distinct from a resource that was never
-// datastore-backed (404 / success:false) — that still collapses the section
+// datastore-backed (404 / success:false, or a reply the browser hides for a
+// resource CKAN never flagged) — that still collapses the section
 // (utils/explorer-probe.ts sorts the failures).
 // Seeded from the publisher-stamped `source_status` (via the sourceUnavailable
 // prop) so the gone-state renders deterministically at first paint (SSG),
@@ -166,8 +168,13 @@ async function dsSearch(
 // it with a retry, an empty datastore keeps its tab with an empty state.
 // The kind is returned rather than stored, so activate()'s staleness guard
 // covers it: a stale probe for an abandoned resource can't flip sourceGone
-// for the resource the user actually switched to.
-async function loadSchema(rid: string): Promise<Schema | ExplorerFailure> {
+// for the resource the user actually switched to. `verified` (CKAN flagged
+// the resource datastore-backed) decides how a failure with no visible
+// status is read: see probeFailureKind.
+async function loadSchema(
+  rid: string,
+  verified: boolean
+): Promise<Schema | ExplorerFailure> {
   const cached = schemaCache.get(rid);
   if (cached) return cached;
   const ctrl = new AbortController();
@@ -192,7 +199,7 @@ async function loadSchema(rid: string): Promise<Schema | ExplorerFailure> {
     schemaCache.set(rid, sch);
     return sch;
   } catch (err) {
-    return explorerFailureKind(err);
+    return probeFailureKind(err, verified);
   } finally {
     clearTimer();
   }
@@ -204,7 +211,7 @@ async function activate(rid: string) {
   activeRid.value = rid;
   loading.value = true;
   fetchError.value = false;
-  const sch = await loadSchema(rid);
+  const sch = await loadSchema(rid, cand.verified);
   if (activeRid.value !== rid) return; // user switched away mid-probe
   if (sch === "gone") {
     // This resource is access-revoked (403) and still the current one.
@@ -260,9 +267,13 @@ async function loadPage() {
   aborter?.abort();
   const ctrl = new AbortController();
   aborter = ctrl;
-  // Aborted with a TimeoutError reason, so the catch below shows the error
-  // state; a plain abort (superseded request) stays silent.
-  const clearTimer = abortAfter(ctrl, FETCH_TIMEOUT_MS);
+  // A timeout must reach the error state below, while a plain abort (a
+  // superseded request, unmount) stays silent. The flag tells them apart
+  // where the browser drops abort's TimeoutError reason (see abortAfter).
+  let timedOut = false;
+  const clearTimer = abortAfter(ctrl, FETCH_TIMEOUT_MS, () => {
+    timedOut = true;
+  });
   loading.value = true;
   fetchError.value = false;
   try {
@@ -286,7 +297,7 @@ async function loadPage() {
   } catch (err) {
     if (
       seq !== reqSeq ||
-      (err instanceof DOMException && err.name === "AbortError")
+      (!timedOut && err instanceof DOMException && err.name === "AbortError")
     )
       return;
     if (explorerFailureKind(err) === "gone") {

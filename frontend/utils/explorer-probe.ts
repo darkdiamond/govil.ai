@@ -28,13 +28,39 @@ export function explorerFailureKind(err: unknown): ExplorerFailure {
   return rejected === true ? "absent" : "transient";
 }
 
+/** The schema probe's verdict for one candidate. As `explorerFailureKind`,
+ *  except for a fetch the browser refused to show the page (a TypeError: no
+ *  status, no body). A real network failure looks like that, and so does a
+ *  missing table: data.gov.il's edge answers CKAN's 404 (and its other error
+ *  replies) with an HTML page that carries no CORS header (checked
+ *  2026-11-11), so the status never reaches this code. For a resource CKAN
+ *  flagged datastore-backed (`verified`) that is read as a hiccup. For one
+ *  nothing vouches for (legacy data.json without flags) it is read as absent,
+ *  or the section would show an error whose retry can never succeed. */
+export function probeFailureKind(
+  err: unknown,
+  verified: boolean
+): ExplorerFailure {
+  const kind = explorerFailureKind(err);
+  return kind === "transient" && !verified && err instanceof TypeError
+    ? "absent"
+    : kind;
+}
+
 /** Aborts `ctrl` with a TimeoutError reason after `ms`; returns the function
  *  that cancels the timer (call it in a `finally`). Not AbortSignal.timeout:
- *  Safari/iOS < 16 and Chrome < 103 don't have it. */
-export function abortAfter(ctrl: AbortController, ms: number): () => void {
-  const timer = setTimeout(
-    () => ctrl.abort(new DOMException("timed out", "TimeoutError")),
-    ms
-  );
+ *  Safari/iOS < 16 and Chrome < 103 don't have it. `onTimeout` runs just
+ *  before the abort: Safari < 15.4 and Chrome < 98 ignore abort's reason and
+ *  reject the fetch with a plain AbortError, so a caller that must tell a
+ *  timeout from its own abort() can't rely on the error alone. */
+export function abortAfter(
+  ctrl: AbortController,
+  ms: number,
+  onTimeout?: () => void
+): () => void {
+  const timer = setTimeout(() => {
+    onTimeout?.();
+    ctrl.abort(new DOMException("timed out", "TimeoutError"));
+  }, ms);
   return () => clearTimeout(timer);
 }
