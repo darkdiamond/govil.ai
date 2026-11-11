@@ -46,6 +46,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .base import (
+    ProviderDatasetConfig,
     ProviderError,
     ProviderFacts,
     ProviderResource,
@@ -53,7 +54,6 @@ from .base import (
     SourceConfig,
     SourcePresentation,
     SourceProvider,
-    normalize_csv,
 )
 
 SITE = "https://www.cbs.gov.il"
@@ -150,21 +150,12 @@ class CbsResource(BaseModel):
         return self
 
 
-class CbsDatasetConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class CbsDatasetConfig(ProviderDatasetConfig):
     report: CbsReport
     # Editions stacked into each table resource, newest first. More than 1
     # only for reports whose tables show just the current period.
     history_releases: int = Field(1, ge=1, le=24)
     resources: list[CbsResource] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def _unique_ids(self):
-        ids = [r.id for r in self.resources]
-        if len(ids) != len(set(ids)):
-            raise ValueError("resource ids must be unique")
-        return self
 
 
 # ── releases ─────────────────────────────────────────────────────────────
@@ -343,13 +334,7 @@ class CbsReleasesProvider(SourceProvider):
         return f"{self.settings.base_url.rstrip('/')}/_api/web/{path}"
 
     def _get_json(self, url: str) -> dict:
-        r = self.http_get(url, headers=_JSON)
-        if r.status_code != 200:
-            raise ProviderError(f"HTTP {r.status_code} from CBS for {url[:160]}")
-        try:
-            return r.json()
-        except ValueError as e:
-            raise ProviderError(f"CBS answered non-JSON for {url[:160]}: {e}") from e
+        return self.get_json(url, source="CBS", headers=_JSON)
 
     def list_items(self, top: int = LIST_WINDOW) -> list[dict]:
         url = self._api(f"lists/getbytitle('{quote(LIST_TITLE)}')/items"
@@ -524,17 +509,11 @@ class CbsReleasesProvider(SourceProvider):
 
     # ── data ─────────────────────────────────────────────────────────────
 
-    def _key(self, resource: dict) -> str:
-        return resource["url"] + "#" + json.dumps(resource.get("params") or {}, sort_keys=True,
-                                                  ensure_ascii=False)
-
-    def _cached(self, resource: dict) -> tuple[bytes, int]:
+    def _cache_key(self, resource: dict) -> str:
         # Keyed by params too: two pages may share a latest file but stack a
         # different number of editions.
-        key = self._key(resource)
-        if key not in self._cache:
-            self._cache[key] = normalize_csv(self.download(resource), self.sort_keys, count=True)
-        return self._cache[key]
+        return resource["url"] + "#" + json.dumps(resource.get("params") or {}, sort_keys=True,
+                                                  ensure_ascii=False)
 
     def download(self, resource: dict) -> bytes:
         p = resource.get("params") or {}
@@ -561,7 +540,7 @@ class CbsReleasesProvider(SourceProvider):
                 raise ProviderError(f"{rel.pub_no} {f['Name']}: HTTP {r.status_code}")
             parts.append((rel, r.content))
             used.append((rel.pub_no, f["Name"]))
-        self._files_used[self._key(resource)] = used
+        self._files_used[self._cache_key(resource)] = used
         return grid_csv(parts)
 
     def _releases_csv(self, rels: list[Release]) -> bytes:
@@ -596,7 +575,7 @@ class CbsReleasesProvider(SourceProvider):
                 out.write(f"| {r['RELEASE_NO']} | {r['RELEASE_DATE']} | {_md(r['TITLE'])} | "
                           f"{_md(r['HEADLINE'])} |\n")
             return out.getvalue()
-        used = self._files_used.get(self._key(resource)) or []
+        used = self._files_used.get(self._cache_key(resource)) or []
         files = ", ".join(f"{n} `{f}`" for n, f in used)
         if not files:
             files = "none (optional table, absent from every edition)" if p.get("optional") else "?"

@@ -44,6 +44,11 @@ Local Claude Code routine (daily 07:00 Asia/Jerusalem)
     /solve-authoring-issues: open needs-authoring issues → author a recipe
     per dataset (/author-dataset workflow) → review → ONE pull request
     → a human merges → the next daily job renders the new pages
+
+Cloud Run job: govdata-news-job (08:00 Asia/Jerusalem, services/news/)
+    signals from the render history → editor + writer models (OpenRouter)
+    → mechanical gates → news articles in Firestore → shown on /news/
+    at the next publish
 ```
 
 A recipe is written once per dataset (`recipe.json` + a pure-pandas
@@ -62,6 +67,8 @@ agent (retired 2026-10) stay live until a recipe replaces them.
 recipes/<id>/                  one recipe per dataset (the refresh list = git main)
 services/
   scanner/                     CKAN scanner → Firestore sources/*
+  providers/                   non-CKAN sources (Bank of Israel, CBS)
+  news/                        news job: signals, writer agent, gates, publisher
   page_builder/                daily pipeline + recipe refresh + publisher
     pipeline.py                  scan → refresh → authoring queue → publish trigger
     refresh.py                   deterministic recipe refresh (no LLM)
@@ -96,9 +103,11 @@ Prereqs: Python 3.12 and Node 22. Authoring a recipe uses
 model at all.
 
 ```sh
-# 1. Python env
+# 1. Python env (the same requirement files CI installs)
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r services/page_builder/requirements.txt
+pip install -r requirements.txt -r services/page_builder/requirements.txt \
+  -r services/news/requirements.txt -r requirements-dev.txt
+pytest -q && ruff check .
 
 # 2. Scan into the Firestore emulator (needs a Java 8+ JRE on PATH)
 gcloud emulators firestore start --host-port=localhost:8080 &
@@ -121,14 +130,17 @@ npx serve .output/public
 
 - **Recipes** produce every page (`recipes/<id>/`), re-run by the daily
   job with no LLM — the run's cost is CKAN bandwidth and a few CPU
-  minutes. Models run only at authoring time, locally, in Claude Code.
+  minutes. Recipes are authored locally in Claude Code. The only model
+  calls in the cloud are the news job's (`services/news`, through
+  OpenRouter).
 - **Tags and related datasets** are computed by the publisher with no
   model or API: a curated tag vocabulary in `taxonomy/` and a TF-IDF +
   tag-overlap score in `related.py`.
 - **Firebase Hosting** serves everything. Nuxt-generated shell + home +
   category pages wrap the recipe-rendered bodies at generate time.
-- **Cloud Run job** runs the daily builder (`--task-timeout` 6h bounds
-  the run; each recipe's `compute()` is capped at 300s).
+- **Cloud Run jobs** run the builder twice a day (`--task-timeout` 4h
+  bounds the run; each recipe's `compute()` is capped at 300s) and the
+  news job once a day.
 
 ## Configuration / self-hosting
 

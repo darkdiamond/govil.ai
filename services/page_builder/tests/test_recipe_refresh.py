@@ -304,6 +304,45 @@ def test_schema_change_keeps_page_and_opens_issue_once(env):
     assert len(env.issues) == 1
 
 
+def test_issue_that_failed_to_open_is_retried_on_the_locked_source(env, monkeypatch):
+    # The failure lock is written before the issue opens. When GitHub refuses
+    # it, later runs skip the locked source, so they must open the issue then.
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
+                        lambda **kw: env.issues.append(kw) and None)
+    s = _run(env, store, FakeCkan(_rows([2024, 2025]), cols=renamed))
+    assert s["outcomes"][0]["reason"] == "schema_changed"
+    assert s["outcomes"][0]["issue"] is None and len(env.issues) == 1
+
+    monkeypatch.setattr("services.page_builder.notify.open_authoring_issue",
+                        lambda **kw: env.issues.append(kw) or 78)
+    ckan = FakeCkan(_rows([2024, 2025]), cols=renamed)
+    s = _run(env, store, ckan)
+    assert s["outcomes"][0]["reason"] == "up_to_date" and ckan.fetches == 0  # still locked
+    assert s["outcomes"][0]["issue"] == 78 and len(env.issues) == 2
+    assert env.issues[1]["reason"] == "schema_changed"
+    assert env.issues[1]["detail"] == store.states[DS]["refresh_error"]
+    assert store.states[DS]["authoring_issue"] == 78
+
+    s = _run(env, store, ckan)  # recorded now: no second issue
+    assert s["outcomes"][0]["issue"] is None and len(env.issues) == 2
+    assert _run(env, store, ckan, notify=False)["outcomes"][0]["issue"] is None
+
+
+def test_notify_off_never_retries_the_issue(env, monkeypatch):
+    store = FakeStore(_src())
+    _run(env, store, FakeCkan(_rows([2024, 2025])))
+    store.src = _src("2026-11-01")
+    renamed = [c if c != "מחוז" else "אזור" for c in COLS]
+    ckan = FakeCkan(_rows([2024, 2025]), cols=renamed)
+    _run(env, store, ckan, notify=False)
+    _run(env, store, ckan, notify=False)
+    assert env.issues == []
+
+
 def test_refresh_reads_each_source_doc_once(env):
     """The refresh state comes with the source doc (`src.refresh`); only
     queue_authoring re-reads it (its duplicate-issue guard)."""
@@ -2411,3 +2450,43 @@ def test_missing_or_malformed_recipe_file_is_still_recipe_invalid(env, monkeypat
     assert s["outcomes"][0]["reason"] == "recipe_invalid"
     assert len(env.issues) == 1 and env.issues[0]["reason"] == "recipe_failed"
     assert env.staged == {}
+
+
+def _locked_harness(monkeypatch, ids):
+    """run_refresh over sources whose failure is locked with no recorded issue."""
+    calls = []
+    srcs = {i: SimpleNamespace(id=i, title=i, refresh=RefreshState(refresh_reason="schema_changed"))
+            for i in ids}
+    store = SimpleNamespace(get_source=srcs.get)
+    repo = SimpleNamespace(list_ids=lambda: list(ids),
+                           load=lambda i, d: SimpleNamespace(manifest=SimpleNamespace(heavy=False)))
+    monkeypatch.setattr(rf, "needs_refresh", lambda src, state, recipe: None)
+    monkeypatch.setattr(rf, "_issue_missing", lambda src, state, recipe: True)
+    return store, repo, calls
+
+
+def test_requeue_of_unrecorded_issues_is_capped_per_run(monkeypatch, tmp_path, caplog):
+    ids = ["aaaa1111", "bbbb2222"]
+    store, repo, calls = _locked_harness(monkeypatch, ids)
+    monkeypatch.setattr(rf, "_queue_authoring_safely",
+                        lambda store, src, reason, **kw: calls.append(src.id))  # GitHub refuses: None
+    monkeypatch.setattr(rf, "_DEFAULT_REQUEUE_CAP", 1)
+    monkeypatch.delenv("REFRESH_REQUEUE_CAP", raising=False)
+    with caplog.at_level("INFO", logger=rf.log.name):
+        s = rf.run_refresh(store, repo, staging_bucket="b", work_root=tmp_path)
+    assert calls == ["aaaa1111"]  # one attempt this run; the other waits for the next
+    assert [o["reason"] for o in s["outcomes"]] == ["up_to_date", "up_to_date"]
+    assert [o["issue"] for o in s["outcomes"]] == [None, None]
+    warns = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert any("aaaa1111" in m and "schema_changed" in m for m in warns)
+    assert sum("cap" in m for m in warns) == 1  # the cap is logged once
+
+
+def test_requeue_that_opens_an_issue_is_logged(monkeypatch, tmp_path, caplog):
+    store, repo, _ = _locked_harness(monkeypatch, ["aaaa1111"])
+    monkeypatch.setattr(rf, "_queue_authoring_safely", lambda store, src, reason, **kw: 91)
+    with caplog.at_level("INFO", logger=rf.log.name):
+        s = rf.run_refresh(store, repo, staging_bucket="b", work_root=tmp_path)
+    assert s["outcomes"][0]["issue"] == 91 and s["outcomes"][0]["reason"] == "up_to_date"
+    assert any(r.levelname == "INFO" and "aaaa1111" in r.getMessage() and "#91" in r.getMessage()
+               for r in caplog.records)

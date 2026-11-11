@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import math
 import re
+import unicodedata
 from dataclasses import asdict, dataclass, field
 
 from services.page_builder.recipe_lib.govlib import fmt
@@ -56,13 +57,86 @@ SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
 _NUMBER_WORD = (r"(?:אחד|אחת|שתיים|שניים|שתי|שני|שלוש|שלושה|ארבע|ארבעה|חמש|חמישה|שש|שישה|שבע|"
                 r"שבעה|שמונה|תשע|תשעה|עשר|עשרה|עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|"
                 r"תשעים|מאה|מאתיים|מאות|אלף|אלפיים|אלפים|חצי|רבע|שליש)")
-_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD}))*\s+"
-                      r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודות|מיליון|מיליוני|מיליארד|מיליארדי|אלף|אלפי|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
+_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD})){{0,6}}\s+"
+                      r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודת\s+אחוז|נקודות|מיליון|מיליוני|מיליארד|מיליארדי|"
+                      r"אלף|אלפי|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
+# More spelled quantities, each one precise enough not to catch ordinary prose:
+# - a count of three or more (or a teen) before a noun that is not a time unit
+#   ("חמש מאות דירות", "שבעים דירות", "אלפיים דירות"). אחד/שני/שתי and friends
+#   alone are left out on purpose: "אחד הגורמים", "שני הצדדים", "מצד שני" are
+#   prose. So are a definite next word ("שלוש הערים"; also keeps "המאה העשרים"),
+#   a function word, a month ("שבעה באוקטובר" is a date), "באר שבע", a per-N
+#   denominator ("לכל מאה חוזים", like "לכל 1,000 תושבים"), and the construct
+#   forms (שלושת, חמשת), which mostly read as reference ("שלושת הבנקים
+#   הגדולים"), not as a figure.
+# - "פי <number word>" ("עלה פי שלושה"; "על פי" is "according to").
+# - a fraction of something: חצי/שליש/רבע/מחצית… before a מ-word ("חצי
+#   מהתושבים"; "חצי שנה" is a duration and stays), or a plural fraction after a
+#   number word ("שני שלישים", "שלושה רבעים").
+# - a bare magnitude: "מיליון שקלים", "כמיליארד שקל" (not after a fact token or a
+#   digit: "{f1:num2} מיליארד" is the token's scale).
+# Vague magnitudes with no number ("עשרות", "מאות", "אלפי תושבים", "מיליוני
+# שקלים") are left alone: they say "many", not a figure (a judgment call).
+_TIME_UNIT = (r"(?:שנה|שנים|שנות|שנתיים|שנתי|חודש|חודשים|חודשי|חודשיים|שבוע|שבועות|שבועיים|יום|ימים|"
+              r"ימי|יומיים|יממה|יממות|שעה|שעות|שעתיים|דקה|דקות|דקתיים|רבעון|רבעונים|עשור|עשורים)")
+_COUNT_WORD = (r"(?:שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|שישה|שש|שבעה|שבע|שמונה|תשעה|תשע|עשרה|עשר|"
+               r"עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|תשעים|מאתיים|מאה|אלפיים|אלף|"
+               r"(?:אחד|אחת|שניים|שנים|שתיים|שתים|שני|שתי)\s+עשרה?)")
+_FUNCTION_WORD = r"(?:של|את|עם|על|אל|או|גם|עד|כל|כי|אם|לא|זה|זו|הם|הן|היו|היה|הייתה|אחרי|לפני|מתוך)"
+# ש+מונה ("who was appointed") is told from the count שמונה only by what follows:
+# the verb's own followers (by, in <year>, to/as a role, recently). Anything else
+# after שמונה reads as a count, so "שמונה בנקים" / "שמונה לקוחות" are flagged;
+# an appointment phrased some other way fails closed (flagged; the writer rephrases).
+_ROLE = (r"(?:תפקיד|מנכ|יו[\"״]ר|יועץ(?![א-ת])|ראש|סגנ|סגן|נשיא|שופט|שר(?![א-ת])|חבר(?![א-ת])|מנהל|ממונה|"
+         r"דירקטור|מפכ|רמטכ|נציב|מבקר|כהונ|ועד|וועד)")
+_APPOINTED = (rf"שמונה\s+(?:על(?![א-ת])|ע[\"״׳']י|ב(?:-|\d|שנת|מקומ|מקום|תפקיד)|לאחרונה"
+              rf"|[לכ]{_ROLE})")
+# Number-word repeats are bounded ({0,6}: no real number phrase has more parts),
+# so a long run of number words in model text can't backtrack quadratically.
+_COUNT = re.compile(
+    rf"(?<![א-ת])(?<!באר )(?<!באר-)(?<!לכל )[ובלמכש]{{0,3}}"
+    # "שבע רצון" is "satisfied"
+    rf"(?!{_APPOINTED})(?!שבע\s+רצון){_COUNT_WORD}"
+    rf"(?:\s+ו?[בלמכש]?{_NUMBER_WORD}(?![א-ת])){{0,6}}"
+    rf"\s+(?!ה)(?![ובלמהשכ]{{0,3}}(?:{_TIME_UNIT}|{_NUMBER_WORD}|{MONTHS})(?![א-ת]))"
+    rf"(?!{_FUNCTION_WORD}(?![א-ת]))[א-ת]+")
+_TIMES = re.compile(rf"(?<![א-ת])(?<!על )(?<!על-)ו?פי\s+[כ]?{_NUMBER_WORD}(?![א-ת])")
+_FRACTION = re.compile(
+    r"(?<![א-ת])[ובלמהשכ]{0,3}(?:חצי|שליש|רבע|מחצית|חמישית|עשירית)\s+"
+    r"(?!(?:מאה|מאות|מאתיים|מיליון|מיליוני|מיליארד|מיליארדי)(?![א-ת]))מ[א-ת-]+"
+    rf"|(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}\s+(?:שלישים|רבעים|חמישיות|עשיריות)(?![א-ת])")
+_MAGNITUDE = re.compile(r"(?<![א-ת])[ובלמהשכ]{0,3}(?:מיליון|מיליארד|טריליון)(?![א-ת])")
+# A _COUNT match that is "אלף" alone before a noun: in prose a figure ("אלף
+# דירות"), in a label the thousand scale ("אלף טון", "אלף דונם"), like "מיליון".
+_THOUSAND_SCALE = re.compile(r"[ובלמכש]{0,3}אלף\s+[א-ת]+")
+_TOKEN_MARK = "\ue000"   # a fact token's place: a magnitude right after it is its scale
 
 
-def spelled_numbers(text: str) -> list[str]:
-    """Quantities written out in Hebrew words instead of fact tokens."""
-    return [m[0] for m in _SPELLED.finditer(LINK.sub(lambda m: f" {m[1]} ", TOKEN.sub(" ", text)))]
+def spelled_numbers(text: str, *, scale_ok: bool = False) -> list[str]:
+    """Quantities written out in Hebrew words instead of fact tokens.
+    `scale_ok`: a bare magnitude is a scale, not a figure (a chart unit or
+    title, a series name, the stat block's label: "מיליון ש\"ח", "אלף טון")."""
+    t = unicodedata.normalize("NFKC", text)
+    t = LINK.sub(lambda m: f" {m[1]} ", TOKEN.sub(f" {_TOKEN_MARK} ", t))
+    spans = [m.span() for m in _SPELLED.finditer(t)]
+    spans += [m.span() for m in _TIMES.finditer(t)] + [m.span() for m in _FRACTION.finditer(t)]
+    for rx in (_COUNT,) if scale_ok else (_COUNT, _MAGNITUDE):
+        for m in rx.finditer(t):
+            if scale_ok and _THOUSAND_SCALE.fullmatch(m[0]):
+                continue
+            i = m.start() - 1   # the last character before it, past spaces and dashes
+            while i >= 0 and t[i] in " \t\n-־–":
+                i -= 1
+            if i < 0 or not (t[i].isdigit() or t[i] == _TOKEN_MARK):
+                spans.append(m.span())
+    out, end = [], -1
+    for a, b in sorted(spans):   # overlapping matches are one quantity
+        if a >= end:
+            out.append([a, b])
+        else:
+            out[-1][1] = max(out[-1][1], b)
+        end = max(end, b)
+    return [t[a:b].strip() for a, b in out]
 
 
 @dataclass
@@ -204,8 +278,9 @@ class Ledger:
 
 def stray_numbers(text: str) -> list[str]:
     """Digits in prose that are not fact tokens (years and day-of-month dates
-    excepted). Empty means the text is clean."""
-    t = TOKEN.sub(" ", text)
+    excepted). Empty means the text is clean. NFKC first: "½", "²", "①" are
+    digits too."""
+    t = TOKEN.sub(" ", unicodedata.normalize("NFKC", text))
     t = LINK.sub(lambda m: f" {m[1]} ", t)
     t = _DATE_DMY.sub(" ", t)
     t = _DAY_OF_MONTH.sub(" ", t)

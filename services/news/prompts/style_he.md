@@ -45,6 +45,9 @@ will leave in 10 seconds unless the first sentence tells them something new.
 
 - Every number comes from a fact token: `{f12}` or `{f12:fmt}`. Never type a
   number yourself (years and dates like "בינואר 2025" / "ב-3 במרץ" are fine as text).
+  Spelling it in words counts as typing it: "חמש מאות דירות", "פי שלושה", "חצי
+  מהתושבים" and a bare "מיליון שקלים" fail. Durations ("שלוש שנים") and vague
+  words ("עשרות", "אלפי") are fine.
 - Formats: `int` (1,234), `num1` (12.3), `num2` (1.23), `pct` (value already in
   percent → 12.3%), `spct` (signed percent change, +12.3% / −12.3%), `abs_pct`
   (12.3%, no sign, say the direction in words: "ירידה של {f3:abs_pct}"),

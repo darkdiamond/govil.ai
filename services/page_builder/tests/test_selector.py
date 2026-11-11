@@ -25,15 +25,12 @@ class _FakeStore:
 
     def __init__(self, sources: list[SourceRecord]):
         self._all = sorted(sources, key=lambda s: s.metadata_modified, reverse=True)
-        self.failed_max_attempts = None
 
     def list_never_analyzed(self, limit: int = 50):
         return [s for s in self._all if s.analysis_status == "never"][:limit]
 
-    def list_failed_retryable(self, limit: int = 50, max_attempts: int = 3):
-        self.failed_max_attempts = max_attempts
-        return [s for s in self._all
-                if s.analysis_status == "failed" and s.failed_attempts < max_attempts][:limit]
+    def list_failed(self, limit: int = 50):
+        return [s for s in self._all if s.analysis_status == "failed"][:limit]
 
     def iter_changed_sources(self):
         yield from (s for s in self._all if s.change_status in ("new", "updated"))
@@ -70,7 +67,6 @@ def test_new_first_then_changed_legacy_pages():
 def test_failed_legacy_builds_are_new_regardless_of_attempts():
     store = _FakeStore([_new("parked", analysis_status="failed", failed_attempts=9)])
     assert _ids(pick_authoring_candidates(store, 10)) == [("parked", "new")]
-    assert store.failed_max_attempts > 9
 
 
 def test_any_newer_version_queues_a_legacy_page_no_gap():
@@ -152,10 +148,12 @@ def _doc(doc_id: str, data: dict) -> MagicMock:
     return d
 
 
-def test_failed_retryable_not_starved_by_parked_docs():
-    parked = [_doc(f"p{i}", {"failed_attempts": 3}) for i in range(500)]
-    ok = _doc("ok1", {"failed_attempts": 1})
+def test_list_failed_ignores_attempt_count():
+    """No retry budget any more: a parked doc (many attempts) is listed."""
+    docs = [_doc("p1", {"failed_attempts": 9}), _doc("p2", {})]
     client = MagicMock()
-    client.collection.return_value.where.return_value.order_by.return_value.stream.return_value = iter(parked + [ok])
+    query = client.collection.return_value.where.return_value.order_by.return_value
+    query.limit.return_value.stream.return_value = iter(docs)
     store = FirestoreStateStore(client=client)
-    assert [r.id for r in store.list_failed_retryable(limit=5)] == ["ok1"]
+    assert [r.id for r in store.list_failed(limit=5)] == ["p1", "p2"]
+    query.limit.assert_called_once_with(5)

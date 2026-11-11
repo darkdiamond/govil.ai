@@ -12,9 +12,8 @@ from typing import Any, Self
 
 import httpx
 from tenacity import (
-    RetryError,
     retry,
-    retry_if_exception_type,
+    retry_if_exception,
     stop_after_attempt,
     wait_exponential,
 )
@@ -31,11 +30,25 @@ class CKANError(Exception):
     """Exception raised for CKAN API errors."""
 
 
-# Retry policy shared by the client's CKAN requests.
+def _retryable(exc: BaseException) -> bool:
+    """Transport errors (timeouts included), 5xx, 408 and 429. Any other 4xx
+    (a WAF 403, a missing dataset's 404) answers the same on a second try."""
+    if isinstance(exc, httpx.TransportError):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        return code >= 500 or code in (408, 429)
+    return False
+
+
+# Retry policy shared by the client's CKAN requests. `reraise`: after the last
+# attempt the real error reaches the caller (and scan_runs.error), not
+# tenacity's opaque RetryError.
 _ckan_retry = retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=10),
-    retry=retry_if_exception_type((httpx.HTTPError, httpx.TimeoutException)),
+    retry=retry_if_exception(_retryable),
+    reraise=True,
 )
 
 
@@ -201,10 +214,9 @@ class CKANClient:
                 # Exact count, not a stale planner estimate.
                 "total_estimation_threshold": EXACT_TOTAL_THRESHOLD,
             })
-        except RetryError as exc:
+        except httpx.HTTPError as exc:
             raise CKANError(
-                f"datastore_search unavailable for {resource_id}: "
-                f"{exc.last_attempt.exception()!r}") from exc
+                f"datastore_search unavailable for {resource_id}: {exc!r}") from exc
 
         try:
             data = response.json()

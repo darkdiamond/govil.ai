@@ -190,7 +190,7 @@ if ! gcloud builds triggers describe "$IMAGE_TRIGGER_ID" --region="$REGION" --pr
   echo "    the pre-baked publisher image:"
   echo "      - infra/Dockerfile.publisher"
   echo "      - frontend/package-lock.json"
-  echo "      - services/page_builder/requirements.txt"
+  echo "      - services/page_builder/requirements-publish.txt"
   echo "      - .dockerignore"
   echo
   echo "    With a GitHub 2nd-gen connection (replace <CONN>/<REPO>):"
@@ -199,7 +199,7 @@ if ! gcloud builds triggers describe "$IMAGE_TRIGGER_ID" --region="$REGION" --pr
   echo "        --region=$REGION \\"
   echo "        --repository=projects/$PROJECT/locations/$REGION/connections/<CONN>/repositories/<REPO> \\"
   echo "        --branch-pattern='^${PUBLISH_BRANCH}\$' \\"
-  echo "        --included-files='infra/Dockerfile.publisher,frontend/package-lock.json,services/page_builder/requirements.txt,.dockerignore' \\"
+  echo "        --included-files='infra/Dockerfile.publisher,frontend/package-lock.json,services/page_builder/requirements-publish.txt,.dockerignore' \\"
   echo "        --build-config=cloudbuild-publisher-image.yaml \\"
   echo "        --service-account=projects/$PROJECT/serviceAccounts/$PUBLISHER_SA \\"
   echo "        --project=$PROJECT"

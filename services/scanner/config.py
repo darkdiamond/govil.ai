@@ -7,6 +7,8 @@ Firestore-backed — no local database or download directory.
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from services.shared.ckan import ACTION_API
+
 
 class ScannerSettings(BaseSettings):
     """Scanner service configuration."""
@@ -18,7 +20,7 @@ class ScannerSettings(BaseSettings):
     )
 
     # CKAN API
-    ckan_base_url: str = "https://data.gov.il/api/3/action"
+    ckan_base_url: str = ACTION_API
     ckan_request_delay: float = 0.5
     ckan_timeout: int = 30
 

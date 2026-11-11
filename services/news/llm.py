@@ -83,7 +83,7 @@ class OpenRouter:
 
     def chat(self, messages: list[dict], *, model: str = TEXT_MODEL, tools: list[dict] | None = None,
              json_mode: bool = False, temperature: float | None = None,
-             plugins: list[dict] | None = None, max_tokens: int | None = None,
+             plugins: list[dict] | None = None,
              reasoning_effort: str | None = REASONING_EFFORT) -> dict:
         """The assistant message (with `tool_calls` / `annotations` when present).
         `temperature` is dropped by OpenRouter for models that don't take it
@@ -99,8 +99,6 @@ class OpenRouter:
             body["temperature"] = temperature
         if plugins:
             body["plugins"] = plugins
-        if max_tokens:
-            body["max_tokens"] = max_tokens
         data = self._post(body)
         try:
             return data["choices"][0]["message"]

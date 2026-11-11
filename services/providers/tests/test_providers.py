@@ -210,7 +210,7 @@ def test_preview_and_fetch_share_one_download(boi, tmp_path):
     out = fetch_fn("boi-br", 3, tmp_path / "x.csv", max_bytes=10**6, page_size=1,
                    page_timeout_s=1, deadline=0)
     assert out.rows == 3
-    assert (tmp_path / "x.csv").read_bytes() == boi.csv_bytes(res)
+    assert (tmp_path / "x.csv").read_bytes() == boi._capped(res)[0]
     assert sum("/BR/" in c and "format=csv" in c for c in boi.calls) == 1
     assert preview_fn("unknown") is None
 
@@ -246,7 +246,32 @@ def test_series_over_provider_cap_still_versions(boi, tmp_path):
 def test_bad_answers_are_provider_errors(boi, resp):
     boi.answers["/BR/1.0/"] = resp
     with pytest.raises(ProviderError):
-        boi.csv_bytes(_res(boi))
+        boi._capped(_res(boi))[0]
+
+
+def test_non_utf8_csv_is_a_provider_error(boi):
+    """A byte that isn't UTF-8 fails the download as a ProviderError (a None
+    preview, so a strike that escalates), not a bare UnicodeDecodeError."""
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode() + "שקל\n".encode("cp1255"))
+    res = _res(boi)
+    with pytest.raises(ProviderError, match="boi-br") as e:
+        boi.version(res)
+    assert isinstance(e.value.__cause__, UnicodeDecodeError)
+    assert boi.preview(res) is None
+
+
+def test_csv_the_reader_refuses_is_a_provider_error(boi):
+    """csv.Error is not a ValueError: an over-long field must still fail as a
+    ProviderError, not a bare exception."""
+    import csv
+
+    cell = "x" * (csv.field_size_limit() + 1)
+    boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode() + f'"{cell}"\n'.encode())
+    res = _res(boi)
+    with pytest.raises(ProviderError, match="boi-br") as e:
+        boi.version(res)
+    assert isinstance(e.value.__cause__, csv.Error)
+    assert boi.preview(res) is None
 
 
 def test_server_errors_are_retried(boi, monkeypatch):
@@ -555,14 +580,14 @@ def test_selector_never_queues_a_provider_doc():
                           analysis_status="never", page_path=None,
                           metadata_modified=datetime(2026, 10, 29, tzinfo=UTC))
     store = SimpleNamespace(list_never_analyzed=lambda limit: [doc],
-                            list_failed_retryable=lambda limit, max_attempts: [],
+                            list_failed=lambda limit: [],
                             iter_changed_sources=lambda: iter([]))
     assert selector.pick_authoring_candidates(store, 10) == []
 
 
 def test_download_adds_boi_hebrew_series_names(boi):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
-    lines = boi.csv_bytes(_res(boi)).decode().splitlines()
+    lines = boi._capped(_res(boi))[0].decode().splitlines()
     assert lines[0].startswith("SERIES_CODE,SERIES_NAME_HE,FREQ")
     assert lines[1].startswith("MNT_RIB_BOI_D,ריבית בנק ישראל,D")
     assert any(ln.startswith('MNT_SHIR_D,"ריבית שי""ר",D') for ln in lines)
@@ -572,7 +597,7 @@ def test_unreadable_series_names_fail_the_download(boi):
     boi.answers["/BR/1.0/"] = FakeResp(200, BR_CSV.encode())
     boi.answers["names"] = FakeResp(200, b"{}", "application/json")
     with pytest.raises(ProviderError, match="series names"):
-        boi.csv_bytes(_res(boi))
+        boi._capped(_res(boi))[0]
 
 
 @pytest.mark.parametrize("url", ["javascript:alert(1)", "http://www.boi.org.il/",

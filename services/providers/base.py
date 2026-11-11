@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import ClassVar, Literal
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from services.shared.fetch_types import FetchLimitExceeded, FetchOutcome
 
@@ -128,6 +128,20 @@ class SourceConfig(BaseModel):
     config: dict = Field(default_factory=dict)
 
 
+class ProviderDatasetConfig(BaseModel):
+    """Base of every provider's `DatasetConfig`: no unknown keys, and the
+    subclass's `resources` list holds unique ids."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def _unique_ids(self):
+        ids = [r.id for r in self.resources]
+        if len(ids) != len(set(ids)):
+            raise ValueError("resource ids must be unique")
+        return self
+
+
 class ProviderResource(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -200,7 +214,7 @@ class SourceProvider(abc.ABC):
 
     def __init__(self, settings: ProviderSettings):
         self.settings = settings
-        # url → (normalized CSV, data row count), for one run.
+        # _cache_key → (normalized CSV, data row count), for one run.
         self._cache: dict[str, tuple[bytes, int]] = {}
         self._last_request = 0.0
         self._healthy: bool | None = None
@@ -246,17 +260,30 @@ class SourceProvider(abc.ABC):
         """One resource (a `ProviderResource` dict as stored on the source
         doc) in full, as raw CSV bytes. Raise ProviderError on failure."""
 
-    def csv_bytes(self, resource: dict) -> bytes:
-        """Normalized CSV, downloaded once per run: the sync step's version
-        probe and the refresh share it."""
-        return self._capped(resource)[0]
+    def _cache_key(self, resource: dict) -> str:
+        """What tells two resources' downloads apart (default: the URL). A
+        provider whose URL doesn't carry every download parameter adds them."""
+        return resource["url"]
 
     def _cached(self, resource: dict) -> tuple[bytes, int]:
-        url = resource["url"]
-        if url not in self._cache:
-            data, rows = normalize_csv(self.download(resource), self.sort_keys, count=True)
-            self._cache[url] = (data, rows)
-        return self._cache[url]
+        """Normalized CSV and its row count, downloaded once per run: the sync
+        step's version probe and the refresh share it.
+
+        A reply the parsing can't read (a null where a number goes, a string
+        where an object goes, a non-UTF-8 byte, a missing key, a CSV the reader
+        refuses) is a ProviderError like any other provider failure, so
+        preview/fetch turn it into a strike that escalates instead of a bare
+        exception the refresh only logs."""
+        key = self._cache_key(resource)
+        if key not in self._cache:
+            try:
+                self._cache[key] = normalize_csv(self.download(resource), self.sort_keys,
+                                                 count=True)
+            except (ValueError, KeyError, TypeError, IndexError,  # incl. UnicodeDecodeError
+                    AttributeError, csv.Error) as e:
+                raise ProviderError(f"{resource.get('id')}: unreadable answer from {self.key} "
+                                    f"({type(e).__name__}: {e})") from e
+        return self._cache[key]
 
     def _capped(self, resource: dict) -> tuple[bytes, int]:
         """`_cached`, refused over the provider's `max_bytes`. `version` reads
@@ -366,12 +393,11 @@ class SourceProvider(abc.ABC):
     # ── HTTP ─────────────────────────────────────────────────────────────
 
     def http_get(self, url: str, *, params: dict | None = None,
-                 ok: tuple[int, ...] = (200,),
                  headers: dict | None = None,
                  max_bytes: int | None = None) -> httpx.Response:
         """GET with the provider's timeout, politeness interval and retries
-        (on transport errors and 5xx/429). A status outside `ok` that isn't
-        retryable comes back to the caller as is. A body past `max_bytes`
+        (on transport errors and 5xx/429). Any other status comes back to the
+        caller as is. A body past `max_bytes`
         (default twice `settings.max_bytes`, so a series just over the cap
         still downloads and `version` still moves) raises ProviderTooLarge."""
         headers = {"User-Agent": self.settings.user_agent, **(headers or {})}
@@ -400,7 +426,7 @@ class SourceProvider(abc.ABC):
             except httpx.HTTPError as e:
                 last = e
             else:
-                if r.status_code in ok or not (r.status_code >= 500 or r.status_code == 429):
+                if not (r.status_code >= 500 or r.status_code == 429):
                     return r
                 last = ProviderError(f"HTTP {r.status_code}")
             if attempt >= self.settings.retries:
@@ -409,6 +435,17 @@ class SourceProvider(abc.ABC):
             attempt += 1
         raise ProviderError(f"GET {url} failed after {attempt + 1 + connect_stalls} "
                             f"attempts: {last}")
+
+    def get_json(self, url: str, *, source: str, headers: dict | None = None):
+        """`http_get` + JSON parse: a status other than 200 or a body that
+        isn't JSON is a ProviderError naming `source` and the URL."""
+        r = self.http_get(url, headers=headers)
+        if r.status_code != 200:
+            raise ProviderError(f"HTTP {r.status_code} from {source} for {url[:160]}")
+        try:
+            return r.json()
+        except ValueError as e:
+            raise ProviderError(f"{source} answered non-JSON for {url[:160]}: {e}") from e
 
     def _send(self, url: str, *, max_bytes: int, **kw) -> httpx.Response:
         """One GET on the shared client (the seam tests replace). The body is

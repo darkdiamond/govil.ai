@@ -273,18 +273,18 @@ def test_xls_and_xlsx_give_identical_grids():
 
 def test_xls_and_xlsx_give_byte_identical_csv(cbs):
     """Same table in a release that shipped .xlsx and one that shipped .xls."""
-    as_xlsx = cbs.csv_bytes(resource(cbs, table_cfg()))
+    as_xlsx = cbs._capped(resource(cbs, table_cfg()))[0]
     cbs.clear_cache()
     cbs.folders["2026/345"] = ["28_26_345t1.xls"]
     cbs.files["28_26_345t1.xls"] = XLS
     res = resource(cbs, table_cfg())
-    as_xls = cbs.csv_bytes(res)
+    as_xls = cbs._capped(res)[0]
     assert unquote(res["url"]).endswith(".xls")
     assert as_xls == as_xlsx
 
 
 def test_grid_cells_and_layout(cbs):
-    data = cbs.csv_bytes(resource(cbs, table_cfg()))
+    data = cbs._capped(resource(cbs, table_cfg()))[0]
     header = data.decode().splitlines()[0].split(",")
     assert header[:5] == ["RELEASE_NO", "RELEASE_DATE", "SHEET_NO", "SHEET", "ROW"]
     assert header[5:] == ["C01", "C02", "C03", "C04", "C05"]  # widest row, padded
@@ -304,7 +304,7 @@ def test_grid_cells_and_layout(cbs):
 
 
 def test_history_releases_stack_in_row_order(cbs):
-    g = rows(cbs.csv_bytes(resource(cbs, table_cfg(history=3))))
+    g = rows(cbs._capped(resource(cbs, table_cfg(history=3)))[0])
     assert [x["RELEASE_NO"] for x in g if x["ROW"] == "00001" and x["SHEET_NO"] == "01"] == [
         "277/2026", "309/2026", "345/2026"]  # oldest first (RELEASE_DATE sort)
     first = [x["ROW"] for x in g if x["RELEASE_NO"] == "345/2026" and x["SHEET_NO"] == "01"]
@@ -328,7 +328,7 @@ def test_optional_table_skips_editions_that_lack_it(cbs):
     cbs.folders["2026/309"] = ["28_26_309t2.xlsx"]  # middle edition has no t1
     res = resource(cbs, table_cfg(history=3, optional=True))
     assert res["params"]["optional"] is True
-    g = rows(cbs.csv_bytes(res))
+    g = rows(cbs._capped(res)[0])
     assert {x["RELEASE_NO"] for x in g} == {"345/2026", "277/2026"}
 
 
@@ -339,7 +339,7 @@ def test_optional_table_missing_everywhere_is_an_empty_grid(cbs):
         resource(cbs, table_cfg())  # a required table still fails the facts
     res = resource(cbs, table_cfg(history=2, optional=True))
     assert res["format"] == "HTML" and "/Pages/" in unquote(res["url"])  # the release page
-    data = cbs.csv_bytes(res)
+    data = cbs._capped(res)[0]
     assert data.decode().splitlines() == ["RELEASE_NO,RELEASE_DATE,SHEET_NO,SHEET,ROW,C01"]
     assert cbs.version(res).rows == 0
     assert cbs.preview(res)["total"] == 0
@@ -419,7 +419,7 @@ def test_grid_csv_with_no_rows_has_a_header():
 def test_releases_resource(cbs):
     cfg = {"report": REPORT,
            "resources": [{"id": "releases", "name": "פרסומים", "kind": "releases", "limit": 2}]}
-    g = rows(cbs.csv_bytes(resource(cbs, cfg)))
+    g = rows(cbs._capped(resource(cbs, cfg))[0])
     assert list(g[0]) == ["RELEASE_NO", "RELEASE_DATE", "TITLE", "HEADLINE", "PAGE_URL",
                           "REPORT_PDF_URL"]
     assert [x["RELEASE_NO"] for x in g] == ["309/2026", "345/2026"]

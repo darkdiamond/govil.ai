@@ -93,12 +93,22 @@ jobs:
 
       # News images (services/news); the publisher then writes the article
       # JSON next to them and removes directories of articles not live.
+      # A failed rsync fails the run: this directory isn't cached, so going on
+      # would deploy every article without its images. rsync errors on a
+      # source prefix with no objects, so a bucket with no news/ yet (a fork,
+      # a fresh project) is skipped by listing the bucket root first; a failed
+      # listing fails the run too (the assignment carries its exit status).
       - name: Fetch news images from staging
         run: |
           mkdir -p frontend/public/news
-          gcloud storage rsync "gs://${STAGING_BUCKET}/news/" frontend/public/news/ \
-            --recursive --delete-unmatched-destination-objects \
-            --exclude='.*\.json$|.*/index\.html$' || echo "no news images yet"
+          top="$(gcloud storage ls "gs://${STAGING_BUCKET}/")"
+          if grep -qxF "gs://${STAGING_BUCKET}/news/" <<<"$top"; then
+            gcloud storage rsync "gs://${STAGING_BUCKET}/news/" frontend/public/news/ \
+              --recursive --delete-unmatched-destination-objects \
+              --exclude='.*\.json$|.*/index\.html$'
+          else
+            echo "no gs://${STAGING_BUCKET}/news/ yet; no news images to fetch"
+          fi
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:

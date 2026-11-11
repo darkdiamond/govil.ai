@@ -40,6 +40,11 @@ def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
     return [s for s in signals if s.key not in used and s.dataset_id not in cool]
 
 
+def _strs(x) -> list[str]:
+    """The string entries of a model-given list (a nested list or object is skipped)."""
+    return [i for i in x if isinstance(i, str)] if isinstance(x, list) else []
+
+
 def _compact(s: Signal, catalog: dict) -> dict:
     cat = catalog.get(s.dataset_id, {})
     facts = {k: (round(v, 3) if isinstance(v, float) else v) for k, v in s.facts.items()}
@@ -75,11 +80,13 @@ def choose(llm, signals: list[Signal], catalog: dict, recent: list[dict], *,
                         temperature=0.3)
     briefs, seen_ds = [], set()
     for b in out.get("briefs") or []:
-        keys = [k for k in b.get("signal_keys") or [] if k in by_key]
+        if not isinstance(b, dict):
+            continue
+        keys = [k for k in _strs(b.get("signal_keys")) if k in by_key]
         if not keys:
             continue
         ds = list(dict.fromkeys([by_key[k].dataset_id for k in keys] +
-                                [d for d in b.get("dataset_ids") or [] if d in catalog]))
+                                [d for d in _strs(b.get("dataset_ids")) if d in catalog]))
         if seen_ds & set(ds[:1]):
             continue  # one story per lead dataset per day
         seen_ds.update(ds[:1])
@@ -115,7 +122,9 @@ def choose_features(llm, candidates: list[dict], recent: list[dict], *, max_brie
                         temperature=0.5)
     briefs, leads = [], set()
     for b in out.get("briefs") or []:
-        ds = list(dict.fromkeys(d for d in b.get("dataset_ids") or [] if d in known))
+        if not isinstance(b, dict):
+            continue
+        ds = list(dict.fromkeys(d for d in _strs(b.get("dataset_ids")) if d in known))
         if not ds or ds[0] in leads:
             continue
         leads.add(ds[0])

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 const faqs = [
   {
     q: "האם govil.ai הוא אתר ממשלתי רשמי?",
@@ -43,8 +44,8 @@ useSeo({
     "איך לדווח שגיאה",
   ],
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "שאלות ותשובות", url: "https://govil.ai/faq/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "שאלות ותשובות", url: `${SITE_URL}/faq/` },
   ],
   extraJsonLd: {
     "@context": "https://schema.org",

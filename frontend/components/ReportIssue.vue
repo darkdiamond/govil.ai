@@ -1,46 +1,29 @@
 <script setup lang="ts">
+import { useFormspreeSubmit } from "~/composables/useFormspreeSubmit";
+
 defineProps<{
-  datasetId: string
-  datasetTitle: string
-  pageUrl: string
-}>()
+  datasetId: string;
+  datasetTitle: string;
+  pageUrl: string;
+}>();
 
-const open = ref(false)
+const open = ref(false);
 
-type Status = 'idle' | 'sending' | 'sent' | 'error'
-const status = ref<Status>('idle')
-const errorMsg = ref('')
-
-async function onSubmit(e: Event) {
-  const form = e.target as HTMLFormElement
-  status.value = 'sending'
-  errorMsg.value = ''
-  try {
-    const res = await fetch(form.action, {
-      method: 'POST',
-      headers: { Accept: 'application/json' },
-      body: new FormData(form),
-    })
-    if (res.ok) {
-      status.value = 'sent'
-      form.reset()
-      return
-    }
-    const data = await res.json().catch(() => null) as { errors?: { message?: string }[] } | null
-    errorMsg.value = data?.errors?.[0]?.message || 'שליחה נכשלה. נסו שוב מאוחר יותר.'
-    status.value = 'error'
-  } catch {
-    errorMsg.value = 'בעיית חיבור. נסו שוב מאוחר יותר.'
-    status.value = 'error'
-  }
-}
+const { status, errorMsg, onSubmit } = useFormspreeSubmit();
 </script>
 
 <template>
   <section class="card p-4">
-    <h3 class="m-0 mb-2 text-sm text-subtle font-display">נתקלתם בבעיה בעמוד?</h3>
+    <h3 class="m-0 mb-2 text-sm text-subtle font-display">
+      נתקלתם בבעיה בעמוד?
+    </h3>
 
-    <div v-if="status === 'sent'" role="status" aria-live="polite" class="text-sm text-ink/85">
+    <div
+      v-if="status === 'sent'"
+      role="status"
+      aria-live="polite"
+      class="text-sm text-ink/85"
+    >
       תודה! הדיווח התקבל ונבדוק אותו בהקדם.
     </div>
 
@@ -65,7 +48,11 @@ async function onSubmit(e: Event) {
         class="space-y-3"
         @submit.prevent="onSubmit"
       >
-        <input type="hidden" name="_subject" :value="`דיווח על תקלה — ${datasetTitle}`" />
+        <input
+          type="hidden"
+          name="_subject"
+          :value="`דיווח על תקלה — ${datasetTitle}`"
+        />
         <input type="hidden" name="topic" value="דיווח על תקלה בעמוד" />
         <input type="hidden" name="dataset_id" :value="datasetId" />
         <input type="hidden" name="dataset_title" :value="datasetTitle" />
@@ -80,7 +67,10 @@ async function onSubmit(e: Event) {
         />
 
         <div>
-          <label :for="`report-message-${datasetId}`" class="block text-xs text-ink/85 mb-1">
+          <label
+            :for="`report-message-${datasetId}`"
+            class="block text-xs text-ink/85 mb-1"
+          >
             מה לא עובד? <span class="text-danger" aria-hidden="true">*</span>
           </label>
           <textarea
@@ -94,8 +84,12 @@ async function onSubmit(e: Event) {
         </div>
 
         <div>
-          <label :for="`report-email-${datasetId}`" class="block text-xs text-ink/85 mb-1">
-            דוא"ל <span class="text-subtle">(אופציונלי, אם תרצו שנחזור אליכם)</span>
+          <label
+            :for="`report-email-${datasetId}`"
+            class="block text-xs text-ink/85 mb-1"
+          >
+            דוא"ל
+            <span class="text-subtle">(אופציונלי, אם תרצו שנחזור אליכם)</span>
           </label>
           <input
             :id="`report-email-${datasetId}`"
@@ -106,7 +100,11 @@ async function onSubmit(e: Event) {
           />
         </div>
 
-        <p v-if="status === 'error'" class="text-xs text-danger m-0" role="alert">
+        <p
+          v-if="status === 'error'"
+          class="text-xs text-danger m-0"
+          role="alert"
+        >
           {{ errorMsg }}
         </p>
 
@@ -116,7 +114,7 @@ async function onSubmit(e: Event) {
             :disabled="status === 'sending'"
             class="btn-primary text-sm disabled:opacity-60 disabled:cursor-wait"
           >
-            {{ status === 'sending' ? 'שולח…' : 'שליחת דיווח' }}
+            {{ status === "sending" ? "שולח…" : "שליחת דיווח" }}
           </button>
           <button type="button" class="btn-ghost text-sm" @click="open = false">
             ביטול

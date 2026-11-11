@@ -88,7 +88,7 @@ landing pages. Six layers:
    the scan goes on; 20 in a row, or a listing failure, stop it. Either way
    the rest of the run goes ahead on the Firestore docs already there and
    ends `status: scan_failed`) →
-   **load the recipe list from git `main`** (`refresh.recipe_repo_from_env`,
+   **load the recipe list from git `main`** (`recipe_repo.recipe_repo_from_env`,
    `RECIPES_SOURCE`, default `github:<PUBLISH_GITHUB_REPO>@main`;
    prod sets `RECIPES_FETCH=tarball` (code default `files`): one archive
    download per run instead of 3+ GitHub requests per recipe, which cost
@@ -111,7 +111,10 @@ landing pages. Six layers:
    dispatch skipped — a healthy outcome). A due dispatch that comes back
    empty (no token, GitHub or Cloud Build refused it, an unknown
    `PUBLISH_VIA`) ends the run
-   `status: publish_failed`, non-zero: the pages stay staged, not live.
+   `status: publish_failed`, non-zero: the pages stay staged, not live,
+   and the `job_state/publish` marker (`pending`) makes every later run
+   dispatch (`status: ok`) until one succeeds (`--no-trigger-publish` and dry
+   runs leave it alone).
    One status per run, first match
    wins: `refresh_unavailable` → `refresh_failed` → `publish_failed` →
    `scan_failed` →
@@ -419,9 +422,9 @@ catalog` lists chapters → subjects → codes.
      article used (a rejected brief's included) in `signal_pool/` (news
      database, kept 14 days); on that IL weekday the run writes one `kind: digest`
      roundup of the week's strongest pooled signals (`digest.py`: ≥4, ≤6, one per
-     dataset, not used, not in cooldown, not suspect, not release-only), deduped
-     by its `digest:<ISO week>` key. It has its own slot (not capped by
-     `NEWS_MAX_PER_DAY`) and counts toward the floor.
+     dataset, not used, not in cooldown, not suspect, not release-only, no point
+     revised since pooled), deduped by its `digest:<ISO week>` key. It has its
+     own slot (not capped by `NEWS_MAX_PER_DAY`) and counts toward the floor.
    - every printed number is a ledger fact token (a typed or spelled-out
      number fails); links go only to our dataset pages and official
      gov.il / boi.org.il pages (quote-verified); hedged explanations need no
@@ -435,6 +438,9 @@ catalog` lists chapters → subjects → codes.
      a publish run. Rejected drafts: `admin list --rejected`.
    - spending is capped by the key's limit in OpenRouter + a GCP budget
      alert, not by code; a refused key ends the run `llm_unavailable`.
+   - an accepted story the store failed to save ends the run `store_failed`
+     (non-zero, after the stored ones are dispatched); an event story's also
+     holds the cursor.
 
 State: Firestore `sources/{id}` (per-dataset, incl. refresh state and
 `authoring_status`/`authoring_issue`), `scan_runs/{run_id}` (per
@@ -470,6 +476,7 @@ are still read by the authoring selector.
   to `frontend/public/icons/`.
 - **Pre-loaded dataset-page globals** (head scripts; see
   `frontend/utils/dataset-libs.ts` and `awaitDatasetLibs()` in
+  `frontend/utils/body-scripts.ts`, called by
   `frontend/pages/datasets/[slug].vue`): `echarts`, `L`,
   `L.markerClusterGroup`, and `GovExplorer` (in-house;
   `frontend/public/lib/gov-explorer.js`). Page bodies (recipe templates
@@ -519,7 +526,7 @@ are still read by the authoring selector.
      gate** — the old 30-day `REANALYZE_GAP_DAYS` is gone: any newer
      version means the page is stale, and only a recipe can refresh it.
      Streamed via `iter_changed_sources` (a fixed window would starve the
-     tail behind recipe'd daily-appenders), bounded by `CHANGED_SCAN_CAP`.
+     tail behind recipe'd daily-appenders), bounded by `selector.SCAN_CAP`.
      Never queued: sources a recipe owns, `authoring_status == "notified"`
      (issue already recorded — this is what makes the queue idempotent),
      and `restricted` / `unavailable` sources (no readable data).
@@ -568,7 +575,7 @@ are still read by the authoring selector.
 | ---------------------- | ------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pipeline orchestration | `services/page_builder/pipeline.py`                                                        | reconcile → scan → recipe list → refresh → authoring queue → trigger publish; `FAILED_RUN_STATUSES` → non-zero exit                                                                       |
 | Authoring queue        | `services/page_builder/selector.py`                                                        | `pick_authoring_candidates`: `new` / `legacy_updated` sources without a recipe, date gates, skip rules                                                                                    |
-| Recipe refresh         | `services/page_builder/refresh.py`                                                         | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                   |
+| Recipe refresh         | `services/page_builder/{refresh,recipe_repo}.py`                                           | Recipe repos (git main / local), `needs_refresh`, precheck fingerprints, fetch → compute → render → validate → stage, `queue_authoring`                                                   |
 | Providers (non-CKAN)   | `services/providers/{base,boi,registry,sync}.py`                                           | `SourceProvider` contract, Bank of Israel SDMX provider, enabled-by-env registry, source.json → `sources/<id>` sync                                                                       |
 | Recipe contract        | `services/page_builder/recipe.py`, `recipe_exec.py`                                        | `recipe.json` schema, input resolution, page-model validation, template render; the in-sandbox compute driver                                                                             |
 | GitHub issues          | `services/page_builder/notify.py`                                                          | Opens `needs-authoring` issues; `issue_state` (open / completed / not_planned) for dedup                                                                                                  |
@@ -617,7 +624,8 @@ are still read by the authoring selector.
   deleted — don't bring them back for "single-dataset invokes"; use
   `pipeline --source <id>` (locally or as a job `--args` override).
 - **Don't `--source=.` deploy without checking `.gcloudignore`.** It is
-  what keeps the upload at ~18MB instead of 1.8GB. The two filters do
+  what keeps the upload at about 4MB (`gcloud meta list-files-for-upload`,
+  2026-11-11) instead of the whole tree. The two filters do
   different jobs: `.gcloudignore` gates the UPLOAD, `.dockerignore` gates
   the IMAGE. Anything the Dockerfile COPYs must survive both. Both still
   exclude `tmp/` (authoring scratch: raw dataset rows, can include
@@ -640,7 +648,8 @@ are still read by the authoring selector.
   `frontend/pages/datasets/[slug].vue` reads all three artifacts at
   `nuxt generate` time and wraps them in the default layout via
   `v-html`. In SSG the `<script>` tags inside the body land in the
-  static HTML; on mount `executeBodyScripts` re-executes them
+  static HTML; on mount the page calls `executeBodyScripts`
+  (`frontend/utils/body-scripts.ts`), which re-executes them
   (on both initial hydration and SPA navigation) so ECharts/Leaflet
   render reliably even when Vue hydration resets the container DOM.
   **Don't gate that on `nuxtApp.isHydrating`.** It used to skip

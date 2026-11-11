@@ -1,6 +1,6 @@
 """A dataset's full tables, exactly as its recipe reads them — for the SQL tool.
 
-Same path as the refresh: the recipe from git main (`refresh.recipe_repo_from_env`),
+Same path as the refresh: the recipe from git main (`recipe_repo.recipe_repo_from_env`),
 the source's resources from Firestore, `refresh.fetch_inputs` (CKAN export,
 or the provider's fetchers for non-CKAN sources), then `recipe_exec.load_frames`
 (all-text columns). Loaded lazily, once per dataset per run, in a scratch dir

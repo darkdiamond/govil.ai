@@ -48,11 +48,19 @@ steps:
           "gs://${_STAGING_BUCKET}/datasets/" frontend/public/datasets/
         # News images (services/news); the publisher then writes the article
         # JSON next to them and removes directories of articles not live.
+        # A failed rsync fails the build (no images → broken articles). rsync
+        # errors on a source prefix with no objects, so a bucket with no news/
+        # yet (a fork, a fresh project) is skipped by listing the bucket root;
+        # a failed listing fails the build too (set -e on the assignment).
         mkdir -p frontend/public/news
-        gsutil -m rsync -r -d \
-          -x '.*\.json$|.*/index\.html$' \
-          "gs://${_STAGING_BUCKET}/news/" frontend/public/news/ \
-          || echo "no news images yet"
+        top="$(gsutil ls "gs://${_STAGING_BUCKET}/")"
+        if grep -qxF "gs://${_STAGING_BUCKET}/news/" <<<"$top"; then
+          gsutil -m rsync -r -d \
+            -x '.*\.json$|.*/index\.html$' \
+            "gs://${_STAGING_BUCKET}/news/" frontend/public/news/
+        else
+          echo "no gs://${_STAGING_BUCKET}/news/ yet; no news images to fetch"
+        fi
 
   # [2] Emit per-dataset data.json + agent_data.json + aggregated manifest.json
   #     from Firestore — single source of truth.
@@ -114,6 +122,10 @@ steps:
           npm config set fetch-retry-mintimeout 10000
           for i in 1 2 3; do
             npm ci --prefer-offline --no-audit && break
+            if [ "$i" -eq 3 ]; then
+              echo "npm ci failed 3 times; giving up" >&2
+              exit 1
+            fi
             echo "npm ci retry $i/3"
             sleep 10
           done

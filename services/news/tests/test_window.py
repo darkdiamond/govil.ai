@@ -179,11 +179,24 @@ def test_store_error_dispatches_the_stored_stories_and_keeps_the_cursor(live, mo
     monkeypatch.setattr(run, "write_day", lambda *_a, **_k: day)
     dispatched = []
     monkeypatch.setattr(run, "_dispatch_publish", lambda: dispatched.append(1) or "ok")
-    assert run.main(live) == 0
+    # The stored story goes out, but a store that fails every day must turn the job red.
+    assert run.main(live) == 1
     s = _summary(capsys)
-    assert s["status"] == "ok" and s["publish_dispatch"] == "ok" and dispatched == [1]
+    assert s["status"] == "store_failed" and s["publish_dispatch"] == "ok" and dispatched == [1]
     assert s["cursor_advanced"] is False
     assert _FakeArticles.cursor == CURSOR
+
+
+@pytest.mark.parametrize("part", [{"fill": {"published": 0, "store_errors": 1}},
+                                  {"digest": {"status": "store_error"}}])
+def test_store_error_in_a_fill_or_digest_fails_the_run_but_closes_the_window(live, monkeypatch,
+                                                                              capsys, part):
+    day = {"published": [], "candidates": 0, "briefs": 0, "skipped": [], "rejected": [],
+           "model_errors": 0, "store_errors": 0} | part
+    monkeypatch.setattr(run, "write_day", lambda *_a, **_k: day)
+    assert run.main(live) == 1
+    s = _summary(capsys)
+    assert s["status"] == "store_failed" and s["cursor_advanced"] is True
 
 
 @pytest.mark.parametrize("exc", [llm_mod.LLMUnavailable("key refused"), RuntimeError("boom")])

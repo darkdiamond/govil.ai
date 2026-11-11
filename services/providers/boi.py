@@ -22,10 +22,11 @@ from pathlib import Path
 from typing import ClassVar
 from urllib.parse import urlencode
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from .base import (
     Availability,
+    ProviderDatasetConfig,
     ProviderError,
     ProviderFacts,
     ProviderResource,
@@ -73,17 +74,8 @@ class BoiResource(BaseModel):
     startperiod: str | None = Field(None, pattern=r"^\d{4}(-\d{2}(-\d{2})?)?$")
 
 
-class BoiDatasetConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class BoiDatasetConfig(ProviderDatasetConfig):
     resources: list[BoiResource] = Field(min_length=1)
-
-    @model_validator(mode="after")
-    def _unique_ids(self):
-        ids = [r.id for r in self.resources]
-        if len(ids) != len(set(ids)):
-            raise ValueError("resource ids must be unique")
-        return self
 
 
 class BoiSdmxProvider(SourceProvider):

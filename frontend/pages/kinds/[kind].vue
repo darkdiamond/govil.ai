@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 import { buildDatasetLdSummary } from "~/composables/useDatasetLd";
 import { loadSearchIndex } from "~/utils/search-index";
 import hubIntros from "~/content/hub-intros.json";
@@ -35,7 +36,6 @@ if (entries.value.length === 0) {
   });
 }
 
-const SITE_URL = "https://govil.ai";
 const intro = computed(
   () => (hubIntros.kinds as Record<string, string>)[kind.value] ?? ""
 );

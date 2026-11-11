@@ -155,22 +155,27 @@ The image carries:
 - `frontend/node_modules` under `/opt/frontend-deps/` so `npm ci` is skipped
   on the fast path (falls back to `npm ci --prefer-offline` if
   `package-lock.json` has drifted from the image)
-- python 3.11 (Debian bookworm's python3) + the `services/page_builder/requirements.txt` deps
+- python 3.11 (Debian bookworm's python3) + the publisher's deps,
+  `services/page_builder/requirements-publish.txt` (the file `publish.yml`
+  installs too)
 - the Google Cloud SDK (provides `gsutil` for the rsync step)
 - `firebase-tools` globally
 
 Registered as a second Cloud Build trigger path-filtered to
-`infra/Dockerfile.publisher`, `frontend/package-lock.json`, and
-`services/page_builder/requirements.txt` — so the image only rebuilds when
-something it bundles actually changes. `infra/bootstrap.sh` prints the
-exact registration command alongside the publish-trigger command, plus a
-`gcloud builds triggers run` invocation to populate the `:latest` tag the
-first time.
+`infra/Dockerfile.publisher`, `frontend/package-lock.json`,
+`services/page_builder/requirements-publish.txt` and `.dockerignore` — so
+the image only rebuilds when something it bundles actually changes.
+`infra/bootstrap.sh` prints the exact registration command alongside the
+publish-trigger command, plus a `gcloud builds triggers run` invocation to
+populate the `:latest` tag the first time. (A trigger created before
+2026-11-11 still watches `services/page_builder/requirements.txt`: see
+`TODO.md`.)
 
-If you change `package-lock.json` or `requirements.txt` and merge before
-the image trigger fires, the publish build detects the drift and falls
-back to running `npm ci` inline — correct but slower; trigger a rebuild
-of the publisher image to restore the fast path.
+If you change `package-lock.json` and merge before the image trigger
+fires, the publish build detects the drift and falls back to running
+`npm ci` inline — correct but slower; trigger a rebuild of the publisher
+image to restore the fast path. A change to `requirements-publish.txt` has
+no such fallback: the Cloud Build path uses it once the image is rebuilt.
 
 ## Local development
 

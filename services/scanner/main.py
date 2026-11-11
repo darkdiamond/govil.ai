@@ -11,14 +11,14 @@ import asyncio
 import logging
 from datetime import UTC, datetime
 
+from services.shared.firestore import FirestoreStateStore
 from services.shared.resources import pick_primary_resource_id
 
 from .client import CKANClient, CKANError
 from .config import ScannerSettings, settings
 from .detector import ChangeDetector
 from .filters import DatasetFilter, create_filter
-from .models import DatasetStatus, ScanResult, ScanSummary
-from .state import StateDB
+from .models import DatasetStatus, ScanSummary
 
 log = logging.getLogger("scanner")
 
@@ -42,10 +42,10 @@ class Scanner:
     def __init__(
         self,
         config: ScannerSettings | None = None,
-        db: StateDB | None = None,
+        store: FirestoreStateStore | None = None,
     ):
         self.config = config or settings
-        self.db = db or StateDB()
+        self.store = store or FirestoreStateStore()
 
     async def scan(
         self,
@@ -61,8 +61,8 @@ class Scanner:
         per-dataset work (the package count, the listing itself) is recorded
         and re-raised. The `scan_runs` doc is closed either way."""
         summary = ScanSummary(started_at=datetime.now(UTC))
-        scan_id = self.db.start_scan(mode=mode)
-        detector = ChangeDetector(self.db)
+        scan_id = self.store.start_scan(mode=mode)
+        detector = ChangeDetector(self.store)
 
         log.info("scan start — limit=%d force=%s mode=%s", limit, force, mode)
 
@@ -120,7 +120,7 @@ class Scanner:
         errors = list(summary.errors)
         if summary.error_count > len(errors):
             errors.append(f"… and {summary.error_count - len(errors)} more")
-        self.db.complete_scan(
+        self.store.complete_scan(
             scan_id,
             sources_seen=summary.datasets_scanned,
             new=summary.datasets_new,
@@ -150,7 +150,7 @@ class Scanner:
                 except CKANError as exc:
                     # Left unassigned, so save_dataset keeps the stored count.
                     log.warning("record count unavailable for %s: %s", dataset.id[:8], exc)
-            self.db.save_dataset(dataset, status)
+            self.store.save_dataset(dataset, change_status=status.value)
         # Counted once the dataset's work is done, so a failed save isn't
         # reported as scanned.
         summary.datasets_scanned += 1
@@ -160,7 +160,6 @@ class Scanner:
             summary.datasets_updated += 1
         else:
             summary.datasets_unchanged += 1
-        summary.results.append(ScanResult(dataset=dataset, status=status))
 
 
 # ----- CLI (optional — only loaded if typer/rich are installed) --------------
@@ -235,8 +234,7 @@ if typer is not None:
     @app.command()
     def stats() -> None:
         """Show Firestore source-collection statistics."""
-        db = StateDB()
-        s = db.get_stats()
+        s = FirestoreStateStore().get_stats()
         table = Table(title="Source Collection Stats")
         table.add_column("Metric", style="cyan")
         table.add_column("Count", justify="right")
@@ -250,8 +248,7 @@ if typer is not None:
     @app.command()
     def history(limit: int = typer.Option(10, "--limit", "-l")) -> None:
         """Show recent scan runs."""
-        db = StateDB()
-        records = db.get_scan_history(limit=limit)
+        records = FirestoreStateStore().get_scan_history(limit=limit)
         if not records:
             console.print("[dim]No scan history found[/dim]")
             return

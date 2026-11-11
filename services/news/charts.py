@@ -118,12 +118,3 @@ def resolve(spec: dict, series_by_ds: dict[str, list[Series]], ledger: Ledger) -
         raise ChartError(f"chart {cid}: type must be line or bar")
     return {"id": cid, "type": kind, "title": title, "unit": unit, "option": option,
             "table": table, "dataset_ids": dsids}
-
-
-def main_series(spec: dict, series_by_ds: dict[str, list[Series]]) -> list[float]:
-    """The first line series' values — for the chart-card hero fallback."""
-    for r in spec.get("series") or []:
-        for s in series_by_ds.get(r.get("dataset_id"), []):
-            if s.path == r.get("series_path"):
-                return [v for _, v in s.complete[-60:]]
-    return []

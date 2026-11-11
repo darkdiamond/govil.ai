@@ -52,7 +52,7 @@ def _db(*, save_fails: set[int] | None = None, fail_all: bool = False):
     db.get_scan_state.return_value = (None, None)  # every dataset is NEW
     calls = {"n": 0}
 
-    def save(dataset, status):
+    def save(dataset, change_status):
         i = calls["n"]
         calls["n"] += 1
         if fail_all or (save_fails and i in save_fails):
@@ -64,7 +64,7 @@ def _db(*, save_fails: set[int] | None = None, fail_all: bool = False):
 
 def _scanner(monkeypatch, client_cls, db):
     monkeypatch.setattr(scanner_main, "CKANClient", client_cls)
-    return scanner_main.Scanner(config=settings, db=db)
+    return scanner_main.Scanner(config=settings, store=db)
 
 
 @pytest.mark.asyncio

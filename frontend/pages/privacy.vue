@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 const lastUpdated = "5 בנובמבר 2026";
 
 // Deployment-specific analytics ID (empty in forks/local builds — the
@@ -24,8 +25,8 @@ useSeo({
     "חוק הגנת הפרטיות",
   ],
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "מדיניות פרטיות", url: "https://govil.ai/privacy/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "מדיניות פרטיות", url: `${SITE_URL}/privacy/` },
   ],
 });
 </script>

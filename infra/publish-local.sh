@@ -150,13 +150,21 @@ else
   step_end
 
   # News images (services/news); the publisher then writes the article JSON
-  # next to them and removes directories of articles not live.
+  # next to them and removes directories of articles not live. A failed rsync
+  # stops the publish (no images → broken articles). rsync errors on a source
+  # prefix with no objects, so a bucket with no news/ yet (a fork, a fresh
+  # project) is skipped by listing the bucket root; a failed listing stops it
+  # too (set -e on the assignment).
   step_begin "syncing gs://$BUCKET/news/ -> frontend/public/news/"
   mkdir -p frontend/public/news
-  gsutil -m rsync -r -d \
-    -x '.*\.json$|.*/index\.html$' \
-    "gs://$BUCKET/news/" frontend/public/news/ \
-    || echo "no news images yet"
+  top="$(gsutil ls "gs://$BUCKET/")"
+  if grep -qxF "gs://$BUCKET/news/" <<<"$top"; then
+    gsutil -m rsync -r -d \
+      -x '.*\.json$|.*/index\.html$' \
+      "gs://$BUCKET/news/" frontend/public/news/
+  else
+    echo "no gs://$BUCKET/news/ yet; no news images to fetch"
+  fi
   step_end
 fi
 

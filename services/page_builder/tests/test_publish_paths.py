@@ -13,6 +13,7 @@ import json
 import re
 import subprocess
 import sys
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -172,3 +173,75 @@ def test_publisher_image_pins_match_the_primary_path():
     assert re.search(rf"firebase-tools@{re.escape(firebase)}\b", dockerfile), (
         f"Dockerfile.publisher must install firebase-tools@{firebase} (the lockfile's)"
     )
+
+
+def test_publisher_image_installs_the_primary_paths_requirements():
+    # Both paths run `services.page_builder.publish`; the fallback image must
+    # install the same requirements file publish.yml does, so the dependency
+    # set exercised every day is the one the fallback ships.
+    req = r"services/page_builder/requirements-publish\.txt"
+    workflow = (ROOT / ".github/workflows/publish.yml").read_text(encoding="utf-8")
+    assert re.search(rf"pip install\b[^\n]*-r\s+{req}", workflow)
+    dockerfile = (ROOT / "infra/Dockerfile.publisher").read_text(encoding="utf-8")
+    copied = re.findall(r"^COPY\s+(services/\S*requirements\S*\.txt)\s", dockerfile, re.MULTILINE)
+    assert copied == ["services/page_builder/requirements-publish.txt"], copied
+
+
+@pytest.mark.parametrize("rel", PATHS)
+def test_news_images_rsync_failure_fails_the_publish(rel):
+    # `frontend/public/news` is not cached between runs, so a swallowed rsync
+    # failure ships every live article with broken hero and og images. A
+    # missing `news/` prefix (a fork, a fresh project) is tolerated by an
+    # explicit existence check, never by `|| …` after the rsync itself.
+    lines = [line for line in _joined(rel).splitlines()
+             if _unquoted_match(MARKERS["news images rsync"], line)]
+    assert lines, f"{rel} lacks the news images rsync"
+    for line in lines:
+        assert not re.search(r"\|\|", line), (
+            f"{rel}: the news images rsync must fail the publish when it "
+            f"fails, not fall through `||`: {line.strip()}"
+        )
+
+
+def _npm_retry_loops(rel: str) -> list[str]:
+    """Each `for … done` loop (by matching indentation) that runs `npm ci`."""
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    loops = re.finditer(r"^([ \t]*)for\b[^\n]*\n(?:.*\n)*?\1done\b[^\n]*",
+                        text, re.MULTILINE)
+    return [textwrap.dedent(m.group(0)) for m in loops if "npm ci" in m.group(0)]
+
+
+def _run_loop(loop: str, tmp_path: Path, failures: int) -> subprocess.CompletedProcess:
+    # `npm` fails its first `failures` calls; `sleep` is a no-op.
+    script = (
+        "set -euo pipefail\n"
+        f"count={tmp_path / 'npm-calls'}\n"
+        "npm() { n=$(( $(cat \"$count\" 2>/dev/null || echo 0) + 1 )); "
+        "echo \"$n\" > \"$count\"; "
+        f"[ \"$n\" -gt {failures} ]; }}\n"
+        "sleep() { :; }\n"
+        f"{loop}\n"
+        "echo AFTER-LOOP\n"
+    )
+    return subprocess.run(["bash", "-c", script], check=False,
+                          capture_output=True, text=True)
+
+
+def test_npm_ci_retry_loops_fail_after_the_last_attempt(tmp_path):
+    # A retry loop's exit status is its last command's; ending on `sleep`
+    # carried a failed `npm ci` on to a misleading `npm run generate` error.
+    loops = [(rel, loop) for rel in PATHS for loop in _npm_retry_loops(rel)]
+    assert loops, "expected the npm ci retry loop in cloudbuild-publish.yaml"
+    for rel, loop in loops:
+        (tmp_path / "npm-calls").unlink(missing_ok=True)
+        always = _run_loop(loop, tmp_path, failures=10**6)
+        assert always.returncode != 0 and "AFTER-LOOP" not in always.stdout, (
+            f"{rel}: the npm ci retry loop goes on after its last failed attempt"
+        )
+        attempts = int((tmp_path / "npm-calls").read_text())
+        assert attempts > 1, f"{rel}: the npm ci loop no longer retries"
+        (tmp_path / "npm-calls").unlink()
+        late = _run_loop(loop, tmp_path, failures=attempts - 1)
+        assert late.returncode == 0 and "AFTER-LOOP" in late.stdout, (
+            f"{rel}: the npm ci loop fails even when its last attempt succeeds"
+        )

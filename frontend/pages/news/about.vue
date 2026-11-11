@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const SITE_URL = "https://govil.ai";
+import { SITE_URL } from "~/utils/paths";
 useSeo({
   title: "מערכת govil.ai: איך נכתבות החדשות | govil.ai",
   description:

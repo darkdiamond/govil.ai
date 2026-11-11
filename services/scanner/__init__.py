@@ -12,8 +12,7 @@ from .client import CKANClient
 from .config import ScannerSettings, settings
 from .detector import ChangeDetector
 from .filters import DatasetFilter, create_filter
-from .models import Dataset, DatasetStatus, Resource, ScanResult, ScanSummary
-from .state import StateDB
+from .models import Dataset, DatasetStatus, Resource, ScanSummary
 
 __all__ = [
     "CKANClient",
@@ -22,10 +21,8 @@ __all__ = [
     "DatasetFilter",
     "DatasetStatus",
     "Resource",
-    "ScanResult",
     "ScanSummary",
     "ScannerSettings",
-    "StateDB",
     "create_filter",
     "settings",
 ]

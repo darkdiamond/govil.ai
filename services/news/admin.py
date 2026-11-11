@@ -15,8 +15,7 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> int:
-    from .publish_news import LIVE
-    from .store import ARTICLES, REJECTS, FirestoreArticles
+    from .store import ARTICLES, LIVE_STATUSES, REJECTS, FirestoreArticles
 
     ap = argparse.ArgumentParser(prog="python -m services.news.admin")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -50,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         # A correction never decides whether the article is on the site.
         snap = st.db.collection(ARTICLES).document(a.slug).get()
         status = (snap.to_dict() or {}).get("status") if snap.exists else None
-        if status not in LIVE:
+        if status not in LIVE_STATUSES:
             print(f"correct: {a.slug} is {status or 'not found'}, not live; nothing changed "
                   "(republish it first to correct it on the site)", file=sys.stderr)
             return 1

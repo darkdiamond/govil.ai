@@ -10,6 +10,7 @@
 
 import type { ManifestEntry, SeoMeta, SlimEntry } from "~/types/manifest";
 import { buildLicenseLd, type LicenseLd } from "~/utils/dataset-license";
+import { datasetPath, SITE_URL } from "~/utils/paths";
 import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
 
 // Summary builders accept the slim search-index shape (collection pages no
@@ -19,7 +20,6 @@ import { publicResourceUrl, resourceFormat } from "~/utils/resource-url";
 // to the title.
 type LdSource = SlimEntry & { notes?: string; seo?: SeoMeta };
 
-const SITE_URL = "https://govil.ai";
 const GOV_IL = "https://www.gov.il";
 
 // "Organization", not the more precise "GovernmentOrganization": Google's
@@ -198,7 +198,7 @@ export function buildDatasetLdSummary(entry: LdSource): DatasetLdSummary {
   return {
     "@type": "Dataset",
     name: entry.title,
-    url: `${SITE_URL}/datasets/${encodeURI(entry.page_slug || entry.id)}/`,
+    url: `${SITE_URL}${datasetPath(entry)}`,
     description: datasetDescription(entry),
     license: buildLicenseLd(entry.license),
     creator: datasetCreator(entry),

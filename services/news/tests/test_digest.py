@@ -14,9 +14,17 @@ from services.shared.states import ArticleKind
 FRIDAY = datetime(2026, 11, 13, 6, 0, tzinfo=UTC)   # 08:00 in Israel
 
 
-def _sig(ds, score=1.0, period="2026-09", **facts):
-    return Signal(ds, "volume.y", "y", "M", period, "2026-09-30", 10.0, ["streak_up"], score,
-                  {"previous": {"period": "2026-08", "value": 9.0}} | facts, score=score)
+def _point(period):
+    """volume.y's value at `period` in the fixture every test dataset shares."""
+    s = next(x for x in _world()[0][MORT] if x.path == "volume.y")
+    return next(v for p, v in s.points if p.label == period)
+
+
+def _sig(ds, score=1.0, period="2026-09", value=None, **facts):
+    prev = f"2026-{int(period[-2:]) - 1:02d}"
+    return Signal(ds, "volume.y", "y", "M", period, f"{period}-28",
+                  _point(period) if value is None else value, ["streak_up"], score,
+                  {"previous": {"period": prev, "value": _point(prev)}} | facts, score=score)
 
 
 def _pool(*sigs):
@@ -25,6 +33,7 @@ def _pool(*sigs):
 
 def _world4():
     series, models, _sig0, cat = _world()
+    series[RATE] = series[RATE] + series[MORT]   # every test dataset has volume.y
     for ds in ("d3", "d4"):
         series[ds], models[ds] = series[MORT], models[MORT]
         cat[ds] = {"title": f"מאגר {ds}", "page_slug": ds, "tags": [], "organization": "x"}
@@ -191,3 +200,23 @@ def test_local_pool_round_trip_and_window(tmp_path):
     old = json.loads(p.read_text()) | {"pooled_at": (datetime.now(UTC) - timedelta(days=8)).isoformat()}
     p.write_text(json.dumps(old))
     assert store.read_pool(7) == []
+
+
+def test_signal_revised_or_gone_since_it_was_pooled_stays_out():
+    # The digest prints today's value beside the pooled change: a value the
+    # source revised since (CBS does), or a series or period no longer there,
+    # would put a stale change next to a fresh number.
+    series, _models, cat = _world4()
+    ok = [_sig(d) for d in (MORT, RATE, "d3", "d4")]
+    b = digest.brief(_pool(*ok), [], today=date(2026, 11, 13), cooldown_days=21,
+                     series_by_ds=series, catalog=cat)
+    assert b is not None and len(b["signals"]) == 4
+    revised = _sig("d4", value=_point("2026-09") + 0.5)
+    prev_revised = _sig("d4", previous={"period": "2026-08", "value": _point("2026-08") - 1})
+    gone_period = _sig("d4")
+    gone_period.period = "2030-01"
+    gone_series = _sig("d4")
+    gone_series.series_path = "volume.nope"
+    for bad in (revised, prev_revised, gone_period, gone_series):
+        assert digest.brief(_pool(*ok[:3], bad), [], today=date(2026, 11, 13), cooldown_days=21,
+                            series_by_ds=series, catalog=cat) is None, bad

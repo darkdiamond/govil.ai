@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { SITE_URL, tagPath } from "~/utils/paths";
 import type { NewsArticle, NewsIndexEntry } from "~/types/news";
 import { buildDatasetLibTags } from "~/utils/dataset-libs";
 import { loadArticle, loadNewsIndex, newsDate, safeHref } from "~/utils/news";
 
 const route = useRoute();
 const slug = String(route.params.slug);
-const SITE_URL = "https://govil.ai";
 
 // Runs at prerender AND in the browser on client-side navigation (see
 // utils/news.ts): every loader here must work in both. Tag slugs ship in
@@ -237,7 +237,7 @@ useSeo({
         <template v-for="t in article.tags" :key="t">
           <NuxtLink
             v-if="tagSlugs[t]"
-            :to="`/tags/${encodeURI(tagSlugs[t])}/`"
+            :to="tagPath(tagSlugs[t]!)"
             class="tag-chip"
             >{{ t }}</NuxtLink
           >

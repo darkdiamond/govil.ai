@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL, tagPath } from "~/utils/paths";
 import { loadSearchIndex } from "~/utils/search-index";
 
 useSeo({
@@ -7,8 +8,8 @@ useSeo({
     "כל הנושאים שמופיעים במאגרי המידע של ממשלת ישראל, מקובצים לפי תחום: תחבורה, מים, סביבה, בריאות, רווחה, משפט, כלכלה ועוד.",
   path: "/tags/",
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "נושאים", url: "https://govil.ai/tags/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "נושאים", url: `${SITE_URL}/tags/` },
   ],
 });
 
@@ -53,10 +54,6 @@ const groups = computed(() => data.value ?? []);
 const tagCount = computed(() =>
   groups.value.reduce((n, g) => n + g.tags.length, 0)
 );
-
-function tagHref(slug: string): string {
-  return `/tags/${encodeURI(slug)}/`;
-}
 </script>
 
 <template>
@@ -97,7 +94,7 @@ function tagHref(slug: string): string {
         <NuxtLink
           v-for="t in g.tags"
           :key="t.name"
-          :to="tagHref(t.slug)"
+          :to="tagPath(t.slug)"
           class="tag-chip hover:bg-brand-100 no-underline hover:no-underline inline-flex items-center gap-1.5"
         >
           <img src="/icons/tag.svg" alt="" class="w-3.5 h-3.5 opacity-80" />

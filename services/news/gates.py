@@ -27,6 +27,7 @@ from .fetch import official_source
 from .ledger import (
     FORMATS,
     LINK,
+    MONTHS,
     TOKEN,
     YEARLIKE,
     Ledger,
@@ -36,7 +37,7 @@ from .ledger import (
     spelled_numbers,
     stray_numbers,
 )
-from .series import MONTHS_HE, parse_period
+from .series import parse_period
 
 PROMPTS = Path(__file__).with_name("prompts")
 HEADLINE_MAX, DEK_MAX = 95, 180
@@ -57,12 +58,11 @@ PUNCTUATION = [
     (re.compile("…|\\.\\.\\."), "no ellipses"),
     (re.compile(r"[\U0001F300-\U0001FAFF☀-➿]"), "no emoji or symbols"),
 ]
-_MONTHS = "ינואר|פברואר|מרץ|מרס|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר"
 # Tautologies the first real drafts leaned on (2026-11-09 dry runs), and raw
 # source units a reader shouldn't see.
 PATTERNS = [
     (re.compile(r"(?:19|20)\d\d\s+אשתקד"), "a year plus אשתקד — one or the other"),
-    (re.compile(rf"(?:{_MONTHS})\s+(?:19|20)\d\d\s+(?:הנוכחי|האחרון|הקרוב|שעבר)"),
+    (re.compile(rf"(?:{MONTHS})\s+(?:19|20)\d\d\s+(?:הנוכחי|האחרון|הקרוב|שעבר)"),
      "month + year + הנוכחי/האחרון — the date already says it"),
     (re.compile(r"ועד כה|ועד היום|ומאז החל|באותה תקופה"), "filler after a date"),
     (re.compile(r"אלפי (?:שקלים|ש\"ח|ש״ח)"), "thousands of shekels — scale to millions/billions (calc scale)"),
@@ -82,7 +82,7 @@ _YEAR_SPAN = re.compile(r"(?:19|20)\d\d[/–-]\d\d")
 _Y = r"(?:1[89]\d\d|20\d\d)"
 _PERIOD_LABEL = re.compile(
     rf"{_Y}|{_Y}-(?:0[1-9]|1[0-2])|{_Y}[- ]?Q[1-4]|Q[1-4][- ]?{_Y}|{_Y}-\d\d-\d\d"
-    rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{'|'.join(MONTHS_HE)}|מרס)\s+{_Y}",
+    rf"|\d{{1,2}}[./]\d{{1,2}}[./]{_Y}|(?:{MONTHS})\s+{_Y}",
     re.IGNORECASE)
 _PER_N = re.compile(r"(?<![א-ת])(?:ל-?|לכל\s+)(?:10|100|1,?000|10,?000|100,?000)"
                     r"(?=\s+(?!(?:אלף|אלפי|מיליון|מיליוני|מיליארד)(?![א-ת]))[א-ת])")
@@ -128,15 +128,26 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         draft = {**draft, key: kept}
     draft = {**draft, "tags": [t for t in draft.get("tags") or [] if isinstance(t, str)]
              if isinstance(draft.get("tags"), list) else []}
+    if not isinstance(draft.get("dataset_ids") or [], list):
+        problems.append("dataset_ids: must be a list")
+        draft = {**draft, "dataset_ids": []}
+    if not isinstance(draft.get("slug_en") or "", str):
+        problems.append("slug_en: must be a string")
+        draft = {**draft, "slug_en": ""}
+    if any(not isinstance(s.get("id"), str) for s in draft["sources"]):
+        problems.append("sources: every id must be a string")
+        draft = {**draft, "sources": [s for s in draft["sources"] if isinstance(s.get("id"), str)]}
 
     def href(ds):
         if ds in catalog:
             return f"/datasets/{catalog[ds].get('page_slug') or ds}/"
         return f"/datasets/{ds}/" if ds in series_by_ds else None
 
-    def text(field_name: str, s, *, numbers_ok=False) -> tuple[list[dict], str]:
+    def text(field_name: str, s, *, scale_ok: bool = False) -> tuple[list[dict], str]:
+        # scale_ok: a field that labels a printed value (chart title, unit,
+        # series name, the stat's label), where "מיליון ש\"ח" is its scale.
         s = str(s or "")
-        if not numbers_ok and (bad := stray_numbers(s)):
+        if bad := stray_numbers(s):
             # A year has no fact token: telling the writer to use one gives it
             # nothing to fix (the 2026-11-09 live story died on exactly that).
             years = [b for b in bad if YEARLIKE.fullmatch(b)]
@@ -148,7 +159,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
                     f"{field_name}: years without date context {years[:5]} — write the year as "
                     "a date ('בשנת 2025', 'ב-2025', after a month name, 'מאז 2019', a range "
                     "'2019–2025'); if it is a count that only looks like a year, use a fact token")
-        if not numbers_ok and (bad := spelled_numbers(s)):
+        if bad := spelled_numbers(s, scale_ok=scale_ok):
             problems.append(f"{field_name}: quantities spelled in words {bad[:3]} — a number from "
                             "data needs a fact token; one from a source needs that source linked "
                             "and quoted, or leave it out")
@@ -161,9 +172,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     # joins the punctuation and banned-phrase scan below.
     printed: list[str] = []
 
-    def raw_field(field_name: str, s, chart: str | None = None) -> None:
+    def raw_field(field_name: str, s, chart: str | None = None, *, scale_ok: bool = False) -> None:
         s = str(s or "")
-        text(field_name, _chart_numbers_text(s, chart) if chart else s)
+        text(field_name, _chart_numbers_text(s, chart) if chart else s, scale_ok=scale_ok)
         if TOKEN.search(s) or LINK.search(s):
             problems.append(f"{field_name}: no fact tokens or links here")
         printed.append(s)
@@ -190,17 +201,20 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     for spec in (draft.get("charts") or [])[:MAX_CHARTS + 1]:
         try:
             c = charts_mod.resolve(spec, series_by_ds, ledger)
+            if c["id"] in chart_ids:  # the page keys charts by id: the second would replace the first
+                problems.append(f"charts: duplicate chart id {c['id']}")
+                continue
             charts_out.append(c)
             chart_ids.add(c["id"])
             # The strings the chart prints, fallbacks included (a bar with no
             # label prints its fact's label, which the model can write too).
             cname = f"chart {c['id']}"
-            raw_field(f"{cname} title", c["title"])
-            raw_field(f"{cname} unit", c["unit"], "unit")
+            raw_field(f"{cname} title", c["title"], scale_ok=True)
+            raw_field(f"{cname} unit", c["unit"], "unit", scale_ok=True)
             if c["type"] == "line":
                 for j, (r, ser) in enumerate(zip(spec["series"], c["option"]["series"], strict=True)):
                     own = "" if r.get("name") else " (the series' own name: give it an explicit name)"
-                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label")
+                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label", scale_ok=True)
                 for x in dict.fromkeys(c["option"]["xAxis"]["data"]):
                     raw_field(f"{cname} x label", x, "label")
             else:
@@ -235,19 +249,19 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             body_text.append(htxt)
         elif kind == "chart":
             cid = b.get("chart")
-            if cid not in chart_ids:
-                problems.append(f"block {i}: unknown chart {cid}")
+            if not isinstance(cid, str) or cid not in chart_ids:
+                problems.append(f"block {i}: unknown chart {str(cid)[:40]}")
             else:
                 placed.add(cid)
                 blocks.append({"type": "chart", "chart": cid})
         elif kind == "stat":
             stats += 1
-            f = ledger.facts.get(b.get("fact"))
-            _, label = text(f"block {i} label", b.get("label"))
+            f = ledger.facts.get(b["fact"]) if isinstance(b.get("fact"), str) else None
+            _, label = text(f"block {i} label", b.get("label"), scale_ok=True)
             printed.append(label)
             sfmt = b.get("fmt") or None
             if f is None:
-                problems.append(f"block {i}: unknown fact {b.get('fact')}")
+                problems.append(f"block {i}: unknown fact {str(b.get('fact'))[:40]}")
             elif sfmt is not None and sfmt not in FORMATS:
                 problems.append(f"block {i}: format {str(sfmt)[:40]!r} is not one of {list(FORMATS)}")
             else:
@@ -296,8 +310,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         if m := rx.search(every):
             problems.append(f"punctuation: «{every[max(0, m.start() - 15):m.end() + 15]}» — {why}")
 
-    quotes = {s.get("id"): str(s.get("quote") or "") for s in draft.get("sources") or []
-              if isinstance(s, dict)}
+    quotes = {s["id"]: str(s.get("quote") or "") for s in draft["sources"]}
     sources = []
     for sid in sorted(linked_sources, key=lambda x: int(x[1:]) if x[1:].isdigit() else 0):
         src = ledger.sources.get(sid)

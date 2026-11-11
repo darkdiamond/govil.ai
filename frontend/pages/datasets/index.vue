@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { SITE_URL } from "~/utils/paths";
 import { useFacets } from "~/composables/useManifest";
 import type { SlimEntry } from "~/types/manifest";
 import { loadSearchIndex } from "~/utils/search-index";
@@ -10,8 +11,8 @@ useSeo({
     "סיור, חיפוש וסינון של כל מאגרי המידע הציבוריים של ממשלת ישראל — לפי משרד, פורמט ותגיות.",
   path: "/datasets/",
   breadcrumbs: [
-    { name: "ראשי", url: "https://govil.ai/" },
-    { name: "מאגרים", url: "https://govil.ai/datasets/" },
+    { name: "ראשי", url: `${SITE_URL}/` },
+    { name: "מאגרים", url: `${SITE_URL}/datasets/` },
   ],
 });
 

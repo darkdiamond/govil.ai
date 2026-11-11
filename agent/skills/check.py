@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Self-check for agent-emitted content.html + agent_data.json.
+"""Page gate for a rendered content.html + agent_data.json.
 
-Invoked by the agent before end_turn:
-    python3 /workspace/check.py content.html agent_data.json
+    python3 check.py [--recipe] content.html agent_data.json
 
 Exits 0 with "OK" on success; non-zero with a one-line diagnostic on
-failure. The agent fixes the offending file and re-runs.
+failure (the refresh then fails the render and keeps the last-good page).
 
 This script is the single source of truth for the post-output rules
 listed in the system prompt. The publisher's `_sanitize_content_html`

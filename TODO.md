@@ -433,6 +433,48 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   template literal (autoescape doesn't touch a backtick or `${`): switch it to
   `{{ model.v|tojson }}` so the test doesn't model a pattern recipes must not copy. (2026-11-11)
 
+- **check.py's non-recipe mode has no production caller.** Since the agent builder was retired,
+  every caller passes `--recipe` (`refresh.py` via `page_gate.run_host_check(..., recipe=True)`),
+  so `check_percent_consistency` (the one rule gated on `not recipe`), the `--recipe` flag and
+  `run_host_check`'s `recipe=False` default are dead; only one test (`test_local_sandbox.py`)
+  still runs that mode. Removing it is safe. check.py is folded into the failure-lock hash
+  (`_builder_code_hash`, not the render-code hash), so it retries every locked source once after
+  the deploy: do it in a builder-code change that moves that hash anyway. (2026-11-11)
+
+- **`by_schema` drops same-named resources of the same format.** `select_prefetch_resources`
+  (`services/shared/resources.py`) collapses resources whose normalized names match, meant for
+  CSV/XLSX twins, but it also drops a second CSV with the same name: three monthly CSVs all named
+  `דוח חודשי` resolve to one, with no error, and `author prepare` hides them the same way. Fix:
+  collapse only when the formats differ. It can change what existing pages read, so first list
+  the recipes whose match set would grow (needs the live `sources/*` docs). (2026-11-11)
+- **`author prepare` fetches with different caps than the refresh.** `author.py` `prepare` passes
+  `_DEFAULT_PAGE_SIZE` (ignores `REFRESH_PAGE_SIZE`), takes its wall budget from
+  `_PREPARE_WALL_S` (not `REFRESH_WALL_BUDGET_S`) and applies no `REFRESH_TOTAL_BYTES` budget
+  across inputs, so a recipe can pass authoring and fail `too_large` in the job. Fix: decide
+  which differences are meant, and take the rest from `refresh.resolved_limits`. (2026-11-11)
+- **A typo in `SCAN_LIMIT`, `AUTHORING_NOTIFY_CAP`, `MAX_AGE_DAYS` or `MIN_MODIFIED_FLOOR`
+  crashes the run.** `PipelineSettings.from_env` (`pipeline.py`) parses them with bare `int()` /
+  `fromisoformat`, while `RECONCILE_WEEKDAY` warns and uses its default. Fix: pick one behaviour
+  (a loud failure is defensible for a floor date) and use `shared.env.env_int` where a default
+  is safe. (2026-11-11)
+- **`refresh_one`'s crash branch omits `elapsed_s`.** The generic `except Exception` outcomes
+  (`STAGE_FAILED` and `ERROR`) don't set it; every other outcome does, so the `refresh_outcome`
+  log line lacks the duration exactly for the runs worth timing. (2026-11-11)
+- **The Hebrew maqaf glues words in slugs.** `services/shared/slug.py` strips U+0591-U+05C7 as
+  niktud before the maqaf (U+05BE) rule can split on it, so "תל־אביב" becomes `תלאביב`. A fix
+  changes `page_slug` for every title with a maqaf: count them in the manifest first and rely
+  on the slug-redirect map. (2026-11-11)
+- **`map_backfill open` comments again on every re-run.** An issue it opened is found on the
+  next run, classified `comment`, and gets the same text posted again
+  (`services/page_builder/map_backfill.py`). Fix: skip when the issue already holds the map
+  details. (2026-11-11)
+- **The live `govdata-publisher-image` trigger still watches the old requirements file.**
+  `infra/Dockerfile.publisher` installs `requirements-publish.txt` since 2026-11-11 and
+  `infra/bootstrap.sh` prints the matching `--included-files`, but the trigger that exists in
+  GCP was created with `services/page_builder/requirements.txt`. Fix: update the trigger's
+  included files (`gcloud builds triggers update`), or an edit to the publish requirements
+  won't rebuild the image. (2026-11-11)
+
 ## CBS reports (cbs_releases provider)
 
 - **Yearly CBS reports (~50) have no pages.** Run `catalog --months 38` to find the ones
@@ -540,11 +582,6 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   that ~1,100 rules are accepted before relying on growth beyond that. (2026-10-30)
 - **Stale Firestore fields.** `sources/<id>.embedding` (Voyage, removed) is still on the docs
   that had it; nothing reads it. A one-off cleanup would shrink the docs. (2026-10-30)
-- **`executeBodyScripts` has no test.** It lives inside `pages/datasets/[slug].vue`, out of
-  reach of the `node --test` suite, so a change that re-wraps `<script type="application/json">`
-  data blocks in the IIFE (PR #272's bug: blank map on d9b1e04c) would pass CI. Move the
-  script-type check (or the whole function) to `frontend/utils/` and test that data blocks are
-  left untouched and every JS type is re-created. (2026-10-31)
 
 ## Frontend
 
@@ -605,6 +642,28 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   time a same-day update can show or hide the icon wrongly. Fix: compare Asia/Jerusalem days.
   (2026-11-11)
 
+- **List pages ship every card twice.** `/datasets/` is 1.29MB of HTML (139KB brotli): 590
+  server-rendered cards plus the 559KB slim index inlined as payload; `/kinds/registry/` is
+  668KB. Hub payloads carry whole `SlimEntry` objects though `DatasetCard` reads a few fields.
+  Fix, in rising effort: project hub payloads to card fields, render only the first ~60 cards
+  with "show more", or make the card lists server-only components. Header search also fetches
+  the index again on `/datasets/` (seed `searchIndexCache` from the page's data). (2026-11-11)
+- **`firebase.json` commits ~2,800 lines of redirects that every deploy overwrites.**
+  `gen-redirects.mjs` rewrites `hosting.redirects` from the manifest, and `publish-local.sh`
+  leaves the tracked file modified in the main checkout. Fix: commit `"redirects": []` and
+  deploy from a generated, untracked config (`firebase deploy --config`). (2026-11-11)
+- **`gov-explorer.js` is ~300 lines behind a no-op.** `normalizeAgentBody` strips every legacy
+  explorer section, so `GovExplorer.create` always returns at its missing-container check (15
+  of 555 bodies call it, all stripped, on a 2026-10-30 corpus copy). Fix: re-check against the
+  current GCS corpus, then replace the file with a stub `create`. (2026-11-11)
+- **Small accessibility and markup gaps.** Header search: Escape and arrows work only while the
+  input has focus, and the highlighted result isn't exposed (`aria-activedescendant`).
+  `/datasets/` filter buttons lack `aria-pressed` and the search input has no label text. Every
+  page's `WebSite` JSON-LD carries that page's description (`useSeo.ts`). (2026-11-11)
+- **A failed manifest read sticks for the whole build.** `loadFullManifestServer` caches the
+  rejected promise, so one transient read error fails every later page of the same
+  `nuxt generate`. Fix: clear the cache on rejection. (2026-11-11)
+
 ## Dependencies
 
 - **ECharts 6 migration.** The moderate ECharts advisory is fixed only in 6.x, a major bump for
@@ -628,6 +687,14 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   path runs `services.page_builder.publish` on a different interpreter than the one CI tests.
   Fix: install 3.12 in the image (e.g. copy it from `python:3.12-slim`, or `uv python install`).
   (2026-11-11)
+
+- **Two unused frontend packages.** `lucide-vue-next` (icons are static SVGs in
+  `public/icons/`) and `@types/leaflet` have no import. Remove both and refresh the lockfile
+  from the main checkout. (2026-11-11)
+- **The builder image still installs `curl`.** `Dockerfile` kept it from the retired agent
+  runtime; no code under `services/` or `agent/` calls it, and it is one more binary the
+  sandboxed `compute.py` can reach. Fix: drop it after checking no deploy or debug step relies
+  on it. (2026-11-11)
 
 ## Validation speed
 
@@ -746,3 +813,31 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   `infra/news-iam.setup.sh`, keeps whatever rules it was created with. Fix: list both databases
   in `firebase.json`'s `firestore` config with the same rules file and deploy them with
   `firebase deploy --only firestore:rules`. (2026-11-11)
+
+- **An oversized article or reject document can't be stored.** `ledger.dump()` (every fact any
+  tool call registered, not only the printed ones) goes into `body_json`; about 13 full SQL
+  results reach Firestore's 1MiB document limit. Since 2026-11-11 a failed reject write no
+  longer costs the day, but an accepted article that large fails every run
+  (`status: store_failed`). Fix: store only the facts the article references (plus their
+  `calc` ancestors), or cap the ledger and tools log by size. (2026-11-11)
+- **A live run goes ahead with an empty catalog.** `catalog.py` fails soft to `{}`, so a live
+  run then writes with no titles, publishers, demand or explainer candidates and still closes
+  its window. Fix: in live mode treat an unreadable catalog as a failed run. (2026-11-11)
+- **`calc` combines any two facts.** `ledger.py` `sum`/`diff`/`ratio` accept a count and a
+  percent, or facts of two datasets, and the result is a valid token. Fix: refuse `sum`/`diff`
+  across differing `unit` or `dataset_id`, and show calc provenance to the critic. (2026-11-11)
+- **Watch the stricter number gate's reject rate.** Since 2026-11-11 the gate also fails
+  quantities in words ("חמש מאות דירות", "פי שלושה", "חצי מהתושבים", a bare "מיליון שקלים") and
+  thresholds or clock times in words. Compare `admin list --rejected` for the two weeks after
+  the deploy with the two before; if stories die on phrasing the writer can't tokenize,
+  loosen that rule in `ledger.spelled_numbers`. (2026-11-11)
+- **"מאות אלפי" fails the number gate though the writer prompt allows vague magnitudes.**
+  `_SPELLED` (`services/news/ledger.py`) reads "מאות אלפי נוסעים" and "מאות מיליוני שקלים" as a
+  number word plus a unit, and "לכל מאה אלף תושבים" the same way, while the prompts say words
+  like "עשרות" and "אלפי" are fine. Fix: decide whether these are vague (a lookahead in
+  `_SPELLED`) or figures (say so in `prompts/writer.md` and `style_he.md`). (2026-11-11)
+- **The scanner no longer retries a 4xx, and data.gov.il's edge can turn an origin error into
+  a 404 page.** A CKAN 409 was seen arriving as an HTTP 404 HTML page on 2026-11-11. If an
+  origin 5xx is rewritten the same way, `package_search` fails on the first try and the scan
+  ends `scan_failed` (the next run retries). Fix: capture what a real origin 5xx looks like
+  from Cloud Run; if it is masked, retry a 404 whose body is not CKAN JSON. (2026-11-11)

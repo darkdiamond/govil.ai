@@ -1,15 +1,16 @@
 # Build context uploaded by `gcloud run jobs deploy --source=.`
 # (infra/builder-job.deploy.sh).
 #
-# Without this file gcloud uploads the entire working tree — 1.8GB here, which
-# stalls the deploy long before Cloud Build ever starts. Note that
+# Without this file gcloud uploads the entire working tree (gigabytes, with
+# node_modules, tmp/ and worktrees), which stalls the deploy long before
+# Cloud Build ever starts. Note that
 # .dockerignore does NOT help: it is applied by the builder, after the upload.
 #
 # Keep in mind these are different filters with different jobs:
 #   .gcloudignore  — what gets UPLOADED to Cloud Build
 #   .dockerignore  — what gets into the IMAGE from what was uploaded
-# Anything the Dockerfile COPYs must survive both. Today that is services/
-# and agent/skills/check.py.
+# Anything the Dockerfile COPYs must survive both. Today that is services/,
+# taxonomy/ and agent/skills/check.py.
 
 .git/
 .github/
@@ -36,12 +37,33 @@ tmp/
 # that PII into the image.
 services/page_builder/harness-comparison/
 
-# Node/Nuxt build products. frontend/ SOURCE is kept: the legacy
-# cloudbuild-publish.yaml path builds the publisher image from it.
+# Only the two `--source=.` deploys read this file, and both build the root
+# Dockerfile, which COPYs nothing from frontend/. The Cloud Build triggers
+# (cloudbuild-publish.yaml, cloudbuild-publisher-image.yaml) clone the repo
+# and never see this file. frontend/ SOURCE is still uploaded (about 1MB) so
+# a hand-run `gcloud builds submit` of either config keeps working. What is
+# dropped below is generated or downloaded locally and gitignored, so no
+# build reads it from the checkout: the publish steps fetch or write it.
 frontend/node_modules/
 frontend/.output/
 frontend/.nuxt/
 node_modules/
+# Vite dep cache (vite.cacheDir).
+frontend/.cache/
+# Symlink to .output/public. No trailing slash, so the link itself matches.
+frontend/dist
+# Written by the publisher, copy-libs.mjs and the GCS rsync at publish time.
+frontend/public/data/
+frontend/public/datasets/
+frontend/public/lib/
+frontend/public/news/
+
+# Recipes are read from git main at run time (RECIPES_SOURCE), and no
+# Dockerfile COPYs recipes/ (about 19MB of the upload before this line).
+recipes/
+# Docs and lint cache: not build inputs.
+docs/
+.ruff_cache/
 
 .env
 .env.local

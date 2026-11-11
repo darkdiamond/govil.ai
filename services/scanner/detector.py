@@ -5,18 +5,18 @@ It only answers "is this dataset new / updated / unchanged?" (the recipe
 refresh fetches resource data itself).
 """
 
+from services.shared.firestore import FirestoreStateStore
 from services.shared.states import AnalysisStatus
 
 from .models import Dataset, DatasetStatus
-from .state import StateDB
 
 
 class ChangeDetector:
-    def __init__(self, db: StateDB):
-        self.db = db
+    def __init__(self, store: FirestoreStateStore):
+        self.store = store
 
     def detect_status(self, dataset: Dataset, force: bool = False) -> DatasetStatus:
-        stored_modified, stored_status = self.db.get_scan_state(dataset.id)
+        stored_modified, stored_status = self.store.get_scan_state(dataset.id)
 
         if stored_modified is None:
             return DatasetStatus.NEW

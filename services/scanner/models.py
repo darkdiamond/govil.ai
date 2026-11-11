@@ -124,16 +124,6 @@ class Dataset(BaseModel):
         )
 
 
-class ScanResult(BaseModel):
-    """Result of scanning a single dataset."""
-    dataset: Dataset
-    status: DatasetStatus
-    error: str | None = None
-
-    class Config:
-        use_enum_values = True
-
-
 class ScanSummary(BaseModel):
     """Summary of a complete scan run."""
     started_at: datetime
@@ -144,4 +134,3 @@ class ScanSummary(BaseModel):
     datasets_unchanged: int = 0
     errors: list[str] = Field(default_factory=list)  # first MAX_ERRORS_KEPT only
     error_count: int = 0
-    results: list[ScanResult] = Field(default_factory=list)
