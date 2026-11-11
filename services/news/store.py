@@ -26,7 +26,7 @@ ARTICLES, REJECTS = "articles", "article_rejects"
 STATE, CURSOR = "news_state", "cursor"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
-               "critic_scores", "correction")
+               "critic_scores", "correction", "kind")
 BODY_FIELDS = ("blocks", "charts", "sources", "ledger")
 
 

@@ -205,7 +205,8 @@ useSeo({
         class="block w-full h-full aspect-[16/9] object-cover"
       />
       <div class="p-5 sm:p-8 flex flex-col justify-center gap-4">
-        <div class="text-sm text-subtle flex flex-wrap gap-x-3">
+        <div class="text-sm text-subtle flex flex-wrap items-center gap-x-3">
+          <NewsKindBadge :kind="lead.kind" />
           <span v-if="lead.topic" class="text-brand-700 font-medium">{{
             lead.topic.label
           }}</span>

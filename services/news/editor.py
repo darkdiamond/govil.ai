@@ -12,10 +12,12 @@ import logging
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from .kinds import ArticleKind
 from .signals import Signal
 
 log = logging.getLogger(__name__)
 PROMPT = Path(__file__).with_name("prompts") / "editor.md"
+FEATURES_PROMPT = Path(__file__).with_name("prompts") / "features.md"
 
 
 def eligible(signals: list[Signal], recent: list[dict], *, cooldown_days: int,
@@ -76,10 +78,46 @@ def choose(llm, signals: list[Signal], catalog: dict, recent: list[dict], *,
         if seen_ds & set(ds[:1]):
             continue  # one story per lead dataset per day
         seen_ds.update(ds[:1])
-        briefs.append({"signal_keys": keys, "dataset_ids": ds,
+        briefs.append({"kind": ArticleKind.NEWS, "signal_keys": keys, "dataset_ids": ds,
                        "angle_he": str(b.get("angle_he") or ""), "why_now_he": str(b.get("why_now_he") or ""),
                        "questions": [str(q) for q in b.get("questions") or []][:6],
                        "signals": [by_key[k] for k in keys]})
         if len(briefs) >= max_briefs:
             break
     return briefs, [s for s in out.get("skipped") or [] if isinstance(s, dict)]
+
+
+def choose_features(llm, candidates: list[dict], recent: list[dict], *, max_briefs: int,
+                    today: str) -> list[dict]:
+    """Explainer briefs (strongest first) from `features.candidates`. Each brief's
+    lead dataset is a candidate; extra datasets must be candidates too. Its
+    signal key `feature:<lead>:<YYYY-MM>` makes the used-key dedup cover it."""
+    if not candidates or max_briefs <= 0:
+        return []
+    import json
+
+    known = {c["dataset_id"] for c in candidates}
+    system = FEATURES_PROMPT.read_text(encoding="utf-8").replace("{max_briefs}", str(max_briefs))
+    user = {
+        "today": today,
+        "candidates": candidates,
+        "recent_articles": [{"headline": a.get("headline"), "dataset_ids": a.get("dataset_ids"),
+                             "kind": a.get("kind") or "news",
+                             "published_at": str(a.get("published_at"))[:10]} for a in recent[:40]],
+    }
+    out = llm.chat_json([{"role": "system", "content": system},
+                         {"role": "user", "content": json.dumps(user, ensure_ascii=False, default=str)}],
+                        temperature=0.5)
+    briefs, leads = [], set()
+    for b in out.get("briefs") or []:
+        ds = list(dict.fromkeys(d for d in b.get("dataset_ids") or [] if d in known))
+        if not ds or ds[0] in leads:
+            continue
+        leads.add(ds[0])
+        briefs.append({"kind": ArticleKind.FEATURE, "signal_keys": [f"feature:{ds[0]}:{today[:7]}"],
+                       "dataset_ids": ds, "angle_he": str(b.get("angle_he") or ""),
+                       "why_now_he": str(b.get("why_now_he") or ""),
+                       "questions": [str(q) for q in b.get("questions") or []][:6], "signals": []})
+        if len(briefs) >= max_briefs:
+            break
+    return briefs

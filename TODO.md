@@ -644,6 +644,14 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
 
 ## News
 
+- **The writer's `fetch_url` gets HTTP 403 from www.gov.il pages.** In the 2026-11-11 explainer
+  dry run, all 4 gov.il fetches (contractor classification pages, the doctors' registry service
+  page) were refused, so an article can't cite or quote an official gov.il page and the attempts
+  waste tool calls (one draft ran out of its budget). boi.org.il was not tested. Fix: find out
+  what the site accepts for an identified, polite client (the builder's data.gov.il UA was
+  user-approved, see CLAUDE.md layer 5), get the user's approval for that client, and until then
+  tell the writer in `prompts/writer.md` that gov.il fetches fail. (2026-11-11)
+
 - **`FirestoreArticles.advance_cursor` is a read-then-write, not a transaction.** Two news runs
   that overlap (a manual execute during a scheduled one) can both read the old cursor, and the
   one with the earlier window can write last, moving the cursor backwards despite the docstring.

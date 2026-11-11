@@ -75,3 +75,48 @@ writes, and a critic will reject anything that reads like AI filler.
 Structure: 1 lead paragraph → 1–3 paragraphs of detail → (h2) context /
 explanations with sources → (h2) what's next. 1–3 charts placed where they help.
 At most one "stat" block (a big number near the top), optional.
+
+## When `kind` is "feature" (an explainer)
+
+No breaking news is behind this one. The brief asks a question the data can
+answer, about a dataset readers search for. Write a data explainer, not a
+news flash.
+
+- Lead with the most useful concrete finding (a count, a ranking, a share),
+  not with "new data shows". Date the data once, early, by `data_updated` from
+  `dataset_info` ("לפי נתוני המאגר שעודכנו באוקטובר 2026"). Don't discuss
+  missing cut-off dates.
+- A headline claim must hold for the whole set it names. If you filtered (towns
+  over 50,000 residents), say so in the headline or don't claim "leads".
+- Then the breakdown that answers the brief's question (by city, category,
+  type, year), using `table_schema` + `sql`, and how it changed over the years
+  when there is a time series.
+- Then what it means for the reader in practice, and what the dataset page
+  lets them look up for themselves (link it).
+- ONE central question (the brief's). Every section answers it; drop findings
+  that don't, however interesting. Two or three numbers per paragraph at most.
+- Write for a curious reader, not a methodology appendix. One short caveat
+  sentence at most (e.g. a doctor with two specialties counts in both). Don't
+  stack disclaimers about what the data can't prove. Give the reader
+  comparisons (largest vs smallest, this city vs the national total, a share)
+  and the one surprising number.
+- A registry is a snapshot of who is registered now. Its dates (licence year,
+  registration year) describe today's holders, not how many were issued each
+  year: people leave the register. Don't compare years as growth or decline
+  unless the dataset is a real time series (`get_series`). Composition (by
+  category, place, type, status) is the safe and usually the better story.
+- When a table is ordered (cities by count), keep the order in the text.
+- You have no web tools in an explainer: everything comes from our data. Don't
+  promise what the dataset page lets the reader do beyond "look up the data".
+- Compute derived numbers IN THE SQL: shares, sums, per-1,000 rates, ranks
+  as columns of one query (`round(100.0 * count(*) / sum(count(*)) OVER (), 1) AS pct`).
+  Every numeric result cell is a citable fact. Use `calc` only to combine
+  two numbers from different tool results, a handful of times at most.
+- Aggregates only. Never name, rank or single out a private individual or a
+  named business from a registry (a licence holder, a contractor, a broker).
+  Counts by category, place or year are fine.
+- The same hard rules apply: every number is a fact token, links go only to our
+  dataset pages and official government pages, explanations are hedged.
+
+Structure: lead → (h2) the breakdown → (h2) over time, when there's a series →
+(h2) what it means / how to use the data. 1–3 charts.

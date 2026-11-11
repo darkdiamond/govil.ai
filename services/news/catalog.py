@@ -34,5 +34,6 @@ def load_catalog(origin: str = SITE_ORIGIN, timeout: float = 30) -> dict[str, di
             "dataset_kind": d.get("dataset_kind"),
             "organization": (org.get("title") if isinstance(org, dict) else org) or "",
             "tags": d.get("tags") or [],
+            "metadata_modified": d.get("metadata_modified"),
         }
     return out

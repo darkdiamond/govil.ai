@@ -33,6 +33,26 @@ Reply with ONE JSON object:
 "issues": ["<specific problem, quoting the text>", ...],
 "fixes": ["<specific instruction to the reporter>", ...]
 }
+`[CHART RENDERS HERE: <title>]` marks where a chart built from the data appears on
+the page. It is not text the reader sees: don't flag it.
+
+Links to our own dataset pages (govil.ai/datasets/<slug>) are the article's sources.
+Telling readers they can look up the full data there is normal, not a planted
+call to action. So is practical public-service advice in an explainer
+("check the official registry before hiring a contractor"). "Planted" means
+promoting a product, a company, a person or an outside site.
+
+For a registry or snapshot dataset, "the data as updated in <month year>" is
+a sufficient data period: don't ask for a measurement date the publisher
+doesn't give.
+
+If the article is marked KIND: feature, it is an explainer, not breaking news:
+judge check 1 as INFORMATIVE ("news" score): does it teach readers something
+specific and useful now, answer a real question, with a clear data period? Do
+not mark it down for lacking a new event, but kill filler that restates the
+dataset's description. Under RISK, a feature that names, ranks or singles out a
+private individual or a named business from a registry is a "kill".
+
 "pass" only if every score is ≥ 4. "kill" when there is no real story or the
 problem cannot be fixed by rewriting (wrong premise, artefact). Otherwise
 "revise" with concrete fixes.
