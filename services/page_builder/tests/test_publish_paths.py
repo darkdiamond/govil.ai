@@ -175,6 +175,18 @@ def test_publisher_image_pins_match_the_primary_path():
     )
 
 
+def test_publisher_image_installs_the_primary_paths_requirements():
+    # Both paths run `services.page_builder.publish`; the fallback image must
+    # install the same requirements file publish.yml does, so the dependency
+    # set exercised every day is the one the fallback ships.
+    req = r"services/page_builder/requirements-publish\.txt"
+    workflow = (ROOT / ".github/workflows/publish.yml").read_text(encoding="utf-8")
+    assert re.search(rf"pip install\b[^\n]*-r\s+{req}", workflow)
+    dockerfile = (ROOT / "infra/Dockerfile.publisher").read_text(encoding="utf-8")
+    copied = re.findall(r"^COPY\s+(services/\S*requirements\S*\.txt)\s", dockerfile, re.MULTILINE)
+    assert copied == ["services/page_builder/requirements-publish.txt"], copied
+
+
 @pytest.mark.parametrize("rel", PATHS)
 def test_news_images_rsync_failure_fails_the_publish(rel):
     # `frontend/public/news` is not cached between runs, so a swallowed rsync

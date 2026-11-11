@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Mirror agent-generated dataset pages from the GCS staging bucket
-# into the working tree, so they can be reviewed and committed to git
-# by hand. GCS stays the publisher's source of truth — this just
-# lets you archive a snapshot in the repo when you want one.
+# Mirror the staged dataset pages (content.html from the recipe refresh,
+# and legacy agent pages) from the GCS staging bucket into
+# frontend/public/datasets/, so a local build can use them.
+# infra/publish-local.sh runs it before the publisher. The directory is
+# gitignored: GCS is the source of truth and nothing here is committed.
 #
 # Usage:
 #   ./infra/sync-datasets.sh           # dry-run; prints what would change
@@ -44,4 +45,4 @@ echo
 echo "==> Files touched:"
 git status --short -- "$DEST/" || true
 echo
-echo "Review, then:  git add $DEST/ && git commit -m 'publish: sync agent output'"
+echo "Done. $DEST/ is gitignored; next, the publisher writes data.json and agent_data.json next to these pages."

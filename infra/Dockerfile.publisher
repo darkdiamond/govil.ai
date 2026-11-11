@@ -2,9 +2,10 @@
 #
 # Bundles node 22, python 3.11 (Debian bookworm's python3), gcloud SDK (incl.
 # gsutil), firebase-tools,
-# the page_builder Python deps, and frontend/node_modules. Rebuilt on changes
-# to this Dockerfile, frontend/package-lock.json, or
-# services/page_builder/requirements.txt via cloudbuild-publisher-image.yaml.
+# the publisher's Python deps (services/page_builder/requirements-publish.txt,
+# the same file publish.yml installs), and frontend/node_modules. Rebuilt via
+# cloudbuild-publisher-image.yaml on changes to the files its trigger's
+# --included-files lists (infra/bootstrap.sh).
 #
 # The image intentionally carries node_modules at /opt/frontend-deps/ so the
 # publish build can skip `npm ci` — see cloudbuild-publish.yaml.
@@ -33,7 +34,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # deploys with that one).
 RUN npm install -g firebase-tools@15.35.0 && npm cache clean --force
 
-COPY services/page_builder/requirements.txt /tmp/requirements.txt
+# The only Python this image runs is `python3 -m services.page_builder.publish`
+# (which imports services/news/publish_news.py). publish.yml runs the same
+# module on this same file every day, so both paths share one dependency set.
+COPY services/page_builder/requirements-publish.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt && rm /tmp/requirements.txt
 
 # Pre-install frontend deps so the publish build can `cp -a` them into place

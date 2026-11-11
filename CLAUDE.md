@@ -476,6 +476,7 @@ are still read by the authoring selector.
   to `frontend/public/icons/`.
 - **Pre-loaded dataset-page globals** (head scripts; see
   `frontend/utils/dataset-libs.ts` and `awaitDatasetLibs()` in
+  `frontend/utils/body-scripts.ts`, called by
   `frontend/pages/datasets/[slug].vue`): `echarts`, `L`,
   `L.markerClusterGroup`, and `GovExplorer` (in-house;
   `frontend/public/lib/gov-explorer.js`). Page bodies (recipe templates
@@ -525,7 +526,7 @@ are still read by the authoring selector.
      gate** — the old 30-day `REANALYZE_GAP_DAYS` is gone: any newer
      version means the page is stale, and only a recipe can refresh it.
      Streamed via `iter_changed_sources` (a fixed window would starve the
-     tail behind recipe'd daily-appenders), bounded by `CHANGED_SCAN_CAP`.
+     tail behind recipe'd daily-appenders), bounded by `selector.SCAN_CAP`.
      Never queued: sources a recipe owns, `authoring_status == "notified"`
      (issue already recorded — this is what makes the queue idempotent),
      and `restricted` / `unavailable` sources (no readable data).
@@ -623,7 +624,8 @@ are still read by the authoring selector.
   deleted — don't bring them back for "single-dataset invokes"; use
   `pipeline --source <id>` (locally or as a job `--args` override).
 - **Don't `--source=.` deploy without checking `.gcloudignore`.** It is
-  what keeps the upload at ~18MB instead of 1.8GB. The two filters do
+  what keeps the upload at about 4MB (`gcloud meta list-files-for-upload`,
+  2026-11-11) instead of the whole tree. The two filters do
   different jobs: `.gcloudignore` gates the UPLOAD, `.dockerignore` gates
   the IMAGE. Anything the Dockerfile COPYs must survive both. Both still
   exclude `tmp/` (authoring scratch: raw dataset rows, can include
@@ -646,7 +648,8 @@ are still read by the authoring selector.
   `frontend/pages/datasets/[slug].vue` reads all three artifacts at
   `nuxt generate` time and wraps them in the default layout via
   `v-html`. In SSG the `<script>` tags inside the body land in the
-  static HTML; on mount `executeBodyScripts` re-executes them
+  static HTML; on mount the page calls `executeBodyScripts`
+  (`frontend/utils/body-scripts.ts`), which re-executes them
   (on both initial hydration and SPA navigation) so ECharts/Leaflet
   render reliably even when Vue hydration resets the container DOM.
   **Don't gate that on `nuxtApp.isHydrating`.** It used to skip

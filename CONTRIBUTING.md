@@ -3,8 +3,8 @@
 Thanks for your interest in contributing! This project turns
 [data.gov.il](https://data.gov.il) datasets into connected, Hebrew-RTL
 landing pages. Contributions of all kinds are welcome — bug reports,
-documentation, frontend polish, agent-prompt improvements, and pipeline
-features.
+documentation, frontend polish, recipe and prompt improvements, and
+pipeline features.
 
 Please read this guide and the [Code of Conduct](CODE_OF_CONDUCT.md)
 before opening a pull request.
@@ -16,20 +16,23 @@ Before changing pipeline or agent code, skim:
 - [`README.md`](README.md) — what the project is and how to run it
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — the layers
   (scanner → recipe refresh → local authoring → publisher) and the data
-  model
+  model; the news job is described in `CLAUDE.md` (layer 6)
 - [`CLAUDE.md`](CLAUDE.md) — detailed repository conventions and the
   "things you'll be tempted to do but shouldn't" list
 
 ## Development setup
 
 Prerequisites: Python 3.12 and Node 22. Authoring a recipe uses
-[Claude Code](https://claude.com/claude-code) (`/author-dataset <id>`);
-nothing else in the repo calls a model.
+[Claude Code](https://claude.com/claude-code) (`/author-dataset <id>`).
+The daily builder calls no model. The news job (`services/news`, Cloud Run
+job `govdata-news-job`) is the one part that does: it writes articles
+through OpenRouter.
 
 ```sh
-# Python services
+# Python services, tests and lint (the same files CI installs)
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r services/page_builder/requirements.txt
+pip install -r requirements.txt -r services/page_builder/requirements.txt \
+  -r services/news/requirements.txt -r requirements-dev.txt
 
 # Frontend
 cd frontend && npm install
@@ -54,6 +57,7 @@ source .venv/bin/activate
 pytest -q        # whole suite, one worker per core (pytest.ini)
 pytest -q path/to/test_x.py::test_y   # named tests only: runs in-process (services/conftest.py)
 pytest -n0 -q path/to/dir   # force serial, e.g. for breakpoint()/print debugging
+ruff check .     # lint, as CI runs it (ruff.toml pins the version)
 ```
 
 The page gate (`agent/skills/check.py`) runs host-side on every rendered
@@ -71,12 +75,12 @@ cd frontend && npm run generate
 
 - **Python**: follow PEP 8, use type hints, keep functions focused.
   Match the style of the surrounding module.
-- **Frontend**: TypeScript + Vue 3 (Nuxt 3). Match existing component
+- **Frontend**: TypeScript + Vue 3 (Nuxt 4). Match existing component
   patterns.
 - **Hebrew-first / RTL**: the UI is `<html dir="rtl" lang="he">`. Respect
   the design tokens documented in `CLAUDE.md` and mirrored across
-  `frontend/tailwind.config.ts`, the page template, and
-  `agent/system-prompt.md`. Use logical CSS properties (`ps-*`/`pe-*`).
+  `frontend/tailwind.config.ts` and `agent/system-prompt.md` (recipe
+  templates use them through Tailwind classes). Use logical CSS properties (`ps-*`/`pe-*`).
 - **Single source of truth**: per-dataset data is materialized from the
   Firestore `sources/<id>` document by the publisher. Don't add code
   paths that write `data.json` / `manifest.json` from anywhere else.
