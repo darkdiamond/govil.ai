@@ -47,12 +47,17 @@ def test_hero_refuses_oversized_image_before_decoding(monkeypatch):
     assert meta["kind"] == "chart"
 
 
-def test_hero_lets_a_refused_key_through():
+def test_hero_falls_back_when_the_image_call_is_refused(caplog):
+    # An image endpoint can answer 403 for the prompt or the image model while the key
+    # still works for text: the article (past every gate) publishes with the chart card.
     from services.news.llm import LLMUnavailable
 
     class _Refused:
         def image(self, prompt):
             raise LLMUnavailable("key refused")
 
-    with pytest.raises(LLMUnavailable):
-        images.hero(_Refused(), "brief", [1.0, 2.0])
+    with caplog.at_level("WARNING", logger=images.__name__):
+        meta, files = images.hero(_Refused(), "brief", [1.0, 2.0])
+    assert meta["kind"] == "chart"
+    assert files
+    assert any("refused" in r.getMessage() for r in caplog.records if r.levelname == "WARNING")

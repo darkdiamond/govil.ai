@@ -15,7 +15,7 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { explorerFailureKind } = mod.exports;
+const { explorerFailureKind, abortAfter } = mod.exports;
 
 const http = (status) => Object.assign(new Error(`http ${status}`), { status });
 
@@ -56,4 +56,23 @@ test("network errors and unparseable replies are transient", () => {
   );
   assert.equal(explorerFailureKind(undefined), "transient");
   assert.equal(explorerFailureKind("boom"), "transient");
+});
+
+// The fetch timeout: AbortController + setTimeout, not AbortSignal.timeout,
+// which Safari/iOS < 16 and Chrome < 103 lack (it threw there, so the schema
+// probe failed on every try).
+test("abortAfter aborts the controller once the time is up", async () => {
+  const ctrl = new AbortController();
+  const clear = abortAfter(ctrl, 5);
+  await new Promise((r) => setTimeout(r, 30));
+  clear();
+  assert.equal(ctrl.signal.aborted, true);
+  assert.equal(explorerFailureKind(ctrl.signal.reason), "transient");
+});
+
+test("abortAfter's clear stops the timer", async () => {
+  const ctrl = new AbortController();
+  abortAfter(ctrl, 5)();
+  await new Promise((r) => setTimeout(r, 30));
+  assert.equal(ctrl.signal.aborted, false);
 });

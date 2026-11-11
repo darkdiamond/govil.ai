@@ -27,3 +27,14 @@ export function explorerFailureKind(err: unknown): ExplorerFailure {
   }
   return rejected === true ? "absent" : "transient";
 }
+
+/** Aborts `ctrl` with a TimeoutError reason after `ms`; returns the function
+ *  that cancels the timer (call it in a `finally`). Not AbortSignal.timeout:
+ *  Safari/iOS < 16 and Chrome < 103 don't have it. */
+export function abortAfter(ctrl: AbortController, ms: number): () => void {
+  const timer = setTimeout(
+    () => ctrl.abort(new DOMException("timed out", "TimeoutError")),
+    ms
+  );
+  return () => clearTimeout(timer);
+}

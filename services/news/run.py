@@ -273,8 +273,6 @@ class _Day:
                            "image": llm_mod.IMAGE_MODEL if hero["kind"] == "illustration" else None},
             }
             store.publish(doc, files)
-        except LLMUnavailable:
-            raise
         except Exception:  # storage down for this story: retried next run, the others go on
             log.exception("news: storing %s failed", keys)
             self.rejected.append({"signal_keys": keys, "kind": kind, "reason": "error",

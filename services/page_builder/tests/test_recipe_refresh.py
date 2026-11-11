@@ -2450,3 +2450,43 @@ def test_missing_or_malformed_recipe_file_is_still_recipe_invalid(env, monkeypat
     assert s["outcomes"][0]["reason"] == "recipe_invalid"
     assert len(env.issues) == 1 and env.issues[0]["reason"] == "recipe_failed"
     assert env.staged == {}
+
+
+def _locked_harness(monkeypatch, ids):
+    """run_refresh over sources whose failure is locked with no recorded issue."""
+    calls = []
+    srcs = {i: SimpleNamespace(id=i, title=i, refresh=RefreshState(refresh_reason="schema_changed"))
+            for i in ids}
+    store = SimpleNamespace(get_source=srcs.get)
+    repo = SimpleNamespace(list_ids=lambda: list(ids),
+                           load=lambda i, d: SimpleNamespace(manifest=SimpleNamespace(heavy=False)))
+    monkeypatch.setattr(rf, "needs_refresh", lambda src, state, recipe: None)
+    monkeypatch.setattr(rf, "_issue_missing", lambda src, state, recipe: True)
+    return store, repo, calls
+
+
+def test_requeue_of_unrecorded_issues_is_capped_per_run(monkeypatch, tmp_path, caplog):
+    ids = ["aaaa1111", "bbbb2222"]
+    store, repo, calls = _locked_harness(monkeypatch, ids)
+    monkeypatch.setattr(rf, "_queue_authoring_safely",
+                        lambda store, src, reason, **kw: calls.append(src.id))  # GitHub refuses: None
+    monkeypatch.setattr(rf, "_DEFAULT_REQUEUE_CAP", 1)
+    monkeypatch.delenv("REFRESH_REQUEUE_CAP", raising=False)
+    with caplog.at_level("INFO", logger=rf.log.name):
+        s = rf.run_refresh(store, repo, staging_bucket="b", work_root=tmp_path)
+    assert calls == ["aaaa1111"]  # one attempt this run; the other waits for the next
+    assert [o["reason"] for o in s["outcomes"]] == ["up_to_date", "up_to_date"]
+    assert [o["issue"] for o in s["outcomes"]] == [None, None]
+    warns = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert any("aaaa1111" in m and "schema_changed" in m for m in warns)
+    assert sum("cap" in m for m in warns) == 1  # the cap is logged once
+
+
+def test_requeue_that_opens_an_issue_is_logged(monkeypatch, tmp_path, caplog):
+    store, repo, _ = _locked_harness(monkeypatch, ["aaaa1111"])
+    monkeypatch.setattr(rf, "_queue_authoring_safely", lambda store, src, reason, **kw: 91)
+    with caplog.at_level("INFO", logger=rf.log.name):
+        s = rf.run_refresh(store, repo, staging_bucket="b", work_root=tmp_path)
+    assert s["outcomes"][0]["issue"] == 91 and s["outcomes"][0]["reason"] == "up_to_date"
+    assert any(r.levelname == "INFO" and "aaaa1111" in r.getMessage() and "#91" in r.getMessage()
+               for r in caplog.records)

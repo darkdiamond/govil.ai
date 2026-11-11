@@ -124,6 +124,12 @@ _DEFAULT_TRANSIENT_STRIKES = 6
 # deferral.
 _DEFAULT_RETRY_CAP = 20
 _DEFAULT_RETRY_DELAY_S = 120.0
+# A locked authoring failure whose issue never got recorded is re-queued from
+# the up_to_date branch (see `_issue_missing`). While GitHub keeps refusing,
+# each costs a Firestore read + write and a GitHub POST every run, so at most
+# this many are attempted per run (REFRESH_REQUEUE_CAP); the rest wait for
+# the next run.
+_DEFAULT_REQUEUE_CAP = 20
 # A `map` input's file download cap (REFRESH_MAP_MAX_BYTES): it is parsed
 # in the builder process, not the compute sandbox. 100MB admits the parcel
 # blocks (65MB), survey-boundary (84MB) and aquifer (85MB) layers; parsing an
@@ -1281,19 +1287,6 @@ def _count_strikes(
     return e, strikes, transient
 
 
-def _render_snapshot(page: RenderedPage, inputs: dict[str, list[FetchedInput]]) -> dict:
-    """What a render stores as `last_snapshot` (and diffs against the last one)."""
-    snapshot = {
-        "rows": {k: sum(p.rows for p in v) for k, v in inputs.items()},
-        "kpis": {
-            k: (v or {}).get("display") for k, v in (page.model.get("kpis") or {}).items()
-        },
-        "insights": [i.get("text_he") for i in page.model.get("insights") or []],
-        "warnings": page.warnings,
-    }
-    return snapshot
-
-
 def refresh_one(
     src,
     recipe: Recipe,
@@ -1433,7 +1426,14 @@ def refresh_one(
             )
         return RefreshOutcome(src.id, OutcomeStatus.FAILED, trigger, FailReason.ERROR, _clip(str(e)))
 
-    snapshot = _render_snapshot(page, inputs)
+    snapshot = {
+        "rows": {k: sum(p.rows for p in v) for k, v in inputs.items()},
+        "kpis": {
+            k: (v or {}).get("display") for k, v in (page.model.get("kpis") or {}).items()
+        },
+        "insights": [i.get("text_he") for i in page.model.get("insights") or []],
+        "warnings": page.warnings,
+    }
     fetch_via = {p.resource_id[:8]: p.via for v in inputs.values() for p in v if p.via}
     if page.warnings:
         log.warning("refresh %s: %d format warning(s): %s", src.id[:8],
@@ -1700,6 +1700,8 @@ def run_refresh(
     # outcome index, src, recipe, trigger, refresh state (the deferral wrote nothing)
     deferred: list[tuple[int, object, Recipe, str, RefreshState]] = []
     last_deferred_at = 0.0
+    requeue_cap = max(0, _env_int("REFRESH_REQUEUE_CAP", _DEFAULT_REQUEUE_CAP))
+    requeues = 0  # attempts this run
 
     # Failed outcomes recorded without a successful state write.
     _NO_WRITE = (FailReason.ERROR, FailReason.RESTRICTED, FailReason.RECIPE_INVALID)
@@ -1784,9 +1786,21 @@ def run_refresh(
                 if trigger is None:
                     outcome = RefreshOutcome(dataset_id, OutcomeStatus.SKIPPED, reason="up_to_date")
                     if notify and _issue_missing(src, state, recipe):
-                        outcome.issue = _queue_authoring_safely(
-                            store, src, state.refresh_reason, detail=state.refresh_error or ""
-                        )
+                        if requeues < requeue_cap:
+                            requeues += 1
+                            outcome.issue = _queue_authoring_safely(
+                                store, src, state.refresh_reason, detail=state.refresh_error or ""
+                            )
+                            if outcome.issue is None:
+                                log.warning("refresh %s: re-queueing its unrecorded issue (%s) failed, "
+                                            "retrying next run", dataset_id[:8], state.refresh_reason)
+                            else:
+                                log.info("refresh %s: opened its unrecorded issue (%s) as #%s",
+                                         dataset_id[:8], state.refresh_reason, outcome.issue)
+                        elif requeues == requeue_cap:
+                            requeues += 1  # log the cap once
+                            log.warning("refresh: re-queue cap (%d) reached, the remaining "
+                                        "unrecorded issues wait for the next run", requeue_cap)
                     outcomes.append(outcome)
                     continue
                 log.info("refreshing %s (%s) — %s", dataset_id[:8], trigger, (src.title or "")[:60])

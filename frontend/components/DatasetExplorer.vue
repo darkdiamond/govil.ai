@@ -8,6 +8,7 @@
 // /api/3/action/ with no custom headers, so no preflight is issued.
 import type { ResourceEntry } from "~/types/manifest";
 import {
+  abortAfter,
   explorerFailureKind,
   type DatastoreError,
   type ExplorerFailure,
@@ -169,11 +170,10 @@ async function dsSearch(
 async function loadSchema(rid: string): Promise<Schema | ExplorerFailure> {
   const cached = schemaCache.get(rid);
   if (cached) return cached;
+  const ctrl = new AbortController();
+  const clearTimer = abortAfter(ctrl, FETCH_TIMEOUT_MS);
   try {
-    const res = await dsSearch(
-      { resource_id: rid, limit: 0 },
-      AbortSignal.timeout(FETCH_TIMEOUT_MS)
-    );
+    const res = await dsSearch({ resource_id: rid, limit: 0 }, ctrl.signal);
     const all = (res.fields ?? []).filter((f) => !HIDDEN_FIELDS.has(f.id));
     const sch: Schema = {
       cols: all.slice(0, MAX_COLS).map((f) => {
@@ -193,6 +193,8 @@ async function loadSchema(rid: string): Promise<Schema | ExplorerFailure> {
     return sch;
   } catch (err) {
     return explorerFailureKind(err);
+  } finally {
+    clearTimer();
   }
 }
 
@@ -260,10 +262,7 @@ async function loadPage() {
   aborter = ctrl;
   // Aborted with a TimeoutError reason, so the catch below shows the error
   // state; a plain abort (superseded request) stays silent.
-  const timer = setTimeout(
-    () => ctrl.abort(new DOMException("timed out", "TimeoutError")),
-    FETCH_TIMEOUT_MS
-  );
+  const clearTimer = abortAfter(ctrl, FETCH_TIMEOUT_MS);
   loading.value = true;
   fetchError.value = false;
   try {
@@ -302,7 +301,7 @@ async function loadPage() {
     fetchError.value = true;
     loading.value = false;
   } finally {
-    clearTimeout(timer);
+    clearTimer();
   }
 }
 

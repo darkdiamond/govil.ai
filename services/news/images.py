@@ -106,8 +106,11 @@ def hero(llm, brief: str, fallback_values: list[float]) -> tuple[dict, dict[str,
             img.load()
             if img.size[0] < 1024:
                 raise ValueError(f"image too small: {img.size}")
-        except LLMUnavailable:
-            raise  # a refused key ends the run; it is not an image failure
+        except LLMUnavailable as e:
+            # A 401/402/403 here can be about this prompt or the image model while the key
+            # still works for text: the article publishes with the chart card either way.
+            log.warning("news: image call refused (%s) — chart card instead", e)
+            img = None
         except Exception:
             log.warning("news: illustration failed — chart card instead", exc_info=True)
             img = None

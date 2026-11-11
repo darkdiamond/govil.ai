@@ -57,7 +57,7 @@ SCALE_FACTORS = {1e-9, 1e-6, 1e-3, 1e3, 1e6}
 _NUMBER_WORD = (r"(?:אחד|אחת|שתיים|שניים|שתי|שני|שלוש|שלושה|ארבע|ארבעה|חמש|חמישה|שש|שישה|שבע|"
                 r"שבעה|שמונה|תשע|תשעה|עשר|עשרה|עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|"
                 r"תשעים|מאה|מאתיים|מאות|אלף|אלפיים|אלפים|חצי|רבע|שליש)")
-_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD}))*\s+"
+_SPELLED = re.compile(rf"(?<![א-ת])[ובלמהשכ]{{0,3}}{_NUMBER_WORD}(?:\s+(?:ו?{_NUMBER_WORD})){{0,6}}\s+"
                       r"(?:אחוז|אחוזים|נקודות\s+אחוז|נקודת\s+אחוז|נקודות|מיליון|מיליוני|מיליארד|מיליארדי|"
                       r"אלף|אלפי|שקל|שקלים|ש\"ח|₪)(?![א-ת])")
 # More spelled quantities, each one precise enough not to catch ordinary prose:
@@ -83,11 +83,21 @@ _COUNT_WORD = (r"(?:שלושה|שלוש|ארבעה|ארבע|חמישה|חמש|ש
                r"עשרים|שלושים|ארבעים|חמישים|שישים|שבעים|שמונים|תשעים|מאתיים|מאה|אלפיים|אלף|"
                r"(?:אחד|אחת|שניים|שנים|שתיים|שתים|שני|שתי)\s+עשרה?)")
 _FUNCTION_WORD = r"(?:של|את|עם|על|אל|או|גם|עד|כל|כי|אם|לא|זה|זו|הם|הן|היו|היה|הייתה|אחרי|לפני|מתוך)"
+# ש+מונה ("who was appointed") is told from the count שמונה only by what follows:
+# the verb's own followers (by, in <year>, to/as a role, recently). Anything else
+# after שמונה reads as a count, so "שמונה בנקים" / "שמונה לקוחות" are flagged;
+# an appointment phrased some other way fails closed (flagged; the writer rephrases).
+_ROLE = (r"(?:תפקיד|מנכ|יו[\"״]ר|יועץ(?![א-ת])|ראש|סגנ|סגן|נשיא|שופט|שר(?![א-ת])|חבר(?![א-ת])|מנהל|ממונה|"
+         r"דירקטור|מפכ|רמטכ|נציב|מבקר|כהונ|ועד|וועד)")
+_APPOINTED = (rf"שמונה\s+(?:על(?![א-ת])|ע[\"״׳']י|ב(?:-|\d|שנת|מקומ|מקום|תפקיד)|לאחרונה"
+              rf"|[לכ]{_ROLE})")
+# Number-word repeats are bounded ({0,6}: no real number phrase has more parts),
+# so a long run of number words in model text can't backtrack quadratically.
 _COUNT = re.compile(
     rf"(?<![א-ת])(?<!באר )(?<!באר-)(?<!לכל )[ובלמכש]{{0,3}}"
-    # "שמונה ל/ב…" is mostly ש+מונה ("who was appointed to"); "שבע רצון" is "satisfied"
-    rf"(?!שמונה\s+(?:[בלכ]|על(?![א-ת])))(?!שבע\s+רצון){_COUNT_WORD}"
-    rf"(?:\s+ו?[בלמכש]?{_NUMBER_WORD}(?![א-ת]))*"
+    # "שבע רצון" is "satisfied"
+    rf"(?!{_APPOINTED})(?!שבע\s+רצון){_COUNT_WORD}"
+    rf"(?:\s+ו?[בלמכש]?{_NUMBER_WORD}(?![א-ת])){{0,6}}"
     rf"\s+(?!ה)(?![ובלמהשכ]{{0,3}}(?:{_TIME_UNIT}|{_NUMBER_WORD}|{MONTHS})(?![א-ת]))"
     rf"(?!{_FUNCTION_WORD}(?![א-ת]))[א-ת]+")
 _TIMES = re.compile(rf"(?<![א-ת])(?<!על )(?<!על-)ו?פי\s+[כ]?{_NUMBER_WORD}(?![א-ת])")
@@ -109,8 +119,10 @@ def spelled_numbers(text: str, *, scale_ok: bool = False) -> list[str]:
     spans += [m.span() for m in _TIMES.finditer(t)] + [m.span() for m in _FRACTION.finditer(t)]
     for rx in (_COUNT,) if scale_ok else (_COUNT, _MAGNITUDE):
         for m in rx.finditer(t):
-            before = t[:m.start()].rstrip(" \t\n-־–")
-            if not before or not (before[-1].isdigit() or before[-1] == _TOKEN_MARK):
+            i = m.start() - 1   # the last character before it, past spaces and dashes
+            while i >= 0 and t[i] in " \t\n-־–":
+                i -= 1
+            if i < 0 or not (t[i].isdigit() or t[i] == _TOKEN_MARK):
                 spans.append(m.span())
     out, end = [], -1
     for a, b in sorted(spans):   # overlapping matches are one quantity

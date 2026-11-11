@@ -280,6 +280,11 @@ MUST_FLAG = [
     "ירידה של רבע נקודת אחוז",
     "שמונה אחוזים",
     "גידול של כשלושה מיליון שקל",
+    # שמונה is the count before an ordinary noun, ב/ל/כ-prefixed or not
+    "שמונה בנקים",
+    "שמונה בתים חדשים",
+    "שמונה לקוחות",
+    "שמונה כוכבים",
 ]
 MUST_PASS = [
     "שלוש שנים",
@@ -306,6 +311,17 @@ MUST_PASS = [
     "במאה העשרים",
     "מאז שבעה באוקטובר",
     "השופט שמונה לתפקיד",
+    # ש+מונה ("who was appointed") before the verb's own followers
+    "מי שמונה למנכ\"ל החברה",
+    "מי שמונה למנכ״ל החברה",
+    "היועץ שמונה ב-2020",
+    "שמונה בשנת 2019",
+    "שמונה על ידי השר",
+    "שמונה ע\"י השר",
+    "שמונה כיו\"ר הוועדה",
+    "שמונה כיו״ר הוועדה",
+    "המנהל שמונה לאחרונה",
+    "שמונה במקומו",
     "שבע רצון מהשירות",
     "גירושין לכל מאה חוזים",
     "ממוצע לשלוש ולחמש שנים",
@@ -327,6 +343,20 @@ def test_ordinary_prose_is_not_a_spelled_quantity(text):
     from services.news.ledger import spelled_numbers
 
     assert spelled_numbers(text) == [], text
+
+
+def test_long_runs_of_number_words_are_checked_quickly():
+    # Model text: a 25k-character run of number words must not backtrack
+    # quadratically (it took ~15s before the repetition was bounded; now well
+    # under a second). Absolute bound with a wide margin.
+    import time
+
+    from services.news.ledger import spelled_numbers
+
+    for text in ("שלוש " * 5000, "שמונה " * 4200, ("שלושה מאות ו" * 2100)[:25000]):
+        t0 = time.monotonic()
+        spelled_numbers(text)
+        assert time.monotonic() - t0 < 2, text[:20]
 
 
 def test_a_bare_magnitude_is_a_scale_in_a_label():
