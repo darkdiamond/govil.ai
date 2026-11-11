@@ -54,6 +54,7 @@ while git rev-parse -q --verify "refs/heads/$BR" >/dev/null \
   BR="recipe/batch-$DAY-$n"; n=$((n+1))
 done
 WT=/home/zilbert/workdir/govdata-authoring
+[ -d "$WT" ] && (cd "$WT" && /home/zilbert/workdir/govdata/.venv/bin/python -m services.page_builder.cli.preview stop) || true   # its dev server
 git worktree remove --force "$WT" 2>/dev/null   # a previous run's leftover
 git worktree add "$WT" -b "$BR" origin/main
 cd "$WT"
