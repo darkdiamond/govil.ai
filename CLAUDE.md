@@ -422,9 +422,9 @@ catalog` lists chapters → subjects → codes.
      article used (a rejected brief's included) in `signal_pool/` (news
      database, kept 14 days); on that IL weekday the run writes one `kind: digest`
      roundup of the week's strongest pooled signals (`digest.py`: ≥4, ≤6, one per
-     dataset, not used, not in cooldown, not suspect, not release-only), deduped
-     by its `digest:<ISO week>` key. It has its own slot (not capped by
-     `NEWS_MAX_PER_DAY`) and counts toward the floor.
+     dataset, not used, not in cooldown, not suspect, not release-only, no point
+     revised since pooled), deduped by its `digest:<ISO week>` key. It has its
+     own slot (not capped by `NEWS_MAX_PER_DAY`) and counts toward the floor.
    - every printed number is a ledger fact token (a typed or spelled-out
      number fails); links go only to our dataset pages and official
      gov.il / boi.org.il pages (quote-verified); hedged explanations need no

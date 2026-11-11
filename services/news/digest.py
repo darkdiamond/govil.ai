@@ -4,7 +4,8 @@ Each live run pools the signals the editor saw but didn't write about
 (`store.pool`: `signal_pool/` in the news database). On the digest weekday
 (`NEWS_DIGEST_WEEKDAY`, Python weekday, 4 = Friday), `brief` picks the
 strongest of the last 7 days' pooled signals: not suspect-incomplete, not
-already used, dataset not in cooldown, one per dataset, at most MAX_ITEMS.
+revised or gone from today's series since pooled, not already used, dataset
+not in cooldown, one per dataset, at most MAX_ITEMS.
 Fewer than MIN_ITEMS means no digest that week. Deterministic, no LLM: the
 writer gets the items as seeded signals, like any event brief.
 """
@@ -44,6 +45,23 @@ def _signal(d: dict) -> Signal | None:
         return None
 
 
+def _still_current(s: Signal, series_by_ds: dict) -> bool:
+    """Whether today's series still holds every point the pooled signal was
+    computed from (its period, the previous and year-ago ones) with the same
+    value. The writer seeds the period values from today's series but the
+    changes from the pooled facts: a value revised since (CBS revises) would
+    print beside a change computed from the old one. Values round-trip
+    exactly through JSON and Firestore (doubles), so equality is exact."""
+    ser = next((x for x in series_by_ds.get(s.dataset_id) or [] if x.path == s.series_path), None)
+    if ser is None:
+        return False
+    now = {p.label: v for p, v in ser.points}
+    recorded = [(s.period, s.value)] + [
+        (ref.get("period"), ref.get("value")) for ref in (s.facts.get("previous"), s.facts.get("year_ago"))
+        if isinstance(ref, dict)]
+    return all(lbl in now and now[lbl] == v for lbl, v in recorded)
+
+
 def brief(pool: list[dict], recent: list[dict], *, today: date, cooldown_days: int,
           series_by_ds: dict, catalog: dict) -> dict | None:
     """This week's digest brief, or None (already written, or too few items)."""
@@ -53,7 +71,7 @@ def brief(pool: list[dict], recent: list[dict], *, today: date, cooldown_days: i
     best: dict[str, Signal] = {}
     for it in pool:
         s = _signal(it.get("signal") or {})
-        if s is None or s.facts.get("suspect_incomplete") or s.dataset_id not in series_by_ds:
+        if s is None or s.facts.get("suspect_incomplete") or not _still_current(s, series_by_ds):
             continue
         if s.flags == ["new_release"]:
             continue  # "nothing unusual" is not a move worth a line in a roundup

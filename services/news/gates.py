@@ -143,7 +143,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             return f"/datasets/{catalog[ds].get('page_slug') or ds}/"
         return f"/datasets/{ds}/" if ds in series_by_ds else None
 
-    def text(field_name: str, s) -> tuple[list[dict], str]:
+    def text(field_name: str, s, *, scale_ok: bool = False) -> tuple[list[dict], str]:
+        # scale_ok: a field that labels a printed value (chart title, unit,
+        # series name, the stat's label), where "מיליון ש\"ח" is its scale.
         s = str(s or "")
         if bad := stray_numbers(s):
             # A year has no fact token: telling the writer to use one gives it
@@ -157,7 +159,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
                     f"{field_name}: years without date context {years[:5]} — write the year as "
                     "a date ('בשנת 2025', 'ב-2025', after a month name, 'מאז 2019', a range "
                     "'2019–2025'); if it is a count that only looks like a year, use a fact token")
-        if bad := spelled_numbers(s):
+        if bad := spelled_numbers(s, scale_ok=scale_ok):
             problems.append(f"{field_name}: quantities spelled in words {bad[:3]} — a number from "
                             "data needs a fact token; one from a source needs that source linked "
                             "and quoted, or leave it out")
@@ -170,9 +172,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
     # joins the punctuation and banned-phrase scan below.
     printed: list[str] = []
 
-    def raw_field(field_name: str, s, chart: str | None = None) -> None:
+    def raw_field(field_name: str, s, chart: str | None = None, *, scale_ok: bool = False) -> None:
         s = str(s or "")
-        text(field_name, _chart_numbers_text(s, chart) if chart else s)
+        text(field_name, _chart_numbers_text(s, chart) if chart else s, scale_ok=scale_ok)
         if TOKEN.search(s) or LINK.search(s):
             problems.append(f"{field_name}: no fact tokens or links here")
         printed.append(s)
@@ -207,12 +209,12 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             # The strings the chart prints, fallbacks included (a bar with no
             # label prints its fact's label, which the model can write too).
             cname = f"chart {c['id']}"
-            raw_field(f"{cname} title", c["title"])
-            raw_field(f"{cname} unit", c["unit"], "unit")
+            raw_field(f"{cname} title", c["title"], scale_ok=True)
+            raw_field(f"{cname} unit", c["unit"], "unit", scale_ok=True)
             if c["type"] == "line":
                 for j, (r, ser) in enumerate(zip(spec["series"], c["option"]["series"], strict=True)):
                     own = "" if r.get("name") else " (the series' own name: give it an explicit name)"
-                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label")
+                    raw_field(f"{cname} series {j} name{own}", ser["name"], "label", scale_ok=True)
                 for x in dict.fromkeys(c["option"]["xAxis"]["data"]):
                     raw_field(f"{cname} x label", x, "label")
             else:
@@ -255,7 +257,7 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
         elif kind == "stat":
             stats += 1
             f = ledger.facts.get(b["fact"]) if isinstance(b.get("fact"), str) else None
-            _, label = text(f"block {i} label", b.get("label"))
+            _, label = text(f"block {i} label", b.get("label"), scale_ok=True)
             printed.append(label)
             sfmt = b.get("fmt") or None
             if f is None:

@@ -241,7 +241,7 @@ def test_chart_labels_may_be_periods_and_units_per_n(labels, unit, name):
 @pytest.mark.parametrize("text, hits", [
     ("מס הרכישה נותר ברמה של שמונה אחוזים", 1),
     ("גידול של שלושה מיליארד שקל", 1),
-    ("ירידה של חצי נקודת אחוז", 0),       # no "נקודות"/"אחוז" right after a number word
+    ("ירידה של חצי נקודת אחוז", 1),
     ("ירידה של שתי נקודות אחוז", 1),
     ("זו הפעם הרביעית ברציפות, אחרי שלוש שנים", 0),
     ("בחמש השנים האחרונות", 0),
@@ -249,7 +249,7 @@ def test_chart_labels_may_be_periods_and_units_per_n(labels, unit, name):
     ("כחצי מיליון נוסעים", 1),
     ("הוצאה של שלושה מיליוני שקלים", 1),
     ("השקעה של כחמישה מיליארד שקל", 1),
-    ("פי שלושה מבעבר", 0),
+    ("פי שלושה מבעבר", 1),
     ("וכחצי מיליון נוסעים", 1),
     ("בכשלושה מיליון שקל", 1),
 ])
@@ -257,6 +257,100 @@ def test_spelled_numbers(text, hits):
     from services.news.ledger import spelled_numbers
 
     assert len(spelled_numbers(text)) == hits
+
+
+# Spelled-out quantities: every printed number is a fact token, words included.
+MUST_FLAG = [
+    "התקציב עמד על מיליון שקלים",
+    "כמיליארד שקל הועברו",
+    "ובמיליארד שקל נוספים",
+    "חמש מאות דירות",
+    "שבעים דירות",
+    "אלפיים דירות",
+    "כאלף תושבים עברו",
+    "שלושים וחמש דירות",
+    "אחת עשרה ערים",
+    "עלה פי שלושה",
+    "גדל פי שניים",
+    "כשני שלישים מהתושבים",
+    "שלושה רבעים מהבקשות",
+    "חצי מהתושבים",
+    "כמחצית מהנשאלים",
+    "רבע מהרשויות",
+    "ירידה של רבע נקודת אחוז",
+    "שמונה אחוזים",
+    "גידול של כשלושה מיליון שקל",
+]
+MUST_PASS = [
+    "שלוש שנים",
+    "בחמש השנים האחרונות",
+    "לפני ארבעה חודשים",
+    "במשך שבעה ימים",
+    "בשלושה רבעונים ברציפות",
+    "חצי שנה",
+    "בחצי השנה הראשונה",
+    "אחד הגורמים",
+    "שני הצדדים",
+    "מצד שני",
+    "בפעם השנייה",
+    "אחת הסיבות",
+    "שתי הערים הגדולות",
+    "הרבעון הראשון",
+    "עשרות תושבים",
+    "מאות דירות",
+    "אלפי תושבים",
+    "מיליוני שקלים",
+    "על פי הנתונים",
+    "לפי הלמ\"ס",
+    "בבאר שבע נרשמו",
+    "במאה העשרים",
+    "מאז שבעה באוקטובר",
+    "השופט שמונה לתפקיד",
+    "שבע רצון מהשירות",
+    "גירושין לכל מאה חוזים",
+    "ממוצע לשלוש ולחמש שנים",
+    "{f1:num2} מיליארד שקל",
+    "{f1} אלף דירות",
+    "[[מיליוני נוסעים|ds:x]] בשנה",
+]
+
+
+@pytest.mark.parametrize("text", MUST_FLAG)
+def test_spelled_quantity_is_flagged(text):
+    from services.news.ledger import spelled_numbers
+
+    assert spelled_numbers(text), text
+
+
+@pytest.mark.parametrize("text", MUST_PASS)
+def test_ordinary_prose_is_not_a_spelled_quantity(text):
+    from services.news.ledger import spelled_numbers
+
+    assert spelled_numbers(text) == [], text
+
+
+def test_a_bare_magnitude_is_a_scale_in_a_label():
+    from services.news.ledger import spelled_numbers
+
+    assert spelled_numbers("מיליון ש\"ח", scale_ok=True) == []
+    assert spelled_numbers("כשלושה מיליון ש\"ח", scale_ok=True)   # still a figure
+    assert spelled_numbers("חמש מאות דירות", scale_ok=True)
+
+
+@pytest.mark.parametrize("text", ["עלייה של ½ אחוז", "גידול של 3² דירות", "בשלב ① נרשמו"])
+def test_compatibility_digits_are_digits(text):
+    assert stray_numbers(text)
+
+
+def test_bare_magnitude_fails_in_prose_but_not_as_a_unit():
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["charts"][0]["unit"] = "מיליון ש\"ח"
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert problems == []
+    d["blocks"][0]["text"] += " התקציב עמד על כמיליארד שקל."
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat, vocab={"משכנתאות"})
+    assert any("spelled in words" in p for p in problems), problems
 
 
 def test_no_outside_link_is_needed():
