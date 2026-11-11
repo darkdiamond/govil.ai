@@ -368,7 +368,7 @@ def test_table_file_over_the_cap_is_refused_whatever_the_listing_says(cbs, monke
     # stops at the cap on the real (streamed) client path.
     import httpx
     fake = cbs._send
-    del cbs._send  # back to the real _send, over a MockTransport
+    monkeypatch.delattr(cbs, "_send")  # back to the real _send, over a MockTransport
 
     def handler(req):
         r = fake(str(req.url))
