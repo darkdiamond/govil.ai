@@ -324,7 +324,7 @@ snapshot` and committed as `recipes/<id>/<name>.geojson`, read by a
    including a C skip (`last_verified_at`). Render code (`recipe_exec.py`, `recipe.py`,
    `sanitize.py`, `schema.py`, `ckan_export.py` and `services/shared/ckan.py`, which shape the inputs)
    is folded into every hash. Each resolved resource's CKAN name is part of
-   checks A, A′ and B. The job prints its
+   checks A, A′ and B (a snapshot input's only of B). The job prints its
    summary as one-line JSON records: a `pipeline_summary` headline (with
    `refresh.counts`), then one `refresh_outcome` per source that did
    anything (`pipeline.summarize_for_log`).

@@ -246,9 +246,9 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
   "has no rows", an export that comes back short every run, a table that grows during every
   multi-page walk so the export always "moved during the export") and a generic exception
   recorded as `error` open no issue and set no lock: the page stays last-good with only log
-  lines, and every run repeats the full export and compute. A borderline page whose check.py run
-  flaps around its timeout would also be better served by a strike count than by one outcome per
-  run. Fix: count them in `transient_strikes` (one strike key per kind, reset when
+  lines, and every run repeats the full export and compute. (A check.py timeout is the opposite
+  case: it fails as `recipe_failed` and locks on the first timeout, so a page that flaps around
+  the 60s limit would also be better served by a strike count.) Fix: count them in `transient_strikes` (one strike key per kind, reset when
   `failed_version_key` moves) and escalate after `REFRESH_TRANSIENT_STRIKES` runs
   (`schema_changed` or `too_large` for a fetch, `recipe_failed` for an error). (2026-11-11)
 
@@ -342,12 +342,12 @@ inputs_same_unordered` appears, skip on B′ in `inputs`/`full` (saves compute o
 
 - **The local permission allowlist is broad for an unattended routine.** The gitignored
   `.claude/settings.local.json`, copied into every worktree by `.worktreeinclude`, pre-approves
-  pass-through rules (`rtk gh *`, `rtk curl *`, `rtk gcloud *`, `gh auth *`, `gh workflow *`,
-  `python3 -`, …), and the checked-in `.claude/settings.json` has no `deny` list. The 07:00
-  routine reads untrusted text. Fix: a `permissions.deny` list in `.claude/settings.json`
-  (printing auth tokens, `gh workflow run`, `gh pr merge`, `gh api`, force pushes, `rtk curl`,
-  `rtk gcloud`, bucket deletes, scheduler pause/delete), prune the broad pass-through entries
-  from `settings.local.json`, and consider not copying it into worktrees. (2026-11-11)
+  broad wildcard rules for the GitHub, cloud and HTTP CLIs and for inline Python, and the
+  checked-in `.claude/settings.json` has no `deny` list, while the 07:00 routine reads untrusted
+  issue text. Fix: a `permissions.deny` list in `.claude/settings.json` covering credential
+  output, deploys and merges, raw GitHub API calls, force pushes, arbitrary outbound requests
+  and writes to cloud resources; narrow the broad entries in `settings.local.json`; and consider
+  not copying it into worktrees. (2026-11-11)
 
 - **Provider brief sections reach BRIEF.md unfenced.** CBS `brief_section` prints sheet cells
   through `_md()`, which escapes only `|`; BoI `SERIES_NAME_HE` and CBS index `NAME_HE` go into
@@ -486,7 +486,7 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   (2026-11-01)
 - **Tooltip escaping still has gaps the runtime belt can't close.** The gov-echarts.js belt
   escapes the params' label fields and, deeply, `data`, `value` and the tree path arrays, but
-  a string nested deeper than its depth cap (5) passes raw, a `tooltip` set under a tree
+  a string nested past its depth cap is returned unescaped, a `tooltip` set under a tree
   node's `children` or a series' `levels` is not wrapped (no recipe sets one today), and it
   can't reach strings a formatter reads from its own closure (the heatmap formatters'
   `h.y[p.value[1]]`). Fix: escape past the cap instead of passing through, wrap tooltips under
@@ -706,9 +706,9 @@ family found in the corpus survey of 2026-11-01, with the behaviour it should co
   today. Fix: raise the cap to about 24M pixels or bound each side (6144) instead. (2026-11-11)
 
 - **`fetch.py` bounds slow response headers only per read.** The fetch's total deadline is
-  checked between operations, so headers (and the TLS handshake) dripped one byte per read are
-  bounded only by the 20s per-read timeout up to h11's 16 KiB limit. That needs a server on an
-  allowlisted site, and the job's task timeout caps it. Fix: a per-hop timeout of
+  checked between operations, so a very slow response header or TLS handshake is bounded only
+  by the per-read timeout, not by the 60s total. That needs a server on an allowlisted site, and
+  the job's task timeout caps it. Fix: a per-hop timeout of
   `min(TIMEOUT, remaining)`, or a watchdog that closes the connection at the deadline.
   (2026-11-11)
 
