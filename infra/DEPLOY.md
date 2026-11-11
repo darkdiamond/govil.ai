@@ -18,8 +18,9 @@ the per-run fuse on new issues.
 
 Creates the Firebase project (GCP project with the same ID is created
 automatically), enables APIs, provisions Firestore + the GCS staging bucket
-(lifecycle policy from `infra/staging-lifecycle.json` — deletes only
-`build-cache/` objects after 14 days; `datasets/` never expires),
+(lifecycle policy from `infra/staging-lifecycle.json` — deletes
+`build-cache/` objects after 14 days and `models/` (page-model history) after
+400 days; `datasets/` never expires),
 creates the three service accounts, and reserves the Secret Manager secret.
 
 Re-running `bootstrap.sh` re-applies the lifecycle policy. To tweak the
@@ -74,7 +75,7 @@ deploy. Diff against `gcloud run jobs describe` first.
 | `--tasks` / `--parallelism` | 1 / 1 (one container per execution)            |
 | `--max-retries`             | 0 (a failed run is retried by the next tick)   |
 | `--cpu / --memory`          | 2 / 4Gi (full CKAN exports are held in memory) |
-| `--task-timeout`            | 21600 s (6 h wall-clock ceiling for one run)   |
+| `--task-timeout`            | 14400 s (4 h; must stay < the 5 h tick gap)    |
 
 Manual runs after deploy:
 
@@ -154,7 +155,7 @@ The image carries:
 - `frontend/node_modules` under `/opt/frontend-deps/` so `npm ci` is skipped
   on the fast path (falls back to `npm ci --prefer-offline` if
   `package-lock.json` has drifted from the image)
-- python 3.12 + the `services/page_builder/requirements.txt` deps
+- python 3.11 (Debian bookworm's python3) + the `services/page_builder/requirements.txt` deps
 - the Google Cloud SDK (provides `gsutil` for the rsync step)
 - `firebase-tools` globally
 
