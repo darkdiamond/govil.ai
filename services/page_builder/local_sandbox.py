@@ -52,12 +52,12 @@ from __future__ import annotations
 import logging
 import os
 import pwd
+import selectors
 import shutil
 import signal
 import stat
 import subprocess
 import sys
-import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -157,19 +157,14 @@ def _read_capped(f, p: Path, max_bytes: int | None) -> bytes:
     return data
 
 
-def _drain(pipe, cap: int, tail: bytearray) -> None:
-    """Read a pipe to EOF, keeping only its last `cap` bytes in `tail`."""
-    fd = pipe.fileno()
-    while True:
-        try:
-            chunk = os.read(fd, _PIPE_CHUNK)
-        except OSError:
-            return
-        if not chunk:
-            return
-        tail += chunk
-        if len(tail) > cap:
-            del tail[:-cap]
+def _killpg(proc: subprocess.Popen) -> None:
+    """SIGKILL the child's whole process group (it leads its own session),
+    so a background process it left can't hold the pipes open. Called before
+    the child is reaped, so its pid (= the group id) can't have been reused."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
 
 
 def _run_capped(
@@ -177,38 +172,49 @@ def _run_capped(
 ) -> tuple[int | None, bytes, bytes]:
     """Run `argv`; return (returncode, stdout tail, stderr tail).
 
-    Like `subprocess.run(capture_output=True, timeout=...)`, except that the
-    host holds at most `max_output_bytes` of each stream. returncode None
-    means the timeout expired (the child is SIGKILLed; the output read so
-    far is returned). Output still arriving after the child exits (a
-    background process holding the pipes) counts against the same timeout.
+    Like `subprocess.run(capture_output=True, timeout=...)` (both pipes are
+    drained on this thread until EOF or the deadline), except that the host
+    holds at most `max_output_bytes` of each stream. returncode None means
+    the timeout expired: the child's process group is SIGKILLed and the
+    output read so far is returned. Pipes held open after the child exits
+    (a background process) count against the same timeout. Nothing reads
+    either pipe once this returns.
     """
     deadline = time.monotonic() + timeout
     with subprocess.Popen(
-        argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **popen_kw
+        argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        start_new_session=True, **popen_kw,
     ) as proc:
-        out, err = bytearray(), bytearray()
-        readers = [
-            threading.Thread(target=_drain, args=(proc.stdout, max_output_bytes, out), daemon=True),
-            threading.Thread(target=_drain, args=(proc.stderr, max_output_bytes, err), daemon=True),
-        ]
-        for t in readers:
-            t.start()
+        tails = {proc.stdout.fileno(): bytearray(), proc.stderr.fileno(): bytearray()}
         timed_out = False
-        try:
-            proc.wait(timeout=max(0.0, deadline - time.monotonic()))
-            for t in readers:
-                t.join(max(0.0, deadline - time.monotonic()))
-            timed_out = any(t.is_alive() for t in readers)
-        except subprocess.TimeoutExpired:
-            timed_out = True
+        with selectors.DefaultSelector() as sel:
+            for fd in tails:
+                sel.register(fd, selectors.EVENT_READ)
+            while sel.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    break
+                for key, _ in sel.select(remaining):
+                    chunk = os.read(key.fd, _PIPE_CHUNK)
+                    if not chunk:
+                        sel.unregister(key.fd)
+                        continue
+                    tail = tails[key.fd]
+                    tail += chunk
+                    if len(tail) > max_output_bytes:
+                        del tail[:-max_output_bytes]
+        if not timed_out:
+            try:
+                proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+            except subprocess.TimeoutExpired:
+                timed_out = True
         if timed_out:
+            _killpg(proc)
             proc.kill()
             proc.wait()
-            for t in readers:
-                t.join(1.0)
         rc = None if timed_out else proc.returncode
-        return rc, bytes(out), bytes(err)
+        return rc, bytes(tails[proc.stdout.fileno()]), bytes(tails[proc.stderr.fileno()])
 
 
 class LocalSandbox:
