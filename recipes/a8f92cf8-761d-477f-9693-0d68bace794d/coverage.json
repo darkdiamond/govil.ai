@@ -1,0 +1,7 @@
+{
+  "main.producer_code": "chart-length, kpi:total, kpi:codes, insight:length",
+  "main.factory_name": "kpi:total, insight:multi, insight:ltd",
+  "main.company_number": "kpi:companies, insight:multi",
+  "main.address": "chart-premises, insight:premises",
+  "main.is_code_valid": "chart-valid, kpi:valid, insight:valid"
+}

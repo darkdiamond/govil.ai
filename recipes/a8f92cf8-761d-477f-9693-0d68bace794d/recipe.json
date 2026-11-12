@@ -1,0 +1,25 @@
+{
+  "contract_version": 1,
+  "dataset_id": "a8f92cf8-761d-477f-9693-0d68bace794d",
+  "recipe_version": 1,
+  "authored_at": "2026-11-12T06:35:00Z",
+  "authored_against": {
+    "metadata_modified": "2026-11-11T09:04:12.358021+00:00",
+    "rows": { "main": 154 }
+  },
+  "inputs": [
+    {
+      "name": "main",
+      "by_id": "40f7e258-86e3-4fce-b663-bde0645616b2",
+      "required_columns": [
+        "producer_code",
+        "factory_name",
+        "company_number",
+        "address",
+        "is_code_valid"
+      ]
+    }
+  ],
+  "min_insights": 3,
+  "lint_allow_numbers": []
+}
