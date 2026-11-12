@@ -493,6 +493,10 @@ def test_govlib_submodules_match_main():
     "import pandas as pd\nc = pd.core\n",
     "import json\nimport math as json\n",
     "from collections import OrderedDict\n",
+    "from govlib import fmt\nf = fmt\n",
+    "from govlib import frame\nm = frame\nm.pd.core\n",
+    "from govlib import geo\ndef f(geo):\n    return geo\n",
+    "from govlib import geo\ndef f(x):\n    geo = x\n    return geo\n",
 ])
 def test_module_walks_aliases_and_match_are_rejected(corpus, src):
     assert _compute(src, corpus), src
@@ -502,7 +506,6 @@ def test_module_walks_aliases_and_match_are_rejected(corpus, src):
     "import pandas as pd\nx = pd.Timestamp.max.year\n",
     "import numpy as np\ndef f(a, i, v):\n    np.add.at(a, i, v)\n",
     "import pandas as pd\nx = pd.offsets.MonthEnd(0)\n",
-    "from govlib import fmt\ndef f(frames):\n    fmt = frames['fmt']\n    return fmt['x']\n",
     "from collections import Counter\nc = Counter()\n",
     "def f(rows):\n    return [r.core for r in rows]\n",
 ])
