@@ -74,8 +74,23 @@ def harness(monkeypatch):
         return 7
 
     monkeypatch.setattr(rf, "queue_authoring", _queue)
+    # The run lease (job_state/run): free unless a test says otherwise.
+    h.lease_calls = []
+    h.lease_free = True
+
+    def _acquire(client, path, holder, ttl_s, now=None):
+        h.lease_calls.append(("acquire", path, holder, ttl_s))
+        return h.lease_free
+
+    def _release(client, path, holder):
+        h.lease_calls.append(("release", path, holder))
+
+    store.client = None
+    monkeypatch.setattr(pipeline.lease, "acquire", _acquire)
+    monkeypatch.setattr(pipeline.lease, "release", _release)
     monkeypatch.setenv("GCS_STAGING_BUCKET", "bkt")
-    for k in ("RECONCILE_ENABLED", "AUTHORING_NOTIFY_CAP"):
+    for k in ("RECONCILE_ENABLED", "AUTHORING_NOTIFY_CAP", "QUIET_WINDOW",
+              "AUTHORING_QUEUE_HOURS", "RECONCILE_MAX_ATTEMPTS", "RUN_LEASE_TTL_S"):
         monkeypatch.delenv(k, raising=False)
     return h
 
@@ -407,13 +422,16 @@ def test_aborted_reconcile_goes_red_and_leaves_no_marker(harness, monkeypatch):
                               "aborted": "too_many_gone"})
     s = _run()
     assert s["status"] == "reconcile_failed" and s["status"] in pipeline.FAILED_RUN_STATUSES
-    assert markers == []  # the afternoon run sweeps again
+    # Only the attempt is recorded, no last_date: a later run sweeps again.
+    assert [f for _, f in markers if "last_date" in f] == []
+    assert markers[0][1]["attempts"] == 1
 
 
 def test_crashed_reconcile_goes_red(harness, monkeypatch):
     markers = _due_reconcile(harness, monkeypatch, RuntimeError("sweep broke"))
     s = _run()
-    assert s["status"] == "reconcile_failed" and markers == []
+    assert s["status"] == "reconcile_failed"
+    assert [f for _, f in markers if "last_date" in f] == []
 
 
 def test_clean_reconcile_records_the_marker(harness, monkeypatch):
@@ -421,7 +439,8 @@ def test_clean_reconcile_records_the_marker(harness, monkeypatch):
                              {"checked": 9, "marked_unavailable": [], "recovered": [],
                               "aborted": None})
     s = _run()
-    assert s["status"] == "idle" and markers and markers[0][0] == "reconcile"
+    assert s["status"] == "idle"
+    assert [n for n, f in markers if "last_date" in f] == ["reconcile"]
 
 
 # ── a publish or an authoring issue that didn't go out ───────────────────────

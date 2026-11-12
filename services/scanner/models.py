@@ -134,3 +134,5 @@ class ScanSummary(BaseModel):
     datasets_unchanged: int = 0
     errors: list[str] = Field(default_factory=list)  # first MAX_ERRORS_KEPT only
     error_count: int = 0
+    # Set when an incremental scan could stop paging before this instant.
+    incremental_since: datetime | None = None

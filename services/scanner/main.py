@@ -9,7 +9,9 @@ Cloud Run builder.
 
 import asyncio
 import logging
-from datetime import UTC, datetime
+import os
+from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from services.shared.firestore import FirestoreStateStore
 from services.shared.resources import pick_primary_resource_id
@@ -28,6 +30,20 @@ SCAN_MAX_CONSECUTIVE_ERRORS = 20
 # Error strings kept on the summary (and joined into scan_runs.error); the
 # rest only count.
 MAX_ERRORS_KEPT = 50
+
+# Incremental scan (env SCAN_INCREMENTAL, off by default): a scheduled scan
+# stops paging the listing (sorted metadata_modified desc) once a whole page
+# is older than the last successful scan's start minus this overlap. The first
+# scheduled scan of each Israel date stays full. State: `job_state/scan` =
+# {last_success_started_at (UTC), last_full_date (IL ISO date)}, written only
+# after a scan with no errors, so a failed scan never moves the mark.
+SCAN_STATE_MARKER = "scan"
+INCREMENTAL_OVERLAP = timedelta(hours=24)
+IL_TZ = ZoneInfo("Asia/Jerusalem")
+
+
+def _incremental_enabled() -> bool:
+    return os.environ.get("SCAN_INCREMENTAL", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _record_error(summary: ScanSummary, message: str) -> None:
@@ -59,12 +75,21 @@ class Scanner:
         `summary.errors` and the scan moves on; SCAN_MAX_CONSECUTIVE_ERRORS in
         a row (Firestore or CKAN down) stops it. A failure outside the
         per-dataset work (the package count, the listing itself) is recorded
-        and re-raised. The `scan_runs` doc is closed either way."""
+        and re-raised. The `scan_runs` doc is closed either way.
+
+        With SCAN_INCREMENTAL on, a `scheduled` unfiltered scan may stop early
+        (see INCREMENTAL_OVERLAP); manual and filtered scans never read or
+        write `job_state/scan`."""
         summary = ScanSummary(started_at=datetime.now(UTC))
+        il_today = summary.started_at.astimezone(IL_TZ).date().isoformat()
+        tracked = mode == "scheduled" and filter_config is None and _incremental_enabled()
+        cutoff = self._incremental_cutoff(il_today) if tracked else None
+        summary.incremental_since = cutoff
         scan_id = self.store.start_scan(mode=mode)
         detector = ChangeDetector(self.store)
 
-        log.info("scan start — limit=%d force=%s mode=%s", limit, force, mode)
+        log.info("scan start — limit=%d force=%s mode=%s incremental_since=%s",
+                 limit, force, mode, cutoff.isoformat() if cutoff else None)
 
         try:
             async with CKANClient(self.config) as client:
@@ -77,7 +102,9 @@ class Scanner:
                     _record_error(summary, f"{pid[:8]}: unparseable package: {type(e).__name__}: {e}")
 
                 async for dataset in client.iter_all_packages(limit=limit * 3,
-                                                              on_error=_unparseable):
+                                                              on_error=_unparseable,
+                                                              total_count=total_available,
+                                                              stop_before=cutoff):
                     if dataset.id in self.config.EXCLUDED_DATASET_IDS:
                         continue
                     if filter_config and not filter_config.matches(dataset):
@@ -105,6 +132,8 @@ class Scanner:
                 log.exception("scan: couldn't close scan_runs/%s", scan_id)
             raise
         self._complete(scan_id, summary)
+        if tracked and not summary.error_count:
+            self._record_success(summary.started_at, il_today, full=cutoff is None)
         log.info(
             "scan done — scanned=%d new=%d updated=%d unchanged=%d errors=%d",
             summary.datasets_scanned,
@@ -114,6 +143,34 @@ class Scanner:
             summary.error_count,
         )
         return summary
+
+    def _incremental_cutoff(self, il_today: str) -> datetime | None:
+        """Where an incremental scan may stop paging, or None for a full scan:
+        the first scan of the IL date, no successful scan on record, or a
+        marker that can't be read."""
+        try:
+            marker = self.store.get_job_marker(SCAN_STATE_MARKER) or {}
+        except Exception:
+            log.warning("scan: couldn't read job_state/%s; scanning in full",
+                        SCAN_STATE_MARKER, exc_info=True)
+            return None
+        last = marker.get("last_success_started_at")
+        if marker.get("last_full_date") != il_today or not isinstance(last, datetime):
+            return None
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=UTC)
+        return last - INCREMENTAL_OVERLAP
+
+    def _record_success(self, started_at: datetime, il_today: str, *, full: bool) -> None:
+        """Advance the high-water mark (and the daily full-scan date); a write
+        failure only logs: the next scan is then just less incremental."""
+        fields: dict = {"last_success_started_at": started_at}
+        if full:
+            fields["last_full_date"] = il_today
+        try:
+            self.store.set_job_marker(SCAN_STATE_MARKER, fields)
+        except Exception:
+            log.warning("scan: couldn't record job_state/%s", SCAN_STATE_MARKER, exc_info=True)
 
     def _complete(self, scan_id: str, summary: ScanSummary) -> None:
         summary.completed_at = datetime.now(UTC)

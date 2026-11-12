@@ -8,6 +8,7 @@ open data portal API.
 import asyncio
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Self
 
 import httpx
@@ -307,6 +308,8 @@ class CKANClient:
         limit: int | None = None,
         on_progress: Callable[..., Any] | None = None,
         on_error: Callable[[str, Exception], None] | None = None,
+        total_count: int | None = None,
+        stop_before: datetime | None = None,
     ):
         """
         Iterate through all datasets with pagination.
@@ -319,13 +322,21 @@ class CKANClient:
                 that doesn't parse as a Dataset. It is skipped either way: one
                 malformed CKAN record must not end the listing (and so every
                 scan) at its position.
+            total_count: CKAN's package count, when the caller already asked
+                for it (saves one request); asked here otherwise.
+            stop_before: stop paging after a page whose every dataset was
+                modified before this instant (the listing is sorted
+                metadata_modified desc, so later pages are older still). That
+                page's datasets are still yielded. A dataset without a parsed
+                metadata_modified, or one that doesn't parse, keeps paging on.
         
         Yields:
             Dataset models one at a time.
         """
         start = 0
         fetched = 0
-        total_count = await self.get_package_count()
+        if total_count is None:
+            total_count = await self.get_package_count()
         
         if limit:
             total_count = min(total_count, limit)
@@ -335,17 +346,23 @@ class CKANClient:
             rows = min(batch_size, remaining)
             
             result = await self.search_packages(rows=rows, start=start)
+            # Whether every dataset on this page is older than `stop_before`.
+            page_older = stop_before is not None and bool(result.get("results"))
             
             for package_data in result.get("results", []):
                 fetched += 1
                 try:
                     dataset = Dataset.from_ckan_response(package_data)
                 except Exception as e:  # noqa: BLE001 - one bad record, not the listing
+                    page_older = False
                     pid = str((package_data or {}).get("id") or "?")
                     log.warning("skipping CKAN package %s: %s", pid[:8], e)
                     if on_error:
                         on_error(pid, e)
                 else:
+                    if page_older and (dataset.metadata_modified is None
+                                       or dataset.metadata_modified >= stop_before):
+                        page_older = False
                     yield dataset
                 
                 if on_progress:
@@ -355,6 +372,11 @@ class CKANClient:
                     return
             
             start += batch_size
+
+            if page_older:
+                log.info("listing: a whole page is older than %s; stopping after %d",
+                         stop_before.isoformat(), fetched)
+                return
             
             # Safety check to prevent infinite loops
             if not result.get("results"):
