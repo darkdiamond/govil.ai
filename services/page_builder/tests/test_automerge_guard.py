@@ -62,9 +62,23 @@ def _govlib() -> dict[str, set[str]]:
     return {p.stem: g.module_names(p.read_text()) for p in d.glob("*.py") if p.stem != "__init__"}
 
 
+def _usage() -> tuple[set[str], set[str]]:
+    """Module attributes and from-imports of the merged recipes (as on main)."""
+    attrs: set[str] = set()
+    froms: set[str] = set()
+    for p in (ROOT / "recipes").glob("*/compute.py"):
+        a, f = g.module_usage(ast.parse(p.read_text(encoding="utf-8")))
+        attrs |= a
+        froms |= f
+    return attrs, froms
+
+
 @pytest.fixture(scope="module")
 def corpus() -> g.MainCorpus:
+    attrs, froms = _usage()
     return g.MainCorpus(
+        module_attrs=attrs,
+        from_names=froms,
         recipe_keys=g.json_key_paths(RECIPE) | {"inputs[].snapshot", "limits",
                                                 "limits.max_records"},
         source_keys={"provider", "config", "config.resources", "config.resources[].id"},
@@ -472,7 +486,13 @@ def test_govlib_submodules_match_main():
     "import pandas as pd\npd.core.frame.DataFrame\n",
     "def f(x):\n    match x:\n        case object(real=r):\n            return r\n",
     "import pandas as pd\npd.unpickle_thing\n",
-    "from govlib import fmt\nf = fmt\n",
+    "import json\nj = json\n",
+    "import json\ndef f(json=1):\n    return json\n",
+    "import json\nx = [json for json in range(3)]\n",
+    "import json\ntry:\n    pass\nexcept ValueError as json:\n    pass\n",
+    "import pandas as pd\nc = pd.core\n",
+    "import json\nimport math as json\n",
+    "from collections import OrderedDict\n",
 ])
 def test_module_walks_aliases_and_match_are_rejected(corpus, src):
     assert _compute(src, corpus), src
@@ -483,6 +503,7 @@ def test_module_walks_aliases_and_match_are_rejected(corpus, src):
     "import numpy as np\ndef f(a, i, v):\n    np.add.at(a, i, v)\n",
     "import pandas as pd\nx = pd.offsets.MonthEnd(0)\n",
     "from govlib import fmt\ndef f(frames):\n    fmt = frames['fmt']\n    return fmt['x']\n",
+    "from collections import Counter\nc = Counter()\n",
     "def f(rows):\n    return [r.core for r in rows]\n",
 ])
 def test_known_chains_and_local_shadows_are_fine(corpus, src):

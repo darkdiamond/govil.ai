@@ -169,6 +169,10 @@ class MainCorpus:
     govlib: dict[str, set[str]] = field(default_factory=dict)  # module -> names
     provider_ids: set[str] = field(default_factory=set)  # dirs with source.json
     recipe_ids: set[str] = field(default_factory=set)
+    # What merged compute.py files already use, so a batch can't reach past it:
+    # `pandas.to_datetime` (an imported module's attributes), `collections:Counter`.
+    module_attrs: set[str] = field(default_factory=set)
+    from_names: set[str] = field(default_factory=set)
 
 
 def json_key_paths(obj: object, prefix: str = "") -> set[str]:
@@ -249,8 +253,37 @@ def build_corpus(paths: Iterable[str], read: Callable[[str], str]) -> MainCorpus
             c.provider_ids.add(rid)
             c.source_keys |= json_key_paths(json.loads(read(path)))
         elif name == "compute.py":
-            c.seo_keys |= seo_literal_keys(ast.parse(read(path)))
+            tree = ast.parse(read(path))
+            c.seo_keys |= seo_literal_keys(tree)
+            attrs, froms = module_usage(tree)
+            c.module_attrs |= attrs
+            c.from_names |= froms
     return c
+
+
+def _plain_imports(tree: ast.AST) -> dict[str, str]:
+    """Local alias -> top module, for `import x [as y]` of a non-govlib module."""
+    out: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                top = a.name.split(".")[0]
+                if top != "govlib":
+                    out[a.asname or top] = top
+    return out
+
+
+def module_usage(tree: ast.AST) -> tuple[set[str], set[str]]:
+    """(`module.attr` uses of imported modules, `module:name` from-imports),
+    govlib excluded (its names are checked against govlib's source)."""
+    mods = _plain_imports(tree)
+    attrs = {f"{mods[n.value.id]}.{n.attr}" for n in ast.walk(tree)
+             if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)
+             and n.value.id in mods}
+    froms = {f"{n.module}:{a.name}" for n in ast.walk(tree)
+             if isinstance(n, ast.ImportFrom) and n.module
+             and n.module.split(".")[0] != "govlib" for a in n.names}
+    return attrs, froms
 
 
 # ---------------------------------------------------------------------------
@@ -290,42 +323,6 @@ def _attr_problem(attr: str) -> str | None:
     if attr in BANNED_ATTRS or attr.startswith(BANNED_ATTR_PREFIXES):
         return f"attribute `{attr}` (file/URL I/O or string eval)"
     return None
-
-
-_FUNCS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
-
-
-def _function_locals(tree: ast.AST) -> dict[int, set[str]]:
-    """Per function: the names Python makes local to it (its parameters and
-    every name it assigns, nested functions excluded), unless declared
-    global/nonlocal."""
-    out: dict[int, set[str]] = {}
-    for fn in ast.walk(tree):
-        if not isinstance(fn, _FUNCS):
-            continue
-        names = {a.arg for a in ast.walk(fn.args) if isinstance(a, ast.arg)}
-        free: set[str] = set()
-        todo = list(fn.body) if isinstance(fn.body, list) else [fn.body]
-        while todo:
-            n = todo.pop()
-            if isinstance(n, (ast.Global, ast.Nonlocal)):
-                free.update(n.names)
-            elif isinstance(n, ast.Name) and isinstance(n.ctx, (ast.Store, ast.Del)):
-                names.add(n.id)
-            if isinstance(n, _FUNCS + (ast.ClassDef,)):
-                if not isinstance(n, ast.Lambda):
-                    names.add(n.name)
-                continue
-            todo.extend(ast.iter_child_nodes(n))
-        out[id(fn)] = names - free
-    return out
-
-
-def _enclosing_function(node: ast.AST, parent: dict[int, ast.AST]) -> ast.AST | None:
-    cur = parent.get(id(node))
-    while cur is not None and not isinstance(cur, _FUNCS):
-        cur = parent.get(id(cur))
-    return cur
 
 
 def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
@@ -416,39 +413,65 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
               and DUNDER_STRING_RE.search(node.value)):
             bad(node, "string names an interpreter internal")
 
-    # A module (`import pandas as pd`, a govlib module) is used only as the
-    # receiver of an attribute, so it can't be aliased (`m = pd`) past the
-    # chain rule; chains two or more deep from a non-govlib module must be on
-    # ALLOWED_MODULE_CHAINS. `from pandas|numpy import …` is refused: recipes
-    # import the module.
-    imported: dict[str, str] = {}
+    # Modules imported with `import x [as y]` (govlib aside): the alias is
+    # never rebound (no parameter, assignment, loop or comprehension target,
+    # def, class, `except … as`, second import of that name), so every use of
+    # it is the module; it is used only as `alias.<attr>`; that attribute must
+    # be one merged recipes already use (main's `module_attrs`: `pd.core`,
+    # `pd.compat` never are), and chains two or more deep must be on
+    # ALLOWED_MODULE_CHAINS. From-imports (govlib aside) likewise name only
+    # what merged recipes import. Anything new goes to a human.
+    imported = _plain_imports(tree)
+    import_binds: dict[str, int] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for a in node.names:
                 if a.name.split(".")[0] != "govlib":
-                    imported[a.asname or a.name.split(".")[0]] = a.asname and a.name or a.name.split(".")[0]
-        elif isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in ("pandas", "numpy"):
-            bad(node, f"`from {node.module} import …` (import the module itself)")
-    modules = set(imported) | set(govlib_alias)
+                    alias = a.asname or a.name.split(".")[0]
+                    import_binds[alias] = import_binds.get(alias, 0) + 1
+    for alias, n in import_binds.items():
+        if n > 1:
+            bad(tree, f"imports into `{alias}` more than once")
+    for node in ast.walk(tree):
+        bound = None
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bound = node.id
+        elif isinstance(node, ast.arg):
+            bound = node.arg
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef,
+                               ast.ExceptHandler)):
+            bound = node.name
+        elif isinstance(node, ast.ImportFrom):
+            for a in node.names:
+                if (a.asname or a.name) in imported:
+                    bad(node, f"rebinds module name `{a.asname or a.name}`")
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            for name in node.names:
+                if name in imported:
+                    bad(node, f"rebinds module name `{name}`")
+        if bound is not None and bound in imported:
+            bad(node, f"rebinds module name `{bound}`")
+        if (isinstance(node, ast.ImportFrom) and node.module
+                and node.module.split(".")[0] != "govlib"):
+            for a in node.names:
+                if f"{node.module}:{a.name}" not in corpus.from_names:
+                    bad(node, f"`from {node.module} import {a.name}`: no merged recipe "
+                              "imports it (a human merges the first)")
     parent: dict[int, ast.AST] = {}
     for node in ast.walk(tree):
         for child in ast.iter_child_nodes(node):
             parent[id(child)] = node
-    shadowed = _function_locals(tree)   # function node id -> names local to it
     for node in ast.walk(tree):
-        if not (isinstance(node, ast.Name) and node.id in modules):
+        if not (isinstance(node, ast.Name) and node.id in imported
+                and isinstance(node.ctx, ast.Load)):
             continue
-        if not isinstance(node.ctx, ast.Load):
-            continue
-        fn = _enclosing_function(node, parent)
-        if fn is not None and node.id in shadowed.get(id(fn), ()):
-            continue   # a local variable of that name (`geo = geo_section(...)`)
         up = parent.get(id(node))
         if not (isinstance(up, ast.Attribute) and up.value is node):
             bad(node, f"uses module `{node.id}` other than as `{node.id}.<name>`")
             continue
-        if node.id not in imported:
-            continue
+        first = f"{imported[node.id]}.{up.attr}"
+        if first not in corpus.module_attrs:
+            bad(node, f"uses `{first}`: no merged recipe does (a human merges the first)")
         parts, cur = [imported[node.id]], node
         while isinstance(parent.get(id(cur)), ast.Attribute) and parent[id(cur)].value is cur:
             cur = parent[id(cur)]
