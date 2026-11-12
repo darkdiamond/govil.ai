@@ -549,8 +549,8 @@ def compute(frames):
         add("mixed", f"{n(len(mixed))} דרכים משנות דרגה לאורכן, למשל כבישים {ex}: "
             "מקטעים שונים של אותו כביש מסווגים בדרגות שונות.")
 
-    geo = geo_section(frames["geo"])
-    for iid, text in geo["insights"]:
+    geo_out = geo_section(frames["geo"])
+    for iid, text in geo_out["insights"]:
         add(iid, text)
 
     if ch_segs >= 5 and months:
@@ -635,9 +635,9 @@ def compute(frames):
                    + ". שכבת ה-GIS המלאה (קבצי SHP ו-KMZ) זמינה להורדה מתחת לעמוד."),
     }
 
-    labels.update(geo["labels"])
+    labels.update(geo_out["labels"])
     flags = {"changes": bool(months), "regional": bool(regional_list),
-             "mixed_any": bool(len(mixed)), "map": geo["has_map"], "lat": geo["has_lat"]}
+             "mixed_any": bool(len(mixed)), "map": geo_out["has_map"], "lat": geo_out["has_lat"]}
 
     seo_desc = (f"מפת מספרי כבישים בישראל ורשימת הדרכים הארציות: איתור כביש לפי מספר, דרגה ואורך. "
                 f"{n(n_roads)} כבישים ממוספרים, הארוך כביש {int(top.iloc[0].rn)}." if n_roads else "")
@@ -668,13 +668,13 @@ def compute(frames):
         "kpis": kpis,
         "charts": {"top": top_chart, "cls": class_chart, "digits": digit_chart,
                    "len": len_chart, "space": space_chart, "link": link,
-                   "change": change_chart, "map": geo["map"], "lat": geo["lat"]},
+                   "change": change_chart, "map": geo_out["map"], "lat": geo_out["lat"]},
         "tables": {"top": top_table, "cls": class_table, "digits": digit_table,
                    "len": len_table, "space": space_table, "space_x": space_chart["x"],
                    "link": [{"name": a, "segs": n(b), "km": km(c)} for a, b, c in
                             zip(link["names"], link["segs"], link["km"])],
                    "change": change_table, "main": main_list, "regional": regional_list,
-                   "legend": geo["legend"], "lat": geo["lat_table"]},
+                   "legend": geo_out["legend"], "lat": geo_out["lat_table"]},
         "insights": insights,
         "labels": labels,
         "flags": flags,

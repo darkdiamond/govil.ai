@@ -422,6 +422,10 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
     # ALLOWED_MODULE_CHAINS. From-imports (govlib aside) likewise name only
     # what merged recipes import. Anything new goes to a human.
     imported = _plain_imports(tree)
+    # govlib modules too (`from govlib import frame`): aliased, `m.pd.core`
+    # would reach pandas through the module's own imports. Their attribute
+    # names are checked against govlib's source below.
+    modules = set(imported) | set(govlib_alias)
     import_binds: dict[str, int] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -447,9 +451,9 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
                     bad(node, f"rebinds module name `{a.asname or a.name}`")
         elif isinstance(node, (ast.Global, ast.Nonlocal)):
             for name in node.names:
-                if name in imported:
+                if name in modules:
                     bad(node, f"rebinds module name `{name}`")
-        if bound is not None and bound in imported:
+        if bound is not None and bound in modules:
             bad(node, f"rebinds module name `{bound}`")
         if (isinstance(node, ast.ImportFrom) and node.module
                 and node.module.split(".")[0] != "govlib"):
@@ -462,13 +466,15 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
         for child in ast.iter_child_nodes(node):
             parent[id(child)] = node
     for node in ast.walk(tree):
-        if not (isinstance(node, ast.Name) and node.id in imported
+        if not (isinstance(node, ast.Name) and node.id in modules
                 and isinstance(node.ctx, ast.Load)):
             continue
         up = parent.get(id(node))
         if not (isinstance(up, ast.Attribute) and up.value is node):
             bad(node, f"uses module `{node.id}` other than as `{node.id}.<name>`")
             continue
+        if node.id not in imported:
+            continue   # a govlib module: its names are checked below
         first = f"{imported[node.id]}.{up.attr}"
         if first not in corpus.module_attrs:
             bad(node, f"uses `{first}`: no merged recipe does (a human merges the first)")
