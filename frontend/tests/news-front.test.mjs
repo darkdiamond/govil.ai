@@ -26,8 +26,7 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { buildFront, editionLine, ilDateKey, thumbOf, monthKey, monthLabel } =
-  mod.exports;
+const { buildFront, thumbOf, monthKey, monthLabel } = mod.exports;
 
 // Newest first, as publish_news writes index.json; one story every 6 hours.
 const T0 = Date.parse("2026-11-12T06:00:00Z");
@@ -173,22 +172,6 @@ test("undated stories go to the archive only", () => {
     f.archive.map((a) => a.slug),
     [bad.slug]
   );
-});
-
-test("the edition line uses the Israel date and needs a clock for 'today'", () => {
-  n = 0;
-  const late = "2026-11-11T22:30:00Z"; // already the 12th in Israel
-  assert.equal(ilDateKey(late), "2026-11-12");
-  const pre = editionLine(late, null);
-  assert.equal(pre.today, false);
-  assert.match(pre.date, /12 בנובמבר 2026/);
-  assert.equal(editionLine(late, new Date("2026-11-12T10:00:00Z")).today, true);
-  assert.equal(
-    editionLine(late, new Date("2026-11-13T10:00:00Z")).today,
-    false
-  );
-  assert.equal(editionLine(undefined, null), null);
-  assert.equal(editionLine("x", null), null);
 });
 
 test("thumb falls back to the hero, and month helpers", () => {

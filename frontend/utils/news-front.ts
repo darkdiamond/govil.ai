@@ -112,43 +112,7 @@ export function buildFront(articles: NewsIndexEntry[]): FrontPage {
 /** The small image for a tile: the publisher's thumb, else the full hero. */
 export const thumbOf = (a: NewsIndexEntry) => a.hero_thumb || a.hero || null;
 
-// ── dates ───────────────────────────────────────────────────────────────
-
-const DAY_KEY = new Intl.DateTimeFormat("en-CA", {
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  timeZone: TZ,
-});
-const EDITION_DATE = new Intl.DateTimeFormat("he-IL", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-  timeZone: TZ,
-});
-
-/** YYYY-MM-DD in Israel time, "" for an invalid date. */
-export function ilDateKey(iso: string | Date): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : DAY_KEY.format(d);
-}
-
-/** The edition line: the lead's Israel date, and whether that is today.
- *  `now` is passed in: the page computes it after mount, so the prerender
- *  never freezes "today" into the HTML. */
-export function editionLine(
-  leadIso: string | undefined,
-  now: Date | null
-): { date: string; today: boolean } | null {
-  if (!leadIso) return null;
-  const d = new Date(leadIso);
-  if (Number.isNaN(d.getTime())) return null;
-  return {
-    date: EDITION_DATE.format(d),
-    today: now !== null && ilDateKey(d) === ilDateKey(now),
-  };
-}
+// ── months ──────────────────────────────────────────────────────────────
 
 const MONTH_KEY = new Intl.DateTimeFormat("en-CA", {
   year: "numeric",
