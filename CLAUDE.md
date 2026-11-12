@@ -425,6 +425,12 @@ catalog` lists chapters → subjects → codes.
      dataset, not used, not in cooldown, not suspect, not release-only, no point
      revised since pooled), deduped by its `digest:<ISO week>` key. It has its
      own slot (not capped by `NEWS_MAX_PER_DAY`) and counts toward the floor.
+   - **/news/ is a front page** (`frontend/utils/news-front.ts`): today's edition,
+     the digest band, news, analyses, topic desks (≥3 stories), then the archive.
+     It leans on two things the job guarantees: every `news`/`feature` story has
+     one `stat` block (a revisable `gates.check` problem; digests exempt), and
+     the index's `hero_thumb` (the 480×360 `thumb` size; older articles fall
+     back to a bigger crop).
    - every printed number is a ledger fact token (a typed or spelled-out
      number fails); links go only to our dataset pages and official
      gov.il / boi.org.il pages (quote-verified); hedged explanations need no
