@@ -34,7 +34,7 @@ NEWS_IMAGE_MODEL=${NEWS_IMAGE_MODEL:-google/gemini-3.1-flash-image}
 NEWS_SEARCH_ENGINE=${NEWS_SEARCH_ENGINE:-exa}
 NEWS_MAX_PER_DAY=${NEWS_MAX_PER_DAY:-3}
 NEWS_DATASET_COOLDOWN_DAYS=${NEWS_DATASET_COOLDOWN_DAYS:-21}
-NEWS_MAX_TOOL_CALLS=${NEWS_MAX_TOOL_CALLS:-25}
+NEWS_MAX_TOOL_CALLS=${NEWS_MAX_TOOL_CALLS:-100}
 # The daily floor: when event news leaves an Israel day with fewer articles,
 # explainers on high-demand datasets fill it (services/news/features.py).
 NEWS_MIN_PER_DAY=${NEWS_MIN_PER_DAY:-1}
