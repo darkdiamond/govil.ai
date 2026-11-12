@@ -128,6 +128,15 @@ PATH_WRITERS = frozenset({
     "to_csv", "to_json", "to_html", "to_xml", "to_latex", "to_markdown", "to_string",
 })
 PATH_WRITER_KWARGS = frozenset({"path_or_buf", "buf", "path", "excel_writer"})
+# Methods that may appear only as a direct call (`df.to_csv()`), never as a
+# value (`w = df.to_csv; w("/x")`), where the call checks can't see them.
+CALL_ONLY_ATTRS = PATH_WRITERS | {"query"}
+# A string literal naming an I/O or eval method, whatever the context:
+# pandas dispatches by name (`df.agg("to_csv", path)`, `df.apply("eval")`).
+METHOD_NAME_STRING_RE = re.compile(
+    r"^(?:read_\w*|to_(?:csv|json|html|xml|latex|markdown|string|pickle|parquet|feather|hdf|"
+    r"sql|stata|orc|excel|clipboard)|eval|query|pipe|loadtxt|genfromtxt|fromfile|fromregex|"
+    r"savez|savez_compressed|savetxt|tofile|memmap)$")
 BANNED_KWARGS = frozenset({"storage_options", "local_dict", "global_dict", "resolvers"})
 # A string naming an interpreter internal (`"{0.__class__.__globals__}".format`).
 DUNDER_STRING_RE = re.compile(
@@ -412,6 +421,9 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
         elif (isinstance(node, ast.Constant) and isinstance(node.value, str)
               and DUNDER_STRING_RE.search(node.value)):
             bad(node, "string names an interpreter internal")
+        elif (isinstance(node, ast.Constant) and isinstance(node.value, str)
+              and METHOD_NAME_STRING_RE.match(node.value)):
+            bad(node, f"string `{node.value}` names an I/O or eval method (dispatch by name)")
 
     # Modules imported with `import x [as y]` (govlib aside): the alias is
     # never rebound (no parameter, assignment, loop or comprehension target,
@@ -465,6 +477,11 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
     for node in ast.walk(tree):
         for child in ast.iter_child_nodes(node):
             parent[id(child)] = node
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr in CALL_ONLY_ATTRS:
+            up = parent.get(id(node))
+            if not (isinstance(up, ast.Call) and up.func is node):
+                bad(node, f"`{node.attr}` used other than as a direct call")
     for node in ast.walk(tree):
         if not (isinstance(node, ast.Name) and node.id in modules
                 and isinstance(node.ctx, ast.Load)):
