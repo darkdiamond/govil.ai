@@ -5,7 +5,7 @@ no text, no people, no logos, no flags), captioned "איור" on the page. If th
 image model fails, a chart card drawn from the story's main series stands in
 (brand gradient + the line, no text). Either way the result is cropped to
 16:9 (1600×900, Discover's ≥1200px), 4:3 (1200×900) and 1:1 (1200×1200) for
-NewsArticle JSON-LD, as JPEG (og:image) and WebP (the page). Filenames carry
+NewsArticle JSON-LD, plus a 480×360 thumb for /news/ tiles, as JPEG (og:image) and WebP (the page). Filenames carry
 a content hash: hosting caches images for a year as immutable.
 """
 from __future__ import annotations
@@ -29,7 +29,8 @@ HOUSE_STYLE = (
     "to 4:3 and square). Strictly NO text, letters, numbers, charts with labels, logos, flags, or "
     "recognisable real people or places' signage. Not photorealistic. Subject: "
 )
-SIZES = {"16x9": (1600, 900), "4x3": (1200, 900), "1x1": (1200, 1200)}
+# "thumb" is for small tiles on /news/ (the index's hero_thumb), not for JSON-LD.
+SIZES = {"16x9": (1600, 900), "4x3": (1200, 900), "1x1": (1200, 1200), "thumb": (480, 360)}
 # The model's bytes are untrusted: decode only the formats an image model returns, and refuse
 # a canvas past this size from its header, before decoding (Pillow's own bomb check only warns
 # below twice its default limit).

@@ -79,7 +79,11 @@ writes, and a critic will reject anything that reads like AI filler.
 
 Structure: 1 lead paragraph → 1–3 paragraphs of detail → (h2) context /
 explanations with sources → (h2) what's next. 1–3 charts placed where they help.
-At most one "stat" block (a big number near the top), optional.
+Exactly one "stat" block: the story's key number, placed near the top (right
+after the lead paragraph). It is the big number on the story's page and on its
+tile on the news front page, so pick the one figure the headline is about, with
+a short label that says what it counts. (A digest is the exception: no stat
+block is required there.)
 
 ## When `kind` is "feature" (an explainer)
 

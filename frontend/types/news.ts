@@ -73,6 +73,8 @@ export interface NewsIndexEntry {
   kind?: NewsKind;
   hero?: string | null;
   hero_alt?: string | null;
+  /** 480×360 (or 4:3) image for small tiles; older index files omit it. */
+  hero_thumb?: string | null;
   dataset_ids: string[];
   // Card data (services/news/publish_news.py). All optional: older index
   // files and articles without a stat block or line chart omit them.

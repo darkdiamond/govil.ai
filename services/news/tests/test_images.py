@@ -27,13 +27,13 @@ def _encode(fmt: str, size=(1200, 700)) -> bytes:
 def test_hero_decodes_allowed_formats(fmt):
     meta, files = images.hero(_LLM(_encode(fmt)), "brief", [1.0, 2.0])
     assert meta["kind"] == "illustration"
-    assert set(meta["sizes"]) == {"16x9", "4x3", "1x1", "webp"} and len(files) == 4
+    assert set(meta["sizes"]) == {"16x9", "4x3", "1x1", "thumb", "webp"} and len(files) == 5
 
 
 @pytest.mark.parametrize("fmt", ["GIF", "BMP", "TIFF"])
 def test_hero_refuses_other_formats(fmt):
     meta, files = images.hero(_LLM(_encode(fmt)), "brief", [1.0, 2.0])
-    assert meta["kind"] == "chart" and len(files) == 4
+    assert meta["kind"] == "chart" and len(files) == 5
 
 
 def test_hero_undecodable_bytes_fall_back():

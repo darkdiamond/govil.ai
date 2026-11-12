@@ -257,6 +257,13 @@ useSeo({
           variant="ghost"
         />
       </div>
+
+      <NewsReportError
+        class="mt-4"
+        :slug="slug"
+        :headline="article.headline"
+        :url="url"
+      />
     </article>
 
     <section v-if="more.length" class="max-w-gov mx-auto mt-14">
