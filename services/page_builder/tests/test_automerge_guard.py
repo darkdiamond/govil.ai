@@ -257,9 +257,26 @@ def test_open_with_write_mode(corpus, src):
 
 
 @pytest.mark.parametrize("src", ["f = open('x')\n", "f = open('x', 'rb')\n",
-                                 "f = open('x', mode='r')\n"])
-def test_open_read_only_is_fine(corpus, src):
-    assert _compute(src, corpus) == []
+                                 "f = open('x', mode='r')\n", "f = open\n"])
+def test_open_is_banned_even_read_only(corpus, src):
+    # inputs arrive as DataFrames; a read could reach /proc or the workdir
+    assert _compute(src, corpus), src
+
+
+@pytest.mark.parametrize("src", [
+    "import calendar\ncalendar.sys.modules['os'].getcwd()\n",
+    "import pandas as pd\npd.core.common.os.listdir('.')\n",
+    "import json\njson.decoder.re._compile\n",
+    "import statistics\nstatistics.random._os\n",
+    "import datetime\nx = datetime.datetime._fromtimestamp\n",
+    "import collections\ncollections.abc.sys\n",
+])
+def test_module_attribute_traversal_is_rejected(corpus, src):
+    assert _compute(src, corpus), src
+
+
+def test_a_column_named_like_a_module_is_fine(corpus):
+    assert _compute("def compute(f):\n    return f['x'].code.tolist()\n", corpus) == []
 
 
 @pytest.mark.parametrize("attr", ["__subclasses__", "__globals__", "__builtins__",

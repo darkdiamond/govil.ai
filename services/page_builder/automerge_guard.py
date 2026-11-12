@@ -91,7 +91,7 @@ ALLOWED_SUBMODULES = frozenset({"govlib.cbs", "govlib.fmt", "govlib.frame", "gov
 BANNED_NAMES = frozenset({
     "__import__", "eval", "exec", "compile", "getattr", "setattr", "delattr",
     "globals", "locals", "vars", "breakpoint", "input", "help", "memoryview",
-    "exit", "quit",
+    "exit", "quit", "open",   # inputs arrive as DataFrames: no recipe reads a file
 })
 # Dunder attributes recipes may touch (main uses `__setitem__`). Every other
 # `.__x__` (`__class__`, `__subclasses__`, `__globals__`, `__builtins__`,
@@ -107,6 +107,21 @@ BANNED_ATTRS = frozenset({
     "tofile", "memmap", "DataSource", "ctypeslib", "lib", "f2py", "distutils",
     "testing", "io", "eval", "system", "popen",
 })
+# Attribute names that lead from an allowed module to another one or to the
+# process, whatever the receiver: allowed modules carry others as attributes
+# (`calendar.sys.modules["os"]`, `pd.core.common.os`), which walks around the
+# import allowlist. With every `_`-prefixed attribute banned too, this is the
+# static half; cutting the sandbox's network is the real boundary (TODO.md).
+ESCAPE_ATTRS = frozenset({
+    "sys", "os", "posix", "nt", "modules", "environ", "environb", "getenv", "putenv",
+    "importlib", "import_module", "builtins", "subprocess", "socket", "ssl", "select",
+    "selectors", "urllib", "urlopen", "request", "requests", "http", "client", "httpx",
+    "ftplib", "smtplib", "ctypes", "cffi", "pickle", "marshal", "shelve", "shutil",
+    "pathlib", "tempfile", "mmap", "signal", "threading", "multiprocessing",
+    "concurrent", "asyncio", "runpy", "pty", "fcntl", "resource", "inspect", "gc",
+    "weakref", "pkgutil", "zipimport", "spawn", "fork", "execv",
+    "execve", "system", "popen",
+})
 BANNED_ATTR_PREFIXES = ("read_",)
 # Writers that return a string with no target but write a file given one.
 PATH_WRITERS = frozenset({
@@ -119,7 +134,6 @@ DUNDER_STRING_RE = re.compile(
     r"__(?:class|globals|subclasses|builtins|code|mro|bases|base|dict|import|"
     r"loader|spec|getattribute|reduce|reduce_ex|closure|func|self|init)__"
 )
-WRITE_MODE_CHARS = set("wax+")
 
 # Hosts a template may name in an absolute URL. check.py (run on every
 # rendered body) already bans `<script src=>`, network calls and src= loads
@@ -246,19 +260,12 @@ def _is_dunder(name: str) -> bool:
 
 
 def _attr_problem(attr: str) -> str | None:
-    if _is_dunder(attr) and attr not in ALLOWED_DUNDER_ATTRS:
-        return f"attribute `{attr}`"
+    if attr.startswith("_") and attr not in ALLOWED_DUNDER_ATTRS:
+        return f"attribute `{attr}` (private or interpreter internals)"
+    if attr in ESCAPE_ATTRS:
+        return f"attribute `{attr}` (reaches another module or the process)"
     if attr in BANNED_ATTRS or attr.startswith(BANNED_ATTR_PREFIXES):
         return f"attribute `{attr}` (file/URL I/O or string eval)"
-    return None
-
-
-def _open_mode(call: ast.Call) -> ast.expr | None:
-    if len(call.args) >= 2:
-        return call.args[1]
-    for kw in call.keywords:
-        if kw.arg == "mode":
-            return kw.value
     return None
 
 
@@ -273,7 +280,6 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
         problems.append(f"{path}:{getattr(node, 'lineno', '?')}: {what}")
 
     govlib_alias: dict[str, str] = {}  # local name -> govlib module ("" = package)
-    open_calls: set[int] = set()
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -334,14 +340,6 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
                 if kw.arg in BANNED_KWARGS:
                     bad(node, f"passes `{kw.arg}=`")
             func = node.func
-            if isinstance(func, ast.Name) and func.id == "open":
-                open_calls.add(id(func))
-                mode = _open_mode(node)
-                if mode is not None and not (
-                    isinstance(mode, ast.Constant) and isinstance(mode.value, str)
-                    and not (set(mode.value) & WRITE_MODE_CHARS)
-                ):
-                    bad(node, "calls `open` with a write or non-literal mode")
             if isinstance(func, ast.Attribute):
                 if func.attr in PATH_WRITERS and (
                     node.args or any(k.arg in PATH_WRITER_KWARGS for k in node.keywords)
@@ -355,11 +353,6 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
         elif (isinstance(node, ast.Constant) and isinstance(node.value, str)
               and DUNDER_STRING_RE.search(node.value)):
             bad(node, "string names an interpreter internal")
-
-    # `open` referenced other than as a direct call (`f = open`).
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Name) and node.id == "open" and id(node) not in open_calls:
-            bad(node, "references `open` other than in a read-only call")
 
     # govlib.<module>.<name> / <alias>.<name> must exist on main.
     for node in ast.walk(tree):
