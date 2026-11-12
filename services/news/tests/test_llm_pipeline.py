@@ -147,6 +147,7 @@ def _draft(typed_number=False):
         "blocks": [
             {"type": "p", "text": "לפי [[נתוני בנק ישראל|ds:" + MORT + "]] נלקחו משכנתאות בהיקף של "
                                   "{f1:num2} מיליארד שקל." + extra + " " + FILLER * 3},
+            {"type": "stat", "fact": "f1", "fmt": "num2", "label": "מיליארד שקל בספטמבר"},
             {"type": "chart", "chart": "c1"},
             {"type": "h2", "text": "ההקשר"},
             {"type": "p", "text": "[[לפי הודעת הריבית|s1]] הוועדה לא שינתה את [[הריבית|ds:" + RATE + "]]. "
@@ -232,7 +233,7 @@ def test_day_publishes_a_two_dataset_article(tmp_path):
     doc = json.loads((tmp_path / "mortgage-volume-september" / "article.json").read_text(encoding="utf-8"))
     assert doc["dataset_ids"] == [MORT, RATE] and doc["signal_keys"] == [sig.key]
     assert doc["byline"] == "מערכת govil.ai" and doc["hero"]["kind"] == "illustration"
-    assert doc["hero"]["caption"] == "איור" and set(doc["hero"]["sizes"]) == {"16x9", "4x3", "1x1", "webp"}
+    assert doc["hero"]["caption"] == "איור" and set(doc["hero"]["sizes"]) == {"16x9", "4x3", "1x1", "thumb", "webp"}
     assert (tmp_path / "mortgage-volume-september" / doc["hero"]["sizes"]["16x9"]).stat().st_size > 1000
     assert doc["sources"][0]["quote"] == QUOTE and "{" not in doc["headline"]
     # the writer saw the seeded lead facts, and kept Gemini's thought signature

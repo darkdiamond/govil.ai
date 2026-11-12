@@ -1,7 +1,9 @@
 <script setup lang="ts">
-// One story in the /news/ list: date column, headline + dek, and the story's
-// key number with its series line.
+// One story in the /news/ archive: date column, headline + dek, and the
+// story's key number with its series line (or its picture, when it has no
+// number).
 import type { NewsIndexEntry } from "~/types/news";
+import { thumbOf } from "~/utils/news-front";
 
 const props = defineProps<{ article: NewsIndexEntry }>();
 
@@ -37,7 +39,7 @@ const when = computed(() => {
     <span v-else class="row-span-2 sm:row-span-1" />
 
     <div class="min-w-0">
-      <!-- h4: the /news/ list puts each row under an h3 month heading. -->
+      <!-- h4: the archive puts each row under an h3 month heading. -->
       <h4 class="m-0 text-lg sm:text-xl font-display text-ink leading-snug">
         <!-- The stretched link makes the whole row clickable. -->
         <NuxtLink
@@ -75,5 +77,14 @@ const when = computed(() => {
       </div>
       <Sparkline v-if="article.spark" :values="article.spark" />
     </div>
+    <img
+      v-else-if="thumbOf(article)"
+      :src="thumbOf(article)!"
+      alt=""
+      width="480"
+      height="360"
+      loading="lazy"
+      class="hidden sm:block sm:col-start-3 sm:row-start-1 w-32 aspect-[4/3] object-cover rounded-gov-md bg-surface"
+    />
   </article>
 </template>

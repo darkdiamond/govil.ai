@@ -146,6 +146,16 @@ def test_good_draft_passes_and_renders():
     assert "for review" in gates.as_markdown(core)
 
 
+@pytest.mark.parametrize("kind, required", [("news", True), ("feature", True), ("digest", False)])
+def test_stat_block_is_required_except_in_a_digest(kind, required):
+    series, led, cat, f1 = _setup()
+    d = _draft(f1)
+    d["blocks"] = [b for b in d["blocks"] if b["type"] != "stat"]
+    _, problems = gates.check(d, ledger=led, series_by_ds=series, catalog=cat,
+                              vocab={"משכנתאות"}, article_kind=kind)
+    assert any("stat block is required" in p for p in problems) is required
+
+
 @pytest.mark.parametrize("mutate, needle", [
     (lambda d, f: d["blocks"][0].__setitem__("text", d["blocks"][0]["text"] + " נרשמו 1,200 עסקאות."),
      "typed numbers"),

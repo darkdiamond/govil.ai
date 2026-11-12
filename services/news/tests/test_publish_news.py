@@ -33,6 +33,8 @@ def test_writes_index_and_article_with_current_links(tmp_path):
     idx = json.loads((tmp_path / "news" / "index.json").read_text(encoding="utf-8"))["articles"]
     assert idx[0]["slug"] == "mortgages-low" and idx[0]["hero"] == "/news/mortgages-low/hero-16x9-a.jpg"
     assert idx[0]["dataset_ids"] == ["ds1"]
+    # no thumb or 4x3 on this older article: the tile falls back to the 16x9
+    assert idx[0]["hero_thumb"] == "/news/mortgages-low/hero-16x9-a.jpg"
     art = json.loads((tmp_path / "news" / "mortgages-low" / "article.json").read_text(encoding="utf-8"))
     runs = art["blocks"][0]["runs"]
     assert runs[1]["href"] == "/datasets/new-slug/"           # re-resolved after a rename
@@ -96,3 +98,11 @@ def test_publish_news_fails_soft(tmp_path):
 
     out = publish_news(tmp_path, client=Boom(), datasets=DATASETS)
     assert "error" in out
+
+
+def test_index_prefers_the_thumb_size(tmp_path):
+    a = _article()
+    a["hero"]["sizes"] |= {"4x3": "hero-4x3-c.jpg", "thumb": "hero-thumb-d.jpg"}
+    write_news(tmp_path, [a], datasets=DATASETS)
+    idx = json.loads((tmp_path / "news" / "index.json").read_text(encoding="utf-8"))["articles"][0]
+    assert idx["hero_thumb"] == "/news/mortgages-low/hero-thumb-d.jpg"

@@ -129,6 +129,8 @@ def write_news(out_root: Path, articles, *, datasets: dict[str, dict],
         index.append({k: doc[k] for k in ("slug", "headline", "dek", "published_at", "updated_at",
                                            "tags", "status", "kind")}
                      | {"hero": sizes.get("16x9"), "hero_alt": hero.get("alt"),
+                        # Small image for /news/ tiles; older articles have no thumb.
+                        "hero_thumb": sizes.get("thumb") or sizes.get("4x3") or sizes.get("16x9"),
                         "dataset_ids": [c["id"] for c in cards],
                         "datasets": [{k: c.get(k) for k in ("id", "title", "href")} for c in cards],
                         "topic": _topic(doc["tags"], tag_topics, topics),

@@ -22,6 +22,8 @@ import re
 import unicodedata
 from pathlib import Path
 
+from services.shared.states import ArticleKind
+
 from . import charts as charts_mod
 from .fetch import official_source
 from .ledger import (
@@ -111,8 +113,11 @@ def slugify(s: str) -> str:
 
 
 def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
-          vocab: set[str]) -> tuple[dict, list[str]]:
-    """(rendered article core, problems)."""
+          vocab: set[str], article_kind: str = ArticleKind.NEWS) -> tuple[dict, list[str]]:
+    """(rendered article core, problems).
+
+    News and explainers must carry one stat block: /news/ shows each story's key
+    number on its tile. A digest covers several stories, so it is exempt."""
     problems: list[str] = []
     if not isinstance(draft, dict):
         return {}, ["the article must be a JSON object"]
@@ -276,6 +281,9 @@ def check(draft: dict, *, ledger: Ledger, series_by_ds: dict, catalog: dict,
             problems.append(f"block {i}: unknown type {kind!r}")
     if stats > 1:
         problems.append("at most one stat block")
+    elif stats == 0 and article_kind != ArticleKind.DIGEST:
+        problems.append('a stat block is required: the story\'s key number, near the top '
+                        '({"type": "stat", "fact": …, "label": …})')
     for c in charts_out:
         if c["id"] not in placed:
             problems.append(f"chart {c['id']} is never placed in the blocks")

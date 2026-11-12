@@ -157,7 +157,7 @@ def write(llm, tb: Toolbox, brief: dict, *, catalog: dict, vocab: set[str], toda
             continue
 
         core, problems = gates.check(draft, ledger=tb.ledger, series_by_ds=tb.series,
-                                     catalog=catalog, vocab=vocab)
+                                     catalog=catalog, vocab=vocab, article_kind=kind)
         if not problems:
             critic = gates.critique(llm, core, kind=kind)
             if critic["verdict"] == "pass":
