@@ -311,7 +311,10 @@ landing pages. Six layers:
    `last_modified`), and top-level `limits` (per-recipe caps). A recipe with
    `limits` is **heavy**: `run_refresh` runs it after all others. Every
    compute runs heap-capped (`REFRESH_COMPUTE_MEMORY_MB`, default 3072) with
-   `oom_score_adj=1000`, so an outsized recipe dies alone. **Map files:**
+   `oom_score_adj=1000`, so an outsized recipe dies alone, and with no
+   network (`REFRESH_COMPUTE_NETWORK`, default `deny`: a seccomp filter,
+   `netguard.py`, refuses every non-AF_UNIX socket; a failed install is
+   `sandbox_failed`, transient; `allow` turns it off). **Map files:**
    geometry that exists only in an uploaded SHP/KMZ/GeoJSON is read by an
    input with `map: true`. The refresh downloads the file on every run
    (`ckan_export.fetch_resource_file`, `data.gov.il` host only) and converts
@@ -813,12 +816,16 @@ must-revalidate, s-maxage=600` (browsers revalidate via ETag; Firebase's CDN
   a scrubbed env (no key vars — the job holds `GITHUB_DISPATCH_TOKEN`),
   a private 0700 workdir, and a wall-clock timeout (300s for compute), so
   it can't read the builder's `/proc/<pid>/environ` or modify `/app`
-  (incl. the host-side `check.py`). It CAN still reach the network,
-  including the GCP metadata server, i.e. the builder SA token. Recipe
-  code is model-written and merged to `main` before it runs, either
+  (incl. the host-side `check.py`). It has no network: before recipe code
+  loads, the compute child installs a seccomp filter
+  (`services/page_builder/netguard.py`, Linux x86_64, `NO_NEW_PRIVS`,
+  inherited by anything it spawns) that refuses every non-AF_UNIX socket and
+  io_uring, so it can't reach the GCP metadata server or the SA token
+  (`REFRESH_COMPUTE_NETWORK=allow` lifts it; don't, outside an emergency).
+  Recipe code is model-written and merged to `main` before it runs, either
   human-reviewed or auto-merged by the authoring routine through
   `services/page_builder/automerge_guard.py` (paths, import allowlist, I/O
-  bans; TODO.md has the network fix); still, keep that SA minimal (Firestore + staging bucket +
+  bans); still, keep that SA minimal (Firestore + staging bucket +
   publish-trigger only) and never widen its roles for convenience.
 
 ## Gotchas + open issues

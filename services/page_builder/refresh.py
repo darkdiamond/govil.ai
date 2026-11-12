@@ -56,7 +56,7 @@ from services.shared.states import (
     UnchangedReason,
 )
 
-from . import geo_snapshot
+from . import geo_snapshot, netguard
 from .ckan_export import (
     fetch_resource_export,
     fetch_resource_file,
@@ -169,6 +169,13 @@ _DEFAULT_COMPUTE_FILE_MAX_BYTES = 1_000_000_000
 # flakes, the failure is `sandbox_failed`: transient, retried next run.
 _COMPUTE_SPAWN_ATTEMPTS = 2
 _COMPUTE_SPAWN_BACKOFF_S = 1.0
+# Compute's network (REFRESH_COMPUTE_NETWORK): `deny` (default; any value but
+# `allow`) installs netguard's seccomp filter in the compute child before
+# recipe code loads, so no socket but AF_UNIX opens. A failed install fails
+# the run as `sandbox_failed` (transient, page kept, no issue). `allow` skips
+# the filter (warned once per process).
+_COMPUTE_NETWORK_ENV = "REFRESH_COMPUTE_NETWORK"
+_network_allow_warned = False
 
 # Failure reasons a human must act on → open an authoring issue. Anything
 # else (`fetch_failed`, `sandbox_failed`) is transient and simply retried
@@ -927,6 +934,31 @@ def _memory_guard(recipe: Recipe) -> str:
     return code
 
 
+def _network_guard() -> str:
+    """Prologue that denies the compute child the network (see netguard),
+    or "" under REFRESH_COMPUTE_NETWORK=allow."""
+    global _network_allow_warned
+    mode = os.environ.get(_COMPUTE_NETWORK_ENV, "deny").strip().lower()
+    if mode == "allow":
+        if not _network_allow_warned:
+            log.warning("%s=allow: recipe compute runs with network access",
+                        _COMPUTE_NETWORK_ENV)
+            _network_allow_warned = True
+        return ""
+    if mode not in ("deny", ""):
+        log.warning("%s=%r is not deny|allow: denying", _COMPUTE_NETWORK_ENV, mode)
+    return netguard.child_prologue()
+
+
+class _NetguardFailed(RecipeError):
+    """The compute child could not install its no-network filter. A platform
+    problem, not the recipe's: transient (`sandbox_failed`), no issue, no lock,
+    and no recipe code ran."""
+
+    def __init__(self, message: str):
+        super().__init__(message, reason=FailReason.SANDBOX_FAILED)
+
+
 class _SpawnFlake(RecipeError):
     """compute() died to the known fork/gRPC abort, not to recipe code.
 
@@ -1023,6 +1055,7 @@ def _run_compute_once(
         )
         execution = sandbox.run_code(
             _memory_guard(recipe)
+            + _network_guard()
             + "import runpy; runpy.run_path('recipe_exec.py', run_name='__main__')",
             language="python",
             timeout=timeout,
@@ -1030,11 +1063,12 @@ def _run_compute_once(
         )
         if execution.error is not None:
             stderr = (execution.logs.stderr or "").strip()
-            exc = (
-                _SpawnFlake
-                if _is_spawn_flake(execution.error.value, stderr)
-                else RecipeError
-            )
+            if netguard.install_failed(execution.error.value, stderr):
+                exc = _NetguardFailed
+            elif _is_spawn_flake(execution.error.value, stderr):
+                exc = _SpawnFlake
+            else:
+                exc = RecipeError
             raise exc(
                 f"compute() failed ({execution.error.name}: {execution.error.value}): "
                 f"{stderr[-1500:]}"
