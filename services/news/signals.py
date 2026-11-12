@@ -18,6 +18,9 @@ since") and zero or more flags, each with a surprise weight:
     year_closed                  a calendar year completed (always worth a look)
     new_release                  a headline indicator's new period, nothing unusual
                                  (release datasets only, opt-in: `releases=True`)
+    new_dataset                  dataset-level, not a series: a dataset's first render
+                                 ever, recently created at its source (run.py,
+                                 opt-in: NEWS_NEW_DATASET_SIGNALS)
 
 surprise = strongest flag + a quarter of the rest. Ranking multiplies in
 search demand (`demand.py`) and cross-dataset links (`links.py`).
@@ -49,6 +52,10 @@ SINCE_MIN_YEARS = 5
 RELEASE_PREFIXES = ("cbs-", "boi-")
 RELEASE_FREQS = {"M", "Q", "E"}
 RELEASE_WEIGHT = 0.6
+# The weakest `new_release` weighs RELEASE_WEIGHT * 0.75; a new dataset weighs
+# less, and `rank` puts it after every series signal whatever the demand.
+NEW_DATASET = "new_dataset"
+NEW_DATASET_WEIGHT = 0.4
 
 
 @dataclass
@@ -149,6 +156,22 @@ def _suspect_incomplete(vals: list[float]) -> bool:
 
 def is_release(series: Series) -> bool:
     return series.dataset_id.startswith(RELEASE_PREFIXES) and series.freq in RELEASE_FREQS
+
+
+def is_new_dataset(s: Signal) -> bool:
+    return s.flags == [NEW_DATASET]
+
+
+def new_dataset_signal(dataset_id: str, created: date, *, title: str | None = None,
+                       publisher: str | None = None, created_from: str | None = None,
+                       rendered_at: str | None = None) -> Signal:
+    """One per dataset: its key `<id>|new_dataset|<created date>` marks it used
+    once an article is out, like any signal key."""
+    day = created.isoformat()
+    facts = {"created": day, "created_from": created_from, "first_rendered": rendered_at,
+             "title": title, "publisher": publisher}
+    return Signal(dataset_id, NEW_DATASET, title or "", "", day, day, 0.0, [NEW_DATASET],
+                  NEW_DATASET_WEIGHT, {k: v for k, v in facts.items() if v})
 
 
 def detect(series: Series, as_of: date, previous: Series | None = None, *,
@@ -283,12 +306,18 @@ def _chart(path: str) -> str:
 
 def rank(signals: list[Signal], *, per_dataset: int = 3, top: int | None = None) -> list[Signal]:
     """Score (surprise × demand × link bonus) and keep the strongest few per
-    dataset, so one dataset's dozen near-identical series can't crowd the list."""
+    dataset, so one dataset's dozen near-identical series can't crowd the list.
+    A `new_dataset` signal ranks after every series signal (demand can't lift
+    it over a release) and is outside the per-dataset count: it is about the
+    dataset, not one of its series."""
     for s in signals:
         link_bonus = 1 + 0.15 * min(len(s.links), 3)
         s.score = round(s.surprise * s.demand * link_bonus, 3)
     out, per, released = [], {}, set()
-    for s in sorted(signals, key=lambda s: (-s.score, s.key)):
+    for s in sorted(signals, key=lambda s: (is_new_dataset(s), -s.score, s.key)):
+        if is_new_dataset(s):
+            out.append(s)
+            continue
         if per.get(s.dataset_id, 0) >= per_dataset:
             continue
         if s.flags == ["new_release"]:
@@ -298,4 +327,9 @@ def rank(signals: list[Signal], *, per_dataset: int = 3, top: int | None = None)
             released.add(s.dataset_id)
         per[s.dataset_id] = per.get(s.dataset_id, 0) + 1
         out.append(s)
-    return out[:top] if top else out
+    if not top:
+        return out
+    # The cut never drops a new dataset: it ranks last and signals in one
+    # window only, so a busy hour would otherwise lose it for good.
+    series = [s for s in out if not is_new_dataset(s)]
+    return series[:top] + [s for s in out if is_new_dataset(s)]

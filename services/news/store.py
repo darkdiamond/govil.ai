@@ -12,6 +12,11 @@ covered (a `YYYYmmddTHHMMSSZ` stamp) — is `news_state/cursor` in the same
 database: the next run reads everything rendered from there on, whenever it
 runs (services/news/run.py `news_window`).
 
+`news_state/daily` records which once-a-day duties a run already attempted on
+an Israel date (`digest_attempt` / `floor_attempt`: an ISO date, plus the
+run id), so hourly runs try the weekly digest and the floor fill once
+(run.py `write_day`). `news_state/lock` is the run lease (services/shared/lease.py).
+
 `signal_pool/<hash of key>` holds the signals the editor saw but didn't use,
 the weekly digest's raw material (digest.py), kept POOL_KEEP_DAYS.
 
@@ -27,7 +32,8 @@ from pathlib import Path
 
 ARTICLES, REJECTS, POOL = "articles", "article_rejects", "signal_pool"
 POOL_KEEP_DAYS = 14
-STATE, CURSOR = "news_state", "cursor"
+STATE, CURSOR, DAILY, LOCK = "news_state", "cursor", "daily", "lock"
+LOCK_DOC = f"{STATE}/{LOCK}"
 META_FIELDS = ("slug", "status", "headline", "dek", "published_at", "updated_at", "byline",
                "dataset_ids", "tags", "signal_keys", "hero", "run_id", "models", "words",
                "critic_scores", "correction", "kind")
@@ -99,15 +105,40 @@ class FirestoreArticles:
         snap = self.db.collection(STATE).document(CURSOR).get()
         return (snap.to_dict() or {}).get("upto") if snap.exists else None
 
+    def _transact(self, fn):
+        """Run `fn(transaction)` in a Firestore transaction (retried on
+        contention). A seam: tests replace it with a fake transaction."""
+        from google.cloud import firestore
+
+        return firestore.transactional(fn)(self.db.transaction())
+
     def advance_cursor(self, upto: str, *, run_id: str) -> bool:
         """Move the cursor to `upto`; never backwards (a slower overlapping
-        run must not re-open a window a later one already closed)."""
-        current = self.read_cursor()
-        if current and current >= upto:
-            return False
-        self.db.collection(STATE).document(CURSOR).set(
-            {"upto": upto, "run_id": run_id, "at": datetime.now(UTC)})
-        return True
+        run must not re-open a window a later one already closed). The read
+        and the write are one transaction, so two runs finishing together
+        can't interleave a stale read with a write."""
+        ref = self.db.collection(STATE).document(CURSOR)
+
+        def _txn(transaction) -> bool:
+            snap = ref.get(transaction=transaction)
+            current = (snap.to_dict() or {}).get("upto") if snap.exists else None
+            if current and current >= upto:
+                return False
+            transaction.set(ref, {"upto": upto, "run_id": run_id, "at": datetime.now(UTC)})
+            return True
+
+        return self._transact(_txn)
+
+    def read_daily(self) -> dict:
+        """`news_state/daily`: {"<duty>_attempt": ISO Israel date, ...} ({} when none)."""
+        snap = self.db.collection(STATE).document(DAILY).get()
+        return (snap.to_dict() or {}) if snap.exists else {}
+
+    def mark_duty(self, duty: str, il_date: str, *, run_id: str) -> None:
+        """Record that `duty` ("digest" | "floor") was attempted on `il_date`."""
+        self.db.collection(STATE).document(DAILY).set(
+            {f"{duty}_attempt": il_date, f"{duty}_run_id": run_id,
+             f"{duty}_at": datetime.now(UTC)}, merge=True)
 
     def recent(self, days: int = 90) -> list[dict]:
         from google.cloud.firestore_v1.base_query import FieldFilter
@@ -232,6 +263,16 @@ class LocalArticles:
             (d / name).write_bytes(data)
         (d / "article.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1, default=str),
                                         encoding="utf-8")
+
+    def read_daily(self) -> dict:
+        p = self.root / "_state" / "daily.json"
+        return json.loads(p.read_text(encoding="utf-8")) if p.is_file() else {}
+
+    def mark_duty(self, duty: str, il_date: str, *, run_id: str) -> None:
+        d = self.root / "_state"
+        d.mkdir(exist_ok=True)
+        cur = self.read_daily() | {f"{duty}_attempt": il_date, f"{duty}_run_id": run_id}
+        (d / "daily.json").write_text(json.dumps(cur, ensure_ascii=False), encoding="utf-8")
 
     def reject(self, doc: dict) -> None:
         d = self.root / "_rejected"

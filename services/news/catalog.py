@@ -37,3 +37,31 @@ def load_catalog(origin: str = SITE_ORIGIN, timeout: float = 30) -> dict[str, di
             "metadata_modified": d.get("metadata_modified"),
         }
     return out
+
+
+
+def entry_from_source(dataset_id: str, doc: dict, *, tags: list[str] | None = None) -> dict:
+    """A catalog entry built from a `sources/<id>` doc, for a dataset rendered
+    after the deployed search index was built (a new dataset's first page).
+    `page_slug` follows `publish._build_page_slugs`: the title's Hebrew slug
+    plus the provider's own suffix, else the id's first 8 hex characters (the
+    publisher widens that only on a slug clash, which it never meets in
+    practice). `tags`: the dataset's curated tags, when known."""
+    from services.shared.slug import hebrew_slugify
+
+    title = str(doc.get("title") or "")
+    org = doc.get("organization")
+    base = hebrew_slugify(title)
+    own = doc.get("page_slug_suffix")
+    if base:
+        slug = f"{base}-{own or dataset_id.replace('-', '')[:8]}"
+    else:
+        slug = dataset_id if own else (dataset_id.replace("-", "")[:8] or dataset_id)
+    return {
+        "title": title,
+        "page_slug": slug,
+        "dataset_kind": None,
+        "organization": (org.get("title") if isinstance(org, dict) else org) or "",
+        "tags": list(tags or []),
+        "metadata_modified": doc.get("metadata_modified"),
+    }

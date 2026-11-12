@@ -169,7 +169,7 @@ def test_only_news_articles_start_a_dataset_cooldown():
 
 def test_floor_respects_max_per_day(tmp_path):
     llm = FloorLLM([_draft()])
-    out, _ = _day(tmp_path, llm, min_per_day=5, max_per_day=0)
+    out, _ = _day(tmp_path, llm, min_per_day=5, max_per_run=0)
     assert "fill" not in out
 
 

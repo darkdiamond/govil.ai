@@ -119,7 +119,7 @@ def test_digest_is_written_on_its_weekday_and_counts_toward_the_floor(tmp_path):
 
 
 def test_busy_friday_still_gets_its_digest(tmp_path):
-    out, _ = _day(tmp_path, FloorLLM([_draft()]), FRIDAY, digest_weekday=4, max_per_day=0)
+    out, _ = _day(tmp_path, FloorLLM([_draft()]), FRIDAY, digest_weekday=4, max_per_run=0)
     assert out["digest"]["status"] == "published"
 
 

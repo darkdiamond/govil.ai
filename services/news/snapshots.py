@@ -112,17 +112,43 @@ def latest_and_baseline(store, dataset_id: str, cutoff: str | None,
     the cutoff means nothing re-rendered since the last run: it is still
     returned (as context for cross-dataset links) with `False`, and no
     baseline. No baseline otherwise → signals fall back to date freshness."""
+    h = history(store, dataset_id, cutoff, upto)
+    return h.latest, h.base, h.fresh
+
+
+@dataclass
+class History:
+    """`latest_and_baseline`'s answer plus `first`: True when the dataset's
+    first render ever falls in this window (no timestamped snapshot before
+    `cutoff`; with no cutoff, the latest is the only one). A first render and
+    a recipe-version change both lack a same-recipe baseline; only this tells
+    them apart. None when it can't be told (a bare dump with no timestamp).
+    `latest.json.gz` is a copy, never a snapshot (`model_history.ts_of`)."""
+    latest: Snapshot | None
+    base: Snapshot | None
+    fresh: bool
+    first: bool | None = False
+
+
+def history(store, dataset_id: str, cutoff: str | None, upto: str | None = None) -> History:
+    """`latest_and_baseline` (same window rules), plus `History.first`."""
     names = store.names(dataset_id)
     if upto:
         names = [(ts, ref) for ts, ref in names if not ts or ts < upto]
     if not names:
-        return None, None, False
+        return History(None, None, False)
     latest = store.load(dataset_id, names[0][1])
     latest_ts = names[0][0]
     if cutoff and latest_ts and latest_ts < cutoff:
-        return latest, None, False
+        return History(latest, None, False)
+    if not latest_ts:
+        first = None
+    elif cutoff:
+        first = not any(ts and ts < cutoff for ts, _ in names[1:])
+    else:
+        first = len(names) == 1
     if cutoff:
         base = next((ref for ts, ref in names[1:] if ts and ts < cutoff), None)
     else:
         base = names[1][1] if len(names) > 1 else None
-    return latest, (store.load(dataset_id, base) if base else None), True
+    return History(latest, (store.load(dataset_id, base) if base else None), True, first)
