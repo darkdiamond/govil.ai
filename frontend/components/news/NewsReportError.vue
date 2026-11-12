@@ -33,7 +33,6 @@ const formId = computed(() => `news-report-${props.slug}`);
 
     <template v-else>
       <p class="m-0 text-subtle">
-        הכתבה נכתבה אוטומטית מהנתונים.
         <button
           type="button"
           class="inline p-0 bg-transparent border-0 text-brand underline-offset-2 hover:underline cursor-pointer"
