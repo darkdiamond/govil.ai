@@ -26,7 +26,9 @@ const { outputFiles } = await build({
 });
 const mod = { exports: {} };
 new Function("module", "exports", outputFiles[0].text)(mod, mod.exports);
-const { buildFront, thumbOf, monthKey, monthLabel } = mod.exports;
+const { buildFront, thumbOf, monthKey, monthLabel, EDITION_SIZE } = mod.exports;
+// Fills the edition, so the stories after it reach the sections.
+const edition = (kind = "news") => many(EDITION_SIZE, kind);
 
 // Newest first, as publish_news writes index.json; one story every 6 hours.
 const T0 = Date.parse("2026-11-12T06:00:00Z");
@@ -74,7 +76,7 @@ test("empty and one-story inputs", () => {
   assert.deepEqual(one.archive, []);
 });
 
-test("today's 8 live stories: edition 4, news 2, analyses 2, no archive", () => {
+test("today's 8 live stories: edition 5, news 2, one explainer to the archive", () => {
   n = 0;
   const live = [
     story("news"),
@@ -86,17 +88,17 @@ test("today's 8 live stories: edition 4, news 2, analyses 2, no archive", () => 
   assert.equal(f.lead.slug, "s0");
   assert.deepEqual(
     f.side.map((a) => a.slug),
-    ["s1", "s2", "s3"]
+    ["s1", "s2", "s3", "s4"]
   );
   assert.deepEqual(
     f.news.map((a) => a.slug),
     ["s6", "s7"]
   );
+  assert.deepEqual(f.analyses, []);
   assert.deepEqual(
-    f.analyses.map((a) => a.slug),
-    ["s4", "s5"]
+    f.archive.map((a) => a.slug),
+    ["s5"]
   );
-  assert.deepEqual(f.archive, []);
 });
 
 test("every story appears once, and the archive holds exactly the rest", () => {
@@ -119,7 +121,7 @@ test("every story appears once, and the archive holds exactly the rest", () => {
 
 test("a section under its minimum hands its story to the archive", () => {
   n = 0;
-  const f = buildFront([...many(4, "news"), story("feature"), story("news")]);
+  const f = buildFront([...edition(), story("feature"), story("news")]);
   assert.deepEqual(f.analyses, []);
   assert.deepEqual(f.news, []);
   assert.equal(f.archive.length, 2);
@@ -128,7 +130,7 @@ test("a section under its minimum hands its story to the archive", () => {
 test("the newest fresh digest gets the band and stays out of the edition", () => {
   n = 0;
   const older = story("digest");
-  const list = [story("news"), story("digest"), ...many(4, "news"), older];
+  const list = [story("news"), story("digest"), ...edition(), older];
   const f = buildFront(list);
   assert.equal(f.digest.slug, list[1].slug);
   assert.ok(!f.side.some((a) => a.kind === "digest"));
@@ -140,7 +142,7 @@ test("a stale digest leaves the band", () => {
   const stale = story("digest", null, {
     published_at: new Date(T0 - 9 * 86_400_000).toISOString(),
   });
-  const f = buildFront([story("news"), ...many(3, "news"), stale]);
+  const f = buildFront([...edition(), stale]);
   assert.equal(f.digest, null);
   assert.ok(f.archive.some((a) => a.slug === stale.slug));
 });
@@ -148,7 +150,7 @@ test("a stale digest leaves the band", () => {
 test("topic desks need three leftover stories in the topic", () => {
   n = 0;
   const list = [
-    ...many(4, "news"),
+    ...edition(),
     ...many(6, "news"), // the news section
     ...many(4, "feature"), // the analyses section
     ...many(3, "news", "economy"),
@@ -166,7 +168,7 @@ test("topic desks need three leftover stories in the topic", () => {
 test("undated stories go to the archive only", () => {
   n = 0;
   const bad = story("news", null, { published_at: "not a date" });
-  const f = buildFront([bad, ...many(4, "news")]);
+  const f = buildFront([bad, ...edition()]);
   assert.notEqual(f.lead.slug, bad.slug);
   assert.deepEqual(
     f.archive.map((a) => a.slug),
@@ -185,14 +187,14 @@ test("thumb falls back to the hero, and month helpers", () => {
 
 test("news fills whole rows of three", () => {
   n = 0;
-  const f = buildFront([...many(4, "feature"), ...many(5, "news")]);
+  const f = buildFront([...edition("feature"), ...many(5, "news")]);
   assert.equal(f.news.length, 3);
   assert.equal(f.archive.length, 2);
 });
 
 test("analyses fill whole rows of two", () => {
   n = 0;
-  const f = buildFront([...many(4, "news"), ...many(3, "feature")]);
+  const f = buildFront([...edition(), ...many(3, "feature")]);
   assert.equal(f.analyses.length, 2);
   assert.equal(f.archive.length, 1);
 });

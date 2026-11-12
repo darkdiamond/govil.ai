@@ -10,7 +10,7 @@ defineProps<{ lead: NewsIndexEntry; side: NewsIndexEntry[] }>();
 
 <template>
   <div
-    class="grid gap-8 lg:gap-10 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]"
+    class="grid gap-8 lg:gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
   >
     <article class="group relative min-w-0">
       <img
@@ -20,7 +20,7 @@ defineProps<{ lead: NewsIndexEntry; side: NewsIndexEntry[] }>();
         width="1600"
         height="900"
         fetchpriority="high"
-        class="block w-full aspect-[16/9] lg:aspect-[2/1] object-cover rounded-gov bg-surface"
+        class="block w-full aspect-[16/9] xl:aspect-[2/1] object-cover rounded-gov bg-surface"
       />
       <div class="mt-5 text-sm text-subtle flex flex-wrap items-center gap-x-3">
         <NewsKindBadge :kind="lead.kind" />

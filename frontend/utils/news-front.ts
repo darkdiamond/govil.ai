@@ -7,7 +7,7 @@
 // show. A section too small to read as one hands its stories to the archive.
 import type { NewsIndexEntry } from "~/types/news";
 
-export const EDITION_SIZE = 4;
+export const EDITION_SIZE = 5;
 export const NEWS_CAP = 6;
 export const ANALYSES_CAP = 4;
 export const SECTION_MIN = 2;
