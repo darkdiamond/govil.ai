@@ -208,7 +208,9 @@ def seo_literal_keys(tree: ast.AST) -> set[str]:
 
 
 def module_names(source: str) -> set[str]:
-    """Top-level names a module defines or imports."""
+    """Top-level names a module defines, or imports by name (`from x import
+    y`). A plain `import x` is not one: `govlib.fmt.pd` must not reach pandas
+    past the module-chain rule."""
     names: set[str] = set()
     for node in ast.parse(source).body:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -219,9 +221,9 @@ def module_names(source: str) -> set[str]:
                 for n in ast.walk(t):
                     if isinstance(n, ast.Name):
                         names.add(n.id)
-        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+        elif isinstance(node, ast.ImportFrom):
             for a in node.names:
-                names.add(a.asname or a.name.split(".")[0])
+                names.add(a.asname or a.name)
     return names
 
 
@@ -259,14 +261,71 @@ def _is_dunder(name: str) -> bool:
     return len(name) > 4 and name.startswith("__") and name.endswith("__")
 
 
+# Submodule names of pandas / numpy (and their like) banned as attributes and
+# as `from` imports: they lead to internals such as
+# `pd.compat.pickle_compat.loads` (unpickling = arbitrary code). Any name that
+# mentions pickle or marshal is banned too. (`core` is a common column name;
+# `pd.core.*` is stopped by the module-chain rule instead.)
+SUBMODULE_ATTRS = frozenset({
+    "compat", "pickle_compat", "api", "util", "utils", "internals", "lib",
+    "ctypeslib", "testing", "plotting", "tseries", "f2py", "distutils", "matlib",
+    "emath", "typing", "char", "rec", "libs", "conftest", "_libs",
+})
+BANNED_ATTR_SUBSTRINGS = ("pickle", "marshal")
+# Attribute chains two or more deep from an imported module (`pd.x.y`): only
+# those merged recipes use (first three parts). Everything else is a submodule
+# walk; extend this list in a reviewed PR, never from the routine.
+ALLOWED_MODULE_CHAINS = frozenset({
+    "pandas.Timestamp.max", "pandas.Timestamp.min", "pandas.offsets.MonthEnd",
+    "numpy.add.at", "numpy.add.reduceat",
+})
+
+
 def _attr_problem(attr: str) -> str | None:
     if attr.startswith("_") and attr not in ALLOWED_DUNDER_ATTRS:
         return f"attribute `{attr}` (private or interpreter internals)"
-    if attr in ESCAPE_ATTRS:
+    if attr in ESCAPE_ATTRS or attr in SUBMODULE_ATTRS or any(
+            w in attr.lower() for w in BANNED_ATTR_SUBSTRINGS):
         return f"attribute `{attr}` (reaches another module or the process)"
     if attr in BANNED_ATTRS or attr.startswith(BANNED_ATTR_PREFIXES):
         return f"attribute `{attr}` (file/URL I/O or string eval)"
     return None
+
+
+_FUNCS = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+
+
+def _function_locals(tree: ast.AST) -> dict[int, set[str]]:
+    """Per function: the names Python makes local to it (its parameters and
+    every name it assigns, nested functions excluded), unless declared
+    global/nonlocal."""
+    out: dict[int, set[str]] = {}
+    for fn in ast.walk(tree):
+        if not isinstance(fn, _FUNCS):
+            continue
+        names = {a.arg for a in ast.walk(fn.args) if isinstance(a, ast.arg)}
+        free: set[str] = set()
+        todo = list(fn.body) if isinstance(fn.body, list) else [fn.body]
+        while todo:
+            n = todo.pop()
+            if isinstance(n, (ast.Global, ast.Nonlocal)):
+                free.update(n.names)
+            elif isinstance(n, ast.Name) and isinstance(n.ctx, (ast.Store, ast.Del)):
+                names.add(n.id)
+            if isinstance(n, _FUNCS + (ast.ClassDef,)):
+                if not isinstance(n, ast.Lambda):
+                    names.add(n.name)
+                continue
+            todo.extend(ast.iter_child_nodes(n))
+        out[id(fn)] = names - free
+    return out
+
+
+def _enclosing_function(node: ast.AST, parent: dict[int, ast.AST]) -> ast.AST | None:
+    cur = parent.get(id(node))
+    while cur is not None and not isinstance(cur, _FUNCS):
+        cur = parent.get(id(cur))
+    return cur
 
 
 def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
@@ -328,6 +387,9 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
                     if a.name not in corpus.govlib.get(sub, set()):
                         bad(node, f"govlib.{sub} has no `{a.name}` on main "
                                   "(deploy the helper first)")
+        elif isinstance(node, ast.Match):
+            # class patterns read attributes with no ast.Attribute node
+            bad(node, "uses a `match` statement")
         elif isinstance(node, ast.Name):
             if node.id in BANNED_NAMES or _is_dunder(node.id):
                 bad(node, f"uses `{node.id}`")
@@ -353,6 +415,46 @@ def check_compute(path: str, source: str, corpus: MainCorpus) -> list[str]:
         elif (isinstance(node, ast.Constant) and isinstance(node.value, str)
               and DUNDER_STRING_RE.search(node.value)):
             bad(node, "string names an interpreter internal")
+
+    # A module (`import pandas as pd`, a govlib module) is used only as the
+    # receiver of an attribute, so it can't be aliased (`m = pd`) past the
+    # chain rule; chains two or more deep from a non-govlib module must be on
+    # ALLOWED_MODULE_CHAINS. `from pandas|numpy import …` is refused: recipes
+    # import the module.
+    imported: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                if a.name.split(".")[0] != "govlib":
+                    imported[a.asname or a.name.split(".")[0]] = a.asname and a.name or a.name.split(".")[0]
+        elif isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in ("pandas", "numpy"):
+            bad(node, f"`from {node.module} import …` (import the module itself)")
+    modules = set(imported) | set(govlib_alias)
+    parent: dict[int, ast.AST] = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parent[id(child)] = node
+    shadowed = _function_locals(tree)   # function node id -> names local to it
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Name) and node.id in modules):
+            continue
+        if not isinstance(node.ctx, ast.Load):
+            continue
+        fn = _enclosing_function(node, parent)
+        if fn is not None and node.id in shadowed.get(id(fn), ()):
+            continue   # a local variable of that name (`geo = geo_section(...)`)
+        up = parent.get(id(node))
+        if not (isinstance(up, ast.Attribute) and up.value is node):
+            bad(node, f"uses module `{node.id}` other than as `{node.id}.<name>`")
+            continue
+        if node.id not in imported:
+            continue
+        parts, cur = [imported[node.id]], node
+        while isinstance(parent.get(id(cur)), ast.Attribute) and parent[id(cur)].value is cur:
+            cur = parent[id(cur)]
+            parts.append(cur.attr)
+        if len(parts) >= 3 and ".".join(parts[:3]) not in ALLOWED_MODULE_CHAINS:
+            bad(node, f"walks `{'.'.join(parts[:3])}` (module chains: ALLOWED_MODULE_CHAINS only)")
 
     # govlib.<module>.<name> / <alias>.<name> must exist on main.
     for node in ast.walk(tree):
